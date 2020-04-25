@@ -1,7 +1,7 @@
 ﻿import * as base64 from '@stablelib/base64'
 import * as utf8 from '@stablelib/utf8'
 import nacl from 'tweetnacl'
-import { newNonce, nonceLength } from './nonce'
+import { newNonce, nonceLength } from '../util/nonce'
 import { stretch } from './stretch'
 
 // These are straightforward implementations of NaCl crypto functions, accepting and returning

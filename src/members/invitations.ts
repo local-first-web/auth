@@ -1,8 +1,8 @@
 ﻿import * as base64 from '@stablelib/base64'
 import msgpack from 'msgpack-lite'
 import nacl from 'tweetnacl'
-import { symmetric } from './symmetric'
-import { stretch } from './stretch'
+import { symmetric } from '../crypto/symmetric'
+import { stretch } from '../crypto/stretch'
 import { hmac } from '../util/hmac'
 import { base30 } from '../util/base30'
 
