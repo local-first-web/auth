@@ -1,6 +1,17 @@
 ﻿import { EventEmitter } from 'events'
 import { SignatureChain, TacoOptions } from 'types'
 
+export const create = (options: TacoOptions) => {
+  return new Team(options)
+}
+
+export const load = (json: any, options: TacoOptions) => {
+  return new Team({
+    ...options,
+    source: json,
+  })
+}
+
 export class Team extends EventEmitter {
   constructor(options: TacoOptions) {
     super()
