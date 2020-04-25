@@ -1,5 +1,12 @@
-﻿export * from './asymmetric'
-export * from './invitations'
-export * from './signatures'
-export * from './stretch'
-export * from './symmetric'
+﻿import { Team, TacoOptions } from 'Team'
+
+export const create = (options: TacoOptions) => {
+  return new Team(options)
+}
+
+export const load = (json: any, options: TacoOptions) => {
+  return new Team({
+    ...options,
+    source: json,
+  })
+}

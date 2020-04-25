@@ -4,7 +4,7 @@ import * as signatures from './signatures'
 const plaintext = 'The leopard pounces at noon'
 const zalgoText = 'ẓ̴̇a̷̰̚l̶̥͑g̶̼͂o̴̅͜ ̸̻̏í̴͜s̵̜͠ ̴̦̃u̸̼̎p̵̘̔o̵̦͑ǹ̵̰ ̶̢͘u̵̇ͅș̷̏'
 const poop = '💩'
-const json = JSON.stringify(require('../../package.json'))
+const json = JSON.stringify(require('../package.json'))
 
 describe('crypto', () => {
   describe('asymmetric encrypt/decrypt', () => {

@@ -2,15 +2,14 @@ import {
   getInvitationId,
   newIKey,
   newInvitation,
-  stretch,
   getSigningKeypair,
-} from '.'
+} from './invitations'
+import { stretch } from './stretch'
 
 describe('invitations', () => {
   test('newIKey', () => {
-    console.log(newIKey())
     let i = 1000
-    while (i-- > 0) expect(newIKey()).toHaveLength(17)
+    while (i-- > 0) expect(newIKey()).toHaveLength(16)
   })
 
   test('getInvitationId', () => {
@@ -32,6 +31,6 @@ describe('invitations', () => {
     expect(invitation.id).toHaveLength(15)
     expect(invitation).toHaveProperty('body')
     expect(invitation).toHaveProperty('type')
-    expect(invitation.type).toEqual('seitan_invite_token')
+    expect(invitation.type).toEqual('taco_invite_token')
   })
 })
