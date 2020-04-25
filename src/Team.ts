@@ -1,23 +1,19 @@
 ﻿import { EventEmitter } from 'events'
-
-export interface TacoOptions {
-  user: string
-  source?: string | object // JSON or instantiated object
-  secureStorage?: any // TODO
-}
-
-export interface SignatureBlock {}
+import { SignatureChain, TacoOptions } from 'types'
 
 export class Team extends EventEmitter {
   constructor(options: TacoOptions) {
     super()
+
     const { source, secureStorage } = options
     this.signatureChain = []
+
     if (!source) {
       // TODO create new
     } else {
       // TODO load from source
     }
+
     if (!secureStorage) {
       // TODO use `keytar`
     } else {
@@ -25,16 +21,22 @@ export class Team extends EventEmitter {
     }
   }
 
-  private signatureChain: SignatureBlock[]
+  private signatureChain: SignatureChain
 
   public roles = {
     create: () => {},
     addUser: () => {},
+    removeUser: () => {},
+    check: () => {},
+    remove: () => {},
+    list: () => {},
   }
 
   public members = {
     invite: () => {},
     accept: () => {},
+    remove: () => {},
+    list: () => {},
   }
 
   public crypto = {
@@ -42,11 +44,13 @@ export class Team extends EventEmitter {
       encrypt: () => {},
       decrypt: () => {},
     },
+
     symmetric: {
       encrypt: () => {},
       decrypt: () => {},
     },
-    signatures: {
+
+    signature: {
       sign: () => {},
       verify: () => {},
     },
