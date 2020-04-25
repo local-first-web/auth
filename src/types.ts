@@ -19,7 +19,7 @@ export interface SignatureBlock {
     encryption_key?: Base64
     signing_key: Base64
 
-    // the generation increments with each rotation
+    // the generation increments every time keys are rotated
     generation: number
 
     // hash of previous block

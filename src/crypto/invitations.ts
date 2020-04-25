@@ -3,8 +3,8 @@ import msgpack from 'msgpack-lite'
 import nacl from 'tweetnacl'
 import { symmetric } from './symmetric'
 import { stretch } from './stretch'
-import { hmac } from './hmac'
-import { base30 } from './base30'
+import { hmac } from '../util/hmac'
+import { base30 } from '../util/base30'
 
 const TACO_INVITE_TOKEN = 'taco_invite_token'
 const IKEY_LENGTH = 16
