@@ -1,6 +1,13 @@
 {
+  "name": "taco-js",
+  "author": {
+    "name": "Herb Caudill",
+    "email": "herb@devresults.com"
+  },
+  "description": "Decentralized authentication and authorization for team collaboration",
   "version": "0.1.0",
   "license": "MIT",
+  "module": "dist/taco.esm.js",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "files": [
@@ -18,6 +25,23 @@
     "prepare": "tsdx build"
   },
   "peerDependencies": {},
+  "dependencies": {
+    "@stablelib/base64": "1",
+    "@stablelib/utf8": "1",
+    "fast-memoize": "2",
+    "isomorphic-crypto": "3",
+    "msgpack-lite": "0",
+    "scryptsy": "2",
+    "tweetnacl": "1"
+  },
+  "devDependencies": {
+    "@types/msgpack-lite": "0",
+    "@types/scryptsy": "2",
+    "husky": "4",
+    "tsdx": "0",
+    "tslib": "1",
+    "typescript": "3"
+  },
   "husky": {
     "hooks": {
       "pre-commit": "tsdx lint"
@@ -28,14 +52,5 @@
     "semi": false,
     "singleQuote": true,
     "trailingComma": "es5"
-  },
-  "name": "taco",
-  "author": "Herb Caudill",
-  "module": "dist/taco.esm.js",
-  "devDependencies": {
-    "husky": "^4.2.5",
-    "tsdx": "^0.13.2",
-    "tslib": "^1.11.1",
-    "typescript": "^3.8.3"
   }
 }
