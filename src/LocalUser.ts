@@ -1,5 +1,5 @@
-﻿import { Base64Keypair, Base64 } from './types'
-import { asymmetric, symmetric, signatures } from './crypto'
+﻿import { Base64Keypair, Base64 } from 'types'
+import { asymmetric, symmetric, signatures } from './lib'
 
 export interface Keyset {
   signature: Base64Keypair

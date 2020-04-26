@@ -20,7 +20,7 @@
   "scripts": {
     "barrel": "barrelsby -c ./barrelsby.json && prettier src/**/index.ts --write",
     "start": "tsdx watch",
-    "build": "tsdx build",
+    "build": "yarn barrel && tsdx build",
     "test": "tsdx test",
     "lint": "tsdx lint",
     "prepare": "tsdx build"

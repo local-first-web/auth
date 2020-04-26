@@ -1,4 +1,4 @@
-﻿import { symmetric } from './symmetric'
+﻿import { symmetric } from '.'
 
 const plaintext = 'The leopard pounces at noon'
 const zalgoText = 'ẓ̴̇a̷̰̚l̶̥͑g̶̼͂o̴̅͜ ̸̻̏í̴͜s̵̜͠ ̴̦̃u̸̼̎p̵̘̔o̵̦͑ǹ̵̰ ̶̢͘u̵̇ͅș̷̏'

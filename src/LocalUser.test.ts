@@ -1,5 +1,5 @@
 import { LocalUser } from './LocalUser'
-import { signatures, asymmetric, symmetric } from './crypto'
+import { signatures, asymmetric, symmetric } from './lib'
 
 describe('LocalUser', () => {
   const message = 'the crocodiles lunges at dawn'

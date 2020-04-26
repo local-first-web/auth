@@ -2,10 +2,13 @@
 import * as utf8 from '@stablelib/utf8'
 import nacl from 'tweetnacl'
 import { Key, Message } from 'types'
-import { keypairToBase64 } from '../util/keypairToBase64'
-import { maybeBase64 } from '../util/maybeBase64'
-import { maybeUtf8 } from '../util/maybeUtf8'
-import { newNonce, nonceLength } from '../util/nonce'
+import {
+  keypairToBase64,
+  maybeBase64,
+  maybeUtf8,
+  newNonce,
+  nonceLength,
+} from '.'
 
 export const asymmetric = {
   /**

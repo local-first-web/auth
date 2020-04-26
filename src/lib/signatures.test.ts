@@ -1,5 +1,4 @@
-import { signatures, SignedMessage } from './signatures'
-import { asymmetric } from './asymmetric'
+import { asymmetric, signatures, SignedMessage } from '.'
 
 const plaintext = 'The leopard pounces at noon'
 

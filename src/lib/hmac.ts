@@ -1,11 +1,9 @@
 ﻿import msgpack from 'msgpack-lite'
 import * as utf8 from '@stablelib/utf8'
 import { createHmac } from 'isomorphic-crypto'
+import { Message } from 'types'
 
-export const hmac = (
-  key: string | Uint8Array,
-  payload: string | Uint8Array | object
-) => {
+export const hmac = (key: Message, payload: Message | object) => {
   const keyBytes = typeof key === 'string' ? utf8.encode(key) : key
   const hmac = createHmac('sha512', keyBytes)
 

@@ -1,9 +1,7 @@
 ﻿import * as base64 from '@stablelib/base64'
+import { keypairToBase64, maybeBase64, maybeUtf8 } from '.'
 import nacl from 'tweetnacl'
 import { Key, Message } from 'types'
-import { maybeBase64 } from 'util/maybeBase64'
-import { maybeUtf8 } from 'util/maybeUtf8'
-import { keypairToBase64 } from '../util/keypairToBase64'
 
 export const signatures = {
   /**

@@ -1,10 +1,7 @@
 ﻿import * as base64 from '@stablelib/base64'
+import { base30, hmac, stretch, symmetric } from '../lib'
 import msgpack from 'msgpack-lite'
 import nacl from 'tweetnacl'
-import { symmetric } from '../crypto/symmetric'
-import { stretch } from '../crypto/stretch'
-import { hmac } from '../util/hmac'
-import { base30 } from '../util/base30'
 
 const TACO_INVITE_TOKEN = 'taco_invite_token'
 const IKEY_LENGTH = 16
