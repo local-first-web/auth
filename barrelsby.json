@@ -1,0 +1,10 @@
+﻿{
+  "directory": "src",
+  "location": "below",
+  "delete": false,
+  "structure": "flat",
+  "verbose": false,
+  "singleQuotes": true,
+  "include": [".*\\.ts$"],
+  "exclude": ["\\.test\\."]
+}
