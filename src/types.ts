@@ -1,5 +1,9 @@
 ﻿export interface TacoOptions {
-  user: string
+  localUserName: string
+}
+
+export interface TeamOptions {
+  localUserName: string
   source?: string | object // JSON or instantiated object
   secureStorage?: any // TODO
 }
@@ -69,6 +73,14 @@ export interface Client {
   version: SemVer
 }
 
-type UnixTimestamp = number
-type Base64 = string
-type SemVer = string
+export type UnixTimestamp = number
+export type Utf8 = string
+export type Base64 = string
+export type SemVer = string
+export type Key = Utf8 | Uint8Array
+export type Message = Base64 | Uint8Array
+
+export type Base64Keypair = {
+  publicKey: Base64
+  secretKey: Base64
+}
