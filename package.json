@@ -22,7 +22,7 @@
     "start": "tsdx watch",
     "build": "yarn barrel && tsdx build",
     "test": "tsdx test",
-    "lint": "tsdx lint",
+    "lint": "tsdx lint src",
     "prepare": "tsdx build"
   },
   "peerDependencies": {},
