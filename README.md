@@ -68,8 +68,9 @@ yarn add taco-js
 #### Alice creates a new team
 
 ```ts
-import { create } from 'taco'
+import { initialize, create } from 'taco'
 
+initialize({localUser: 'alice'})
 const team = taco.create()
 ```
 
