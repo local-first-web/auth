@@ -1,6 +1,10 @@
 ﻿import * as base64 from '@stablelib/base64'
 import * as utf8 from '@stablelib/utf8'
 import nacl from 'tweetnacl'
+import { Key, Message } from 'types'
+import { keypairToBase64 } from '../util/keypairToBase64'
+import { maybeBase64 } from '../util/maybeBase64'
+import { maybeUtf8 } from '../util/maybeUtf8'
 import { newNonce, nonceLength } from '../util/nonce'
 
 export const asymmetric = {
@@ -9,13 +13,7 @@ export const asymmetric = {
    * use for asymmetric encryption and decryption. (Note that asymmetric encryption keys cannot be
    * used for signatures, and vice versa.)
    */
-  keyPair: () => {
-    const keys = nacl.box.keyPair()
-    return {
-      publicKey: base64.encode(keys.publicKey),
-      secretKey: base64.encode(keys.secretKey),
-    }
-  },
+  keyPair: () => keypairToBase64(nacl.box.keyPair()),
 
   /**
    * Asymmetrically encrypts a string of text.
@@ -27,17 +25,17 @@ export const asymmetric = {
    * @see asymmetric.decrypt
    */
   encrypt: (
-    plaintext: string,
-    recipientPublicKey: string,
-    senderSecretKey: string
+    plaintext: Message,
+    recipientPublicKey: Key,
+    senderSecretKey: Key
   ) => {
     const nonce = newNonce()
-    const messageBytes = utf8.encode(plaintext)
+    const messageBytes = maybeUtf8(plaintext)
     const encrypted = nacl.box(
       messageBytes,
       nonce,
-      base64.decode(recipientPublicKey),
-      base64.decode(senderSecretKey)
+      maybeBase64(recipientPublicKey),
+      maybeBase64(senderSecretKey)
     )
     const cipherBytes = new Uint8Array(nonceLength + encrypted.length)
     // the first 24 characters are the nonce
@@ -56,12 +54,9 @@ export const asymmetric = {
    * @returns The original plaintext
    * @see asymmetric.encrypt
    */
-  decrypt: (
-    cipher: string,
-    senderPublicKey: string,
-    recipientSecretKey: string
-  ) => {
-    const cipherBytes = base64.decode(cipher)
+  decrypt: (cipher: Key, senderPublicKey: Key, recipientSecretKey: Key) => {
+    const cipherBytes = maybeBase64(cipher)
+
     // the first 24 characters are the nonce
     const nonce = cipherBytes.slice(0, nonceLength)
     // the rest is the message
@@ -69,8 +64,8 @@ export const asymmetric = {
     const decrypted = nacl.box.open(
       message,
       nonce,
-      base64.decode(senderPublicKey),
-      base64.decode(recipientSecretKey)
+      maybeBase64(senderPublicKey),
+      maybeBase64(recipientSecretKey)
     )
     if (!decrypted) throw new Error('Could not decrypt message')
     return utf8.decode(decrypted)

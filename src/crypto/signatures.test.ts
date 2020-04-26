@@ -32,7 +32,7 @@ describe('crypto', () => {
     })
 
     test(`eve tampers with the message, but bob is not fooled`, () => {
-      const tamperedContent = signedMessage.content
+      const tamperedContent = (signedMessage.content as string)
         .replace('one', 'forty-two')
         .replace('two', 'seventy-twelve')
       const tamperedMessage = {
