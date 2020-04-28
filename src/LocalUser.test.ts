@@ -8,61 +8,58 @@ describe('LocalUser', () => {
     localStorage.clear()
   })
 
-  describe('constructor', () => {
-    it('should instantiate a user', () => {
-      const herb = new LocalUser({ username: 'herb' })
-      expect(herb).toHaveProperty('keyset')
-    })
+  it('should instantiate a user', () => {
+    const herb = new LocalUser({ name: 'herb' })
+    expect(herb).toHaveProperty('keys')
+  })
 
-    it('should retrieve the keyset for a known user', () => {
-      // herb uses app for the first time
-      const herb1 = new LocalUser({ username: 'herb' })
-      const { keyset } = herb1
-      expect(keyset).toHaveProperty('signature')
-      expect(keyset).toHaveProperty('asymmetric')
-      expect(keyset).toHaveProperty('symmetric')
+  it('should retrieve the keyset for a known user', () => {
+    // herb uses app for the first time
+    const herb1 = new LocalUser({ name: 'herb' })
+    const { keys } = herb1
+    expect(keys).toHaveProperty('signature')
+    expect(keys).toHaveProperty('asymmetric')
+    expect(keys).toHaveProperty('symmetric')
 
-      // herb uses app for the second time
-      const herb2 = new LocalUser({ username: 'herb' })
+    // herb uses app for the second time
+    const herb2 = new LocalUser({ name: 'herb' })
 
-      // keyset is the same
-      expect(herb2.keyset).toEqual(keyset)
-    })
+    // keyset is the same
+    expect(herb2.keys).toEqual(keys)
+  })
 
-    it('should keep keysets separate for different users', () => {
-      // herb uses app
-      const herb = new LocalUser({ username: 'herb' })
+  it('should keep keysets separate for different users', () => {
+    // herb uses app
+    const herb = new LocalUser({ name: 'herb' })
 
-      // alice uses app on the same device (?)
-      const alice = new LocalUser({ username: 'alice' })
+    // alice uses app on the same device (?)
+    const alice = new LocalUser({ name: 'alice' })
 
-      // keyset is different
-      expect(alice.keyset).not.toEqual(herb.keyset)
-    })
+    // keyset is different
+    expect(alice.keys).not.toEqual(herb.keys)
+  })
 
-    it('should provide a working keypair for signatures', () => {
-      const keypair = new LocalUser({ username: 'bob' }).keyset.signature
-      const { secretKey, publicKey } = keypair
-      const signature = signatures.sign(message, secretKey)
-      expect(
-        signatures.verify({ content: message, signature, publicKey })
-      ).toBe(true)
-    })
+  it('should provide a working keypair for signatures', () => {
+    const keypair = new LocalUser({ name: 'bob' }).keys.signature
+    const { secretKey, publicKey } = keypair
+    const signature = signatures.sign(message, secretKey)
+    const signedMessage = { content: message, signature, publicKey }
+    expect(signatures.verify(signedMessage)).toBe(true)
+  })
 
-    it('should provide a working keyset for asymmetric encryption', () => {
-      const a = new LocalUser({ username: 'charlie' }).keyset.asymmetric
-      const b = asymmetric.keyPair()
-      const cipher = asymmetric.encrypt(message, b.publicKey, a.secretKey)
-      const decrypted = asymmetric.decrypt(cipher, a.publicKey, b.secretKey)
-      expect(decrypted).toEqual(message)
-    })
+  it('should provide a working keyset for asymmetric encryption', () => {
+    const a = new LocalUser({ name: 'charlie' }).keys.asymmetric
+    const b = asymmetric.keyPair()
+    const cipher = asymmetric.encrypt(message, b.publicKey, a.secretKey)
+    const decrypted = asymmetric.decrypt(cipher, a.publicKey, b.secretKey)
+    expect(decrypted).toEqual(message)
+  })
 
-    it('should provide a working key for symmetric encryption', () => {
-      const { keyset } = new LocalUser({ username: 'eve' })
-      const key = keyset.symmetric
-      const cipher = symmetric.encrypt(message, key)
-      const decrypted = symmetric.decrypt(cipher, key)
-      expect(decrypted).toEqual(message)
-    })
+  it('should provide a working key for symmetric encryption', () => {
+    const { keys: keyset } = new LocalUser({ name: 'eve' })
+    const key = keyset.symmetric
+    const cipher = symmetric.encrypt(message, key)
+    const decrypted = symmetric.decrypt(cipher, key)
+    expect(decrypted).toEqual(message)
   })
 })
