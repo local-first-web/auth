@@ -8,31 +8,32 @@ export interface Keyset {
 }
 
 export interface LocalUserOptions {
-  username: string
+  name: string
+  secureStorage?: any // TODO
 }
 
 const STORAGE_KEY = 'TACO_KEY_STORAGE'
 
 export class LocalUser {
   constructor(options: LocalUserOptions) {
-    const { username } = options
-    this.username = username
+    const { name } = options
+    this.name = name
 
-    this.keyset = this.loadKeyset() || this.generateNewKeyset()
+    this.keys = this.loadKeyset() || this.generateNewKeyset()
     this.storeKeyset()
   }
 
-  public username: string
-  public keyset: Keyset
+  public name: string
+  public keys: Keyset
 
   private loadKeyset = (): Keyset | undefined => {
     const allKeysets = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-    return allKeysets[this.username]
+    return allKeysets[this.name]
   }
 
   private storeKeyset = () => {
     const allKeysets = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-    allKeysets[this.username] = this.keyset
+    allKeysets[this.name] = this.keys
     localStorage.setItem(STORAGE_KEY, JSON.stringify(allKeysets))
   }
 
