@@ -70,7 +70,7 @@ yarn add taco-js
 ```ts
 import { initialize, create } from 'taco'
 
-initialize({localUser: 'alice'})
+initialize({ localUser: 'alice' })
 const team = taco.create()
 ```
 
