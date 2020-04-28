@@ -10,7 +10,7 @@ export interface SignedLink {
 }
 
 export interface LinkBody {
-  type: SignatureBlockType
+  type: LinkType
 
   // context
   device?: Device
@@ -38,7 +38,7 @@ export interface LinkBody {
   index: number
 }
 
-export const signatureBlockType = {
+export const linkType = {
   root: 1,
   invite: 2,
   add_member: 3,
@@ -49,7 +49,7 @@ export const signatureBlockType = {
   rotate: 8,
 }
 
-export type SignatureBlockType = ValueOf<typeof signatureBlockType>
+export type LinkType = ValueOf<typeof linkType>
 
 export const deviceType = {
   desktop: 1,
@@ -60,7 +60,7 @@ export const deviceType = {
   server: 6,
   other: 99,
 }
-export type DeviceType = ValueOf<typeof signatureBlockType>
+export type DeviceType = ValueOf<typeof linkType>
 
 export interface Device {
   id: Base64
