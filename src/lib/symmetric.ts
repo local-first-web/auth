@@ -1,6 +1,6 @@
 ﻿import * as base64 from '@stablelib/base64'
 import * as utf8 from '@stablelib/utf8'
-import { maybeBase64, maybeUtf8, newNonce, nonceLength, stretch } from '.'
+import { keyToBytes, payloadToBytes, newNonce, nonceLength, stretch } from '.'
 import nacl from 'tweetnacl'
 import { Key, Message } from 'types'
 
@@ -20,7 +20,7 @@ export const symmetric = {
   encrypt: (message: Message, password: Key) => {
     const key = stretch(password)
     const nonce = newNonce()
-    const messageBytes = maybeUtf8(message)
+    const messageBytes = payloadToBytes(message)
     const box = nacl.secretbox(messageBytes, nonce, key)
     const cipherBytes = new Uint8Array(nonceLength + box.length)
 
@@ -42,7 +42,7 @@ export const symmetric = {
    */
   decrypt: (cipher: Key, password: Key) => {
     const key = stretch(password)
-    const cipherBytes = maybeBase64(cipher)
+    const cipherBytes = keyToBytes(cipher)
 
     // the first 24 characters are the nonce
     const nonce = cipherBytes.slice(0, nonceLength)

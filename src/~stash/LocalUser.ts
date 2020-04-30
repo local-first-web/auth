@@ -1,10 +1,11 @@
 ﻿import { Base64Keypair, Base64 } from 'types'
-import { asymmetric, symmetric, signatures } from './lib'
+import { asymmetric, symmetric, signatures } from '../lib'
 
 export interface Keyset {
+  generation?: number
   signature: Base64Keypair
   asymmetric: Base64Keypair
-  symmetric: Base64
+  symmetric: { key: Base64 }
 }
 
 export interface LocalUserOptions {
@@ -39,9 +40,16 @@ export class LocalUser {
 
   private generateNewKeyset = (): Keyset => {
     return {
+      generation: 0,
       signature: signatures.keyPair(),
       asymmetric: asymmetric.keyPair(),
       symmetric: symmetric.key(),
     }
   }
 }
+
+// export const deviceKeys = {
+//   loadKeyset: () => {}
+//   storeKeyset: () => {}
+//   createKeyset: () => {}
+// }

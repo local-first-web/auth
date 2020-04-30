@@ -9,27 +9,19 @@ export interface SignedLink {
   }
 }
 
-export interface LinkBody {
+export interface LinkBodyBase {
   type: LinkType
+  payload: any
 
   // context
-  device?: Device
   user: string
+  device?: Device
   client?: Client
-
-  // public keys
-  encryption_key?: Base64
-  signing_key: Base64
-
-  // the generation increments every time keys are rotated
-  generation: number
+  timestamp: UnixTimestamp // Unix timestamp on device that created this block
 
   // hash of previous block
   // TODO hmac? key?
   prev: Base64 | null
-
-  // Unix timestamp on device that created this block
-  timestamp: UnixTimestamp
 
   // Unix time when this block should be automatically revoked
   expires?: UnixTimestamp
@@ -38,32 +30,50 @@ export interface LinkBody {
   index: number
 }
 
-export const linkType = {
-  root: 1,
-  invite: 2,
-  add_member: 3,
-  add_device: 4,
-  add_role: 5,
-  change_membership: 6,
-  revoke: 7,
-  rotate: 8,
+export enum LinkType {
+  ROOT,
+  ADD_MEMBER,
+  INVITE,
+  ADD_DEVICE,
+  ADD_ROLE,
+  CHANGE_MEMBERSHIP,
+  REVOKE,
+  ROTATE,
 }
 
-export type LinkType = ValueOf<typeof linkType>
-
-export const deviceType = {
-  desktop: 1,
-  laptop: 2,
-  tablet: 3,
-  mobile: 4,
-  bot: 5,
-  server: 6,
-  other: 99,
+export type Member = {
+  name: string
+  encryptionKey: Base64
+  signingKey: Base64
+  generation: number // increments when keys are rotated
 }
-export type DeviceType = ValueOf<typeof linkType>
+
+export interface RootLink extends LinkBodyBase {
+  type: LinkType.ROOT
+  payload: {
+    team: {
+      name: string
+      rootUser: Member
+    }
+  }
+  prev: null
+  index: 0
+}
+
+export type LinkBody = RootLink
+
+export enum DeviceType {
+  desktop,
+  laptop,
+  tablet,
+  mobile,
+  bot,
+  server,
+  other,
+}
 
 export interface Device {
-  id: Base64
+  id?: Base64
   name: string
   type: DeviceType
 }
@@ -78,7 +88,8 @@ export type Utf8 = string
 export type Base64 = string
 export type SemVer = string
 export type Key = Utf8 | Uint8Array
-export type Message = Base64 | Uint8Array | object
+export type Payload = Base64 | Uint8Array | object
+export type Message = Base64 | Uint8Array
 
 export type Base64Keypair = {
   publicKey: Base64

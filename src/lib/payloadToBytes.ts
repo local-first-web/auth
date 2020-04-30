@@ -1,9 +1,10 @@
 ﻿import * as utf8 from '@stablelib/utf8'
-import { Message } from 'types'
+import { Payload } from 'types'
+import msgpack from 'msgpack-lite'
 
-export const maybeUtf8 = (x: Message) =>
+export const payloadToBytes = (x: Payload) =>
   typeof x === 'string'
     ? utf8.encode(x) // string
     : ArrayBuffer.isView(x)
     ? x // Uint8Array
-    : utf8.encode(JSON.stringify(x)) // object
+    : msgpack.encode(x) // object

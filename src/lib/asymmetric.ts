@@ -4,8 +4,8 @@ import nacl from 'tweetnacl'
 import { Key, Message } from 'types'
 import {
   keypairToBase64,
-  maybeBase64,
-  maybeUtf8,
+  keyToBytes,
+  payloadToBytes,
   newNonce,
   nonceLength,
 } from '.'
@@ -33,12 +33,12 @@ export const asymmetric = {
     senderSecretKey: Key
   ) => {
     const nonce = newNonce()
-    const messageBytes = maybeUtf8(plaintext)
+    const messageBytes = payloadToBytes(plaintext)
     const encrypted = nacl.box(
       messageBytes,
       nonce,
-      maybeBase64(recipientPublicKey),
-      maybeBase64(senderSecretKey)
+      keyToBytes(recipientPublicKey),
+      keyToBytes(senderSecretKey)
     )
     const cipherBytes = new Uint8Array(nonceLength + encrypted.length)
     // the first 24 characters are the nonce
@@ -58,7 +58,7 @@ export const asymmetric = {
    * @see asymmetric.encrypt
    */
   decrypt: (cipher: Key, senderPublicKey: Key, recipientSecretKey: Key) => {
-    const cipherBytes = maybeBase64(cipher)
+    const cipherBytes = keyToBytes(cipher)
 
     // the first 24 characters are the nonce
     const nonce = cipherBytes.slice(0, nonceLength)
@@ -67,8 +67,8 @@ export const asymmetric = {
     const decrypted = nacl.box.open(
       message,
       nonce,
-      maybeBase64(senderPublicKey),
-      maybeBase64(recipientSecretKey)
+      keyToBytes(senderPublicKey),
+      keyToBytes(recipientSecretKey)
     )
     if (!decrypted) throw new Error('Could not decrypt message')
     return utf8.decode(decrypted)

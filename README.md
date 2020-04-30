@@ -3,12 +3,11 @@
 # 🌮 Taco
 
 Decentralized authentication and authorization for team collaboration, using a secure chain of
-cryptological signatures.
+cryptographic signatures.
 
 ## Why
 
-💻🤝 You're building a [local-first](http://inkandswitch.com/local-first.html) app to enable distributed
-collaboration [without a central
+💻🤝 You're building a [local-first](http://inkandswitch.com/local-first.html) app to enable distributed collaboration [without a central
 server](http://medium.com/all-the-things/a-web-application-with-no-web-server-61000a6aed8f).
 
 👩🔑 You want to **authenticate** users and manage their **permissions**.
@@ -21,8 +20,8 @@ server](http://medium.com/all-the-things/a-web-application-with-no-web-server-61
 
 ## How
 
-When Alice first creates a team, she is assigned a set of **device-specfic keys** for signatures,
-assymetric encryption, and symmetric encryption. These are stored in her device's **secure storage**,
+When Alice first creates a team, she is assigned a set of **device-specific keys** for signatures,
+asymmetric encryption, and symmetric encryption. These are stored in her device's **secure storage**,
 and the secret keys will **never leave that device**.
 
 She writes the first link of a **signature chain**, containing her public keys for signatures and
@@ -39,10 +38,7 @@ are **rotated** and associated data **re-encrypted**.
 
 ## What
 
-Taco exposes two functions:
-
-- `create`, which you can use create a signature chain for a new team; and
-- `load`, which you can use to read from an existing signature chain in JSON format.
+Taco exposes a single `Team` class. 
 
 You get a `Team` object back that wraps the signature chain and encapsulates the team's members,
 devices, and roles. This object can also use the public keys embedded in the signature chain, along
@@ -54,10 +50,7 @@ verification within the team.
 - **Storage** Taco uses the secure storage provided by the device to store the user's keys.
   Otherwise Taco does **not** deal with storage for the signature chain.
 - **Networking** Taco does not deal with networking for sending invitations or for keeping
-  signature chains in sync across devices. Since the signature chain is an append-only immutable
-  log, the synchronization logic is very simple.
-
-In both cases, you can subscribe to update events
+  signature chains in sync across devices. 
 
 ### Examples
 
@@ -68,27 +61,21 @@ yarn add taco-js
 #### Alice creates a new team
 
 ```ts
-import { initialize, create } from 'taco'
+import { Team } from 'taco'
 
-initialize({ localUser: 'alice' })
-const team = taco.create()
+const context = { localUser: 'alice',  device: 'windows laptop 2020' }
+const team = new Team({name: 'Spies Я Us', context})
 ```
+
+Usernames (`alice` in the example) identify a person uniquely within the team. You could use existing user IDs or names, or email addresses. 
 
 #### Alice invites Bob
 
 ```ts
-const invitationKey = team.invite('bob')
+const invitationKey = team.members.invite('bob')
 ```
 
-User names (`bob` in the example) just need to identify a person uniquely within the team. You could
-use system usernames, email addresses, or official ID numbers.
-
-The invitation key is a single-use 16-character string. To make it easier to retype if needed, it is
-in base-30 format, which omits easily confused characters. This is a secret that only Alice and Bob
-will ever know.
-
-This key might be typed directly into your application. Or it might be appended to a URL that Bob
-can click to accept:
+The invitation key is a single-use 16-character string like `aj7x d2jr 9c8f zrbs`. To make it easier to retype if needed, it is in base-30 format, which omits easily confused characters. This is a secret that only Alice and Bob will ever know. It might be typed directly into your application, or appended to a URL that Bob can click to accept:
 
 > Alice has invited you to team XYZ. To accept, click: http://xyz.org/accept/aj7xd2jr9c8fzrbs
 
@@ -100,47 +87,46 @@ Alice will send the invitation to Bob via a pre-authenticated channel.
 #### Bob accepts the invitation
 
 ```ts
-team.accept('aj7x d2jr 9c8f zrbs')
+team.members.accept('aj7x d2jr 9c8f zrbs')
 ```
 
 #### Alice defines a role
 
 ```ts
-team.createRole('managers', { isAdmin: true })
+team.roles.create('managers', { isAdmin: true })
 ```
 
 #### Alice adds Bob to this role
 
 ```ts
-team.addToRole('managers', ['bob'])
+team.roles.addUser('managers', ['bob'])
 ```
 
 #### Alice checks Bob's permissions
 
 ```ts
-const isAdmin = team.isAdmin('bob')
+const isAdmin = team.roles.isAdmin('bob')
 ```
 
 #### Alice encrypts a message for managers
 
 ```ts
 const message = 'the condor flies at midnight'
-const cipher = team.encrypt(message, { roles: ['managers'] })
+const { encrypt, decrypt } = team.crypto.asymmetric
+const cipher = encrypt(message, { roles: ['managers'] })
 ```
 
 #### Bob decrypts the message
 
 ```ts
-const decryptedMessage = team.decrypt(cipher) // 'the condor flies at midnight'
+const { encrypt, decrypt } = team.crypto.asymmetric
+const decryptedMessage = decrypt(cipher) // 'the condor flies at midnight'
 ```
 
 👉 Learn more: [API documentation](./docs/api.md).
 
 ## Prior art
 
-💡 This project is inspired by and borrows heavily from Keybase: The signature chain is inspired by
-[their implementation for Teams](https://keybase.io/docs/team), and the invitation mechanism is
-based on their [Seitan token exchange specification](https://keybase.io/docs/teams/seitan_v2),
-proposed as a more secure alternative to "Trust On First Use" (TOFU).
+💡 This project is inspired by and borrows heavily from Keybase: The signature chain is inspired by [their implementation for Teams](https://keybase.io/docs/team), and the invitation mechanism is based on their [Seitan token exchange specification](https://keybase.io/docs/teams/seitan_v2), proposed as a more secure alternative to TOFU, or _**T**rust **O**n **F**irst **U**se_.
 
 TACO stands for _**T**rust **A**fter **C**onfirmation **O**f invitation_.
