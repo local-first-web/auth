@@ -1,5 +1,5 @@
 ﻿import { SignatureChain, LinkBody, LocalUser, SignedLink } from './types'
-import { signatures } from 'lib'
+import { signatures } from '../lib'
 import { hashLink } from './hashLink'
 
 interface appendArgs {

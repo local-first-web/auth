@@ -1,6 +1,6 @@
 ﻿import { SignatureChain, SignedLink } from './types'
 import { hashLink } from './hashLink'
-import { signatures } from 'lib'
+import { signatures } from '../lib'
 
 /**
  * Runs a signature chain through a series of validators to ensure that it has not been tampered with.

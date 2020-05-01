@@ -1,6 +1,6 @@
 import { create, validate } from '.'
 import { Context, DeviceType, LocalUser } from './types'
-import { deriveKeys, randomKey } from '/keys'
+import { deriveKeys, randomKey } from '../keys'
 
 const alice: LocalUser = {
   name: 'alice',
