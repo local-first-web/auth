@@ -1,15 +1,11 @@
-﻿import { LocalUser } from '~stash'
-import { Device, Client, LinkBody, LinkType, SignatureChain } from './types'
-import { append } from './append'
+﻿import { append } from './append'
+import { Context, LinkBody, LinkType, SignatureChain } from './types'
 
 interface CreateArgs {
   payload: any
-  context: {
-    localUser: LocalUser
-    device: Device
-    client: Client
-  }
+  context: Context
 }
+
 export const create = ({ payload = {}, context }: CreateArgs) => {
   const { localUser, device, client } = context
 
