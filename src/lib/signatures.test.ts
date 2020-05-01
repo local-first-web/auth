@@ -1,4 +1,5 @@
 import { asymmetric, signatures, SignedMessage } from '.'
+import nacl from 'tweetnacl'
 
 const plaintext = 'The leopard pounces at noon'
 
@@ -27,6 +28,35 @@ describe('crypto', () => {
 
     test(`bob verifies using alice's public key`, () => {
       const isLegit = verify(signedMessage)
+      expect(isLegit).toBe(true)
+    })
+
+    test(`round trip with bytes payload`, () => {
+      const payload = nacl.randomBytes(32)
+      const { secretKey, publicKey } = alice
+      const signature = sign(payload, secretKey)
+      const isLegit = verify({ payload, signature, publicKey })
+      expect(isLegit).toBe(true)
+    })
+
+    test(`round trip with JSON payload`, () => {
+      const payload = {
+        type: 0,
+        payload: { team: 'Spies Я Us' },
+        user: 'alice',
+        device: {
+          id: 'seccQeheyHxM4gBmetpJOPrugu+iqS25M+fn4pp6BZ4=',
+          name: 'windows laptop',
+          type: 1,
+        },
+        client: { name: 'test', version: '0' },
+        timestamp: 1588335904711,
+        index: 0,
+        prev: undefined,
+      }
+      const { secretKey, publicKey } = alice
+      const signature = sign(payload, secretKey)
+      const isLegit = verify({ payload, signature, publicKey })
       expect(isLegit).toBe(true)
     })
 

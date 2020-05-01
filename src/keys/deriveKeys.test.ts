@@ -1,5 +1,5 @@
 import { deriveKeys } from './deriveKeys'
-import { keyToBytes } from '../lib'
+import { keyToBytes, signatures } from '../lib'
 import { randomKey } from './randomKey'
 
 describe('deriveKeys', () => {
@@ -12,5 +12,14 @@ describe('deriveKeys', () => {
     expect(keyToBytes(asymmetric.publicKey)).toHaveLength(32)
     expect(keyToBytes(asymmetric.secretKey)).toHaveLength(32)
     expect(keyToBytes(symmetric.key)).toHaveLength(32)
+  })
+
+  it('should produce working signature keys', () => {
+    const derivedKeys = deriveKeys(randomKey())
+    const { secretKey, publicKey } = derivedKeys.signature
+    const payload = 'hello world'
+    const signature = signatures.sign(payload, secretKey)
+    const isLegit = signatures.verify({ payload, signature, publicKey })
+    expect(isLegit).toBe(true)
   })
 })

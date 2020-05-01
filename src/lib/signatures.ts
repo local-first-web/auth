@@ -16,13 +16,14 @@ export const signatures = {
    * @param secretKey The signer's secret key, encoded as a base64 string
    * @returns A signature, encoded as a base64 string
    */
-  sign: (payload: Payload, secretKey: Key) =>
-    base64.encode(
+  sign: (payload: Payload, secretKey: Key) => {
+    return base64.encode(
       nacl.sign.detached(
         payloadToBytes(payload), //
         keyToBytes(secretKey)
       )
-    ),
+    )
+  },
 
   /**
    * @param content The plaintext message to be verified
@@ -30,12 +31,13 @@ export const signatures = {
    * @param publicKey The signer's public key, encoded as a base64 string
    * @returns true if verification succeeds, false otherwise
    */
-  verify: ({ payload, signature, publicKey }: SignedMessage) =>
-    nacl.sign.detached.verify(
+  verify: ({ payload, signature, publicKey }: SignedMessage) => {
+    return nacl.sign.detached.verify(
       payloadToBytes(payload),
       keyToBytes(signature),
       keyToBytes(publicKey)
-    ),
+    )
+  },
 }
 
 export type SignedMessage = {
