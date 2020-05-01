@@ -1,15 +1,15 @@
-import { create, append, validate } from '.'
-import { LocalUser, Context, DeviceType } from './types'
+import { create, validate } from '.'
+import { Context, DeviceType, LocalUser } from './types'
 import { deriveKeys, randomKey } from '/keys'
 
 const alice: LocalUser = {
   name: 'alice',
   keys: deriveKeys(randomKey()),
 }
-const bob: LocalUser = {
-  name: 'bob',
-  keys: deriveKeys(randomKey()),
-}
+// const bob: LocalUser = {
+//   name: 'bob',
+//   keys: deriveKeys(randomKey()),
+// }
 
 const context: Context = {
   localUser: alice,

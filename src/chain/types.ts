@@ -1,5 +1,5 @@
-﻿import { Key, Base64, UnixTimestamp, SemVer } from '/types'
-import { Keyset } from 'keys'
+﻿import { Keyset } from 'keys'
+import { Base64, SemVer, UnixTimestamp } from '/types'
 
 export interface LocalUser {
   name: string
