@@ -1,4 +1,4 @@
-import { deriveKeys } from '.'
+import { deriveKeys } from './deriveKeys'
 import nacl from 'tweetnacl'
 import { keyToBytes } from '../lib'
 

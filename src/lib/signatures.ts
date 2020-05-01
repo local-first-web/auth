@@ -1,7 +1,7 @@
 ﻿import * as base64 from '@stablelib/base64'
 import { keypairToBase64, keyToBytes, payloadToBytes } from '.'
 import nacl from 'tweetnacl'
-import { Key, Message } from 'types'
+import { Key, Message, Payload } from 'types'
 
 export const signatures = {
   /**
@@ -16,10 +16,10 @@ export const signatures = {
    * @param secretKey The signer's secret key, encoded as a base64 string
    * @returns A signature, encoded as a base64 string
    */
-  sign: (message: Message, secretKey: Key) =>
+  sign: (payload: Payload, secretKey: Key) =>
     base64.encode(
       nacl.sign.detached(
-        payloadToBytes(message), //
+        payloadToBytes(payload), //
         keyToBytes(secretKey)
       )
     ),
@@ -30,16 +30,16 @@ export const signatures = {
    * @param publicKey The signer's public key, encoded as a base64 string
    * @returns true if verification succeeds, false otherwise
    */
-  verify: ({ content, signature, publicKey }: SignedMessage) =>
+  verify: ({ payload, signature, publicKey }: SignedMessage) =>
     nacl.sign.detached.verify(
-      payloadToBytes(content),
+      payloadToBytes(payload),
       keyToBytes(signature),
       keyToBytes(publicKey)
     ),
 }
 
 export type SignedMessage = {
-  content: Message
+  payload: Payload
   signature: Key
   publicKey: Key
 }

@@ -1,7 +1,7 @@
 ﻿{
   "directory": "src",
   "location": "below",
-  "delete": false,
+  "delete": true,
   "structure": "flat",
   "verbose": false,
   "singleQuotes": true,

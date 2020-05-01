@@ -13,14 +13,14 @@ describe('crypto', () => {
     }
 
     const signedMessage: SignedMessage = {
-      content: 'one if by day, two if by night',
+      payload: 'one if by day, two if by night',
       signature:
         'Qd9f/Xgk9QFG9nVNb/QkHqKTNF0JQCEy848m4w8UmxSRwnuomBZz6Bi8wDopz//iKwHq3ipMvA2AGAw8Oo19Dw==',
       publicKey: alice.publicKey,
     }
 
     test('alice signs with her secret key', () => {
-      const { content, signature: knownSignature } = signedMessage
+      const { payload: content, signature: knownSignature } = signedMessage
       const signature = sign(content, alice.secretKey)
       expect(signature).toEqual(knownSignature)
     })
@@ -31,7 +31,7 @@ describe('crypto', () => {
     })
 
     test(`eve tampers with the message, but bob is not fooled`, () => {
-      const tamperedContent = (signedMessage.content as string)
+      const tamperedContent = (signedMessage.payload as string)
         .replace('one', 'forty-two')
         .replace('two', 'seventy-twelve')
       const tamperedMessage = {

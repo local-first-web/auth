@@ -1,12 +1,5 @@
-﻿import { Base64Keypair, Base64 } from 'types'
-import { asymmetric, symmetric, signatures } from '../lib'
-
-export interface Keyset {
-  generation?: number
-  signature: Base64Keypair
-  asymmetric: Base64Keypair
-  symmetric: { key: Base64 }
-}
+﻿import { Keyset } from '../keys'
+import { asymmetric, signatures, symmetric } from '../lib'
 
 export interface LocalUserOptions {
   name: string
@@ -43,7 +36,7 @@ export class LocalUser {
       generation: 0,
       signature: signatures.keyPair(),
       asymmetric: asymmetric.keyPair(),
-      symmetric: symmetric.key(),
+      symmetric: { key: symmetric.key() },
     }
   }
 }
