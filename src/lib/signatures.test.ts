@@ -36,7 +36,7 @@ describe('crypto', () => {
         .replace('two', 'seventy-twelve')
       const tamperedMessage = {
         ...signedMessage,
-        content: tamperedContent,
+        payload: tamperedContent,
       }
       const isLegit = verify(tamperedMessage)
       expect(isLegit).toBe(false)
