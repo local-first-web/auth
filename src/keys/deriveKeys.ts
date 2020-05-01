@@ -2,7 +2,7 @@
 import { hmac, keypairToBase64 } from '../lib'
 import nacl from 'tweetnacl'
 import { Key } from '/types'
-import { HASH_PURPOSE } from './constants'
+import { HASH_PURPOSE } from '../constants'
 import { Keyset } from './types'
 
 /**
@@ -20,6 +20,8 @@ export const deriveKeys = (secretKey: Key): Keyset => ({
   asymmetric: deriveAsymmetricKeys(secretKey),
   symmetric: deriveSymmetricKey(secretKey),
 })
+
+// private
 
 const deriveSignatureKeys = (secretKey: Key) => {
   const hashKey = HASH_PURPOSE.SIGNATURE
