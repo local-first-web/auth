@@ -34,7 +34,7 @@ export interface LinkBodyBase {
   expires?: UnixTimestamp
 
   // index of this block within signature chain
-  index: number
+  index?: number
 }
 
 export enum LinkType {
@@ -88,4 +88,10 @@ export interface Device {
 export interface Client {
   name: string
   version: SemVer
+}
+
+export interface Context {
+  localUser: LocalUser
+  device: Device
+  client: Client
 }
