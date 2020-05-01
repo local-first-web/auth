@@ -26,8 +26,8 @@ export const deriveKeys = (secretKey: Key): Keyset => ({
 const deriveSignatureKeys = (secretKey: Key) => {
   const hashKey = HASH_PURPOSE.SIGNATURE
   const { keyPair } = nacl.sign
-  const derivedSecretKey = hmac(hashKey, secretKey).slice(0, 32)
-  const keys = keyPair.fromSeed(derivedSecretKey)
+  const derivedSeed = hmac(hashKey, secretKey).slice(0, 32)
+  const keys = keyPair.fromSeed(derivedSeed)
   return keypairToBase64(keys)
 }
 
