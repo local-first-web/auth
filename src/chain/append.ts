@@ -1,5 +1,6 @@
 ﻿import { SignatureChain, LinkBody, LocalUser, SignedLink } from './types'
-import { signatures, hmac, base64 } from 'lib'
+import { signatures } from 'lib'
+import { hashLink } from './hashLink'
 
 interface appendArgs {
   chain: SignatureChain
@@ -7,12 +8,8 @@ interface appendArgs {
   localUser: LocalUser
 }
 export const append = ({ chain, link, localUser }: appendArgs) => {
-  if (chain.length > 0) {
-    const prevLink = chain[chain.length - 1]
-    const prevLinkHash = base64.encode(hmac('SOMETHING', prevLink))
-    link.prev = prevLinkHash
-  }
-  const signedLink = signLink(link, localUser)
+  const chainedLink = chainToPrev(chain, link)
+  const signedLink = signLink(chainedLink, localUser)
   return [...chain, signedLink]
 }
 
@@ -28,5 +25,23 @@ const signLink = (body: LinkBody, localUser: LocalUser): SignedLink => {
       signature,
       key: publicKey,
     },
+  }
+}
+
+const chainToPrev = (chain: SignatureChain, link: LinkBody) => {
+  if (chain.length === 0)
+    return {
+      ...link,
+      prev: undefined,
+      index: 0,
+    }
+
+  const prevLink = chain[chain.length - 1]
+  const index = (prevLink.body.index || 0) + 1
+  const prevLinkHash = hashLink(prevLink)
+  return {
+    ...link,
+    prev: prevLinkHash,
+    index,
   }
 }
