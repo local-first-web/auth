@@ -1,10 +1,10 @@
 import { deriveKeys } from './deriveKeys'
-import nacl from 'tweetnacl'
 import { keyToBytes } from '../lib'
+import { randomKey } from './randomKey'
 
 describe('deriveKeys', () => {
   it('should return keys with the expected lengths', () => {
-    const secretKey = nacl.randomBytes(32)
+    const secretKey = randomKey()
     const derivedKeys = deriveKeys(secretKey)
     const { signature, asymmetric, symmetric } = derivedKeys
     expect(keyToBytes(signature.publicKey)).toHaveLength(32)
