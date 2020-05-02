@@ -1,5 +1,5 @@
-import { create, validate } from '.'
-import { Context, DeviceType, LocalUser } from './types'
+import { create, validate, append } from '.'
+import { Context, DeviceType, LocalUser, LinkType } from './types'
 import { deriveKeys, randomKey } from '../keys'
 import fs from 'fs'
 import { join } from 'path'
@@ -28,34 +28,56 @@ const context: Context = {
 }
 
 describe('validate', () => {
-  it('should validate a newly created chain', () => {
+  it('new chain', () => {
     const chain = create({ payload: { team: 'Spies Я Us' }, context })
+    const { isValid } = validate(chain)
+    expect(isValid).toBe(true)
+  })
+
+  it('chain with an additional link', () => {
+    const chain0 = create({ payload: { team: 'Spies Я Us' }, context })
+    const chain = append({
+      chain: chain0,
+      link: {
+        type: 'something',
+        payload: {},
+        user: alice.name,
+        device: context.device,
+        client: context.client,
+      },
+      localUser: alice,
+    })
+
     const { isValid } = validate(chain)
     expect(isValid).toBe(true)
   })
 
   describe('canned chains', () => {
     const fsOpts = { encoding: 'utf8' }
-    const assets = join(__dirname, 'assets')
+    const assetsDir = join(__dirname, 'assets')
 
-    const invalid = join(assets, 'invalid')
-    const invalidChains = fs.readdirSync(invalid)
-    for (const file of invalidChains)
-      test(`invalid: ${file}`, () => {
-        const chainJson = fs.readFileSync(join(invalid, file), fsOpts)
-        const chain = JSON.parse(chainJson)
-        const { isValid } = validate(chain)
-        expect(isValid).toBe(false)
-      })
+    describe('valid', () => {
+      const validDir = join(assetsDir, 'valid')
+      const validFiles = fs.readdirSync(validDir)
+      for (const file of validFiles)
+        test(file, () => {
+          const chainJson = fs.readFileSync(join(validDir, file), fsOpts)
+          const chain = JSON.parse(chainJson)
+          const { isValid } = validate(chain)
+          expect(isValid).toBe(true)
+        })
+    })
 
-    const valid = join(assets, 'valid')
-    const validChains = fs.readdirSync(valid)
-    for (const file of validChains)
-      test(`valid: ${file}`, () => {
-        const chainJson = fs.readFileSync(join(valid, file), fsOpts)
-        const chain = JSON.parse(chainJson)
-        const { isValid } = validate(chain)
-        expect(isValid).toBe(true)
-      })
+    describe('invalid', () => {
+      const invalidDir = join(assetsDir, 'invalid')
+      const invalidFiles = fs.readdirSync(invalidDir)
+      for (const file of invalidFiles)
+        test(file, () => {
+          const chainJson = fs.readFileSync(join(invalidDir, file), fsOpts)
+          const chain = JSON.parse(chainJson)
+          const { isValid } = validate(chain)
+          expect(isValid).toBe(false)
+        })
+    })
   })
 })
