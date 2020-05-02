@@ -5,6 +5,5 @@
 export * from './append'
 export * from './create'
 export * from './hashLink'
-export * from './load'
 export * from './types'
 export * from './validate'

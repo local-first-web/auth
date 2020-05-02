@@ -3,7 +3,7 @@ import { hmac, keypairToBase64 } from '../lib'
 import nacl from 'tweetnacl'
 import { Key } from '/types'
 import { HashPurpose } from '../constants'
-import { Keyset } from './types'
+import { KeysetWithSecrets } from './types'
 
 /**
  * Generates a full set of per-user keys from a single 32-byte secret, roughly following the
@@ -15,7 +15,7 @@ import { Keyset } from './types'
  * @returns A `Keyset` consisting of a keypair for signing, a keypair for asymmetric encryption, and
  * a key for symmetric encryption.
  */
-export const deriveKeys = (secretKey: Key): Keyset => ({
+export const deriveKeys = (secretKey: Key): KeysetWithSecrets => ({
   signature: deriveSignatureKeys(secretKey),
   asymmetric: deriveAsymmetricKeys(secretKey),
   symmetric: deriveSymmetricKey(secretKey),

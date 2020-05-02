@@ -1,46 +1,69 @@
-﻿import { Keyset } from 'keys'
+﻿import { KeysetWithSecrets, PublicKeyset as Keyset } from 'keys'
 import { Base64, SemVer, UnixTimestamp } from '/types'
 
-export interface LocalUser {
+/** A user and their full set of keys, including secrets. SHOULD NEVER LEAVE THE LOCAL USER'S DEVICE.  */
+export interface UserWithSecrets {
+  /** Username (or ID or email) */
   name: string
+  /** The user's keys, including their secrets. */
+  keys: KeysetWithSecrets
+}
+
+/** A user and their public keys.  */
+export interface User {
+  /** Username (or ID or email) */
+  name: string
+  /** The user's public keys */
   keys: Keyset
 }
 
+/** A hash-chained array of signed links */
 export type SignatureChain = SignedLink[]
 
+/** The full link, consisting of a body and a signature block */
 export interface SignedLink {
+  /** The part of the link that is signed */
   body: LinkBody
+
+  /** The signature block (signature, name, and key) */
   signed: {
+    /** NaCL-generated base64 signature of the link's body */
     signature: Base64
+    /** The username (or ID or email) of the person signing the link */
     name: string
+    /** The public half of the key used to sign the link, in base64 encoding */
     key: Base64
   }
 }
 
+/** The part of the link that is signed */
 export interface LinkBody {
-  type: LinkType
+  /** Label identifying the type of action this link represents */
+  type: string
+
+  /** Payload of the action */
   payload: any
 
-  // context
-  user: string
-  device: Device
-  client: Client
+  /** Context in which this link was authored (user, device, client) */
+  context: Context
 
-  // Unix time when this block should be automatically revoked
+  /** Unix timestamp on device that created this block */
+  timestamp: UnixTimestamp
+
+  /** Unix time after which this block should be ignored */
   expires?: UnixTimestamp
 
-  timestamp: UnixTimestamp // Unix timestamp on device that created this block
-
-  // hash of previous block
+  /** hash of previous block */
   prev: Base64 | null
 
-  // index of this block within signature chain
+  /** index of this block within signature chain */
   index: number
 }
 
-// LinkBody without fields that are added automatically
-export type PartialLinkBody = Omit<LinkBody, 'timestamp' | 'prev' | 'index'>
+/** User-writable fields of a link (omits fields that are added automatically) */
+export type PartialLinkBody = Pick<LinkBody, 'type' | 'payload'>
 
+// TODO: This belongs in the team module
 export enum LinkType {
   ROOT,
   ADD_MEMBER,
@@ -52,24 +75,13 @@ export enum LinkType {
   ROTATE,
 }
 
+// TODO: This belongs in the team module
 export type Member = {
   name: string
   encryptionKey: Base64
   signingKey: Base64
   generation: number // increments when keys are rotated
 }
-
-// export interface RootLink extends LinkBodyBase {
-//   type: LinkType.ROOT
-//   payload: {
-//     team: {
-//       name: string
-//       rootUser: Member
-//     }
-//   }
-//   prev: null
-//   index: 0
-// }
 
 export enum DeviceType {
   desktop,
@@ -92,8 +104,14 @@ export interface Client {
   version: SemVer
 }
 
+export interface ContextWithSecrets {
+  user: UserWithSecrets
+  device: Device
+  client: Client
+}
+
 export interface Context {
-  localUser: LocalUser
+  user: User
   device: Device
   client: Client
 }

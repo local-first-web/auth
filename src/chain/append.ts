@@ -1,36 +1,47 @@
-﻿import {
-  SignatureChain,
-  LinkBody,
-  LocalUser,
-  SignedLink,
-  PartialLinkBody,
-} from './types'
-import { signatures } from '../lib'
+﻿import { signatures } from '../lib'
 import { hashLink } from './hashLink'
+import {
+  LinkBody,
+  UserWithSecrets,
+  PartialLinkBody,
+  SignatureChain,
+  SignedLink,
+  ContextWithSecrets,
+  Context,
+} from './types'
+import { redactSecrets } from '../keys/redactSecrets'
 
-interface appendArgs {
-  chain: SignatureChain
-  link: PartialLinkBody
-  localUser: LocalUser
-}
-export const append = ({ chain, link, localUser }: appendArgs) => {
-  const chainedLink = chainToPrev(chain, link)
-  const signedLink = signLink(chainedLink, localUser)
+const redactContext = (context: ContextWithSecrets): Context => ({
+  user: {
+    name: context.user.name,
+    keys: redactSecrets(context.user.keys),
+  },
+  device: context.device,
+  client: context.client,
+})
+
+export const append = (
+  chain: SignatureChain,
+  link: PartialLinkBody,
+  context: ContextWithSecrets
+) => {
+  const linkWithContext = {
+    ...link,
+    context: redactContext(context),
+  }
+  const chainedLink = chainToPrev(chain, linkWithContext)
+  const signedLink = signLink(chainedLink, context.user)
   return [...chain, signedLink]
 }
 
-const signLink = (body: LinkBody, localUser: LocalUser): SignedLink => {
+const signLink = (body: LinkBody, localUser: UserWithSecrets): SignedLink => {
   const { name, keys } = localUser
   const { publicKey, secretKey } = keys.signature
 
   const signature = signatures.sign(body, secretKey)
   return {
     body,
-    signed: {
-      name,
-      signature,
-      key: publicKey,
-    },
+    signed: { name, signature, key: publicKey },
   }
 }
 
@@ -45,7 +56,7 @@ const chainToPrev = (
       timestamp,
       prev: null,
       index: 0,
-    }
+    } as LinkBody
 
   const prevLink = chain[chain.length - 1]
   const index = (prevLink.body.index || 0) + 1
@@ -55,5 +66,5 @@ const chainToPrev = (
     timestamp,
     prev: prevLinkHash,
     index,
-  }
+  } as LinkBody
 }

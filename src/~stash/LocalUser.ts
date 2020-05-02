@@ -1,4 +1,4 @@
-﻿import { Keyset } from '../keys'
+﻿import { KeysetWithSecrets } from '../keys'
 import { asymmetric, signatures, symmetric } from '../lib'
 
 export interface LocalUserOptions {
@@ -18,9 +18,9 @@ export class LocalUser {
   }
 
   public name: string
-  public keys: Keyset
+  public keys: KeysetWithSecrets
 
-  private loadKeyset = (): Keyset | undefined => {
+  private loadKeyset = (): KeysetWithSecrets | undefined => {
     const allKeysets = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
     return allKeysets[this.name]
   }
@@ -31,7 +31,7 @@ export class LocalUser {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(allKeysets))
   }
 
-  private generateNewKeyset = (): Keyset => {
+  private generateNewKeyset = (): KeysetWithSecrets => {
     return {
       generation: 0,
       signature: signatures.keyPair(),

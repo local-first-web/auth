@@ -1,21 +1,16 @@
-import { create, validate, append } from '.'
-import { Context, DeviceType, LocalUser, LinkType } from './types'
-import { deriveKeys, randomKey } from '../keys'
 import fs from 'fs'
 import { join } from 'path'
+import { append, create, validate } from '.'
+import { deriveKeys, randomKey } from '../keys'
+import { ContextWithSecrets, DeviceType, UserWithSecrets } from './types'
 
-const alice: LocalUser = {
+const alice: UserWithSecrets = {
   name: 'alice',
   keys: deriveKeys(randomKey()),
 }
 
-// const bob: LocalUser = {
-//   name: 'bob',
-//   keys: deriveKeys(randomKey()),
-// }
-
-const context: Context = {
-  localUser: alice,
+const context: ContextWithSecrets = {
+  user: alice,
   device: {
     id: randomKey(8),
     name: 'windows laptop',
@@ -29,55 +24,39 @@ const context: Context = {
 
 describe('validate', () => {
   it('new chain', () => {
-    const chain = create({ payload: { team: 'Spies Я Us' }, context })
+    const chain = create({ team: 'Spies Я Us' }, context)
     const { isValid } = validate(chain)
     expect(isValid).toBe(true)
   })
 
-  it('chain with an additional link', () => {
-    const chain0 = create({ payload: { team: 'Spies Я Us' }, context })
-    const chain = append({
-      chain: chain0,
-      link: {
-        type: 'something',
-        payload: {},
-        user: alice.name,
-        device: context.device,
-        client: context.client,
-      },
-      localUser: alice,
-    })
-
-    const { isValid } = validate(chain)
+  it('chain with one additional link', () => {
+    const chain = create({ team: 'Spies Я Us' }, context)
+    const newLink = { type: 'something', payload: {} }
+    const newChain = append(chain, newLink, context)
+    const { isValid } = validate(newChain)
     expect(isValid).toBe(true)
   })
 
-  describe('canned chains', () => {
+  describe('stored chains', () => {
     const fsOpts = { encoding: 'utf8' }
     const assetsDir = join(__dirname, 'assets')
 
-    describe('valid', () => {
-      const validDir = join(assetsDir, 'valid')
-      const validFiles = fs.readdirSync(validDir)
-      for (const file of validFiles)
-        test(file, () => {
-          const chainJson = fs.readFileSync(join(validDir, file), fsOpts)
-          const chain = JSON.parse(chainJson)
-          const { isValid } = validate(chain)
-          expect(isValid).toBe(true)
-        })
-    })
+    const testTypes = ['valid', 'invalid']
+    testTypes.forEach(x => {
+      const expected = x === 'valid' ? true : false
 
-    describe('invalid', () => {
-      const invalidDir = join(assetsDir, 'invalid')
-      const invalidFiles = fs.readdirSync(invalidDir)
-      for (const file of invalidFiles)
-        test(file, () => {
-          const chainJson = fs.readFileSync(join(invalidDir, file), fsOpts)
-          const chain = JSON.parse(chainJson)
-          const { isValid } = validate(chain)
-          expect(isValid).toBe(false)
-        })
+      describe(x, () => {
+        const dir = join(assetsDir, x)
+        const files = fs.readdirSync(dir)
+        for (const file of files)
+          test(file, () => {
+            const filePath = join(dir, file)
+            const chainJson = fs.readFileSync(filePath, fsOpts)
+            const chain = JSON.parse(chainJson)
+            const { isValid } = validate(chain)
+            expect(isValid).toBe(expected)
+          })
+      })
     })
   })
 })
