@@ -1,10 +1,5 @@
 ﻿import { append } from './append'
-import {
-  ContextWithSecrets,
-  LinkType,
-  PartialLinkBody,
-  SignatureChain,
-} from './types'
+import { ContextWithSecrets, PartialLinkBody, SignatureChain } from './types'
 
 export const create = (payload: any = {}, context: ContextWithSecrets) => {
   // create new root link
