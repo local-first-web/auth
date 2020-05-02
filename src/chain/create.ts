@@ -1,5 +1,5 @@
 ﻿import { append } from './append'
-import { Context, LinkBody, LinkType, SignatureChain } from './types'
+import { Context, LinkType, PartialLinkBody, SignatureChain } from './types'
 
 interface CreateArgs {
   payload: any
@@ -10,14 +10,12 @@ export const create = ({ payload = {}, context }: CreateArgs) => {
   const { localUser, device, client } = context
 
   // create new root link
-  const link: LinkBody = {
+  const link: PartialLinkBody = {
     type: LinkType.ROOT,
     payload,
     user: localUser.name,
     device,
     client,
-    timestamp: new Date().getTime(),
-    index: 0,
   }
 
   // add it to an empty chain

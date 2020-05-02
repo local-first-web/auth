@@ -1,10 +1,16 @@
-﻿import { SignatureChain, LinkBody, LocalUser, SignedLink } from './types'
+﻿import {
+  SignatureChain,
+  LinkBody,
+  LocalUser,
+  SignedLink,
+  PartialLinkBody,
+} from './types'
 import { signatures } from '../lib'
 import { hashLink } from './hashLink'
 
 interface appendArgs {
   chain: SignatureChain
-  link: LinkBody
+  link: PartialLinkBody
   localUser: LocalUser
 }
 export const append = ({ chain, link, localUser }: appendArgs) => {
@@ -28,11 +34,16 @@ const signLink = (body: LinkBody, localUser: LocalUser): SignedLink => {
   }
 }
 
-const chainToPrev = (chain: SignatureChain, link: LinkBody) => {
+const chainToPrev = (
+  chain: SignatureChain,
+  link: PartialLinkBody
+): LinkBody => {
+  const timestamp = new Date().getTime()
   if (chain.length === 0)
     return {
       ...link,
-      prev: undefined,
+      timestamp,
+      prev: null,
       index: 0,
     }
 
@@ -41,6 +52,7 @@ const chainToPrev = (chain: SignatureChain, link: LinkBody) => {
   const prevLinkHash = hashLink(prevLink)
   return {
     ...link,
+    timestamp,
     prev: prevLinkHash,
     index,
   }
