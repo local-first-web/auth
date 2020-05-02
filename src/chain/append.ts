@@ -11,15 +11,6 @@ import {
 } from './types'
 import { redactSecrets } from '../keys/redactSecrets'
 
-const redactContext = (context: ContextWithSecrets): Context => ({
-  user: {
-    name: context.user.name,
-    keys: redactSecrets(context.user.keys),
-  },
-  device: context.device,
-  client: context.client,
-})
-
 export const append = (
   chain: SignatureChain,
   link: PartialLinkBody,
@@ -34,8 +25,11 @@ export const append = (
   return [...chain, signedLink]
 }
 
-const signLink = (body: LinkBody, localUser: UserWithSecrets): SignedLink => {
-  const { name, keys } = localUser
+const signLink = (
+  body: LinkBody,
+  userWithSecrets: UserWithSecrets
+): SignedLink => {
+  const { name, keys } = userWithSecrets
   const { publicKey, secretKey } = keys.signature
 
   const signature = signatures.sign(body, secretKey)
@@ -68,3 +62,12 @@ const chainToPrev = (
     index,
   } as LinkBody
 }
+
+const redactContext = (context: ContextWithSecrets): Context => ({
+  user: {
+    name: context.user.name,
+    keys: redactSecrets(context.user.keys),
+  },
+  device: context.device,
+  client: context.client,
+})
