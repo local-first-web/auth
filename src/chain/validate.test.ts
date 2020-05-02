@@ -1,7 +1,6 @@
 import { create, validate } from '.'
 import { Context, DeviceType, LocalUser } from './types'
 import { deriveKeys, randomKey } from '../keys'
-import { payloadToBytes, signatures } from '../lib'
 
 const alice: LocalUser = {
   name: 'alice',
@@ -26,12 +25,10 @@ const context: Context = {
 }
 
 describe('validate', () => {
-  it('newly created chain should be valid', () => {
+  it('should validate a newly created chain', () => {
     const chain = create({ payload: { team: 'Spies Я Us' }, context })
-    const payloadBytes = payloadToBytes(chain[0].body)
-    const validationResult = validate(chain)
-    console.log(payloadBytes)
+    const { isValid } = validate(chain)
 
-    expect(validationResult.isValid).toBe(true)
+    expect(isValid).toBe(true)
   })
 })
