@@ -1,8 +1,11 @@
 ﻿import * as base64 from '@stablelib/base64'
 import * as utf8 from '@stablelib/utf8'
-import { keyToBytes, payloadToBytes, newNonce, nonceLength, stretch } from '.'
 import nacl from 'tweetnacl'
 import { Key, Message } from 'types'
+import { keyToBytes } from './keyToBytes'
+import { newNonce, nonceLength } from './nonce'
+import { payloadToBytes } from './payloadToBytes'
+import { stretch } from './stretch'
 
 // These are straightforward implementations of NaCl crypto functions, accepting and returning
 // base64 strings rather than byte arrays. The symmetric `encrypt` and `decrypt` functions can take
