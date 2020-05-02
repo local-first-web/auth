@@ -9,6 +9,7 @@ import { stretch } from '../lib'
 
 describe('invitations', () => {
   test('newIKey', () => {
+    // always 16 characters
     let i = 1000
     while (i-- > 0) expect(newIKey()).toHaveLength(16)
   })
