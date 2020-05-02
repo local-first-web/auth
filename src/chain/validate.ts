@@ -37,10 +37,21 @@ const compose = (validators: Validator[]) => (
   if (result.isValid === false) return result
 
   const prevLink = i === 0 ? undefined : chain[i - 1]
-  for (const validator of validators) {
-    const result = validator(currentLink, prevLink)
-    if (result.isValid === false) return result
-  }
+  for (const validator of validators)
+    try {
+      const result = validator(currentLink, prevLink)
+      if (result.isValid === false) return result
+    } catch (e) {
+      // errors cause validation to fail
+      return {
+        isValid: false,
+        error: {
+          message: e.message,
+          index: i,
+          details: e,
+        },
+      }
+    }
 
   // no validators failed
   return { isValid: true }

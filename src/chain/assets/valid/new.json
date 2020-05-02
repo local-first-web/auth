@@ -1,0 +1,19 @@
+[
+  {
+    "body": {
+      "type": 0,
+      "payload": { "team": "Spies Я Us" },
+      "user": "alice",
+      "device": { "id": "dceHDRNz7og=", "name": "windows laptop", "type": 1 },
+      "client": { "name": "test", "version": "0" },
+      "timestamp": 1588419447084,
+      "index": 0,
+      "prev": null
+    },
+    "signed": {
+      "name": "alice",
+      "signature": "1jjcDxgzeY0Yas0BwXaoT8z25BS3k+zmq0OkqLMDz64LLUisCltze9uys4LhP8IB0WWTZib0O6nsjE+cwmziCg==",
+      "key": "pE+q7MuQZ8HqNe/eiagjfeJECa/0qCbU7rDljkRO9as="
+    }
+  }
+]

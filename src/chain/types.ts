@@ -17,25 +17,29 @@ export interface SignedLink {
   }
 }
 
-export interface LinkBodyBase {
+export interface LinkBody {
   type: LinkType
-  payload?: any
+  payload: any
 
   // context
   user: string
-  device?: Device
-  client?: Client
-  timestamp: UnixTimestamp // Unix timestamp on device that created this block
-
-  // hash of previous block
-  prev?: Base64
+  device: Device
+  client: Client
 
   // Unix time when this block should be automatically revoked
   expires?: UnixTimestamp
 
+  timestamp: UnixTimestamp // Unix timestamp on device that created this block
+
+  // hash of previous block
+  prev: Base64 | null
+
   // index of this block within signature chain
-  index?: number
+  index: number
 }
+
+// LinkBody without fields that are added automatically
+export type PartialLinkBody = Omit<LinkBody, 'timestamp' | 'prev' | 'index'>
 
 export enum LinkType {
   ROOT,
@@ -66,8 +70,6 @@ export type Member = {
 //   prev: null
 //   index: 0
 // }
-
-export type LinkBody = LinkBodyBase
 
 export enum DeviceType {
   desktop,
