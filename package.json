@@ -18,9 +18,8 @@
     "node": ">=10"
   },
   "scripts": {
-    "barrel": "barrelsby -c ./barrelsby.json && prettier src/**/index.ts --write",
     "start": "tsdx watch",
-    "build": "yarn barrel && tsdx build",
+    "build": "tsdx build",
     "test": "tsdx test",
     "lint": "tsdx lint src",
     "prepare": "tsdx build"
@@ -38,7 +37,6 @@
   "devDependencies": {
     "@types/msgpack-lite": "0",
     "@types/scryptsy": "2",
-    "barrelsby": "2",
     "husky": "4",
     "tsdx": "0",
     "tslib": "1",
