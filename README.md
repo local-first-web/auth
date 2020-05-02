@@ -1,6 +1,4 @@
-<table><tr><td> ⚠ <b>Nothing here yet</b>. This is a placeholder repo. </td></tr></table>
-
-# 🌮 Taco
+# 🌮 taco-js
 
 Decentralized authentication and authorization for team collaboration, using a secure chain of
 cryptographic signatures.
@@ -38,7 +36,7 @@ are **rotated** and associated data **re-encrypted**.
 
 ## What
 
-Taco exposes a single `Team` class. 
+Taco exposes a single `Team` class.
 
 You get a `Team` object back that wraps the signature chain and encapsulates the team's members,
 devices, and roles. This object can also use the public keys embedded in the signature chain, along
@@ -50,7 +48,7 @@ verification within the team.
 - **Storage** Taco uses the secure storage provided by the device to store the user's keys.
   Otherwise Taco does **not** deal with storage for the signature chain.
 - **Networking** Taco does not deal with networking for sending invitations or for keeping
-  signature chains in sync across devices. 
+  signature chains in sync across devices.
 
 ### Examples
 
@@ -63,11 +61,11 @@ yarn add taco-js
 ```ts
 import { Team } from 'taco'
 
-const context = { localUser: 'alice',  device: 'windows laptop 2020' }
-const team = new Team({name: 'Spies Я Us', context})
+const context = { localUser: 'alice', device: 'windows laptop 2020' }
+const team = new Team({ name: 'Spies Я Us', context })
 ```
 
-Usernames (`alice` in the example) identify a person uniquely within the team. You could use existing user IDs or names, or email addresses. 
+Usernames (`alice` in the example) identify a person uniquely within the team. You could use existing user IDs or names, or email addresses.
 
 #### Alice invites Bob
 
