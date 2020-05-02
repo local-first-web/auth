@@ -40,9 +40,3 @@ export class LocalUser {
     }
   }
 }
-
-// export const deviceKeys = {
-//   loadKeyset: () => {}
-//   storeKeyset: () => {}
-//   createKeyset: () => {}
-// }
