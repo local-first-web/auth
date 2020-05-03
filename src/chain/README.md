@@ -46,9 +46,9 @@ A signature chain is just data and can be stored as JSON. For example, here's a 
 ]
 ```
 
-### Link structure
+The `chain` module doesn't know anything about teams or access rules. It just creates chains, appends to them, and checks them for internal validity.
 
-Our signature chain is inspired by [Keybase's sigchain](https://book.keybase.io/docs/server#meet-your-sigchain-and-everyone-elses), but there are differences in the property names and structure.
+### Link structure
 
 ```ts
 export interface LinkBody {
@@ -64,9 +64,9 @@ export interface LinkBody {
 
 #### User-provided fields
 
-- `type` is a label for the type of action that this link represents - for example, `ADD_MEMBER` or `REVOKE`. (If you have used Redux before, it is conceptually similar to a Redux action type.) The `team` module defines the valid types.
+- `type` is a label for the type of action that this link represents - for example, `ADD_MEMBER` or `REVOKE`. (This is conceptually similar to a Redux action type.) The `team` module defines the valid types.
 
-- `payload` is the content of the action - for example, it might contain the name and public keys of a member being added.
+- `payload` is the content of the action - for example, it might contain the name and public keys of a member being added. (Likewise, this is analogous to the payload of a Redux action.)
 
 - `context` contains information about the environment in which the link was created - who authored it, on what device, using what software. For example:
   ```ts
@@ -88,8 +88,6 @@ export interface LinkBody {
 
 - `timestamp` contains the Unix timestamp of the creation of the link.
 
-- `expires` (optional) contains an expiration date in the form of a Unix timestamp, after which point the block should be ignored.
-
 - `prev` contains the hash of the previous link (or `null` in the case of the root link).
 
 - `index` contains the zero-based sequential index of the link. The root link has index `0`, the next link has index `1`, and so on.
@@ -99,8 +97,6 @@ export interface LinkBody {
 #### create
 
 Returns a signature chain containing a single root element.
-
-The significance of the `payload` element is determined by the `team` module and by your application.
 
 ```ts
 const payload = { team: 'Spies Я Us' }
@@ -123,6 +119,6 @@ const newChain = append(
 
 Runs a chain through a set of validators that ensure that each link
 
-- matches its signature
-- has a hash matching the previous link
-- has an index that is consecutive to the previous link
+- matches its **signature**,
+- has a **hash** matching the previous link, and
+- has an **index** that is consecutive to the previous link.
