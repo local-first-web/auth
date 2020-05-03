@@ -22,7 +22,7 @@ A signature chain is just data and can be stored as JSON. For example, here's a 
     },
     "signed": {
       "name": "alice",
-      "signature": "oTKyn8iTwrrAdH3zqoof34GwtTfzuni/qLkyu47uCuhPEkqNaGRKYBM/LWsW64RL3NJlnwMoIg+6NiYrhh2RBg==",
+      "signature": "oTKyn8iTwrrAdH...CuhPEkqNaGRKYBW64RL3NJlnwMoIg+6NiYrhh2RBg==",
       "key": "/I7WZRWBGTAJD30JJRq+CVOLWL7iGxIHlbBmq80bjLg="
     }
   },
@@ -34,12 +34,12 @@ A signature chain is just data and can be stored as JSON. For example, here's a 
       "device": { "id": "PKN4tM7BtW8=", "name": "windows laptop", "type": 1 },
       "client": { "name": "test", "version": "0" },
       "timestamp": 1588421926268,
-      "prev": "fog76617S9wsklpTz/pys7kud/ivZM11T+rtUplgMe/rGZicPZFEItOQcbKNNbgiB3JbGU2P1VKWERIVnyvcmQ==",
+      "prev": "fog76617S9wsklpT...gMe/rGZicPZFEItOKNNbgiB3JbGU2P1VKWERIVnyvcmQ==",
       "index": 1
     },
     "signed": {
       "name": "alice",
-      "signature": "OM3MZ0lHL9Pdpex4WO9IDcii4IZa64Dok22XI9nk5ibbKKMWS0tlGipD8bUnxFiKXJ3ECpfRgpedBCmB9CW3Cw==",
+      "signature": "OM3MZ0lHL9Pdpex4WO9IDcii...D8bUnxFiKXJ3ECpfRgpedBCmB9CW3Cw==",
       "key": "/I7WZRWBGTAJD30JJRq+CVOLWL7iGxIHlbBmq80bjLg="
     }
   }
@@ -94,7 +94,7 @@ export interface LinkBody {
 
 ### Helper functions
 
-#### create
+#### `create`
 
 Returns a signature chain containing a single root element.
 
@@ -103,7 +103,7 @@ const payload = { team: 'Spies Я Us' }
 const chain = create(payload, context)
 ```
 
-#### append
+#### `append`
 
 Takes a chain, a partial link (containing just a `type` and a `payload`), and a context; and returns a new chain with the link filled out, signed, and populated with the hash of the preceding link.
 
@@ -115,10 +115,45 @@ const newChain = append(
 )
 ```
 
-#### validate
+#### `validate`
 
 Runs a chain through a set of validators that ensure that each link
 
 - matches its **signature**,
 - has a **hash** matching the previous link, and
 - has an **index** that is consecutive to the previous link.
+
+Returns an object with two properties:
+
+- `isValid` a boolean
+- `error` is an object containing (if `isValid` is false)
+  - `message` describing the first error found, an
+  - `index` the index of the link containing the error
+  - `details` any additional specifics about the error
+
+For example, suppose Eve tampers with the root link's payload to change the name of the team from "Spies Я Us" to "Dorks Я Us". Validation will show that the signature of the link no longer matches the body of the link:
+
+```ts
+const result = validate(chain)
+
+// result:
+{
+  isValid: false
+  error: {
+    message: 'Signature is not valid',
+    index: 0,
+    details: {
+      payload: {
+        type: 'ROOT',
+        payload: { team: 'Dorks Я Us' },
+        context: { ... },
+        timestamp: 1588506524404,
+        prev: null,
+        index: 0
+      },
+      signature: '0eUheuxOU1F1puoTsQzGzcVCbC...ah3vBBKbQzkGFJ7V9+9DFAg==',
+      publicKey: '6xPEKryp82mUOl7OvT2NGdBm1iGWE3KsOwml20nAht8='
+    }
+  }
+}
+```
