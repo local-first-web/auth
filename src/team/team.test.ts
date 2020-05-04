@@ -1,21 +1,41 @@
+import { ContextWithSecrets, DeviceType } from '../context'
+import { deriveKeys, randomKey } from '../keys'
+import { UserWithSecrets } from '../user'
+import { Team } from './team'
+
 describe('Team', () => {
+  const alice: UserWithSecrets = {
+    name: 'alice',
+    keys: deriveKeys(randomKey()),
+  }
+
+  const context: ContextWithSecrets = {
+    user: alice,
+    device: {
+      name: 'windows laptop',
+      type: DeviceType.laptop,
+    },
+    client: {
+      name: 'test',
+      version: '0',
+    },
+  }
+
   beforeEach(() => {
     localStorage.clear()
   })
+
   test('should ', () => {})
-  // const setup = () => {
-  //   const team = create({
-  //     name: 'Spies Я Us', context: {
-  //       'herb'
-  //     }
-  //   })
-  //   return { team }
-  // }
-  // it('returns a new team', () => {
-  //   const { team } = setup()
-  //   expect(team.name).toBe('Spies Я Us')
-  //   expect(team.rootUser.name).toBe('herb')
-  // })
+
+  const setup = () => {
+    const team = new Team({ name: 'Spies Я Us', context })
+    return { team }
+  }
+
+  it('returns a new team', () => {
+    const { team } = setup()
+    expect(team.name).toBe('Spies Я Us')
+  })
 
   // it('adds a root block to the signature chain', () => {
   //   const { team } = setup()
