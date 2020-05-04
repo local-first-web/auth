@@ -1,5 +1,3 @@
-import { Base64 } from '../lib/types'
-
 export enum LinkType {
   ROOT,
   ADD_MEMBER,
