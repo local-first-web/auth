@@ -1,129 +1,108 @@
-﻿import { SignatureChain } from '../chain'
-import { ContextWithSecrets } from '../context'
+﻿import { Context, ContextWithSecrets } from 'context'
+import { EventEmitter } from 'events'
+import { redactSecrets } from 'keys'
+import * as chain from '../chain'
+import { SignatureChain, validate, InvalidResult } from '../chain'
 
-export const create = (name: string, context: ContextWithSecrets) => {}
+export class Team extends EventEmitter {
+  constructor(options: TeamOptions) {
+    super()
+    this.context = options.context
+    if (isExistingTeam(options)) this.load(options)
+    else this.create(options)
+  }
 
-export const load = (chain: SignatureChain) => {}
+  // public
 
-// export class Team extends EventEmitter {
-//   constructor(options: TeamOptions) {
-//     super()
-//     const { name, currentUser, source, secureStorage } = options
+  public name: string
+  public rootContext: Context
+  public signatureChain: SignatureChain
 
-//     this.name = name
-//     this.signatureChain = []
-//     this.secureStorage = secureStorage
+  public invite = (name: string) => {}
+  public add = (name: string) => {}
+  public remove = (name: string) => {}
+  public save = () => {}
 
-//     if (!source) this.create(currentUser)
-//     else this.load(source)
-//   }
+  public members = Object.assign(
+    (name?: string) => {
+      if (name) {
+        // return one member
+      } else {
+        // return all members
+      }
+    },
+    {
+      get: (name: string) => {},
+      invite: (name: string) => {},
+    }
+  )
 
-//   public name: string
-//   public secureStorage: any // TODO
-//   public rootUser?: Member
-//   public signatureChain: SignatureChain
+  public roles = Object.assign(
+    (name?: string) => {
+      if (name) {
+        // return one role
+      } else {
+        // return all roles
+      }
+    },
+    {
+      get: (name: string) => {},
+      add: (name: string) => {},
+      remove: (name: string) => {},
+    }
+  )
 
-//   private create(currentUser: string) {
-//     const localUser = new LocalUser({
-//       name: currentUser,
-//       secureStorage: this.secureStorage,
-//     })
-//     this.rootUser = {
-//       name: localUser.name,
-//       signingKey: localUser.keys.signature.publicKey,
-//       encryptionKey: localUser.keys.asymmetric.publicKey,
-//       generation: localUser.keys.generation,
-//     }
+  // private
 
-//     const rootLink: RootLink = {
-//       type: LinkType.root,
-//       payload: {
-//         team: {
-//           name: this.name,
-//           rootUser: this.rootUser,
-//         },
-//       },
+  private context: ContextWithSecrets
 
-//       //context
-//       user: this.rootUser.name, // TODO: this needs to be the current user from ambient context
-//       // TODO: device
-//       // TODO: client
-//       timestamp: new Date().getTime(),
+  private create(options: NewTeamOptions) {
+    this.name = options.name
+    // set root context
+    this.rootContext = {
+      ...this.context,
+      user: {
+        ...this.context.user,
+        keys: redactSecrets(this.context.user.keys),
+      },
+    }
+    const payload = { name: this.name, rootContext: this.rootContext }
+    this.signatureChain = chain.create(payload, this.context)
+  }
 
-//       prev: null,
-//       index: 0,
-//     }
-//     const signedLink = this.signLink(rootLink)
-//     this.addLink(signedLink)
-//   }
+  private load(options: ExistingTeamOptions) {
+    this.signatureChain = options.source
+    // validate chain
+    const validation = validate(this.signatureChain)
+    if (!validation.isValid) throw validation.error
+    // TODO: get team name
+    this.name = ''
+    // TODO: get root context
+    this.rootContext = {
+      user: { name: '', keys: { signature: '', encryption: '' } },
+      device: { name: '', type: 0 },
+    }
+  }
+}
 
-//   private signLink(body: LinkBody) {
-//     const { name, keys } = this.rootUser // TODO: this needs to be the current user from ambient context
-//     const { publicKey, secretKey } = keys.signature
+export interface NewTeamOptions {
+  name: string
+  context: ContextWithSecrets
+}
 
-//     const signature = signatures.sign(body, secretKey)
-//     return {
-//       body,
-//       signed: {
-//         name,
-//         signature,
-//         key: publicKey,
-//       },
-//     }
-//   }
+export interface ExistingTeamOptions {
+  source: SignatureChain
+  context: ContextWithSecrets
+}
 
-//   private addLink(link: SignedLink) {
-//     this.signatureChain.push(link)
-//   }
+export type TeamOptions = NewTeamOptions | ExistingTeamOptions
 
-//   private load(source: string | object) {
-//     console.log(source)
-//     // TODO
-//   }
+// type guard
+function isExistingTeam(options: TeamOptions): options is ExistingTeamOptions {
+  return (options as ExistingTeamOptions).source !== undefined
+}
 
-//   public members = {
-//     invite: () => {},
-//     accept: () => {},
-//     remove: () => {},
-//     list: () => {},
-//   }
-
-//   public roles = {
-//     create: () => {},
-//     addUser: () => {},
-//     removeUser: () => {},
-//     isAdmin: () => {},
-//     check: () => {},
-//     remove: () => {},
-//     list: () => {},
-//   }
-
-//   public crypto = {
-//     asymmetric: {
-//       encrypt: () => {},
-//       decrypt: () => {},
-//     },
-
-//     symmetric: {
-//       encrypt: () => {},
-//       decrypt: () => {},
-//     },
-
-//     signature: {
-//       sign: () => {},
-//       verify: () => {},
-//     },
-//   }
-// }
-
-// export interface Context {
-//   currentUser: LocalUser
-//   device: Device
-// }
-
-// export interface TeamOptions {
-//   context: Context
-//   name: string
-//   secureStorage?: any // TODO
-//   source?: string | object // JSON or instantiated object
-// }
+interface FunctionsOnYourFunctions {
+  (args?: any): any | void
+  [key: string]: (...args: any[]) => any | void
+}

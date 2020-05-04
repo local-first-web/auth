@@ -23,7 +23,7 @@ export interface SignedLink {
 /** The part of the link that is signed */
 export interface LinkBody {
   /** Label identifying the type of action this link represents */
-  type: string
+  type: string | number
 
   /** Payload of the action */
   payload: any
