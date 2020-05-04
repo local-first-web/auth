@@ -1,6 +1,6 @@
 ﻿import * as base64 from '@stablelib/base64'
 import nacl from 'tweetnacl'
-import { Key, Payload } from 'types'
+import { Key, Payload } from 'lib/types'
 import { keypairToBase64 } from './keypairToBase64'
 import { keyToBytes } from './keyToBytes'
 import { payloadToBytes } from './payloadToBytes'

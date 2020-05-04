@@ -1,7 +1,7 @@
 ﻿import * as base64 from '@stablelib/base64'
 import * as utf8 from '@stablelib/utf8'
 import nacl from 'tweetnacl'
-import { Key, Message } from 'types'
+import { Key, Message } from 'lib/types'
 import { keypairToBase64 } from './keypairToBase64'
 import { keyToBytes } from './keyToBytes'
 import { newNonce, nonceLength } from './nonce'

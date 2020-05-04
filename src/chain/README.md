@@ -94,7 +94,7 @@ export interface LinkBody {
 
 ### Helper functions
 
-#### `create`
+#### `create(payload, context)`
 
 Returns a signature chain containing a single root element.
 
@@ -103,7 +103,7 @@ const payload = { team: 'Spies Я Us' }
 const chain = create(payload, context)
 ```
 
-#### `append`
+#### `append(chain, link, context)`
 
 Takes a chain, a partial link (containing just a `type` and a `payload`), and a context; and returns a new chain with the link filled out, signed, and populated with the hash of the preceding link.
 
@@ -115,7 +115,7 @@ const newChain = append(
 )
 ```
 
-#### `validate`
+#### `validate(chain)`
 
 Runs a chain through a set of validators that ensure that each link
 
@@ -136,24 +136,23 @@ For example, suppose Eve tampers with the root link's payload to change the name
 ```ts
 const result = validate(chain)
 
-// result:
-{
-  isValid: false
-  error: {
-    message: 'Signature is not valid',
-    index: 0,
-    details: {
-      payload: {
-        type: 'ROOT',
-        payload: { team: 'Dorks Я Us' },
-        context: { ... },
-        timestamp: 1588506524404,
-        prev: null,
-        index: 0
-      },
-      signature: '0eUheuxOU1F1puoTsQzGzcVCbC...ah3vBBKbQzkGFJ7V9+9DFAg==',
-      publicKey: '6xPEKryp82mUOl7OvT2NGdBm1iGWE3KsOwml20nAht8='
-    }
-  }
-}
+// {
+//   isValid: false
+//   error: {
+//     message: 'Signature is not valid',
+//     index: 0,
+//     details: {
+//       payload: {
+//         type: 'ROOT',
+//         payload: { team: 'Dorks Я Us' },
+//         context: { ... },
+//         timestamp: 1588506524404,
+//         prev: null,
+//         index: 0
+//       },
+//       signature: '0eUheuxOU1F1puoTsQzGzcVCbC...ah3vBBKbQzkGFJ7V9+9DFAg==',
+//       publicKey: '6xPEKryp82mUOl7OvT2NGdBm1iGWE3KsOwml20nAht8='
+//     }
+//   }
+// }
 ```

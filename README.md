@@ -59,10 +59,11 @@ yarn add taco-js
 #### Alice creates a new team
 
 ```ts
-import { Team } from 'taco'
+import { getUser, create } from 'taco'
 
-const context = { localUser: 'alice', device: 'windows laptop 2020' }
-const team = new Team({ name: 'Spies Я Us', context })
+const user = getUser('alice')
+const context = {}
+const team = create('Spies Я Us', context)
 ```
 
 Usernames (`alice` in the example) identify a person uniquely within the team. You could use existing user IDs or names, or email addresses.

@@ -1,5 +1,5 @@
 ﻿import * as utf8 from '@stablelib/utf8'
-import { Payload } from 'types'
+import { Payload } from 'lib/types'
 import msgpack from 'msgpack-lite'
 
 export const payloadToBytes = (x: Payload) =>

@@ -1,15 +1,9 @@
-﻿// import { EventEmitter } from 'events'
-// import { signatures } from './lib'
-// import { LocalUser } from './LocalUser'
-// import {
-//   LinkBody,
-//   LinkType,
-//   RootLink,
-//   Member,
-//   SignatureChain,
-//   SignedLink,
-//   Device,
-// } from './types'
+﻿import { SignatureChain } from '../chain'
+import { ContextWithSecrets } from '../context'
+
+export const create = (name: string, context: ContextWithSecrets) => {}
+
+export const load = (chain: SignatureChain) => {}
 
 // export class Team extends EventEmitter {
 //   constructor(options: TeamOptions) {

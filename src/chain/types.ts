@@ -1,21 +1,5 @@
-﻿import { KeysetWithSecrets, PublicKeyset as Keyset } from 'keys'
-import { Base64, SemVer, UnixTimestamp } from '/types'
-
-/** A user and their full set of keys, including secrets. SHOULD NEVER LEAVE THE LOCAL USER'S DEVICE.  */
-export interface UserWithSecrets {
-  /** Username (or ID or email) */
-  name: string
-  /** The user's keys, including their secrets. */
-  keys: KeysetWithSecrets
-}
-
-/** A user and their public keys.  */
-export interface User {
-  /** Username (or ID or email) */
-  name: string
-  /** The user's public keys */
-  keys: Keyset
-}
+﻿import { Context } from '../context'
+import { Base64, UnixTimestamp } from '../lib/types'
 
 /** A hash-chained array of signed links */
 export type SignatureChain = SignedLink[]
@@ -62,56 +46,3 @@ export interface LinkBody {
 
 /** User-writable fields of a link (omits fields that are added automatically) */
 export type PartialLinkBody = Pick<LinkBody, 'type' | 'payload'>
-
-// TODO: This belongs in the team module
-export enum LinkType {
-  ROOT,
-  ADD_MEMBER,
-  INVITE,
-  ADD_DEVICE,
-  ADD_ROLE,
-  CHANGE_MEMBERSHIP,
-  REVOKE,
-  ROTATE,
-}
-
-// TODO: This belongs in the team module
-export type Member = {
-  name: string
-  encryptionKey: Base64
-  signingKey: Base64
-  generation: number // increments when keys are rotated
-}
-
-export enum DeviceType {
-  desktop,
-  laptop,
-  tablet,
-  mobile,
-  bot,
-  server,
-  other,
-}
-
-export interface Device {
-  id?: Base64
-  name: string
-  type: DeviceType
-}
-
-export interface Client {
-  name: string
-  version: SemVer
-}
-
-export interface ContextWithSecrets {
-  user: UserWithSecrets
-  device: Device
-  client: Client
-}
-
-export interface Context {
-  user: User
-  device: Device
-  client: Client
-}

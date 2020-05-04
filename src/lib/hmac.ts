@@ -1,5 +1,5 @@
 ﻿import { createHmac } from 'isomorphic-crypto'
-import { Key, Payload } from 'types'
+import { Key, Payload } from 'lib/types'
 import { keyToBytes } from './keyToBytes'
 import { payloadToBytes } from './payloadToBytes'
 

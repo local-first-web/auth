@@ -1,8 +1,8 @@
 import fs from 'fs'
 import { join } from 'path'
 import { append, create, validate } from '.'
+import { ContextWithSecrets, DeviceType, UserWithSecrets } from '../context'
 import { deriveKeys, randomKey } from '../keys'
-import { ContextWithSecrets, DeviceType, UserWithSecrets } from './types'
 
 const alice: UserWithSecrets = {
   name: 'alice',

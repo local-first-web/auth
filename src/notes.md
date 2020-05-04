@@ -1,55 +1,92 @@
-﻿### Signature chain
+﻿### Context
 
-We have `chain` in its own module. The chain itself is just data (an array of type `Link[]`).
+#### User
+
+`User` always refers to the local user. If a user with the name given exists, their keys will be retrieved from secure storage; otherwise created
 
 ```ts
-import { create, load, validate, append } from './chain'
-
-const actor = {
-  name,
-  encryptionKey,
-  signatureKey,
-  generation,
-}
-const chain = create({ payload, actor })
-// OR
-const chain = load(source)
-
-const isValid = validate(chain) // true or false
-const newChain = append({ link, actor, chain })
+import { getUser } from 'taco'
+const user = getUser('alice')
 ```
 
-### Membership tools
+#### Device
 
-Separately, we have functions in a `team` module for interpreting a chain as team state.
+#### Client
+
+### Team
 
 ```ts
-import { membershipTools } from './team'
+import { Team } from 'taco'
 
-const context = {
-  localUser: { name, secretKey },
-  device: { name, secretKey },
-}
+// create new
+const context = { user, device, client }
+const team = new Team({name: 'Spies Я Us', context})
 
-const { members, roles } = membershipTools(context)
+// OR load from storage
+const chain = localStorage.getItem('myTeamChain')
+const team = new Team({chain})
 
 // invite member
-const { newTeamChain, invitationKey } = members.invite(teamChain, 'bob')
+const invitationKey = team.invite('bob')
+
+// add member
+const bob = team.add('bob', ... ) // what is payload?
+// OR
+team.members.add('bob', ... )
 
 // remove member
-const newTeamChain = members.remove(teamChain, 'eve')
+team.remove('eve')
+// OR
+team.members.remove('eve')
 
 // list members
-const members = members.list()
+const members = team.members()
 
+// get chain for storage
+const chain = team.save()
+```
+
+#### Roles
+
+If a role has `admin` permissions, it can write to the team signature chain. That is the only permissions setting we understand; anything beyond that is managed by the consuming application.
+
+```ts
 // create role
-const newTeamChain = roles.create(teamChain, 'managers')
+const readers = team.roles.add('reader', { permissions: { ... }})
+const managers = team.roles.add('manager', { permissions: { admin: true }})
+
+// remove role
+team.roles.remove('manager')
+
+// list roles
+team.roles()
+```
+
+#### Members
+
+```ts
+const bob = team.members('bob')
+
+// add to role
+team.members('bob').addRole('manager')
+// OR
+team.roles('manager').addMember('bob')
+
+// remove from role
+team.members('bob').removeRole('manager')
+// OR
+team.roles('manager').removeMember('bob')
 
 // check admin status
-const bobIsAdmin = roles.isAdmin(teamChain, 'bob')
+const bobIsAdmin = team.members('bob').hasPermission()
 
 // check role membership
-const bobIsManager = roles.isInRole(teamChain, 'bob', 'managers')
+const bobIsManager = team.members('bob').hasRole('manager')
+// OR
+const bobIsManager = team.roles('manager').hasMember('bob')
+
+// list admins
+const admins = team.admins()
 ```
 
 #### Internals of membership tools
