@@ -12,7 +12,7 @@ Per-user keys and per-team keys are generated from a single secret, following a 
 Returns a cryptographically random 32-byte secret key, as a base64-encoded string.
 
 ```ts
-const secretKey = randomKey()
+const seed = randomKey()
 // qI7WZR+BGTAJD30JJRqRCVOLWL7iGxIHlbBmq80bjLg=
 ```
 
@@ -21,18 +21,19 @@ const secretKey = randomKey()
 Generate a set of per-user or per-team keys, all in base64-encoded text.
 
 ```ts
-const secretKeyset = deriveKeys(secretKey)
+const secretKeyset = deriveKeys(seed)
 
 // {
+//   seed: 'qI7WZR+BGTAJD30JJRqRCVOLWL7iGxIHlbBmq80bjLg=',
 //   signature: {
 //     publicKey: 'xvIoa0SjV7C+tIwVLaGAXSWLH/H8KwC3BVMsQO68Er4=',
-//     secretKey: 'Fv/HjgaQxrYTP+a5r0G20QppX2OD7tVFuXs...L60jBUtoYBdJYsf8fwrALcFUyxA7rwSvg=='
+//     secretKey: 'Fv/HjgaQxrYTP+a5r0G20QppX2OD7tVFuXs...L60jBUtoYBdJYsf8fwrALcFUyxA7rwSvg==',
 //   },
 //   asymmetric: {
 //     publicKey: 'Yxb5B79mNvtDg9kjvDHIlFK4pu8XvXT0to9TtILijig=',
-//     secretKey: 'P2rSWEUUInw/ZwkbVwV8/W6+2n2JCNeiV2S5rtyRa5I='
+//     secretKey: 'P2rSWEUUInw/ZwkbVwV8/W6+2n2JCNeiV2S5rtyRa5I=',
 //   },
-//   symmetric: { key: 'DDJy5aFAzGuSkwcA2PuPMqcO5Nc1VJDincnayGiaLDQ=' }
+//   symmetric: { key: 'DDJy5aFAzGuSkwcA2PuPMqcO5Nc1VJDincnayGiaLDQ=' },
 // }
 ```
 

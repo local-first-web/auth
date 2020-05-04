@@ -1,8 +1,9 @@
-﻿import { signatures } from '../lib'
+﻿import { Context, ContextWithSecrets } from '../context'
+import { redactSecrets } from '../keys'
+import { signatures } from '../lib'
+import { UserWithSecrets } from '../user'
 import { hashLink } from './hashLink'
 import { LinkBody, PartialLinkBody, SignatureChain, SignedLink } from './types'
-import { UserWithSecrets, ContextWithSecrets, Context } from '../context'
-import { redactSecrets } from '../keys'
 
 export const append = (
   chain: SignatureChain,

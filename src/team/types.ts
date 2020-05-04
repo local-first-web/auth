@@ -11,7 +11,6 @@ export enum LinkType {
   ROTATE,
 }
 
-// TODO: This belongs in the team module
 export type Member = {
   name: string
   encryptionKey: Base64
