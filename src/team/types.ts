@@ -10,10 +10,3 @@ export enum LinkType {
   REVOKE,
   ROTATE,
 }
-
-export type Member = {
-  name: string
-  encryptionKey: Base64
-  signingKey: Base64
-  generation: number // increments when keys are rotated
-}

@@ -86,22 +86,6 @@ const members = team.members()
 const chain = team.save()
 ```
 
-#### Roles
-
-If a role has `admin` permissions, it can write to the team signature chain. That is the only permissions setting we understand; anything beyond that is managed by the consuming application.
-
-```ts
-// create role
-const readers = team.roles.add('reader', { permissions: { ... }})
-const managers = team.roles.add('manager', { permissions: { admin: true }})
-
-// remove role
-team.roles.remove('manager')
-
-// list roles
-team.roles()
-```
-
 #### Members
 
 ```ts
@@ -118,7 +102,7 @@ team.members('bob').removeRole('manager')
 team.roles('manager').removeMember('bob')
 
 // check admin status
-const bobIsAdmin = team.members('bob').hasPermission()
+const bobIsAdmin = team.members('bob').hasPermission('admin')
 
 // check role membership
 const bobIsManager = team.members('bob').hasRole('manager')
@@ -127,6 +111,22 @@ const bobIsManager = team.roles('manager').hasMember('bob')
 
 // list admins
 const admins = team.admins()
+```
+
+#### Roles
+
+If a role has `admin` permissions, it can write to the team signature chain. That is the only permissions setting we understand; anything beyond that is managed by the consuming application.
+
+```ts
+// create role
+const readers = team.roles.add('reader', { permissions: { ... }})
+const managers = team.roles.add('manager', { permissions: { admin: true }})
+
+// remove role
+team.roles.remove('manager')
+
+// list roles
+team.roles()
 ```
 
 #### Internals of membership tools
