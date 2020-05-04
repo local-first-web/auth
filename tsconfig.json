@@ -18,7 +18,8 @@
     "rootDir": "./src",
     "sourceMap": true,
     "strict": true,
-    "strictPropertyInitialization": false
+    "strictPropertyInitialization": false,
+    "target": "ES6"
   },
   "include": ["src", "@types"]
 }
