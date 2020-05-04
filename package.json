@@ -43,9 +43,7 @@
     "typescript": "3"
   },
   "husky": {
-    "hooks": {
-      "pre-commit": "tsdx lint src"
-    }
+    "hooks": {}
   },
   "prettier": {
     "printWidth": 80,
