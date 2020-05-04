@@ -7,7 +7,7 @@ import { signatures } from '../lib'
  * @chain The signature chain to validate
  */
 export const validate = (chain: SignatureChain): ValidationResult => {
-  const initialValue = { isValid: true }
+  const initialValue = { isValid: true } as ValidResult
   return chain.reduce(
     compose([validateSequence, validateHash, validateSignatures]),
     initialValue
@@ -61,15 +61,16 @@ const validateHash: Validator = (currentLink, prevLink) => {
   if (isFirstLink) return { isValid: true } // nothing to validate on first link
   const expected = hashLink(prevLink!)
   const actual = currentLink.body.prev
-  const isValid = actual === expected
-  const error = !isValid
-    ? {
-        message: 'Hash does not match previous link',
-        index: currentLink.body.index,
-        details: { actual, expected },
+  return actual === expected
+    ? { isValid: true }
+    : {
+        isValid: false,
+        error: new ValidationError(
+          'Hash does not match previous link',
+          currentLink.body.index,
+          { actual, expected }
+        ),
       }
-    : undefined
-  return { isValid, error }
 }
 
 /** Does this link's signature check out? */
@@ -79,15 +80,16 @@ const validateSignatures: Validator = currentLink => {
     signature: currentLink.signed.signature,
     publicKey: currentLink.signed.key,
   }
-  const isValid = signatures.verify(signedMessage)
-  const error = !isValid
-    ? {
-        message: 'Signature is not valid',
-        index: currentLink.body.index,
-        details: signedMessage,
+  return signatures.verify(signedMessage)
+    ? { isValid: true }
+    : {
+        isValid: false,
+        error: new ValidationError(
+          'Signature is not valid',
+          currentLink.body.index,
+          signedMessage
+        ),
       }
-    : undefined
-  return { isValid, error }
 }
 
 /** Is this link's index consecutive to the previous link's index? */
@@ -97,15 +99,16 @@ const validateSequence: Validator = (currentLink, prevLink) => {
     ? 0 // first link should have index 0
     : (prevLink!.body.index || 0) + 1 // other links should increment previous by one
   const index = currentLink.body.index
-  const isValid = index === expected
-  const error = !isValid
-    ? {
-        message: `Index is not consecutive`,
-        index,
-        details: { actual: index, expected },
+  return index === expected
+    ? { isValid: true }
+    : {
+        isValid: false,
+        error: new ValidationError(
+          'Index is not consecutive',
+          currentLink.body.index,
+          { actual: index, expected }
+        ),
       }
-    : undefined
-  return { isValid, error }
 }
 
 export interface InvalidResult {
@@ -117,9 +120,17 @@ export interface ValidResult {
   isValid: true
 }
 
-export interface ValidationError extends Error {
-  name: 'Signature chain validation error'
-  index?: number
-  details?: any
+export class ValidationError extends Error {
+  constructor(message: string, index: number, details?: any) {
+    super()
+    this.message = message
+    this.index = index
+    this.details = details
+  }
+
+  public name: 'Signature chain validation error'
+  public index?: number
+  public details?: any
 }
+
 export type ValidationResult = ValidResult | InvalidResult

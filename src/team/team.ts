@@ -1,6 +1,6 @@
-﻿import { ContextWithSecrets } from 'context'
+﻿import { ContextWithSecrets, Context } from '../context'
 import { EventEmitter } from 'events'
-import { redactSecrets } from 'keys'
+import { redactSecrets } from '../keys'
 import * as chain from '../chain'
 import { SignatureChain, validate } from '../chain'
 
@@ -19,6 +19,10 @@ export class Team extends EventEmitter {
   public chain: SignatureChain
 
   // public functions
+
+  public get name() {
+    return this.state.name
+  }
 
   public save = () => {}
 
@@ -46,7 +50,7 @@ export class Team extends EventEmitter {
 
   // private functions
 
-  private extractState = () => {
+  private extractState = (): TeamState => {
     return {
       name: '',
       members: [],
@@ -54,20 +58,18 @@ export class Team extends EventEmitter {
     }
   }
 
-  private getMember = (name: string) => {}
-
   private create(options: NewTeamOptions) {
-    this.name = options.name
     // set root context
-    this.rootContext = {
+    const rootContext = {
       ...this.context,
       user: {
         ...this.context.user,
         keys: redactSecrets(this.context.user.keys),
       },
     }
-    const payload = { name: this.name, rootContext: this.rootContext }
+    const payload = { name: this.name, rootContext }
     this.chain = chain.create(payload, this.context)
+    this.state = this.extractState()
   }
 
   private load(options: ExistingTeamOptions) {
@@ -75,18 +77,13 @@ export class Team extends EventEmitter {
     // validate chain
     const validation = validate(this.chain)
     if (!validation.isValid) throw validation.error
-    // TODO: get team name
-    this.name = ''
-    // TODO: get root context
-    this.rootContext = {
-      user: { name: '', keys: { signature: '', encryption: '' } },
-      device: { name: '', type: 0 },
-    }
+    this.state = this.extractState()
   }
 }
 
 export interface TeamState {
   name: string
+  rootContext?: Context
   members: string[]
   roles: string[]
 }

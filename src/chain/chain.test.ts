@@ -18,7 +18,6 @@ const alice: UserWithSecrets = {
 const context: ContextWithSecrets = {
   user: alice,
   device: {
-    id: 'dell-123',
     name: 'windows laptop',
     type: DeviceType.laptop,
   },
