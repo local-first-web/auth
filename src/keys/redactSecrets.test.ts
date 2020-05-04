@@ -17,6 +17,7 @@ describe('redactSecrets', () => {
 
   it('should redact secrets from a known keyset', () => {
     const secretKeyset = {
+      seed: 'xvIoa0SjV7C+tIwVLaGAXSWLH/H8KwC3BVMsQO68Er4=',
       signature: {
         publicKey: 'xvIoa0SjV7C+tIwVLaGAXSWLH/H8KwC3BVMsQO68Er4=',
         secretKey:
