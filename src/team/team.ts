@@ -26,11 +26,11 @@ export class Team extends EventEmitter {
 
   public save = () => {}
 
-  public add = (name: string) => {}
-  public invite = (name: string) => {}
-  public remove = (name: string) => {}
-  public members = (name?: string) => {
-    if (name === undefined) {
+  public add = (_name: string) => {}
+  public invite = (_name: string) => {}
+  public remove = (_name: string) => {}
+  public members = (_name?: string) => {
+    if (_name === undefined) {
       // return all members
     } else {
       // return one member
@@ -38,8 +38,8 @@ export class Team extends EventEmitter {
   }
 
   public roles = {
-    add: (name: string) => {},
-    remove: (name: string) => {},
+    add: (_name: string) => {},
+    remove: (_name: string) => {},
     list: () => {},
   }
 
@@ -67,7 +67,7 @@ export class Team extends EventEmitter {
         keys: redactSecrets(this.context.user.keys),
       },
     }
-    const payload = { name: this.name, rootContext }
+    const payload = { name: options.name, rootContext }
     this.chain = chain.create(payload, this.context)
     this.state = this.extractState()
   }
