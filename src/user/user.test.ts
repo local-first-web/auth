@@ -1,6 +1,6 @@
+import { asymmetric, signatures, symmetric } from '../lib'
 import { create } from './create'
 import { load } from './load'
-import { signatures, asymmetric, symmetric } from '../lib'
 
 describe('user', () => {
   const message = 'the crocodiles lunges at dawn'
