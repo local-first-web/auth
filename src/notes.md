@@ -1,17 +1,57 @@
-﻿### Context
+﻿### User
 
-#### User
-
-`User` always refers to the local user. If a user with the name given exists, their keys will be retrieved from secure storage; otherwise created
+The local user and their private & public keys. The name provided can be an existing username, an email address, or an ID. It needs to uniquely identify the user within this team.
 
 ```ts
-import { getUser } from 'taco'
-const user = getUser('alice')
+import { user } from 'taco'
+const alice = user.create('alice')
+
+// OR
+
+const alice = user.load('alice')
+
+// {
+//   name: 'alice',
+//   keys: {
+//     seed: 'qI7WZR+BGTAJD30JJRqRCVOLWL7iGxIHlbBmq80bjLg=',
+//     signature: {
+//       publicKey: 'xvIoa0SjV7C+tIwVLaGAXSWLH/H8KwC3BVMsQO68Er4=',
+//       secretKey: 'Fv/HjgaQxrYTP+a5r0G20QppX2OD7tVFuXs...L60jBUtoYBdJYsf8fwrALcFUyxA7rwSvg==',
+//     },
+//     asymmetric: {
+//       publicKey: 'Yxb5B79mNvtDg9kjvDHIlFK4pu8XvXT0to9TtILijig=',
+//       secretKey: 'P2rSWEUUInw/ZwkbVwV8/W6+2n2JCNeiV2S5rtyRa5I=',
+//     },
+//     symmetric: { key: 'DDJy5aFAzGuSkwcA2PuPMqcO5Nc1VJDincnayGiaLDQ=' },
+//   }
+// }
 ```
+
+### Context
+
+The context object is passed in when instantiating a team to identify the runtime environment; it identifies the current local user, the device we're running on, and client application.
 
 #### Device
 
+The name of the device needs to be unique among this user's devices.
+
+```ts
+const device = {
+  name: 'Windows Laptop 2019-12-11',
+  type: DeviceType.laptop,
+}
+```
+
 #### Client
+
+Optionally, you can identify the client application.
+
+```ts
+const client = {
+  name: 'AmazingTeamApp',
+  version: '1.2.3',
+}
+```
 
 ### Team
 
@@ -24,7 +64,7 @@ const team = new Team({name: 'Spies Я Us', context})
 
 // OR load from storage
 const chain = localStorage.getItem('myTeamChain')
-const team = new Team({chain})
+const team = new Team({chain, context})
 
 // invite member
 const invitationKey = team.invite('bob')
@@ -124,16 +164,16 @@ if (!isValid) {
 }
 ```
 
-<!--
-SigChain also comes with crypto tools that use keys from the chain.
+### Crypto tools
+
+Team also comes with crypto tools that use keys from the chain.
 
 ```ts
-const { encrypt, decrypt, sign, verify } = SigChain.crypto(chain)
+const { encrypt, decrypt, sign, verify } = Team.crypto
 
 // asymmetric encryption
-encrypt({message, sender, recipient})
+encrypt({ message, sender, recipient })
 
 // signatures
 const { sign, verify } = signatures
 ```
--->
