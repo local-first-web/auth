@@ -1,4 +1,4 @@
-﻿import { Base64, SemVer } from 'lib/types'
+﻿import { SemVer } from 'lib/types'
 import { User, UserWithSecrets } from '../user'
 
 export interface ContextWithSecrets {
