@@ -50,7 +50,7 @@ const admins = team.admins()
 
 ### Roles
 
-If a role has `admin` permissions, it can write to the team signature chain. That is the only permissions setting we understand; anything beyond that is managed by the consuming application.
+If a role has `admin` permissions, it can write to the team signature chain. That is the only permissions setting we understand; anything beyond that is managed by your application.
 
 ```ts
 // create role
