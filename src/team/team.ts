@@ -16,7 +16,9 @@ import {
 export class Team extends EventEmitter {
   constructor(options: TeamOptions) {
     super()
+
     this.context = options.context
+
     if (isExistingTeam(options)) this.load(options)
     else this.create(options)
 
@@ -60,6 +62,7 @@ export class Team extends EventEmitter {
   // private functions
 
   private extractState = (): TeamState => {
+    this.validate()
     const initialState = {
       name: '',
       members: [],
@@ -69,7 +72,7 @@ export class Team extends EventEmitter {
   }
 
   private create(options: NewTeamOptions) {
-    // set root context
+    // set root context (excluding private keys, since this will be written into the public chain)
     const rootContext = {
       ...this.context,
       user: {
@@ -84,9 +87,11 @@ export class Team extends EventEmitter {
 
   private load(options: ExistingTeamOptions) {
     this.chain = options.source
-    // validate chain
+    this.state = this.extractState()
+  }
+
+  private validate() {
     const validation = validate(this.chain)
     if (!validation.isValid) throw validation.error
-    this.state = this.extractState()
   }
 }
