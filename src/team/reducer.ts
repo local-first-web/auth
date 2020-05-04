@@ -1,10 +1,11 @@
-﻿import { TeamState, RootLinkPayload, LinkType } from './types'
-import { SignedLink } from 'chain'
+﻿import { SignedLink } from 'chain'
+import { RootLinkPayload, TeamState } from './types'
+import { linkType } from './linkType'
 
 export const reducer = (prevState: TeamState, link: SignedLink) => {
   const { type, payload } = link.body
   switch (type) {
-    case LinkType.ROOT: {
+    case linkType.ROOT: {
       const { name, rootContext } = payload as RootLinkPayload
       return {
         ...prevState,
@@ -13,7 +14,7 @@ export const reducer = (prevState: TeamState, link: SignedLink) => {
       }
     }
 
-    case LinkType.ADD_MEMBER: {
+    case linkType.ADD_MEMBER: {
       const nextState = prevState
       // ..
       return nextState

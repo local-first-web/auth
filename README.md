@@ -36,9 +36,7 @@ are **rotated** and associated data **re-encrypted**.
 
 ## What
 
-Taco exposes a single `Team` class.
-
-You get a `Team` object back that wraps the signature chain and encapsulates the team's members,
+Taco exposes a `Team` class, which wraps the signature chain and encapsulates the team's members,
 devices, and roles. This object can also use the public keys embedded in the signature chain, along
 with the user's own secret keys, to provide encryption, decryption, signatures, and signature
 verification within the team.
@@ -59,22 +57,26 @@ yarn add taco-js
 #### Alice creates a new team
 
 ```ts
-import { getUser, create } from 'taco'
+import { user, Team } from 'taco'
 
-const user = getUser('alice')
-const context = {}
-const team = create('Spies Я Us', context)
+const alice = user.create('alice')
+const context = { user: alice, device }
+const team = new Team({ name: 'Spies Я Us', context })
 ```
 
-Usernames (`alice` in the example) identify a person uniquely within the team. You could use existing user IDs or names, or email addresses.
+Usernames (`alice` in the example) identify a person uniquely within the team. You could use
+existing user IDs or names, or email addresses.
 
 #### Alice invites Bob
 
 ```ts
-const invitationKey = team.members.invite('bob')
+const invitationKey = team.invite('bob')
 ```
 
-The invitation key is a single-use 16-character string like `aj7x d2jr 9c8f zrbs`. To make it easier to retype if needed, it is in base-30 format, which omits easily confused characters. This is a secret that only Alice and Bob will ever know. It might be typed directly into your application, or appended to a URL that Bob can click to accept:
+The invitation key is a single-use 16-character string like `aj7x d2jr 9c8f zrbs`. To make it easier
+to retype if needed, it is in base-30 format, which omits easily confused characters. This is a
+secret that only Alice and Bob will ever know. It might be typed directly into your application, or
+appended to a URL that Bob can click to accept:
 
 > Alice has invited you to team XYZ. To accept, click: http://xyz.org/accept/aj7xd2jr9c8fzrbs
 
@@ -86,25 +88,25 @@ Alice will send the invitation to Bob via a pre-authenticated channel.
 #### Bob accepts the invitation
 
 ```ts
-team.members.accept('aj7x d2jr 9c8f zrbs')
+team.accept('aj7x d2jr 9c8f zrbs')
 ```
 
 #### Alice defines a role
 
 ```ts
-team.roles.create('managers', { isAdmin: true })
+team.roles.add('managers', { isAdmin: true })
 ```
 
 #### Alice adds Bob to this role
 
 ```ts
-team.roles.addUser('managers', ['bob'])
+team.members('bob').addRole('managers', ['bob'])
 ```
 
 #### Alice checks Bob's permissions
 
 ```ts
-const isAdmin = team.roles.isAdmin('bob')
+const isAdmin = team.members('bob').isAdmin()
 ```
 
 #### Alice encrypts a message for managers

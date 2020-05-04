@@ -1,16 +1,5 @@
-import { Context, ContextWithSecrets } from '../context'
 import { SignatureChain } from '../chain'
-
-export enum LinkType {
-  ROOT,
-  ADD_MEMBER,
-  INVITE,
-  ADD_DEVICE,
-  ADD_ROLE,
-  CHANGE_MEMBERSHIP,
-  REVOKE,
-  ROTATE,
-}
+import { Context, ContextWithSecrets } from '../context'
 
 export interface TeamState {
   name: string
