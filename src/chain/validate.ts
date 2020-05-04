@@ -2,15 +2,6 @@
 import { hashLink } from './hashLink'
 import { signatures } from '../lib'
 
-interface ValidationResult {
-  isValid: boolean
-  error?: {
-    message: string
-    index?: number
-    details?: any
-  }
-}
-
 /**
  * Runs a signature chain through a series of validators to ensure that it has not been tampered with.
  * @chain The signature chain to validate
@@ -34,7 +25,7 @@ const compose = (validators: Validator[]) => (
   chain: SignatureChain
 ) => {
   // short-circuit validation if any previous validation has failed
-  if (result.isValid === false) return result
+  if (result.isValid === false) return result as InvalidResult
 
   const prevLink = i === 0 ? undefined : chain[i - 1]
   for (const validator of validators)
@@ -50,11 +41,11 @@ const compose = (validators: Validator[]) => (
           index: i,
           details: e,
         },
-      }
+      } as InvalidResult
     }
 
   // no validators failed
-  return { isValid: true }
+  return { isValid: true } as ValidResult
 }
 
 // VALIDATORS
@@ -116,3 +107,19 @@ const validateSequence: Validator = (currentLink, prevLink) => {
     : undefined
   return { isValid, error }
 }
+
+export interface InvalidResult {
+  isValid: false
+  error: ValidationError
+}
+
+export interface ValidResult {
+  isValid: true
+}
+
+export interface ValidationError extends Error {
+  name: 'Signature chain validation error'
+  index?: number
+  details?: any
+}
+export type ValidationResult = ValidResult | InvalidResult

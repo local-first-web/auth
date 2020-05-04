@@ -10,7 +10,7 @@ export interface ContextWithSecrets {
 export interface Context {
   user: User
   device: Device
-  client: Client
+  client?: Client
 }
 
 export enum DeviceType {
