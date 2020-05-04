@@ -1,8 +1,17 @@
-﻿import { ContextWithSecrets, Context } from '../context'
-import { EventEmitter } from 'events'
-import { redactSecrets } from '../keys'
+﻿import { EventEmitter } from 'events'
 import * as chain from '../chain'
 import { SignatureChain, validate } from '../chain'
+import { ContextWithSecrets } from '../context'
+import { redactSecrets } from '../keys'
+import { reducer } from './reducer'
+import {
+  ExistingTeamOptions,
+  isExistingTeam,
+  NewTeamOptions,
+  RootLinkPayload,
+  TeamOptions,
+  TeamState,
+} from './types'
 
 export class Team extends EventEmitter {
   constructor(options: TeamOptions) {
@@ -51,11 +60,12 @@ export class Team extends EventEmitter {
   // private functions
 
   private extractState = (): TeamState => {
-    return {
+    const initialState = {
       name: '',
       members: [],
       roles: [],
     }
+    return this.chain.reduce<TeamState>(reducer, initialState)
   }
 
   private create(options: NewTeamOptions) {
@@ -67,7 +77,7 @@ export class Team extends EventEmitter {
         keys: redactSecrets(this.context.user.keys),
       },
     }
-    const payload = { name: options.name, rootContext }
+    const payload = { name: options.name, rootContext } as RootLinkPayload
     this.chain = chain.create(payload, this.context)
     this.state = this.extractState()
   }
@@ -79,28 +89,4 @@ export class Team extends EventEmitter {
     if (!validation.isValid) throw validation.error
     this.state = this.extractState()
   }
-}
-
-export interface TeamState {
-  name: string
-  rootContext?: Context
-  members: string[]
-  roles: string[]
-}
-
-export interface NewTeamOptions {
-  name: string
-  context: ContextWithSecrets
-}
-
-export interface ExistingTeamOptions {
-  source: SignatureChain
-  context: ContextWithSecrets
-}
-
-export type TeamOptions = NewTeamOptions | ExistingTeamOptions
-
-// type guard
-function isExistingTeam(options: TeamOptions): options is ExistingTeamOptions {
-  return (options as ExistingTeamOptions).source !== undefined
 }
