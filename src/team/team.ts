@@ -21,36 +21,21 @@ export class Team extends EventEmitter {
   public invite = (name: string) => {}
   public add = (name: string) => {}
   public remove = (name: string) => {}
+  public members = (name?: string) => {
+    if (name === undefined) {
+      // return all members
+    } else {
+      // return one member
+    }
+  }
+
   public save = () => {}
 
-  public members = Object.assign(
-    (name?: string) => {
-      if (name) {
-        // return one member
-      } else {
-        // return all members
-      }
-    },
-    {
-      get: (name: string) => {},
-      invite: (name: string) => {},
-    }
-  )
-
-  public roles = Object.assign(
-    (name?: string) => {
-      if (name) {
-        // return one role
-      } else {
-        // return all roles
-      }
-    },
-    {
-      get: (name: string) => {},
-      add: (name: string) => {},
-      remove: (name: string) => {},
-    }
-  )
+  public roles = {
+    add: (name: string) => {},
+    remove: (name: string) => {},
+    list: () => {},
+  }
 
   // private
 
@@ -100,9 +85,4 @@ export type TeamOptions = NewTeamOptions | ExistingTeamOptions
 // type guard
 function isExistingTeam(options: TeamOptions): options is ExistingTeamOptions {
   return (options as ExistingTeamOptions).source !== undefined
-}
-
-interface FunctionsOnYourFunctions {
-  (args?: any): any | void
-  [key: string]: (...args: any[]) => any | void
 }
