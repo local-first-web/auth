@@ -71,13 +71,9 @@ const invitationKey = team.invite('bob')
 
 // add member
 const bob = team.add('bob', ... ) // what is payload?
-// OR
-team.members.add('bob', ... )
 
 // remove member
 team.remove('eve')
-// OR
-team.members.remove('eve')
 
 // list members
 const members = team.members()
@@ -93,21 +89,15 @@ const bob = team.members('bob')
 
 // add to role
 team.members('bob').addRole('manager')
-// OR
-team.roles('manager').addMember('bob')
 
 // remove from role
 team.members('bob').removeRole('manager')
-// OR
-team.roles('manager').removeMember('bob')
 
 // check admin status
 const bobIsAdmin = team.members('bob').hasPermission('admin')
 
 // check role membership
 const bobIsManager = team.members('bob').hasRole('manager')
-// OR
-const bobIsManager = team.roles('manager').hasMember('bob')
 
 // list admins
 const admins = team.admins()

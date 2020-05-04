@@ -1,8 +1,8 @@
-﻿import { Context, ContextWithSecrets } from 'context'
+﻿import { ContextWithSecrets } from 'context'
 import { EventEmitter } from 'events'
 import { redactSecrets } from 'keys'
 import * as chain from '../chain'
-import { SignatureChain, validate, InvalidResult } from '../chain'
+import { SignatureChain, validate } from '../chain'
 
 export class Team extends EventEmitter {
   constructor(options: TeamOptions) {
@@ -10,16 +10,20 @@ export class Team extends EventEmitter {
     this.context = options.context
     if (isExistingTeam(options)) this.load(options)
     else this.create(options)
+
+    this.state = this.extractState()
   }
 
-  // public
+  // public properties
 
-  public name: string
-  public rootContext: Context
-  public signatureChain: SignatureChain
+  public chain: SignatureChain
 
-  public invite = (name: string) => {}
+  // public functions
+
+  public save = () => {}
+
   public add = (name: string) => {}
+  public invite = (name: string) => {}
   public remove = (name: string) => {}
   public members = (name?: string) => {
     if (name === undefined) {
@@ -29,17 +33,28 @@ export class Team extends EventEmitter {
     }
   }
 
-  public save = () => {}
-
   public roles = {
     add: (name: string) => {},
     remove: (name: string) => {},
     list: () => {},
   }
 
-  // private
+  // private properties
 
+  public state: TeamState
   private context: ContextWithSecrets
+
+  // private functions
+
+  private extractState = () => {
+    return {
+      name: '',
+      members: [],
+      roles: [],
+    }
+  }
+
+  private getMember = (name: string) => {}
 
   private create(options: NewTeamOptions) {
     this.name = options.name
@@ -52,13 +67,13 @@ export class Team extends EventEmitter {
       },
     }
     const payload = { name: this.name, rootContext: this.rootContext }
-    this.signatureChain = chain.create(payload, this.context)
+    this.chain = chain.create(payload, this.context)
   }
 
   private load(options: ExistingTeamOptions) {
-    this.signatureChain = options.source
+    this.chain = options.source
     // validate chain
-    const validation = validate(this.signatureChain)
+    const validation = validate(this.chain)
     if (!validation.isValid) throw validation.error
     // TODO: get team name
     this.name = ''
@@ -68,6 +83,12 @@ export class Team extends EventEmitter {
       device: { name: '', type: 0 },
     }
   }
+}
+
+export interface TeamState {
+  name: string
+  members: string[]
+  roles: string[]
 }
 
 export interface NewTeamOptions {
