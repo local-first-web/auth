@@ -26,7 +26,6 @@ describe('chains', () => {
     test('Bob validates it', () => {
       // 👩🏾 Alice
       const chain = create({ team: 'Spies Я Us' }, context)
-      console.log(JSON.stringify(chain))
 
       // 👨‍🦲 Bob
       const { isValid } = validate(chain)
@@ -53,7 +52,6 @@ describe('chains', () => {
       const chain = create({ team: 'Spies Я Us' }, context)
       const newLink = { type: 'add-user', payload: { name: 'charlie' } }
       const newChain = append(chain, newLink, context)
-      console.log(JSON.stringify(newChain))
 
       // 👨‍🦲 Bob
       const { isValid } = validate(newChain)
@@ -89,6 +87,18 @@ describe('chains', () => {
       // 👨‍🦲 Bob
       const validation = validate(chain)
       expect(validation.isValid).toBe(false)
+    })
+
+    test('Bob saves a chain to a file and loads it later', () => {
+      const chain = create({ team: 'Spies Я Us' }, context)
+
+      // 👨‍🦲 Bob
+      // serialize
+      const chainJson = JSON.stringify(chain)
+      // deserialize
+      const rehydratedChain = JSON.parse(chainJson)
+      const { isValid } = validate(rehydratedChain)
+      expect(isValid).toBe(true)
     })
   })
 })
