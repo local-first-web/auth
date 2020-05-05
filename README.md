@@ -8,19 +8,18 @@ cryptographic signatures.
 💻🤝 You're building a [local-first](http://inkandswitch.com/local-first.html) app to enable distributed collaboration [without a central
 server](http://medium.com/all-the-things/a-web-application-with-no-web-server-61000a6aed8f).
 
-👩🔑 You want to **authenticate** users and manage their **permissions**.
+👩🏾🔑 You want to **authenticate** users and manage their **permissions**.
 
 🚫☁ You **don't** want to depend on a centralized authentication server or a key management service.
 
-👌❤ You want to provide a **easy and seamless experience** to users creating and joining teams
+👌💙 You want to provide a **easy and seamless experience** to users creating and joining teams
 
-🎛🤪 You **don't** want to expose any of the underlying cryptographic complexity.
+👨🏾‍💻🤪 You **don't** want to expose any of the underlying cryptographic complexity.
 
 ## How
 
-When Alice first creates a team, she is assigned a set of **device-specific keys** for signatures,
-asymmetric encryption, and symmetric encryption. These are stored in her device's **secure storage**,
-and the secret keys will **never leave that device**.
+When Alice first creates a team, she is assigned a set of **cryptographic keys** for signatures,
+asymmetric encryption, and symmetric encryption. These are stored in her device's **secure storage**.
 
 She writes the first link of a **signature chain**, containing her public keys for signatures and
 encryption. All subsequent links must be signed by Alice or by another team member with admin

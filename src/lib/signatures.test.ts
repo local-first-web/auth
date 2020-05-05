@@ -60,7 +60,18 @@ describe('crypto', () => {
       expect(isLegit).toBe(true)
     })
 
-    test(`eve tampers with the message, but bob is not fooled`, () => {
+    test(`JSON normalization`, () => {
+      const payload = { a: 1, b: 2, c: 3 }
+      const scrambled = { b: 2, a: 1, c: 3 }
+
+      const { secretKey, publicKey } = alice
+      const signature = sign(scrambled, secretKey)
+      const isLegit = verify({ payload, signature, publicKey })
+      expect(isLegit).toBe(true)
+    })
+
+    test(`Eve tampers with the message, but Bob is not fooled`, () => {
+      // Eve
       const tamperedContent = (signedMessage.payload as string)
         .replace('one', 'forty-two')
         .replace('two', 'seventy-twelve')
@@ -68,6 +79,8 @@ describe('crypto', () => {
         ...signedMessage,
         payload: tamperedContent,
       }
+
+      // Bob
       const isLegit = verify(tamperedMessage)
       expect(isLegit).toBe(false)
     })

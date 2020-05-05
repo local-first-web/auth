@@ -1,5 +1,3 @@
-import fs from 'fs'
-import { join } from 'path'
 import { append, create, validate } from '.'
 import { ContextWithSecrets, DeviceType } from '../context'
 import { deriveKeys, randomKey } from '../keys'
@@ -26,24 +24,24 @@ const context: ContextWithSecrets = {
 describe('chains', () => {
   describe('Alice creats a new chain', () => {
     test('Bob validates it', () => {
-      // Alice
+      // 👩🏾 Alice
       const chain = create({ team: 'Spies Я Us' }, context)
       console.log(JSON.stringify(chain))
 
-      // Bob
+      // 👨‍🦲 Bob
       const { isValid } = validate(chain)
       expect(isValid).toBe(true)
     })
 
     test('Mallory tampers with the payload; Bob is not fooled', () => {
-      // Alice
+      // 👩🏾 Alice
       const chain = create({ team: 'Spies Я Us' }, context)
 
-      // Mallory
+      // 🦹‍♂️ Mallory
       const { payload } = chain[0].body
       payload.team = payload.team.replace('Spies', 'Dorks')
 
-      // Bob
+      // 👨‍🦲 Bob
       const validation = validate(chain)
       expect(validation.isValid).toBe(false)
     })
@@ -51,33 +49,33 @@ describe('chains', () => {
 
   describe('Alice adds a link', () => {
     test('Bob validates it', () => {
-      // Alice
+      // 👩🏾 Alice
       const chain = create({ team: 'Spies Я Us' }, context)
       const newLink = { type: 'add-user', payload: { name: 'charlie' } }
       const newChain = append(chain, newLink, context)
       console.log(JSON.stringify(newChain))
 
-      // Bob
+      // 👨‍🦲 Bob
       const { isValid } = validate(newChain)
       expect(isValid).toBe(true)
     })
 
     test('Mallory changes the order of the links; Bob is not fooled', () => {
-      // Alice
+      // 👩🏾 Alice
       const chain = create({ team: 'Spies Я Us' }, context)
       const newLink = { type: 'add-user', payload: { name: 'charlie' } }
       const newChain = append(chain, newLink, context)
 
-      // Mallory
+      // 🦹‍♂️ Mallory
       const wrongOrderChain = newChain.reverse()
 
-      // Bob
+      // 👨‍🦲 Bob
       const { isValid } = validate(wrongOrderChain)
       expect(isValid).toBe(false)
     })
 
     test('Alice, for reasons only she understands, munges the type of the first link; validation fails', () => {
-      // Alice
+      // 👩🏾 Alice
       const chain = create({ team: 'Spies Я Us' }, context)
 
       const { body } = chain[0]
@@ -88,7 +86,7 @@ describe('chains', () => {
       const signature = signatures.sign(body, secretKey)
       chain[0].signed = { name, signature, key: publicKey }
 
-      // Bob
+      // 👨‍🦲 Bob
       const validation = validate(chain)
       expect(validation.isValid).toBe(false)
     })

@@ -37,7 +37,9 @@ export class Team extends EventEmitter {
 
   public save = () => {}
 
-  public add = (_name: string) => {}
+  public add = (_name: string) => {
+    // NEXT: ADD A MEMBER
+  }
   public invite = (_name: string) => {}
   public remove = (_name: string) => {}
   public members = (_name?: string) => {

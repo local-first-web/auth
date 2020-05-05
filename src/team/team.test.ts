@@ -34,4 +34,6 @@ describe('Team', () => {
     const { team } = setup()
     expect(team.name).toBe('Spies Я Us')
   })
+
+  // NEXT: ADD A MEMBER
 })
