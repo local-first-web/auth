@@ -1,36 +1,52 @@
 [
   {
     "body": {
-      "type": 0,
+      "type": "ROOT",
       "payload": { "team": "Spies Я Us" },
-      "user": "alice",
-      "device": { "id": "PKN4tM7BtW8=", "name": "windows laptop", "type": 1 },
-      "client": { "name": "test", "version": "0" },
-      "timestamp": 1588421926221,
+      "context": {
+        "user": {
+          "name": "alice",
+          "keys": {
+            "encryption": "jTbi2k9xIntWibQVjIFhaydi4WIypFnJ2torIStqVGk=",
+            "signature": "TJkIAZFy/TTK/mjx1dVv77x+nn3F6YJ9wsxoZM5wS28="
+          }
+        },
+        "device": { "name": "windows laptop", "type": 1 },
+        "client": { "name": "test", "version": "0" }
+      },
+      "timestamp": 1588677203316,
       "prev": null,
       "index": 0
     },
     "signed": {
       "name": "alice",
-      "signature": "oTKyn8iTwrrAdH3zqoof34GwtTfzuni/qLkyu47uCuhPEkqNaGRKYBM/LWsW64RL3NJlnwMoIg+6NiYrhh2RBg==",
-      "key": "/I7WZRWBGTAJD30JJRq+CVOLWL7iGxIHlbBmq80bjLg="
+      "signature": "h2ryT8gYI2ANsJ3YXGtPoiB+6OG1tik8Wu3iyQ02TusFvwflhVNp7mLnt/Td+jbarI4QoZZ/4evuPSigaxVDBw==",
+      "key": "TJkIAZFy/TTK/mjx1dVv77x+nn3F6YJ9wsxoZM5wS28="
     }
   },
   {
     "body": {
-      "type": "something",
-      "payload": {},
-      "user": "alice",
-      "device": { "id": "PKN4tM7BtW8=", "name": "windows laptop", "type": 1 },
-      "client": { "name": "test", "version": "0" },
-      "timestamp": 1588421926268,
-      "prev": "fog76617S9wsklpTz/pys7kud/ivZM11T+rtUplgMe/rGZicPZFEItOQcbKNNbgiB3JbGU2P1VKWERIVnyvcmQ==",
+      "type": "add-user",
+      "payload": { "name": "charlie" },
+      "context": {
+        "user": {
+          "name": "alice",
+          "keys": {
+            "encryption": "jTbi2k9xIntWibQVjIFhaydi4WIypFnJ2torIStqVGk=",
+            "signature": "TJkIAZFy/TTK/mjx1dVv77x+nn3F6YJ9wsxoZM5wS28="
+          }
+        },
+        "device": { "name": "windows laptop", "type": 1 },
+        "client": { "name": "test", "version": "0" }
+      },
+      "timestamp": 1588677203412,
+      "prev": "BxPbTV6f2IyAthepONBve2u6din79gEvXlc1xAXG2OZNNZ8D3H+g4nJbWT8LFAoMGVd2jAXohLzlbtDQh2P48A==",
       "index": 1
     },
     "signed": {
       "name": "alice",
-      "signature": "OM3MZ0lHL9Pdpex4WO9IDcii4IZa64Dok22XI9nk5ibbKKMWS0tlGipD8bUnxFiKXJ3ECpfRgpedBCmB9CW3Cw==",
-      "key": "/I7WZRWBGTAJD30JJRq+CVOLWL7iGxIHlbBmq80bjLg="
+      "signature": "xI71hL1lKbQbYZK9gcctN5weeUi0NJZxBT2k+1qMA8xcBwuwxVmXPjWwBIOHX4+ino64oWdn2ssLdQp7LJElBw==",
+      "key": "TJkIAZFy/TTK/mjx1dVv77x+nn3F6YJ9wsxoZM5wS28="
     }
   }
 ]

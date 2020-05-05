@@ -1,19 +1,27 @@
 [
   {
     "body": {
-      "type": 0,
+      "type": "ROOT",
       "payload": { "team": "Spies Я Us" },
-      "user": "alice",
-      "device": { "id": "dceHDRNz7og=", "name": "windows laptop", "type": 1 },
-      "client": { "name": "test", "version": "0" },
-      "timestamp": 1588419447084,
-      "index": 0,
-      "prev": null
+      "context": {
+        "user": {
+          "name": "alice",
+          "keys": {
+            "encryption": "paCpHpKXC+1T5vCVQR4IMo3yvPMJ6cRWvkDLw4aInCU=",
+            "signature": "v5nZgJffOanRmFTvRW209pM0wfACpsMZUbuQ+f9KcFw="
+          }
+        },
+        "device": { "name": "windows laptop", "type": 1 },
+        "client": { "name": "test", "version": "0" }
+      },
+      "timestamp": 1588677160080,
+      "prev": null,
+      "index": 0
     },
     "signed": {
       "name": "alice",
-      "signature": "1jjcDxgzeY0Yas0BwXaoT8z25BS3k+zmq0OkqLMDz64LLUisCltze9uys4LhP8IB0WWTZib0O6nsjE+cwmziCg==",
-      "key": "pE+q7MuQZ8HqNe/eiagjfeJECa/0qCbU7rDljkRO9as="
+      "signature": "5WA04LkWQ4ZlzsMiXDjljYGU1mcbWRTa1EPlHWlVE4iB9OhPl9FCSviRNMq8TZRumql+WeUJ+Z+rXyV4XivFDA==",
+      "key": "v5nZgJffOanRmFTvRW209pM0wfACpsMZUbuQ+f9KcFw="
     }
   }
 ]
