@@ -10,11 +10,11 @@ A lockbox is just data:
 
 ```ts
 const lockbox = {
+  scope: 'team',
   sender: 'Spies Я Us',
   senderPublicKey: 'fUeVMZIzch2ZIIKB6rvzBQ4kSlc4ZfzgGhrFX48vBaHXH',
   recipient: 'bob',
   recipientPublicKey: 'rrhT32xnIJyQVTGrEkkgUS1FToPfXcNMkUh1xqp5dfhCrE',
-  scope: 'team',
   encryptedSecret:
     'r1peeKn3MnndwaEFqBJbY0rr9eps0vxhpZFHjtV33xTfcGrrrFqHsv8+vj3EB5tJc2K9X8krrD9RJzeHDMuoeQqqpRRkaw9==',
 }
@@ -25,3 +25,18 @@ We use lockboxes to:
 - share per-team keys with team members
 - share per-role keys with members in that role
 - share per-user keys with the user's devices
+
+#### `create()`
+
+To make a lockbox:
+
+```ts
+import { create } from '../lockbox'
+create({
+  scope: 'role',
+  sender: managers,
+  recipient: carol,
+  secret: 'passw0rd',
+  label: 'secret plans',
+})
+```
