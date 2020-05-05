@@ -1,10 +1,11 @@
 import { SignatureChain } from '../chain'
 import { Context, ContextWithSecrets } from '../context'
+import { PublicKeyset } from '../keys'
 
 export interface TeamState {
   name: string
   rootContext?: Context
-  members: string[]
+  members: Member[]
   roles: string[]
 }
 
@@ -29,4 +30,10 @@ export function isExistingTeam(
 export interface RootLinkPayload {
   name: string
   rootContext: Context
+}
+
+export interface Member {
+  name: string
+  keys: PublicKeyset
+  roles: string[]
 }
