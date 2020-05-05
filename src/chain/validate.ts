@@ -1,6 +1,8 @@
 ﻿import { SignatureChain, SignedLink } from './types'
 import { hashLink } from './hashLink'
 import { signatures } from '../lib'
+import { linkType } from 'team/linkType'
+import { baseLinkType } from './baseLinkType'
 
 /**
  * Runs a signature chain through a series of validators to ensure that it has not been tampered with.
@@ -9,7 +11,7 @@ import { signatures } from '../lib'
 export const validate = (chain: SignatureChain): ValidationResult => {
   const initialValue = { isValid: true } as ValidResult
   return chain.reduce(
-    compose([validateSequence, validateHash, validateSignatures]),
+    compose([validateRoot, validateSequence, validateHash, validateSignatures]),
     initialValue
   )
 }
@@ -36,11 +38,7 @@ const compose = (validators: Validator[]) => (
       // errors cause validation to fail
       return {
         isValid: false,
-        error: {
-          message: e.message,
-          index: i,
-          details: e,
-        },
+        error: { message: e.message, index: i, details: e },
       } as InvalidResult
     }
 
@@ -71,6 +69,27 @@ const validateHash: Validator = (currentLink, prevLink) => {
           { actual, expected }
         ),
       }
+}
+
+/** If this is a root link, is it the first link in the chain? */
+const validateRoot: Validator = (currentLink, prevLink) => {
+  const { type } = currentLink.body
+  const isRoot = type == baseLinkType.ROOT
+  const isFirstLink = prevLink === undefined
+
+  // both should be true, or both should be false
+  if (isRoot === isFirstLink) return { isValid: true }
+  else {
+    const message = isRoot
+      ? // has type ROOT but isn't first
+        'The root link must be the first link in the signature chain.'
+      : // is first but doesn't have type ROOT
+        'The first link in the signature chain must be the root link. '
+    return {
+      isValid: false,
+      error: new ValidationError(message, currentLink.body.index),
+    }
+  }
 }
 
 /** Does this link's signature check out? */
