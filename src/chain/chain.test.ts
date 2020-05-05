@@ -11,11 +11,6 @@ const alice: UserWithSecrets = {
   keys: deriveKeys(randomKey()),
 }
 
-// const eve: UserWithSecrets = {
-//   name: 'eve',
-//   keys: deriveKeys(randomKey()),
-// }
-
 const context: ContextWithSecrets = {
   user: alice,
   device: {
@@ -33,23 +28,24 @@ describe('chains', () => {
     test('Bob validates it', () => {
       // Alice
       const chain = create({ team: 'Spies Я Us' }, context)
+      console.log(JSON.stringify(chain))
 
       // Bob
       const { isValid } = validate(chain)
       expect(isValid).toBe(true)
     })
 
-    test('Eve tampers with the payload; Bob is not fooled', () => {
+    test('Mallory tampers with the payload; Bob is not fooled', () => {
       // Alice
       const chain = create({ team: 'Spies Я Us' }, context)
 
-      // Eve
+      // Mallory
       const { payload } = chain[0].body
       payload.team = payload.team.replace('Spies', 'Dorks')
 
       // Bob
-      const { isValid } = validate(chain)
-      expect(isValid).toBe(false)
+      const validation = validate(chain)
+      expect(validation.isValid).toBe(false)
     })
   })
 
@@ -59,19 +55,20 @@ describe('chains', () => {
       const chain = create({ team: 'Spies Я Us' }, context)
       const newLink = { type: 'add-user', payload: { name: 'charlie' } }
       const newChain = append(chain, newLink, context)
+      console.log(JSON.stringify(newChain))
 
       // Bob
       const { isValid } = validate(newChain)
       expect(isValid).toBe(true)
     })
 
-    test('Eve changes the order of the links; Bob is not fooled', () => {
+    test('Mallory changes the order of the links; Bob is not fooled', () => {
       // Alice
       const chain = create({ team: 'Spies Я Us' }, context)
       const newLink = { type: 'add-user', payload: { name: 'charlie' } }
       const newChain = append(chain, newLink, context)
 
-      // Eve
+      // Mallory
       const wrongOrderChain = newChain.reverse()
 
       // Bob
@@ -86,37 +83,14 @@ describe('chains', () => {
       const { body } = chain[0]
       body.type = 'IS_IT_SPELLED_ROOT_OR_ROUTE_OR_REWT'
 
-      // she re-signs the link because she wants the world to burn
+      // she re-signs the messed-up link because she wants the world to burn
       const { secretKey, publicKey } = alice.keys.signature
       const signature = signatures.sign(body, secretKey)
       chain[0].signed = { name, signature, key: publicKey }
 
       // Bob
-      const { isValid } = validate(chain)
-      expect(isValid).toBe(false)
-    })
-  })
-
-  describe('from JSON', () => {
-    const fsOpts = { encoding: 'utf8' }
-    const assetsDir = join(__dirname, 'assets')
-
-    const testTypes = ['valid', 'invalid']
-    testTypes.forEach(x => {
-      const expected = x === 'valid' ? true : false
-
-      describe(x, () => {
-        const dir = join(assetsDir, x)
-        const files = fs.readdirSync(dir)
-        for (const file of files)
-          test(file, () => {
-            const filePath = join(dir, file)
-            const chainJson = fs.readFileSync(filePath, fsOpts)
-            const chain = JSON.parse(chainJson)
-            const { isValid } = validate(chain)
-            expect(isValid).toBe(expected)
-          })
-      })
+      const validation = validate(chain)
+      expect(validation.isValid).toBe(false)
     })
   })
 })
