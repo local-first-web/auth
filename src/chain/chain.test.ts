@@ -2,8 +2,9 @@ import fs from 'fs'
 import { join } from 'path'
 import { append, create, validate } from '.'
 import { ContextWithSecrets, DeviceType } from '../context'
-import { UserWithSecrets } from '../user'
 import { deriveKeys, randomKey } from '../keys'
+import { signatures } from '../lib'
+import { UserWithSecrets } from '../user'
 
 const alice: UserWithSecrets = {
   name: 'alice',
@@ -75,6 +76,23 @@ describe('chains', () => {
 
       // Bob
       const { isValid } = validate(wrongOrderChain)
+      expect(isValid).toBe(false)
+    })
+
+    test('Alice, for reasons only she understands, munges the type of the first link; validation fails', () => {
+      // Alice
+      const chain = create({ team: 'Spies Я Us' }, context)
+
+      const { body } = chain[0]
+      body.type = 'IS_IT_SPELLED_ROOT_OR_ROUTE_OR_REWT'
+
+      // she re-signs the link because she wants the world to burn
+      const { secretKey, publicKey } = alice.keys.signature
+      const signature = signatures.sign(body, secretKey)
+      chain[0].signed = { name, signature, key: publicKey }
+
+      // Bob
+      const { isValid } = validate(chain)
       expect(isValid).toBe(false)
     })
   })
