@@ -82,7 +82,11 @@ describe('chains', () => {
       // she re-signs the messed-up link because she wants the world to burn
       const { secretKey, publicKey } = alice.keys.signature
       const signature = signatures.sign(body, secretKey)
-      chain[0].signed = { name, signature, key: publicKey }
+      chain[0].signed = {
+        name: alice.name,
+        signature,
+        key: publicKey,
+      }
 
       // 👨‍🦲 Bob
       const validation = validate(chain)
