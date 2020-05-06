@@ -37,6 +37,5 @@ create({
   sender: managers,
   recipient: carol,
   secret: 'passw0rd',
-  label: 'secret plans',
 })
 ```
