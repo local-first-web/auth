@@ -40,8 +40,11 @@ export class Team extends EventEmitter {
   public add = (_name: string) => {
     // NEXT: ADD A MEMBER
   }
+
   public invite = (_name: string) => {}
+
   public remove = (_name: string) => {}
+
   public members = (_name?: string) => {
     if (_name === undefined) {
       // return all members
@@ -80,6 +83,9 @@ export class Team extends EventEmitter {
       user: {
         ...this.context.user,
         keys: redactSecrets(this.context.user.keys),
+        lockboxes: [
+          // lockbox.create()
+        ],
       },
     }
     const payload = { name: options.name, rootContext } as RootLinkPayload
