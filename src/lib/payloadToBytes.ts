@@ -1,11 +1,13 @@
-﻿import * as utf8 from '@stablelib/utf8'
+﻿import stringify from 'json-stable-stringify'
 import { Payload } from 'lib/types'
-// import msgpack from 'msgpack-lite'
-import stringify from 'json-stable-stringify'
 
-export const payloadToBytes = (x: Payload) =>
+/** Takes either a string, a byte array, or a javascript object, and returns it as a byte array */
+export const payloadToBytes = (x: Payload): Uint8Array =>
   typeof x === 'string'
-    ? utf8.encode(x) // string
+    ? // string
+      Buffer.from(x)
     : ArrayBuffer.isView(x)
-    ? x // byte array
-    : utf8.encode(stringify(x)) // object
+    ? // byte array
+      x
+    : // object
+      Buffer.from(stringify(x))
