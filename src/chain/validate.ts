@@ -74,7 +74,7 @@ const validateHash: Validator = (currentLink, prevLink) => {
 /** If this is a root link, is it the first link in the chain? */
 const validateRoot: Validator = (currentLink, prevLink) => {
   const { type } = currentLink.body
-  const isRoot = type == baseLinkType.ROOT
+  const isRoot = type === baseLinkType.ROOT
   const isFirstLink = prevLink === undefined
 
   // both should be true, or both should be false
