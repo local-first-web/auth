@@ -1,7 +1,7 @@
 ﻿import * as base64 from '@stablelib/base64'
 import * as utf8 from '@stablelib/utf8'
+import { Key, Payload } from 'lib/types'
 import nacl from 'tweetnacl'
-import { Key, Message } from 'lib/types'
 import { keypairToBase64 } from './keypairToBase64'
 import { keyToBytes } from './keyToBytes'
 import { newNonce, nonceLength } from './nonce'
@@ -17,20 +17,16 @@ export const asymmetric = {
 
   /**
    * Asymmetrically encrypts a string of text.
-   * @param plaintext The plaintext to encrypt
+   * @param secret The plaintext to encrypt
    * @param recipientPublicKey The public key of the intended recipient
    * @param senderSecretKey The secret key of the sender
    * @returns The encrypted data, encoded as a base64 string. The first 24 characters are the nonce;
    * the rest of the string is the encrypted message.
    * @see asymmetric.decrypt
    */
-  encrypt: (
-    plaintext: Message,
-    recipientPublicKey: Key,
-    senderSecretKey: Key
-  ) => {
+  encrypt: (secret: Payload, recipientPublicKey: Key, senderSecretKey: Key) => {
     const nonce = newNonce()
-    const messageBytes = payloadToBytes(plaintext)
+    const messageBytes = payloadToBytes(secret)
     const encrypted = nacl.box(
       messageBytes,
       nonce,
