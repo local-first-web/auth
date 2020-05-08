@@ -1,6 +1,7 @@
 import { SignatureChain } from '../chain'
 import { Context, ContextWithSecrets } from '../context'
 import { PublicKeyset } from '../keys'
+import { Lockbox } from '../lockbox'
 
 export interface TeamState {
   name: string
@@ -19,17 +20,17 @@ export interface ExistingTeamOptions {
   context: ContextWithSecrets
 }
 
-export type TeamOptions = NewTeamOptions | ExistingTeamOptions // type guard
+export type TeamOptions = NewTeamOptions | ExistingTeamOptions
 
-export function isExistingTeam(
-  options: TeamOptions
-): options is ExistingTeamOptions {
+// type guard for NewTeamOptions vs ExistingTeam Options
+export function exists(options: TeamOptions): options is ExistingTeamOptions {
   return (options as ExistingTeamOptions).source !== undefined
 }
 
 export interface RootLinkPayload {
   name: string
   rootContext: Context
+  lockboxes: Lockbox[]
 }
 
 export interface Member {
