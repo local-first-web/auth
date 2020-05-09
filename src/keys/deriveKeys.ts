@@ -1,5 +1,5 @@
 ﻿import * as base64 from '@stablelib/base64'
-import { hmac, keypairToBase64 } from '../lib'
+import { hash, keypairToBase64 } from '../lib'
 import nacl from 'tweetnacl'
 import { Key } from '../lib/types'
 import { HashPurpose } from '../lib/constants'
@@ -27,7 +27,7 @@ export const deriveKeys = (seed: string): KeysetWithSecrets => ({
 const deriveSignatureKeys = (secretKey: Key) => {
   const hashKey = HashPurpose.Signature
   const { keyPair } = nacl.sign
-  const derivedSeed = hmac(hashKey, secretKey).slice(0, 32)
+  const derivedSeed = hash(hashKey, secretKey).slice(0, 32)
   const keys = keyPair.fromSeed(derivedSeed)
   return keypairToBase64(keys)
 }
@@ -35,13 +35,13 @@ const deriveSignatureKeys = (secretKey: Key) => {
 const deriveAsymmetricKeys = (secretKey: Key) => {
   const hashKey = HashPurpose.EncryptionAsymmetric
   const { keyPair, secretKeyLength } = nacl.box
-  const derivedSecretKey = hmac(hashKey, secretKey).slice(0, secretKeyLength)
+  const derivedSecretKey = hash(hashKey, secretKey).slice(0, secretKeyLength)
   const keys = keyPair.fromSecretKey(derivedSecretKey)
   return keypairToBase64(keys)
 }
 
 const deriveSymmetricKey = (secretKey: Key) => {
   const hashKey = HashPurpose.EncryptionSymmetric
-  const key = hmac(hashKey, secretKey).slice(0, 32)
+  const key = hash(hashKey, secretKey).slice(0, 32)
   return { key: base64.encode(key) }
 }
