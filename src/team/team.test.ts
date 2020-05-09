@@ -42,9 +42,18 @@ describe('Team', () => {
 
     it('saves & loads', () => {
       const { team, context } = setup()
-      const savedTeam = team.save()
-      const restoredTeam = new Team({ source: JSON.parse(savedTeam), context })
+      const savedChain = team.save()
+      const restoredTeam = new Team({ source: JSON.parse(savedChain), context })
       expect(restoredTeam.name).toBe('Spies Я Us')
+    })
+
+    it('throws if saved chain is tampered with', () => {
+      const { team, context } = setup()
+      const savedChain = team.save()
+      const tamperedChain = savedChain.replace(/alice/gi, 'eve')
+      const restoreTampered = () =>
+        new Team({ source: JSON.parse(tamperedChain), context })
+      expect(restoreTampered).toThrow('Signature is not valid')
     })
   })
 
@@ -56,11 +65,10 @@ describe('Team', () => {
       expect(alice.name).toBe('alice')
     })
 
-    it('has a root member', () => {
+    it('throws when asked for a nonexistent member', () => {
       const { team } = setup()
-      expect(team.members().length).toBe(1)
-      const alice = team.members('alice')
-      expect(alice.name).toBe('alice')
+      const findNonexistent = () => team.members('ned')
+      expect(findNonexistent).toThrow('Member ned was not found')
     })
   })
 })
