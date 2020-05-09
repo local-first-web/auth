@@ -19,14 +19,14 @@ import {
   RootPayload,
   TeamOptions,
   TeamState,
-  Member,
 } from './types'
+import { Member } from '../member'
 
 export class Team extends EventEmitter {
   constructor(options: TeamOptions) {
     super()
 
-    this.context = options.context
+    this.#context = options.context
 
     if (exists(options)) this.loadChain(options)
     else this.create(options)
@@ -35,11 +35,11 @@ export class Team extends EventEmitter {
   // public API
 
   public get name() {
-    return this.state.name
+    return this.#state.name
   }
 
   public save = () => {
-    return JSON.stringify(this.chain)
+    return JSON.stringify(this.#chain)
   }
 
   public add = (name: string, keys: PublicKeyset) => {
@@ -51,15 +51,19 @@ export class Team extends EventEmitter {
 
   public remove = (name: string) => {}
 
-  public members(): Member[]
-  public members(name: string): Member
-  public members(name?: string): Member | Member[] {
+
+
+
+  public members(): MemberWrapper[]
+  public members(name: string): MemberWrapper
+  public members(name?: string): MemberWrapper | MemberWrapper[] {
+    const wrap = (member: Member) => new MemberWrapper({member, team:this})
     if (name === undefined) {
-      return this.state.members
+      return this.#state.members.map(wrap)
     } else {
-      const result = this.state.members.find(m => m.name === name)
+      const result = this.#state.members.find(m => m.name === name)
       if (!result) throw new Error(`Member ${name} was not found`)
-      return result
+      return wrap(result)
     }
   }
 
@@ -71,14 +75,14 @@ export class Team extends EventEmitter {
 
   // private properties
 
-  private chain: SignatureChain
-  private context: ContextWithSecrets
-  private state: TeamState
+  #chain: SignatureChain
+  #context: ContextWithSecrets
+  #state: TeamState
 
   // private functions
 
   private validateChain() {
-    const validation = validate(this.chain)
+    const validation = validate(this.#chain)
     if (!validation.isValid) throw validation.error
   }
 
@@ -87,9 +91,9 @@ export class Team extends EventEmitter {
     const initialState = {
       name: '',
       members: [],
-      roles: ['admin'],
+      roles: [],
     }
-    this.state = this.chain.reduce<TeamState>(reducer, initialState)
+    this.#state = this.#chain.reduce<TeamState>(reducer, initialState)
   }
 
   private create(options: NewTeamOptions) {
@@ -110,7 +114,7 @@ export class Team extends EventEmitter {
   }
 
   private loadChain(options: ExistingTeamOptions) {
-    this.chain = options.source
+    this.#chain = options.source
     this.updateState()
   }
 
@@ -125,7 +129,7 @@ export class Team extends EventEmitter {
       publicKeys,
       foundingMember,
     }
-    this.chain = []
+    this.#chain = []
     this.dispatch({ type: linkType.ROOT, payload })
   }
 
@@ -137,8 +141,44 @@ export class Team extends EventEmitter {
   private addMemberRole() {}
 
   private dispatch(link: PartialLinkBody) {
-    this.chain = chain.append(this.chain, link, this.context)
+    this.#chain = chain.append(this.#chain, link, this.#context)
     // update state
     this.updateState()
+  }
+  
+  
+}
+
+
+
+class MemberWrapper implements Member {
+  #team: Team
+
+  public name: string
+  public keys: PublicKeyset
+  public roles: string[]
+
+  constructor({ member: { name, keys, roles }, team }:{ member: Member, team: Team }) {
+    this.name = name
+    this.keys = keys
+    this.roles = roles
+
+    this.#team = team
+  }
+
+  public addRole() {
+    
+  }
+
+  public removeRole() {
+
+  }
+
+  public hasPermission() {
+
+  }
+
+  public hasRole() {
+
   }
 }
