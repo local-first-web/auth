@@ -1,4 +1,4 @@
-﻿## 🔗 Signature chains
+﻿## ✍🔗 Signature chains
 
 A signature chain is an ordered list of links. Each link
 
