@@ -43,8 +43,8 @@ describe('Team', () => {
     it('saves & loads', () => {
       const { team } = setup()
       const savedTeam = team.save()
-      const recoveredTeam = new Team({ source: JSON.parse(savedTeam), context })
-      expect(recoveredTeam.name).toBe('Spies Я Us')
+      const restoredTeam = new Team({ source: JSON.parse(savedTeam), context })
+      expect(restoredTeam.name).toBe('Spies Я Us')
     })
   })
 
