@@ -1,4 +1,4 @@
-import { redactSecrets } from './redactSecrets'
+import { redactKeys } from './redactSecrets'
 import { randomKey } from './randomKey'
 import { deriveKeys } from './deriveKeys'
 
@@ -7,7 +7,7 @@ describe('redactSecrets', () => {
     const secretKey = randomKey()
     const secretKeyset = deriveKeys(secretKey)
 
-    const publicKeyset = redactSecrets(secretKeyset)
+    const publicKeyset = redactKeys(secretKeyset)
     expect(publicKeyset).toHaveProperty('encryption')
     expect(publicKeyset).toHaveProperty('signature')
     expect(publicKeyset.signature).not.toHaveProperty('secretKey')
@@ -31,7 +31,7 @@ describe('redactSecrets', () => {
       generation: 0,
     }
 
-    const publicKeyset = redactSecrets(secretKeyset)
+    const publicKeyset = redactKeys(secretKeyset)
 
     expect(publicKeyset).toEqual({
       encryption: 'Yxb5B79mNvtDg9kjvDHIlFK4pu8XvXT0to9TtILijig=',
