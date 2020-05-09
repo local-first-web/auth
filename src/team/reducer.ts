@@ -1,6 +1,11 @@
 ﻿import { SignatureChain, SignedLink } from 'chain'
-import { linkType } from './linkType'
-import { Member, RootLinkPayload, TeamState } from './types'
+import {
+  linkType,
+  RootPayload,
+  TeamState,
+  AddMemberPayload,
+  Member,
+} from './types'
 
 export const reducer = (
   prevState: TeamState,
@@ -11,28 +16,30 @@ export const reducer = (
   const { type, payload } = link.body
   switch (type) {
     case linkType.ROOT: {
-      const { name, rootContext } = payload as RootLinkPayload
-      const rootUser = {
-        ...rootContext.user,
-        roles: ['admin'],
-      } as Member
-
+      const { teamName } = payload as RootPayload
       return {
         ...prevState,
-        name,
-        members: [rootUser],
-        roles: ['admin'],
+        name: teamName,
       }
     }
 
-    // NEXT: ADD A MEMBER
     case linkType.ADD_MEMBER: {
-      const nextState = prevState
+      const { user, roles } = payload as AddMemberPayload
+      const nextState = {
+        ...prevState,
+        members: [
+          ...prevState.members,
+          {
+            ...user,
+            roles,
+          } as Member,
+        ],
+      }
       return nextState
     }
   }
 
   // fallthrough
-  // TODO: should we throw an error if nothing happens here?
+  // TODO: should we throw an error if we get here?
   return prevState
 }
