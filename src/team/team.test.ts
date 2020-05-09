@@ -53,7 +53,7 @@ describe('Team', () => {
       const { team } = setup()
       expect(team.members().length).toBe(1)
       const alice = team.members('alice')
-      expect(alice!.name).toBe('alice')
+      expect(alice.name).toBe('alice')
     })
   })
 })
