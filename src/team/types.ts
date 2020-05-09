@@ -2,12 +2,14 @@ import { User } from 'user'
 import { baseLinkType, SignatureChain } from '../chain'
 import { Context, ContextWithSecrets } from '../context'
 import { PublicKeyset } from '../keys'
+import { Member } from '../member'
+import { Role } from '../role'
 
 export interface TeamState {
   name: string
   rootContext?: Context
   members: Member[]
-  roles: string[]
+  roles: Role[]
 }
 
 export interface NewTeamOptions {
@@ -25,12 +27,6 @@ export type TeamOptions = NewTeamOptions | ExistingTeamOptions
 // type guard for NewTeamOptions vs ExistingTeam Options
 export function exists(options: TeamOptions): options is ExistingTeamOptions {
   return (options as ExistingTeamOptions).source !== undefined
-}
-
-export interface Member {
-  name: string
-  keys: PublicKeyset
-  roles?: string[]
 }
 
 // link types & corresponding payload types
