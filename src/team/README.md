@@ -5,17 +5,17 @@ import { Team } from 'taco'
 
 // create new
 const context = { user, device, client }
-const team = new Team({name: 'Spies Я Us', context})
+const team = new Team({ name: 'Spies Я Us', context })
 
 // OR load from storage
 const chain = localStorage.getItem('myTeamChain')
-const team = new Team({chain, context})
+const team = new Team({ chain, context })
 
 // invite member
 const invitationKey = team.invite('bob')
 
 // add member
-const bob = team.add('bob', ... ) // what is payload?
+const bob = team.add('bob') // what is payload?
 
 // remove member
 team.remove('eve')
