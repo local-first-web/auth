@@ -1,5 +1,4 @@
-﻿import { Context, ContextWithSecrets } from '../context'
-import { redactSecrets } from '../keys'
+﻿import { ContextWithSecrets, redactContext } from '../context'
 import { signatures } from '../lib'
 import { UserWithSecrets } from '../user'
 import { hashLink } from './hashLink'
@@ -56,12 +55,3 @@ const chainToPrev = (
     index,
   } as LinkBody
 }
-
-const redactContext = (context: ContextWithSecrets): Context => ({
-  user: {
-    name: context.user.name,
-    keys: redactSecrets(context.user.keys),
-  },
-  device: context.device,
-  client: context.client,
-})
