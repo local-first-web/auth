@@ -8,6 +8,10 @@ describe('Team', () => {
     name: 'alice',
     keys: deriveKeys(randomKey()),
   }
+  const eve: UserWithSecrets = {
+    name: 'eve',
+    keys: deriveKeys(randomKey()),
+  }
 
   const context: ContextWithSecrets = {
     user: alice,
@@ -26,14 +30,30 @@ describe('Team', () => {
   })
 
   const setup = () => {
-    const team = new Team({ name: 'Spies Я Us', context })
+    const team = new Team({ teamName: 'Spies Я Us', context })
     return { team }
   }
 
-  it('returns a new team', () => {
-    const { team } = setup()
-    expect(team.name).toBe('Spies Я Us')
+  describe('create', () => {
+    it('returns a new team', () => {
+      const { team } = setup()
+      expect(team.name).toBe('Spies Я Us')
+    })
+
+    it('saves & loads', () => {
+      const { team } = setup()
+      const savedTeam = team.save()
+      const recoveredTeam = new Team({ source: JSON.parse(savedTeam), context })
+      expect(recoveredTeam.name).toBe('Spies Я Us')
+    })
   })
 
-  // NEXT: ADD A MEMBER
+  describe('members', () => {
+    it('has a root member', () => {
+      const { team } = setup()
+      expect(team.members().length).toBe(1)
+      const alice = team.members('alice')
+      expect(alice!.name).toBe('alice')
+    })
+  })
 })
