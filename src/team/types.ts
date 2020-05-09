@@ -1,7 +1,7 @@
-import { SignatureChain } from '../chain'
+import { User } from 'user'
+import { baseLinkType, SignatureChain } from '../chain'
 import { Context, ContextWithSecrets } from '../context'
 import { PublicKeyset } from '../keys'
-import { Lockbox } from '../lockbox'
 
 export interface TeamState {
   name: string
@@ -11,7 +11,7 @@ export interface TeamState {
 }
 
 export interface NewTeamOptions {
-  name: string
+  teamName: string
   context: ContextWithSecrets
 }
 
@@ -27,14 +27,35 @@ export function exists(options: TeamOptions): options is ExistingTeamOptions {
   return (options as ExistingTeamOptions).source !== undefined
 }
 
-export interface RootLinkPayload {
-  name: string
-  rootContext: Context
-  lockboxes: Lockbox[]
-}
-
 export interface Member {
   name: string
   keys: PublicKeyset
-  roles: string[]
+  roles?: string[]
+}
+
+// link types & corresponding payload types
+
+export const linkType = {
+  ...baseLinkType,
+  INVITE: 'INVITE',
+  ADD_MEMBER: 'ADD_MEMBER',
+  ADD_DEVICE: 'ADD_DEVICE',
+  ADD_ROLE: 'ADD_ROLE',
+  ADD_MEMBER_ROLE: 'ADD_MEMBER_ROLE',
+  REVOKE_MEMBER: 'REVOKE_MEMBER',
+  REVOKE_DEVICE: 'REVOKE_DEVICE',
+  REVOKE_ROLE: 'REVOKE_ROLE',
+  REVOKE_MEMBER_ROLE: 'REVOKE_MEMBER_ROLE',
+  ROTATE_KEYS: 'ROTATE_KEYS',
+}
+
+export interface RootPayload {
+  teamName: string
+  publicKeys: PublicKeyset
+  foundingMember: User
+}
+
+export interface AddMemberPayload {
+  user: User
+  roles?: string[]
 }
