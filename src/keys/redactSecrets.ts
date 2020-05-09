@@ -5,7 +5,7 @@
  * @param keys a keyset of the form `{signature, asymmetric, symmetric}`
  * @returns a set of public keys of the form `{signature, encryption}`
  */
-export const redactSecrets = (keys: KeysetWithSecrets): PublicKeyset => ({
+export const redactKeys = (keys: KeysetWithSecrets): PublicKeyset => ({
   encryption: keys.asymmetric.publicKey,
   signature: keys.signature.publicKey,
   generation: keys.generation,
