@@ -22,3 +22,9 @@ export interface PublicKeyset {
   encryption: Base64 // = asymmetric.publicKey
   generation?: number
 }
+
+export const hasSecrets = (
+  keys: PublicKeyset | KeysetWithSecrets
+): keys is KeysetWithSecrets => {
+  return keys.hasOwnProperty('symmetric')
+}
