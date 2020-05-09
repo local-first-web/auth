@@ -1,5 +1,5 @@
 ﻿import * as base64 from '@stablelib/base64'
-import { base30, hmac, stretch, symmetric } from '../lib'
+import { base30, hash, stretch, symmetric } from '../lib'
 import msgpack from 'msgpack-lite'
 import nacl from 'tweetnacl'
 
@@ -32,7 +32,7 @@ export const stretchIKey = (iKey: string) => stretch(iKey)
  */
 export const getInvitationId = (siKey: Uint8Array) => {
   const payload = { stage: STAGE_INVITE_ID }
-  const invitationId = hmac(siKey, payload)
+  const invitationId = hash(siKey, payload)
   return base64.encode(invitationId).slice(0, 15)
 }
 
@@ -44,7 +44,7 @@ export const getInvitationId = (siKey: Uint8Array) => {
  */
 export const getSigningKeypair = (siKey: Uint8Array) => {
   const payload = { stage: STAGE_EDDSA }
-  const seed = hmac(siKey, payload).slice(0, 32)
+  const seed = hash(siKey, payload).slice(0, 32)
   return nacl.sign.keyPair.fromSeed(seed)
 }
 
@@ -106,4 +106,4 @@ export const newInvitation = (iKey: string) => {
 // TODO: This should live somewhere else & be precomputed when the repo is created, along with keys
 // for other specific purposes. See https://keybase.io/docs/teams/crypto
 export const getKeyForSymmetricEncryption = (teamKeySeed: Uint8Array) =>
-  hmac(teamKeySeed, TACO_INVITE_TOKEN)
+  hash(teamKeySeed, TACO_INVITE_TOKEN)
