@@ -1,11 +1,6 @@
 ﻿import { SignatureChain, SignedLink } from 'chain'
-import {
-  linkType,
-  RootPayload,
-  TeamState,
-  AddMemberPayload,
-  Member,
-} from './types'
+import { linkType, RootPayload, TeamState, AddMemberPayload } from './types'
+import { Member } from '../member'
 
 export const reducer = (
   prevState: TeamState,
