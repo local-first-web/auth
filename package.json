@@ -28,10 +28,8 @@
   "dependencies": {
     "@stablelib/base64": "1",
     "@stablelib/utf8": "1",
-    "@types/json-stable-stringify": "^1.0.32",
     "fast-memoize": "2",
-    "isomorphic-crypto": "3",
-    "json-stable-stringify": "^1.0.1",
+    "json-stable-stringify": "1",
     "msgpack-lite": "0",
     "scryptsy": "2",
     "tweetnacl": "1"
@@ -39,6 +37,7 @@
   "devDependencies": {
     "@types/msgpack-lite": "0",
     "@types/scryptsy": "2",
+    "@types/json-stable-stringify": "1",
     "husky": "4",
     "tsdx": "0",
     "tslib": "1",
