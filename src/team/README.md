@@ -48,6 +48,25 @@ const bobIsManager = team.members('bob').hasRole('manager')
 const admins = team.admins()
 ```
 
+OR MAYBE
+
+```ts
+// add to role
+team.addMemberRole('bob', 'manager')
+
+// remove from role
+team.removeMemberRole('bob', 'manager')
+
+// check admin status
+const bobIsAdmin = team.memberHasPermission('bob', 'admin')
+
+// check role membership
+const bobIsManager = team.memberHasRole('bob', 'manager')
+
+// list admins
+const admins = team.admins()
+```
+
 ### Roles
 
 If a role has `admin` permissions, it can write to the team signature chain. That is the only permissions setting we understand; anything beyond that is managed by your application.
