@@ -1,5 +1,10 @@
+export * from './baseLinkType'
+export * from './types'
 export * from './append'
 export * from './create'
 export * from './validate'
-export * from './baseLinkType'
-export * from './types'
+
+import { append } from './append'
+import { create } from './create'
+import { validate } from './validate'
+export const chain = { append, create, validate }
