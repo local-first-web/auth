@@ -1,7 +1,6 @@
 ﻿import { SignatureChain, SignedLink } from './types'
 import { hashLink } from './hashLink'
 import { signatures } from '../lib'
-import { linkType } from 'team/linkType'
 import { baseLinkType } from './baseLinkType'
 
 /**
