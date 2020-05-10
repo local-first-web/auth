@@ -81,6 +81,9 @@ describe('Team', () => {
     it('removes a member', () => {
       const { team } = setup()
       team.add(bob)
+      expect(team.has('bob')).toBe(true)
+      team.remove('bob')
+      expect(team.has('bob')).toBe(false)
     })
 
     it.todo('rotates keys after removing a member')
@@ -98,13 +101,21 @@ describe('Team', () => {
   })
 
   describe('roles', () => {
-    it('root member is admin', () => {
+    it('alice is admin', () => {
       const { team } = setup()
-      const alice = team.members('alice')
-      expect(alice.hasRole('admin')).toBe(true)
+      const _alice = team.members('alice')
+      expect(_alice.hasRole('admin')).toBe(true)
     })
 
-    it.todo('does not allow a non-admin to add a member')
+    it('bob is not admin', () => {
+      const { team } = setup()
+      team.add(bob)
+      const _bob = team.members('bob')
+      expect(_bob.hasRole('admin')).toBe(false)
+    })
+
+    it('does not allow a non-admin to add a member', () => {})
+
     it.todo('does not allow a non-admin to remove a member')
 
     it.todo('adds a role')

@@ -60,8 +60,10 @@ export class Team extends EventEmitter {
   public invite = (userName: string) => {}
 
   public remove = (userName: string) => {
-    if (this.has(userName)) throw new Error(`Member ${userName} already exists`)
-    this.removeMember(userName)
+    if (!this.has(userName))
+      throw new Error(`Member ${userName} does not exist`)
+    const payload: RevokeMemberPayload = { userName }
+    this.dispatch({ type: linkType.REVOKE_MEMBER, payload })
   }
 
   public members(): WrappedMember[]
@@ -181,11 +183,6 @@ export class Team extends EventEmitter {
     }
     this.chain = []
     this.dispatch({ type: linkType.ROOT, payload })
-  }
-
-  private removeMember(userName: string) {
-    const payload: RevokeMemberPayload = { userName }
-    this.dispatch({ type: linkType.REVOKE_MEMBER, payload })
   }
 
   private dispatch(link: PartialLinkBody) {
