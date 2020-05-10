@@ -1,12 +1,13 @@
 import { User } from 'user'
 import { baseLinkType, SignatureChain } from '../chain'
-import { Context, ContextWithSecrets } from '../context'
+import { Context, ContextWithSecrets, Device } from '../context'
 import { PublicKeyset } from '../keys'
 import { Member } from '../member'
-import { Role } from '../role'
+import { Role, PermissionsMap } from '../role'
+import { Base64 } from 'lib'
 
 export interface TeamState {
-  name: string
+  teamName: string
   rootContext?: Context
   members: Member[]
   roles: Role[]
@@ -33,7 +34,6 @@ export function exists(options: TeamOptions): options is ExistingTeamOptions {
 
 export const linkType = {
   ...baseLinkType,
-  INVITE: 'INVITE',
   ADD_MEMBER: 'ADD_MEMBER',
   ADD_DEVICE: 'ADD_DEVICE',
   ADD_ROLE: 'ADD_ROLE',
@@ -42,6 +42,8 @@ export const linkType = {
   REVOKE_DEVICE: 'REVOKE_DEVICE',
   REVOKE_ROLE: 'REVOKE_ROLE',
   REVOKE_MEMBER_ROLE: 'REVOKE_MEMBER_ROLE',
+  INVITE: 'INVITE',
+  ACCEPT: 'ACCEPT',
   ROTATE_KEYS: 'ROTATE_KEYS',
 }
 
@@ -54,4 +56,42 @@ export interface RootPayload {
 export interface AddMemberPayload {
   user: User
   roles?: string[]
+}
+
+export interface RevokeMemberPayload {
+  userName: string
+}
+
+export interface AddDevicePayload {
+  userName: string
+  device: Device
+}
+
+export interface AddRolePayload {
+  roleName: string
+  permissions: PermissionsMap
+}
+
+export interface AddMemberRolePayload {
+  userName: string
+  roleName: string
+}
+
+export interface RevokeDevicePayload {
+  userName: string
+  deviceId: string
+}
+
+export interface RevokeRolePayload {
+  roleName: string
+}
+
+export interface RevokeMemberRolePayload {
+  userName: string
+  roleName: string
+}
+
+export interface RotateKeysPayload {
+  oldPublicKey: Base64
+  newPublicKey: Base64
 }

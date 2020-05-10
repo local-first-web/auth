@@ -18,9 +18,9 @@ export const create = (args: {
 
   return {
     scope,
-    sender: sender.name,
+    sender: sender.userName,
     senderPublicKey: sender.keys.asymmetric.publicKey,
-    recipient: recipient.name,
+    recipient: recipient.userName,
     recipientPublicKey: recipientPublicKeys.encryption,
     encryptedSecret: asymmetric.encrypt(
       secret,

@@ -8,7 +8,7 @@ export const create = (name: string): UserWithSecrets => {
     throw new Error(`There is already a keyset for user '${name}'`)
   const keys = generateNewKeyset()
   storeKeyset(name, keys)
-  return { name, keys }
+  return { userName: name, keys }
 }
 
 const generateNewKeyset = (): KeysetWithSecrets => deriveKeys(randomKey())

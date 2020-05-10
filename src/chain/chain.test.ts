@@ -5,7 +5,7 @@ import { signatures } from '../lib'
 import { UserWithSecrets } from '../user'
 
 const alice: UserWithSecrets = {
-  name: 'alice',
+  userName: 'alice',
   keys: deriveKeys(randomKey()),
 }
 
@@ -83,7 +83,7 @@ describe('chains', () => {
       const { secretKey, publicKey } = alice.keys.signature
       const signature = signatures.sign(body, secretKey)
       chain[0].signed = {
-        name: alice.name,
+        name: alice.userName,
         signature,
         key: publicKey,
       }

@@ -4,10 +4,11 @@ import { ContextWithSecrets } from '../context'
 import {
   deriveKeys,
   KeysetWithSecrets,
+  PublicKeyset,
   randomKey,
   redactKeys,
-  PublicKeyset,
 } from '../keys'
+import { Member } from '../member'
 import { redactUser, User } from '../user'
 import { reducer } from './reducer'
 import {
@@ -19,14 +20,17 @@ import {
   RootPayload,
   TeamOptions,
   TeamState,
+  RevokeMemberPayload,
+  RevokeRolePayload,
+  AddRolePayload,
+  AddMemberRolePayload,
 } from './types'
-import { Member } from '../member'
 
 export class Team extends EventEmitter {
   constructor(options: TeamOptions) {
     super()
 
-    this.#context = options.context
+    this.context = options.context
 
     if (exists(options)) this.loadChain(options)
     else this.create(options)
@@ -34,66 +38,112 @@ export class Team extends EventEmitter {
 
   // public API
 
-  public get name() {
-    return this.#state.name
+  public get teamName() {
+    return this.state.teamName
   }
 
   public save = () => {
-    return JSON.stringify(this.#chain)
+    return JSON.stringify(this.chain)
   }
 
-  public add = (name: string, keys: PublicKeyset) => {
-    if (this.members(name)) throw new Error(`Member ${name} already exists`)
-    this.addMember({ name, keys })
+  public has = (userName: string) => {
+    return this.state.members.find(m => m.userName === userName) !== undefined
   }
 
-  public invite = (name: string) => {}
+  public add = (user: User, roles: string[] = []) => {
+    const { userName } = user
+    if (this.has(userName)) throw new Error(`Member ${userName} already exists`)
+    const payload: AddMemberPayload = { user, roles }
+    this.dispatch({ type: linkType.ADD_MEMBER, payload })
+  }
 
-  public remove = (name: string) => {}
+  public invite = (userName: string) => {}
 
+  public remove = (userName: string) => {
+    if (this.has(userName)) throw new Error(`Member ${userName} already exists`)
+    this.removeMember(userName)
+  }
 
+  public members(): WrappedMember[]
+  public members(userName: string): WrappedMember
 
+  public members(name?: string): WrappedMember | WrappedMember[] {
+    const wrap = (member: Member): WrappedMember => {
+      const { userName } = member
+      return {
+        ...member,
 
-  public members(): MemberWrapper[]
-  public members(name: string): MemberWrapper
-  public members(name?: string): MemberWrapper | MemberWrapper[] {
-    const wrap = (member: Member) => new MemberWrapper({member, team:this})
+        addRole: (roleName: string) => {
+          const payload = { userName, roleName } as AddMemberRolePayload
+          this.dispatch({ type: linkType.ADD_MEMBER_ROLE, payload })
+        },
+
+        removeRole: (roleName: string) => {
+          const payload = { userName, roleName } as RevokeRolePayload
+          this.dispatch({ type: linkType.REVOKE_MEMBER_ROLE, payload })
+        },
+
+        hasRole: (role: string) => member.roles.includes(role),
+
+        permissions: () => {
+          // TODO
+          return []
+        },
+
+        hasPermission: (permission: string) => {
+          // TODO
+          return false
+        },
+      }
+    }
+
     if (name === undefined) {
-      return this.#state.members.map(wrap)
+      return this.state.members.map(wrap)
     } else {
-      const result = this.#state.members.find(m => m.name === name)
+      const result = this.state.members.find(m => m.userName === name)
       if (!result) throw new Error(`Member ${name} was not found`)
       return wrap(result)
     }
   }
 
   public roles = {
-    add: (name: string) => {},
-    remove: (name: string) => {},
-    list: () => {},
+    has: (roleName: string) => {
+      return this.state.roles.find(r => r.name === roleName) !== undefined
+    },
+
+    add: (roleName: string) => {
+      if (this.roles.has(roleName))
+        throw new Error(`Role ${roleName} already exists`)
+    },
+
+    remove: (roleName: string) => {},
+
+    list: () => {
+      return this.state.roles
+    },
   }
 
   // private properties
 
-  #chain: SignatureChain
-  #context: ContextWithSecrets
-  #state: TeamState
+  private chain: SignatureChain
+  private context: ContextWithSecrets
+  private state: TeamState
 
   // private functions
 
   private validateChain() {
-    const validation = validate(this.#chain)
+    const validation = validate(this.chain)
     if (!validation.isValid) throw validation.error
   }
 
   private updateState = () => {
     this.validateChain()
-    const initialState = {
-      name: '',
+    const initialState: TeamState = {
+      teamName: '',
       members: [],
       roles: [],
     }
-    this.#state = this.#chain.reduce<TeamState>(reducer, initialState)
+    this.state = this.chain.reduce<TeamState>(reducer, initialState)
   }
 
   private create(options: NewTeamOptions) {
@@ -108,13 +158,13 @@ export class Team extends EventEmitter {
     this.initializeChain(options.teamName, teamKeys, user)
 
     // add root member
-    this.addMember(user, ['admin'])
+    this.add(user, ['admin'])
 
     // this.addLockbox()
   }
 
   private loadChain(options: ExistingTeamOptions) {
-    this.#chain = options.source
+    this.chain = options.source
     this.updateState()
   }
 
@@ -129,56 +179,26 @@ export class Team extends EventEmitter {
       publicKeys,
       foundingMember,
     }
-    this.#chain = []
+    this.chain = []
     this.dispatch({ type: linkType.ROOT, payload })
   }
 
-  private addMember(user: User, roles: string[] = []) {
-    const payload: AddMemberPayload = { user, roles }
-    this.dispatch({ type: linkType.ADD_MEMBER, payload })
+  private removeMember(userName: string) {
+    const payload: RevokeMemberPayload = { userName }
+    this.dispatch({ type: linkType.REVOKE_MEMBER, payload })
   }
 
-  private addMemberRole() {}
-
   private dispatch(link: PartialLinkBody) {
-    this.#chain = chain.append(this.#chain, link, this.#context)
+    this.chain = chain.append(this.chain, link, this.context)
     // update state
     this.updateState()
   }
-  
-  
 }
 
-
-
-class MemberWrapper implements Member {
-  #team: Team
-
-  public name: string
-  public keys: PublicKeyset
-  public roles: string[]
-
-  constructor({ member: { name, keys, roles }, team }:{ member: Member, team: Team }) {
-    this.name = name
-    this.keys = keys
-    this.roles = roles
-
-    this.#team = team
-  }
-
-  public addRole() {
-    
-  }
-
-  public removeRole() {
-
-  }
-
-  public hasPermission() {
-
-  }
-
-  public hasRole() {
-
-  }
+interface WrappedMember extends Member {
+  addRole(role: string): void
+  removeRole(role: string): void
+  hasRole(role: string): boolean
+  permissions(): string[]
+  hasPermission(permission: string): boolean
 }

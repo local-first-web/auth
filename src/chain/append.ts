@@ -22,7 +22,7 @@ const signLink = (
   body: LinkBody,
   userWithSecrets: UserWithSecrets
 ): SignedLink => {
-  const { name, keys } = userWithSecrets
+  const { userName: name, keys } = userWithSecrets
   const { publicKey, secretKey } = keys.signature
 
   const signature = signatures.sign(body, secretKey)
