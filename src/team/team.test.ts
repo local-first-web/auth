@@ -80,8 +80,10 @@ describe('Team', () => {
 
     it('removes a member', () => {
       const { team } = setup()
+
       team.add(bob)
       expect(team.has('bob')).toBe(true)
+
       team.remove('bob')
       expect(team.has('bob')).toBe(false)
     })
