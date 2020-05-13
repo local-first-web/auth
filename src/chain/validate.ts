@@ -6,19 +6,22 @@
   ValidatorSet,
   ValidResult,
 } from './types'
+import { validators as baseValidators } from './validators'
 
-import { validators } from './validators'
 /**
- * Runs a signature chain through a series of validators to ensure that it has not been tampered with.
+ * Runs a signature chain through a series of validators to ensure that it is correctly formed, has
+ * not been tampered with, etc.
  * @chain The signature chain to validate
+ * @customValidators Any additional validators (besides the base validators that test the chain's
+ * integrity)
  */
 export const validate = (
   chain: SignatureChain,
-  additionalValidators: ValidatorSet
+  customValidators: ValidatorSet = {}
 ): ValidationResult => {
   const initialValue = { isValid: true } as ValidResult
   return chain.reduce(
-    composeValidators(validators, additionalValidators),
+    composeValidators(baseValidators, customValidators),
     initialValue
   )
 }
@@ -43,7 +46,7 @@ const composeValidators = (...validators: ValidatorSet[]) => (
       const result = validator(currentLink, prevLink)
       if (result.isValid === false) return result
     } catch (e) {
-      // errors cause validation to fail
+      // any errors thrown cause validation to fail and are returned with the validation result
       return {
         isValid: false,
         error: { message: e.message, index: i, details: e },
@@ -54,8 +57,6 @@ const composeValidators = (...validators: ValidatorSet[]) => (
   return { isValid: true } as ValidResult
 }
 
+// merges multiple validator sets into one object
 const merge = (validatorSets: ValidatorSet[]) =>
-  validatorSets.reduce(
-    (result, validatorSet) => Object.assign(result, validatorSet),
-    {} as ValidatorSet
-  )
+  validatorSets.reduce((result, vs) => Object.assign(result, vs), {})
