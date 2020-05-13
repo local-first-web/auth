@@ -1,26 +1,33 @@
-﻿import { SignatureChain, SignedLink } from 'chain'
-import {
-  linkType,
-  RootPayload,
-  TeamState,
-  AddMemberPayload,
-  RevokeMemberPayload,
-} from './types'
+﻿import { ADMIN } from '../role'
+import { SignedLink } from '../chain'
 import { Member } from '../member'
+import {
+  AddMemberPayload,
+  linkType,
+  RevokeMemberPayload,
+  RootPayload,
+} from './types'
+import { TeamState } from './teamState'
+import * as selectors from './selectors'
 
-export const reducer = (
-  prevState: TeamState,
-  link: SignedLink,
-  index: number,
-  chain: SignatureChain
-) => {
-  const { type, payload } = link.body
+export const reducer = (prevState: TeamState, link: SignedLink) => {
+  const { type, payload, context } = link.body
+
+  // check that the user who made these changes was admin at the time
+  const { userName } = context.user
+  if (type !== linkType.ROOT && !selectors.memberIsAdmin(prevState, userName))
+    throw new Error(
+      `Invalid signature chain: member '${userName}' is not an admin at this time`
+    )
+
   switch (type) {
     case linkType.ROOT: {
       const { teamName } = payload as RootPayload
+      const rootMember = { ...context.user, roles: [ADMIN] }
       return {
         ...prevState,
         teamName,
+        members: [rootMember],
       }
     }
 
