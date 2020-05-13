@@ -1,4 +1,6 @@
-import { append, create, validate } from '.'
+import { append } from './append'
+import { create } from './create'
+import { validate } from './validate'
 import { ContextWithSecrets, DeviceType } from '../context'
 import { deriveKeys, randomKey } from '../keys'
 import { signatures } from '../lib'
