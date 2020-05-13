@@ -1,17 +1,9 @@
+import { Base64 } from 'lib'
 import { User } from 'user'
 import { baseLinkType, SignatureChain } from '../chain'
-import { Context, ContextWithSecrets, Device } from '../context'
+import { ContextWithSecrets, Device } from '../context'
 import { PublicKeyset } from '../keys'
-import { Member } from '../member'
-import { Role, PermissionsMap } from '../role'
-import { Base64 } from 'lib'
-
-export interface TeamState {
-  teamName: string
-  rootContext?: Context
-  members: Member[]
-  roles: Role[]
-}
+import { PermissionsMap } from '../role'
 
 export interface NewTeamOptions {
   teamName: string
