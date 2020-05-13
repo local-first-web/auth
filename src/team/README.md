@@ -39,7 +39,7 @@ team.members('bob').addRole('manager')
 team.members('bob').removeRole('manager')
 
 // check admin status
-const bobIsAdmin = team.members('bob').hasPermission('admin')
+const bobIsAdmin = team.members('bob').hasPermission(ADMIN)
 
 // check role membership
 const bobIsManager = team.members('bob').hasRole('manager')
@@ -58,7 +58,7 @@ team.addMemberRole('bob', 'manager')
 team.removeMemberRole('bob', 'manager')
 
 // check admin status
-const bobIsAdmin = team.memberHasPermission('bob', 'admin')
+const bobIsAdmin = team.memberHasPermission('bob', ADMIN)
 
 // check role membership
 const bobIsManager = team.memberHasRole('bob', 'manager')
