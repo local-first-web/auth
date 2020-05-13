@@ -46,3 +46,38 @@ export interface LinkBody {
 
 /** User-writable fields of a link (omits fields that are added automatically) */
 export type PartialLinkBody = Pick<LinkBody, 'type' | 'payload'>
+
+// VALIDATION
+
+type Validator = (
+  currentLink: SignedLink,
+  prevLink?: SignedLink
+) => ValidationResult
+
+export type ValidatorSet = {
+  [key: string]: Validator
+}
+
+export interface InvalidResult {
+  isValid: false
+  error: ValidationError
+}
+
+export interface ValidResult {
+  isValid: true
+}
+
+export class ValidationError extends Error {
+  constructor(message: string, index: number, details?: any) {
+    super()
+    this.message = message
+    this.index = index
+    this.details = details
+  }
+
+  public name: 'Signature chain validation error'
+  public index?: number
+  public details?: any
+}
+
+export type ValidationResult = ValidResult | InvalidResult
