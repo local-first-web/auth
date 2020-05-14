@@ -24,7 +24,9 @@ export interface ExistingTeamOptions {
 export type TeamOptions = NewTeamOptions | ExistingTeamOptions
 
 // type guard for NewTeamOptions vs ExistingTeam Options
-export function exists(options: TeamOptions): options is ExistingTeamOptions {
+export function includesSource(
+  options: TeamOptions
+): options is ExistingTeamOptions {
   return (options as ExistingTeamOptions).source !== undefined
 }
 
@@ -95,6 +97,8 @@ export interface RotateKeysPayload {
   oldPublicKey: Base64
   newPublicKey: Base64
 }
+
+// VALIDATION
 
 export type TeamStateValidator = (
   prevState: TeamState,
