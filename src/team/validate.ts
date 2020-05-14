@@ -27,10 +27,7 @@ const validators: TeamStateValidatorSet = {
       const { userName } = link.body.context.user
       const isntAdmin = !selectors.memberIsAdmin(prevState, userName)
       if (isntAdmin)
-        return fail(
-          `Member '${userName}' is not an admin at this time`,
-          ...args
-        )
+        return fail(`Member '${userName}' is not an admin`, ...args)
     }
     return VALID
   },
@@ -40,10 +37,7 @@ const validators: TeamStateValidatorSet = {
     if (link.body.type === linkType.ADD_MEMBER) {
       const { userName } = link.body.payload.user
       if (selectors.hasMember(prevState, userName))
-        return fail(
-          `Can't add member; there is already a member called '${userName}'`,
-          ...args
-        )
+        return fail(`There is already a member called '${userName}'`, ...args)
     }
     return VALID
   },
@@ -53,10 +47,7 @@ const validators: TeamStateValidatorSet = {
     if (link.body.type === linkType.REVOKE_MEMBER) {
       const { userName } = link.body.payload
       if (!selectors.hasMember(prevState, userName))
-        return fail(
-          `Can't remove member; there is no member called '${userName}'`,
-          ...args
-        )
+        return fail(`There is no member called '${userName}'`, ...args)
     }
     return VALID
   },
