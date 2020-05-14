@@ -43,9 +43,6 @@ export class Team extends EventEmitter {
   }
 
   public add = (user: User, roles: string[] = []) => {
-    // TODO these error checks belong on the chain
-    // const { userName } = user
-    // if (this.has(userName)) throw new Error(`Member ${userName} already exists`)
     const payload: AddMemberPayload = { user, roles }
     this.dispatch({ type: linkType.ADD_MEMBER, payload })
   }
