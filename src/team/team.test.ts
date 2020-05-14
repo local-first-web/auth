@@ -1,6 +1,6 @@
 import { Client, ContextWithSecrets, Device, DeviceType } from '../context'
 import { deriveKeys, randomKey } from '../keys'
-import { ADMIN } from '../role'
+import { ADMIN, Role } from '../role'
 import { redactUser, UserWithSecrets } from '../user'
 import { Team } from './team'
 
@@ -8,25 +8,6 @@ describe('Team', () => {
   beforeEach(() => {
     localStorage.clear()
   })
-
-  const makeUser = (userName: string): UserWithSecrets => {
-    const keys = deriveKeys(randomKey())
-    return { userName, keys }
-  }
-
-  const alice = makeUser('alice')
-  const bob = makeUser('bob')
-  const charlie = makeUser('charlie')
-
-  const device: Device = {
-    name: 'windows laptop',
-    type: DeviceType.laptop,
-  }
-
-  const client: Client = {
-    name: 'test',
-    version: '0',
-  }
 
   const setup = (user = alice) => {
     const context: ContextWithSecrets = { user, device, client }
@@ -65,12 +46,6 @@ describe('Team', () => {
       expect(alice.userName).toBe('alice')
     })
 
-    it('throws when asked for a nonexistent member', () => {
-      const { team } = setup()
-      const findNonexistent = () => team.members('ned')
-      expect(findNonexistent).toThrow(/member(.*)not found/i)
-    })
-
     it('adds a member', () => {
       const { team } = setup()
       team.add(redactUser(bob))
@@ -106,6 +81,39 @@ describe('Team', () => {
       expect(removeBob).toThrow(/there is no member/i)
     })
 
+    it('gets an individual member', () => {
+      const { team } = setup()
+      team.add(redactUser(bob))
+      const member = team.members('bob')
+      expect(member.userName).toBe('bob')
+    })
+
+    it('throws if asked to get a nonexistent member', () => {
+      const { team } = setup()
+      team.add(redactUser(bob))
+
+      const getBob = () => team.members('bob')
+      expect(getBob).not.toThrow()
+      const getNed = () => team.members('ned')
+      expect(getNed).toThrow(/member(.*)not found/i)
+    })
+
+    it('lists all members', () => {
+      const { team } = setup()
+
+      expect(team.members()).toHaveLength(1)
+      expect(team.members().map(m => m.userName)).toEqual(['alice'])
+
+      team.add(redactUser(bob))
+      team.add(redactUser(charlie))
+      expect(team.members()).toHaveLength(3)
+      expect(team.members().map(m => m.userName)).toEqual([
+        'alice',
+        'bob',
+        'charlie',
+      ])
+    })
+
     it.todo('rotates keys after removing a member')
     it.todo('adds a device')
     it.todo('removes a device')
@@ -125,6 +133,18 @@ describe('Team', () => {
       team.add(redactUser(bob))
       expect(team.memberIsAdmin('bob')).toBe(false)
     })
+
+    it('adds a role', () => {
+      const { team } = setup()
+      team.addRole(managers)
+      expect(team.roles().length).toBe(2)
+      expect(team.roles('managers').name).toBe(managers.name)
+    })
+
+    it.todo('adds a member to a role')
+    it.todo('removes a member from a role')
+
+    it('gets an individual role', () => {})
 
     it('allows an admin other than alice to add a member', () => {
       // get alice's team in JSON form
@@ -184,9 +204,9 @@ describe('Team', () => {
       expect(remove).toThrow()
     })
 
-    it.todo('adds a role')
-    it.todo('adds a member to a role')
-    it.todo('removes a member from a role')
+    it.todo('throws if asked to get a nonexistent role')
+    it.todo('lists all roles')
+
     it.todo('rotates keys after removing a member from a role')
   })
 
@@ -209,3 +229,23 @@ describe('Team', () => {
     it.todo('encrypts content a specific member')
   })
 })
+
+const makeUser = (userName: string): UserWithSecrets => {
+  const keys = deriveKeys(randomKey())
+  return { userName, keys }
+}
+
+const alice = makeUser('alice')
+const bob = makeUser('bob')
+const charlie = makeUser('charlie')
+const managers: Role = { name: 'managers' }
+
+const device: Device = {
+  name: 'windows laptop',
+  type: DeviceType.laptop,
+}
+
+const client: Client = {
+  name: 'test',
+  version: '0',
+}
