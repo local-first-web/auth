@@ -22,6 +22,7 @@ describe('Team', () => {
     name: 'windows laptop',
     type: DeviceType.laptop,
   }
+
   const client: Client = {
     name: 'test',
     version: '0',
