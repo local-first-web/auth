@@ -4,9 +4,10 @@
   SignedLink,
   ValidationResult,
   ValidatorSet,
-  ValidResult,
 } from './types'
 import { validators } from './validators'
+
+const VALID = { isValid: true } as ValidationResult
 
 /**
  * Runs a signature chain through a series of validators to ensure that it is correctly formed, has
@@ -19,7 +20,7 @@ export const validate = (
   chain: SignatureChain,
   customValidators: ValidatorSet = {}
 ): ValidationResult => {
-  const initialValue = { isValid: true } as ValidResult
+  const initialValue = VALID
   return chain.reduce(
     composeValidators(validators, customValidators),
     initialValue
@@ -54,7 +55,7 @@ const composeValidators = (...validators: ValidatorSet[]) => (
     }
   }
   // no validators failed
-  return { isValid: true } as ValidResult
+  return VALID
 }
 
 // merges multiple validator sets into one object
