@@ -79,11 +79,12 @@ describe('Team', () => {
 
     it('does not add a member that is already present', () => {
       const { team } = setup()
-      team.add(redactUser(bob))
+      const addBob = () => team.add(redactUser(bob))
+      expect(addBob).not.toThrow()
 
       // try adding bob again
       const addBobAgain = () => team.add(redactUser(bob))
-      expect(addBobAgain).toThrow(/member(.*)already exists/i)
+      expect(addBobAgain).toThrow(/already a member/i)
     })
 
     it('removes a member', () => {
@@ -96,7 +97,13 @@ describe('Team', () => {
       expect(team.has('bob')).toBe(false)
     })
 
-    it.todo('does not remove a member that is not already present')
+    it('does not remove a member that is not already present', () => {
+      const { team } = setup()
+
+      // try removing bob although he hasn't been added
+      const removeBob = () => team.remove('bob')
+      expect(removeBob).toThrow(/there is no member/i)
+    })
 
     it.todo('rotates keys after removing a member')
     it.todo('adds a device')
