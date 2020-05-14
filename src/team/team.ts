@@ -3,20 +3,22 @@ import { chain, PartialLinkBody, SignatureChain, validate } from '../chain'
 import { ContextWithSecrets } from '../context'
 import { deriveKeys, KeysetWithSecrets, randomKey, redactKeys } from '../keys'
 import { Member } from '../member'
+import { Role } from '../role'
 import { redactUser, User } from '../user'
+import { ALL, initialState } from './constants'
 import { reducer } from './reducer'
+import * as selectors from './selectors'
+import { TeamState } from './teamState'
 import {
   AddMemberPayload,
   ExistingTeamOptions,
-  exists,
+  includesSource,
   linkType,
   NewTeamOptions,
   RevokeMemberPayload,
   RootPayload,
   TeamOptions,
 } from './types'
-import { TeamState } from './teamState'
-import * as selectors from './selectors'
 
 export class Team extends EventEmitter {
   constructor(options: TeamOptions) {
@@ -24,7 +26,7 @@ export class Team extends EventEmitter {
 
     this.context = options.context
 
-    if (exists(options)) this.loadChain(options)
+    if (includesSource(options)) this.loadChain(options)
     else this.create(options)
   }
 
@@ -34,33 +36,18 @@ export class Team extends EventEmitter {
     return this.state.teamName
   }
 
-  public save = () => {
-    return JSON.stringify(this.chain)
-  }
+  public save = () => JSON.stringify(this.chain)
 
-  public has = (userName: string) => {
-    return selectors.hasMember(this.state, userName)
-  }
+  // read
 
-  public add = (user: User, roles: string[] = []) => {
-    const payload: AddMemberPayload = { user, roles }
-    this.dispatch({ type: linkType.ADD_MEMBER, payload })
-  }
-
-  public remove = (userName: string) => {
-    // TODO these error checks belong on the chain
-    // look up the user to ensure it exists
-    // const user = this.members(userName)
-    const payload: RevokeMemberPayload = { userName }
-    this.dispatch({ type: linkType.REVOKE_MEMBER, payload })
-  }
+  public has = (userName: string) => selectors.hasMember(this.state, userName)
 
   public members(): Member[]
   public members(userName: string): Member
-
-  public members(userName?: string): Member | Member[] {
-    if (userName === undefined) return this.state.members
-    else return selectors.getMember(this.state, userName)
+  public members(userName: string = ALL): Member | Member[] {
+    return userName === ALL
+      ? this.state.members
+      : selectors.getMember(this.state, userName)
   }
 
   public memberHasRole(userName: string, role: string) {
@@ -71,26 +58,36 @@ export class Team extends EventEmitter {
     return selectors.memberIsAdmin(this.state, userName)
   }
 
-  public invite = (userName: string) => {
-    // TODO
+  public hasRole = (roleName: string) => selectors.hasRole(this.state, roleName)
+
+  public roles(): Role[]
+  public roles(roleName: string): Role
+  public roles(roleName: string = ALL): Role | Role[] {
+    return roleName === ALL
+      ? this.state.roles
+      : selectors.getRole(this.state, roleName)
   }
 
-  public roles = {
-    has: (roleName: string) => {
-      return this.state.roles.find(r => r.name === roleName) !== undefined
-    },
+  // write
 
-    add: (roleName: string) => {
-      if (this.roles.has(roleName))
-        throw new Error(`A role called '${roleName}' already exists`)
-    },
-
-    remove: (roleName: string) => {},
-
-    list: () => {
-      return this.state.roles
-    },
+  public add = (user: User, roles: string[] = []) => {
+    const payload: AddMemberPayload = { user, roles }
+    this.dispatch({ type: linkType.ADD_MEMBER, payload })
   }
+
+  public remove = (userName: string) => {
+    const payload: RevokeMemberPayload = { userName }
+    this.dispatch({ type: linkType.REVOKE_MEMBER, payload })
+  }
+
+  public addRole = (role: Role) => {}
+  public removeRole = (roleName: string) => {}
+
+  public addMemberRole = (userName: string, roleName: string) => {}
+  public removeMemberRole = (userName: string, roleName: string) => {}
+
+  public invite = (userName: string) => {}
+  public accept = (userName: string) => {}
 
   // private properties
 
@@ -107,26 +104,19 @@ export class Team extends EventEmitter {
 
   private updateState = () => {
     this.validateChain()
-    const initialState: TeamState = {
-      teamName: '',
-      members: [],
-      roles: [],
-    }
     this.state = this.chain.reduce<TeamState>(reducer, initialState)
   }
 
   private create(options: NewTeamOptions) {
-    // redact user's secret keys, since this will be written into the public chain
-    const user = redactUser(options.context.user)
-
     // the team secret will never be stored in plaintext, only encrypted into individual lockboxes
     const teamSecret = randomKey()
     const teamKeys = deriveKeys(teamSecret)
 
+    // redact user's secret keys, since this will be written into the public chain
+    const user = redactUser(options.context.user)
+
     // create root link
     this.initializeChain(options.teamName, teamKeys, user)
-
-    // this.addLockbox()
   }
 
   private loadChain(options: ExistingTeamOptions) {
@@ -151,7 +141,6 @@ export class Team extends EventEmitter {
 
   public dispatch(link: PartialLinkBody) {
     this.chain = chain.append(this.chain, link, this.context)
-    // update state
     this.updateState()
   }
 }
