@@ -1,9 +1,15 @@
 import { Base64 } from 'lib'
 import { User } from 'user'
-import { baseLinkType, SignatureChain } from '../chain'
+import {
+  baseLinkType,
+  SignatureChain,
+  SignedLink,
+  ValidationResult,
+} from '../chain'
 import { ContextWithSecrets, Device } from '../context'
 import { PublicKeyset } from '../keys'
 import { PermissionsMap } from '../role'
+import { TeamState } from './teamState'
 
 export interface NewTeamOptions {
   teamName: string
@@ -22,7 +28,7 @@ export function exists(options: TeamOptions): options is ExistingTeamOptions {
   return (options as ExistingTeamOptions).source !== undefined
 }
 
-// link types & corresponding payload types
+// LINK TYPES
 
 export const linkType = {
   ...baseLinkType,
@@ -38,6 +44,8 @@ export const linkType = {
   ACCEPT: 'ACCEPT',
   ROTATE_KEYS: 'ROTATE_KEYS',
 }
+
+// PAYLOAD TYPES
 
 export interface RootPayload {
   teamName: string
@@ -87,3 +95,14 @@ export interface RotateKeysPayload {
   oldPublicKey: Base64
   newPublicKey: Base64
 }
+
+export type TeamStateValidator = (
+  prevState: TeamState,
+  link: SignedLink
+) => ValidationResult
+
+export type TeamStateValidatorSet = {
+  [key: string]: TeamStateValidator
+}
+
+export type ValidationArgs = [TeamState, SignedLink]
