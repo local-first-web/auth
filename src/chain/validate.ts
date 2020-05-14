@@ -6,7 +6,7 @@
   ValidatorSet,
   ValidResult,
 } from './types'
-import { validators as baseValidators } from './validators'
+import { validators } from './validators'
 
 /**
  * Runs a signature chain through a series of validators to ensure that it is correctly formed, has
@@ -21,7 +21,7 @@ export const validate = (
 ): ValidationResult => {
   const initialValue = { isValid: true } as ValidResult
   return chain.reduce(
-    composeValidators(baseValidators, customValidators),
+    composeValidators(validators, customValidators),
     initialValue
   )
 }
