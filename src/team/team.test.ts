@@ -138,7 +138,7 @@ describe('Team', () => {
       const { team } = setup()
       team.addRole(managers)
       expect(team.roles().length).toBe(2)
-      expect(team.roles('managers').name).toBe(managers.name)
+      expect(team.roles('managers').roleName).toBe(managers.roleName)
     })
 
     it.todo('adds a member to a role')
@@ -238,7 +238,7 @@ const makeUser = (userName: string): UserWithSecrets => {
 const alice = makeUser('alice')
 const bob = makeUser('bob')
 const charlie = makeUser('charlie')
-const managers: Role = { name: 'managers' }
+const managers: Role = { roleName: 'managers' }
 
 const device: Device = {
   name: 'windows laptop',
