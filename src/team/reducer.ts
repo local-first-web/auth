@@ -1,23 +1,22 @@
-﻿import { SignedLink } from '../chain'
-import { Member } from '../member'
+﻿import { Member } from '../member'
 import { ADMIN } from '../role'
 import { TeamState } from './teamState'
+import { TeamLink, TeamLinkBody, TeamAction } from './types'
 import { validate } from './validate'
-import { TeamLinkBody } from './types'
 
-export const reducer = (
-  prevState: TeamState,
-  link: SignedLink<TeamLinkBody>
-) => {
+export const reducer = (prevState: TeamState, link: TeamLink) => {
   // make sure this link can be applied to the previous state
   const validation = validate(prevState, link)
   if (!validation.isValid) throw validation.error
 
-  const { type, payload, context } = link.body
+  const { context } = link.body
 
-  switch (type) {
+  // recast link body so that payload types are enforced
+  const action = link.body as TeamAction
+
+  switch (action.type) {
     case 'ROOT': {
-      const { teamName } = payload
+      const { teamName } = action.payload
       const rootMember = { ...context.user, roles: [ADMIN] }
       return {
         ...prevState,
@@ -27,37 +26,33 @@ export const reducer = (
     }
 
     case 'ADD_MEMBER': {
-      const { user, roles } = payload
+      const { user, roles } = action.payload
+      const newMember = { ...user, roles } as Member
+      return {
+        ...prevState,
+        members: [...prevState.members, newMember],
+      }
+    }
+
+    case 'ADD_DEVICE': {
+      return { ...prevState }
+    }
+
+    case 'ADD_ROLE': {
+      const newRole = action.payload
       const nextState = {
         ...prevState,
-        members: [
-          ...prevState.members,
-          {
-            ...user,
-            roles,
-          } as Member,
-        ],
+        roles: [...prevState.roles, newRole],
       }
       return nextState
     }
 
-    case 'ADD_DEVICE': {
-      const nextState = { ...prevState }
-      return nextState
-    }
-
-    case 'ADD_ROLE': {
-      const nextState = { ...prevState }
-      return nextState
-    }
-
     case 'ADD_MEMBER_ROLE': {
-      const nextState = { ...prevState }
-      return nextState
+      return { ...prevState }
     }
 
     case 'REVOKE_MEMBER': {
-      const { userName } = payload
+      const { userName } = action.payload
       const nextState = {
         ...prevState,
         members: prevState.members.filter(

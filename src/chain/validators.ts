@@ -1,7 +1,6 @@
 ﻿import { ValidatorSet, ValidationError } from './types'
 import { hashLink } from './hashLink'
 import { signatures } from '../lib'
-import { baseLinkType } from './baseLinkType'
 
 export const validators: ValidatorSet = {
   /** Does this link contain a hash of the previous link?  */
@@ -25,7 +24,7 @@ export const validators: ValidatorSet = {
   /** If this is a root link, is it the first link in the chain? */
   validateRoot: (currentLink, prevLink) => {
     const { type } = currentLink.body
-    const isRoot = type === baseLinkType.ROOT
+    const isRoot = type === 'ROOT'
     const isFirstLink = prevLink === undefined
     // both should be true, or both should be false
     if (isRoot === isFirstLink) return { isValid: true }

@@ -23,10 +23,10 @@ export interface SignedLink<T = LinkBody> {
 /** The part of the link that is signed */
 export interface LinkBody {
   /** Label identifying the type of action this link represents */
-  type: string
+  type: 'ROOT' | unknown
 
   /** Payload of the action */
-  payload: any
+  payload: unknown
 
   /** Context in which this link was authored (user, device, client) */
   context: Context

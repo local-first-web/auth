@@ -1,4 +1,3 @@
-export * from './baseLinkType'
 export * from './types'
 export * from './append'
 export * from './create'
