@@ -8,7 +8,7 @@ import {
 } from '../chain'
 import { ContextWithSecrets, Device } from '../context'
 import { PublicKeyset } from '../keys'
-import { PermissionsMap } from '../role'
+import { PermissionsMap, Role } from '../role'
 import { TeamState } from './teamState'
 
 export interface NewTeamOptions {
@@ -32,77 +32,81 @@ export function includesSource(
 
 // LINK TYPES
 
-export const linkType = {
-  ...baseLinkType,
-  ADD_MEMBER: 'ADD_MEMBER',
-  ADD_DEVICE: 'ADD_DEVICE',
-  ADD_ROLE: 'ADD_ROLE',
-  ADD_MEMBER_ROLE: 'ADD_MEMBER_ROLE',
-  REVOKE_MEMBER: 'REVOKE_MEMBER',
-  REVOKE_DEVICE: 'REVOKE_DEVICE',
-  REVOKE_ROLE: 'REVOKE_ROLE',
-  REVOKE_MEMBER_ROLE: 'REVOKE_MEMBER_ROLE',
-  INVITE: 'INVITE',
-  ACCEPT: 'ACCEPT',
-  ROTATE_KEYS: 'ROTATE_KEYS',
-}
-
-// PAYLOAD TYPES
-
-export interface RootPayload {
-  teamName: string
-  publicKeys: PublicKeyset
-  foundingMember: User
-}
-
-// TODO: how to express relationship between linkTypes and payloadTypes?
-export interface RootLinkBody {
-  type: 'ROOT'
-  payload: RootPayload
-}
-
-export interface AddMemberPayload {
-  user: User
-  roles?: string[]
-}
-
-export interface RevokeMemberPayload {
-  userName: string
-}
-
-export interface AddDevicePayload {
-  userName: string
-  device: Device
-}
-
-export interface AddRolePayload {
-  roleName: string
-  permissions?: PermissionsMap
-}
-
-export interface AddMemberRolePayload {
-  userName: string
-  roleName: string
-}
-
-export interface RevokeDevicePayload {
-  userName: string
-  deviceId: string
-}
-
-export interface RevokeRolePayload {
-  roleName: string
-}
-
-export interface RevokeMemberRolePayload {
-  userName: string
-  roleName: string
-}
-
-export interface RotateKeysPayload {
-  oldPublicKey: Base64
-  newPublicKey: Base64
-}
+export type TeamLink =
+  | {
+      type: 'ROOT'
+      payload: {
+        teamName: string
+        publicKeys: PublicKeyset
+        foundingMember: User
+      }
+    }
+  | {
+      type: 'ADD_MEMBER'
+      payload: {
+        user: User
+        roles?: string[]
+      }
+    }
+  | {
+      type: 'ADD_DEVICE'
+      payload: {
+        userName: string
+      }
+    }
+  | {
+      type: 'ADD_ROLE'
+      payload: Role
+    }
+  | {
+      type: 'ADD_MEMBER_ROLE'
+      payload: {
+        userName: string
+        roleName: string
+        permissions?: PermissionsMap
+      }
+    }
+  | {
+      type: 'REVOKE_MEMBER'
+      payload: {
+        userName: string
+      }
+    }
+  | {
+      type: 'REVOKE_DEVICE'
+      payload: {
+        userName: string
+        deviceId: string
+      }
+    }
+  | {
+      type: 'REVOKE_ROLE'
+      payload: {
+        roleName: string
+      }
+    }
+  | {
+      type: 'REVOKE_MEMBER_ROLE'
+      payload: {
+        userName: string
+        roleName: string
+      }
+    }
+  | {
+      type: 'INVITE'
+      payload: {}
+    }
+  | {
+      type: 'ACCEPT'
+      payload: {}
+    }
+  | {
+      type: 'ROTATE_KEYS'
+      payload: {
+        oldPublicKey: Base64
+        newPublicKey: Base64
+      }
+    }
 
 // VALIDATION
 
