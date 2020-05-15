@@ -1,6 +1,6 @@
 ﻿import { PermissionsMap } from './types'
 
 export interface Role {
-  name: string
+  roleName: string
   permissions?: PermissionsMap
 }
