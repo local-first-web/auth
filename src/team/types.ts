@@ -1,10 +1,10 @@
 import { Base64 } from 'lib'
 import { User } from 'user'
 import {
-  baseLinkType,
   SignatureChain,
   SignedLink,
   ValidationResult,
+  LinkBody,
 } from '../chain'
 import { ContextWithSecrets, Device } from '../context'
 import { PublicKeyset } from '../keys'
@@ -16,23 +16,21 @@ export interface NewTeamOptions {
   context: ContextWithSecrets
 }
 
-export interface ExistingTeamOptions {
-  source: SignatureChain
+export interface OldTeamOptions {
+  source: SignatureChain<TeamLink>
   context: ContextWithSecrets
 }
 
-export type TeamOptions = NewTeamOptions | ExistingTeamOptions
+export type TeamOptions = NewTeamOptions | OldTeamOptions
 
-// type guard for NewTeamOptions vs ExistingTeam Options
-export function includesSource(
-  options: TeamOptions
-): options is ExistingTeamOptions {
-  return (options as ExistingTeamOptions).source !== undefined
+// type guard for NewTeamOptions vs OldTeamOptions
+export function isNew(options: TeamOptions): options is NewTeamOptions {
+  return (options as OldTeamOptions).source === undefined
 }
 
 // LINK TYPES
 
-export type TeamLink =
+export type TeamAction =
   | {
       type: 'ROOT'
       payload: {
@@ -108,15 +106,18 @@ export type TeamLink =
       }
     }
 
+export type TeamLinkBody = LinkBody & TeamAction
+export type TeamLink = SignedLink<TeamLinkBody>
+
 // VALIDATION
 
 export type TeamStateValidator = (
   prevState: TeamState,
-  link: SignedLink
+  link: SignedLink<TeamLinkBody>
 ) => ValidationResult
 
 export type TeamStateValidatorSet = {
   [key: string]: TeamStateValidator
 }
 
-export type ValidationArgs = [TeamState, SignedLink]
+export type ValidationArgs = [TeamState, SignedLink<TeamLinkBody>]

@@ -2,7 +2,6 @@
 import * as selectors from './selectors'
 import { TeamState } from './teamState'
 import {
-  linkType,
   TeamStateValidatorSet,
   ValidationArgs,
   TeamStateValidator,
@@ -23,7 +22,7 @@ const validators: TeamStateValidatorSet = {
     const [prevState, link] = args
 
     // At root stage, there are no members
-    if (link.body.type !== linkType.ROOT) {
+    if (link.body.type !== 'ROOT') {
       const { userName } = link.body.context.user
       const isntAdmin = !selectors.memberIsAdmin(prevState, userName)
       if (isntAdmin)
@@ -34,7 +33,7 @@ const validators: TeamStateValidatorSet = {
 
   cantAddExistingMember: (...args) => {
     const [prevState, link] = args
-    if (link.body.type === linkType.ADD_MEMBER) {
+    if (link.body.type === 'ADD_MEMBER') {
       const { userName } = link.body.payload.user
       if (selectors.hasMember(prevState, userName))
         return fail(`There is already a member called '${userName}'`, ...args)
@@ -44,7 +43,7 @@ const validators: TeamStateValidatorSet = {
 
   cantRemoveNonexistentMember: (...args) => {
     const [prevState, link] = args
-    if (link.body.type === linkType.REVOKE_MEMBER) {
+    if (link.body.type === 'REVOKE_MEMBER') {
       const { userName } = link.body.payload
       if (!selectors.hasMember(prevState, userName))
         return fail(`There is no member called '${userName}'`, ...args)

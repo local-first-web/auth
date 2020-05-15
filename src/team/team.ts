@@ -10,11 +10,11 @@ import { reducer } from './reducer'
 import * as selectors from './selectors'
 import { TeamState } from './teamState'
 import {
-  ExistingTeamOptions,
-  includesSource,
-  linkType,
+  OldTeamOptions,
+  isNew,
   NewTeamOptions,
   TeamOptions,
+  TeamAction,
   TeamLink,
 } from './types'
 
@@ -24,8 +24,8 @@ export class Team extends EventEmitter {
 
     this.context = options.context
 
-    if (includesSource(options)) this.loadChain(options)
-    else this.create(options)
+    if (isNew(options)) this.create(options)
+    else this.loadChain(options)
   }
 
   // PUBLIC API
@@ -112,7 +112,7 @@ export class Team extends EventEmitter {
 
   // private properties
 
-  private chain: SignatureChain
+  private chain: SignatureChain<TeamLink>
   private context: ContextWithSecrets
   private state: TeamState
 
@@ -125,7 +125,7 @@ export class Team extends EventEmitter {
 
   private updateState = () => {
     this.validateChain()
-    this.state = this.chain.reduce<TeamState>(reducer, initialState)
+    this.state = this.chain.reduce(reducer, initialState)
   }
 
   private create(options: NewTeamOptions) {
@@ -140,7 +140,7 @@ export class Team extends EventEmitter {
     this.initializeChain(options.teamName, teamKeys, user)
   }
 
-  private loadChain(options: ExistingTeamOptions) {
+  private loadChain(options: OldTeamOptions) {
     this.chain = options.source
     this.updateState()
   }
@@ -160,7 +160,7 @@ export class Team extends EventEmitter {
     this.dispatch({ type: 'ROOT', payload })
   }
 
-  public dispatch(link: TeamLink) {
+  public dispatch(link: TeamAction) {
     this.chain = chain.append(this.chain, link, this.context)
     this.updateState()
   }
