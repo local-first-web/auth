@@ -23,10 +23,10 @@ export const memberIsAdmin = (state: TeamState, userName: string) =>
   memberHasRole(state, userName, ADMIN)
 
 export const hasRole = (state: TeamState, roleName: string) =>
-  state.roles.find(r => (r.name = roleName)) !== undefined
+  state.roles.find(r => (r.roleName = roleName)) !== undefined
 
 export const getRole = (state: TeamState, roleName: string) => {
-  const role = state.roles.find(r => r.name === roleName)
+  const role = state.roles.find(r => r.roleName === roleName)
   if (!role) throw new Error(`A role called  '${roleName}' was not found`)
   return role
 }
