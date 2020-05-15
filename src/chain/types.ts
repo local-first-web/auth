@@ -2,12 +2,12 @@
 import { Base64, UnixTimestamp } from '../lib/types'
 
 /** A hash-chained array of signed links */
-export type SignatureChain = SignedLink[]
+export type SignatureChain<T extends SignedLink = SignedLink> = T[]
 
 /** The full link, consisting of a body and a signature block */
-export interface SignedLink {
+export interface SignedLink<T = LinkBody> {
   /** The part of the link that is signed */
-  body: LinkBody
+  body: T
 
   /** The signature block (signature, name, and key) */
   signed: {
@@ -23,7 +23,7 @@ export interface SignedLink {
 /** The part of the link that is signed */
 export interface LinkBody {
   /** Label identifying the type of action this link represents */
-  type: string | number
+  type: 'ROOT' | string
 
   /** Payload of the action */
   payload: any
@@ -45,7 +45,10 @@ export interface LinkBody {
 }
 
 /** User-writable fields of a link (omits fields that are added automatically) */
-export type PartialLinkBody = Pick<LinkBody, 'type' | 'payload'>
+export type PartialLinkBody<T extends LinkBody = LinkBody> = Pick<
+  T,
+  'type' | 'payload'
+>
 
 // VALIDATION
 
