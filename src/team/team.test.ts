@@ -115,11 +115,14 @@ describe('Team', () => {
     })
 
     it.todo('rotates keys after removing a member')
+
+    it.todo('automatically resolves concurrent edits')
+  })
+
+  describe('devices', () => {
     it.todo('adds a device')
     it.todo('removes a device')
     it.todo('rotates keys after removing a device')
-
-    it.todo('automatically resolves concurrent edits')
   })
 
   describe('roles', () => {
@@ -226,7 +229,9 @@ describe('Team', () => {
 
   describe('crypto', () => {
     it.todo('encrypts content for the team')
-    it.todo('encrypts content a specific member')
+    it.todo('encrypts content for a role')
+    it.todo('encrypts content for a specific member')
+    it.todo(`after charlie is removed, he can't read encrypted team content`)
   })
 })
 
