@@ -55,6 +55,12 @@ export interface RootPayload {
   foundingMember: User
 }
 
+// TODO: how to express relationship between linkTypes and payloadTypes?
+export interface RootLinkBody {
+  type: 'ROOT'
+  payload: RootPayload
+}
+
 export interface AddMemberPayload {
   user: User
   roles?: string[]
@@ -71,7 +77,7 @@ export interface AddDevicePayload {
 
 export interface AddRolePayload {
   roleName: string
-  permissions: PermissionsMap
+  permissions?: PermissionsMap
 }
 
 export interface AddMemberRolePayload {
