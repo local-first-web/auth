@@ -18,6 +18,10 @@ import {
   RevokeMemberPayload,
   RootPayload,
   TeamOptions,
+  AddRolePayload,
+  RevokeRolePayload,
+  AddMemberRolePayload,
+  RevokeMemberRolePayload,
 } from './types'
 
 export class Team extends EventEmitter {
@@ -38,12 +42,15 @@ export class Team extends EventEmitter {
 
   public save = () => JSON.stringify(this.chain)
 
-  // read
+  // to read from team state, we rely on selectors
 
   public has = (userName: string) => selectors.hasMember(this.state, userName)
 
-  public members(): Member[]
-  public members(userName: string): Member
+  // overloads
+  public members(): Member[] // all members
+  public members(userName: string): Member // one member
+
+  // implementation
   public members(userName: string = ALL): Member | Member[] {
     return userName === ALL
       ? this.state.members
@@ -60,15 +67,19 @@ export class Team extends EventEmitter {
 
   public hasRole = (roleName: string) => selectors.hasRole(this.state, roleName)
 
-  public roles(): Role[]
-  public roles(roleName: string): Role
+  // overloads
+  public roles(): Role[] // all roles
+  public roles(roleName: string): Role // one role
+
+  // implementation
   public roles(roleName: string = ALL): Role | Role[] {
     return roleName === ALL
       ? this.state.roles
       : selectors.getRole(this.state, roleName)
   }
 
-  // write
+  // to mutate team state, we dispatch changes to the chain
+  // and then run the chain through the reducer to recalculate team state
 
   public add = (user: User, roles: string[] = []) => {
     const payload: AddMemberPayload = { user, roles }
@@ -80,11 +91,25 @@ export class Team extends EventEmitter {
     this.dispatch({ type: linkType.REVOKE_MEMBER, payload })
   }
 
-  public addRole = (role: Role) => {}
-  public removeRole = (roleName: string) => {}
+  public addRole = (role: Role) => {
+    const payload: AddRolePayload = role
+    this.dispatch({ type: linkType.ADD_ROLE, payload })
+  }
 
-  public addMemberRole = (userName: string, roleName: string) => {}
-  public removeMemberRole = (userName: string, roleName: string) => {}
+  public removeRole = (roleName: string) => {
+    const payload: RevokeRolePayload = { roleName }
+    this.dispatch({ type: linkType.REVOKE_ROLE, payload })
+  }
+
+  public addMemberRole = (userName: string, roleName: string) => {
+    const payload: AddMemberRolePayload = { userName, roleName }
+    this.dispatch({ type: linkType.ADD_MEMBER_ROLE, payload })
+  }
+
+  public removeMemberRole = (userName: string, roleName: string) => {
+    const payload: RevokeMemberRolePayload = { userName, roleName }
+    this.dispatch({ type: linkType.REVOKE_MEMBER_ROLE, payload })
+  }
 
   public invite = (userName: string) => {}
   public accept = (userName: string) => {}
