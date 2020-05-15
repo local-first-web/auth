@@ -10,18 +10,12 @@ import { reducer } from './reducer'
 import * as selectors from './selectors'
 import { TeamState } from './teamState'
 import {
-  AddMemberPayload,
   ExistingTeamOptions,
   includesSource,
   linkType,
   NewTeamOptions,
-  RevokeMemberPayload,
-  RootPayload,
   TeamOptions,
-  AddRolePayload,
-  RevokeRolePayload,
-  AddMemberRolePayload,
-  RevokeMemberRolePayload,
+  TeamLink,
 } from './types'
 
 export class Team extends EventEmitter {
@@ -34,7 +28,7 @@ export class Team extends EventEmitter {
     else this.create(options)
   }
 
-  // public API
+  // PUBLIC API
 
   public get teamName() {
     return this.state.teamName
@@ -42,15 +36,13 @@ export class Team extends EventEmitter {
 
   public save = () => JSON.stringify(this.chain)
 
+  // READ METHODS
   // to read from team state, we rely on selectors
 
   public has = (userName: string) => selectors.hasMember(this.state, userName)
 
-  // overloads
-  public members(): Member[] // all members
-  public members(userName: string): Member // one member
-
-  // implementation
+  public members(): Member[] // overload: all members
+  public members(userName: string): Member // overload: one member
   public members(userName: string = ALL): Member | Member[] {
     return userName === ALL
       ? this.state.members
@@ -67,49 +59,53 @@ export class Team extends EventEmitter {
 
   public hasRole = (roleName: string) => selectors.hasRole(this.state, roleName)
 
-  // overloads
-  public roles(): Role[] // all roles
-  public roles(roleName: string): Role // one role
-
-  // implementation
+  public roles(): Role[] // overload: all roles
+  public roles(roleName: string): Role // overload: one role
   public roles(roleName: string = ALL): Role | Role[] {
     return roleName === ALL
       ? this.state.roles
       : selectors.getRole(this.state, roleName)
   }
 
+  // WRITE METHODS
   // to mutate team state, we dispatch changes to the chain
   // and then run the chain through the reducer to recalculate team state
 
-  public add = (user: User, roles: string[] = []) => {
-    const payload: AddMemberPayload = { user, roles }
-    this.dispatch({ type: linkType.ADD_MEMBER, payload })
-  }
+  public add = (user: User, roles: string[] = []) =>
+    this.dispatch({
+      type: 'ADD_MEMBER',
+      payload: { user, roles },
+    })
 
-  public remove = (userName: string) => {
-    const payload: RevokeMemberPayload = { userName }
-    this.dispatch({ type: linkType.REVOKE_MEMBER, payload })
-  }
+  public remove = (userName: string) =>
+    this.dispatch({
+      type: 'REVOKE_MEMBER',
+      payload: { userName },
+    })
 
-  public addRole = (role: Role) => {
-    const payload: AddRolePayload = role
-    this.dispatch({ type: linkType.ADD_ROLE, payload })
-  }
+  public addRole = (role: Role) =>
+    this.dispatch({
+      type: 'ADD_ROLE',
+      payload: role,
+    })
 
-  public removeRole = (roleName: string) => {
-    const payload: RevokeRolePayload = { roleName }
-    this.dispatch({ type: linkType.REVOKE_ROLE, payload })
-  }
+  public removeRole = (roleName: string) =>
+    this.dispatch({
+      type: 'REVOKE_ROLE',
+      payload: { roleName },
+    })
 
-  public addMemberRole = (userName: string, roleName: string) => {
-    const payload: AddMemberRolePayload = { userName, roleName }
-    this.dispatch({ type: linkType.ADD_MEMBER_ROLE, payload })
-  }
+  public addMemberRole = (userName: string, roleName: string) =>
+    this.dispatch({
+      type: 'ADD_MEMBER_ROLE',
+      payload: { userName, roleName },
+    })
 
-  public removeMemberRole = (userName: string, roleName: string) => {
-    const payload: RevokeMemberRolePayload = { userName, roleName }
-    this.dispatch({ type: linkType.REVOKE_MEMBER_ROLE, payload })
-  }
+  public removeMemberRole = (userName: string, roleName: string) =>
+    this.dispatch({
+      type: 'REVOKE_MEMBER_ROLE',
+      payload: { userName, roleName },
+    })
 
   public invite = (userName: string) => {}
   public accept = (userName: string) => {}
@@ -155,16 +151,16 @@ export class Team extends EventEmitter {
     foundingMember: User
   ) {
     const publicKeys = redactKeys(teamKeys)
-    const payload: RootPayload = {
+    const payload = {
       teamName,
       publicKeys,
       foundingMember,
     }
     this.chain = []
-    this.dispatch({ type: linkType.ROOT, payload })
+    this.dispatch({ type: 'ROOT', payload })
   }
 
-  public dispatch(link: PartialLinkBody) {
+  public dispatch(link: TeamLink) {
     this.chain = chain.append(this.chain, link, this.context)
     this.updateState()
   }
