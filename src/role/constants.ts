@@ -3,5 +3,5 @@
 export const ADMIN = 'admin'
 
 export const ADMIN_ROLE: Role = {
-  name: ADMIN,
+  roleName: ADMIN,
 }
