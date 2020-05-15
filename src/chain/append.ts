@@ -4,8 +4,8 @@ import { UserWithSecrets } from '../user'
 import { hashLink } from './hashLink'
 import { LinkBody, PartialLinkBody, SignatureChain, SignedLink } from './types'
 
-export const append = (
-  chain: SignatureChain,
+export const append = <T extends LinkBody = LinkBody>(
+  chain: SignatureChain<SignedLink<T>>,
   link: PartialLinkBody,
   context: ContextWithSecrets
 ) => {
@@ -15,13 +15,13 @@ export const append = (
   }
   const chainedLink = chainToPrev(chain, linkWithContext)
   const signedLink = signLink(chainedLink, context.user)
-  return [...chain, signedLink]
+  return [...chain, signedLink] as SignatureChain<SignedLink<T>>
 }
 
-const signLink = (
-  body: LinkBody,
+const signLink = <T extends LinkBody = LinkBody>(
+  body: T,
   userWithSecrets: UserWithSecrets
-): SignedLink => {
+) => {
   const { userName: name, keys } = userWithSecrets
   const { publicKey, secretKey } = keys.signature
 
@@ -29,13 +29,13 @@ const signLink = (
   return {
     body,
     signed: { name, signature, key: publicKey },
-  }
+  } as SignedLink<T>
 }
 
-const chainToPrev = (
-  chain: SignatureChain,
-  link: PartialLinkBody
-): LinkBody => {
+const chainToPrev = <T extends LinkBody = LinkBody>(
+  chain: SignatureChain<SignedLink<T>>,
+  link: PartialLinkBody<T>
+) => {
   const timestamp = new Date().getTime()
   if (chain.length === 0)
     return {
@@ -43,7 +43,7 @@ const chainToPrev = (
       timestamp,
       prev: null,
       index: 0,
-    } as LinkBody
+    } as T
 
   const prevLink = chain[chain.length - 1]
   const index = (prevLink.body.index || 0) + 1
@@ -53,5 +53,5 @@ const chainToPrev = (
     timestamp,
     prev: prevLinkHash,
     index,
-  } as LinkBody
+  } as T
 }
