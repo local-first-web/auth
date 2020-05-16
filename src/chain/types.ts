@@ -1,5 +1,5 @@
-﻿import { Context } from '../context'
-import { Base64, UnixTimestamp } from '../lib/types'
+﻿import { Context } from '/context'
+import { Base64, UnixTimestamp } from '/lib/types'
 
 /** A hash-chained array of signed links */
 export type SignatureChain<T extends SignedLink = SignedLink> = T[]

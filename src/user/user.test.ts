@@ -1,4 +1,4 @@
-import { asymmetric, signatures, symmetric } from '../lib'
+import { asymmetric, signatures, symmetric } from '/crypto'
 import { create } from './create'
 import { load } from './load'
 

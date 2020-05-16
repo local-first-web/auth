@@ -1,10 +1,10 @@
 import { append } from './append'
 import { create } from './create'
 import { validate } from './validate'
-import { ContextWithSecrets, DeviceType } from '../context'
-import { deriveKeys, randomKey } from '../keys'
-import { signatures } from '../lib'
-import { UserWithSecrets } from '../user'
+import { ContextWithSecrets, DeviceType } from '/context'
+import { deriveKeys, randomKey } from '/keys'
+import { signatures } from '/crypto'
+import { UserWithSecrets } from '/user'
 
 const alice: UserWithSecrets = {
   userName: 'alice',

@@ -5,7 +5,7 @@ import {
   getSigningKeypair,
 } from './invitations'
 
-import { stretch } from '../lib'
+import { stretch } from '/crypto'
 
 describe('invitations', () => {
   test('newIKey', () => {

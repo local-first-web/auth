@@ -1,15 +1,10 @@
-import { Base64 } from 'lib'
-import { User } from 'user'
-import {
-  SignatureChain,
-  SignedLink,
-  ValidationResult,
-  LinkBody,
-} from '../chain'
-import { ContextWithSecrets, Device } from '../context'
-import { PublicKeyset } from '../keys'
-import { PermissionsMap, Role } from '../role'
 import { TeamState } from './teamState'
+import { LinkBody, SignatureChain, SignedLink, ValidationResult } from '/chain'
+import { ContextWithSecrets } from '/context'
+import { PublicKeyset } from '/keys'
+import { Base64 } from '/lib'
+import { PermissionsMap, Role } from '/role'
+import { User } from '/user'
 
 export interface NewTeamOptions {
   teamName: string

@@ -1,4 +1,4 @@
-﻿import { PublicKeyset } from '../keys'
+﻿import { PublicKeyset } from '/keys'
 
 export interface Member {
   userName: string

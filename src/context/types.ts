@@ -1,5 +1,5 @@
-﻿import { SemVer } from 'lib/types'
-import { User, UserWithSecrets } from '../user'
+﻿import { SemVer } from '/lib'
+import { User, UserWithSecrets } from '/user'
 
 export interface ContextWithSecrets {
   user: UserWithSecrets

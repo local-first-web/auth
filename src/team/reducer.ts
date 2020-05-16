@@ -1,5 +1,5 @@
-﻿import { Member } from '../member'
-import { ADMIN } from '../role'
+﻿import { Member } from '/member'
+import { ADMIN } from '/role'
 import { TeamState } from './teamState'
 import { TeamLink, TeamLinkBody, TeamAction } from './types'
 import { validate } from './validate'

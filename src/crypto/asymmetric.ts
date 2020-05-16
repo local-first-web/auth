@@ -1,11 +1,11 @@
 ﻿import * as base64 from '@stablelib/base64'
-import * as utf8 from '@stablelib/utf8'
-import { Key, Payload } from 'lib/types'
+import { decode as utf8Decode } from '@stablelib/utf8'
+import { Key, Payload } from '/lib'
 import nacl from 'tweetnacl'
-import { keypairToBase64 } from '../lib/keypairToBase64'
-import { keyToBytes } from '../lib/keyToBytes'
+import { keypairToBase64 } from '/lib/keypairToBase64'
+import { keyToBytes } from '/lib/keyToBytes'
 import { newNonce, nonceLength } from './nonce'
-import { payloadToBytes } from '../lib/payloadToBytes'
+import { payloadToBytes } from '/lib/payloadToBytes'
 
 export const asymmetric = {
   /**
@@ -64,6 +64,6 @@ export const asymmetric = {
       keyToBytes(recipientSecretKey)
     )
     if (!decrypted) throw new Error('Could not decrypt message')
-    return utf8.decode(decrypted)
+    return utf8Decode(decrypted)
   },
 }

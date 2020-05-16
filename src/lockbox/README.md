@@ -31,7 +31,7 @@ We use lockboxes to:
 To make a lockbox:
 
 ```ts
-import { create } from '../lockbox'
+import { create } from '/lockbox'
 create({
   scope: 'role',
   sender: managers,

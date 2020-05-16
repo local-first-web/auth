@@ -1,4 +1,4 @@
-﻿import { KeysetWithSecrets } from '../keys'
+﻿import { KeysetWithSecrets } from '/keys'
 const STORAGE_KEY = 'TACO_KEY_STORAGE'
 
 const storage = localStorage // TODO - replace with device secure storage, or password-protected browser storage

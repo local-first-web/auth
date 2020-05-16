@@ -1,5 +1,6 @@
 ﻿import * as base64 from '@stablelib/base64'
-import { base30, hash, stretch, symmetric } from '../lib'
+import { hash, stretch, symmetric } from '/crypto'
+import { base30 } from '/lib'
 import msgpack from 'msgpack-lite'
 import nacl from 'tweetnacl'
 

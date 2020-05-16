@@ -1,6 +1,6 @@
 ﻿import { ValidatorSet, ValidationError } from './types'
 import { hashLink } from './hashLink'
-import { signatures } from '../lib'
+import { signatures } from '/crypto'
 
 export const validators: ValidatorSet = {
   /** Does this link contain a hash of the previous link?  */

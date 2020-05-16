@@ -1,21 +1,21 @@
 ﻿import { EventEmitter } from 'events'
-import { chain, PartialLinkBody, SignatureChain, validate } from '../chain'
-import { ContextWithSecrets } from '../context'
-import { deriveKeys, KeysetWithSecrets, randomKey, redactKeys } from '../keys'
-import { Member } from '../member'
-import { Role } from '../role'
-import { redactUser, User } from '../user'
+import { chain, SignatureChain, validate } from '/chain'
+import { ContextWithSecrets } from '/context'
+import { deriveKeys, KeysetWithSecrets, randomKey, redactKeys } from '/keys'
+import { Member } from '/member'
+import { Role } from '/role'
+import { redactUser, User } from '/user'
 import { ALL, initialState } from './constants'
 import { reducer } from './reducer'
 import * as selectors from './selectors'
 import { TeamState } from './teamState'
 import {
-  OldTeamOptions,
   isNew,
   NewTeamOptions,
-  TeamOptions,
+  OldTeamOptions,
   TeamAction,
   TeamLink,
+  TeamOptions,
 } from './types'
 
 export class Team extends EventEmitter {

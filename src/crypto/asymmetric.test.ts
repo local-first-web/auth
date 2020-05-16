@@ -25,8 +25,7 @@ describe('crypto', () => {
       secretKey: 'qiSxzj2NgUt5YUj6PccfiEjYQI8wIlPgWqs9HeaBEbs=',
     }
 
-    const knownCipher =
-      '0UllJr2FBwolmAGHg0FUuAfpweLyUSgYT74U/RH6FeEiDw64zFxvFeLJd6LX0D/YMYxj1aNwRmy5LapQIyh1QnKLuQ=='
+    const knownCipher = '0UllJr2FBwolmAGHg0FUuAfpweLyUSgYT74U/RH6FeEiDw64zFxvFeLJd6LX0D/YMYxj1aNwRmy5LapQIyh1QnKLuQ==' // prettier-ignore
 
     test(`alice encrypts using her secret key and bob's public key`, () => {
       const cipherFromAlice = encrypt(plaintext, bob.publicKey, alice.secretKey)

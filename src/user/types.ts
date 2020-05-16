@@ -1,4 +1,4 @@
-﻿import { PublicKeyset, KeysetWithSecrets } from '../keys'
+﻿import { PublicKeyset, KeysetWithSecrets } from '/keys'
 
 /** A user and their full set of keys, including secrets. SHOULD NEVER LEAVE THE LOCAL USER'S DEVICE.  */
 export interface UserWithSecrets {

@@ -1,4 +1,4 @@
-﻿import { SignedLink, ValidationError, ValidationResult } from '../chain'
+﻿import { SignedLink, ValidationError, ValidationResult } from '/chain'
 import * as selectors from './selectors'
 import { TeamState } from './teamState'
 import {

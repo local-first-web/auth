@@ -1,5 +1,5 @@
-import { signatures } from '../crypto'
-import { keyToBytes } from '../lib'
+import { signatures } from '/crypto'
+import { keyToBytes } from '/lib'
 import { deriveKeys } from './deriveKeys'
 import { randomKey } from './randomKey'
 

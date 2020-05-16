@@ -1,5 +1,6 @@
 export * from './base30'
 export * from './base64'
+export * from './constants'
 export * from './keypairToBase64'
 export * from './keyToBytes'
 export * from './messageToBytes'

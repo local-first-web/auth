@@ -1,4 +1,4 @@
-﻿import { loadKeyset } from '../storage'
+﻿import { loadKeyset } from '/storage'
 import { UserWithSecrets } from './types'
 
 export const load = (userName: string): UserWithSecrets => {

@@ -1,5 +1,5 @@
 ﻿import { TeamState } from './teamState'
-import { ADMIN_ROLE } from '../role'
+import { ADMIN_ROLE } from '/role'
 
 export const initialState: TeamState = {
   teamName: '',

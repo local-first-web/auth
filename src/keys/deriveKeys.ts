@@ -1,9 +1,10 @@
 ﻿import * as base64 from '@stablelib/base64'
-import { hash, keypairToBase64 } from '../lib'
+import { keypairToBase64 } from '/lib'
 import nacl from 'tweetnacl'
-import { Key } from '../lib/types'
-import { HashPurpose } from '../lib/constants'
+import { Key } from '/lib/types'
+import { HashPurpose } from '/lib/constants'
 import { KeysetWithSecrets } from './types'
+import { hash } from '/crypto'
 
 /**
  * Generates a full set of per-user keys from a single 32-byte secret, roughly following the

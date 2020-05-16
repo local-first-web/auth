@@ -1,6 +1,6 @@
-﻿import { Context } from '../context'
-import { Member } from '../member'
-import { Role } from '../role'
+﻿import { Context } from '/context'
+import { Member } from '/member'
+import { Role } from '/role'
 
 export interface TeamState {
   teamName: string

@@ -1,4 +1,4 @@
-﻿import { Base64Keypair, Base64 } from '../lib/types'
+﻿import { Base64Keypair, Base64 } from '/lib'
 
 export interface KeysetWithSecrets {
   seed: Base64

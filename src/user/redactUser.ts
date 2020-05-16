@@ -1,5 +1,5 @@
 ﻿import { UserWithSecrets } from './types'
-import { redactKeys } from '../keys'
+import { redactKeys } from '/keys'
 
 export const redactUser = (user: UserWithSecrets) => ({
   ...user,

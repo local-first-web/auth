@@ -1,6 +1,6 @@
-﻿import { ContextWithSecrets, redactContext } from '../context'
-import { signatures } from '../lib'
-import { UserWithSecrets } from '../user'
+﻿import { ContextWithSecrets, redactContext } from '/context'
+import { signatures } from '/crypto'
+import { UserWithSecrets } from '/user'
 import { hashLink } from './hashLink'
 import { LinkBody, PartialLinkBody, SignatureChain, SignedLink } from './types'
 

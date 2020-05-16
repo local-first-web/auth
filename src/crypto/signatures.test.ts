@@ -9,16 +9,15 @@ describe('crypto', () => {
   describe('signatures', () => {
     const { sign, verify } = signatures
 
-    // prettier-ignore
     const alice = {
       publicKey: 'OH8olQvUFfxqjd+A4FkPQZq0mSb9GGKIOfuCFLDd0B0=',
-      secretKey: 'TVTqqajwDkAMlztAJEkgcnEd1KzWheaDQE6sxPGlUlY4fyiVC9QV/GqN34DgWQ9BmrSZJv0YYog5+4IUsN3QHQ==',
+      secretKey: 'TVTqqajwDkAMlztAJEkgcnEd1KzWheaDQE6sxPGlUlY4fyiVC9QV/GqN34DgWQ9BmrSZJv0YYog5+4IUsN3QHQ==' // prettier-ignore
     }
 
     // prettier-ignore
     const signedMessage: SignedMessage = {
       payload: 'one if by day, two if by night',
-      signature: 'Qd9f/Xgk9QFG9nVNb/QkHqKTNF0JQCEy848m4w8UmxSRwnuomBZz6Bi8wDopz//iKwHq3ipMvA2AGAw8Oo19Dw==',
+      signature: 'Qd9f/Xgk9QFG9nVNb/QkHqKTNF0JQCEy848m4w8UmxSRwnuomBZz6Bi8wDopz//iKwHq3ipMvA2AGAw8Oo19Dw==', // prettier-ignore
       publicKey: alice.publicKey,
     }
 
@@ -88,8 +87,7 @@ describe('crypto', () => {
     })
 
     test(`fails verification if signature is wrong`, () => {
-      const badSignature =
-        'Iamabadbadsignature+JlhN8veVIBQ/SO4d59oLiCkEG57ZubXLsMaaNzk91ujZjXkS9doP2vCAFimKvKdgjy=='
+      const badSignature = 'Iamabadbadsignature+JlhN8veVIBQ/SO4d59oLiCkEG57ZubXLsMaaNzk91ujZjXkS9doP2vCAFimKvKdgjy==' // prettier-ignore
       const badMessage = {
         ...signedMessage,
         signature: badSignature,

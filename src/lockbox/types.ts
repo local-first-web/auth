@@ -1,4 +1,4 @@
-﻿import { Key, Base64 } from 'lib/types'
+﻿import { Key, Base64 } from '/lib'
 
 export interface Lockbox {
   /**  e.g. team, role, user */
