@@ -12,9 +12,7 @@
     "noImplicitReturns": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "paths": {
-      "/*": ["src/*"]
-    },
+    "paths": { "/*": ["src/*"] },
     "rootDir": "./src",
     "sourceMap": true,
     "strict": true,
