@@ -39,7 +39,7 @@ describe('chains', () => {
       const chain = create({ team: 'Spies Я Us' }, context)
 
       // 🦹‍♂️ Mallory
-      const { payload } = chain[0].body
+      const payload = chain[0].body.payload as any
       payload.team = payload.team.replace('Spies', 'Dorks')
 
       // 👨‍🦲 Bob
