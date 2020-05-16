@@ -1,4 +1,4 @@
-import { stretch } from '.'
+import { stretch } from './stretch'
 
 describe('crypto', () => {
   describe('stretch', () => {

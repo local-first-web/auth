@@ -1,4 +1,6 @@
-import { asymmetric, signatures, SignedMessage } from '.'
+import { asymmetric } from './asymmetric'
+import { signatures, SignedMessage } from './signatures'
+
 import nacl from 'tweetnacl'
 
 const plaintext = 'The leopard pounces at noon'
