@@ -1,5 +1,6 @@
+import { signatures } from '../crypto'
+import { keyToBytes } from '../lib'
 import { deriveKeys } from './deriveKeys'
-import { keyToBytes, signatures } from '../lib'
 import { randomKey } from './randomKey'
 
 describe('deriveKeys', () => {
