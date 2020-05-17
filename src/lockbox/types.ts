@@ -5,7 +5,7 @@ export interface Lockbox {
   scope?: string
 
   /** the sender's username */
-  sender: string
+  sender?: string
 
   /** the public half of the sender's asymmetric encryption keys */
   senderPublicKey: Key
