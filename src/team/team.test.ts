@@ -2,7 +2,7 @@ import { Client, ContextWithSecrets, Device, DeviceType } from '/context'
 import { deriveKeys, randomKey } from '/keys'
 import { ADMIN, Role } from '/role'
 import { redactUser, UserWithSecrets } from '/user'
-import { Team } from '/team/team'
+import { Team } from '/team'
 
 describe('Team', () => {
   beforeEach(() => {
@@ -44,6 +44,11 @@ describe('Team', () => {
       expect(team.members().length).toBe(1)
       const alice = team.members('alice')
       expect(alice.userName).toBe('alice')
+    })
+
+    it('has a lockbox for the root member', () => {
+      const { team } = setup()
+      expect(team.lockboxes.length).toBe(1)
     })
 
     it('adds a member', () => {
