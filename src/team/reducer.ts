@@ -1,9 +1,10 @@
-﻿import { TeamState, TeamLockboxMap } from '/team/teamState'
+﻿import { TeamState, TeamLockboxMap, UserLockboxMap } from '/team/teamState'
 import { TeamAction, TeamLink } from '/team/types'
 import { validate } from '/team/validate'
 import { Member } from '/member'
 import { ADMIN } from '/role'
 import { Lockbox } from '/lockbox'
+import { keyToString } from '/lib'
 
 /**
  * Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `teamState`
@@ -28,7 +29,7 @@ export const reducer = (state: TeamState, link: TeamLink) => {
   // recast link body so that payload types are enforced
   const action = link.body as TeamAction
 
-  const lockboxes = addLockboxes(state.lockboxes, action.payload.lockboxes)
+  const lockboxes = collectLockboxes(state.lockboxes, action.payload.lockboxes)
 
   switch (action.type) {
     case 'ROOT': {
@@ -111,14 +112,25 @@ export const reducer = (state: TeamState, link: TeamLink) => {
     }
   }
 
-  // @ts-ignore (shouldn't ever get here)
+  // @ts-ignore (should never get here)
   throw new Error(`Unrecognized link type: ${action.type}`)
 }
 
-const addLockboxes = (lockboxMap: TeamLockboxMap, added?: Lockbox[]) => {
-  const newLockboxMap = { ...lockboxMap }
+const collectLockboxes = (
+  prevLockboxMap: TeamLockboxMap,
+  added?: Lockbox[]
+) => {
+  const lockboxMap = { ...prevLockboxMap }
   if (added)
     // add each new lockbox to the recipient's list
-    for (const lockbox of added) newLockboxMap[lockbox.recipient].push(lockbox)
-  return newLockboxMap
+    for (const lockbox of added) {
+      const { recipient, recipientPublicKey } = lockbox
+      const publicKey = keyToString(recipientPublicKey)
+      const userLockboxMap: UserLockboxMap = lockboxMap[recipient] || {}
+      const lockboxes = userLockboxMap[publicKey] || []
+      lockboxes.push(lockbox)
+      userLockboxMap[publicKey] = lockboxes
+      lockboxMap[recipient] = userLockboxMap
+    }
+  return lockboxMap
 }
