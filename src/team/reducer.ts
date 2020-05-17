@@ -1,8 +1,9 @@
-﻿import { TeamState } from '/team/teamState'
+﻿import { TeamState, TeamLockboxMap } from '/team/teamState'
 import { TeamAction, TeamLink } from '/team/types'
 import { validate } from '/team/validate'
 import { Member } from '/member'
 import { ADMIN } from '/role'
+import { Lockbox } from '/lockbox'
 
 /**
  * Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `teamState`
@@ -14,12 +15,12 @@ import { ADMIN } from '/role'
  * > It knows nothing about the current user's context, and it does not have access to any secrets.
  * > Any crypto operations must happen elsewhere.
  *
- * @param prevState The team state as of the previous link in the signature chain.
+ * @param state The team state as of the previous link in the signature chain.
  * @param link The current link being processed.
  */
-export const reducer = (prevState: TeamState, link: TeamLink) => {
+export const reducer = (state: TeamState, link: TeamLink) => {
   // make sure this link can be applied to the previous state
-  const validation = validate(prevState, link)
+  const validation = validate(state, link)
   if (!validation.isValid) throw validation.error
 
   const { context } = link.body
@@ -27,12 +28,15 @@ export const reducer = (prevState: TeamState, link: TeamLink) => {
   // recast link body so that payload types are enforced
   const action = link.body as TeamAction
 
+  const lockboxes = addLockboxes(state.lockboxes, action.payload.lockboxes)
+
   switch (action.type) {
     case 'ROOT': {
       const { teamName } = action.payload
       const rootMember = { ...context.user, roles: [ADMIN] }
       return {
-        ...prevState,
+        ...state,
+        lockboxes,
         teamName,
         members: [rootMember],
       }
@@ -42,71 +46,79 @@ export const reducer = (prevState: TeamState, link: TeamLink) => {
       const { user, roles } = action.payload
       const newMember = { ...user, roles } as Member
       return {
-        ...prevState,
-        members: [...prevState.members, newMember],
+        ...state,
+        lockboxes,
+        members: [...state.members, newMember],
       }
     }
 
     case 'ADD_DEVICE': {
-      return { ...prevState }
+      return { ...state }
     }
 
     case 'ADD_ROLE': {
       const newRole = action.payload
       const nextState = {
-        ...prevState,
-        roles: [...prevState.roles, newRole],
+        ...state,
+        lockboxes,
+        roles: [...state.roles, newRole],
       }
       return nextState
     }
 
     case 'ADD_MEMBER_ROLE': {
-      return { ...prevState }
+      return { ...state }
     }
 
     case 'REVOKE_MEMBER': {
       const { userName } = action.payload
       const nextState = {
-        ...prevState,
-        members: prevState.members.filter(
-          member => member.userName !== userName
-        ),
+        ...state,
+        lockboxes,
+        members: state.members.filter(member => member.userName !== userName),
       }
       return nextState
     }
 
     case 'REVOKE_DEVICE': {
-      const nextState = { ...prevState }
+      const nextState = { ...state, lockboxes }
       return nextState
     }
 
     case 'REVOKE_ROLE': {
-      const nextState = { ...prevState }
+      const nextState = { ...state, lockboxes }
       return nextState
     }
 
     case 'REVOKE_MEMBER_ROLE': {
-      const nextState = { ...prevState }
+      const nextState = { ...state, lockboxes }
       return nextState
     }
 
     case 'INVITE': {
-      const nextState = { ...prevState }
+      const nextState = { ...state, lockboxes }
       return nextState
     }
 
     case 'ACCEPT': {
-      const nextState = { ...prevState }
+      const nextState = { ...state, lockboxes }
       return nextState
     }
 
     case 'ROTATE_KEYS': {
-      const nextState = { ...prevState }
+      const nextState = { ...state, lockboxes }
       return nextState
     }
   }
 
-  // fallthrough
-  // TODO: should we throw an error if we get here?
-  return prevState
+  // @ts-ignore (shouldn't ever get here)
+  throw new Error(`Unrecognized link type: ${action.type}`)
+}
+
+const addLockboxes = (lockboxMap: TeamLockboxMap, added?: Lockbox[]) => {
+  const newLockboxMap = { ...lockboxMap }
+  if (added)
+    // add each new lockbox to the recipient's list
+    for (const lockbox of added) newLockboxMap[lockbox.recipient].push(lockbox)
+  return newLockboxMap
 }
