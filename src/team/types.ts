@@ -1,11 +1,13 @@
-import { TeamState } from '/team/teamState'
 import { LinkBody, SignatureChain, SignedLink, ValidationResult } from '/chain'
-import { ContextWithSecrets } from '/context'
-import { PublicKeyset } from '/keys'
+import { Context, ContextWithSecrets } from '/context'
+import { KeysetWithSecrets } from '/keys'
 import { Base64 } from '/lib'
+import { Lockbox } from '/lockbox'
+import { Member } from '/member'
 import { PermissionsMap, Role } from '/role'
 import { User } from '/user'
-import { Lockbox } from '/lockbox'
+
+// TEAM CONSTRUCTOR
 
 export interface NewTeamOptions {
   teamName: string
@@ -24,6 +26,28 @@ export function isNew(options: TeamOptions): options is NewTeamOptions {
   return (options as OldTeamOptions).source === undefined
 }
 
+// TEAM STATE
+
+export interface TeamState {
+  teamName: string
+  rootContext?: Context
+  members: Member[]
+  roles: Role[]
+  lockboxes: TeamLockboxMap
+}
+
+export interface TeamLockboxMap {
+  [userName: string]: UserLockboxMap
+}
+
+export interface UserLockboxMap {
+  [publicKey: string]: Lockbox[]
+}
+
+export interface KeysetMap {
+  [scope: string]: KeysetWithSecrets
+}
+
 // LINK TYPES
 
 interface BasePayload {
@@ -37,7 +61,6 @@ export type TeamAction =
       type: 'ROOT'
       payload: BasePayload & {
         teamName: string
-        publicKeys: PublicKeyset
         foundingMember: User
       }
     }
