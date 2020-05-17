@@ -39,7 +39,9 @@ export class Team extends EventEmitter {
   public members(): Member[] // overload: all members
   public members(userName: string): Member // overload: one member
   public members(userName: string = ALL): Member | Member[] {
-    return userName === ALL ? this.state.members : selectors.getMember(this.state, userName)
+    return userName === ALL //
+      ? this.state.members
+      : selectors.getMember(this.state, userName)
   }
 
   public memberHasRole(userName: string, role: string) {
