@@ -2,10 +2,7 @@
 
 export interface Lockbox {
   /**  e.g. team, role, user */
-  scope?: string
-
-  /** the sender's username */
-  sender?: string
+  scope: string
 
   /** the public half of the sender's asymmetric encryption keys */
   senderPublicKey: Key
