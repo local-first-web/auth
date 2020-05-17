@@ -5,6 +5,7 @@ import { PublicKeyset } from '/keys'
 import { Base64 } from '/lib'
 import { PermissionsMap, Role } from '/role'
 import { User } from '/user'
+import { Lockbox } from '/lockbox'
 
 export interface NewTeamOptions {
   teamName: string
@@ -25,10 +26,16 @@ export function isNew(options: TeamOptions): options is NewTeamOptions {
 
 // LINK TYPES
 
+interface BasePayload {
+  // TODO: once this is implemented everywhere it should not be optional - every action will create
+  // new lockboxes or affect existing ones
+  lockboxes?: Lockbox[]
+}
+
 export type TeamAction =
   | {
       type: 'ROOT'
-      payload: {
+      payload: BasePayload & {
         teamName: string
         publicKeys: PublicKeyset
         foundingMember: User
@@ -36,24 +43,24 @@ export type TeamAction =
     }
   | {
       type: 'ADD_MEMBER'
-      payload: {
+      payload: BasePayload & {
         user: User
         roles?: string[]
       }
     }
   | {
       type: 'ADD_DEVICE'
-      payload: {
+      payload: BasePayload & {
         userName: string
       }
     }
   | {
       type: 'ADD_ROLE'
-      payload: Role
+      payload: BasePayload & Role
     }
   | {
       type: 'ADD_MEMBER_ROLE'
-      payload: {
+      payload: BasePayload & {
         userName: string
         roleName: string
         permissions?: PermissionsMap
@@ -61,41 +68,41 @@ export type TeamAction =
     }
   | {
       type: 'REVOKE_MEMBER'
-      payload: {
+      payload: BasePayload & {
         userName: string
       }
     }
   | {
       type: 'REVOKE_DEVICE'
-      payload: {
+      payload: BasePayload & {
         userName: string
         deviceId: string
       }
     }
   | {
       type: 'REVOKE_ROLE'
-      payload: {
+      payload: BasePayload & {
         roleName: string
       }
     }
   | {
       type: 'REVOKE_MEMBER_ROLE'
-      payload: {
+      payload: BasePayload & {
         userName: string
         roleName: string
       }
     }
   | {
       type: 'INVITE'
-      payload: {}
+      payload: BasePayload & {}
     }
   | {
       type: 'ACCEPT'
-      payload: {}
+      payload: BasePayload & {}
     }
   | {
       type: 'ROTATE_KEYS'
-      payload: {
+      payload: BasePayload & {
         oldPublicKey: Base64
         newPublicKey: Base64
       }
