@@ -1,9 +1,22 @@
-﻿import { Member } from '/member'
+﻿import { TeamState } from '/team/teamState'
+import { TeamAction, TeamLink } from '/team/types'
+import { validate } from '/team/validate'
+import { Member } from '/member'
 import { ADMIN } from '/role'
-import { TeamState } from './teamState'
-import { TeamLink, TeamLinkBody, TeamAction } from './types'
-import { validate } from './validate'
 
+/**
+ * Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `teamState`
+ * from `teamChain`, by applying a Redux-style reducer to the array of links. The reducer runs on
+ * each link in sequence, accumulating a team state.
+ *
+ * > *Note:* Keep in mind that this reducer is a pure function that acts on the publicly available
+ * > links in the signature chain, and must independently return the same result for every member.
+ * > It knows nothing about the current user's context, and it does not have access to any secrets.
+ * > Any crypto operations must happen elsewhere.
+ *
+ * @param prevState The team state as of the previous link in the signature chain.
+ * @param link The current link being processed.
+ */
 export const reducer = (prevState: TeamState, link: TeamLink) => {
   // make sure this link can be applied to the previous state
   const validation = validate(prevState, link)
