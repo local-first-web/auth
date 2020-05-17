@@ -1,8 +1,8 @@
 import { Client, ContextWithSecrets, Device, DeviceType } from '/context'
 import { deriveKeys, randomKey } from '/keys'
 import { ADMIN, Role } from '/role'
-import { redactUser, UserWithSecrets } from '/user'
 import { Team } from '/team'
+import { redactUser, UserWithSecrets } from '/user'
 
 describe('Team', () => {
   beforeEach(() => {
@@ -46,9 +46,14 @@ describe('Team', () => {
       expect(alice.userName).toBe('alice')
     })
 
-    it('has a lockbox for the root member', () => {
+    it('has lockboxes for the root member containing the admin and team secrets', () => {
       const { team } = setup()
-      expect(team.lockboxes.length).toBe(1)
+      const keysets = team.getKeysFromLockboxes(alice)
+
+      const adminKeyset = keysets['admin']
+      expect(adminKeyset).toHaveProperty('asymmetric')
+      expect(adminKeyset).toHaveProperty('symmetric')
+      expect(adminKeyset).toHaveProperty('signature')
     })
 
     it('adds a member', () => {
