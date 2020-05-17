@@ -3,9 +3,10 @@ export * from '/team/types'
 import { EventEmitter } from 'events'
 import { chain, SignatureChain, validate } from '/chain'
 import { ContextWithSecrets } from '/context'
-import { deriveKeys, KeysetWithSecrets, randomKey, redactKeys } from '/keys'
+import { randomKey } from '/keys'
+import { lockbox } from '/lockbox'
 import { Member } from '/member'
-import { Role, ADMIN } from '/role'
+import { ADMIN, Role, TEAM } from '/role'
 import { ALL, initialState } from '/team/constants'
 import { reducer } from '/team/reducer'
 import * as selectors from '/team/selectors'
@@ -18,8 +19,7 @@ import {
   TeamLink,
   TeamOptions,
 } from '/team/types'
-import { redactUser, User } from '/user'
-import { lockbox } from '/lockbox'
+import { redactUser, User, UserWithSecrets } from '/user'
 
 export class Team extends EventEmitter {
   constructor(options: TeamOptions) {
@@ -35,10 +35,6 @@ export class Team extends EventEmitter {
 
   public get teamName() {
     return this.state.teamName
-  }
-
-  public get lockboxes() {
-    return this.state.lockboxes
   }
 
   public save = () => JSON.stringify(this.chain)
@@ -72,6 +68,10 @@ export class Team extends EventEmitter {
     return roleName === ALL
       ? this.state.roles
       : selectors.getRole(this.state, roleName)
+  }
+
+  public getKeysFromLockboxes = (user: UserWithSecrets) => {
+    return selectors.getKeysFromLockboxes(this.state, user)
   }
 
   // WRITE METHODS
@@ -131,41 +131,46 @@ export class Team extends EventEmitter {
 
   // private functions
 
-  /** Create a new team with the current user as founding member. */
+  /** Create a new team with the current user as founding member */
   private create(options: NewTeamOptions) {
     const { teamName } = options
-
-    // the team admin secret will never be stored in plaintext, only encrypted into individual lockboxes
-    const adminSecret = randomKey()
-    const adminKeys = deriveKeys(adminSecret)
-    const publicKeys = redactKeys(adminKeys)
 
     // redact user's secret keys, since this will be written into the public chain
     const foundingMember = redactUser(options.context.user)
 
-    // create a lockbox containing the admin secret for the founding member
-    const foundingMemberLockbox = lockbox.create({
-      scope: ADMIN,
-      senderKeys: adminKeys,
+    // team and role secrets are never be stored in plaintext, only encrypted into individual lockboxes
+
+    const teamLockbox = lockbox.create({
+      scope: TEAM,
       recipient: foundingMember,
-      secret: adminSecret,
+      secret: randomKey(),
     })
-    const lockboxes = [foundingMemberLockbox]
+
+    const adminLockbox = lockbox.create({
+      scope: ADMIN,
+      recipient: foundingMember,
+      secret: randomKey(),
+    })
 
     // create root link
     this.chain = []
     this.dispatch({
       type: 'ROOT',
-      payload: { teamName, publicKeys, foundingMember, lockboxes },
+      payload: {
+        teamName,
+        foundingMember,
+        lockboxes: [teamLockbox, adminLockbox],
+      },
     })
   }
 
-  /** Load a team from a serialized chain. */
+  /** Load a team from a serialized chain */
   private loadChain(options: OldTeamOptions) {
     this.chain = options.source
     this.updateState()
   }
 
+  /** Add a link to the chain, then recompute team state from the new chain */
   public dispatch(link: TeamAction) {
     this.chain = chain.append(this.chain, link, this.context)
     this.updateState()
