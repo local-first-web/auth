@@ -1,4 +1,4 @@
-﻿import { UserWithSecrets } from './types'
+﻿import { UserWithSecrets } from '/user/types'
 import { redactKeys } from '/keys'
 
 export const redactUser = (user: UserWithSecrets) => ({

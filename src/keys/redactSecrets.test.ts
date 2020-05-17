@@ -1,6 +1,6 @@
-import { redactKeys } from './redactSecrets'
-import { randomKey } from './randomKey'
-import { deriveKeys } from './deriveKeys'
+import { deriveKeys } from '/keys/deriveKeys'
+import { randomKey } from '/keys/randomKey'
+import { redactKeys } from '/keys/redactSecrets'
 
 describe('redactSecrets', () => {
   it('should redact secrets from a random keyset', () => {

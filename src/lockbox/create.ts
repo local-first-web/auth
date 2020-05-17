@@ -1,7 +1,7 @@
 ﻿import { hasSecrets, redactKeys } from '/keys'
 import { Payload } from '/lib'
 import { User, UserWithSecrets } from '/user'
-import { Lockbox } from './types'
+import { Lockbox } from '/lockbox/types'
 import { asymmetric } from '/crypto'
 
 /** Creates a new lockbox that can be opened using sender's public key and recipient's private key. */

@@ -3,7 +3,7 @@ import {
   newIKey,
   newInvitation,
   getSigningKeypair,
-} from './invitations'
+} from '/team/invitations'
 
 import { stretch } from '/crypto'
 

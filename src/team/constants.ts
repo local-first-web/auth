@@ -1,4 +1,4 @@
-﻿import { TeamState } from './teamState'
+﻿import { TeamState } from '/team/teamState'
 import { ADMIN_ROLE } from '/role'
 
 export const initialState: TeamState = {

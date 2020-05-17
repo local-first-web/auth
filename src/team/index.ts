@@ -1,2 +1,2 @@
-export * from './team'
-export * from './types'
+export * from '/team/team'
+export * from '/team/types'

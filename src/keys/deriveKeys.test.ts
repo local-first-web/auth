@@ -1,7 +1,7 @@
 import { signatures } from '/crypto'
 import { keyToBytes } from '/lib'
-import { deriveKeys } from './deriveKeys'
-import { randomKey } from './randomKey'
+import { deriveKeys } from '/keys/deriveKeys'
+import { randomKey } from '/keys/randomKey'
 
 describe('deriveKeys', () => {
   it('should return keys with the expected lengths', () => {

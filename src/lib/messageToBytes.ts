@@ -1,5 +1,5 @@
-﻿import { Message } from './types'
-import { utf8 } from './utf8'
+﻿import { Message } from '/lib/types'
+import { utf8 } from '/lib/utf8'
 
 export const messageToBytes = (x: Message) =>
   typeof x === 'string'

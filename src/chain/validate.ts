@@ -4,8 +4,8 @@
   SignedLink,
   ValidationResult,
   ValidatorSet,
-} from './types'
-import { validators } from './validators'
+} from '/chain/types'
+import { validators } from '/chain/validators'
 
 const VALID = { isValid: true } as ValidationResult
 

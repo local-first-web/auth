@@ -1,5 +1,5 @@
-﻿import { ValidatorSet, ValidationError } from './types'
-import { hashLink } from './hashLink'
+﻿import { ValidatorSet, ValidationError } from '/chain/types'
+import { hashLink } from '/chain/hashLink'
 import { signatures } from '/crypto'
 
 export const validators: ValidatorSet = {

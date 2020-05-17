@@ -2,7 +2,7 @@ import { Client, ContextWithSecrets, Device, DeviceType } from '/context'
 import { deriveKeys, randomKey } from '/keys'
 import { ADMIN, Role } from '/role'
 import { redactUser, UserWithSecrets } from '/user'
-import { Team } from './team'
+import { Team } from '/team/team'
 
 describe('Team', () => {
   beforeEach(() => {

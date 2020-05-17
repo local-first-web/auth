@@ -5,10 +5,10 @@ import { deriveKeys, KeysetWithSecrets, randomKey, redactKeys } from '/keys'
 import { Member } from '/member'
 import { Role } from '/role'
 import { redactUser, User } from '/user'
-import { ALL, initialState } from './constants'
-import { reducer } from './reducer'
-import * as selectors from './selectors'
-import { TeamState } from './teamState'
+import { ALL, initialState } from '/team/constants'
+import { reducer } from '/team/reducer'
+import * as selectors from '/team/selectors'
+import { TeamState } from '/team/teamState'
 import {
   isNew,
   NewTeamOptions,
@@ -16,7 +16,7 @@ import {
   TeamAction,
   TeamLink,
   TeamOptions,
-} from './types'
+} from '/team/types'
 
 export class Team extends EventEmitter {
   constructor(options: TeamOptions) {

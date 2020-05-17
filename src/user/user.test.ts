@@ -1,6 +1,6 @@
 import { asymmetric, signatures, symmetric } from '/crypto'
-import { create } from './create'
-import { load } from './load'
+import { create } from '/user/create'
+import { load } from '/user/load'
 
 describe('user', () => {
   const message = 'the crocodiles lunges at dawn'

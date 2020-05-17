@@ -1,4 +1,4 @@
-import { TeamState } from './teamState'
+import { TeamState } from '/team/teamState'
 import { LinkBody, SignatureChain, SignedLink, ValidationResult } from '/chain'
 import { ContextWithSecrets } from '/context'
 import { PublicKeyset } from '/keys'

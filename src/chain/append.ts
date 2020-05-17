@@ -1,8 +1,13 @@
 ﻿import { ContextWithSecrets, redactContext } from '/context'
 import { signatures } from '/crypto'
 import { UserWithSecrets } from '/user'
-import { hashLink } from './hashLink'
-import { LinkBody, PartialLinkBody, SignatureChain, SignedLink } from './types'
+import { hashLink } from '/chain/hashLink'
+import {
+  LinkBody,
+  PartialLinkBody,
+  SignatureChain,
+  SignedLink,
+} from '/chain/types'
 
 export const append = <T extends LinkBody = LinkBody>(
   chain: SignatureChain<SignedLink<T>>,

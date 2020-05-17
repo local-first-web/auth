@@ -1,9 +1,9 @@
-export * from './types'
-export * from './append'
-export * from './create'
-export * from './validate'
+export * from '/chain/types'
+export * from '/chain/append'
+export * from '/chain/create'
+export * from '/chain/validate'
 
-import { append } from './append'
-import { create } from './create'
-import { validate } from './validate'
+import { append } from '/chain/append'
+import { create } from '/chain/create'
+import { validate } from '/chain/validate'
 export const chain = { append, create, validate }

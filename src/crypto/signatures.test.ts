@@ -1,5 +1,5 @@
-import { asymmetric } from './asymmetric'
-import { signatures, SignedMessage } from './signatures'
+import { asymmetric } from '/crypto/asymmetric'
+import { signatures, SignedMessage } from '/crypto/signatures'
 
 import nacl from 'tweetnacl'
 

@@ -1,4 +1,4 @@
-﻿import { KeysetWithSecrets, PublicKeyset } from './types'
+﻿import { KeysetWithSecrets, PublicKeyset } from '/keys/types'
 
 /**
  * Takes a keyset that includes secret keys, and returns just the public keys.

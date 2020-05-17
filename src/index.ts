@@ -1,2 +1,2 @@
-﻿export * from './keys'
-export * from './chain'
+﻿export * from '/keys'
+export * from '/chain'

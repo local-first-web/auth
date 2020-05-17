@@ -1,5 +1,5 @@
-﻿import { append } from './append'
-import { PartialLinkBody, SignatureChain } from './types'
+﻿import { append } from '/chain/append'
+import { PartialLinkBody, SignatureChain } from '/chain/types'
 import { ContextWithSecrets } from '/context'
 
 export const create = (payload: any = {}, context: ContextWithSecrets) => {

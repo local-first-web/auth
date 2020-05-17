@@ -1,4 +1,4 @@
-﻿import { TeamState } from './teamState'
+﻿import { TeamState } from '/team/teamState'
 import { ADMIN } from '/role'
 
 export const hasMember = (state: TeamState, userName: string) =>

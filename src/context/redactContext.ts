@@ -1,4 +1,4 @@
-﻿import { Context, ContextWithSecrets } from './types'
+﻿import { Context, ContextWithSecrets } from '/context/types'
 import { redactUser } from '/user'
 
 export const redactContext = (context: ContextWithSecrets): Context => ({

@@ -70,49 +70,59 @@ const bobIsManager = team.memberHasRole('bob', 'manager')
 
 ### Internals of membership tools
 
-Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `teamState` from `teamChain`, by applying a Redux-style reducer to the array of links.
+Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `teamState` from `teamChain`, by applying a Redux-style reducer to the array of links. (See [reducer.ts](reducer.ts).)
 
 ```ts
 const reducer = (prevState, link) => {
-  const { type, payload } = link
+  const { type, payload, context } = link.body
   switch (type) {
-    case 'ROOT':
-      const { name, foundingMember } = payload
-      const nextState = {
-        name,
-        foundingMember,
+    case 'ROOT': {
+      const rootMember = { ...context.user, roles: [ADMIN] }
+      const newState = {
+        ...prevState,
+        teamName: payload.teamName,
+        members: [rootMember],
       }
-      return nextState
-      break
+      return newState
+    }
 
-    case 'ADD_MEMBER':
-      // ..
-      return nextState
-      break
+    case 'ADD_MEMBER': {
+      // ...
+      return newState
+    }
+    
+    // ...
   }
+  
   return prevState
-}
-
-// the reducers don't validate the chain, we need to do that separately
-const isValid = validate(chain)
-if (!isValid) {
-  // ?
-} else {
-  const teamState = teamChain.reduce(reducer, {})
-  // ...
 }
 ```
 
+Note that the reducer is 
+
 ### Crypto tools
 
-Team also comes with crypto tools that use keys from the chain.
+The `TeamCrypto` class provides tools for public-key encryption and signatures using the keys recorded in the team's signature chain. 
 
 ```ts
-const { encrypt, decrypt, sign, verify } = Team.crypto
+const { encrypt, decrypt, sign, verify } = new TeamCrypto(team)
 
-// asymmetric encryption
-encrypt({ message, sender, recipient })
+// alice encrypts the message asymmetrically for bob
+const encryptedMessage = encrypt({ 
+    message: 'One if by night, two if by day', 
+    recipient: 'bob' 
+})
 
-// signatures
-const { sign, verify } = signatures
+// bob decrypts the message
+const decryptedMessage = decrypt({ 
+    message: encryptedMessage, 
+    sender: 'alice' 
+})
+
+// alice signs the message
+const signedMessage = sign('Flee at once, we are discovered!')
+
+// bob validates the signature
+const isValid = verify(signedMessage) // true
+
 ```

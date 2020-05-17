@@ -1,7 +1,7 @@
-﻿export * from './create'
-export * from './types'
+﻿export * from '/lockbox/create'
+export * from '/lockbox/types'
 
-import { create } from './create'
+import { create } from '/lockbox/create'
 export const lockbox = {
   create,
 }

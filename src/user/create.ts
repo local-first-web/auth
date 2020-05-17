@@ -1,6 +1,6 @@
 ﻿import { deriveKeys, KeysetWithSecrets, randomKey } from '/keys'
 import { storeKeyset, loadKeyset } from '/storage'
-import { UserWithSecrets } from './types'
+import { UserWithSecrets } from '/user/types'
 
 export const create = (name: string): UserWithSecrets => {
   const existingKeys = loadKeyset(name)

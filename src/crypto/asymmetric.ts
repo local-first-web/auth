@@ -1,11 +1,8 @@
 ﻿import * as base64 from '@stablelib/base64'
 import { decode as utf8Decode } from '@stablelib/utf8'
-import { Key, Payload } from '/lib'
 import nacl from 'tweetnacl'
-import { keypairToBase64 } from '/lib/keypairToBase64'
-import { keyToBytes } from '/lib/keyToBytes'
-import { newNonce, nonceLength } from './nonce'
-import { payloadToBytes } from '/lib/payloadToBytes'
+import { newNonce, nonceLength } from '/crypto/nonce'
+import { Key, keypairToBase64, keyToBytes, Payload, payloadToBytes } from '/lib'
 
 export const asymmetric = {
   /**
