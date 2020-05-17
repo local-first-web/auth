@@ -98,8 +98,6 @@ const reducer = (prevState, link) => {
 }
 ```
 
-Note that the reducer is 
-
 ### Crypto tools
 
 The `TeamCrypto` class provides tools for public-key encryption and signatures using the keys recorded in the team's signature chain. 
