@@ -11,18 +11,6 @@ const team = new Team({ name: 'Spies Я Us', context })
 const chain = localStorage.getItem('myTeamChain')
 const team = new Team({ chain, context })
 
-// invite member
-const invitationKey = team.invite('bob')
-
-// add member
-const bob = team.add('bob') // what is payload?
-
-// remove member
-team.remove('eve')
-
-// list members
-const members = team.members()
-
 // get chain for storage
 const chain = team.save()
 ```
@@ -30,41 +18,23 @@ const chain = team.save()
 ### Members
 
 ```ts
+// invite member
+const invitationKey = team.invite('bob')
+
+// add member
+const bob = team.add(bob, ['managers']) 
+const bob = team.add(charlie) 
+
+// remove member
+team.remove('eve')
+
+// list members
+const members = team.members()
+
+// look up member
 const bob = team.members('bob')
 
-// add to role
-team.members('bob').addRole('manager')
 
-// remove from role
-team.members('bob').removeRole('manager')
-
-// check admin status
-const bobIsAdmin = team.members('bob').hasPermission(ADMIN)
-
-// check role membership
-const bobIsManager = team.members('bob').hasRole('manager')
-
-// list admins
-const admins = team.admins()
-```
-
-OR MAYBE
-
-```ts
-// add to role
-team.addMemberRole('bob', 'manager')
-
-// remove from role
-team.removeMemberRole('bob', 'manager')
-
-// check admin status
-const bobIsAdmin = team.memberHasPermission('bob', ADMIN)
-
-// check role membership
-const bobIsManager = team.memberHasRole('bob', 'manager')
-
-// list admins
-const admins = team.admins()
 ```
 
 ### Roles
@@ -81,6 +51,21 @@ team.roles.remove('manager')
 
 // list roles
 team.roles()
+
+// add member to role
+team.addMemberRole('charlie', 'manager')
+
+// remove member from role
+team.removeMemberRole('bob', 'manager')
+
+// check admin status
+const bobIsAdmin = team.memberIsAdmin('bob')
+
+// list admins
+const admins = team.admins()
+
+// check role membership
+const bobIsManager = team.memberHasRole('bob', 'manager')
 ```
 
 ### Internals of membership tools
