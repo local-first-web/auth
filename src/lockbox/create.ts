@@ -1,31 +1,38 @@
 ﻿import { asymmetric } from '/crypto'
-import { hasSecrets, KeysetWithSecrets, redactKeys } from '/keys'
+import {
+  hasSecrets,
+  KeysetWithSecrets,
+  redactKeys,
+  randomKey,
+  deriveKeys,
+} from '/keys'
 import { Payload } from '/lib'
 import { Lockbox } from '/lockbox/types'
 import { User, UserWithSecrets } from '/user'
 
 /** Creates a new lockbox that can be opened using sender's public key and recipient's private key. */
 export const create = (args: {
-  scope?: string
-  senderKeys: KeysetWithSecrets
+  scope: string
+  secret: string
   recipient: User | UserWithSecrets
-  secret: Payload
 }): Lockbox => {
-  const { senderKeys, recipient, secret, scope } = args
+  const { scope, secret, recipient } = args
 
   const recipientPublicKeys = hasSecrets(recipient.keys)
     ? redactKeys(recipient.keys)
     : recipient.keys
 
+  const keyset = deriveKeys(secret)
+
   return {
     scope,
-    senderPublicKey: senderKeys.asymmetric.publicKey,
+    senderPublicKey: keyset.asymmetric.publicKey,
     recipient: recipient.userName,
     recipientPublicKey: recipientPublicKeys.encryption,
     encryptedSecret: asymmetric.encrypt(
       secret,
       recipientPublicKeys.encryption,
-      senderKeys.asymmetric.secretKey
+      keyset.asymmetric.secretKey
     ),
   }
 }
