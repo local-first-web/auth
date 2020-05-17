@@ -2,12 +2,7 @@
 import { signatures } from '/crypto'
 import { UserWithSecrets } from '/user'
 import { hashLink } from '/chain/hashLink'
-import {
-  LinkBody,
-  PartialLinkBody,
-  SignatureChain,
-  SignedLink,
-} from '/chain/types'
+import { LinkBody, PartialLinkBody, SignatureChain, SignedLink } from '/chain/types'
 
 export const append = <T extends LinkBody = LinkBody>(
   chain: SignatureChain<SignedLink<T>>,
@@ -23,10 +18,7 @@ export const append = <T extends LinkBody = LinkBody>(
   return [...chain, signedLink] as SignatureChain<SignedLink<T>>
 }
 
-const signLink = <T extends LinkBody = LinkBody>(
-  body: T,
-  userWithSecrets: UserWithSecrets
-) => {
+const signLink = <T extends LinkBody = LinkBody>(body: T, userWithSecrets: UserWithSecrets) => {
   const { userName: name, keys } = userWithSecrets
   const { publicKey, secretKey } = keys.signature
 
@@ -37,10 +29,7 @@ const signLink = <T extends LinkBody = LinkBody>(
   } as SignedLink<T>
 }
 
-const chainToPrev = <T extends LinkBody = LinkBody>(
-  chain: SignatureChain<SignedLink<T>>,
-  link: PartialLinkBody<T>
-) => {
+const chainToPrev = <T extends LinkBody = LinkBody>(chain: SignatureChain<SignedLink<T>>, link: PartialLinkBody<T>) => {
   const timestamp = new Date().getTime()
   if (chain.length === 0)
     return {

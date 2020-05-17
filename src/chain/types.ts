@@ -45,17 +45,11 @@ export interface LinkBody {
 }
 
 /** User-writable fields of a link (omits fields that are added automatically) */
-export type PartialLinkBody<T extends LinkBody = LinkBody> = Pick<
-  T,
-  'type' | 'payload'
->
+export type PartialLinkBody<T extends LinkBody = LinkBody> = Pick<T, 'type' | 'payload'>
 
 // VALIDATION
 
-type Validator = (
-  currentLink: SignedLink,
-  prevLink?: SignedLink
-) => ValidationResult
+type Validator = (currentLink: SignedLink, prevLink?: SignedLink) => ValidationResult
 
 export type ValidatorSet = {
   [key: string]: Validator

@@ -116,10 +116,7 @@ export const reducer = (state: TeamState, link: TeamLink) => {
   throw new Error(`Unrecognized link type: ${action.type}`)
 }
 
-const collectLockboxes = (
-  prevLockboxMap: TeamLockboxMap,
-  added?: Lockbox[]
-) => {
+const collectLockboxes = (prevLockboxMap: TeamLockboxMap, added?: Lockbox[]) => {
   const lockboxMap = { ...prevLockboxMap }
   if (added)
     // add each new lockbox to the recipient's list

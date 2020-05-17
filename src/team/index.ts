@@ -10,15 +10,7 @@ import { ADMIN, Role, TEAM } from '/role'
 import { ALL, initialState } from '/team/constants'
 import { reducer } from '/team/reducer'
 import * as selectors from '/team/selectors'
-import { TeamState } from '/team/teamState'
-import {
-  isNew,
-  NewTeamOptions,
-  OldTeamOptions,
-  TeamAction,
-  TeamLink,
-  TeamOptions,
-} from '/team/types'
+import { isNew, NewTeamOptions, OldTeamOptions, TeamAction, TeamLink, TeamOptions, TeamState } from '/team/types'
 import { redactUser, User, UserWithSecrets } from '/user'
 
 export class Team extends EventEmitter {
@@ -47,9 +39,7 @@ export class Team extends EventEmitter {
   public members(): Member[] // overload: all members
   public members(userName: string): Member // overload: one member
   public members(userName: string = ALL): Member | Member[] {
-    return userName === ALL
-      ? this.state.members
-      : selectors.getMember(this.state, userName)
+    return userName === ALL ? this.state.members : selectors.getMember(this.state, userName)
   }
 
   public memberHasRole(userName: string, role: string) {
@@ -65,9 +55,7 @@ export class Team extends EventEmitter {
   public roles(): Role[] // overload: all roles
   public roles(roleName: string): Role // overload: one role
   public roles(roleName: string = ALL): Role | Role[] {
-    return roleName === ALL
-      ? this.state.roles
-      : selectors.getRole(this.state, roleName)
+    return roleName === ALL ? this.state.roles : selectors.getRole(this.state, roleName)
   }
 
   public getKeysFromLockboxes = (user: UserWithSecrets) => {

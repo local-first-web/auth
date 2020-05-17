@@ -32,8 +32,7 @@ describe('Team', () => {
       const { team, context } = setup()
       const savedChain = team.save()
       const tamperedChain = savedChain.replace(/alice/gi, 'eve')
-      const restoreTampered = () =>
-        new Team({ source: JSON.parse(tamperedChain), context })
+      const restoreTampered = () => new Team({ source: JSON.parse(tamperedChain), context })
       expect(restoreTampered).toThrow(/signature(.*)not valid/i)
     })
   })
@@ -117,11 +116,7 @@ describe('Team', () => {
       team.add(redactUser(bob))
       team.add(redactUser(charlie))
       expect(team.members()).toHaveLength(3)
-      expect(team.members().map(m => m.userName)).toEqual([
-        'alice',
-        'bob',
-        'charlie',
-      ])
+      expect(team.members().map(m => m.userName)).toEqual(['alice', 'bob', 'charlie'])
     })
 
     it.todo('rotates keys after removing a member')

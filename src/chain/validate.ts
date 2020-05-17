@@ -1,10 +1,4 @@
-﻿import {
-  InvalidResult,
-  SignatureChain,
-  SignedLink,
-  ValidationResult,
-  ValidatorSet,
-} from '/chain/types'
+﻿import { InvalidResult, SignatureChain, SignedLink, ValidationResult, ValidatorSet } from '/chain/types'
 import { validators } from '/chain/validators'
 
 const VALID = { isValid: true } as ValidationResult
@@ -16,15 +10,9 @@ const VALID = { isValid: true } as ValidationResult
  * @customValidators Any additional validators (besides the base validators that test the chain's
  * integrity)
  */
-export const validate = (
-  chain: SignatureChain,
-  customValidators: ValidatorSet = {}
-): ValidationResult => {
+export const validate = (chain: SignatureChain, customValidators: ValidatorSet = {}): ValidationResult => {
   const initialValue = VALID
-  return chain.reduce(
-    composeValidators(validators, customValidators),
-    initialValue
-  )
+  return chain.reduce(composeValidators(validators, customValidators), initialValue)
 }
 
 /**
@@ -59,5 +47,4 @@ const composeValidators = (...validators: ValidatorSet[]) => (
 }
 
 // merges multiple validator sets into one object
-const merge = (validatorSets: ValidatorSet[]) =>
-  validatorSets.reduce((result, vs) => Object.assign(result, vs), {})
+const merge = (validatorSets: ValidatorSet[]) => validatorSets.reduce((result, vs) => Object.assign(result, vs), {})

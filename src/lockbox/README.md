@@ -15,8 +15,7 @@ const lockbox = {
   senderPublicKey: 'fUeVMZIzch2ZIIKB6rvzBQ4kSlc4ZfzgGhrFX48vBaHXH',
   recipient: 'bob',
   recipientPublicKey: 'rrhT32xnIJyQVTGrEkkgUS1FToPfXcNMkUh1xqp5dfhCrE',
-  encryptedSecret:
-    'r1peeKn3MnndwaEFqBJbY0rr9eps0vxhpZFHjtV33xTfcGrrrFqHsv8+vj3EB5tJc2K9X8krrD9RJzeHDMuoeQqqpRRkaw9==',
+  encryptedSecret: 'r1peeKn3MnndwaEFqBJbY0rr9eps0vxhpZFHjtV33xTfcGrrrFqHsv8+vj3EB5tJc2K9X8krrD9RJzeHDMuoeQqqpRRkaw9==',
 }
 ```
 

@@ -34,11 +34,7 @@ export const signatures = {
    * @returns true if verification succeeds, false otherwise
    */
   verify: ({ payload, signature, publicKey }: SignedMessage) => {
-    return nacl.sign.detached.verify(
-      payloadToBytes(payload),
-      keyToBytes(signature),
-      keyToBytes(publicKey)
-    )
+    return nacl.sign.detached.verify(payloadToBytes(payload), keyToBytes(signature), keyToBytes(publicKey))
   },
 }
 

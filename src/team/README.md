@@ -22,8 +22,8 @@ const chain = team.save()
 const invitationKey = team.invite('bob')
 
 // add member
-const bob = team.add(bob, ['managers']) 
-const bob = team.add(charlie) 
+const bob = team.add(bob, ['managers'])
+const bob = team.add(charlie)
 
 // remove member
 team.remove('eve')
@@ -33,8 +33,6 @@ const members = team.members()
 
 // look up member
 const bob = team.members('bob')
-
-
 ```
 
 ### Roles
@@ -90,31 +88,31 @@ const reducer = (prevState, link) => {
       // ...
       return newState
     }
-    
+
     // ...
   }
-  
+
   return prevState
 }
 ```
 
 ### Crypto tools
 
-The `TeamCrypto` class provides tools for public-key encryption and signatures using the keys recorded in the team's signature chain. 
+The `TeamCrypto` class provides tools for public-key encryption and signatures using the keys recorded in the team's signature chain.
 
 ```ts
 const { encrypt, decrypt, sign, verify } = new TeamCrypto(team)
 
 // alice encrypts the message asymmetrically for bob
-const encryptedMessage = encrypt({ 
-    message: 'One if by night, two if by day', 
-    recipient: 'bob' 
+const encryptedMessage = encrypt({
+  message: 'One if by night, two if by day',
+  recipient: 'bob',
 })
 
 // bob decrypts the message
-const decryptedMessage = decrypt({ 
-    message: encryptedMessage, 
-    sender: 'alice' 
+const decryptedMessage = decrypt({
+  message: encryptedMessage,
+  sender: 'alice',
 })
 
 // alice signs the message
@@ -122,5 +120,4 @@ const signedMessage = sign('Flee at once, we are discovered!')
 
 // bob validates the signature
 const isValid = verify(signedMessage) // true
-
 ```

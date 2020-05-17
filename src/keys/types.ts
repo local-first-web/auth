@@ -23,8 +23,6 @@ export interface PublicKeyset {
   generation?: number
 }
 
-export const hasSecrets = (
-  keys: PublicKeyset | KeysetWithSecrets
-): keys is KeysetWithSecrets => {
+export const hasSecrets = (keys: PublicKeyset | KeysetWithSecrets): keys is KeysetWithSecrets => {
   return keys.hasOwnProperty('symmetric')
 }

@@ -35,22 +35,18 @@ describe('crypto', () => {
 
     test(`bob decrypts using his secret key and alice's public key`, () => {
       const cipherFromAlice = knownCipher
-      expect(decrypt(cipherFromAlice, alice.publicKey, bob.secretKey)).toEqual(
-        plaintext
-      )
+      expect(decrypt(cipherFromAlice, alice.publicKey, bob.secretKey)).toEqual(plaintext)
     })
 
     test(`eve can't decrypt with her secret key`, () => {
       const cipherFromAlice = knownCipher
-      const attemptToDecrypt = () =>
-        decrypt(cipherFromAlice, alice.publicKey, eve.secretKey)
+      const attemptToDecrypt = () => decrypt(cipherFromAlice, alice.publicKey, eve.secretKey)
       expect(attemptToDecrypt).toThrow()
     })
 
     test(`can't decrypt with the wrong public key`, () => {
       const cipherFromAlice = knownCipher
-      const attemptToDecrypt = () =>
-        decrypt(cipherFromAlice, eve.publicKey, bob.secretKey)
+      const attemptToDecrypt = () => decrypt(cipherFromAlice, eve.publicKey, bob.secretKey)
       expect(attemptToDecrypt).toThrow()
     })
 
@@ -66,8 +62,7 @@ describe('crypto', () => {
       const decrypted = decrypt(encrypted, alice.publicKey, bob.secretKey)
       expect(decrypted).toEqual(message)
 
-      const attemptToDecrypt = () =>
-        decrypt(encrypted, alice.publicKey, eve.secretKey)
+      const attemptToDecrypt = () => decrypt(encrypted, alice.publicKey, eve.secretKey)
       expect(attemptToDecrypt).toThrow()
     })
 

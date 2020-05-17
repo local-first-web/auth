@@ -1,9 +1,4 @@
-import {
-  getInvitationId,
-  newIKey,
-  newInvitation,
-  getSigningKeypair,
-} from '/team/invitations'
+import { getInvitationId, newIKey, newInvitation, getSigningKeypair } from '/team/invitations'
 
 import { stretch } from '/crypto'
 

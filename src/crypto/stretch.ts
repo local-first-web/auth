@@ -10,8 +10,7 @@ import memoize from 'fast-memoize'
  */
 export const stretch = memoize((password: string | Uint8Array) => {
   const salt = 'Sõdìüm ÇhLôrɩdé'
-  const passwordBytes =
-    typeof password === 'string' ? utf8.encode(password) : password
+  const passwordBytes = typeof password === 'string' ? utf8.encode(password) : password
 
   // `scrypt` is intended to be expensive not only in CPU time but in memory usage.
   // These parameters are calibrated to keep the derivation time around 100ms "on my box"
