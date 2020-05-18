@@ -57,28 +57,22 @@ export const getSigningKeypair = (siKey: Uint8Array) => {
  *  We attach some metadata to the encrypted key and label to create a "packed key" (pKey). This
  * constitutes the invitation. It is Alice saying to other admins, 'Anyone who can prove they know
  * the secret key (iKey) that generated this invitation is accepted to be Bob and allowed in.' This
- * will be signed into the repo's signature chain, along with the invitationId.
+ * will be signed into the team's signature chain, along with the invitationId.
  *
- * @param encryptionKey The repo-level symmetric encryption key generated for this purpose
- * @param repoKeyGeneration The generation of rotation of the repo key
+ * @param encryptionKey The team-level symmetric encryption key generated for this purpose
+ * @param teamKeyGeneration The generation of rotation of the team key
  * @param siKey The stretched iKey
  * @param label A human-readable string identifying Bob
  * @returns a base64-encoded string
  */
 export const getPKey = (
   encryptionKey: Uint8Array,
-  repoKeyGeneration: number,
+  teamKeyGeneration: number,
   signingPublicKey: Uint8Array,
   label: string
 ) => {
-  const pKey = msgpack.encode({
-    repoKeyGeneration,
-    encryptedKeyAndLabel: symmetric.encrypt(
-      msgpack.encode({ key: signingPublicKey, label }),
-      encryptionKey
-    ),
-  })
-  return base64.encode(pKey)
+  const encryptedKeyAndLabel = symmetric.encrypt({ key: signingPublicKey, label }, encryptionKey)
+  return { teamKeyGeneration: teamKeyGeneration, encryptedKeyAndLabel }
 }
 
 export const newInvitation = (iKey: string) => {
@@ -86,11 +80,11 @@ export const newInvitation = (iKey: string) => {
   const invitationId = getInvitationId(siKey) // 1c
   const { publicKey } = getSigningKeypair(siKey) // 1d
 
-  // TODO these are properties of the repo
+  // TODO these are properties of the team
   const encryptionKey = stretch('abc')
-  const repoKeyGeneration = 1
+  const teamKeyGeneration = 1
 
-  const pKey = getPKey(encryptionKey, repoKeyGeneration, publicKey, 'bob@devresults.com') // 2a
+  const pKey = getPKey(encryptionKey, teamKeyGeneration, publicKey, 'bob@devresults.com') // 2a
 
   return {
     id: invitationId,
@@ -99,7 +93,7 @@ export const newInvitation = (iKey: string) => {
   }
 }
 
-// TODO: This should live somewhere else & be precomputed when the repo is created, along with keys
+// TODO: This should live somewhere else & be precomputed when the team is created, along with keys
 // for other specific purposes. See https://keybase.io/docs/teams/crypto
 export const getKeyForSymmetricEncryption = (teamKeySeed: Uint8Array) =>
   hash(teamKeySeed, TACO_INVITE_TOKEN)
