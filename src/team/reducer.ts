@@ -1,10 +1,9 @@
-﻿import { TeamState, TeamLockboxMap, UserLockboxMap } from '/team/teamState'
-import { TeamAction, TeamLink } from '/team/types'
-import { validate } from '/team/validate'
+﻿import { keyToString } from '/lib'
+import { Lockbox } from '/lockbox'
 import { Member } from '/member'
 import { ADMIN } from '/role'
-import { Lockbox } from '/lockbox'
-import { keyToString } from '/lib'
+import { TeamAction, TeamLink, TeamLockboxMap, TeamState, UserLockboxMap } from '/team/types'
+import { validate } from '/team/validate'
 
 /**
  * Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `teamState`
@@ -12,9 +11,9 @@ import { keyToString } from '/lib'
  * each link in sequence, accumulating a team state.
  *
  * > *Note:* Keep in mind that this reducer is a pure function that acts on the publicly available
- * > links in the signature chain, and must independently return the same result for every member.
- * > It knows nothing about the current user's context, and it does not have access to any secrets.
- * > Any crypto operations must happen elsewhere.
+ * links in the signature chain, and must independently return the same result for every member. It
+ * knows nothing about the current user's context, and it does not have access to any secrets. Any
+ * crypto operations using secret keys that the current user has must happen elsewhere.
  *
  * @param state The team state as of the previous link in the signature chain.
  * @param link The current link being processed.
