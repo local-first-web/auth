@@ -111,7 +111,7 @@ export class Team extends EventEmitter {
   }
 
   public invite = (userName: string) => {}
-  public accept = (userName: string) => {}
+  public admit = (userName: string) => {}
 
   // private properties
 
@@ -125,22 +125,13 @@ export class Team extends EventEmitter {
   private create(options: NewTeamOptions) {
     const { teamName } = options
 
-    // redact user's secret keys, since this will be written into the public chain
+    // Redact user's secret keys, since this will be written into the public chain
     const foundingMember = redactUser(options.context.user)
 
-    // team and role secrets are never be stored in plaintext, only encrypted into individual lockboxes
-
-    const teamLockbox = lockbox.create({
-      scope: TEAM,
-      recipient: foundingMember,
-      secret: randomKey(),
-    })
-
-    const adminLockbox = lockbox.create({
-      scope: ADMIN,
-      recipient: foundingMember,
-      secret: randomKey(),
-    })
+    // Team and role secrets are never be stored in plaintext, only encrypted into individual
+    // lockboxes. These are the lockboxes for the founding member.
+    const teamLockbox = lockbox.create({ scope: TEAM, recipient: foundingMember, secret: randomKey() })
+    const adminLockbox = lockbox.create({ scope: ADMIN, recipient: foundingMember, secret: randomKey() })
 
     // create root link
     this.chain = []
