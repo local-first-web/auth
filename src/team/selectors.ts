@@ -1,9 +1,9 @@
-﻿import { TeamState, TeamLockboxMap, KeysetMap } from '/team/teamState'
-import { ADMIN } from '/role'
-import { UserWithSecrets } from '/user'
-import { KeysetWithSecrets, deriveKeys } from '/keys'
-import { asymmetric } from '/crypto'
+﻿import { asymmetric } from '/crypto'
+import { deriveKeys } from '/keys'
 import { keyToString } from '/lib'
+import { ADMIN } from '/role'
+import { KeysetMap, TeamState } from '/team/types'
+import { UserWithSecrets } from '/user'
 
 export const hasMember = (state: TeamState, userName: string) =>
   state.members.find(m => m.userName === userName) !== undefined
@@ -30,10 +30,10 @@ export const getRole = (state: TeamState, roleName: string) => {
   return role
 }
 
-export const getKeysFromLockboxes = (state: TeamState, user: UserWithSecrets) => {
+export const getKeysFromLockboxes = (state: TeamState, user: UserWithSecrets): KeysetMap => {
   const publicKey = keyToString(user.keys.asymmetric.publicKey)
 
-  const keysets = {} as KeysetMap
+  const keysets: KeysetMap = {}
   const userLockboxes = state.lockboxes[user.userName]
   if (userLockboxes) {
     const lockboxes = userLockboxes[publicKey]
