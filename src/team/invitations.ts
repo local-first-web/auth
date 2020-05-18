@@ -1,15 +1,14 @@
 ﻿import nacl from 'tweetnacl'
 import { hash, stretch, symmetric } from '/crypto'
-import { base30, base64 } from '/lib'
+import { base30, base64, HashPurpose } from '/lib'
 
-const TACO_INVITE_TOKEN = 'taco_invite_token'
 const IKEY_LENGTH = 16
 const STAGE_INVITE_ID = 'invite_id'
 const STAGE_EDDSA = 'eddsa'
 // const STAGE_ACCEPT = 'accept'
 
-// Implements a modified version of Keybase's Seitan Token v2 exchange specification. Step numbers refer to this page:
-// http://keybase.io/docs/teams/seitan_v2
+// Implements a modified version of Keybase's Seitan Token v2 exchange specification. Step numbers
+// refer to this page: http://keybase.io/docs/teams/seitan_v2
 
 /** #### Step 1a
  * The iKey is a randomly generated secret that is sent to Bob via a pre-authenticated channel (e.g.
@@ -30,8 +29,7 @@ export const stretchIKey = (iKey: string) => stretch(iKey)
  * @returns a 15-character base64 string
  */
 export const getInvitationId = (siKey: Uint8Array) => {
-  const payload = { stage: STAGE_INVITE_ID }
-  const invitationId = hash(siKey, payload)
+  const invitationId = hash(HashPurpose.InvitationIdFromInvitationKey, siKey)
   return base64.encode(invitationId).slice(0, 15)
 }
 
@@ -41,9 +39,8 @@ export const getInvitationId = (siKey: Uint8Array) => {
  * @param siKey The stretched invitation key
  * @returns a 32-character base64 string
  */
-export const getSigningKeypair = (siKey: Uint8Array) => {
-  const payload = { stage: STAGE_EDDSA }
-  const seed = hash(siKey, payload).slice(0, 32)
+const getSigningKeypair = (siKey: Uint8Array) => {
+  const seed = hash(HashPurpose.SigningPairFromFromInvitationKey, siKey).slice(0, 32)
   return nacl.sign.keyPair.fromSeed(seed)
 }
 
@@ -63,7 +60,7 @@ export const getSigningKeypair = (siKey: Uint8Array) => {
  * @param label A human-readable string identifying Bob
  * @returns a base64-encoded string
  */
-export const getPKey = (
+const getPKey = (
   encryptionKey: Uint8Array,
   teamKeyGeneration: number,
   signingPublicKey: Uint8Array,
@@ -73,8 +70,9 @@ export const getPKey = (
   return { teamKeyGeneration: teamKeyGeneration, encryptedKeyAndLabel }
 }
 
-export const newInvitation = (iKey: string) => {
-  const siKey = stretch(iKey) // 1b
+export const newInvitation = () => {
+  const invitationKey = newIKey()
+  const siKey = stretch(invitationKey) // 1b
   const invitationId = getInvitationId(siKey) // 1c
   const { publicKey } = getSigningKeypair(siKey) // 1d
 
@@ -85,13 +83,13 @@ export const newInvitation = (iKey: string) => {
   const pKey = getPKey(encryptionKey, teamKeyGeneration, publicKey, 'bob@devresults.com') // 2a
 
   return {
-    id: invitationId,
+    invitationKey,
+    invitationId,
     body: pKey,
-    type: TACO_INVITE_TOKEN,
   }
 }
 
 // TODO: This should live somewhere else & be precomputed when the team is created, along with keys
 // for other specific purposes. See https://keybase.io/docs/teams/crypto
 export const getKeyForSymmetricEncryption = (teamKeySeed: Uint8Array) =>
-  hash(teamKeySeed, TACO_INVITE_TOKEN)
+  hash(teamKeySeed, HashPurpose.Invitation)
