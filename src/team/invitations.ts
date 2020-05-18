@@ -1,8 +1,6 @@
-﻿import * as base64 from '@stablelib/base64'
+﻿import nacl from 'tweetnacl'
 import { hash, stretch, symmetric } from '/crypto'
-import { base30 } from '/lib'
-import msgpack from 'msgpack-lite'
-import nacl from 'tweetnacl'
+import { base30, base64 } from '/lib'
 
 const TACO_INVITE_TOKEN = 'taco_invite_token'
 const IKEY_LENGTH = 16
@@ -10,7 +8,7 @@ const STAGE_INVITE_ID = 'invite_id'
 const STAGE_EDDSA = 'eddsa'
 // const STAGE_ACCEPT = 'accept'
 
-// implements a modified version of Keybase's Seitan Token v2 exchange specification
+// Implements a modified version of Keybase's Seitan Token v2 exchange specification. Step numbers refer to this page:
 // http://keybase.io/docs/teams/seitan_v2
 
 /** #### Step 1a
