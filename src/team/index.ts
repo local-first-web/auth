@@ -173,6 +173,7 @@ export class Team extends EventEmitter {
     if (!validation.isValid) throw validation.error
   }
 
+  /** Runs the reducer on the entire chain to calculate the current team state. */
   private updateState = () => {
     this.validateChain()
     this.state = this.chain.reduce(reducer, initialState)
