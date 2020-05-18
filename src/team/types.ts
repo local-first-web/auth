@@ -136,7 +136,10 @@ export type TeamLink = SignedLink<TeamLinkBody>
 
 // VALIDATION
 
-export type TeamStateValidator = (prevState: TeamState, link: SignedLink<TeamLinkBody>) => ValidationResult
+export type TeamStateValidator = (
+  prevState: TeamState,
+  link: SignedLink<TeamLinkBody>
+) => ValidationResult
 
 export type TeamStateValidatorSet = {
   [key: string]: TeamStateValidator

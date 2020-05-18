@@ -73,7 +73,10 @@ export const getPKey = (
 ) => {
   const pKey = msgpack.encode({
     repoKeyGeneration,
-    encryptedKeyAndLabel: symmetric.encrypt(msgpack.encode({ key: signingPublicKey, label }), encryptionKey),
+    encryptedKeyAndLabel: symmetric.encrypt(
+      msgpack.encode({ key: signingPublicKey, label }),
+      encryptionKey
+    ),
   })
   return base64.encode(pKey)
 }
@@ -98,4 +101,5 @@ export const newInvitation = (iKey: string) => {
 
 // TODO: This should live somewhere else & be precomputed when the repo is created, along with keys
 // for other specific purposes. See https://keybase.io/docs/teams/crypto
-export const getKeyForSymmetricEncryption = (teamKeySeed: Uint8Array) => hash(teamKeySeed, TACO_INVITE_TOKEN)
+export const getKeyForSymmetricEncryption = (teamKeySeed: Uint8Array) =>
+  hash(teamKeySeed, TACO_INVITE_TOKEN)

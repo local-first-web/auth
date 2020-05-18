@@ -47,7 +47,7 @@ describe('Team', () => {
 
     it('has lockboxes for the root member containing the admin and team secrets', () => {
       const { team } = setup()
-      const keysets = team.getKeysFromLockboxes(alice)
+      const keysets = team.getKeysFromLockboxes()
 
       const adminKeyset = keysets['admin']
       expect(adminKeyset).toHaveProperty('asymmetric')

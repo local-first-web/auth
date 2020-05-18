@@ -10,8 +10,16 @@ import { ADMIN, Role, TEAM } from '/role'
 import { ALL, initialState } from '/team/constants'
 import { reducer } from '/team/reducer'
 import * as selectors from '/team/selectors'
-import { isNew, NewTeamOptions, OldTeamOptions, TeamAction, TeamLink, TeamOptions, TeamState } from '/team/types'
-import { redactUser, User, UserWithSecrets } from '/user'
+import {
+  isNew,
+  NewTeamOptions,
+  OldTeamOptions,
+  TeamAction,
+  TeamLink,
+  TeamOptions,
+  TeamState,
+} from '/team/types'
+import { redactUser, User } from '/user'
 
 export class Team extends EventEmitter {
   constructor(options: TeamOptions) {
@@ -60,9 +68,7 @@ export class Team extends EventEmitter {
     return roleName === ALL ? this.state.roles : selectors.getRole(this.state, roleName)
   }
 
-  public getKeysFromLockboxes = (user: UserWithSecrets) => {
-    return selectors.getKeysFromLockboxes(this.state, user)
-  }
+  public getKeysFromLockboxes = () => selectors.getKeysFromLockboxes(this.state, this.context.user)
 
   // WRITE METHODS
   // to mutate team state, we dispatch changes to the chain
@@ -130,8 +136,16 @@ export class Team extends EventEmitter {
 
     // Team and role secrets are never be stored in plaintext, only encrypted into individual
     // lockboxes. These are the lockboxes for the founding member.
-    const teamLockbox = lockbox.create({ scope: TEAM, recipient: foundingMember, secret: randomKey() })
-    const adminLockbox = lockbox.create({ scope: ADMIN, recipient: foundingMember, secret: randomKey() })
+    const teamLockbox = lockbox.create({
+      scope: TEAM,
+      recipient: foundingMember,
+      secret: randomKey(),
+    })
+    const adminLockbox = lockbox.create({
+      scope: ADMIN,
+      recipient: foundingMember,
+      secret: randomKey(),
+    })
 
     // create root link
     this.chain = []

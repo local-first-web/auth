@@ -24,7 +24,12 @@ export const asymmetric = {
   encrypt: (secret: Payload, recipientPublicKey: Key, senderSecretKey: Key) => {
     const nonce = newNonce()
     const messageBytes = payloadToBytes(secret)
-    const encrypted = nacl.box(messageBytes, nonce, keyToBytes(recipientPublicKey), keyToBytes(senderSecretKey))
+    const encrypted = nacl.box(
+      messageBytes,
+      nonce,
+      keyToBytes(recipientPublicKey),
+      keyToBytes(senderSecretKey)
+    )
     const cipherBytes = new Uint8Array(nonceLength + encrypted.length)
     // the first 24 characters are the nonce
     cipherBytes.set(nonce)
@@ -49,7 +54,12 @@ export const asymmetric = {
     const nonce = cipherBytes.slice(0, nonceLength)
     // the rest is the message
     const message = cipherBytes.slice(nonceLength, cipher.length)
-    const decrypted = nacl.box.open(message, nonce, keyToBytes(senderPublicKey), keyToBytes(recipientSecretKey))
+    const decrypted = nacl.box.open(
+      message,
+      nonce,
+      keyToBytes(senderPublicKey),
+      keyToBytes(recipientSecretKey)
+    )
     if (!decrypted) throw new Error('Could not decrypt message')
     return utf8Decode(decrypted)
   },

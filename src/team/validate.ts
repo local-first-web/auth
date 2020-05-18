@@ -1,7 +1,6 @@
 ﻿import { SignedLink, ValidationError, ValidationResult } from '/chain'
 import * as selectors from '/team/selectors'
-import { TeamState } from '/team/teamState'
-import { TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '/team/types'
+import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '/team/types'
 
 export const validate: TeamStateValidator = (...args: ValidationArgs) => {
   for (const key in validators) {
@@ -40,7 +39,8 @@ const validators: TeamStateValidatorSet = {
     const [prevState, link] = args
     if (link.body.type === 'REVOKE_MEMBER') {
       const { userName } = link.body.payload
-      if (!selectors.hasMember(prevState, userName)) return fail(`There is no member called '${userName}'`, ...args)
+      if (!selectors.hasMember(prevState, userName))
+        return fail(`There is no member called '${userName}'`, ...args)
     }
     return VALID
   },

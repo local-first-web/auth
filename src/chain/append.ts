@@ -13,7 +13,7 @@ export const append = <T extends LinkBody = LinkBody>(
     ...link,
     context: redactContext(context),
   }
-  const chainedLink = chainToPrev(chain, linkWithContext)
+  const chainedLink = chainToPreviousLink(chain, linkWithContext)
   const signedLink = signLink(chainedLink, context.user)
   return [...chain, signedLink] as SignatureChain<SignedLink<T>>
 }
@@ -29,7 +29,10 @@ const signLink = <T extends LinkBody = LinkBody>(body: T, userWithSecrets: UserW
   } as SignedLink<T>
 }
 
-const chainToPrev = <T extends LinkBody = LinkBody>(chain: SignatureChain<SignedLink<T>>, link: PartialLinkBody<T>) => {
+const chainToPreviousLink = <T extends LinkBody = LinkBody>(
+  chain: SignatureChain<SignedLink<T>>,
+  link: PartialLinkBody<T>
+) => {
   const timestamp = new Date().getTime()
   if (chain.length === 0)
     return {
