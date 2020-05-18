@@ -1,6 +1,6 @@
 ﻿import * as base64 from '@stablelib/base64'
 import nacl from 'tweetnacl'
-import { hash } from '/crypto'
+import { hash, stretch } from '/crypto'
 import { KeysetWithSecrets } from '/keys/types'
 import { HashPurpose, Key, keypairToBase64 } from '/lib'
 
@@ -14,12 +14,15 @@ import { HashPurpose, Key, keypairToBase64 } from '/lib'
  * @returns A `Keyset` consisting of a keypair for signing, a keypair for asymmetric encryption, and
  * a key for symmetric encryption (along with the original seed).
  */
-export const deriveKeys = (seed: string): KeysetWithSecrets => ({
-  seed,
-  signature: deriveSignatureKeys(seed),
-  asymmetric: deriveAsymmetricKeys(seed),
-  symmetric: deriveSymmetricKey(seed),
-})
+export const deriveKeys = (seed: string): KeysetWithSecrets => {
+  const stretchedSeed = stretch(seed)
+  return {
+    seed,
+    signature: deriveSignatureKeys(stretchedSeed),
+    asymmetric: deriveAsymmetricKeys(stretchedSeed),
+    symmetric: deriveSymmetricKey(stretchedSeed),
+  }
+}
 
 // private
 
