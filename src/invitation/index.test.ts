@@ -2,12 +2,14 @@ import { create } from '/invitation/create'
 import { accept } from '/invitation/accept'
 import { validate } from '/invitation/validate'
 import { deriveKeys, randomKey } from '/keys'
+import { newSecretKey } from './newSecretKey'
 
 describe('invitations', () => {
   const teamKeys = deriveKeys(randomKey())
 
   test('create', () => {
-    const { secretKey, invitation } = create(teamKeys, 'bob')
+    const secretKey = newSecretKey()
+    const invitation = create(teamKeys, 'bob', secretKey)
     expect(secretKey).toHaveLength(16)
     expect(invitation).toHaveProperty('id')
     expect(invitation.id).toHaveLength(15)
@@ -17,7 +19,8 @@ describe('invitations', () => {
   test('validate', () => {
     // Alice creates invitation. She sends the secret key to Bob, and records the invitation on the
     // team's signature chain.
-    const { secretKey, invitation } = create(teamKeys, 'bob')
+    const secretKey = newSecretKey()
+    const invitation = create(teamKeys, 'bob', secretKey)
 
     // Bob accepts invitation and obtains a credential proving that he was invited.
     const proofOfInvitation = accept(secretKey, 'bob')
