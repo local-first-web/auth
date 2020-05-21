@@ -1,15 +1,14 @@
-export * from '/team/types'
-
 import { EventEmitter } from 'events'
 import { chain, SignatureChain, validate } from '/chain'
 import { ContextWithSecrets } from '/context'
-import { randomKey } from '/keys'
+import { randomKey, KeysetWithSecrets } from '/keys'
 import { lockbox } from '/lockbox'
 import { Member } from '/member'
 import { ADMIN, Role, TEAM } from '/role'
 import { ALL, initialState } from '/team/constants'
 import { reducer } from '/team/reducer'
 import * as selectors from '/team/selectors'
+import * as invitations from '/invitation'
 import {
   isNew,
   NewTeamOptions,
@@ -18,8 +17,11 @@ import {
   TeamLink,
   TeamOptions,
   TeamState,
+  KeysetMap,
 } from '/team/types'
 import { redactUser, User } from '/user'
+
+export * from '/team/types'
 
 export class Team extends EventEmitter {
   constructor(options: TeamOptions) {
@@ -68,56 +70,64 @@ export class Team extends EventEmitter {
     return roleName === ALL ? this.state.roles : selectors.getRole(this.state, roleName)
   }
 
-  public getKeysFromLockboxes = () => selectors.getKeysFromLockboxes(this.state, this.context.user)
+  public keys(): KeysetMap // overload: all keysets
+  public keys(keyName: string): KeysetWithSecrets // overload: one keyset
+  public keys(scope: string = ALL): KeysetMap | KeysetWithSecrets {
+    const lockboxes = selectors.getKeys(this.state, this.context.user)
+    return scope === ALL ? lockboxes : lockboxes[scope]
+  }
 
   // WRITE METHODS
   // to mutate team state, we dispatch changes to the chain
   // and then run the chain through the reducer to recalculate team state
 
   public add = (user: User, roles: string[] = []) => {
-    return this.dispatch({
+    this.dispatch({
       type: 'ADD_MEMBER',
       payload: { user, roles },
     })
   }
 
   public remove = (userName: string) => {
-    return this.dispatch({
+    this.dispatch({
       type: 'REVOKE_MEMBER',
       payload: { userName },
     })
   }
 
   public addRole = (role: Role) => {
-    return this.dispatch({
+    this.dispatch({
       type: 'ADD_ROLE',
       payload: role,
     })
   }
 
   public removeRole = (roleName: string) => {
-    return this.dispatch({
+    this.dispatch({
       type: 'REVOKE_ROLE',
       payload: { roleName },
     })
   }
 
   public addMemberRole = (userName: string, roleName: string) => {
-    return this.dispatch({
+    this.dispatch({
       type: 'ADD_MEMBER_ROLE',
       payload: { userName, roleName },
     })
   }
 
   public removeMemberRole = (userName: string, roleName: string) => {
-    return this.dispatch({
+    this.dispatch({
       type: 'REVOKE_MEMBER_ROLE',
       payload: { userName, roleName },
     })
   }
 
   public invite = (userName: string) => {
-    // const {secretKey, invitation} =
+    const teamKeys = this.keys(TEAM)
+    const { secretKey, invitation } = invitations.create(teamKeys, userName)
+
+    return secretKey
   }
 
   public admit = (userName: string) => {}
