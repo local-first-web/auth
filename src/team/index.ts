@@ -20,7 +20,6 @@ import {
   KeysetMap,
 } from '/team/types'
 import { redactUser, User } from '/user'
-import { Key } from '/lib'
 
 export * from '/team/types'
 
@@ -124,14 +123,18 @@ export class Team extends EventEmitter {
     })
   }
 
-  public invite = (userName: string, secretKey = invitations.newSecretKey()) => {
+  public invite = (
+    userName: string,
+    roles: string[] = [],
+    secretKey = invitations.newSecretKey()
+  ) => {
     // generate invitation
     const teamKeys = this.keys(TEAM)
-    const invitation = invitations.create(teamKeys, userName, secretKey)
+    const invitation = invitations.create({ teamKeys, userName, roles, secretKey })
 
     // post invitation to signature chain
     this.dispatch({
-      type: 'INVITE',
+      type: 'POST_INVITATION',
       payload: { invitation },
     })
 
@@ -154,7 +157,7 @@ export class Team extends EventEmitter {
     const { teamName } = options
 
     // Redact user's secret keys, since this will be written into the public chain
-    const foundingMember = redactUser(options.context.user)
+    const rootMember = redactUser(options.context.user)
 
     // Team and role secrets are never stored in plaintext, only encrypted into individual
     // lockboxes
@@ -162,12 +165,12 @@ export class Team extends EventEmitter {
     // These are the lockboxes for the founding member
     const teamLockbox = lockbox.create({
       scope: TEAM,
-      recipient: foundingMember,
+      recipient: rootMember,
       secret: randomKey(),
     })
     const adminLockbox = lockbox.create({
       scope: ADMIN,
-      recipient: foundingMember,
+      recipient: rootMember,
       secret: randomKey(),
     })
 
@@ -175,11 +178,7 @@ export class Team extends EventEmitter {
     this.chain = []
     this.dispatch({
       type: 'ROOT',
-      payload: {
-        teamName,
-        foundingMember,
-        lockboxes: [teamLockbox, adminLockbox],
-      },
+      payload: { teamName, rootMember, lockboxes: [teamLockbox, adminLockbox] },
     })
   }
 

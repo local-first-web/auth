@@ -10,7 +10,7 @@ import { Encrypted, Key, keyToBytes, Payload, payloadToBytes, Serialized } from 
 // passwords instead of 32-byte keys; the password is expanded using the
 // [scrypt](https://en.wikipedia.org/wiki/Scrypt) algorithm.
 
-// TODO probably want to embed the key generation # into the
+// TODO probably want to embed the key generation # into the cipher
 
 export const symmetric = {
   /**

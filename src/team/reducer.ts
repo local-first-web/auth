@@ -1,9 +1,11 @@
-﻿import { keyToString } from '/lib'
+﻿import { Context } from '/context'
+import { Invitation } from '/invitation'
+import { keyToString } from '/lib'
 import { Lockbox } from '/lockbox'
-import { Member } from '/member'
-import { ADMIN } from '/role'
-import { TeamAction, TeamLink, TeamLockboxMap, TeamState, UserLockboxMap } from '/team/types'
+import { ADMIN, Role } from '/role'
+import { TeamAction, TeamLink, TeamState, UserLockboxMap } from '/team/types'
 import { validate } from '/team/validate'
+import { User } from '/user'
 
 /**
  * Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `teamState`
@@ -23,110 +25,172 @@ export const reducer = (state: TeamState, link: TeamLink) => {
   const validation = validate(state, link)
   if (!validation.isValid) throw validation.error
 
-  const { context } = link.body
-
-  // recast link body so that payload types are enforced
   const action = link.body as TeamAction
+  const baseTransforms = [
+    collectLockboxes(action.payload.lockboxes), //
+  ]
+  const transforms = [
+    ...baseTransforms, //
+    ...getTransforms(action),
+  ]
 
-  const lockboxes = collectLockboxes(state.lockboxes, action.payload.lockboxes)
+  const allTransforms = compose(transforms)
+  return allTransforms(state)
+}
 
+const getTransforms = (action: TeamAction) => {
   switch (action.type) {
-    case 'ROOT': {
-      const { teamName } = action.payload
-      const rootMember = { ...context.user, roles: [ADMIN] }
-      return {
-        ...state,
-        lockboxes,
-        teamName,
-        members: [rootMember],
-      }
-    }
+    case 'ROOT':
+      const { teamName, rootMember } = action.payload
+      return [
+        setTeamName(teamName), //
+        addMember(rootMember),
+        ...addMemberRoles(rootMember.userName, [ADMIN]),
+      ]
 
     case 'ADD_MEMBER': {
       const { user, roles } = action.payload
-      const newMember = { ...user, roles } as Member
-      return {
-        ...state,
-        lockboxes,
-        members: [...state.members, newMember],
-      }
+      return [
+        addMember(user), //
+        ...addMemberRoles(user.userName, roles),
+      ]
     }
 
     case 'ADD_DEVICE': {
-      return { ...state }
+      return [todoTransform()]
     }
 
     case 'ADD_ROLE': {
       const newRole = action.payload
-      const nextState = {
-        ...state,
-        lockboxes,
-        roles: [...state.roles, newRole],
-      }
-      return nextState
+      return [
+        addRole(newRole), //
+      ]
     }
 
     case 'ADD_MEMBER_ROLE': {
-      return { ...state }
+      return [
+        todoTransform(), //
+      ]
     }
 
     case 'REVOKE_MEMBER': {
       const { userName } = action.payload
-      const nextState = {
-        ...state,
-        lockboxes,
-        members: state.members.filter(member => member.userName !== userName),
-      }
-      return nextState
+      return [
+        revokeMember(userName), //
+      ]
     }
 
     case 'REVOKE_DEVICE': {
-      const nextState = { ...state, lockboxes }
-      return nextState
+      return [todoTransform()]
     }
 
     case 'REVOKE_ROLE': {
-      const nextState = { ...state, lockboxes }
-      return nextState
+      return [todoTransform()]
     }
 
     case 'REVOKE_MEMBER_ROLE': {
-      const nextState = { ...state, lockboxes }
-      return nextState
+      return [todoTransform()]
     }
 
-    case 'INVITE': {
-      const nextState = { ...state, lockboxes }
-      return nextState
+    case 'POST_INVITATION': {
+      // Add the invitation to the list of open invitations.
+      const { invitation } = action.payload
+      return [
+        postInvitation(invitation), //
+      ]
     }
 
-    case 'ACCEPT': {
-      const nextState = { ...state, lockboxes }
-      return nextState
+    case 'REVOKE_INVITATION': {
+      // When an invitation is revoked, we remove it from the list of open invitations.
+      const { id } = action.payload
+      return [
+        removeInvitation(id), //
+      ]
     }
 
-    case 'ROTATE_KEYS': {
-      const nextState = { ...state, lockboxes }
-      return nextState
+    case 'USE_INVITATION': {
+      const { id, user, roles } = action.payload
+      return [
+        addMember(user), // Add member
+        ...addMemberRoles(user.userName, roles), // Add member to roles
+        removeInvitation(id), // Remove invitation from open invitations
+      ]
     }
+
+    case 'ROTATE_KEYS':
+      return [todoTransform()]
+
+    default:
+      // @ts-ignore (should never get here)
+      throw new Error(`Unrecognized link type: ${action.type}`)
   }
-
-  // @ts-ignore (should never get here)
-  throw new Error(`Unrecognized link type: ${action.type}`)
 }
 
-const collectLockboxes = (prevLockboxMap: TeamLockboxMap, added?: Lockbox[]) => {
-  const lockboxMap = { ...prevLockboxMap }
-  if (added)
+const todoTransform = (): Transform => (state) => state
+
+const collectLockboxes = (newLockboxes?: Lockbox[]): Transform => (state) => {
+  const lockboxes = { ...state.lockboxes }
+  if (newLockboxes)
     // add each new lockbox to the recipient's list
-    for (const lockbox of added) {
+    for (const lockbox of newLockboxes) {
       const { recipient, recipientPublicKey } = lockbox
       const publicKey = keyToString(recipientPublicKey)
-      const userLockboxMap: UserLockboxMap = lockboxMap[recipient] || {}
-      const lockboxes = userLockboxMap[publicKey] || []
-      lockboxes.push(lockbox)
-      userLockboxMap[publicKey] = lockboxes
-      lockboxMap[recipient] = userLockboxMap
+      const userLockboxMap: UserLockboxMap = lockboxes[recipient] || {}
+      const lockboxesForKey = userLockboxMap[publicKey] || []
+      lockboxesForKey.push(lockbox)
+      userLockboxMap[publicKey] = lockboxesForKey
+      lockboxes[recipient] = userLockboxMap
     }
-  return lockboxMap
+  return { ...state, lockboxes }
 }
+
+const setTeamName = (teamName: string): Transform => (state) => ({
+  ...state,
+  teamName,
+})
+
+const addMember = (user: User): Transform => (state) => ({
+  ...state,
+  members: [...state.members, { ...user, roles: [] }],
+})
+
+const revokeMember = (userName: string): Transform => (state) => ({
+  ...state,
+  members: state.members.filter((member) => member.userName !== userName),
+})
+
+const addRole = (newRole: Role): Transform => (state) => ({
+  ...state,
+  roles: [...state.roles, newRole],
+})
+
+const addMemberRoles = (userName: string, roles: string[] = []): Transform[] =>
+  roles.map((roleName) => (state) => ({
+    ...state,
+    members: state.members.map((m) => {
+      if (m.userName === userName && !m.roles.includes(roleName)) m.roles.push(roleName)
+      return m
+    }),
+  }))
+
+const postInvitation = (invitation: Invitation): Transform => (state) => ({
+  ...state,
+  invitations: {
+    ...state.invitations,
+    [invitation.id]: invitation,
+  },
+})
+
+const removeInvitation = (id: string): Transform => (state) => {
+  const invitations = { ...state.invitations }
+  delete invitations[id]
+  return {
+    ...state,
+    invitations,
+  }
+}
+
+type Transform = (state: TeamState) => TeamState
+
+const compose = (transforms: Transform[]): Transform => (state) =>
+  transforms.reduce((state, transform) => transform(state), state)

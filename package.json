@@ -31,6 +31,7 @@
     "fast-memoize": "2",
     "json-stable-stringify": "1",
     "msgpack-lite": "0",
+    "ramda": "0",
     "scryptsy": "2",
     "tweetnacl": "1"
   },
@@ -38,6 +39,7 @@
     "@types/msgpack-lite": "0",
     "@types/scryptsy": "2",
     "@types/json-stable-stringify": "1",
+    "@types/ramda": "0",
     "husky": "4",
     "prettier": "2",
     "tsdx": "0",

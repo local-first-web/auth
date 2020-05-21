@@ -6,7 +6,7 @@ import { Lockbox } from '/lockbox'
 import { Member } from '/member'
 import { PermissionsMap, Role } from '/role'
 import { User } from '/user'
-import { Invitation } from '/invitation/types'
+import { Invitation, ProofOfInvitation } from '/invitation/types'
 
 // TEAM CONSTRUCTOR
 
@@ -35,6 +35,7 @@ export interface TeamState {
   members: Member[]
   roles: Role[]
   lockboxes: TeamLockboxMap
+  invitations: InvitationMap
 }
 
 export interface TeamLockboxMap {
@@ -47,6 +48,10 @@ export interface UserLockboxMap {
 
 export interface KeysetMap {
   [scope: string]: KeysetWithSecrets
+}
+
+export interface InvitationMap {
+  [id: string]: Invitation
 }
 
 // LINK TYPES
@@ -62,7 +67,7 @@ export type TeamAction =
       type: 'ROOT'
       payload: BasePayload & {
         teamName: string
-        foundingMember: User
+        rootMember: User
       }
     }
   | {
@@ -117,14 +122,24 @@ export type TeamAction =
       }
     }
   | {
-      type: 'INVITE'
+      type: 'POST_INVITATION'
       payload: BasePayload & {
         invitation: Invitation
       }
     }
   | {
-      type: 'ACCEPT'
-      payload: BasePayload & {}
+      type: 'REVOKE_INVITATION'
+      payload: BasePayload & {
+        id: string
+      }
+    }
+  | {
+      type: 'USE_INVITATION'
+      payload: BasePayload & {
+        id: string
+        user: User
+        roles?: string[]
+      }
     }
   | {
       type: 'ROTATE_KEYS'

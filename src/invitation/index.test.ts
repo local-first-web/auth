@@ -9,7 +9,7 @@ describe('invitations', () => {
 
   test('create', () => {
     const secretKey = newSecretKey()
-    const invitation = create(teamKeys, 'bob', secretKey)
+    const invitation = create({ teamKeys, userName: 'bob', secretKey })
     expect(secretKey).toHaveLength(16)
     expect(invitation).toHaveProperty('id')
     expect(invitation.id).toHaveLength(15)
@@ -20,7 +20,7 @@ describe('invitations', () => {
     // Alice creates invitation. She sends the secret key to Bob, and records the invitation on the
     // team's signature chain.
     const secretKey = newSecretKey()
-    const invitation = create(teamKeys, 'bob', secretKey)
+    const invitation = create({ teamKeys, userName: 'bob', secretKey })
 
     // Bob accepts invitation and obtains a credential proving that he was invited.
     const proofOfInvitation = accept(secretKey, 'bob')

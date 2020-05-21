@@ -2,3 +2,4 @@
 export * from '/invitation/newSecretKey'
 export * from '/invitation/accept'
 export * from '/invitation/validate'
+export * from '/invitation/types'

@@ -16,6 +16,7 @@ export interface Invitation {
 
 export interface InvitationPayload {
   userName: string
+  roles: string[]
   publicKey: Base64
 }
 
