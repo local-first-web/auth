@@ -1,12 +1,11 @@
 import { LinkBody, SignatureChain, SignedLink, ValidationResult } from '/chain'
 import { Context, ContextWithSecrets } from '/context'
+import { Invitation } from '/invitation/types'
 import { KeysetWithSecrets } from '/keys'
-import { Base64 } from '/lib'
 import { Lockbox } from '/lockbox'
 import { Member } from '/member'
 import { PermissionsMap, Role } from '/role'
 import { User } from '/user'
-import { Invitation, ProofOfInvitation } from '/invitation/types'
 
 // TEAM CONSTRUCTOR
 
@@ -137,13 +136,6 @@ export type TeamAction =
         id: string
         user: User
         roles?: string[]
-      }
-    }
-  | {
-      type: 'ROTATE_KEYS'
-      payload: BasePayload & {
-        oldPublicKey: Base64
-        newPublicKey: Base64
       }
     }
 

@@ -1,6 +1,6 @@
-﻿import { Transform } from './index'
+﻿import { Reducer } from './index'
 
-export const revokeMemberRole = (userName: string, roleName: string): Transform => state => ({
+export const revokeMemberRole = (userName: string, roleName: string): Reducer => state => ({
   ...state,
   members: state.members.map(member => ({
     ...member,

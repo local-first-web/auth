@@ -1,9 +1,9 @@
 ﻿import { keyToString } from '/lib'
 import { Lockbox } from '/lockbox'
 import { UserLockboxMap } from '/team/types'
-import { Transform } from './index'
+import { Reducer } from './index'
 
-export const collectLockboxes = (newLockboxes?: Lockbox[]): Transform => (state) => {
+export const collectLockboxes = (newLockboxes?: Lockbox[]): Reducer => state => {
   const lockboxes = { ...state.lockboxes }
   if (newLockboxes)
     // add each new lockbox to the recipient's list

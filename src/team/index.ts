@@ -42,9 +42,7 @@ export class Team extends EventEmitter {
   public save = () => JSON.stringify(this.chain)
 
   // READ METHODS
-  // to read from team state, we rely on selectors
-
-  public has = (userName: string) => selectors.hasMember(this.state, userName)
+  // All the logic for reading from team state is in selectors.
 
   public members(): Member[] // overload: all members
   public members(userName: string): Member // overload: one member
@@ -53,16 +51,6 @@ export class Team extends EventEmitter {
       ? this.state.members // all members
       : selectors.getMember(this.state, userName) // one member
   }
-
-  public memberHasRole(userName: string, role: string) {
-    return selectors.memberHasRole(this.state, userName, role)
-  }
-
-  public memberIsAdmin(userName: string) {
-    return selectors.memberIsAdmin(this.state, userName)
-  }
-
-  public hasRole = (roleName: string) => selectors.hasRole(this.state, roleName)
 
   public roles(): Role[] // overload: all roles
   public roles(roleName: string): Role // overload: one role
@@ -77,9 +65,26 @@ export class Team extends EventEmitter {
     return scope === ALL ? lockboxes : lockboxes[scope]
   }
 
+  /** Returns true if the team's members include one with the given userName */
+  public has = (userName: string) => selectors.hasMember(this.state, userName)
+
+  /** Returns true if the member with the given userName has the given role*/
+  public memberHasRole(userName: string, roleName: string) {
+    return selectors.memberHasRole(this.state, userName, roleName)
+  }
+
+  /** Returns true if the member with the given userName is a member of the admin role */
+  public memberIsAdmin(userName: string) {
+    return selectors.memberIsAdmin(this.state, userName)
+  }
+
+  /** Returns true if the team has a role with the given name*/
+  public hasRole = (roleName: string) => selectors.hasRole(this.state, roleName)
+
   // WRITE METHODS
-  // to mutate team state, we dispatch changes to the chain
-  // and then run the chain through the reducer to recalculate team state
+  // All the logic for modifying team state is in reducers.
+  // To mutate team state, we dispatch changes to the signature chain,
+  // and then run the chain through the reducer to recalculate team state.
 
   public add = (user: User, roles: string[] = []) => {
     this.dispatch({

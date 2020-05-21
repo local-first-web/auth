@@ -1,6 +1,6 @@
-﻿import { Transform } from './index'
+﻿import { Reducer } from './index'
 
-export const addMemberRoles = (userName: string, roles: string[] = []): Transform[] =>
+export const addMemberRoles = (userName: string, roles: string[] = []): Reducer[] =>
   roles.map(roleName => state => ({
     ...state,
     members: state.members.map(member => ({

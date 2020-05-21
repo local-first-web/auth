@@ -10,9 +10,9 @@ import {
   revokeMember,
   revokeMemberRole,
   setTeamName,
-  Transform,
+  Reducer,
   revokeRole,
-} from '/team/transforms'
+} from './reducers'
 import { TeamAction, TeamLink, TeamState } from '/team/types'
 import { validate } from '/team/validate'
 
@@ -51,7 +51,7 @@ export const reducer = (state: TeamState, link: TeamLink) => {
  * new state)
  * @param action The team action (type + payload) being processed
  */
-const getTransforms = (action: TeamAction): Transform[] => {
+const getTransforms = (action: TeamAction): Reducer[] => {
   switch (action.type) {
     case 'ROOT':
       const { teamName, rootMember } = action.payload
@@ -137,11 +137,6 @@ const getTransforms = (action: TeamAction): Transform[] => {
         ...addMemberRoles(user.userName, roles), // Add member to roles
         revokeInvitation(id), // Remove invitation from open invitations
       ]
-    }
-
-    case 'ROTATE_KEYS': {
-      // TODO: ROTATE_KEYS
-      return []
     }
 
     default:

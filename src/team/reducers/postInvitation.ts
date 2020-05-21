@@ -1,7 +1,7 @@
 ﻿import { Invitation } from '/invitation'
-import { Transform } from './index'
+import { Reducer } from './index'
 
-export const postInvitation = (invitation: Invitation): Transform => (state) => ({
+export const postInvitation = (invitation: Invitation): Reducer => state => ({
   ...state,
   invitations: {
     ...state.invitations,
