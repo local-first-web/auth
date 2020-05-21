@@ -47,9 +47,8 @@ describe('Team', () => {
 
     it('has lockboxes for the root member containing the admin and team secrets', () => {
       const { team } = setup()
-      const keysets = team.getKeysFromLockboxes()
+      const adminKeyset = team.keys(ADMIN)
 
-      const adminKeyset = keysets['admin']
       expect(adminKeyset).toHaveProperty('asymmetric')
       expect(adminKeyset).toHaveProperty('symmetric')
       expect(adminKeyset).toHaveProperty('signature')
