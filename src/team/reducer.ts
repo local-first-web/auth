@@ -67,6 +67,7 @@ const getTransforms = (action: TeamAction) => {
     }
 
     case 'ADD_DEVICE': {
+      // TODO: ADD_DEVICE
       return []
     }
 
@@ -91,14 +92,17 @@ const getTransforms = (action: TeamAction) => {
     }
 
     case 'REVOKE_DEVICE': {
+      // TODO: REVOKE_DEVICE
       return []
     }
 
     case 'REVOKE_ROLE': {
+      // TODO: REVOKE_ROLE
       return []
     }
 
     case 'REVOKE_MEMBER_ROLE': {
+      // TODO: REVOKE_MEMBER_ROLE
       return []
     }
 
@@ -127,8 +131,10 @@ const getTransforms = (action: TeamAction) => {
       ]
     }
 
-    case 'ROTATE_KEYS':
+    case 'ROTATE_KEYS': {
+      // TODO: ROTATE_KEYS
       return []
+    }
 
     default:
       // @ts-ignore (should never get here)
