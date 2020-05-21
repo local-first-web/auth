@@ -10,3 +10,6 @@ export type Base64Keypair = {
   publicKey: Base64
   secretKey: Base64
 }
+
+export type Encrypted<T> = string
+export type Serialized<T> = string
