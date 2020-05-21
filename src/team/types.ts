@@ -6,6 +6,7 @@ import { Lockbox } from '/lockbox'
 import { Member } from '/member'
 import { PermissionsMap, Role } from '/role'
 import { User } from '/user'
+import { Invitation } from '/invitation/types'
 
 // TEAM CONSTRUCTOR
 
@@ -117,7 +118,9 @@ export type TeamAction =
     }
   | {
       type: 'INVITE'
-      payload: BasePayload & {}
+      payload: BasePayload & {
+        invitation: Invitation
+      }
     }
   | {
       type: 'ACCEPT'
