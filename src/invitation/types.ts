@@ -1,15 +1,5 @@
 ﻿import { Base64, Encrypted } from '/lib'
 
-/** The return value of `invitation.create()` is a secret key for Bob, and a public invitation for
- * the signature chain.  */
-export interface InvitationAndSecretKey {
-  /** Randomly generated secret that Alice sends to Bob via a pre-authenticated channel */
-  secretKey: Base64
-
-  /** Public invitation to be recorded on the signature chain.*/
-  invitation: Invitation
-}
-
 /** The public invitation to be recorded on the signature chain. When Bob shows up with
 `ProofOfInvitation`, someone on the team will need to check it against this. */
 export interface Invitation {
