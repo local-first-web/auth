@@ -1,11 +1,18 @@
-﻿import { Context } from '/context'
-import { Invitation } from '/invitation'
-import { keyToString } from '/lib'
-import { Lockbox } from '/lockbox'
-import { ADMIN, Role } from '/role'
-import { TeamAction, TeamLink, TeamState, UserLockboxMap } from '/team/types'
+﻿import { ADMIN } from '/role'
+import {
+  addMember,
+  addMemberRoles,
+  addRole,
+  collectLockboxes,
+  compose,
+  postInvitation,
+  revokeInvitation,
+  revokeMember,
+  setTeamName,
+  todoTransform,
+} from '/team/transforms'
+import { TeamAction, TeamLink, TeamState } from '/team/types'
 import { validate } from '/team/validate'
-import { User } from '/user'
 
 /**
  * Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `teamState`
@@ -15,29 +22,32 @@ import { User } from '/user'
  * > *Note:* Keep in mind that this reducer is a pure function that acts on the publicly available
  * links in the signature chain, and must independently return the same result for every member. It
  * knows nothing about the current user's context, and it does not have access to any secrets. Any
- * crypto operations using secret keys that the current user has must happen elsewhere.
+ * crypto operations using secret keys that *the current user has* must happen elsewhere.
  *
  * @param state The team state as of the previous link in the signature chain.
  * @param link The current link being processed.
  */
 export const reducer = (state: TeamState, link: TeamLink) => {
-  // make sure this link can be applied to the previous state
+  // make sure this link can be applied to the previous state & doesn't put us in an invalid state
   const validation = validate(state, link)
   if (!validation.isValid) throw validation.error
 
-  const action = link.body as TeamAction
-  const baseTransforms = [
-    collectLockboxes(action.payload.lockboxes), //
-  ]
+  // recast as TeamAction so we get type enforcement on payloads
+  const action: TeamAction = link.body
+
   const transforms = [
-    ...baseTransforms, //
-    ...getTransforms(action),
+    collectLockboxes(action.payload.lockboxes), // any payload can include lockboxes
+    ...getTransforms(action), // get the specific transforms indicated by this action
   ]
 
   const allTransforms = compose(transforms)
   return allTransforms(state)
 }
 
+/**
+ * Each action generates one or more transforms (functions that take the old state and return a new state)
+ * @param action The team action (type + payload) being processed
+ */
 const getTransforms = (action: TeamAction) => {
   switch (action.type) {
     case 'ROOT':
@@ -57,7 +67,7 @@ const getTransforms = (action: TeamAction) => {
     }
 
     case 'ADD_DEVICE': {
-      return [todoTransform()]
+      return []
     }
 
     case 'ADD_ROLE': {
@@ -81,15 +91,15 @@ const getTransforms = (action: TeamAction) => {
     }
 
     case 'REVOKE_DEVICE': {
-      return [todoTransform()]
+      return []
     }
 
     case 'REVOKE_ROLE': {
-      return [todoTransform()]
+      return []
     }
 
     case 'REVOKE_MEMBER_ROLE': {
-      return [todoTransform()]
+      return []
     }
 
     case 'POST_INVITATION': {
@@ -104,7 +114,7 @@ const getTransforms = (action: TeamAction) => {
       // When an invitation is revoked, we remove it from the list of open invitations.
       const { id } = action.payload
       return [
-        removeInvitation(id), //
+        revokeInvitation(id), //
       ]
     }
 
@@ -113,84 +123,15 @@ const getTransforms = (action: TeamAction) => {
       return [
         addMember(user), // Add member
         ...addMemberRoles(user.userName, roles), // Add member to roles
-        removeInvitation(id), // Remove invitation from open invitations
+        revokeInvitation(id), // Remove invitation from open invitations
       ]
     }
 
     case 'ROTATE_KEYS':
-      return [todoTransform()]
+      return []
 
     default:
       // @ts-ignore (should never get here)
       throw new Error(`Unrecognized link type: ${action.type}`)
   }
 }
-
-const todoTransform = (): Transform => (state) => state
-
-const collectLockboxes = (newLockboxes?: Lockbox[]): Transform => (state) => {
-  const lockboxes = { ...state.lockboxes }
-  if (newLockboxes)
-    // add each new lockbox to the recipient's list
-    for (const lockbox of newLockboxes) {
-      const { recipient, recipientPublicKey } = lockbox
-      const publicKey = keyToString(recipientPublicKey)
-      const userLockboxMap: UserLockboxMap = lockboxes[recipient] || {}
-      const lockboxesForKey = userLockboxMap[publicKey] || []
-      lockboxesForKey.push(lockbox)
-      userLockboxMap[publicKey] = lockboxesForKey
-      lockboxes[recipient] = userLockboxMap
-    }
-  return { ...state, lockboxes }
-}
-
-const setTeamName = (teamName: string): Transform => (state) => ({
-  ...state,
-  teamName,
-})
-
-const addMember = (user: User): Transform => (state) => ({
-  ...state,
-  members: [...state.members, { ...user, roles: [] }],
-})
-
-const revokeMember = (userName: string): Transform => (state) => ({
-  ...state,
-  members: state.members.filter((member) => member.userName !== userName),
-})
-
-const addRole = (newRole: Role): Transform => (state) => ({
-  ...state,
-  roles: [...state.roles, newRole],
-})
-
-const addMemberRoles = (userName: string, roles: string[] = []): Transform[] =>
-  roles.map((roleName) => (state) => ({
-    ...state,
-    members: state.members.map((m) => {
-      if (m.userName === userName && !m.roles.includes(roleName)) m.roles.push(roleName)
-      return m
-    }),
-  }))
-
-const postInvitation = (invitation: Invitation): Transform => (state) => ({
-  ...state,
-  invitations: {
-    ...state.invitations,
-    [invitation.id]: invitation,
-  },
-})
-
-const removeInvitation = (id: string): Transform => (state) => {
-  const invitations = { ...state.invitations }
-  delete invitations[id]
-  return {
-    ...state,
-    invitations,
-  }
-}
-
-type Transform = (state: TeamState) => TeamState
-
-const compose = (transforms: Transform[]): Transform => (state) =>
-  transforms.reduce((state, transform) => transform(state), state)
