@@ -31,7 +31,7 @@ export const getRole = (state: TeamState, roleName: string) => {
   return role
 }
 
-export const getKeysFromLockboxes = (state: TeamState, user: UserWithSecrets): KeysetMap => {
+export const getKeys = (state: TeamState, user: UserWithSecrets): KeysetMap => {
   const publicKey = keyToString(user.keys.asymmetric.publicKey)
 
   const keysets: KeysetMap = {}
