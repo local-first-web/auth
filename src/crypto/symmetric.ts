@@ -3,7 +3,7 @@ import * as utf8 from '@stablelib/utf8'
 import nacl from 'tweetnacl'
 import { newNonce, nonceLength } from '/crypto/nonce'
 import { stretch } from '/crypto/stretch'
-import { Key, keyToBytes, Payload, payloadToBytes } from '/lib'
+import { Encrypted, Key, keyToBytes, Payload, payloadToBytes, Serialized } from '/lib'
 
 // These are straightforward implementations of NaCl crypto functions, accepting and returning
 // base64 strings rather than byte arrays. The symmetric `encrypt` and `decrypt` functions can take
@@ -18,7 +18,7 @@ export const symmetric = {
    * @returns The encrypted data. The first 24 characters are the nonce; the rest is the encrypted message.
    * @see symmetric.decrypt
    */
-  encrypt: (payload: Payload, password: Key) => {
+  encrypt: <T extends Payload = Payload>(payload: Payload, password: Key): Encrypted<T> => {
     const key = stretch(password)
     const nonce = newNonce()
     const messageBytes = payloadToBytes(payload)
@@ -41,7 +41,7 @@ export const symmetric = {
    * @returns The original plaintext
    * @see symmetric.encrypt
    */
-  decrypt: (cipher: Key, password: Key) => {
+  decrypt: <T extends Payload = Payload>(cipher: Encrypted<T>, password: Key): Serialized<T> => {
     const key = stretch(password)
     const cipherBytes = keyToBytes(cipher)
 
