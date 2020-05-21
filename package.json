@@ -35,11 +35,11 @@
     "tweetnacl": "1"
   },
   "devDependencies": {
-    "prettier": "2",
     "@types/msgpack-lite": "0",
     "@types/scryptsy": "2",
     "@types/json-stable-stringify": "1",
     "husky": "4",
+    "prettier": "2",
     "tsdx": "0",
     "tslib": "1",
     "typescript": "3"
