@@ -7,6 +7,8 @@ export * from '/team/transforms/collectLockboxes'
 export * from '/team/transforms/postInvitation'
 export * from '/team/transforms/revokeInvitation'
 export * from '/team/transforms/revokeMember'
+export * from '/team/transforms/revokeMemberRole'
+export * from '/team/transforms/revokeRole'
 export * from '/team/transforms/setTeamName'
 
 export const compose = (transforms: Transform[]): Transform => (state) =>
