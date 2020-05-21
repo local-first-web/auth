@@ -8,8 +8,10 @@ import {
   postInvitation,
   revokeInvitation,
   revokeMember,
+  revokeMemberRole,
   setTeamName,
-  todoTransform,
+  Transform,
+  revokeRole,
 } from '/team/transforms'
 import { TeamAction, TeamLink, TeamState } from '/team/types'
 import { validate } from '/team/validate'
@@ -35,20 +37,21 @@ export const reducer = (state: TeamState, link: TeamLink) => {
   // recast as TeamAction so we get type enforcement on payloads
   const action: TeamAction = link.body
 
-  const transforms = [
+  // get all transforms and compose them into a single function
+  const applyTransforms = compose([
     collectLockboxes(action.payload.lockboxes), // any payload can include lockboxes
     ...getTransforms(action), // get the specific transforms indicated by this action
-  ]
+  ])
 
-  const allTransforms = compose(transforms)
-  return allTransforms(state)
+  return applyTransforms(state)
 }
 
 /**
- * Each action generates one or more transforms (functions that take the old state and return a new state)
+ * Each action type generates one or more transforms (functions that take the old state and return a
+ * new state)
  * @param action The team action (type + payload) being processed
  */
-const getTransforms = (action: TeamAction) => {
+const getTransforms = (action: TeamAction): Transform[] => {
   switch (action.type) {
     case 'ROOT':
       const { teamName, rootMember } = action.payload
@@ -79,8 +82,9 @@ const getTransforms = (action: TeamAction) => {
     }
 
     case 'ADD_MEMBER_ROLE': {
+      const { userName, roleName } = action.payload
       return [
-        todoTransform(), //
+        ...addMemberRoles(userName, [roleName]), //
       ]
     }
 
@@ -97,13 +101,17 @@ const getTransforms = (action: TeamAction) => {
     }
 
     case 'REVOKE_ROLE': {
-      // TODO: REVOKE_ROLE
-      return []
+      const { roleName } = action.payload
+      return [
+        revokeRole(roleName), //
+      ]
     }
 
     case 'REVOKE_MEMBER_ROLE': {
-      // TODO: REVOKE_MEMBER_ROLE
-      return []
+      const { userName, roleName } = action.payload
+      return [
+        revokeMemberRole(userName, roleName), //
+      ]
     }
 
     case 'POST_INVITATION': {
