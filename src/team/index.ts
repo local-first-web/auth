@@ -116,7 +116,10 @@ export class Team extends EventEmitter {
     })
   }
 
-  public invite = (userName: string) => {}
+  public invite = (userName: string) => {
+    // const {secretKey, invitation} =
+  }
+
   public admit = (userName: string) => {}
 
   // private properties
@@ -134,8 +137,10 @@ export class Team extends EventEmitter {
     // Redact user's secret keys, since this will be written into the public chain
     const foundingMember = redactUser(options.context.user)
 
-    // Team and role secrets are never be stored in plaintext, only encrypted into individual
-    // lockboxes. These are the lockboxes for the founding member.
+    // Team and role secrets are never stored in plaintext, only encrypted into individual
+    // lockboxes
+
+    // These are the lockboxes for the founding member
     const teamLockbox = lockbox.create({
       scope: TEAM,
       recipient: foundingMember,
