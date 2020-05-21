@@ -20,6 +20,7 @@ import {
   KeysetMap,
 } from '/team/types'
 import { redactUser, User } from '/user'
+import { Key } from '/lib'
 
 export * from '/team/types'
 
@@ -123,10 +124,18 @@ export class Team extends EventEmitter {
     })
   }
 
-  public invite = (userName: string) => {
+  public invite = (userName: string, secretKey = invitations.newSecretKey()) => {
+    // generate invitation
     const teamKeys = this.keys(TEAM)
-    const { secretKey, invitation } = invitations.create(teamKeys, userName)
+    const invitation = invitations.create(teamKeys, userName, secretKey)
 
+    // post invitation to signature chain
+    this.dispatch({
+      type: 'INVITE',
+      payload: { invitation },
+    })
+
+    // return the secret key to be passed on to the invitee
     return secretKey
   }
 
