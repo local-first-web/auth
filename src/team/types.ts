@@ -57,8 +57,6 @@ export interface InvitationMap {
 // LINK TYPES
 
 interface BasePayload {
-  // TODO: once this is implemented everywhere it should not be optional - every action will create
-  // new lockboxes or affect existing ones
   lockboxes?: Lockbox[]
 }
 
