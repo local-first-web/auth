@@ -31,20 +31,17 @@ export const getRole = (state: TeamState, roleName: string) => {
   return role
 }
 
+/** Returns all keysets from the given user's lockboxes. */
 export const getKeys = (state: TeamState, user: UserWithSecrets): KeysetMap => {
-  const publicKey = keyToString(user.keys.asymmetric.publicKey)
+  const userKeys = user.keys.asymmetric
 
   const keysets: KeysetMap = {}
   const userLockboxes = state.lockboxes[user.userName]
   if (userLockboxes) {
-    const lockboxes = userLockboxes[publicKey]
+    const lockboxes = userLockboxes[userKeys.publicKey]
     for (const lockbox of lockboxes) {
-      const { scope, encryptedSecret, senderPublicKey } = lockbox
-      const secret = asymmetric.decrypt(
-        encryptedSecret,
-        senderPublicKey,
-        user.keys.asymmetric.secretKey
-      )
+      const { scope, encryptedSecret, publicKey: senderPublicKey } = lockbox
+      const secret = asymmetric.decrypt(encryptedSecret, senderPublicKey, userKeys.secretKey)
       keysets[scope] = deriveKeys(secret)
     }
   }
