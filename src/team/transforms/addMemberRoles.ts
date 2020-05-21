@@ -1,10 +1,13 @@
 ﻿import { Transform } from './index'
 
 export const addMemberRoles = (userName: string, roles: string[] = []): Transform[] =>
-  roles.map((roleName) => (state) => ({
+  roles.map(roleName => state => ({
     ...state,
-    members: state.members.map((m) => {
-      if (m.userName === userName && !m.roles.includes(roleName)) m.roles.push(roleName)
-      return m
-    }),
+    members: state.members.map(member => ({
+      ...member,
+      roles:
+        member.userName !== userName || member.roles.includes(roleName)
+          ? member.roles
+          : [...member.roles, roleName],
+    })),
   }))
