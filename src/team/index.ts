@@ -159,8 +159,7 @@ export class Team extends EventEmitter {
     // Redact user's secret keys, since this will be written into the public chain
     const rootMember = redactUser(options.context.user)
 
-    // Team and role secrets are never stored in plaintext, only encrypted into individual
-    // lockboxes
+    // Team & role secrets are never stored in plaintext, only encrypted into individual lockboxes
 
     // These are the lockboxes for the founding member
     const teamLockbox = lockbox.create({
@@ -178,7 +177,11 @@ export class Team extends EventEmitter {
     this.chain = []
     this.dispatch({
       type: 'ROOT',
-      payload: { teamName, rootMember, lockboxes: [teamLockbox, adminLockbox] },
+      payload: {
+        teamName,
+        rootMember,
+        lockboxes: [teamLockbox, adminLockbox],
+      },
     })
   }
 
