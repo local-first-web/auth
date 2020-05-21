@@ -19,7 +19,7 @@ import {
   TeamState,
   KeysetMap,
 } from '/team/types'
-import { redactUser, User } from '/user'
+import { redactUser, User, UserWithSecrets } from '/user'
 
 export * from '/team/types'
 
@@ -42,10 +42,12 @@ export class Team extends EventEmitter {
   public save = () => JSON.stringify(this.chain)
 
   // READ METHODS
+
   // All the logic for reading from team state is in selectors.
 
   public members(): Member[] // overload: all members
   public members(userName: string): Member // overload: one member
+  //
   public members(userName: string = ALL): Member | Member[] {
     return userName === ALL //
       ? this.state.members // all members
@@ -54,42 +56,51 @@ export class Team extends EventEmitter {
 
   public roles(): Role[] // overload: all roles
   public roles(roleName: string): Role // overload: one role
+  //
   public roles(roleName: string = ALL): Role | Role[] {
-    return roleName === ALL ? this.state.roles : selectors.getRole(this.state, roleName)
+    return roleName === ALL //
+      ? this.state.roles // all roles
+      : selectors.getRole(this.state, roleName) // one role
   }
 
   public keys(): KeysetMap // overload: all keysets
   public keys(keyName: string): KeysetWithSecrets // overload: one keyset
+  //
   public keys(scope: string = ALL): KeysetMap | KeysetWithSecrets {
     const lockboxes = selectors.getKeys(this.state, this.context.user)
-    return scope === ALL ? lockboxes : lockboxes[scope]
+    return scope === ALL //
+      ? lockboxes // keysets from all of the current member's lockboxes
+      : lockboxes[scope] // only the keysets for the given scope
   }
 
-  /** Returns true if the team's members include one with the given userName */
+  /** Returns true if the team has a member with the given userName */
   public has = (userName: string) => selectors.hasMember(this.state, userName)
 
   /** Returns true if the member with the given userName has the given role*/
-  public memberHasRole(userName: string, roleName: string) {
-    return selectors.memberHasRole(this.state, userName, roleName)
-  }
+  public memberHasRole = (userName: string, roleName: string) =>
+    selectors.memberHasRole(this.state, userName, roleName)
 
   /** Returns true if the member with the given userName is a member of the admin role */
-  public memberIsAdmin(userName: string) {
-    return selectors.memberIsAdmin(this.state, userName)
-  }
+  public memberIsAdmin = (userName: string) => selectors.memberIsAdmin(this.state, userName)
 
-  /** Returns true if the team has a role with the given name*/
+  /** Returns true if the team has a role with the given name */
   public hasRole = (roleName: string) => selectors.hasRole(this.state, roleName)
 
   // WRITE METHODS
-  // All the logic for modifying team state is in reducers.
-  // To mutate team state, we dispatch changes to the signature chain,
-  // and then run the chain through the reducer to recalculate team state.
+
+  // Most of the logic for modifying team state is in reducers. To mutate team state, we dispatch
+  // changes to the signature chain, and then run the chain through the reducer to recalculate team
+  // state.
+
+  // Any crypto operations involving the current user's secrets (for example, opening or creating lockboxes, or
+  // signing links) are done here. Only the public-facing outputs (for example, the lockboxes or the
+  // signed links) are posted on the chain.
 
   public add = (user: User, roles: string[] = []) => {
+    const lockboxes = this.createLockboxes([TEAM, ...roles], user)
     this.dispatch({
       type: 'ADD_MEMBER',
-      payload: { user, roles },
+      payload: { user, roles, lockboxes },
     })
   }
 
@@ -115,6 +126,7 @@ export class Team extends EventEmitter {
   }
 
   public addMemberRole = (userName: string, roleName: string) => {
+    // TODO: create lockboxes
     this.dispatch({
       type: 'ADD_MEMBER_ROLE',
       payload: { userName, roleName },
@@ -162,33 +174,33 @@ export class Team extends EventEmitter {
     const { teamName } = options
 
     // Redact user's secret keys, since this will be written into the public chain
-    const rootMember = redactUser(options.context.user)
+    const rootMember = redactUser(this.context.user)
 
     // Team & role secrets are never stored in plaintext, only encrypted into individual lockboxes
-
-    // These are the lockboxes for the founding member
-    const teamLockbox = lockbox.create({
-      scope: TEAM,
-      recipient: rootMember,
-      secret: randomKey(),
-    })
-    const adminLockbox = lockbox.create({
-      scope: ADMIN,
-      recipient: rootMember,
-      secret: randomKey(),
-    })
+    // Here we create new lockboxes with new random keys for the founding member
+    const lockboxes = this.createLockboxes([TEAM, ADMIN])
 
     // create root link
     this.chain = []
     this.dispatch({
       type: 'ROOT',
-      payload: {
-        teamName,
-        rootMember,
-        lockboxes: [teamLockbox, adminLockbox],
-      },
+      payload: { teamName, rootMember, lockboxes },
     })
   }
+
+  private createLockboxes = (
+    scopes: string[],
+    recipient: User | UserWithSecrets = this.context.user
+  ) =>
+    scopes.map(scope => {
+      const isOwnLockbox = recipient.userName === this.context.user.userName
+      const secret = isOwnLockbox
+        ? // if we're creating our own lockbox, that means the key doesn't exist yet so we create a new one
+          randomKey()
+        : // otherwise we're sharing a key that we already have, so we look it up in our existing lockboxes
+          this.keys(scope).seed
+      return lockbox.create({ scope, recipient, secret })
+    })
 
   /** Load a team from a serialized chain */
   private loadChain(options: OldTeamOptions) {
@@ -199,6 +211,9 @@ export class Team extends EventEmitter {
   /** Add a link to the chain, then recompute team state from the new chain */
   public dispatch(link: TeamAction) {
     this.chain = chain.append(this.chain, link, this.context)
+    // TODO: this is doing more work than necessary - we don't have to calculate the team state from
+    // scratch each time, we could just run the previous state and this link through the reducer
+    // function
     this.updateState()
   }
 
@@ -209,7 +224,7 @@ export class Team extends EventEmitter {
     if (!validation.isValid) throw validation.error
   }
 
-  /** Runs the reducer on the entire chain to calculate the current team state. */
+  /** Runs the reducer on the entire chain to reconstruct the current team state. */
   private updateState = () => {
     this.validateChain()
     this.state = this.chain.reduce(reducer, initialState)
