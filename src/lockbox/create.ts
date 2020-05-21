@@ -1,9 +1,11 @@
 ﻿import { asymmetric } from '/crypto'
-import { deriveKeys, hasSecrets, redactKeys } from '/keys'
+import { deriveKeys, hasSecrets, redactKeys, randomKey } from '/keys'
 import { Lockbox } from '/lockbox/types'
 import { User, UserWithSecrets } from '/user'
 
-/** Creates a new lockbox that can be opened using sender's public key and recipient's private key. */
+/**
+ * Creates a new lockbox that can be opened using the recipient's private key.
+ */
 export const create = (args: {
   scope: string
   secret: string
@@ -15,17 +17,18 @@ export const create = (args: {
     ? redactKeys(recipient.keys)
     : recipient.keys
 
-  const keyset = deriveKeys(secret)
+  // We generate a new single-use keypair to encrypt the lockbox with
+  const encryptionKeys = deriveKeys(randomKey()).asymmetric
 
   return {
     scope,
-    senderPublicKey: keyset.asymmetric.publicKey,
+    publicKey: encryptionKeys.publicKey, // the public half of the encryption keys is publicly visible on the lockbox
+    recipientPublicKey: recipientPublicKeys.encryption, // the public half of the recipient's keys is also visible, to help them locate the right one
     recipient: recipient.userName,
-    recipientPublicKey: recipientPublicKeys.encryption,
     encryptedSecret: asymmetric.encrypt(
       secret,
       recipientPublicKeys.encryption,
-      keyset.asymmetric.secretKey
+      encryptionKeys.secretKey
     ),
   }
 }
