@@ -65,7 +65,7 @@ export interface ValidResult {
 }
 
 export class ValidationError extends Error {
-  constructor(message: string, index: number, details?: any) {
+  constructor(message: string, index?: number, details?: any) {
     super()
     this.message = message
     this.index = index
