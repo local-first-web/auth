@@ -1,5 +1,5 @@
 ﻿import { SignedLink, ValidationError, ValidationResult } from '/chain'
-import * as selectors from '/team/selectors'
+import * as select from './selectors'
 import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '/team/types'
 
 export const validate: TeamStateValidator = (...args: ValidationArgs) => {
@@ -19,7 +19,7 @@ const validators: TeamStateValidatorSet = {
     // At root stage, there are no members
     if (link.body.type !== 'ROOT') {
       const { userName } = link.body.context.user
-      const isntAdmin = !selectors.memberIsAdmin(prevState, userName)
+      const isntAdmin = !select.memberIsAdmin(prevState, userName)
       if (isntAdmin) return fail(`Member '${userName}' is not an admin`, ...args)
     }
     return VALID
@@ -29,7 +29,7 @@ const validators: TeamStateValidatorSet = {
     const [prevState, link] = args
     if (link.body.type === 'ADD_MEMBER') {
       const { userName } = link.body.payload.user
-      if (selectors.hasMember(prevState, userName))
+      if (select.hasMember(prevState, userName))
         return fail(`There is already a member called '${userName}'`, ...args)
     }
     return VALID
@@ -39,7 +39,7 @@ const validators: TeamStateValidatorSet = {
     const [prevState, link] = args
     if (link.body.type === 'REVOKE_MEMBER') {
       const { userName } = link.body.payload
-      if (!selectors.hasMember(prevState, userName))
+      if (!select.hasMember(prevState, userName))
         return fail(`There is no member called '${userName}'`, ...args)
     }
     return VALID

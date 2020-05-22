@@ -1,23 +1,22 @@
 import { EventEmitter } from 'events'
 import { chain, SignatureChain, validate } from '/chain'
 import { ContextWithSecrets } from '/context'
-import { randomKey, KeysetWithSecrets } from '/keys'
-import { lockbox, LockboxScope, getId } from '/lockbox'
+import * as invitations from '/invitation'
+import { KeysetWithSecrets, randomKey } from '/keys'
+import { lockbox, LockboxScope } from '/lockbox'
 import { Member } from '/member'
 import { ADMIN, Role } from '/role'
 import { ALL, initialState } from '/team/constants'
 import { reducer } from '/team/reducer'
-import * as selectors from '/team/selectors'
-import * as invitations from '/invitation'
+import * as select from '/team/selectors'
 import {
+  ExistingTeamOptions,
   isNew,
   NewTeamOptions,
-  ExistingTeamOptions,
   TeamAction,
   TeamLink,
   TeamOptions,
   TeamState,
-  KeysetMap,
 } from '/team/types'
 import { redactUser, User, UserWithSecrets } from '/user'
 
@@ -49,7 +48,7 @@ export class Team extends EventEmitter {
   // Members
 
   /** Returns true if the team has a member with the given userName */
-  public has = (userName: string) => selectors.hasMember(this.state, userName)
+  public has = (userName: string) => select.hasMember(this.state, userName)
 
   public members(): Member[] // overload: all members
   public members(userName: string): Member // overload: one member
@@ -57,7 +56,7 @@ export class Team extends EventEmitter {
   public members(userName: string = ALL): Member | Member[] {
     return userName === ALL //
       ? this.state.members // all members
-      : selectors.getMember(this.state, userName) // one member
+      : select.getMember(this.state, userName) // one member
   }
 
   // Roles
@@ -68,30 +67,29 @@ export class Team extends EventEmitter {
   public roles(roleName: string = ALL): Role | Role[] {
     return roleName === ALL //
       ? this.state.roles // all roles
-      : selectors.getRole(this.state, roleName) // one role
+      : select.getRole(this.state, roleName) // one role
   }
 
   /** Returns true if the member with the given userName has the given role*/
   public memberHasRole = (userName: string, roleName: string) =>
-    selectors.memberHasRole(this.state, userName, roleName)
+    select.memberHasRole(this.state, userName, roleName)
 
   /** Returns true if the member with the given userName is a member of the admin role */
-  public memberIsAdmin = (userName: string) => selectors.memberIsAdmin(this.state, userName)
+  public memberIsAdmin = (userName: string) => select.memberIsAdmin(this.state, userName)
 
   /** Returns true if the team has a role with the given name*/
-  public hasRole = (roleName: string) => selectors.hasRole(this.state, roleName)
+  public hasRole = (roleName: string) => select.hasRole(this.state, roleName)
 
   /** Returns a list of members who have the given role */
-  public membersInRole = (roleName: string): Member[] =>
-    selectors.membersInRole(this.state, roleName)
+  public membersInRole = (roleName: string): Member[] => select.membersInRole(this.state, roleName)
 
   /** Returns a list of members who are in the admin role */
-  public admins = (): Member[] => selectors.admins(this.state)
+  public admins = (): Member[] => select.admins(this.state)
 
   // Keys
 
   public keys(scope: LockboxScope, name: string): KeysetWithSecrets | undefined {
-    const lockboxes = selectors.getKeys(this.state, this.context.user)
+    const lockboxes = select.getKeys(this.state, this.context.user)
     if (lockboxes[scope] === undefined) return undefined
     return lockboxes[scope][name]
   }

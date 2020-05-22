@@ -3,7 +3,6 @@ import { deriveKeys, randomKey } from '/keys'
 import { ADMIN, Role } from '/role'
 import { Team } from '/team'
 import { redactUser, UserWithSecrets } from '/user'
-import { LockboxScope } from '/lockbox'
 
 describe('Team', () => {
   beforeEach(() => {
@@ -120,7 +119,7 @@ describe('Team', () => {
       expect(team.has('bob')).toBe(false)
     })
 
-    it('does not remove a member that is not already present', () => {
+    it('throws if asked to remove a nonexistent member', () => {
       const { team } = setup()
 
       // try removing bob although he hasn't been added
