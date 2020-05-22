@@ -50,9 +50,12 @@ export class Team extends EventEmitter {
   /** Returns true if the team has a member with the given userName */
   public has = (userName: string) => select.hasMember(this.state, userName)
 
+  /** Returns a list of all members on the team */
   public members(): Member[] // overload: all members
+
+  /** Returns the member with the given user name*/
   public members(userName: string): Member // overload: one member
-  //
+
   public members(userName: string = ALL): Member | Member[] {
     return userName === ALL //
       ? this.state.members // all members
@@ -61,9 +64,12 @@ export class Team extends EventEmitter {
 
   // Roles
 
+  /** Returns all roles in the team */
   public roles(): Role[] // overload: all roles
+
+  /** Returns the role with the given name */
   public roles(roleName: string): Role // overload: one role
-  //
+
   public roles(roleName: string = ALL): Role | Role[] {
     return roleName === ALL //
       ? this.state.roles // all roles
