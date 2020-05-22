@@ -60,9 +60,9 @@ export const getKeys = (state: TeamState, user: UserWithSecrets): KeysetMap => {
       const { scope, name, encryptedSecret, publicKey } = lockbox
 
       // If this is a role lockbox, make sure member is currently in this role
-      // NOTE: This is a superficial measure and doesn't actually prevent access to the lockbox - if
-      // a member has been removed from a role, then the keys should have been rotated by now and the
-      // member should not have the latest generation of lockbox
+      // > WARNING: This is a superficial measure and doesn't actually prevent access to the
+      // lockbox. If a member has been removed from a role, then the keys should have been rotated
+      // by now and the member should not have the latest generation of lockbox.
       const memberShouldNoLongerHaveAccessToLockbox =
         scope === LockboxScope.ROLE &&
         !(memberIsAdmin(state, user.userName) || memberHasRole(state, user.userName, name))
