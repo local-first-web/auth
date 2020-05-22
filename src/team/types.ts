@@ -2,7 +2,7 @@ import { LinkBody, SignatureChain, SignedLink, ValidationResult } from '/chain'
 import { Context, ContextWithSecrets } from '/context'
 import { Invitation } from '/invitation/types'
 import { KeysetWithSecrets } from '/keys'
-import { Lockbox } from '/lockbox'
+import { Lockbox, LockboxScope } from '/lockbox'
 import { Member } from '/member'
 import { PermissionsMap, Role } from '/role'
 import { User } from '/user'
@@ -14,16 +14,16 @@ export interface NewTeamOptions {
   context: ContextWithSecrets
 }
 
-export interface OldTeamOptions {
+export interface ExistingTeamOptions {
   source: SignatureChain<TeamLink>
   context: ContextWithSecrets
 }
 
-export type TeamOptions = NewTeamOptions | OldTeamOptions
+export type TeamOptions = NewTeamOptions | ExistingTeamOptions
 
 // type guard for NewTeamOptions vs OldTeamOptions
 export function isNew(options: TeamOptions): options is NewTeamOptions {
-  return (options as OldTeamOptions).source === undefined
+  return (options as ExistingTeamOptions).source === undefined
 }
 
 // TEAM STATE
@@ -46,7 +46,9 @@ export interface UserLockboxMap {
 }
 
 export interface KeysetMap {
-  [scope: string]: KeysetWithSecrets
+  [scope: string]: {
+    [name: string]: KeysetWithSecrets
+  }
 }
 
 export interface InvitationMap {

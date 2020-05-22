@@ -7,11 +7,12 @@ import { User, UserWithSecrets } from '/user'
  * Creates a new lockbox that can be opened using the recipient's private key.
  */
 export const create = (args: {
-  scope: string
+  scope: LockboxScope
+  name: string
   secret: string
   recipient: User | UserWithSecrets
 }): Lockbox => {
-  const { scope, secret, recipient } = args
+  const { scope, name, secret, recipient } = args
 
   const recipientPublicKeys = hasSecrets(recipient.keys)
     ? redactKeys(recipient.keys)
@@ -22,6 +23,7 @@ export const create = (args: {
 
   return {
     scope,
+    name,
     publicKey: encryptionKeys.publicKey, // the public half of the encryption keys is publicly visible on the lockbox
     recipientPublicKey: recipientPublicKeys.encryption, // the public half of the recipient's keys is also visible, to help them locate the right one
     recipient: recipient.userName,
@@ -31,4 +33,18 @@ export const create = (args: {
       encryptionKeys.secretKey
     ),
   }
+}
+
+export const getId = (scope: LockboxScope, name?: string) =>
+  name ? `${scope}::${name}` : scope.toString()
+
+export const getScopeAndName = (id: string) => {
+  const [scope, name] = id.split('::')
+  return { scope, name }
+}
+
+export enum LockboxScope {
+  TEAM = 'TEAM',
+  ROLE = 'ROLE',
+  MEMBER = 'MEMBER',
 }

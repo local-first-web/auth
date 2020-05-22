@@ -3,15 +3,17 @@ import { deriveKeys, randomKey } from '/keys'
 import { ADMIN, Role } from '/role'
 import { Team } from '/team'
 import { redactUser, UserWithSecrets } from '/user'
+import { LockboxScope } from '/lockbox'
 
 describe('Team', () => {
   beforeEach(() => {
     localStorage.clear()
+    storage.contents = undefined
   })
 
-  const setup = (user = alice) => {
-    const context: ContextWithSecrets = { user, device, client }
-    const team = new Team({ teamName: 'Spies Я Us', context })
+  const setup = () => {
+    const context = defaultContext
+    const team = new Team({ source: teamChain, context })
     return { team, context }
   }
 
@@ -29,29 +31,34 @@ describe('Team', () => {
     })
 
     it('throws if saved chain is tampered with', () => {
+      // Alice creates and persists a team
       const { team, context } = setup()
-      const savedChain = team.save()
-      const tamperedChain = savedChain.replace(/alice/gi, 'eve')
-      const restoreTampered = () => new Team({ source: JSON.parse(tamperedChain), context })
-      expect(restoreTampered).toThrow(/signature(.*)not valid/i)
+      storage.save(team)
+
+      // Eve tampers with the team in storage
+      storage.contents = storage.contents!.replace(/alice/gi, 'eve')
+
+      // Alice reloads the team and is not fooled
+      const restoreTampered = () => storage.load(context)
+      expect(restoreTampered).toThrow(/not valid/)
     })
   })
 
   describe('members', () => {
-    it('has a root member', () => {
+    it('has Alice as a root member', () => {
       const { team } = setup()
       expect(team.members().length).toBe(1)
       const alice = team.members('alice')
       expect(alice.userName).toBe('alice')
     })
 
-    it('has lockboxes for the root member containing the admin and team secrets', () => {
+    it('has lockboxes for Alice containing the admin and team secrets', () => {
       const { team } = setup()
-      const adminKeyset = team.keys(ADMIN)
+      const adminKeyset = team.roleKeys(ADMIN)
+      expectToLookLikeKeyset(adminKeyset)
 
-      expect(adminKeyset).toHaveProperty('asymmetric')
-      expect(adminKeyset).toHaveProperty('symmetric')
-      expect(adminKeyset).toHaveProperty('signature')
+      const teamKeys = team.teamKeys
+      expectToLookLikeKeyset(teamKeys)
     })
 
     it('adds a member', () => {
@@ -61,6 +68,38 @@ describe('Team', () => {
       expect(team.members('bob').userName).toBe('bob')
     })
 
+    it('makes lockboxes for added members', () => {
+      // Alice creates a team, adds Bob, and persists it
+      const { team } = setup()
+      team.add(redactUser(bob))
+      storage.save(team)
+
+      // Bob loads the team
+      const bobsTeam = storage.load(bobsContext)
+
+      // Bob has team keys
+      const teamKeys = bobsTeam.teamKeys
+      expectToLookLikeKeyset(teamKeys)
+
+      // Bob is not an admin so he doesn't have admin keys
+      const adminKeyset = bobsTeam.roleKeys(ADMIN)
+      expect(adminKeyset).toBeUndefined()
+    })
+
+    it('makes an admin lockbox for an added admin member', () => {
+      // Alice creates a team, adds Bob as an admin, and persists it
+      const { team } = setup()
+      team.add(redactUser(bob), [ADMIN])
+      storage.save(team)
+
+      // Bob loads the team
+      const bobsTeam = storage.load(bobsContext)
+
+      // Bob is an admin and has admin keys
+      const adminKeyset = bobsTeam.roleKeys(ADMIN)
+      expectToLookLikeKeyset(adminKeyset)
+    })
+
     it('does not add a member that is already present', () => {
       const { team } = setup()
       const addBob = () => team.add(redactUser(bob))
@@ -68,7 +107,7 @@ describe('Team', () => {
 
       // try adding bob again
       const addBobAgain = () => team.add(redactUser(bob))
-      expect(addBobAgain).toThrow(/already a member/i)
+      expect(addBobAgain).toThrow(/already a member/)
     })
 
     it('removes a member', () => {
@@ -86,7 +125,7 @@ describe('Team', () => {
 
       // try removing bob although he hasn't been added
       const removeBob = () => team.remove('bob')
-      expect(removeBob).toThrow(/there is no member/i)
+      expect(removeBob).toThrow(/no member/)
     })
 
     it('gets an individual member', () => {
@@ -103,7 +142,7 @@ describe('Team', () => {
       const getBob = () => team.members('bob')
       expect(getBob).not.toThrow()
       const getNed = () => team.members('ned')
-      expect(getNed).toThrow(/member(.*)not found/i)
+      expect(getNed).toThrow(/not found/)
     })
 
     it('lists all members', () => {
@@ -130,12 +169,12 @@ describe('Team', () => {
   })
 
   describe('roles', () => {
-    it('alice is admin', () => {
+    it('Alice is admin by default', () => {
       const { team } = setup()
       expect(team.memberIsAdmin('alice')).toBe(true)
     })
 
-    it('bob is not admin', () => {
+    it('bob is not admin by default', () => {
       const { team } = setup()
       team.add(redactUser(bob))
       expect(team.memberIsAdmin('bob')).toBe(false)
@@ -145,81 +184,132 @@ describe('Team', () => {
       const { team } = setup()
       team.addRole(managers)
       expect(team.roles().length).toBe(2)
-      expect(team.roles('managers').roleName).toBe(managers.roleName)
+      expect(team.roles(MANAGERS).roleName).toBe(MANAGERS)
     })
 
-    it.todo('adds a member to a role')
-    it.todo('removes a member from a role')
+    it('creates lockboxes for existing admins when creating a role', () => {
+      const { team } = setup()
+      team.addRole(managers)
 
-    it('gets an individual role', () => {})
+      const managersKeys = team.roleKeys(MANAGERS)
+      expectToLookLikeKeyset(managersKeys)
+    })
 
-    it('allows an admin other than alice to add a member', () => {
-      // get alice's team in JSON form
-      const getTeamJson = () => {
-        const { team } = setup()
-        team.add(redactUser(bob), [ADMIN]) // bob is an admin
-        return team.save()
-      }
+    it('adds a member to a role', () => {
+      const { team: alicesTeam } = setup()
+      alicesTeam.add(redactUser(bob))
 
-      // rehydrate the team on bob's device
-      const source = JSON.parse(getTeamJson())
-      const context: ContextWithSecrets = { user: bob, device, client }
-      const team = new Team({ source, context })
+      // Bob isn't an admin yet
+      expect(alicesTeam.memberIsAdmin('bob')).toBe(false)
 
-      // bob tries to add a user
-      const addUser = () => team.add(redactUser(charlie))
-      // bob is allowed because he is an admin
+      alicesTeam.addMemberRole('bob', ADMIN)
+
+      // Now Bob is an admin
+      expect(alicesTeam.memberIsAdmin('bob')).toBe(true)
+
+      // Alice persists the team
+      storage.save(alicesTeam)
+
+      // Bob loads the team
+      const bobsTeam = storage.load(bobsContext)
+
+      // Bob has admin keys
+      const bobsAdminKeys = bobsTeam.roleKeys(ADMIN)
+      expectToLookLikeKeyset(bobsAdminKeys)
+    })
+
+    it('removes a member from a role', () => {
+      const { team: alicesTeam } = setup()
+      alicesTeam.add(redactUser(bob), [ADMIN])
+
+      // Bob is an admin
+      expect(alicesTeam.memberIsAdmin('bob')).toBe(true)
+
+      alicesTeam.removeMemberRole('bob', ADMIN)
+
+      // Bob is no longer an admin
+      expect(alicesTeam.memberIsAdmin('bob')).toBe(false)
+
+      // Alice persists the team
+      storage.save(alicesTeam)
+
+      // Bob loads the team
+      const bobsTeam = storage.load(bobsContext)
+
+      // Bob doesn't have admin keys any more
+      const bobsAdminKeys = bobsTeam.roleKeys(ADMIN)
+      expect(bobsAdminKeys).toBeUndefined()
+    })
+
+    it('gets an individual role', () => {
+      const { team } = setup()
+      const adminRole = team.roles(ADMIN)
+      expect(adminRole.roleName).toBe(ADMIN)
+    })
+
+    it('throws if asked to get a nonexistent role', () => {
+      const { team } = setup()
+      const getNonexistentRole = () => team.roles('spatula')
+      expect(getNonexistentRole).toThrow(/not found/)
+    })
+
+    it('lists all roles', () => {
+      const { team } = setup()
+      team.addRole(managers)
+      const roles = team.roles()
+      expect(roles).toHaveLength(2)
+      expect(roles.map(role => role.roleName)).toEqual([ADMIN, MANAGERS])
+    })
+
+    it('allows an admin other than Alice to add a member', () => {
+      // Alice creates a team and adds Bob as an admin
+      const { team: alicesTeam } = setup()
+      alicesTeam.add(redactUser(bob), [ADMIN]) // bob is an admin
+      storage.save(alicesTeam)
+
+      // Bob loads the team and tries to add Charlie as a member
+      const bobsTeam = storage.load(bobsContext)
+      const addUser = () => bobsTeam.add(redactUser(charlie))
+
+      // Bob is allowed because he is an admin
       expect(addUser).not.toThrow()
     })
 
     it('does not allow a non-admin to add a member', () => {
-      // get alice's team in JSON form
-      const getTeamJson = () => {
-        const { team } = setup()
-        team.add(redactUser(bob), []) // bob is not an admin
-        return team.save()
-      }
+      // Alice creates a team and adds Bob with no admin rights
+      const { team: alicesTeam } = setup()
+      alicesTeam.add(redactUser(bob), []) // Bob is not an admin
+      storage.save(alicesTeam)
 
-      // rehydrate the team on bob's device
-      const source = JSON.parse(getTeamJson())
-      const context: ContextWithSecrets = { user: bob, device, client }
-      const team = new Team({ source, context })
+      // Bob loads the team and tries to add Charlie as a member
+      const bobsTeam = storage.load(bobsContext)
+      const addUser = () => bobsTeam.add(redactUser(charlie))
 
-      // bob tries to add charlie as a member
-      const addUser = () => team.add(redactUser(charlie))
-      // bob can't because bob is not an admin
-      expect(addUser).toThrow()
+      // Bob can't because Bob is not an admin
+      expect(addUser).toThrow(/not an admin/)
     })
 
     it('does not allow a non-admin to remove a member', () => {
-      // get alice's team in JSON form
-      const getTeamJson = () => {
-        const { team } = setup()
-        team.add(redactUser(bob), []) // bob is not an admin
-        team.add(redactUser(charlie), [])
-        return team.save()
-      }
+      // Alice creates a team and adds Bob and charlie
+      const { team: alicesTeam } = setup()
+      alicesTeam.add(redactUser(bob), []) // Bob is not an admin
+      alicesTeam.add(redactUser(charlie), [])
+      storage.save(alicesTeam)
 
-      // rehydrate the team on bob's device
-      const source = JSON.parse(getTeamJson())
-      const context: ContextWithSecrets = { user: bob, device, client }
-      const team = new Team({ source, context })
+      // Bob loads the team and tries to remove charlie
+      const bobsTeam = storage.load(bobsContext)
+      const remove = () => bobsTeam.add(redactUser(charlie))
 
-      // bob tries to remove charlie
-      const remove = () => team.add(redactUser(charlie))
-      // bob can't because bob is not an admin
-      expect(remove).toThrow()
+      // Bob can't because Bob is not an admin
+      expect(remove).toThrow(/not an admin/)
     })
-
-    it.todo('throws if asked to get a nonexistent role')
-    it.todo('lists all roles')
 
     it.todo('rotates keys after removing a member from a role')
   })
 
   describe('invitations', () => {
-    // alice issues the invitation (sends code via whatsapp)
-    // bob presents invitation (clicks link)
+    // Alice issues the invitation (sends code via whatsapp)
+    // Bob presents invitation (clicks link)
     // presents? accepts?
     // charlie (not an admin) consummates the invitation
     // consummates? completes? accepts?
@@ -239,15 +329,36 @@ describe('Team', () => {
   })
 })
 
+// UTILS
+
+const expectToLookLikeKeyset = (maybeKeyset: any) => {
+  expect(maybeKeyset).toHaveProperty('asymmetric')
+  expect(maybeKeyset).toHaveProperty('symmetric')
+  expect(maybeKeyset).toHaveProperty('signature')
+}
+
 const makeUser = (userName: string): UserWithSecrets => {
   const keys = deriveKeys(randomKey())
   return { userName, keys }
 }
 
+// A simple little storage emulator
+const storage = {
+  contents: undefined as string | undefined,
+  save: (team: Team) => {
+    storage.contents = team.save()
+  },
+  load: (context: ContextWithSecrets) => {
+    if (storage.contents === undefined) throw new Error('need to save before you can load')
+    return new Team({ source: JSON.parse(storage.contents), context })
+  },
+}
+
 const alice = makeUser('alice')
 const bob = makeUser('bob')
 const charlie = makeUser('charlie')
-const managers: Role = { roleName: 'managers' }
+const MANAGERS = 'managers'
+const managers: Role = { roleName: MANAGERS }
 
 const device: Device = {
   name: 'windows laptop',
@@ -258,3 +369,9 @@ const client: Client = {
   name: 'test',
   version: '0',
 }
+
+const alicesContext: ContextWithSecrets = { user: alice, device, client }
+const bobsContext: ContextWithSecrets = { user: bob, device, client }
+const defaultContext = alicesContext
+
+const teamChain = JSON.parse(new Team({ teamName: 'Spies Я Us', context: defaultContext }).save())

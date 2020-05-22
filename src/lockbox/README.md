@@ -41,7 +41,8 @@ To make a lockbox:
 ```ts
 import { create } from '/lockbox'
 create({
-  scope: 'managers',
+  scope: 'role',
+  name: 'managers',
   recipient: carol,
   secret: 'passw0rd',
 })
