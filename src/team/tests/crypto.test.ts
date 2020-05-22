@@ -1,8 +1,8 @@
-import { Client, ContextWithSecrets, Device, DeviceType } from '/context'
-import { deriveKeys, randomKey } from '/keys'
-import { ADMIN, Role } from '/role'
+﻿import { bob, bobsContext, charlie, defaultContext, expectToLookLikeKeyset, managers, MANAGERS, storage, teamChain } from './utils'
+import { accept } from '/invitation'
+import { ADMIN } from '/role'
 import { Team } from '/team'
-import { redactUser, UserWithSecrets } from '/user'
+import { redactUser } from '/user'
 
 describe('Team', () => {
   beforeEach(() => {
@@ -306,15 +306,32 @@ describe('Team', () => {
   })
 
   describe('invitations', () => {
-    // Alice issues the invitation (sends code via whatsapp)
-    // Bob presents invitation (clicks link)
-    // presents? accepts?
-    // charlie (not an admin) consummates the invitation
-    // consummates? completes? accepts?
+    it('creates an invitation', () => {
+      const { team } = setup()
 
-    it.todo('generates an invitation')
-    it.todo('accepts valid proof of invitation')
+      // Alice invites Bob
+      const secretKey = team.invite('bob')
+      expect(secretKey).toHaveLength(16)
+    })
+
+    it('accepts valid proof of invitation', () => {
+      const { team: alicesTeam } = setup()
+
+      // Alice invites Bob
+      const secretKey = alicesTeam.invite('bob')
+
+      // Bob accepts the invitation
+      const proofOfInvitation = accept(secretKey, 'bob')
+
+      // Bob shows Alice his proof of invitation, and she lets him in
+      alicesTeam.admit(redactUser(bob), proofOfInvitation)
+
+      // Bob is now on the team. Congratulations, Bob!
+      expect(alicesTeam.has('bob')).toBe(true)
+    })
+
     it.todo('rejects invalid proof of invitation')
+    it.todo('allows non-admins to accept an invitation')
     it.todo('only allows an invitation to be used once ')
     it.todo('does not allow another admin to hijack an invitation')
   })
@@ -326,50 +343,3 @@ describe('Team', () => {
     it.todo(`after charlie is removed, he can't read encrypted team content`)
   })
 })
-
-// UTILS
-
-const expectToLookLikeKeyset = (maybeKeyset: any) => {
-  expect(maybeKeyset).toHaveProperty('asymmetric')
-  expect(maybeKeyset).toHaveProperty('symmetric')
-  expect(maybeKeyset).toHaveProperty('signature')
-}
-
-const makeUser = (userName: string): UserWithSecrets => {
-  const keys = deriveKeys(randomKey())
-  return { userName, keys }
-}
-
-// A simple little storage emulator
-const storage = {
-  contents: undefined as string | undefined,
-  save: (team: Team) => {
-    storage.contents = team.save()
-  },
-  load: (context: ContextWithSecrets) => {
-    if (storage.contents === undefined) throw new Error('need to save before you can load')
-    return new Team({ source: JSON.parse(storage.contents), context })
-  },
-}
-
-const alice = makeUser('alice')
-const bob = makeUser('bob')
-const charlie = makeUser('charlie')
-const MANAGERS = 'managers'
-const managers: Role = { roleName: MANAGERS }
-
-const device: Device = {
-  name: 'windows laptop',
-  type: DeviceType.laptop,
-}
-
-const client: Client = {
-  name: 'test',
-  version: '0',
-}
-
-const alicesContext: ContextWithSecrets = { user: alice, device, client }
-const bobsContext: ContextWithSecrets = { user: bob, device, client }
-const defaultContext = alicesContext
-
-const teamChain = JSON.parse(new Team({ teamName: 'Spies Я Us', context: defaultContext }).save())

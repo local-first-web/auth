@@ -12,15 +12,26 @@ export const validate: TeamStateValidator = (...args: ValidationArgs) => {
 }
 
 const validators: TeamStateValidatorSet = {
-  /** check that the user who made these changes was admin at the time */
+  /** check that the user who made these changes was a member with appropriate rights at the time */
   mustBeAdmin: (...args) => {
     const [prevState, link] = args
 
-    // At root stage, there are no members
-    if (link.body.type !== 'ROOT') {
-      const { userName } = link.body.context.user
-      const isntAdmin = !select.memberIsAdmin(prevState, userName)
-      if (isntAdmin) return fail(`Member '${userName}' is not an admin`, ...args)
+    const { type, context } = link.body
+    const preMembershipActions = ['ROOT'] // team doesn't have members when these actions happen
+    const nonAdminActions = ['ADMIT_INVITED_MEMBER'] // any team member can do these things
+
+    if (!preMembershipActions.includes(type)) {
+      const { userName } = context.user
+
+      // make sure member exists
+      const noSuchUser = !select.hasMember(prevState, userName)
+      if (noSuchUser) return fail(`There is no member called '${userName}'`, ...args)
+
+      if (!nonAdminActions.includes(type)) {
+        // make sure member is admin
+        const isntAdmin = !select.memberIsAdmin(prevState, userName)
+        if (isntAdmin) return fail(`Member '${userName}' is not an admin`, ...args)
+      }
     }
     return VALID
   },

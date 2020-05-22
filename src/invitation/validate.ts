@@ -17,12 +17,11 @@ export const validate = (
   const invitationPayload: InvitationPayload = JSON.parse(decryptedInvitation)
   const { userName, publicKey } = invitationPayload
 
-  if (userName !== proof.userName)
+  if (userName !== proof.user.userName)
     return fail(`User names don't match`, { invitationPayload, ...details })
 
-  const payload = { userName, id }
-  const { signature } = proof
-  const signedMessage = { payload, signature, publicKey }
+  const { signature, user } = proof
+  const signedMessage = { payload: { id, user }, signature, publicKey }
   const signatureIsValid = signatures.verify(signedMessage)
 
   if (!signatureIsValid)
@@ -30,7 +29,6 @@ export const validate = (
 
   // TODO: invite hasn't already been used
   // TODO: invite hasn't expired
-  // TODO: invite hasn't been revoked
   return VALID
 }
 

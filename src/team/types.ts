@@ -133,7 +133,7 @@ export type TeamAction =
       }
     }
   | {
-      type: 'USE_INVITATION'
+      type: 'ADMIT_INVITED_MEMBER'
       payload: BasePayload & {
         id: string
         user: User

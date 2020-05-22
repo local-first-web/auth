@@ -1,18 +1,18 @@
-﻿import { ADMIN } from '/role'
-import {
+﻿import {
   addMember,
   addMemberRoles,
   addRole,
   collectLockboxes,
   compose,
   postInvitation,
+  Reducer,
   revokeInvitation,
   revokeMember,
   revokeMemberRole,
-  setTeamName,
-  Reducer,
   revokeRole,
+  setTeamName,
 } from './reducers'
+import { ADMIN } from '/role'
 import { TeamAction, TeamLink, TeamState } from '/team/types'
 import { validate } from '/team/validate'
 
@@ -130,7 +130,7 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       ]
     }
 
-    case 'USE_INVITATION': {
+    case 'ADMIT_INVITED_MEMBER': {
       const { id, user, roles } = action.payload
       return [
         addMember(user), // Add member

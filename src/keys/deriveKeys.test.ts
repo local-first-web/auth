@@ -16,7 +16,7 @@ describe('deriveKeys', () => {
   })
 
   it('should produce working signature keys', () => {
-    const derivedKeys = deriveKeys(randomKey())
+    const derivedKeys = deriveKeys()
     const { secretKey, publicKey } = derivedKeys.signature
     const payload = 'hello world'
     const signature = signatures.sign(payload, secretKey)

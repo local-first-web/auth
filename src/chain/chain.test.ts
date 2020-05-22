@@ -8,7 +8,7 @@ import { UserWithSecrets } from '/user'
 
 const alice: UserWithSecrets = {
   userName: 'alice',
-  keys: deriveKeys(randomKey()),
+  keys: deriveKeys(),
 }
 
 const context: ContextWithSecrets = {

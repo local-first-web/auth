@@ -10,4 +10,4 @@ export const create = (name: string): UserWithSecrets => {
   return { userName: name, keys }
 }
 
-const generateNewKeyset = (): KeysetWithSecrets => deriveKeys(randomKey())
+const generateNewKeyset = (): KeysetWithSecrets => deriveKeys()

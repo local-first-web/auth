@@ -3,9 +3,10 @@ import { accept } from '/invitation/accept'
 import { validate } from '/invitation/validate'
 import { deriveKeys, randomKey } from '/keys'
 import { newSecretKey } from './newSecretKey'
+import { UserWithSecrets, redactUser } from '/user'
 
 describe('invitations', () => {
-  const teamKeys = deriveKeys(randomKey())
+  const teamKeys = deriveKeys()
 
   test('create', () => {
     const secretKey = newSecretKey()
@@ -20,10 +21,12 @@ describe('invitations', () => {
     // Alice creates invitation. She sends the secret key to Bob, and records the invitation on the
     // team's signature chain.
     const secretKey = newSecretKey()
+
     const invitation = create({ teamKeys, userName: 'bob', secretKey })
 
     // Bob accepts invitation and obtains a credential proving that he was invited.
-    const proofOfInvitation = accept(secretKey, 'bob')
+    const bob: UserWithSecrets = { userName: 'bob', keys: deriveKeys() }
+    const proofOfInvitation = accept(secretKey, redactUser(bob))
 
     // Bob shows up to join the team & sees Charlie. Bob shows Charlie his proof of invitation, and
     // Charlie checks it against the invitation that Alice posted on the signature chain.

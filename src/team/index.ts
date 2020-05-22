@@ -2,7 +2,7 @@ import { EventEmitter } from 'events'
 import { chain, SignatureChain, validate } from '/chain'
 import { ContextWithSecrets } from '/context'
 import * as invitations from '/invitation'
-import { KeysetWithSecrets, randomKey } from '/keys'
+import { KeysetWithSecrets, randomKey, deriveKeys } from '/keys'
 import { lockbox, LockboxScope } from '/lockbox'
 import { Member } from '/member'
 import { ADMIN, Role } from '/role'
@@ -19,6 +19,7 @@ import {
   TeamState,
 } from '/team/types'
 import { redactUser, User, UserWithSecrets } from '/user'
+import { ProofOfInvitation } from '/invitation'
 
 export * from '/team/types'
 
@@ -96,20 +97,24 @@ export class Team extends EventEmitter {
 
   // Keys
 
+  /** Returns a keyset (if found) for the given scope and name */
   public keys(scope: LockboxScope, name: string): KeysetWithSecrets | undefined {
     const lockboxes = select.getKeys(this.state, this.context.user)
     if (lockboxes[scope] === undefined) return undefined
     return lockboxes[scope][name]
   }
 
+  /** Returns the team's keyset */
   public get teamKeys(): KeysetWithSecrets {
     return this.keys(TEAM, this.teamName)!
   }
 
+  /** Returns the admin keyset */
   public get adminKeys(): KeysetWithSecrets {
     return this.keys(ROLE, ADMIN)!
   }
 
+  /** Returns the keys for the given role */
   public roleKeys(roleName: string): KeysetWithSecrets | undefined {
     return this.keys(ROLE, roleName)
   }
@@ -157,6 +162,8 @@ export class Team extends EventEmitter {
     })
   }
 
+  // NEXT: wire up revoking lockboxes
+
   /** Removes a role */
   public removeRole = (roleName: string) => {
     this.dispatch({
@@ -203,7 +210,23 @@ export class Team extends EventEmitter {
     return secretKey
   }
 
-  public admit = (userName: string) => {}
+  public admit = (proof: ProofOfInvitation) => {
+    const { id, user } = proof
+
+    // look up the invitation
+    const invitation = this.state.invitations[id]
+    if (invitation === undefined) throw new Error(`An invitation with id '${id}' was not found.`)
+
+    // open the invitation
+    const { roles } = invitations.open(invitation, this.teamKeys)
+
+    // validate proof against original invitation
+    const validation = invitations.validate(proof, invitation, this.teamKeys)
+    if (validation.isValid === false) throw validation.error
+
+    // all good, let them in
+    this.dispatch({ type: 'ADMIT_INVITED_MEMBER', payload: { id, user, roles } })
+  }
 
   // private properties
 
