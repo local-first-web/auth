@@ -44,8 +44,7 @@ verification within the team.
 
 - **Storage** Taco uses the secure storage provided by the device to store the user's keys.
   Otherwise Taco does **not** deal with storage for the signature chain.
-- **Networking** Taco does not deal with networking for sending invitations or for keeping
-  signature chains in sync across devices.
+- **Networking** Taco can synchronize with other instances to ensure that everyone has the same signature chain, but you need to provide a working socket connecting us to a peer.
 
 ### Examples
 
@@ -77,7 +76,7 @@ to retype if needed, it is in base-30 format, which omits easily confused charac
 secret that only Alice and Bob will ever know. It might be typed directly into your application, or
 appended to a URL that Bob can click to accept:
 
-> Alice has invited you to team XYZ. To accept, click: http://xyz.org/accept/aj7xd2jr9c8fzrbs
+> Alice has invited you to team XYZ. To accept, click: http://xyz.org/accept/aj7x+d2jr+9c8f+zrbs
 
 Alice will send the invitation to Bob via a pre-authenticated channel.
 
@@ -87,25 +86,28 @@ Alice will send the invitation to Bob via a pre-authenticated channel.
 #### Bob accepts the invitation
 
 ```ts
-team.accept('aj7x d2jr 9c8f zrbs')
+import { accept } from 'taco'
+const proofOfInvitation = accept('aj7x d2jr 9c8f zrbs')
 ```
+
+TODO: complete this process
 
 #### Alice defines a role
 
 ```ts
-team.roles.add('managers', { isAdmin: true })
+team.addRole('managers', { isAdmin: true })
 ```
 
 #### Alice adds Bob to this role
 
 ```ts
-team.members('bob').addRole('managers', ['bob'])
+team.addMemberRole('bob', 'managers')
 ```
 
 #### Alice checks Bob's permissions
 
 ```ts
-const isAdmin = team.members('bob').isAdmin()
+const isAdmin = team.isAdmin('bob') // TRUE
 ```
 
 #### Alice encrypts a message for managers
@@ -113,14 +115,14 @@ const isAdmin = team.members('bob').isAdmin()
 ```ts
 const message = 'the condor flies at midnight'
 const { encrypt, decrypt } = team.crypto.asymmetric
-const cipher = encrypt(message, { roles: ['managers'] })
+const encrypted = encrypt(message, { roles: ['managers'] })
 ```
 
 #### Bob decrypts the message
 
 ```ts
 const { encrypt, decrypt } = team.crypto.asymmetric
-const decryptedMessage = decrypt(cipher) // 'the condor flies at midnight'
+const decrypted = decrypt(encrypted) // 'the condor flies at midnight'
 ```
 
 👉 Learn more: [API documentation](./docs/api.md).
