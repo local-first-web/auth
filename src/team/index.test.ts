@@ -138,8 +138,6 @@ describe('Team', () => {
       const { team } = setup()
       team.add(redactUser(bob))
 
-      const getBob = () => team.members('bob')
-      expect(getBob).not.toThrow()
       const getNed = () => team.members('ned')
       expect(getNed).toThrow(/not found/)
     })
@@ -173,7 +171,7 @@ describe('Team', () => {
       expect(team.memberIsAdmin('alice')).toBe(true)
     })
 
-    it('bob is not admin by default', () => {
+    it('Bob is not admin by default', () => {
       const { team } = setup()
       team.add(redactUser(bob))
       expect(team.memberIsAdmin('bob')).toBe(false)
@@ -224,6 +222,7 @@ describe('Team', () => {
       // Bob is an admin
       expect(alicesTeam.memberIsAdmin('bob')).toBe(true)
 
+      // Alice removes Bob's admin role
       alicesTeam.removeMemberRole('bob', ADMIN)
 
       // Bob is no longer an admin
@@ -297,7 +296,7 @@ describe('Team', () => {
 
       // Bob loads the team and tries to remove charlie
       const bobsTeam = storage.load(bobsContext)
-      const remove = () => bobsTeam.add(redactUser(charlie))
+      const remove = () => bobsTeam.remove(charlie.userName)
 
       // Bob can't because Bob is not an admin
       expect(remove).toThrow(/not an admin/)
