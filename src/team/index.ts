@@ -74,6 +74,8 @@ export class Team extends EventEmitter {
   public memberHasRole = (userName: string, roleName: string) =>
     select.memberHasRole(this.state, userName, roleName)
 
+  // TODO allow other roles to have admin rights?
+
   /** Returns true if the member with the given userName is a member of the admin role */
   public memberIsAdmin = (userName: string) => select.memberIsAdmin(this.state, userName)
 
