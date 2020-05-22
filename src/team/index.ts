@@ -96,12 +96,12 @@ export class Team extends EventEmitter {
     return lockboxes[scope][name]
   }
 
-  public get teamKeys(): KeysetWithSecrets | undefined {
-    return this.keys(TEAM, this.teamName)
+  public get teamKeys(): KeysetWithSecrets {
+    return this.keys(TEAM, this.teamName)!
   }
 
-  public get adminKeys(): KeysetWithSecrets | undefined {
-    return this.keys(ROLE, ADMIN)
+  public get adminKeys(): KeysetWithSecrets {
+    return this.keys(ROLE, ADMIN)!
   }
 
   public roleKeys(roleName: string): KeysetWithSecrets | undefined {
@@ -117,6 +117,7 @@ export class Team extends EventEmitter {
   // lockboxes, signing links) are done here. Only the public-facing outputs (for example, the
   // resulting lockboxes, the signed links) are posted on the chain.
 
+  /** Adds a user */
   public add = (user: User, roles: string[] = []) => {
     const teamLockbox = this.createLockbox(LockboxScope.TEAM, this.teamName, user)
     const roleLockboxes = roles.map(roleName => this.createLockbox(ROLE, roleName, user))
@@ -127,6 +128,7 @@ export class Team extends EventEmitter {
     })
   }
 
+  /** Removes a user */
   public remove = (userName: string) => {
     this.dispatch({
       type: 'REVOKE_MEMBER',
@@ -134,6 +136,7 @@ export class Team extends EventEmitter {
     })
   }
 
+  /** Adds a role */
   public addRole = (role: Role) => {
     // we're creating this role so we need to generate a new key
     const roleSecret = randomKey()
@@ -148,6 +151,7 @@ export class Team extends EventEmitter {
     })
   }
 
+  /** Removes a role */
   public removeRole = (roleName: string) => {
     this.dispatch({
       type: 'REVOKE_ROLE',
@@ -155,6 +159,7 @@ export class Team extends EventEmitter {
     })
   }
 
+  /** Gives a member a role */
   public addMemberRole = (userName: string, roleName: string) => {
     const roleLockbox = this.createLockbox(ROLE, roleName, this.members(userName))
     const lockboxes = [roleLockbox]
@@ -164,6 +169,7 @@ export class Team extends EventEmitter {
     })
   }
 
+  /** Removes a role from a member */
   public removeMemberRole = (userName: string, roleName: string) => {
     this.dispatch({
       type: 'REVOKE_MEMBER_ROLE',
@@ -171,13 +177,14 @@ export class Team extends EventEmitter {
     })
   }
 
+  /** Invites a user */
   public invite = (
     userName: string,
     roles: string[] = [],
     secretKey = invitations.newSecretKey()
   ) => {
     // generate invitation
-    const teamKeys = this.teamKeys!
+    const teamKeys = this.teamKeys
     const invitation = invitations.create({ teamKeys, userName, roles, secretKey })
 
     // post invitation to signature chain
