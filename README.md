@@ -43,7 +43,7 @@ verification within the team.
 #### Not included
 
 - **Storage** Taco uses the secure storage provided by the device to store the user's keys.
-  Otherwise Taco does **not** deal with storage for the signature chain.
+  Taco does **not** deal with storage for the signature chain.
 - **Networking** Taco can synchronize with other instances to ensure that everyone has the same signature chain, but you need to provide a working socket connecting us to a peer.
 
 ### Examples
