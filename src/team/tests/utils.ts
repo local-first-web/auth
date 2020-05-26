@@ -1,5 +1,5 @@
 ﻿import { Client, ContextWithSecrets, Device, DeviceType } from '/context'
-import { deriveKeys } from '/keys'
+import { generateKeys } from '/keys'
 import { Role } from '/role'
 import { Team } from '/team'
 import { UserWithSecrets } from '/user'
@@ -10,7 +10,7 @@ export const expectToLookLikeKeyset = (maybeKeyset: any) => {
 }
 
 const makeUser = (userName: string): UserWithSecrets => {
-  const keys = deriveKeys()
+  const keys = generateKeys()
   return { userName, keys }
 }
 

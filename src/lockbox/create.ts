@@ -1,5 +1,5 @@
 ﻿import { asymmetric } from '/crypto'
-import { deriveKeys, hasSecrets, redactKeys, randomKey } from '/keys'
+import { generateKeys, hasSecrets, redactKeys, randomKey } from '/keys'
 import { Lockbox } from '/lockbox/types'
 import { User, UserWithSecrets } from '/user'
 
@@ -19,7 +19,7 @@ export const create = (args: {
     : recipient.keys
 
   // We generate a new single-use keypair to encrypt the lockbox with
-  const ephemeralKeys = deriveKeys().encryption
+  const ephemeralKeys = generateKeys().encryption
 
   return {
     scope,

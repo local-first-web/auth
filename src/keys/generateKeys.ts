@@ -14,7 +14,7 @@ import { HashPurpose, Key, keypairToBase64 } from '/lib'
  * @returns A `Keyset` consisting of a keypair for signing and a keypair for asymmetric encryption.
  * (The secret half of the encryption key can also be used for symmetric encryption.)
  */
-export const deriveKeys = (seed: string = randomKey()): KeysetWithSecrets => {
+export const generateKeys = (seed: string = randomKey()): KeysetWithSecrets => {
   const stretchedSeed = stretch(seed)
   return {
     seed,

@@ -1,12 +1,12 @@
 import { signatures, asymmetric, symmetric } from '/crypto'
 import { keyToBytes } from '/lib'
-import { deriveKeys } from '/keys/deriveKeys'
+import { generateKeys } from '/keys/generateKeys'
 import { randomKey } from '/keys/randomKey'
 
-describe('deriveKeys', () => {
+describe('generateKeys', () => {
   it('should return keys with the expected lengths', () => {
     const secretKey = randomKey()
-    const derivedKeys = deriveKeys(secretKey)
+    const derivedKeys = generateKeys(secretKey)
 
     const { signature, encryption } = derivedKeys
 
@@ -20,7 +20,7 @@ describe('deriveKeys', () => {
   })
 
   it('produces working signature keys', () => {
-    const derivedKeys = deriveKeys()
+    const derivedKeys = generateKeys()
     const { secretKey, publicKey } = derivedKeys.signature
 
     // Alice signs a message
@@ -34,8 +34,8 @@ describe('deriveKeys', () => {
 
   it('produces working keys for asymmetric encryption', () => {
     const message = 'The dolphin leaps at twilight'
-    const alice = deriveKeys().encryption
-    const bob = deriveKeys().encryption
+    const alice = generateKeys().encryption
+    const bob = generateKeys().encryption
 
     // Alice encrypts a message for Bob
     const encrypted = asymmetric.encrypt(message, bob.publicKey, alice.secretKey)

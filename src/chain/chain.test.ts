@@ -2,13 +2,13 @@ import { append } from '/chain/append'
 import { create } from '/chain/create'
 import { validate } from '/chain/validate'
 import { ContextWithSecrets, DeviceType } from '/context'
-import { deriveKeys, randomKey } from '/keys'
+import { generateKeys, randomKey } from '/keys'
 import { signatures } from '/crypto'
 import { UserWithSecrets } from '/user'
 
 const alice: UserWithSecrets = {
   userName: 'alice',
-  keys: deriveKeys(),
+  keys: generateKeys(),
 }
 
 const context: ContextWithSecrets = {

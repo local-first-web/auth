@@ -20,7 +20,6 @@ const getKey(ROLE, ADMIN)
 - scope (DEVICE/USER/ROLE/TEAM)
 - name ('tablet', 'alice', 'admin', 'team')
 - generation
--
 
 ## lockbox
 
@@ -55,4 +54,3 @@ const getKey(ROLE, ADMIN)
 - separate device key & user key
   - when creating user
   - when creating team
-  -

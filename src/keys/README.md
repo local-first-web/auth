@@ -16,12 +16,12 @@ const seed = randomKey()
 // qI7WZR+BGTAJD30JJRqRCVOLWL7iGxIHlbBmq80bjLg=
 ```
 
-### `deriveKeys(secretKey)`
+### `generateKeys(secretKey)`
 
 Generate a set of per-user or per-team keys, all in base64-encoded text.
 
 ```ts
-const secretKeyset = deriveKeys(seed)
+const secretKeyset = generateKeys(seed)
 
 // {
 //   seed: 'qI7WZR+BGTAJD30JJRqRCVOLWL7iGxIHlbBmq80bjLg=',

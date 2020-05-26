@@ -1,11 +1,11 @@
-import { deriveKeys } from '/keys/deriveKeys'
+import { generateKeys } from '/keys/generateKeys'
 import { randomKey } from '/keys/randomKey'
 import { redactKeys } from '/keys/redactSecrets'
 
 describe('redactSecrets', () => {
   it('should redact secrets from a random keyset', () => {
     const secretKey = randomKey()
-    const secretKeyset = deriveKeys(secretKey)
+    const secretKeyset = generateKeys(secretKey)
 
     const publicKeyset = redactKeys(secretKeyset)
 

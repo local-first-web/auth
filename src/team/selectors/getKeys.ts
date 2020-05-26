@@ -1,5 +1,5 @@
 ﻿import { asymmetric } from '/crypto'
-import { deriveKeys } from '/keys'
+import { generateKeys } from '/keys'
 import { LockboxScope } from '/lockbox'
 import { KeysetMap, TeamState } from '/team/types'
 import { UserWithSecrets } from '/user'
@@ -39,7 +39,7 @@ export const getKeys = (state: TeamState, user: UserWithSecrets): KeysetMap => {
       if (!memberShouldNoLongerHaveAccessToLockbox) {
         // Decrypt the seed from the lockbox and use it to derive the keyset
         const seed = asymmetric.decrypt(encryptedSecret, publicKey, userKeys.secretKey)
-        const keyset = deriveKeys(seed)
+        const keyset = generateKeys(seed)
 
         // Add this to keysets for this scope
         keysets[scope] = {
