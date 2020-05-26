@@ -19,18 +19,18 @@ export const create = (args: {
     : recipient.keys
 
   // We generate a new single-use keypair to encrypt the lockbox with
-  const encryptionKeys = deriveKeys().encryption
+  const ephemeralKeys = deriveKeys().encryption
 
   return {
     scope,
     name,
-    publicKey: encryptionKeys.publicKey, // the public half of the encryption keys is publicly visible on the lockbox
+    publicKey: ephemeralKeys.publicKey, // the public half of the encryption keys is publicly visible on the lockbox
     recipientPublicKey: recipientPublicKeys.encryption, // the public half of the recipient's keys is also visible, to help them locate the right one
     recipient: recipient.userName,
     encryptedSecret: asymmetric.encrypt(
       secret,
       recipientPublicKeys.encryption,
-      encryptionKeys.secretKey
+      ephemeralKeys.secretKey
     ),
   }
 }

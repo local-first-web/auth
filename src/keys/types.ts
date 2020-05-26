@@ -5,8 +5,6 @@ export interface KeysetWithSecrets {
   signature: Base64Keypair
   encryption: Base64Keypair
   generation?: number
-
-  symmetric: { key: Base64 } // TODO: DEPRECATED
 }
 
 export interface PublicKeyset {
@@ -16,5 +14,5 @@ export interface PublicKeyset {
 }
 
 export const hasSecrets = (keys: PublicKeyset | KeysetWithSecrets): keys is KeysetWithSecrets => {
-  return keys.hasOwnProperty('symmetric')
+  return keys.encryption.hasOwnProperty('secretKey') || keys.signature.hasOwnProperty('secretKey')
 }

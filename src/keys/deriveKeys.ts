@@ -1,5 +1,4 @@
-﻿import * as base64 from '@stablelib/base64'
-import nacl from 'tweetnacl'
+﻿import nacl from 'tweetnacl'
 import { hash, stretch } from '/crypto'
 import { randomKey } from '/keys/randomKey'
 import { KeysetWithSecrets } from '/keys/types'
@@ -12,16 +11,15 @@ import { HashPurpose, Key, keypairToBase64 } from '/lib'
  * @param seed A 32-byte secret key used to derive all other keys. This key should be randomly
  * generated to begin with, then stored in the device's secure storage. It should never leave the
  * original device except in encrypted form.
- * @returns A `Keyset` consisting of a keypair for signing, a keypair for asymmetric encryption, and
- * a key for symmetric encryption (along with the original seed).
+ * @returns A `Keyset` consisting of a keypair for signing and a keypair for asymmetric encryption.
+ * (The secret half of the encryption key can also be used for symmetric encryption.)
  */
 export const deriveKeys = (seed: string = randomKey()): KeysetWithSecrets => {
   const stretchedSeed = stretch(seed)
   return {
     seed,
     signature: deriveSignatureKeys(stretchedSeed),
-    encryption: deriveAsymmetricKeys(stretchedSeed),
-    symmetric: deriveSymmetricKey(stretchedSeed),
+    encryption: deriveEncryptionKeys(stretchedSeed),
   }
 }
 
@@ -35,16 +33,10 @@ const deriveSignatureKeys = (secretKey: Key) => {
   return keypairToBase64(keys)
 }
 
-const deriveAsymmetricKeys = (secretKey: Key) => {
-  const hashKey = HashPurpose.EncryptionAsymmetric
+const deriveEncryptionKeys = (secretKey: Key) => {
+  const hashKey = HashPurpose.Encryption
   const { keyPair, secretKeyLength } = nacl.box
   const derivedSecretKey = hash(hashKey, secretKey).slice(0, secretKeyLength)
   const keys = keyPair.fromSecretKey(derivedSecretKey)
   return keypairToBase64(keys)
-}
-
-const deriveSymmetricKey = (secretKey: Key) => {
-  const hashKey = HashPurpose.EncryptionSymmetric
-  const key = hash(hashKey, secretKey).slice(0, 32)
-  return { key: base64.encode(key) }
 }

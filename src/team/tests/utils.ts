@@ -5,8 +5,7 @@ import { Team } from '/team'
 import { UserWithSecrets } from '/user'
 
 export const expectToLookLikeKeyset = (maybeKeyset: any) => {
-  expect(maybeKeyset).toHaveProperty('asymmetric')
-  expect(maybeKeyset).toHaveProperty('symmetric')
+  expect(maybeKeyset).toHaveProperty('encryption')
   expect(maybeKeyset).toHaveProperty('signature')
 }
 

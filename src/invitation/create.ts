@@ -34,7 +34,7 @@ export const create = (args: InvitationArgs): Invitation => {
   // chain. We also include the public half of the signature keyset, which will be used to verify
   // Bob's proof of invitation.
   const payload: InvitationPayload = { userName, roles, publicKey }
-  const body = symmetric.encrypt(payload, teamKeys.symmetric.key)
+  const body = symmetric.encrypt(payload, teamKeys.encryption.secretKey)
 
   // ## Step 2b
   // We put it all together to create the invitation.

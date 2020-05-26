@@ -34,8 +34,7 @@ describe('user', () => {
     const bob1 = create('bob')
     const { keys } = bob1
     expect(keys).toHaveProperty('signature')
-    expect(keys).toHaveProperty('asymmetric')
-    expect(keys).toHaveProperty('symmetric')
+    expect(keys).toHaveProperty('encryption')
 
     // bob uses app for the second time
     const bob2 = load('bob')
@@ -64,17 +63,20 @@ describe('user', () => {
     expect(signatures.verify(signedMessage)).toBe(true)
   })
 
-  it('should provide a working keyset for asymmetric encryption', () => {
-    const a = create('charlie').keys.encryption
-    const b = asymmetric.keyPair()
-    const cipher = asymmetric.encrypt(message, b.publicKey, a.secretKey)
-    const decrypted = asymmetric.decrypt(cipher, a.publicKey, b.secretKey)
+  it('should provide a working keyset for encryption', () => {
+    const charlie = create('charlie').keys.encryption
+    const bob = asymmetric.keyPair()
+    // Charlie encrypts a message for Bob
+    const cipher = asymmetric.encrypt(message, bob.publicKey, charlie.secretKey)
+
+    // Bob decrypts the message
+    const decrypted = asymmetric.decrypt(cipher, charlie.publicKey, bob.secretKey)
     expect(decrypted).toEqual(message)
   })
 
-  it('should provide a working key for symmetric encryption', () => {
+  it('supports using the secret half of the encryption key for symmetric encryption', () => {
     const { keys } = create('eve')
-    const { key } = keys.symmetric
+    const key = keys.encryption.secretKey
     const cipher = symmetric.encrypt(message, key)
     const decrypted = symmetric.decrypt(cipher, key)
     expect(decrypted).toEqual(message)
