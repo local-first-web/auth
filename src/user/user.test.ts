@@ -65,7 +65,7 @@ describe('user', () => {
   })
 
   it('should provide a working keyset for asymmetric encryption', () => {
-    const a = create('charlie').keys.asymmetric
+    const a = create('charlie').keys.encryption
     const b = asymmetric.keyPair()
     const cipher = asymmetric.encrypt(message, b.publicKey, a.secretKey)
     const decrypted = asymmetric.decrypt(cipher, a.publicKey, b.secretKey)

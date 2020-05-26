@@ -19,7 +19,7 @@ import { memberHasRole, memberIsAdmin } from './memberHasRole'
  * ```
  */
 export const getKeys = (state: TeamState, user: UserWithSecrets): KeysetMap => {
-  const userKeys = user.keys.asymmetric
+  const userKeys = user.keys.encryption
   const keysets: KeysetMap = {}
   const userLockboxes = state.lockboxes[user.userName]
   if (userLockboxes) {

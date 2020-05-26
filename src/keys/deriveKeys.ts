@@ -20,7 +20,7 @@ export const deriveKeys = (seed: string = randomKey()): KeysetWithSecrets => {
   return {
     seed,
     signature: deriveSignatureKeys(stretchedSeed),
-    asymmetric: deriveAsymmetricKeys(stretchedSeed),
+    encryption: deriveAsymmetricKeys(stretchedSeed),
     symmetric: deriveSymmetricKey(stretchedSeed),
   }
 }

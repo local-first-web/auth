@@ -7,7 +7,7 @@ describe('deriveKeys', () => {
   it('should return keys with the expected lengths', () => {
     const secretKey = randomKey()
     const derivedKeys = deriveKeys(secretKey)
-    const { signature, asymmetric, symmetric } = derivedKeys
+    const { signature, encryption: asymmetric, symmetric } = derivedKeys
     expect(keyToBytes(signature.publicKey)).toHaveLength(32)
     expect(keyToBytes(signature.secretKey)).toHaveLength(64)
     expect(keyToBytes(asymmetric.publicKey)).toHaveLength(32)

@@ -19,7 +19,7 @@ export const create = (args: {
     : recipient.keys
 
   // We generate a new single-use keypair to encrypt the lockbox with
-  const encryptionKeys = deriveKeys().asymmetric
+  const encryptionKeys = deriveKeys().encryption
 
   return {
     scope,
