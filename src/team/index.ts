@@ -2,7 +2,8 @@ import { EventEmitter } from 'events'
 import { chain, SignatureChain, validate } from '/chain'
 import { ContextWithSecrets } from '/context'
 import * as invitations from '/invitation'
-import { KeysetWithSecrets, randomKey, deriveKeys } from '/keys'
+import { ProofOfInvitation } from '/invitation'
+import { KeysetWithSecrets, randomKey } from '/keys'
 import { lockbox, LockboxScope } from '/lockbox'
 import { Member } from '/member'
 import { ADMIN, Role } from '/role'
@@ -19,7 +20,6 @@ import {
   TeamState,
 } from '/team/types'
 import { redactUser, User, UserWithSecrets } from '/user'
-import { ProofOfInvitation } from '/invitation'
 
 export * from '/team/types'
 
