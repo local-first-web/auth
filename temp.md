@@ -23,8 +23,17 @@ const getKey(ROLE, ADMIN)
 
 ## lockbox
 
+```ts
+type Credential
+
+const lockbox = create({
+  contents: Actor
+  recipient: Actor
+})
+```
+
 - encryptionKey
-  - scope: SINGLE_USE
+  - scope: EPHEMERAL
   - publicKey
 - decryptionKey
   - scope
@@ -36,10 +45,11 @@ const getKey(ROLE, ADMIN)
   - name
   - publicKey
   - generation
+- encryptedSecret
 
 ## encrypted content
 
-- encryptedContent
+- encryptedPayload
 - encryptionKey
   - scope: SINGLE_USE
   - publicKey
