@@ -1,22 +1,28 @@
 ﻿import { Key, Base64 } from '/lib'
-import { LockboxScope } from './create'
+import { KeysetScope, KeyMetadata, PublicKeyset } from '/keys'
+
+interface KeyManifest extends KeyMetadata {
+  publicKey: Base64
+}
 
 export interface Lockbox {
-  /**  e.g. team, role, user */
-  scope: LockboxScope
+  /** The public half of the keys used to encrypt this lockbox  */
+  encryptionKey: Pick<KeyManifest, 'scope' | 'publicKey'> & {
+    scope: KeysetScope.EPHEMERAL
+  }
 
-  /** e.g. role name, user name */
-  name: string
+  /** Manifest for the keyset that can open this lockbox (the lockbox recipient's keys) */
+  decryptionKey: KeyManifest & {
+    scope: KeysetScope // required
+    name: string //required
+  }
 
-  /** the public half of the asymmetric keys used to encrypt the lockbox */
-  publicKey: Key
+  /** Manifest for the keyset that is in this lockbox (the lockbox contents) */
+  encryptedKey: KeyManifest & {
+    scope: KeysetScope // required
+    name: string //required
+  }
 
-  /** the public half of the recipient's asymmetric encryption keys */
-  recipientPublicKey: Key
-
-  /** the recipient's username */
-  recipient: string
-
-  /** the secret, encrypted using `asymmetric.encrypt` */
-  encryptedSecret: Base64
+  /** The encrypted secret that can be used to regenerate the keyset */
+  encryptedPayload: Base64
 }
