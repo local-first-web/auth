@@ -1,5 +1,5 @@
-﻿import { Key, Base64 } from '/lib'
-import { KeysetScope, KeyMetadata, PublicKeyset } from '/keys'
+﻿import { KeyMetadata, KeysetScope } from '/keys'
+import { Base64 } from '/lib'
 
 interface KeyManifest extends KeyMetadata {
   publicKey: Base64
