@@ -3,8 +3,8 @@ import { chain, SignatureChain, validate } from '/chain'
 import { ContextWithSecrets } from '/context'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
-import { KeysetWithSecrets, randomKey } from '/keys'
-import { lockbox, LockboxScope } from '/lockbox'
+import { KeysetScope, KeysetWithSecrets, randomKey } from '/keys'
+import { lockbox } from '/lockbox'
 import { Member } from '/member'
 import { ADMIN, Role } from '/role'
 import { ALL, initialState } from '/team/constants'
@@ -23,7 +23,7 @@ import { redactUser, User, UserWithSecrets } from '/user'
 
 export * from '/team/types'
 
-const { TEAM, ROLE } = LockboxScope
+const { TEAM, ROLE } = KeysetScope
 
 export class Team extends EventEmitter {
   constructor(options: TeamOptions) {
@@ -98,7 +98,7 @@ export class Team extends EventEmitter {
   // Keys
 
   /** Returns a keyset (if found) for the given scope and name */
-  public keys(scope: LockboxScope, name: string): KeysetWithSecrets | undefined {
+  public keys(scope: KeysetScope, name: string): KeysetWithSecrets | undefined {
     const lockboxes = select.getKeys(this.state, this.context.user)
     if (lockboxes[scope] === undefined) return undefined
     return lockboxes[scope][name]
@@ -130,7 +130,7 @@ export class Team extends EventEmitter {
 
   /** Adds a user */
   public add = (user: User, roles: string[] = []) => {
-    const teamLockbox = this.createLockbox(LockboxScope.TEAM, this.teamName, user)
+    const teamLockbox = this.createLockbox(KeysetScope.TEAM, this.teamName, user)
     const roleLockboxes = roles.map(roleName => this.createLockbox(ROLE, roleName, user))
     const lockboxes = [teamLockbox, ...roleLockboxes]
     this.dispatch({
@@ -256,7 +256,7 @@ export class Team extends EventEmitter {
   }
 
   private createLockbox(
-    scope: LockboxScope,
+    scope: KeysetScope,
     name: string,
     recipient: User | UserWithSecrets = this.context.user,
     secret: string = this.getSecretForLockbox(recipient, scope, name)
@@ -264,11 +264,7 @@ export class Team extends EventEmitter {
     return lockbox.create({ scope, name, recipient, secret })
   }
 
-  private getSecretForLockbox(
-    recipient: User | UserWithSecrets,
-    scope: LockboxScope,
-    name: string
-  ) {
+  private getSecretForLockbox(recipient: User | UserWithSecrets, scope: KeysetScope, name: string) {
     // if we're creating a lockbox for ourselves, that means the key doesn't exist yet so we create a new one
     const isOwnLockbox = recipient.userName === this.context.user.userName
     if (isOwnLockbox) return randomKey()
