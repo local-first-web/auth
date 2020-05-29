@@ -8,19 +8,18 @@ export enum KeysetScope {
   EPHEMERAL = 'EPHEMERAL',
 }
 
-export interface KeyMetadata {
-  scope: KeysetScope /**  e.g. ROLE, MEMBER, DEVICE */
-  name: string /**  e.g. 'admin', 'alice', 'dell-laptop' */
-  generation: number /** generation index (0-based) - incremented each time this key is rotated */
+export type KeyMetadata = {
+  scope: KeysetScope
+  name: string
+  generation: number
 }
 
-export interface KeysetWithSecrets extends KeyMetadata {
-  seed: Base64
+export type KeysetWithSecrets = KeyMetadata & {
   signature: Base64Keypair
   encryption: Base64Keypair
 }
 
-export interface PublicKeyset extends KeyMetadata {
+export type PublicKeyset = KeyMetadata & {
   signature: Base64 // = signature.publicKey
   encryption: Base64 // = encryption.publicKey
 }

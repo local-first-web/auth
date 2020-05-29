@@ -8,13 +8,15 @@ export const collectLockboxes = (newLockboxes?: Lockbox[]): Reducer => state => 
   if (newLockboxes)
     // add each new lockbox to the recipient's list
     for (const lockbox of newLockboxes) {
-      const { recipient, recipientPublicKey } = lockbox
-      const publicKey = keyToString(recipientPublicKey)
-      const userLockboxMap: UserLockboxMap = lockboxes[recipient] || {}
+      // console.log('collecting lockbox', lockbox)
+      const { recipient } = lockbox
+      const publicKey = keyToString(recipient.publicKey)
+      const userLockboxMap: UserLockboxMap = lockboxes[recipient.name] || {}
       const lockboxesForKey = userLockboxMap[publicKey] || []
       lockboxesForKey.push(lockbox)
       userLockboxMap[publicKey] = lockboxesForKey
-      lockboxes[recipient] = userLockboxMap
+      lockboxes[recipient.name] = userLockboxMap
     }
+  // console.log('done collecting', lockboxes)
   return { ...state, lockboxes }
 }

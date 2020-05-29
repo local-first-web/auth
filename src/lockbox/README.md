@@ -26,14 +26,14 @@ const lockbox = {
   },
 
   // information to identify the key that can open this lockbox
-  decryptionKey: {
+  recipient: {
     scope: 'USER',
     name: 'alice',
     publicKey: 'x9nX0sBPlbUugyai9BR0A5vuZgMCekWodDpbtty9CrK7u8al',
   },
 
   // information about the contents of the lockbox
-  encryptedKey: {
+  contents: {
     scope: 'ROLE',
     name: 'admin',
     publicKey: 'BmY3ZojiKMQavrPaGc3dp7N1E0nlw6ZtBvqAN4rOIXcWn9ej',
@@ -57,10 +57,10 @@ We use lockboxes to:
 
 #### `create()`
 
-To make a lockbox, pass in two keysets: 
+To make a lockbox, pass in two keysets:
 
-- `encryptedKey`, the key to be encrypted in the lockbox (the **contents** of the lockbox)
-- `decryptionKey`, the key used to open the lockbox (the **recipient** of the lockbox)
+- `contents`, the keys to be encrypted in the lockbox
+- `recipient`, the keys used to open the lockbox
 
 This makes a lockbox for Alice containing the admin keys.
 
@@ -68,13 +68,13 @@ This makes a lockbox for Alice containing the admin keys.
 import * as lockbox from '/lockbox'
 
 const adminKeysForAlice = lockbox.create({
-  encryptedKey: {
+  contents: {
     scope: 'ROLE',
     name: 'admin',
     seed: 'CrVdFPwluPaVIHUS22I0LrJOM47wCOnN853V3OonqnToO9i5',
   	publicKey: 'CSiD5BxujROcznaLdfowq9W8d4voS8CGL06fOuiyHO7trRml',
   },
-  decryptionKey: {
+  recipient: {
   	scope: 'USER',
   	name: 'alice',
   	publicKey: 'JG81tVDDfp3BqXedrtiRiWtvqQKt2175nAceYIPjjMR7z2Y1',
@@ -86,12 +86,11 @@ This example illustrates the minimal data that `create` needs to make a lockbox.
 
 ```tsx
 const adminKeysForAlice = lockbox.create({
-  encryptedKey: adminKeys,
-  decryptionKey: aliceKeys,
+  contents: adminKeys,
+  recipient: aliceKeys,
 })
 ```
 
 #### `open()`
 
-To 
-
+To

@@ -1,7 +1,7 @@
 ﻿import nacl from 'tweetnacl'
 import { hash, stretch } from '/crypto'
 import { randomKey } from '/keys/randomKey'
-import { KeysetWithSecrets } from '/keys/types'
+import { KeysetWithSecrets, KeyMetadata, KeysetScope } from '/keys/types'
 import { HashPurpose, Key, keypairToBase64 } from '/lib'
 
 /**
@@ -14,12 +14,27 @@ import { HashPurpose, Key, keypairToBase64 } from '/lib'
  * @returns A `Keyset` consisting of a keypair for signing and a keypair for asymmetric encryption.
  * (The secret half of the encryption key can also be used for symmetric encryption.)
  */
-export const generateKeys = (seed: string = randomKey()): KeysetWithSecrets => {
+export const generateKeys = (
+  seed: string = randomKey()
+): Pick<KeysetWithSecrets, 'signature' | 'encryption'> => {
   const stretchedSeed = stretch(seed)
   return {
-    seed,
     signature: deriveSignatureKeys(stretchedSeed),
     encryption: deriveEncryptionKeys(stretchedSeed),
+  }
+}
+
+export const newKeys = (args: {
+  scope: KeysetScope
+  name?: string
+  generation?: number
+}): KeysetWithSecrets => {
+  const { scope, name = scope, generation = 0 } = args
+  return {
+    scope,
+    name,
+    generation,
+    ...generateKeys(),
   }
 }
 

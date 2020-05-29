@@ -94,9 +94,12 @@ describe('Team', () => {
       // Bob loads the team
       const bobsTeam = storage.load(bobsContext)
 
+      // Bob is no longer an admin
+      expect(bobsTeam.memberIsAdmin('bob')).toBe(false)
+
       // Bob doesn't have admin keys any more
-      const bobsAdminKeys = bobsTeam.roleKeys(ADMIN)
-      expect(bobsAdminKeys).toBeUndefined()
+      const bobLooksForAdminKeys = () => bobsTeam.roleKeys(ADMIN)
+      expect(bobLooksForAdminKeys).toThrow()
     })
 
     it('gets an individual role', () => {

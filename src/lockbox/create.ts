@@ -1,48 +1,44 @@
 ﻿import { asymmetric } from '/crypto'
-import {
-  generateKeys,
-  hasSecrets,
-  redactKeys,
-  KeysetScope,
-  KeysetWithSecrets,
-  PublicKeyset,
-} from '/keys'
+import { generateKeys, KeysetScope, KeysetWithSecrets, PublicKeyset, redactKeys } from '/keys'
 import { Lockbox } from '/lockbox/types'
-import { User, UserWithSecrets } from '/user'
 
-/**
- * Creates a new lockbox that can be opened using the recipient's private key.
- */
-export const create = (args: {
-  encryptedKey: KeysetWithSecrets
-  decryptionKey: KeysetWithSecrets | PublicKeyset
-}): Lockbox => {
-  const { encryptedKey, decryptionKey } = args
+/** Creates a new lockbox that can be opened using the recipient's private key. */
+export const create = (
+  contents: KeysetWithSecrets,
+  recipientKeys: KeysetWithSecrets | PublicKeyset
+): Lockbox => {
+  // Don't leak the recipient's secrets if we have them
+  const redactedRecipientKeys = redactKeys(recipientKeys)
 
-  const recipientPublicKeys = hasSecrets(decryptionKey) ? redactKeys(decryptionKey) : decryptionKey
+  // Don't leak secrets from the contents
+  const redactedContents = redactKeys(contents)
 
-  // We generate a new single-use keypair to encrypt the lockbox with
-  const ephemeralKeys = generateKeys().encryption
+  // Generate a new single-use keypair to encrypt the lockbox with
+  const encryptionKeys = generateKeys().encryption
 
+  // Encrypt the lockbox's contents
   const encryptedPayload = asymmetric.encrypt(
-    encryptedKey.seed,
-    recipientPublicKeys.encryption,
-    ephemeralKeys.secretKey
+    contents,
+    redactedRecipientKeys.encryption,
+    encryptionKeys.secretKey
   )
 
-  return {
+  const lockbox = {
     encryptionKey: {
       scope: KeysetScope.EPHEMERAL,
-      publicKey: ephemeralKeys.publicKey,
+      name: KeysetScope.EPHEMERAL,
+      publicKey: encryptionKeys.publicKey,
     },
-    decryptionKey: {
-      ...recipientPublicKeys,
-      publicKey: recipientPublicKeys.encryption,
+    recipient: {
+      ...redactedRecipientKeys,
+      publicKey: redactedRecipientKeys.encryption,
     },
-    encryptedKey: {
-      ...encryptedKey,
-      publicKey: encryptedKey.encryption.publicKey,
+    contents: {
+      ...redactedContents,
+      publicKey: contents.encryption.publicKey,
     },
     encryptedPayload,
-  }
+  } as Lockbox
+
+  return lockbox
 }

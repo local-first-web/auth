@@ -1,5 +1,5 @@
 ﻿import { Client, ContextWithSecrets, Device, DeviceType } from '/context'
-import { generateKeys } from '/keys'
+import { newKeys, KeysetScope } from '/keys'
 import { Role } from '/role'
 import { Team } from '/team'
 import { UserWithSecrets } from '/user'
@@ -10,7 +10,7 @@ export const expectToLookLikeKeyset = (maybeKeyset: any) => {
 }
 
 const makeUser = (userName: string): UserWithSecrets => {
-  const keys = generateKeys()
+  const keys = newKeys({ scope: KeysetScope.MEMBER, name: userName, generation: 0 })
   return { userName, keys }
 }
 

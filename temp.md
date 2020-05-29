@@ -35,12 +35,12 @@ const lockbox = create({
 - encryptionKey
   - scope: EPHEMERAL
   - publicKey
-- decryptionKey
+- recipientKeys
   - scope
   - name
   - publicKey
   - generation
-- encryptedKey
+- contents
   - scope
   - name
   - publicKey

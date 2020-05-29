@@ -3,8 +3,8 @@ import { chain, SignatureChain, validate } from '/chain'
 import { ContextWithSecrets } from '/context'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
-import { KeysetScope, KeysetWithSecrets, randomKey } from '/keys'
-import { lockbox } from '/lockbox'
+import { KeysetScope, KeysetWithSecrets, randomKey, generateKeys, newKeys } from '/keys'
+import * as lockbox from '/lockbox'
 import { Member } from '/member'
 import { ADMIN, Role } from '/role'
 import { ALL, initialState } from '/team/constants'
@@ -98,26 +98,28 @@ export class Team extends EventEmitter {
   // Keys
 
   /** Returns a keyset (if found) for the given scope and name */
-  public keys(scope: KeysetScope, name: string): KeysetWithSecrets | undefined {
+  public keys(scope: KeysetScope, name: string = scope): KeysetWithSecrets | undefined {
     const lockboxes = select.getKeys(this.state, this.context.user)
     if (lockboxes[scope] === undefined) return undefined
     return lockboxes[scope][name]
   }
 
   /** Returns the team's keyset */
-  public get teamKeys(): KeysetWithSecrets {
-    return this.keys(TEAM, this.teamName)!
-  }
-
-  /** Returns the admin keyset */
-  public get adminKeys(): KeysetWithSecrets {
-    return this.keys(ROLE, ADMIN)!
+  public teamKeys(): KeysetWithSecrets {
+    const keys = this.keys(TEAM)
+    if (keys === undefined) throw new Error('Team keys not found')
+    return keys
   }
 
   /** Returns the keys for the given role */
-  public roleKeys(roleName: string): KeysetWithSecrets | undefined {
-    return this.keys(ROLE, roleName)
+  public roleKeys(roleName: string): KeysetWithSecrets {
+    const keys = this.keys(ROLE, roleName)
+    if (keys === undefined) throw new Error(`Keys not found for role '${roleName}'`)
+    return keys
   }
+
+  /** Returns the admin keyset */
+  public adminKeys = (): KeysetWithSecrets => this.roleKeys(ADMIN)
 
   // WRITE METHODS
   // Most of the logic for modifying team state is in reducers. To mutate team state, we dispatch
@@ -130,9 +132,12 @@ export class Team extends EventEmitter {
 
   /** Adds a user */
   public add = (user: User, roles: string[] = []) => {
-    const teamLockbox = this.createLockbox(KeysetScope.TEAM, this.teamName, user)
-    const roleLockboxes = roles.map(roleName => this.createLockbox(ROLE, roleName, user))
+    // make lockboxes for the new member
+    const teamLockbox = lockbox.create(this.teamKeys(), user.keys)
+    const roleLockboxes = roles.map(roleName => lockbox.create(this.roleKeys(roleName), user.keys))
     const lockboxes = [teamLockbox, ...roleLockboxes]
+
+    // post the member to the signature chain
     this.dispatch({
       type: 'ADD_MEMBER',
       payload: { user, roles, lockboxes },
@@ -149,13 +154,14 @@ export class Team extends EventEmitter {
 
   /** Adds a role */
   public addRole = (role: Role) => {
-    // we're creating this role so we need to generate a new key
-    const roleSecret = randomKey()
+    // we're creating this role so we need to generate new keys
+    const roleKeys = newKeys({ scope: ROLE, name: role.roleName })
 
     // make lockboxes for all current admins
-    const lockboxes = this.admins().map(member =>
-      this.createLockbox(ROLE, role.roleName, member, roleSecret)
-    )
+    // TODO: Make a lockbox for the admin role instead
+    const lockboxes = this.admins().map(user => lockbox.create(roleKeys, user.keys))
+
+    // post the role to the signature chain
     this.dispatch({
       type: 'ADD_ROLE',
       payload: { ...role, lockboxes },
@@ -174,11 +180,13 @@ export class Team extends EventEmitter {
 
   /** Gives a member a role */
   public addMemberRole = (userName: string, roleName: string) => {
-    const roleLockbox = this.createLockbox(ROLE, roleName, this.members(userName))
-    const lockboxes = [roleLockbox]
+    // make a lockbox for the role
+    const roleLockbox = lockbox.create(this.roleKeys(roleName), this.members(userName).keys)
+
+    // post the member role to the signature chain
     this.dispatch({
       type: 'ADD_MEMBER_ROLE',
-      payload: { userName, roleName, lockboxes },
+      payload: { userName, roleName, lockboxes: [roleLockbox] },
     })
   }
 
@@ -197,7 +205,7 @@ export class Team extends EventEmitter {
     secretKey = invitations.newSecretKey()
   ) => {
     // generate invitation
-    const teamKeys = this.teamKeys
+    const teamKeys = this.teamKeys()
     const invitation = invitations.create({ teamKeys, userName, roles, secretKey })
 
     // post invitation to signature chain
@@ -212,20 +220,26 @@ export class Team extends EventEmitter {
 
   public admit = (proof: ProofOfInvitation) => {
     const { id, user } = proof
+    const teamKeys = this.teamKeys()
 
     // look up the invitation
     const invitation = this.state.invitations[id]
     if (invitation === undefined) throw new Error(`An invitation with id '${id}' was not found.`)
 
     // open the invitation
-    const { roles } = invitations.open(invitation, this.teamKeys)
+    const { roles } = invitations.open(invitation, teamKeys)
 
     // validate proof against original invitation
-    const validation = invitations.validate(proof, invitation, this.teamKeys)
+    const validation = invitations.validate(proof, invitation, teamKeys)
     if (validation.isValid === false) throw validation.error
 
     // all good, let them in
-    this.dispatch({ type: 'ADMIT_INVITED_MEMBER', payload: { id, user, roles } })
+
+    // post admission to the signature chain
+    this.dispatch({
+      type: 'ADMIT_INVITED_MEMBER',
+      payload: { id, user, roles },
+    })
   }
 
   // private properties
@@ -243,40 +257,23 @@ export class Team extends EventEmitter {
     // Redact user's secret keys, since this will be written into the public chain
     const rootMember = redactUser(this.context.user)
 
-    // Team & role secrets are never stored in plaintext, only encrypted into individual lockboxes
-    // Here we create new lockboxes with new random keys for the founding member
-    const lockboxes = [this.createLockbox(TEAM, teamName), this.createLockbox(ROLE, ADMIN)]
+    // Generate new team and admin keysets
+    const teamKeys = newKeys({ scope: TEAM })
+    const adminKeys = newKeys({ scope: ROLE, name: ADMIN })
 
-    // create root link
+    // Team & role secrets are never stored in plaintext, only encrypted into individual lockboxes.
+    // Here we create new lockboxes with the team & admin keys for the founding member
+    const teamLockbox = lockbox.create(teamKeys, rootMember.keys)
+    const adminLockbox = lockbox.create(adminKeys, rootMember.keys)
+    const lockboxes = [teamLockbox, adminLockbox]
+
     this.chain = []
+
+    // Post root link to signature chain
     this.dispatch({
       type: 'ROOT',
       payload: { teamName, rootMember, lockboxes },
     })
-  }
-
-  private createLockbox(
-    scope: KeysetScope,
-    name: string,
-    recipient: User | UserWithSecrets = this.context.user,
-    secret: string = this.getSecretForLockbox(recipient, scope, name)
-  ) {
-    return lockbox.create({ scope, name, recipient, secret })
-  }
-
-  private getSecretForLockbox(recipient: User | UserWithSecrets, scope: KeysetScope, name: string) {
-    // if we're creating a lockbox for ourselves, that means the key doesn't exist yet so we create a new one
-    const isOwnLockbox = recipient.userName === this.context.user.userName
-    if (isOwnLockbox) return randomKey()
-
-    // otherwise we're sharing a key that we already have, so we look it up in our existing lockboxes
-    const keyset = this.keys(scope, name)
-    if (keyset === undefined)
-      throw new Error(
-        `You don't have keys for ${scope.toLowerCase()} '${name}', ` +
-          `so we can't create a lockbox for ${recipient.userName}.`
-      )
-    return keyset.seed
   }
 
   /** Load a team from a serialized chain */

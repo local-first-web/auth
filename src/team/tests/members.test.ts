@@ -1,4 +1,12 @@
-import { bob, bobsContext, charlie, defaultContext, expectToLookLikeKeyset, storage, teamChain } from './utils'
+import {
+  bob,
+  bobsContext,
+  charlie,
+  defaultContext,
+  expectToLookLikeKeyset,
+  storage,
+  teamChain,
+} from './utils'
 import { ADMIN } from '/role'
 import { Team } from '/team'
 import { redactUser } from '/user'
@@ -28,7 +36,7 @@ describe('Team', () => {
       const adminKeyset = team.roleKeys(ADMIN)
       expectToLookLikeKeyset(adminKeyset)
 
-      const teamKeys = team.teamKeys
+      const teamKeys = team.teamKeys()
       expectToLookLikeKeyset(teamKeys)
     })
 
@@ -49,12 +57,12 @@ describe('Team', () => {
       const bobsTeam = storage.load(bobsContext)
 
       // Bob has team keys
-      const teamKeys = bobsTeam.teamKeys
+      const teamKeys = bobsTeam.teamKeys()
       expectToLookLikeKeyset(teamKeys)
 
       // Bob is not an admin so he doesn't have admin keys
-      const adminKeyset = bobsTeam.roleKeys(ADMIN)
-      expect(adminKeyset).toBeUndefined()
+      const bobLooksForAdminKeys = () => bobsTeam.roleKeys(ADMIN)
+      expect(bobLooksForAdminKeys).toThrow(/not found/)
     })
 
     it('makes an admin lockbox for an added admin member', () => {
