@@ -1,6 +1,7 @@
 import { generateKeys } from '/keys/generateKeys'
 import { randomKey } from '/keys/randomKey'
 import { redactKeys } from '/keys/redactSecrets'
+import { KeysetScope, KeysetWithSecrets } from '/keys/types'
 
 describe('redactSecrets', () => {
   it('should redact secrets from a random keyset', () => {
@@ -17,7 +18,9 @@ describe('redactSecrets', () => {
   })
 
   it('should redact secrets from a known keyset', () => {
-    const secretKeyset = {
+    const secretKeyset: KeysetWithSecrets = {
+      scope: KeysetScope.EPHEMERAL,
+      generation: 0,
       seed: 'xvIoa0SjV7C+tIwVLaGAXSWLH/H8KwC3BVMsQO68Er4=',
       signature: {
         publicKey: 'xvIoa0SjV7C+tIwVLaGAXSWLH/H8KwC3BVMsQO68Er4=',
@@ -27,12 +30,12 @@ describe('redactSecrets', () => {
         publicKey: 'Yxb5B79mNvtDg9kjvDHIlFK4pu8XvXT0to9TtILijig=',
         secretKey: 'P2rSWEUUInw/ZwkbVwV8/W6+2n2JCNeiV2S5rtyRa5I=',
       },
-      generation: 0,
     }
 
     const publicKeyset = redactKeys(secretKeyset)
 
     expect(publicKeyset).toEqual({
+      scope: KeysetScope.EPHEMERAL,
       encryption: 'Yxb5B79mNvtDg9kjvDHIlFK4pu8XvXT0to9TtILijig=',
       signature: 'xvIoa0SjV7C+tIwVLaGAXSWLH/H8KwC3BVMsQO68Er4=',
       generation: 0,
