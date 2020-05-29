@@ -9,7 +9,6 @@ import {
 } from './utils'
 import { ADMIN } from '/role'
 import { Team } from '/team'
-import { redactUser } from '/user'
 
 describe('Team', () => {
   beforeEach(() => {
@@ -42,7 +41,7 @@ describe('Team', () => {
 
     it('adds a member', () => {
       const { team } = setup()
-      team.add(redactUser(bob))
+      team.add(bob)
       expect(team.members().length).toBe(2)
       expect(team.members('bob').userName).toBe('bob')
     })
@@ -50,7 +49,7 @@ describe('Team', () => {
     it('makes lockboxes for added members', () => {
       // Alice creates a team, adds Bob, and persists it
       const { team } = setup()
-      team.add(redactUser(bob))
+      team.add(bob)
       storage.save(team)
 
       // Bob loads the team
@@ -68,7 +67,7 @@ describe('Team', () => {
     it('makes an admin lockbox for an added admin member', () => {
       // Alice creates a team, adds Bob as an admin, and persists it
       const { team } = setup()
-      team.add(redactUser(bob), [ADMIN])
+      team.add(bob, [ADMIN])
       storage.save(team)
 
       // Bob loads the team
@@ -81,18 +80,18 @@ describe('Team', () => {
 
     it('does not add a member that is already present', () => {
       const { team } = setup()
-      const addBob = () => team.add(redactUser(bob))
+      const addBob = () => team.add(bob)
       expect(addBob).not.toThrow()
 
       // try adding bob again
-      const addBobAgain = () => team.add(redactUser(bob))
+      const addBobAgain = () => team.add(bob)
       expect(addBobAgain).toThrow(/already a member/)
     })
 
     it('removes a member', () => {
       const { team } = setup()
 
-      team.add(redactUser(bob))
+      team.add(bob)
       expect(team.has('bob')).toBe(true)
 
       team.remove('bob')
@@ -109,14 +108,14 @@ describe('Team', () => {
 
     it('gets an individual member', () => {
       const { team } = setup()
-      team.add(redactUser(bob))
+      team.add(bob)
       const member = team.members('bob')
       expect(member.userName).toBe('bob')
     })
 
     it('throws if asked to get a nonexistent member', () => {
       const { team } = setup()
-      team.add(redactUser(bob))
+      team.add(bob)
 
       const getNed = () => team.members('ned')
       expect(getNed).toThrow(/not found/)
@@ -128,8 +127,8 @@ describe('Team', () => {
       expect(team.members()).toHaveLength(1)
       expect(team.members().map(m => m.userName)).toEqual(['alice'])
 
-      team.add(redactUser(bob))
-      team.add(redactUser(charlie))
+      team.add(bob)
+      team.add(charlie)
       expect(team.members()).toHaveLength(3)
       expect(team.members().map(m => m.userName)).toEqual(['alice', 'bob', 'charlie'])
     })
