@@ -6,10 +6,12 @@
  * @returns a set of public keys of the form `{signature (publicKey), encryption (publicKey)}`
  */
 export const redactKeys = (keys: KeysetWithSecrets | PublicKeyset): PublicKeyset =>
-  !hasSecrets(keys)
+  (!hasSecrets(keys)
     ? keys
     : {
-        ...keys,
+        scope: keys.scope,
+        name: keys.name,
+        generation: keys.generation,
         encryption: keys.encryption.publicKey,
         signature: keys.signature.publicKey,
-      }
+      }) as PublicKeyset
