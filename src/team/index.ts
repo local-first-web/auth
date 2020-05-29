@@ -131,7 +131,10 @@ export class Team extends EventEmitter {
   // resulting lockboxes, the signed links) are posted on the chain.
 
   /** Adds a user */
-  public add = (user: User, roles: string[] = []) => {
+  public add = (user: User | UserWithSecrets, roles: string[] = []) => {
+    // don't leak user secrets if we have them
+    const redactedUser = redactUser(user)
+
     // make lockboxes for the new member
     const teamLockbox = lockbox.create(this.teamKeys(), user.keys)
     const roleLockboxes = roles.map(roleName => lockbox.create(this.roleKeys(roleName), user.keys))
@@ -140,7 +143,7 @@ export class Team extends EventEmitter {
     // post the member to the signature chain
     this.dispatch({
       type: 'ADD_MEMBER',
-      payload: { user, roles, lockboxes },
+      payload: { user: redactedUser, roles, lockboxes },
     })
   }
 
