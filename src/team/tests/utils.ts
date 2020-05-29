@@ -1,5 +1,5 @@
 ﻿import { Client, ContextWithSecrets, Device, DeviceType } from '/context'
-import { newKeys, KeysetScope } from '/keys'
+import { KeysetScope, newKeys } from '/keys'
 import { Role } from '/role'
 import { Team } from '/team'
 import { UserWithSecrets } from '/user'

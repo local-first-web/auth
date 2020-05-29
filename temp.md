@@ -10,43 +10,6 @@
 - bob-desktop
 - bob-tablet
 
-```ts
-
-const getKey(ROLE, ADMIN)
-```
-
-## keyset
-
-- scope (DEVICE/USER/ROLE/TEAM)
-- name ('tablet', 'alice', 'admin', 'team')
-- generation
-
-## lockbox
-
-```ts
-type Credential
-
-const lockbox = create({
-  contents: Actor
-  recipient: Actor
-})
-```
-
-- encryptionKey
-  - scope: EPHEMERAL
-  - publicKey
-- recipientKeys
-  - scope
-  - name
-  - publicKey
-  - generation
-- contents
-  - scope
-  - name
-  - publicKey
-  - generation
-- encryptedSecret
-
 ## encrypted content
 
 - encryptedPayload
@@ -64,3 +27,27 @@ const lockbox = create({
 - separate device key & user key
   - when creating user
   - when creating team
+
+## team lockbox map
+
+created by `collectLockboxes`
+
+```ts
+lockboxes: Lockbox[]
+```
+
+## user keyset map
+
+returned by `getKeys`
+
+```ts
+keys = {
+  TEAM: {
+    TEAM: KeysetWithSecrets[],
+  },
+  ROLE: {
+    admin: KeysetWithSecrets[],
+    managers: KeysetWithSecrets[],
+  },
+}
+```

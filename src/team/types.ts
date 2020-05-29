@@ -1,7 +1,7 @@
 import { LinkBody, SignatureChain, SignedLink, ValidationResult } from '/chain'
 import { Context, ContextWithSecrets } from '/context'
 import { Invitation } from '/invitation/types'
-import { KeysetWithSecrets } from '/keys'
+import { KeysetHistory } from '/keys'
 import { Lockbox } from '/lockbox'
 import { Member } from '/member'
 import { PermissionsMap, Role } from '/role'
@@ -33,7 +33,7 @@ export interface TeamState {
   rootContext?: Context
   members: Member[]
   roles: Role[]
-  lockboxes: TeamLockboxMap
+  lockboxes: Lockbox[]
   invitations: InvitationMap
 }
 
@@ -47,7 +47,7 @@ export interface UserLockboxMap {
 
 export interface KeysetMap {
   [scope: string]: {
-    [name: string]: KeysetWithSecrets
+    [name: string]: KeysetHistory
   }
 }
 

@@ -1,33 +1,14 @@
 import { append } from '/chain/append'
 import { create } from '/chain/create'
 import { validate } from '/chain/validate'
-import { ContextWithSecrets, DeviceType } from '/context'
-import { generateKeys, randomKey } from '/keys'
 import { signatures } from '/crypto'
-import { UserWithSecrets } from '/user'
-
-const alice: UserWithSecrets = {
-  userName: 'alice',
-  keys: generateKeys(),
-}
-
-const context: ContextWithSecrets = {
-  user: alice,
-  device: {
-    name: 'windows laptop',
-    type: DeviceType.laptop,
-  },
-  client: {
-    name: 'test',
-    version: '0',
-  },
-}
+import { defaultContext, alice, bobsContext } from '/team/tests/utils'
 
 describe('chains', () => {
   describe('Alice creats a new chain', () => {
     test('Bob validates it', () => {
       // 👩🏾 Alice
-      const chain = create({ team: 'Spies Я Us' }, context)
+      const chain = create({ team: 'Spies Я Us' }, defaultContext)
 
       // 👨‍🦲 Bob
       const { isValid } = validate(chain)
@@ -36,7 +17,7 @@ describe('chains', () => {
 
     test('Mallory tampers with the payload; Bob is not fooled', () => {
       // 👩🏾 Alice
-      const chain = create({ team: 'Spies Я Us' }, context)
+      const chain = create({ team: 'Spies Я Us' }, defaultContext)
 
       // 🦹‍♂️ Mallory
       const payload = chain[0].body.payload as any
@@ -51,9 +32,9 @@ describe('chains', () => {
   describe('Alice adds a link', () => {
     test('Bob validates it', () => {
       // 👩🏾 Alice
-      const chain = create({ team: 'Spies Я Us' }, context)
+      const chain = create({ team: 'Spies Я Us' }, defaultContext)
       const newLink = { type: 'add-user', payload: { name: 'charlie' } }
-      const newChain = append(chain, newLink, context)
+      const newChain = append(chain, newLink, defaultContext)
 
       // 👨‍🦲 Bob
       const { isValid } = validate(newChain)
@@ -62,9 +43,9 @@ describe('chains', () => {
 
     test('Mallory changes the order of the links; Bob is not fooled', () => {
       // 👩🏾 Alice
-      const chain = create({ team: 'Spies Я Us' }, context)
+      const chain = create({ team: 'Spies Я Us' }, defaultContext)
       const newLink = { type: 'add-user', payload: { name: 'charlie' } }
-      const newChain = append(chain, newLink, context)
+      const newChain = append(chain, newLink, defaultContext)
 
       // 🦹‍♂️ Mallory
       const wrongOrderChain = newChain.reverse()
@@ -76,7 +57,7 @@ describe('chains', () => {
 
     test('Alice, for reasons only she understands, munges the type of the first link; validation fails', () => {
       // 👩🏾 Alice
-      const chain = create({ team: 'Spies Я Us' }, context)
+      const chain = create({ team: 'Spies Я Us' }, defaultContext)
 
       const { body } = chain[0]
       body.type = 'IS_IT_SPELLED_ROOT_OR_ROUTE_OR_REWT'
@@ -96,7 +77,7 @@ describe('chains', () => {
     })
 
     test('Bob saves a chain to a file and loads it later', () => {
-      const chain = create({ team: 'Spies Я Us' }, context)
+      const chain = create({ team: 'Spies Я Us' }, defaultContext)
 
       // 👨‍🦲 Bob
       // serialize

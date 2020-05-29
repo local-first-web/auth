@@ -24,6 +24,8 @@ export type PublicKeyset = KeyMetadata & {
   encryption: Base64 // = encryption.publicKey
 }
 
+export type KeysetHistory = KeysetWithSecrets[]
+
 export const hasSecrets = (keys: PublicKeyset | KeysetWithSecrets): keys is KeysetWithSecrets => {
   return keys.encryption.hasOwnProperty('secretKey') || keys.signature.hasOwnProperty('secretKey')
 }

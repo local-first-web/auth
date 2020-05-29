@@ -1,12 +1,13 @@
-import { create } from '/invitation/create'
-import { accept } from '/invitation/accept'
-import { validate } from '/invitation/validate'
-import { generateKeys, randomKey } from '/keys'
 import { newSecretKey } from './newSecretKey'
-import { UserWithSecrets, redactUser } from '/user'
+import { accept } from '/invitation/accept'
+import { create } from '/invitation/create'
+import { validate } from '/invitation/validate'
+import { KeysetScope, newKeys } from '/keys'
+import { bob } from '/team/tests/utils'
+import { redactUser } from '/user'
 
 describe('invitations', () => {
-  const teamKeys = generateKeys()
+  const teamKeys = newKeys({ scope: KeysetScope.TEAM })
 
   test('create', () => {
     const secretKey = newSecretKey()
@@ -25,7 +26,6 @@ describe('invitations', () => {
     const invitation = create({ teamKeys, userName: 'bob', secretKey })
 
     // Bob accepts invitation and obtains a credential proving that he was invited.
-    const bob: UserWithSecrets = { userName: 'bob', keys: generateKeys() }
     const proofOfInvitation = accept(secretKey, redactUser(bob))
 
     // Bob shows up to join the team & sees Charlie. Bob shows Charlie his proof of invitation, and

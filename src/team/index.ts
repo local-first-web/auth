@@ -98,25 +98,18 @@ export class Team extends EventEmitter {
   // Keys
 
   /** Returns a keyset (if found) for the given scope and name */
-  public keys(scope: KeysetScope, name: string = scope): KeysetWithSecrets | undefined {
-    const lockboxes = select.getKeys(this.state, this.context.user)
-    if (lockboxes[scope] === undefined) return undefined
-    return lockboxes[scope][name]
+  public keys(scope: KeysetScope, name: string = scope): KeysetWithSecrets {
+    const keysFromLockboxes = select.getKeys(this.state, this.context.user)
+    const keys = keysFromLockboxes[scope] && keysFromLockboxes[scope][name]
+    if (!keys) throw new Error(`Keys not found for ${scope.toLowerCase()} '${name}`)
+    return keys[keys.length - 1] // return the most recent one we have
   }
 
   /** Returns the team's keyset */
-  public teamKeys(): KeysetWithSecrets {
-    const keys = this.keys(TEAM)
-    if (keys === undefined) throw new Error('Team keys not found')
-    return keys
-  }
+  public teamKeys = (): KeysetWithSecrets => this.keys(TEAM)
 
   /** Returns the keys for the given role */
-  public roleKeys(roleName: string): KeysetWithSecrets {
-    const keys = this.keys(ROLE, roleName)
-    if (keys === undefined) throw new Error(`Keys not found for role '${roleName}'`)
-    return keys
-  }
+  public roleKeys = (roleName: string): KeysetWithSecrets => this.keys(ROLE, roleName)
 
   /** Returns the admin keyset */
   public adminKeys = (): KeysetWithSecrets => this.roleKeys(ADMIN)
@@ -160,14 +153,13 @@ export class Team extends EventEmitter {
     // we're creating this role so we need to generate new keys
     const roleKeys = newKeys({ scope: ROLE, name: role.roleName })
 
-    // make lockboxes for all current admins
-    // TODO: Make a lockbox for the admin role instead
-    const lockboxes = this.admins().map(user => lockbox.create(roleKeys, user.keys))
+    // make a lockbox for the admin role, so that all admins can access this role's keys
+    const lockboxForAdmin = lockbox.create(roleKeys, this.adminKeys())
 
     // post the role to the signature chain
     this.dispatch({
       type: 'ADD_ROLE',
-      payload: { ...role, lockboxes },
+      payload: { ...role, lockboxes: [lockboxForAdmin] },
     })
   }
 

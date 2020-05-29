@@ -5,7 +5,7 @@ export const initialState: TeamState = {
   teamName: '',
   members: [],
   roles: [ADMIN_ROLE],
-  lockboxes: {},
+  lockboxes: [],
   invitations: {},
 }
 
