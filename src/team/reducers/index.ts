@@ -6,9 +6,9 @@ export * from '/team/reducers/addRole'
 export * from '/team/reducers/collectLockboxes'
 export * from '/team/reducers/postInvitation'
 export * from '/team/reducers/revokeInvitation'
-export * from '/team/reducers/revokeMember'
-export * from '/team/reducers/revokeMemberRole'
-export * from '/team/reducers/revokeRole'
+export * from '/team/reducers/removeMember'
+export * from '/team/reducers/removeMemberRole'
+export * from '/team/reducers/removeRole'
 export * from '/team/reducers/setTeamName'
 
 export const compose = (reducers: Reducer[]): Reducer => state =>

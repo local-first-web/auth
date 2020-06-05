@@ -142,8 +142,9 @@ export class Team extends EventEmitter {
 
   /** Removes a user */
   public remove = (userName: string) => {
+    // post the removal to the signature chain
     this.dispatch({
-      type: 'REVOKE_MEMBER',
+      type: 'REMOVE_MEMBER',
       payload: { userName },
     })
   }
@@ -168,7 +169,7 @@ export class Team extends EventEmitter {
   /** Removes a role */
   public removeRole = (roleName: string) => {
     this.dispatch({
-      type: 'REVOKE_ROLE',
+      type: 'REMOVE_ROLE',
       payload: { roleName },
     })
   }
@@ -188,7 +189,7 @@ export class Team extends EventEmitter {
   /** Removes a role from a member */
   public removeMemberRole = (userName: string, roleName: string) => {
     this.dispatch({
-      type: 'REVOKE_MEMBER_ROLE',
+      type: 'REMOVE_MEMBER_ROLE',
       payload: { userName, roleName },
     })
   }

@@ -95,26 +95,26 @@ export type TeamAction =
       }
     }
   | {
-      type: 'REVOKE_MEMBER'
+      type: 'REMOVE_MEMBER'
       payload: BasePayload & {
         userName: string
       }
     }
   | {
-      type: 'REVOKE_DEVICE'
+      type: 'REMOVE_DEVICE'
       payload: BasePayload & {
         userName: string
         deviceId: string
       }
     }
   | {
-      type: 'REVOKE_ROLE'
+      type: 'REMOVE_ROLE'
       payload: BasePayload & {
         roleName: string
       }
     }
   | {
-      type: 'REVOKE_MEMBER_ROLE'
+      type: 'REMOVE_MEMBER_ROLE'
       payload: BasePayload & {
         userName: string
         roleName: string

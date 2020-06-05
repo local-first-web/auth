@@ -64,7 +64,7 @@ export interface LinkBody {
 
 #### User-provided fields
 
-- `type` is a label for the type of action that this link represents - for example, `ADD_MEMBER` or `REVOKE`. (This is conceptually similar to a Redux action type.) The `team` module defines the valid types.
+- `type` is a label for the type of action that this link represents - for example, `ADD_MEMBER` or `REMOVE`. (This is conceptually similar to a Redux action type.) The `team` module defines the valid types.
 
 - `payload` is the content of the action - for example, it might contain the name and public keys of a member being added. (Likewise, this is analogous to the payload of a Redux action.)
 

@@ -48,7 +48,7 @@ const validators: TeamStateValidatorSet = {
 
   cantRemoveNonexistentMember: (...args) => {
     const [prevState, link] = args
-    if (link.body.type === 'REVOKE_MEMBER') {
+    if (link.body.type === 'REMOVE_MEMBER') {
       const { userName } = link.body.payload
       if (!select.hasMember(prevState, userName))
         return fail(`There is no member called '${userName}'`, ...args)

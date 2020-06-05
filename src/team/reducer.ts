@@ -7,9 +7,9 @@
   postInvitation,
   Reducer,
   revokeInvitation,
-  revokeMember,
-  revokeMemberRole,
-  revokeRole,
+  removeMember,
+  removeMemberRole,
+  removeRole,
   setTeamName,
 } from './reducers'
 import { ADMIN } from '/role'
@@ -88,29 +88,29 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       ]
     }
 
-    case 'REVOKE_MEMBER': {
+    case 'REMOVE_MEMBER': {
       const { userName } = action.payload
       return [
-        revokeMember(userName), //
+        removeMember(userName), //
       ]
     }
 
-    case 'REVOKE_DEVICE': {
-      // TODO: REVOKE_DEVICE
+    case 'REMOVE_DEVICE': {
+      // TODO: REMOVE_DEVICE
       return []
     }
 
-    case 'REVOKE_ROLE': {
+    case 'REMOVE_ROLE': {
       const { roleName } = action.payload
       return [
-        revokeRole(roleName), //
+        removeRole(roleName), //
       ]
     }
 
-    case 'REVOKE_MEMBER_ROLE': {
+    case 'REMOVE_MEMBER_ROLE': {
       const { userName, roleName } = action.payload
       return [
-        revokeMemberRole(userName, roleName), //
+        removeMemberRole(userName, roleName), //
       ]
     }
 
