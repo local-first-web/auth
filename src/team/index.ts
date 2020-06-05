@@ -3,7 +3,7 @@ import { chain, SignatureChain, validate } from '/chain'
 import { ContextWithSecrets } from '/context'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
-import { KeysetScope, KeysetWithSecrets, randomKey, generateKeys, newKeys } from '/keys'
+import { KeysetScope, KeysetWithSecrets, newKeys, PublicKeyset, KeyNode } from '/keys'
 import * as lockbox from '/lockbox'
 import { Member } from '/member'
 import { ADMIN, Role } from '/role'
@@ -20,10 +20,11 @@ import {
   TeamState,
 } from '/team/types'
 import { redactUser, User, UserWithSecrets } from '/user'
+import { Base64 } from '/lib'
 
 export * from '/team/types'
 
-const { TEAM, ROLE } = KeysetScope
+const { TEAM, ROLE, MEMBER, DEVICE } = KeysetScope
 
 export class Team extends EventEmitter {
   constructor(options: TeamOptions) {
@@ -83,7 +84,7 @@ export class Team extends EventEmitter {
 
   // TODO allow other roles to have admin rights?
 
-  /** Returns true if the member with the given userName is a member of the admin role */
+  /** Returns true if the member with the given userName is a member of the 3 role */
   public memberIsAdmin = (userName: string) => select.memberIsAdmin(this.state, userName)
 
   /** Returns true if the team has a role with the given name*/
@@ -99,13 +100,13 @@ export class Team extends EventEmitter {
 
   /** Returns a keyset (if found) for the given scope and name */
   public keys(scope: KeysetScope, name: string = scope): KeysetWithSecrets {
-    const keysFromLockboxes = select.getKeys(this.state, this.context.user)
+    const keysFromLockboxes = select.getMyKeys(this.state, this.context.user)
     const keys = keysFromLockboxes[scope] && keysFromLockboxes[scope][name]
     if (!keys) throw new Error(`Keys not found for ${scope.toLowerCase()} '${name}`)
     return keys[keys.length - 1] // return the most recent one we have
   }
 
-  /** Returns the team's keyset */
+  /** Returns the team keyset */
   public teamKeys = (): KeysetWithSecrets => this.keys(TEAM)
 
   /** Returns the keys for the given role */
@@ -142,10 +143,16 @@ export class Team extends EventEmitter {
 
   /** Removes a user */
   public remove = (userName: string) => {
+    // create new keys & lockboxes for any keys this person had access to
+    const lockboxes = rotateKeys(this.state, { scope: MEMBER, name: userName })
+
     // post the removal to the signature chain
     this.dispatch({
       type: 'REMOVE_MEMBER',
-      payload: { userName },
+      payload: {
+        userName,
+        lockboxes,
+      },
     })
   }
 
@@ -163,8 +170,6 @@ export class Team extends EventEmitter {
       payload: { ...role, lockboxes: [lockboxForAdmin] },
     })
   }
-
-  // NEXT: wire up revoking lockboxes
 
   /** Removes a role */
   public removeRole = (roleName: string) => {
@@ -188,9 +193,13 @@ export class Team extends EventEmitter {
 
   /** Removes a role from a member */
   public removeMemberRole = (userName: string, roleName: string) => {
+    // create new keys & lockboxes for any keys this person had access to via this role
+    const lockboxes = rotateKeys(this.state, { scope: ROLE, name: roleName })
+
+    // post the removal to the signature chain
     this.dispatch({
       type: 'REMOVE_MEMBER_ROLE',
-      payload: { userName, roleName },
+      payload: { userName, roleName, lockboxes },
     })
   }
 
@@ -290,10 +299,29 @@ export class Team extends EventEmitter {
   /** Runs the reducer on the entire chain to reconstruct the current team state. */
   private updateState = () => {
     /** Validate the chain's integrity. (This does not enforce team rules - that is done in the
-     * reducer as it progresses through each link. ) */
+     * reducer as it progresses through each link.) */
     const validation = validate(this.chain)
     if (!validation.isValid) throw validation.error
 
     this.state = this.chain.reduce(reducer, initialState)
   }
+}
+
+const rotateKeys = (state: TeamState, node: KeyNode) => {
+  // what nodes can this node see?
+  const nodesToRotate = [node, ...select.getVisibleNodes(state, node)]
+
+  // for each of these nodes, generate a new key and create new lockboxes for everyone
+  const newLockboxes = nodesToRotate.flatMap(node => {
+    // create a new keyset for this scope
+    const keys = newKeys(node)
+
+    // find all lockboxes containing keys for this node, and rotate each one
+    return state.lockboxes
+      .filter(({ contents }) => contents.scope === node.scope && contents.name === node.name)
+      .map(oldLockbox => lockbox.rotate(oldLockbox, keys))
+  })
+
+  // we return all the new lockboxes as a single array, to be posted to the signature chain
+  return newLockboxes
 }

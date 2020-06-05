@@ -25,7 +25,7 @@ const validators: TeamStateValidatorSet = {
 
       // make sure member exists
       const noSuchUser = !select.hasMember(prevState, userName)
-      if (noSuchUser) return fail(`There is no member called '${userName}'`, ...args)
+      if (noSuchUser) return fail(`A member named '${userName}' was not found`, ...args)
 
       if (!nonAdminActions.includes(type)) {
         // make sure member is admin
@@ -51,7 +51,7 @@ const validators: TeamStateValidatorSet = {
     if (link.body.type === 'REMOVE_MEMBER') {
       const { userName } = link.body.payload
       if (!select.hasMember(prevState, userName))
-        return fail(`There is no member called '${userName}'`, ...args)
+        return fail(`A member named '${userName}' was not found`, ...args)
     }
     return VALID
   },

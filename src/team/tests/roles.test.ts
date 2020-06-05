@@ -94,13 +94,12 @@ describe('Team', () => {
       // Bob loads the team
       const bobsTeam = storage.load(bobsContext)
 
-      // Bob is no longer an admin
+      // On his side, Bob can see that he is no longer an admin
       expect(bobsTeam.memberIsAdmin('bob')).toBe(false)
 
       // Bob doesn't have admin keys any more
-      // TODO this is failing which is good, because we haven't rotated the keys
-      // const bobLooksForAdminKeys = () => bobsTeam.roleKeys(ADMIN)
-      // expect(bobLooksForAdminKeys).toThrow()
+      const bobLooksForAdminKeys = () => bobsTeam.roleKeys(ADMIN)
+      expect(bobLooksForAdminKeys).toThrow()
     })
 
     it('gets an individual role', () => {
@@ -166,6 +165,37 @@ describe('Team', () => {
       expect(remove).toThrow(/not an admin/)
     })
 
-    it.todo('rotates keys after removing a member from a role')
+    it.only('rotates keys when a member is removed from a role', () => {
+      const { team: alicesTeam } = setup()
+      alicesTeam.add(redactUser(bob), [ADMIN])
+
+      // Alice's admin keys are generation 0
+      expect(alicesTeam.adminKeys().generation).toBe(0)
+
+      // Alice encrypts something for admins
+      // TODO
+      // Bob can read it
+      // TODO
+
+      // Bob keeps his admin keys
+      // TODO
+
+      // Alice removes Bob's admin role
+      alicesTeam.removeMemberRole('bob', ADMIN)
+
+      // Bob can still read the old message (can't undisclose information you've disclosed)
+      // TODO
+
+      // Alice's admin keys are now generation 1
+      expect(alicesTeam.adminKeys().generation).toBe(1)
+
+      // Alice encrypts a new message for admins
+      // TODO
+
+      // Bob tries to read the new message with his old admin key
+      // TODO
+      // He can't because the admin keys have been rotated
+      // TODO
+    })
   })
 })

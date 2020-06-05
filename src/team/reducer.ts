@@ -48,7 +48,7 @@ export const reducer = (state: TeamState, link: TeamLink) => {
 
 /**
  * Each action type generates one or more transforms (functions that take the old state and return a
- * new state)
+ * new state). This returns an array of transforms that are then applied in order.
  * @param action The team action (type + payload) being processed
  */
 const getTransforms = (action: TeamAction): Reducer[] => {

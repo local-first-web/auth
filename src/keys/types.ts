@@ -8,24 +8,28 @@ export enum KeysetScope {
   EPHEMERAL = 'EPHEMERAL',
 }
 
-export type KeyMetadata = {
+export interface KeyNode {
   scope: KeysetScope
   name: string
+}
+
+export interface KeyMetadata extends KeyNode {
   generation: number
 }
 
-export type KeysetWithSecrets = KeyMetadata & {
-  signature: Base64Keypair
+export interface KeysetWithSecrets extends KeyMetadata {
   encryption: Base64Keypair
+  signature: Base64Keypair
 }
 
-export type PublicKeyset = KeyMetadata & {
-  signature: Base64 // = signature.publicKey
+export interface PublicKeyset extends KeyMetadata {
   encryption: Base64 // = encryption.publicKey
+  signature: Base64 // = signature.publicKey
 }
 
 export type KeysetHistory = KeysetWithSecrets[]
 
+// type guard: PublicKeyset vs KeysetWithSecrets
 export const hasSecrets = (keys: PublicKeyset | KeysetWithSecrets): keys is KeysetWithSecrets => {
   return keys.encryption.hasOwnProperty('secretKey') || keys.signature.hasOwnProperty('secretKey')
 }

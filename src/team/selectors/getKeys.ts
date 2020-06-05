@@ -1,13 +1,13 @@
-﻿import { open, Lockbox } from '/lockbox'
+﻿import { KeyNode, KeysetScope, KeysetWithSecrets } from '/keys'
+import { open } from '/lockbox'
 import { KeysetMap, TeamState } from '/team/types'
 import { UserWithSecrets } from '/user'
-import { KeysetWithSecrets } from '/keys'
 
-/** Returns all keysets from the given user's lockboxes in a structure that looks like this:
+/** Returns all keysets from the current user's lockboxes in a structure that looks like this:
  * ```ts
  * {
  *    TEAM: {
- *      TEAM: Keyset[],
+ *      TEAM: Keyset[], // <- all keys starting with generation 0
  *    ROLE: {
  *      admin: Keyset[]
  *      managers: Keyset[]
@@ -15,22 +15,18 @@ import { KeysetWithSecrets } from '/keys'
  * }
  * ```
  */
-export const getKeys = (state: TeamState, user: UserWithSecrets): KeysetMap => {
-  const usersOwnKeys = user.keysetHistory || [user.keys] // if there's no history, just use the keys we have
-  const allVisibleKeys = usersOwnKeys.flatMap(getDerivedKeys(state.lockboxes))
+export const getMyKeys = (state: TeamState, currentUser: UserWithSecrets): KeysetMap => {
+  const usersOwnKeys = currentUser.keysetHistory || [currentUser.keys] // if there's no history, just use the keys we have
+  const allVisibleKeys = usersOwnKeys.flatMap(keys => getDerivedKeys(state, keys))
   return allVisibleKeys.reduce(organizeKeysIntoMap, {})
 }
 
-const getDerivedKeys = (lockboxes: Lockbox[]) => (keyset: KeysetWithSecrets) =>
-  getKeysUnlockedBy(keyset, lockboxes)
-const getKeysUnlockedBy = (
-  keyset: KeysetWithSecrets,
-  lockboxes: Lockbox[]
-): KeysetWithSecrets[] => {
+const getDerivedKeys = (state: TeamState, keyset: KeysetWithSecrets): KeysetWithSecrets[] => {
+  const { lockboxes } = state
   const publicKey = keyset.encryption.publicKey
-  const lockboxesThatThisKeyOpens = lockboxes.filter(l => l.recipient.publicKey === publicKey)
-  const keysets = lockboxesThatThisKeyOpens.map(lockbox => open(lockbox, keyset))
-  const derivedKeysets = keysets.flatMap(keyset => getKeysUnlockedBy(keyset, lockboxes))
+  const lockboxesICanUnlock = lockboxes.filter(({ recipient }) => recipient.publicKey === publicKey)
+  const keysets = lockboxesICanUnlock.map(lockbox => open(lockbox, keyset))
+  const derivedKeysets = keysets.flatMap(keyset => getDerivedKeys(state, keyset))
   return [...keysets, ...derivedKeysets]
 }
 
@@ -47,3 +43,14 @@ const organizeKeysIntoMap = (result: KeysetMap, keys: KeysetWithSecrets) => {
     },
   } as KeysetMap
 }
+
+export const getVisibleNodes = (state: TeamState, { scope, name }: KeyNode): KeyNode[] => {
+  const keysUnlockedByThisKey = state.lockboxes
+    .filter(({ recipient }) => recipient.scope === scope && recipient.name === name)
+    .map(({ contents: { scope, name } }) => ({ scope, name } as KeyNode))
+
+  const derivedKeys = keysUnlockedByThisKey.flatMap(node => getVisibleNodes(state, node))
+  return [...keysUnlockedByThisKey, ...derivedKeys]
+}
+
+export type KeyGenerationLookup = Map<{ scope: KeysetScope; name: string }, number>

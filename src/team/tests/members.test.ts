@@ -98,12 +98,30 @@ describe('Team', () => {
       expect(team.has('bob')).toBe(false)
     })
 
+    it('rotates keys after removing a member', () => {
+      const { team } = setup()
+      team.addRole
+      // add bob as admin
+      team.add(bob, [ADMIN])
+
+      // keys have never been rotated
+      expect(team.teamKeys().generation).toBe(0)
+      expect(team.adminKeys().generation).toBe(0)
+
+      // remove bob from team
+      team.remove('bob')
+
+      // team keys & admin keys have now been rotated once
+      expect(team.teamKeys().generation).toBe(1)
+      expect(team.adminKeys().generation).toBe(1)
+    })
+
     it('throws if asked to remove a nonexistent member', () => {
       const { team } = setup()
 
       // try removing bob although he hasn't been added
       const removeBob = () => team.remove('bob')
-      expect(removeBob).toThrow(/no member/)
+      expect(removeBob).toThrow(/not found/)
     })
 
     it('gets an individual member', () => {
@@ -132,8 +150,6 @@ describe('Team', () => {
       expect(team.members()).toHaveLength(3)
       expect(team.members().map(m => m.userName)).toEqual(['alice', 'bob', 'charlie'])
     })
-
-    it.todo('rotates keys after removing a member')
 
     it.todo('automatically resolves concurrent edits')
   })
