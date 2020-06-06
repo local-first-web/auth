@@ -1,4 +1,4 @@
-﻿import { PublicKeys, KeysWithSecrets, KeyMetadata, KeyScope } from '/keys'
+﻿import { PublicKeys, KeysWithSecrets, KeyMetadata, KeyType } from '/keys'
 import { Base64 } from '/lib'
 
 export type KeyManifest = KeyMetadata & {
@@ -15,7 +15,7 @@ export const isKeyManifest = (
 export interface Lockbox {
   /** The public key of the keypair used to encrypt this lockbox  */
   encryptionKey: {
-    scope: KeyScope.EPHEMERAL
+    type: KeyType.EPHEMERAL
     publicKey: Base64
   }
 
@@ -28,3 +28,5 @@ export interface Lockbox {
   /** The encrypted keyset */
   encryptedPayload: Base64
 }
+
+export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<T>

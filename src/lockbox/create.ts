@@ -1,5 +1,5 @@
 ﻿import { asymmetric } from '/crypto'
-import { generateKeys, KeyScope, KeysWithSecrets, PublicKeys, redactKeys } from '/keys'
+import { generateKeys, KeyType, KeysWithSecrets, PublicKeys, redactKeys } from '/keys'
 import { KeyManifest, Lockbox, isKeyManifest } from '/lockbox/types'
 
 /** Creates a new lockbox that can be opened using the recipient's private key. */
@@ -31,8 +31,8 @@ export const create = (
 
   const lockbox = {
     encryptionKey: {
-      scope: KeyScope.EPHEMERAL,
-      name: KeyScope.EPHEMERAL,
+      type: KeyType.EPHEMERAL,
+      name: KeyType.EPHEMERAL,
       publicKey: encryptionKeys.publicKey,
     },
     recipient: {

@@ -1,8 +1,8 @@
-﻿import { KeyNode } from '/keys'
+﻿import { KeyScope } from '/keys'
 import { TeamState } from '/team/types'
 import { Lockbox } from '/lockbox'
 
-export const getLockboxesForNode = (state: TeamState, node: KeyNode): Lockbox[] =>
+export const getLockboxesForNode = (state: TeamState, node: KeyScope): Lockbox[] =>
   state.lockboxes.filter(
-    ({ contents }) => contents.scope === node.scope && contents.name === node.name
+    ({ contents }) => contents.type === node.type && contents.name === node.name
   )

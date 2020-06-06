@@ -1,6 +1,6 @@
 ﻿import { Base64, Base64Keypair } from '/lib'
 
-export enum KeyScope {
+export enum KeyType {
   TEAM = 'TEAM',
   ROLE = 'ROLE',
   MEMBER = 'MEMBER',
@@ -8,19 +8,24 @@ export enum KeyScope {
   EPHEMERAL = 'EPHEMERAL',
 }
 
-export interface KeyNode {
-  scope: KeyScope
-  name: string
-}
-
-export interface KeyMetadata extends KeyNode {
-  generation: number
-}
-
-export interface KeysWithSecrets extends KeyMetadata {
+export interface Keyset {
   encryption: Base64Keypair
   signature: Base64Keypair
 }
+
+/**
+ * A KeyNode represents the
+ */
+export interface KeyScope {
+  type: KeyType
+  name: string
+}
+
+export interface KeyMetadata extends KeyScope {
+  generation: number
+}
+
+export interface KeysWithSecrets extends KeyMetadata, Keyset {}
 
 export interface PublicKeys extends KeyMetadata {
   encryption: Base64 // = encryption.publicKey

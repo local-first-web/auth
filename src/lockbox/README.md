@@ -21,20 +21,20 @@ For example:
 const lockbox = {
   // need this to open the lockbox
   encryptionKey: {
-    scope: 'EPHEMERAL',
+    type: 'EPHEMERAL',
     publicKey: 'uwphz8qQaqNbfDx9JhvgOWt9hOgfNR3eZ0sgS1eFUP6QX25Q',
   },
 
   // information to identify the key that can open this lockbox
   recipient: {
-    scope: 'USER',
+    type: 'USER',
     name: 'alice',
     publicKey: 'x9nX0sBPlbUugyai9BR0A5vuZgMCekWodDpbtty9CrK7u8al',
   },
 
   // information about the contents of the lockbox
   contents: {
-    scope: 'ROLE',
+    type: 'ROLE',
     name: 'admin',
     publicKey: 'BmY3ZojiKMQavrPaGc3dp7N1E0nlw6ZtBvqAN4rOIXcWn9ej',
   },
@@ -69,20 +69,20 @@ import * as lockbox from '/lockbox'
 
 const adminKeysForAlice = lockbox.create({
   contents: {
-    scope: 'ROLE',
+    type: 'ROLE',
     name: 'admin',
     seed: 'CrVdFPwluPaVIHUS22I0LrJOM47wCOnN853V3OonqnToO9i5',
   	publicKey: 'CSiD5BxujROcznaLdfowq9W8d4voS8CGL06fOuiyHO7trRml',
   },
   recipient: {
-  	scope: 'USER',
+  	type: 'USER',
   	name: 'alice',
   	publicKey: 'JG81tVDDfp3BqXedrtiRiWtvqQKt2175nAceYIPjjMR7z2Y1',
 	}
 )
 ```
 
-This example illustrates the minimal data that `create` needs to make a lockbox. In practice, we're more likely to just pass two `Keyset` objects, and the function will take what it needs from each:
+This example illustrates the minimal data that `create` needs to make a lockbox. In practice, we're more likely to just pass two keysets, and the function will take what it needs from each:
 
 ```tsx
 const adminKeysForAlice = lockbox.create({

@@ -31,13 +31,13 @@ const getDerivedKeys = (state: TeamState, keyset: KeysWithSecrets): KeysWithSecr
 }
 
 const organizeKeysIntoMap = (result: KeysetMap, keys: KeysWithSecrets) => {
-  const { scope, name, generation } = keys
-  const keysetsForScope = result[scope] || {}
+  const { type, name, generation } = keys
+  const keysetsForScope = result[type] || {}
   const keysetHistory = keysetsForScope[name] || []
   keysetHistory[generation] = keys
   return {
     ...result,
-    [scope]: {
+    [type]: {
       ...keysetsForScope,
       [name]: keysetHistory,
     },

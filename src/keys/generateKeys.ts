@@ -1,8 +1,8 @@
 ﻿import nacl from 'tweetnacl'
 import { hash, stretch } from '/crypto'
 import { randomKey } from '/keys/randomKey'
-import { KeysWithSecrets, KeyMetadata, KeyScope } from '/keys/types'
-import { HashPurpose, Key, keypairToBase64 } from '/lib'
+import { KeyMetadata, KeysWithSecrets } from '/keys/types'
+import { HashPurpose, Key, keypairToBase64, Optional } from '/lib'
 
 /**
  * Generates a full set of per-user keys from a single 32-byte secret, roughly following the
@@ -28,9 +28,9 @@ export const generateKeys = (
  * Randomly generates a new set of keys with the provided metadata
  */
 export const newKeys = (args: Optional<KeyMetadata, 'name' | 'generation'>): KeysWithSecrets => {
-  const { scope, name = scope, generation = 0 } = args
+  const { type, name = type, generation = 0 } = args
   return {
-    scope,
+    type,
     name,
     generation,
     ...generateKeys(),
@@ -54,5 +54,3 @@ const deriveEncryptionKeys = (secretKey: Key) => {
   const keys = keyPair.fromSecretKey(derivedSecretKey)
   return keypairToBase64(keys)
 }
-
-type Optional<T, K extends keyof T> = Omit<T, K> & Partial<T>

@@ -1,7 +1,8 @@
-﻿import { Lockbox } from '/lockbox/types'
-import { KeysWithSecrets, generateKeys } from '/keys'
-import { asymmetric } from '/crypto'
+﻿import { asymmetric } from '/crypto'
+import { KeysWithSecrets } from '/keys'
+import { Lockbox } from '/lockbox/types'
 
+//TODO: Memoize this
 export const open = (lockbox: Lockbox, decryptionKeys: KeysWithSecrets): KeysWithSecrets => {
   const { encryptionKey, encryptedPayload } = lockbox
 

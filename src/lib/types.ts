@@ -13,3 +13,5 @@ export type Base64Keypair = {
 
 export type Encrypted<T> = string
 export type Serialized<T> = string
+
+export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<T>

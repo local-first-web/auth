@@ -47,7 +47,7 @@ export interface UserLockboxMap {
 }
 
 export interface KeysetMap {
-  [scope: string]: {
+  [type: string]: {
     [name: string]: KeysetHistory
   }
 }

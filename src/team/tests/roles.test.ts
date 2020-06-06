@@ -12,7 +12,7 @@ import {
   teamChain,
 } from '/team/tests/utils'
 import { redactUser } from '/user'
-import { KeyScope } from '/keys'
+import { KeyType } from '/keys'
 
 describe('Team', () => {
   beforeEach(() => {
@@ -179,7 +179,7 @@ describe('Team', () => {
 
       // Alice encrypts something for admins
       const message = 'i need you to take care of that thing'
-      const encryptedMessage = alicesTeam.encrypt(message, { scope: KeyScope.ROLE, name: ADMIN })
+      const encryptedMessage = alicesTeam.encrypt(message, { type: KeyType.ROLE, name: ADMIN })
 
       // Bob can read it
       // TODO

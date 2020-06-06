@@ -9,7 +9,7 @@ export const redactKeys = (keys: KeysWithSecrets | PublicKeys): PublicKeys =>
   (!hasSecrets(keys)
     ? keys
     : {
-        scope: keys.scope,
+        type: keys.type,
         name: keys.name,
         generation: keys.generation,
         encryption: keys.encryption.publicKey,

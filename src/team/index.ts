@@ -1,32 +1,23 @@
 import { EventEmitter } from 'events'
 import { chain, SignatureChain, validate } from '/chain'
 import { ContextWithSecrets } from '/context'
+import { symmetric } from '/crypto'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
-import { KeyScope, KeysWithSecrets, newKeys, PublicKeys, KeyNode } from '/keys'
+import { KeyScope, KeyType, KeysWithSecrets, newKeys } from '/keys'
+import { Payload } from '/lib'
 import * as lockbox from '/lockbox'
 import { Member } from '/member'
 import { ADMIN, Role } from '/role'
 import { ALL, initialState } from '/team/constants'
 import { reducer } from '/team/reducer'
 import * as select from '/team/selectors'
-import {
-  ExistingTeamOptions,
-  isNew,
-  NewTeamOptions,
-  TeamAction,
-  TeamLink,
-  TeamOptions,
-  TeamState,
-  EncryptedMessage,
-} from '/team/types'
+import { EncryptedMessage, isNew, TeamAction, TeamLink, TeamOptions, TeamState } from '/team/types'
 import { redactUser, User, UserWithSecrets } from '/user'
-import { Base64, Payload } from '/lib'
-import { symmetric } from '/crypto'
 
 export * from '/team/types'
 
-const { TEAM, ROLE, MEMBER, DEVICE } = KeyScope
+const { TEAM, ROLE, MEMBER, DEVICE } = KeyType
 
 export class Team extends EventEmitter {
   constructor(options: TeamOptions) {
@@ -41,8 +32,8 @@ export class Team extends EventEmitter {
       const rootMember = redactUser(this.context.user)
 
       // Generate new team and admin keysets
-      const teamKeys = newKeys({ scope: TEAM })
-      const adminKeys = newKeys({ scope: ROLE, name: ADMIN })
+      const teamKeys = newKeys({ type: TEAM })
+      const adminKeys = newKeys({ type: ROLE, name: ADMIN })
 
       // Team & role secrets are never stored in plaintext, only encrypted into individual lockboxes.
       // Here we create new lockboxes with the team & admin keys for the founding member
@@ -124,20 +115,19 @@ export class Team extends EventEmitter {
 
   // Keys
 
-  /** Returns the keyset (if found) for the given scope and name */
-  public keys({ scope, name }: KeyNode): KeysWithSecrets {
+  /** Returns the keyset (if found) for the given type and name */
+  public keys({ type, name }: KeyScope): KeysWithSecrets {
     const keysFromLockboxes = select.getMyKeys(this.state, this.context.user)
-    const keys = keysFromLockboxes[scope] && keysFromLockboxes[scope][name]
-    if (!keys) throw new Error(`Keys not found for ${scope.toLowerCase()} '${name}`)
+    const keys = keysFromLockboxes[type] && keysFromLockboxes[type][name]
+    if (!keys) throw new Error(`Keys not found for ${type.toLowerCase()} '${name}`)
     return keys[keys.length - 1] // return the most recent one we have
   }
 
   /** Returns the team keyset */
-  public teamKeys = (): KeysWithSecrets => this.keys({ scope: TEAM, name: TEAM })
+  public teamKeys = (): KeysWithSecrets => this.keys({ type: TEAM, name: TEAM })
 
   /** Returns the keys for the given role */
-  public roleKeys = (roleName: string): KeysWithSecrets =>
-    this.keys({ scope: ROLE, name: roleName })
+  public roleKeys = (roleName: string): KeysWithSecrets => this.keys({ type: ROLE, name: roleName })
 
   /** Returns the admin keyset */
   public adminKeys = (): KeysWithSecrets => this.roleKeys(ADMIN)
@@ -172,7 +162,7 @@ export class Team extends EventEmitter {
   /** Removes a user */
   public remove = (userName: string) => {
     // create new keys & lockboxes for any keys this person had access to
-    const lockboxes = this.rotateKeys({ scope: MEMBER, name: userName })
+    const lockboxes = this.rotateKeys({ type: MEMBER, name: userName })
 
     // post the removal to the signature chain
     this.dispatch({
@@ -187,7 +177,7 @@ export class Team extends EventEmitter {
   /** Adds a role */
   public addRole = (role: Role) => {
     // we're creating this role so we need to generate new keys
-    const roleKeys = newKeys({ scope: ROLE, name: role.roleName })
+    const roleKeys = newKeys({ type: ROLE, name: role.roleName })
 
     // make a lockbox for the admin role, so that all admins can access this role's keys
     const lockboxForAdmin = lockbox.create(roleKeys, this.adminKeys())
@@ -222,7 +212,7 @@ export class Team extends EventEmitter {
   /** Removes a role from a member */
   public removeMemberRole = (userName: string, roleName: string) => {
     // create new keys & lockboxes for any keys this person had access to via this role
-    const lockboxes = this.rotateKeys({ scope: ROLE, name: roleName })
+    const lockboxes = this.rotateKeys({ type: ROLE, name: roleName })
 
     // post the removal to the signature chain
     this.dispatch({
@@ -278,7 +268,7 @@ export class Team extends EventEmitter {
 
   // ## CRYPTO API
 
-  public encrypt = (message: Payload, recipient: KeyNode): EncryptedMessage => {
+  public encrypt = (message: Payload, recipient: KeyScope): EncryptedMessage => {
     const {
       encryption: { secretKey }, // TODO: go back to having a separate key for symmetric encryption
       generation,
@@ -287,6 +277,10 @@ export class Team extends EventEmitter {
       encryptedPayload: symmetric.encrypt(message, secretKey),
       recipient: { ...recipient, generation },
     }
+  }
+
+  public decrypt = (message: EncryptedMessage) => {
+    const keys = this.keys(message.recipient)
   }
 
   // # PRIVATE PROPERTIES
@@ -319,12 +313,12 @@ export class Team extends EventEmitter {
   /** Given a compromised node (e.g. a member or a role), finds all nodes that are visible from that
    * node, and generates new keys and lockboxes for each of those. Returns all of the new lockboxes in
    * a single array to be posted to the signature chain. */
-  private rotateKeys(compromisedNode: KeyNode) {
+  private rotateKeys(compromisedNode: KeyScope) {
     // make a list containing this node plus all nodes that it sees
     const compromisedNodes = select.getNodesToRotate(this.state, compromisedNode)
 
     // generate new keys and lockboxes for each one
-    const rotateNodeKeys = (node: KeyNode) => {
+    const rotateNodeKeys = (node: KeyScope) => {
       // create a new keyset for this scope
       const replacementKeys = newKeys(node)
 
