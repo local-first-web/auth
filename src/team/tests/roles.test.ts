@@ -44,10 +44,14 @@ describe('Team', () => {
       expect(team.roles(MANAGERS).roleName).toBe(MANAGERS)
     })
 
-    it('creates lockboxes for existing admins when creating a role', () => {
+    it('admins have access to all role keys', () => {
       const { team } = setup()
       team.addRole(managers)
 
+      // Alice is not a member of the managers role
+      expect(team.memberHasRole('alice', MANAGERS)).toBe(false)
+
+      // But Alice does have access to the managers' keys
       const managersKeys = team.roleKeys(MANAGERS)
       expectToLookLikeKeyset(managersKeys)
     })
@@ -165,7 +169,7 @@ describe('Team', () => {
       expect(remove).toThrow(/not an admin/)
     })
 
-    it.only('rotates keys when a member is removed from a role', () => {
+    it('rotates keys when a member is removed from a role', () => {
       const { team: alicesTeam } = setup()
       alicesTeam.add(redactUser(bob), [ADMIN])
 
@@ -177,7 +181,7 @@ describe('Team', () => {
       // Bob can read it
       // TODO
 
-      // Bob keeps his admin keys
+      // Bob sneakily makes a copy of his admin keys
       // TODO
 
       // Alice removes Bob's admin role
