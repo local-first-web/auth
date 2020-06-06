@@ -1,6 +1,6 @@
 ﻿import { Base64, Base64Keypair } from '/lib'
 
-export enum KeysetScope {
+export enum KeyScope {
   TEAM = 'TEAM',
   ROLE = 'ROLE',
   MEMBER = 'MEMBER',
@@ -9,7 +9,7 @@ export enum KeysetScope {
 }
 
 export interface KeyNode {
-  scope: KeysetScope
+  scope: KeyScope
   name: string
 }
 
@@ -17,19 +17,18 @@ export interface KeyMetadata extends KeyNode {
   generation: number
 }
 
-export interface KeysetWithSecrets extends KeyMetadata {
+export interface KeysWithSecrets extends KeyMetadata {
   encryption: Base64Keypair
   signature: Base64Keypair
 }
 
-export interface PublicKeyset extends KeyMetadata {
+export interface PublicKeys extends KeyMetadata {
   encryption: Base64 // = encryption.publicKey
   signature: Base64 // = signature.publicKey
 }
 
-export type KeysetHistory = KeysetWithSecrets[]
+export type KeysetHistory = KeysWithSecrets[]
 
-// type guard: PublicKeyset vs KeysetWithSecrets
-export const hasSecrets = (keys: PublicKeyset | KeysetWithSecrets): keys is KeysetWithSecrets => {
-  return keys.encryption.hasOwnProperty('secretKey') || keys.signature.hasOwnProperty('secretKey')
-}
+// type guard: PublicKeys vs KeysWithSecrets
+export const hasSecrets = (keys: PublicKeys | KeysWithSecrets): keys is KeysWithSecrets =>
+  keys.encryption.hasOwnProperty('secretKey') || keys.signature.hasOwnProperty('secretKey')
