@@ -1,5 +1,5 @@
 ﻿import { defaultContext, storage, teamChain } from './utils'
-import { ADMIN_SCOPE, TEAM_SCOPE } from '/keys'
+import { ADMIN } from '/role'
 import { Team } from '/team'
 
 describe('Team', () => {
@@ -19,7 +19,7 @@ describe('Team', () => {
       it('encrypts content for the team', () => {
         const { team } = setup()
         const message = 'I need you to take care of that thing'
-        const encrypted = team.encrypt(message, TEAM_SCOPE)
+        const encrypted = team.encrypt(message)
 
         const decrypted = team.decrypt(encrypted)
         expect(decrypted).toEqual(message)
@@ -29,7 +29,7 @@ describe('Team', () => {
         const { team } = setup()
         const message =
           'You know, the situation, that we talked about, I need you to take care of that'
-        const encrypted = team.encrypt(message, ADMIN_SCOPE)
+        const encrypted = team.encrypt(message, ADMIN)
 
         const decrypted = team.decrypt(encrypted)
         expect(decrypted).toEqual(message)

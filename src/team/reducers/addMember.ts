@@ -1,7 +1,13 @@
-﻿import { User } from '/user'
-import { Reducer } from './index'
+﻿import { Reducer } from './index'
+import { Member } from '/member'
 
-export const addMember = (user: User): Reducer => state => ({
+export const addMember = (newMember: Member): Reducer => state => ({
   ...state,
-  members: [...state.members, { ...user, roles: [] }],
+  members: [
+    ...state.members,
+    {
+      ...newMember,
+      roles: [],
+    },
+  ],
 })

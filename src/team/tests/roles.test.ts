@@ -12,7 +12,9 @@ import {
   teamChain,
 } from '/team/tests/utils'
 import { redactUser } from '/user'
-import { KeyType } from '/keys'
+import { KeyType, ADMIN_SCOPE } from '/keys'
+import { symmetric } from '/crypto'
+import { EncryptedEnvelope } from '../types'
 
 describe('Team', () => {
   beforeEach(() => {
@@ -171,38 +173,61 @@ describe('Team', () => {
     })
 
     it('rotates keys when a member is removed from a role', () => {
+      const COOLKIDS = 'coolkids'
+
       const { team: alicesTeam } = setup()
-      alicesTeam.add(redactUser(bob), [ADMIN])
+      alicesTeam.addRole({ roleName: COOLKIDS })
+      alicesTeam.add(redactUser(bob), [COOLKIDS])
+      storage.save(alicesTeam)
+      let bobsTeam = storage.load(bobsContext)
 
-      // Alice's admin keys are generation 0
-      expect(alicesTeam.adminKeys().generation).toBe(0)
+      // Bob is currently in the cool kids
+      expect(bobsTeam.memberHasRole('bob', COOLKIDS)).toBe(true)
 
-      // Alice encrypts something for admins
-      const message = 'i need you to take care of that thing'
-      const encryptedMessage = alicesTeam.encrypt(message, { type: KeyType.ROLE, name: ADMIN })
+      // The cool kids keys have never been rotated
+      expect(alicesTeam.roleKeys(COOLKIDS).generation).toBe(0)
 
-      // Bob can read it
-      // TODO
+      // Alice encrypts something for the cool kids
+      const encryptedMessage = alicesTeam.encrypt(
+        `exclusive admin-only party at Alice's house tonight`,
+        COOLKIDS
+      )
 
-      // Bob sneakily makes a copy of his admin keys
-      // TODO
+      // Bob can read the message
+      expect(() => bobsTeam.decrypt(encryptedMessage)).not.toThrow()
 
-      // Alice removes Bob's admin role
-      alicesTeam.removeMemberRole('bob', ADMIN)
+      // Now, Bob suspects no one likes him so he makes a copy of his keys
+      const copyOfKeysInCaseTheyKickMeOut = bobsTeam.roleKeys(COOLKIDS).encryption
 
-      // Bob can still read the old message (can't undisclose information you've disclosed)
-      // TODO
+      // Sure enough, Alice remembers that she can't stand Bob so she kicks him out
+      alicesTeam.removeMemberRole('bob', COOLKIDS)
+      storage.save(alicesTeam)
 
-      // Alice's admin keys are now generation 1
-      expect(alicesTeam.adminKeys().generation).toBe(1)
+      // Bob gets the latest team state
+      bobsTeam = storage.load(bobsContext)
 
-      // Alice encrypts a new message for admins
-      // TODO
+      // Bob can no longer read the message through normal channels
+      expect(() => bobsTeam.decrypt(encryptedMessage)).toThrow()
 
-      // Bob tries to read the new message with his old admin key
-      // TODO
-      // He can't because the admin keys have been rotated
-      // TODO
+      // But with a little effort...
+      const decryptUsingSavedKey = (message: EncryptedEnvelope) => () =>
+        symmetric.decrypt(message.contents, copyOfKeysInCaseTheyKickMeOut.secretKey)
+
+      // Bob can still see the old message using his saved key, because it was encrypted before he was kicked out
+      // (you can't un-disclose what you've disclosed)
+      expect(decryptUsingSavedKey(encryptedMessage)).not.toThrow()
+
+      // However! the group's keys have been rotated
+      expect(alicesTeam.roleKeys(COOLKIDS).generation).toBe(1)
+
+      // So Alice encrypts a new message for admins
+      const newEncryptedMessage = alicesTeam.encrypt(
+        `party moved to Charlie's place, don't tell Bob`,
+        COOLKIDS
+      )
+
+      // Bob tries to read the new message with his old admin key, but he can't because it was encrypted with the new key
+      expect(decryptUsingSavedKey(newEncryptedMessage)).toThrow()
     })
   })
 })

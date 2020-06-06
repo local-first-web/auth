@@ -271,7 +271,8 @@ export class Team extends EventEmitter {
    * encrypt for scopes the current user has keys for (e.g. the whole team, or roles they belong
    * to). If we need to encrypt asymmetrically, we use the functions in the crypto module directly.
    */
-  public encrypt = (payload: Payload, scope: KeyScope): EncryptedEnvelope => {
+  public encrypt = (payload: Payload, roleName?: string): EncryptedEnvelope => {
+    const scope = roleName ? { type: ROLE, name: roleName } : TEAM_SCOPE
     const {
       encryption: { secretKey }, // TODO: go back to having a separate key for symmetric encryption
       generation,
