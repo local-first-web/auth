@@ -1,4 +1,4 @@
-﻿import { KeyNode, KeysetScope, KeysetWithSecrets } from '/keys'
+﻿import { KeysetWithSecrets } from '/keys'
 import { open } from '/lockbox'
 import { KeysetMap, TeamState } from '/team/types'
 import { UserWithSecrets } from '/user'
@@ -43,14 +43,3 @@ const organizeKeysIntoMap = (result: KeysetMap, keys: KeysetWithSecrets) => {
     },
   } as KeysetMap
 }
-
-export const getVisibleNodes = (state: TeamState, { scope, name }: KeyNode): KeyNode[] => {
-  const keysUnlockedByThisKey = state.lockboxes
-    .filter(({ recipient }) => recipient.scope === scope && recipient.name === name)
-    .map(({ contents: { scope, name } }) => ({ scope, name } as KeyNode))
-
-  const derivedKeys = keysUnlockedByThisKey.flatMap(node => getVisibleNodes(state, node))
-  return [...keysUnlockedByThisKey, ...derivedKeys]
-}
-
-export type KeyGenerationLookup = Map<{ scope: KeysetScope; name: string }, number>

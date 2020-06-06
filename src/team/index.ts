@@ -29,11 +29,35 @@ const { TEAM, ROLE, MEMBER, DEVICE } = KeysetScope
 export class Team extends EventEmitter {
   constructor(options: TeamOptions) {
     super()
-
     this.context = options.context
 
-    if (isNew(options)) this.create(options)
-    else this.loadChain(options)
+    if (isNew(options)) {
+      // Create a new team with the current user as founding member
+      this.chain = []
+
+      // Redact user's secret keys, since this will be written into the public chain
+      const rootMember = redactUser(this.context.user)
+
+      // Generate new team and admin keysets
+      const teamKeys = newKeys({ scope: TEAM })
+      const adminKeys = newKeys({ scope: ROLE, name: ADMIN })
+
+      // Team & role secrets are never stored in plaintext, only encrypted into individual lockboxes.
+      // Here we create new lockboxes with the team & admin keys for the founding member
+      const teamLockbox = lockbox.create(teamKeys, rootMember.keys)
+      const adminLockbox = lockbox.create(adminKeys, rootMember.keys)
+      const lockboxes = [teamLockbox, adminLockbox]
+
+      // Post root link to signature chain
+      this.dispatch({
+        type: 'ROOT',
+        payload: { teamName: options.teamName, rootMember, lockboxes },
+      })
+    } else {
+      // Load a team from a serialized chain
+      this.chain = options.source
+      this.updateState()
+    }
   }
 
   // PUBLIC API
@@ -144,7 +168,7 @@ export class Team extends EventEmitter {
   /** Removes a user */
   public remove = (userName: string) => {
     // create new keys & lockboxes for any keys this person had access to
-    const lockboxes = rotateKeys(this.state, { scope: MEMBER, name: userName })
+    const lockboxes = this.rotateKeys({ scope: MEMBER, name: userName })
 
     // post the removal to the signature chain
     this.dispatch({
@@ -194,7 +218,7 @@ export class Team extends EventEmitter {
   /** Removes a role from a member */
   public removeMemberRole = (userName: string, roleName: string) => {
     // create new keys & lockboxes for any keys this person had access to via this role
-    const lockboxes = rotateKeys(this.state, { scope: ROLE, name: roleName })
+    const lockboxes = this.rotateKeys({ scope: ROLE, name: roleName })
 
     // post the removal to the signature chain
     this.dispatch({
@@ -253,39 +277,7 @@ export class Team extends EventEmitter {
   private context: ContextWithSecrets
   private state: TeamState
 
-  // private functions
-
-  /** Create a new team with the current user as founding member */
-  private create(options: NewTeamOptions) {
-    const { teamName } = options
-
-    // Redact user's secret keys, since this will be written into the public chain
-    const rootMember = redactUser(this.context.user)
-
-    // Generate new team and admin keysets
-    const teamKeys = newKeys({ scope: TEAM })
-    const adminKeys = newKeys({ scope: ROLE, name: ADMIN })
-
-    // Team & role secrets are never stored in plaintext, only encrypted into individual lockboxes.
-    // Here we create new lockboxes with the team & admin keys for the founding member
-    const teamLockbox = lockbox.create(teamKeys, rootMember.keys)
-    const adminLockbox = lockbox.create(adminKeys, rootMember.keys)
-    const lockboxes = [teamLockbox, adminLockbox]
-
-    this.chain = []
-
-    // Post root link to signature chain
-    this.dispatch({
-      type: 'ROOT',
-      payload: { teamName, rootMember, lockboxes },
-    })
-  }
-
-  /** Load a team from a serialized chain */
-  private loadChain(options: ExistingTeamOptions) {
-    this.chain = options.source
-    this.updateState()
-  }
+  // private methods
 
   /** Add a link to the chain, then recompute team state from the new chain */
   public dispatch(link: TeamAction) {
@@ -305,23 +297,27 @@ export class Team extends EventEmitter {
 
     this.state = this.chain.reduce(reducer, initialState)
   }
-}
 
-const rotateKeys = (state: TeamState, node: KeyNode) => {
-  // what nodes can this node see?
-  const nodesToRotate = [node, ...select.getVisibleNodes(state, node)]
+  /** Given a compromised node (e.g. a member or a role), finds all nodes that are visible from that
+   * node, and generates new keys and lockboxes for each of those. Returns all of the new lockboxes in
+   * a single array to be posted to the signature chain. */
+  private rotateKeys(compromisedNode: KeyNode) {
+    // make a list containing this node plus all nodes that it sees
+    const compromisedNodes = select.getNodesToRotate(this.state, compromisedNode)
 
-  // for each of these nodes, generate a new key and create new lockboxes for everyone
-  const newLockboxes = nodesToRotate.flatMap(node => {
-    // create a new keyset for this scope
-    const keys = newKeys(node)
+    // generate new keys and lockboxes for each one
+    const rotateNodeKeys = (node: KeyNode) => {
+      // create a new keyset for this scope
+      const replacementKeys = newKeys(node)
 
-    // find all lockboxes containing keys for this node, and rotate each one
-    return state.lockboxes
-      .filter(({ contents }) => contents.scope === node.scope && contents.name === node.name)
-      .map(oldLockbox => lockbox.rotate(oldLockbox, keys))
-  })
+      // find all lockboxes containing keys for this node
+      const oldLockboxes = select.getLockboxesForNode(this.state, node)
 
-  // we return all the new lockboxes as a single array, to be posted to the signature chain
-  return newLockboxes
+      // replace each one with a new one
+      return oldLockboxes.map(oldLockbox => lockbox.rotate(oldLockbox, replacementKeys))
+    }
+    const newLockboxes = compromisedNodes.flatMap(rotateNodeKeys)
+
+    return newLockboxes
+  }
 }
