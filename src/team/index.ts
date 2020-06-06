@@ -122,7 +122,7 @@ export class Team extends EventEmitter {
 
   // Keys
 
-  /** Returns a keyset (if found) for the given scope and name */
+  /** Returns the keyset (if found) for the given scope and name */
   public keys(scope: KeysetScope, name: string = scope): KeysetWithSecrets {
     const keysFromLockboxes = select.getMyKeys(this.state, this.context.user)
     const keys = keysFromLockboxes[scope] && keysFromLockboxes[scope][name]

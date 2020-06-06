@@ -1,4 +1,4 @@
-﻿export * from '/team/selectors/getKeys'
+﻿export * from './getMyKeys'
 export * from '/team/selectors/getLockboxesForNode'
 export * from '/team/selectors/getMember'
 export * from '/team/selectors/getNodesToRotate'
