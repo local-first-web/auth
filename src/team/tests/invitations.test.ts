@@ -1,4 +1,13 @@
-import { bob, eve, defaultContext, storage, teamChain, charlie, bobsContext } from './utils'
+import {
+  bob,
+  eve,
+  defaultContext,
+  storage,
+  teamChain,
+  charlie,
+  bobsContext,
+  alicesContext,
+} from './utils'
 import { accept, ProofOfInvitation } from '/invitation'
 import { Team } from '/team'
 import { redactUser } from '/user'
@@ -49,7 +58,7 @@ describe('Team', () => {
       // Bob accepts the invitation
       const proofOfInvitation = accept(secretKey, redactUser(bob))
 
-      // Eve intercepts the invitation and tries to use it by swapping out bob's info for hers
+      // Eve intercepts the invitation and tries to use it by swapping out Bob's info for hers
       const forgedProofOfInvitation: ProofOfInvitation = {
         ...proofOfInvitation,
         member: redactUser(eve),
@@ -63,7 +72,7 @@ describe('Team', () => {
     })
 
     it('allows non-admins to accept an invitation', () => {
-      const { team: alicesTeam } = setup()
+      let { team: alicesTeam } = setup()
       alicesTeam.add(redactUser(bob)) // bob is not an admin
 
       // Alice invites Charlie by sending him a secret key
@@ -73,17 +82,22 @@ describe('Team', () => {
       // Charlie accepts the invitation
       const proofOfInvitation = accept(secretKey, redactUser(charlie))
 
-      // Bob loads the team from storage
+      // Alice is no longer around, but Bob is online
       const bobsTeam = storage.load(bobsContext)
 
-      // Bob still isn't an admin
+      // just to confirm: Bob still isn't an admin
       expect(bobsTeam.memberIsAdmin('bob')).toBe(false)
 
       // Charlie shows Bob his proof of invitation
       bobsTeam.admit(proofOfInvitation)
 
-      // Charlie is now on the team. Congratulations, Bob!
-      expect(alicesTeam.has('bob')).toBe(true)
+      // Charlie is now on the team
+      expect(bobsTeam.has('charlie')).toBe(true)
+
+      // Alice can now see that Charlie is on the team. Congratulations, Charlie!
+      storage.save(bobsTeam)
+      alicesTeam = storage.load(alicesContext)
+      expect(alicesTeam.has('charlie')).toBe(true)
     })
   })
 })
