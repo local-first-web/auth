@@ -1,4 +1,4 @@
-﻿import { PublicKeyset, KeysetWithSecrets, KeysetHistory } from '/keys'
+﻿import { PublicKeys, KeysWithSecrets, KeysetHistory } from '/keys'
 import { Device } from '/context'
 
 /** A user and their full set of keys, including secrets.   */
@@ -7,7 +7,7 @@ export interface UserWithSecrets {
   userName: string
 
   /** The user's most recent keys, including their secrets. */
-  keys: KeysetWithSecrets
+  keys: KeysWithSecrets
 
   /** All the user's keysets over their history of key rotation.
    * The index of the keyset in the array corresponds to the
@@ -24,5 +24,5 @@ export interface User {
   userName: string
 
   /** The user's public keys */
-  keys: PublicKeyset
+  keys: PublicKeys
 }

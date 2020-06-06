@@ -1,7 +1,7 @@
-﻿import { PublicKeyset } from '/keys'
+﻿import { PublicKeys } from '/keys'
 
 export interface Member {
   userName: string
-  keys: PublicKeyset
+  keys: PublicKeys
   roles: string[]
 }

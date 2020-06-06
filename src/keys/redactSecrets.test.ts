@@ -1,10 +1,10 @@
 import { newKeys } from '/keys/generateKeys'
 import { redactKeys } from '/keys/redactSecrets'
-import { KeysetScope, KeysetWithSecrets } from '/keys/types'
+import { KeyScope, KeysWithSecrets } from '/keys/types'
 
 describe('redactSecrets', () => {
   it('should redact secrets from a random keyset', () => {
-    const secretKeyset = newKeys({ scope: KeysetScope.MEMBER, name: 'foo' })
+    const secretKeyset = newKeys({ scope: KeyScope.MEMBER, name: 'foo' })
 
     const publicKeyset = redactKeys(secretKeyset)
 
@@ -16,9 +16,9 @@ describe('redactSecrets', () => {
   })
 
   it('should redact secrets from a known keyset', () => {
-    const secretKeyset: KeysetWithSecrets = {
-      scope: KeysetScope.EPHEMERAL,
-      name: KeysetScope.EPHEMERAL,
+    const secretKeyset: KeysWithSecrets = {
+      scope: KeyScope.EPHEMERAL,
+      name: KeyScope.EPHEMERAL,
       generation: 0,
       signature: {
         publicKey: 'xvIoa0SjV7C+tIwVLaGAXSWLH/H8KwC3BVMsQO68Er4=',
@@ -33,8 +33,8 @@ describe('redactSecrets', () => {
     const publicKeyset = redactKeys(secretKeyset)
 
     expect(publicKeyset).toEqual({
-      scope: KeysetScope.EPHEMERAL,
-      name: KeysetScope.EPHEMERAL,
+      scope: KeyScope.EPHEMERAL,
+      name: KeyScope.EPHEMERAL,
       encryption: 'Yxb5B79mNvtDg9kjvDHIlFK4pu8XvXT0to9TtILijig=',
       signature: 'xvIoa0SjV7C+tIwVLaGAXSWLH/H8KwC3BVMsQO68Er4=',
       generation: 0,

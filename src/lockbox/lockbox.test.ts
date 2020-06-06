@@ -1,4 +1,4 @@
-﻿import { KeysetScope, newKeys } from '/keys'
+﻿import { KeyScope, newKeys } from '/keys'
 import { create } from '/lockbox/create'
 import { open } from '/lockbox/open'
 import { ADMIN } from '/role'
@@ -6,7 +6,7 @@ import { bob } from '/team/tests/utils'
 
 describe('lockbox', () => {
   it('round trip', () => {
-    const adminKeys = newKeys({ scope: KeysetScope.ROLE, name: ADMIN })
+    const adminKeys = newKeys({ scope: KeyScope.ROLE, name: ADMIN })
 
     // Alice creates a lockbox for Bob containing the admin keys
     const lockbox = create(adminKeys, bob.keys)

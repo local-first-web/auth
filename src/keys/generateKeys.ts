@@ -1,7 +1,7 @@
 ﻿import nacl from 'tweetnacl'
 import { hash, stretch } from '/crypto'
 import { randomKey } from '/keys/randomKey'
-import { KeysetWithSecrets, KeyMetadata, KeysetScope } from '/keys/types'
+import { KeysWithSecrets, KeyMetadata, KeyScope } from '/keys/types'
 import { HashPurpose, Key, keypairToBase64 } from '/lib'
 
 /**
@@ -11,12 +11,12 @@ import { HashPurpose, Key, keypairToBase64 } from '/lib'
  * @param seed A 32-byte secret key used to derive all other keys. This key should be randomly
  * generated to begin with, then stored in the device's secure storage. It should never leave the
  * original device except in encrypted form.
- * @returns A `Keyset` consisting of a keypair for signing and a keypair for asymmetric encryption.
+ * @returns A keyset consisting of a keypair for signing and a keypair for asymmetric encryption.
  * (The secret half of the encryption key can also be used for symmetric encryption.)
  */
 export const generateKeys = (
   seed: string = randomKey()
-): Pick<KeysetWithSecrets, 'signature' | 'encryption'> => {
+): Pick<KeysWithSecrets, 'signature' | 'encryption'> => {
   const stretchedSeed = stretch(seed)
   return {
     signature: deriveSignatureKeys(stretchedSeed),
@@ -24,11 +24,10 @@ export const generateKeys = (
   }
 }
 
-export const newKeys = (args: {
-  scope: KeysetScope
-  name?: string
-  generation?: number
-}): KeysetWithSecrets => {
+/**
+ * Randomly generates a new set of keys with the provided metadata
+ */
+export const newKeys = (args: Optional<KeyMetadata, 'name' | 'generation'>): KeysWithSecrets => {
   const { scope, name = scope, generation = 0 } = args
   return {
     scope,
@@ -55,3 +54,5 @@ const deriveEncryptionKeys = (secretKey: Key) => {
   const keys = keyPair.fromSecretKey(derivedSecretKey)
   return keypairToBase64(keys)
 }
+
+type Optional<T, K extends keyof T> = Omit<T, K> & Partial<T>

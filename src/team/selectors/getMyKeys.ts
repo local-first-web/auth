@@ -1,4 +1,4 @@
-﻿import { KeysetWithSecrets } from '/keys'
+﻿import { KeysWithSecrets } from '/keys'
 import { open } from '/lockbox'
 import { KeysetMap, TeamState } from '/team/types'
 import { UserWithSecrets } from '/user'
@@ -21,7 +21,7 @@ export const getMyKeys = (state: TeamState, currentUser: UserWithSecrets): Keyse
   return allVisibleKeys.reduce(organizeKeysIntoMap, {})
 }
 
-const getDerivedKeys = (state: TeamState, keyset: KeysetWithSecrets): KeysetWithSecrets[] => {
+const getDerivedKeys = (state: TeamState, keyset: KeysWithSecrets): KeysWithSecrets[] => {
   const { lockboxes } = state
   const publicKey = keyset.encryption.publicKey
   const lockboxesICanUnlock = lockboxes.filter(({ recipient }) => recipient.publicKey === publicKey)
@@ -30,7 +30,7 @@ const getDerivedKeys = (state: TeamState, keyset: KeysetWithSecrets): KeysetWith
   return [...keysets, ...derivedKeysets]
 }
 
-const organizeKeysIntoMap = (result: KeysetMap, keys: KeysetWithSecrets) => {
+const organizeKeysIntoMap = (result: KeysetMap, keys: KeysWithSecrets) => {
   const { scope, name, generation } = keys
   const keysetsForScope = result[scope] || {}
   const keysetHistory = keysetsForScope[name] || []

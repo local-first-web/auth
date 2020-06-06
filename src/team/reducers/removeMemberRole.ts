@@ -1,5 +1,5 @@
 ﻿import { Reducer } from './index'
-import { KeysetScope } from '/keys'
+import { KeyScope } from '/keys'
 
 export const removeMemberRole = (userName: string, roleName: string): Reducer => state => ({
   ...state,
@@ -18,7 +18,7 @@ export const removeMemberRole = (userName: string, roleName: string): Reducer =>
     lockbox =>
       !(
         lockbox.recipient.name === userName &&
-        lockbox.contents.scope === KeysetScope.ROLE &&
+        lockbox.contents.scope === KeyScope.ROLE &&
         lockbox.contents.name === roleName
       )
   ),

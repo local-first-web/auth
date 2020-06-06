@@ -3,7 +3,7 @@ import { chain, SignatureChain, validate } from '/chain'
 import { ContextWithSecrets } from '/context'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
-import { KeysetScope, KeysetWithSecrets, newKeys, PublicKeyset, KeyNode } from '/keys'
+import { KeyScope, KeysWithSecrets, newKeys, PublicKeys, KeyNode } from '/keys'
 import * as lockbox from '/lockbox'
 import { Member } from '/member'
 import { ADMIN, Role } from '/role'
@@ -18,13 +18,15 @@ import {
   TeamLink,
   TeamOptions,
   TeamState,
+  EncryptedMessage,
 } from '/team/types'
 import { redactUser, User, UserWithSecrets } from '/user'
-import { Base64 } from '/lib'
+import { Base64, Payload } from '/lib'
+import { symmetric } from '/crypto'
 
 export * from '/team/types'
 
-const { TEAM, ROLE, MEMBER, DEVICE } = KeysetScope
+const { TEAM, ROLE, MEMBER, DEVICE } = KeyScope
 
 export class Team extends EventEmitter {
   constructor(options: TeamOptions) {
@@ -60,7 +62,7 @@ export class Team extends EventEmitter {
     }
   }
 
-  // PUBLIC API
+  // # PUBLIC API
 
   public get teamName() {
     return this.state.teamName
@@ -68,7 +70,7 @@ export class Team extends EventEmitter {
 
   public save = () => JSON.stringify(this.chain)
 
-  // READ METHODS
+  // ## READ METHODS
   // All the logic for reading from team state is in selectors.
 
   // Members
@@ -123,7 +125,7 @@ export class Team extends EventEmitter {
   // Keys
 
   /** Returns the keyset (if found) for the given scope and name */
-  public keys(scope: KeysetScope, name: string = scope): KeysetWithSecrets {
+  public keys({ scope, name }: KeyNode): KeysWithSecrets {
     const keysFromLockboxes = select.getMyKeys(this.state, this.context.user)
     const keys = keysFromLockboxes[scope] && keysFromLockboxes[scope][name]
     if (!keys) throw new Error(`Keys not found for ${scope.toLowerCase()} '${name}`)
@@ -131,15 +133,17 @@ export class Team extends EventEmitter {
   }
 
   /** Returns the team keyset */
-  public teamKeys = (): KeysetWithSecrets => this.keys(TEAM)
+  public teamKeys = (): KeysWithSecrets => this.keys({ scope: TEAM, name: TEAM })
 
   /** Returns the keys for the given role */
-  public roleKeys = (roleName: string): KeysetWithSecrets => this.keys(ROLE, roleName)
+  public roleKeys = (roleName: string): KeysWithSecrets =>
+    this.keys({ scope: ROLE, name: roleName })
 
   /** Returns the admin keyset */
-  public adminKeys = (): KeysetWithSecrets => this.roleKeys(ADMIN)
+  public adminKeys = (): KeysWithSecrets => this.roleKeys(ADMIN)
 
-  // WRITE METHODS
+  // ## WRITE METHODS
+
   // Most of the logic for modifying team state is in reducers. To mutate team state, we dispatch
   // changes to the signature chain, and then run the chain through the reducer to recalculate team
   // state.
@@ -247,6 +251,7 @@ export class Team extends EventEmitter {
     return secretKey
   }
 
+  /** Admits a new member based on proof of invitation */
   public admit = (proof: ProofOfInvitation) => {
     const { id, user } = proof
     const teamKeys = this.teamKeys()
@@ -271,13 +276,26 @@ export class Team extends EventEmitter {
     })
   }
 
-  // private properties
+  // ## CRYPTO API
+
+  public encrypt = (message: Payload, recipient: KeyNode): EncryptedMessage => {
+    const {
+      encryption: { secretKey }, // TODO: go back to having a separate key for symmetric encryption
+      generation,
+    } = this.keys(recipient)
+    return {
+      encryptedPayload: symmetric.encrypt(message, secretKey),
+      recipient: { ...recipient, generation },
+    }
+  }
+
+  // # PRIVATE PROPERTIES
 
   private chain: SignatureChain<TeamLink>
   private context: ContextWithSecrets
   private state: TeamState
 
-  // private methods
+  // # PRIVATE METHODS
 
   /** Add a link to the chain, then recompute team state from the new chain */
   public dispatch(link: TeamAction) {

@@ -12,6 +12,7 @@ import {
   teamChain,
 } from '/team/tests/utils'
 import { redactUser } from '/user'
+import { KeyScope } from '/keys'
 
 describe('Team', () => {
   beforeEach(() => {
@@ -177,7 +178,9 @@ describe('Team', () => {
       expect(alicesTeam.adminKeys().generation).toBe(0)
 
       // Alice encrypts something for admins
-      // TODO
+      const message = 'i need you to take care of that thing'
+      const encryptedMessage = alicesTeam.encrypt(message, { scope: KeyScope.ROLE, name: ADMIN })
+
       // Bob can read it
       // TODO
 

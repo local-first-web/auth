@@ -1,11 +1,12 @@
 import { LinkBody, SignatureChain, SignedLink, ValidationResult } from '/chain'
 import { Context, ContextWithSecrets } from '/context'
 import { Invitation } from '/invitation/types'
-import { KeysetHistory } from '/keys'
+import { KeysetHistory, KeyMetadata } from '/keys'
 import { Lockbox } from '/lockbox'
 import { Member } from '/member'
 import { PermissionsMap, Role } from '/role'
 import { User } from '/user'
+import { Base64 } from '/lib'
 
 // TEAM CONSTRUCTOR
 
@@ -156,3 +157,10 @@ export type TeamStateValidatorSet = {
 }
 
 export type ValidationArgs = [TeamState, SignedLink<TeamLinkBody>]
+
+// CRYPTO
+
+export interface EncryptedMessage {
+  encryptedPayload: Base64
+  recipient: KeyMetadata
+}
