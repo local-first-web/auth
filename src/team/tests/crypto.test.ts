@@ -18,7 +18,7 @@ describe('Team', () => {
     describe('encryption', () => {
       it('encrypts content for the team', () => {
         const { team } = setup()
-        const message = 'I need you to take care of that thing'
+        const message = 'I need someone to take care of that thing'
         const encrypted = team.encrypt(message)
 
         const decrypted = team.decrypt(encrypted)
@@ -27,8 +27,7 @@ describe('Team', () => {
 
       it('encrypts content for a role', () => {
         const { team } = setup()
-        const message =
-          'You know, the situation, that we talked about, I need you to take care of that'
+        const message = 'You know, the situation, I need that taken care of'
         const encrypted = team.encrypt(message, ADMIN)
 
         const decrypted = team.decrypt(encrypted)
