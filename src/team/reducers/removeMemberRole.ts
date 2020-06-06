@@ -8,9 +8,9 @@ export const removeMemberRole = (userName: string, roleName: string): Reducer =>
   members: state.members.map(member => ({
     ...member,
     roles:
-      member.userName !== userName //
+      member.name !== userName //
         ? member.roles
-        : member.roles.filter(r => r !== roleName),
+        : (member.roles || []).filter(r => r !== roleName),
   })),
 
   // remove any lockboxes this member has for this role

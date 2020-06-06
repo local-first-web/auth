@@ -1,16 +1,18 @@
 ﻿import { SemVer } from '/lib'
-import { User, UserWithSecrets } from '/user'
+import { LocalUser } from '/user'
+import { Member } from '/member'
 
-export interface ContextWithSecrets {
-  user: UserWithSecrets
+interface Context {
   device: Device
   client?: Client
 }
 
-export interface Context {
-  user: User
-  device: Device
-  client?: Client
+export interface LocalUserContext extends Context {
+  user: LocalUser
+}
+
+export interface MemberContext extends Context {
+  member: Member
 }
 
 export enum DeviceType {

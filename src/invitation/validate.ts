@@ -1,13 +1,9 @@
 ﻿import { Invitation, InvitationPayload, ProofOfInvitation } from '/invitation/types'
 import { ValidationResult } from '/chain'
 import { signatures, symmetric } from '/crypto'
-import { KeysWithSecrets } from '/keys'
+import { Keys } from '/keys'
 
-export const validate = (
-  proof: ProofOfInvitation,
-  invitation: Invitation,
-  teamKeys: KeysWithSecrets
-) => {
+export const validate = (proof: ProofOfInvitation, invitation: Invitation, teamKeys: Keys) => {
   const { id, encryptedPayload } = invitation
   const details = { invitation, proof }
 
@@ -17,10 +13,10 @@ export const validate = (
   const invitationPayload: InvitationPayload = JSON.parse(decryptedInvitation)
   const { userName, publicKey } = invitationPayload
 
-  if (userName !== proof.user.userName)
+  if (userName !== proof.member.name)
     return fail(`User names don't match`, { invitationPayload, ...details })
 
-  const { signature, user } = proof
+  const { signature, member: user } = proof
   const signedMessage = { payload: { id, user }, signature, publicKey }
   const signatureIsValid = signatures.verify(signedMessage)
 

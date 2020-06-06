@@ -1,14 +1,14 @@
-﻿import { KeysWithSecrets } from '/keys'
+﻿import { Keys } from '/keys'
 const STORAGE_KEY = 'TACO_KEY_STORAGE'
 
 const storage = localStorage // TODO - replace with device secure storage, or password-protected browser storage
 
-export const loadKeyset = (userName: string): KeysWithSecrets | undefined => {
+export const loadKeyset = (userName: string): Keys | undefined => {
   const allKeysets = getKeysets()
   return allKeysets[userName]
 }
 
-export const storeKeyset = (userName: string, keys: KeysWithSecrets) => {
+export const storeKeyset = (userName: string, keys: Keys) => {
   const allKeysets = getKeysets()
   allKeysets[userName] = keys
   storage.setItem(STORAGE_KEY, JSON.stringify(allKeysets))

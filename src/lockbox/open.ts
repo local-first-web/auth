@@ -1,9 +1,9 @@
 ﻿import { asymmetric } from '/crypto'
-import { KeysWithSecrets } from '/keys'
+import { Keys } from '/keys'
 import { Lockbox } from '/lockbox/types'
 
 //TODO: Memoize this
-export const open = (lockbox: Lockbox, decryptionKeys: KeysWithSecrets): KeysWithSecrets => {
+export const open = (lockbox: Lockbox, decryptionKeys: Keys): Keys => {
   const { encryptionKey, encryptedPayload } = lockbox
 
   const keys = JSON.parse(

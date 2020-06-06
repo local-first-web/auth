@@ -1,8 +1,8 @@
-﻿import { KeysWithSecrets } from '/keys'
+﻿import { Keys } from '/keys'
 import { Lockbox } from '/lockbox/types'
 import { create } from './create'
 
-export const rotate = (oldLockbox: Lockbox, contents: KeysWithSecrets): Lockbox => {
+export const rotate = (oldLockbox: Lockbox, contents: Keys): Lockbox => {
   // make sure new keys have the same type and name as the old lockbox
   if (contents.type !== oldLockbox.contents.type || contents.name !== oldLockbox.contents.name)
     throw new Error('The type and name of the new contents must match those of the old lockbox')

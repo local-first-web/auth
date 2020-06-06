@@ -1,7 +1,7 @@
-﻿import { Context, ContextWithSecrets } from '/context/types'
+﻿import { MemberContext, LocalUserContext } from '/context/types'
 import { redactUser } from '/user'
 
-export const redactContext = (context: ContextWithSecrets): Context => ({
+export const redactContext = (context: LocalUserContext): MemberContext => ({
   ...context,
-  user: redactUser(context.user),
+  member: redactUser(context.user),
 })

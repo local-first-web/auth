@@ -21,16 +21,16 @@ const validators: TeamStateValidatorSet = {
     const nonAdminActions = ['ADMIT_INVITED_MEMBER'] // any team member can do these things
 
     if (!preMembershipActions.includes(type)) {
-      const { userName } = context.user
+      const { name } = context.member
 
       // make sure member exists
-      const noSuchUser = !select.hasMember(prevState, userName)
-      if (noSuchUser) return fail(`A member named '${userName}' was not found`, ...args)
+      const noSuchUser = !select.hasMember(prevState, name)
+      if (noSuchUser) return fail(`A member named '${name}' was not found`, ...args)
 
       if (!nonAdminActions.includes(type)) {
         // make sure member is admin
-        const isntAdmin = !select.memberIsAdmin(prevState, userName)
-        if (isntAdmin) return fail(`Member '${userName}' is not an admin`, ...args)
+        const isntAdmin = !select.memberIsAdmin(prevState, name)
+        if (isntAdmin) return fail(`Member '${name}' is not an admin`, ...args)
       }
     }
     return VALID
@@ -39,9 +39,9 @@ const validators: TeamStateValidatorSet = {
   cantAddExistingMember: (...args) => {
     const [prevState, link] = args
     if (link.body.type === 'ADD_MEMBER') {
-      const { userName } = link.body.payload.user
-      if (select.hasMember(prevState, userName))
-        return fail(`There is already a member called '${userName}'`, ...args)
+      const { name } = link.body.payload.member
+      if (select.hasMember(prevState, name))
+        return fail(`There is already a member called '${name}'`, ...args)
     }
     return VALID
   },

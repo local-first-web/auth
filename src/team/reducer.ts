@@ -58,14 +58,14 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       return [
         setTeamName(teamName), //
         addMember(rootMember),
-        ...addMemberRoles(rootMember.userName, [ADMIN]),
+        ...addMemberRoles(rootMember.name, [ADMIN]),
       ]
 
     case 'ADD_MEMBER': {
-      const { user, roles } = action.payload
+      const { member: user, roles } = action.payload
       return [
         addMember(user), //
-        ...addMemberRoles(user.userName, roles),
+        ...addMemberRoles(user.name, roles),
       ]
     }
 
@@ -131,10 +131,10 @@ const getTransforms = (action: TeamAction): Reducer[] => {
     }
 
     case 'ADMIT_INVITED_MEMBER': {
-      const { id, user, roles } = action.payload
+      const { id, member: user, roles } = action.payload
       return [
         addMember(user), // Add member
-        ...addMemberRoles(user.userName, roles), // Add member to roles
+        ...addMemberRoles(user.name, roles), // Add member to roles
         revokeInvitation(id), // Remove invitation from open invitations
       ]
     }

@@ -1,8 +1,8 @@
 ﻿import { append } from '/chain/append'
 import { PartialLinkBody, SignatureChain } from '/chain/types'
-import { ContextWithSecrets } from '/context'
+import { LocalUserContext } from '/context'
 
-export const create = (payload: any = {}, context: ContextWithSecrets) => {
+export const create = (payload: any = {}, context: LocalUserContext) => {
   // create new root link
   const link: PartialLinkBody = {
     type: 'ROOT',

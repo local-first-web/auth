@@ -1,28 +1,19 @@
-﻿import { PublicKeys, KeysWithSecrets, KeysetHistory } from '/keys'
-import { Device } from '/context'
+﻿import { Device } from '/context'
+import { Keys } from '/keys'
 
-/** A user and their full set of keys, including secrets.   */
-export interface UserWithSecrets {
+/** The local user and their full set of keys, including secrets.   */
+export interface LocalUser {
   /** Username (or ID or email) */
-  userName: string
+  name: string
 
   /** The user's most recent keys, including their secrets. */
-  keys: KeysWithSecrets
+  keys: Keys
 
   /** All the user's keysets over their history of key rotation.
    * The index of the keyset in the array corresponds to the
    * key generation: previousKeys[0] is generation 0, etc.
    */
-  keysetHistory?: KeysetHistory
+  keyHistory?: Keys[]
 
   devices?: Device[]
-}
-
-/** A user and their public keys.  */
-export interface User {
-  /** Username (or ID or email) */
-  userName: string
-
-  /** The user's public keys */
-  keys: PublicKeys
 }

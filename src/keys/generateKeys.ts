@@ -1,7 +1,7 @@
 ﻿import nacl from 'tweetnacl'
 import { hash, stretch } from '/crypto'
 import { randomKey } from '/keys/randomKey'
-import { KeyMetadata, KeysWithSecrets } from '/keys/types'
+import { KeyMetadata, Keys, KeyScope } from '/keys/types'
 import { HashPurpose, Key, keypairToBase64, Optional } from '/lib'
 
 /**
@@ -16,7 +16,7 @@ import { HashPurpose, Key, keypairToBase64, Optional } from '/lib'
  */
 export const generateKeys = (
   seed: string = randomKey()
-): Pick<KeysWithSecrets, 'signature' | 'encryption'> => {
+): Pick<Keys, 'signature' | 'encryption'> => {
   const stretchedSeed = stretch(seed)
   return {
     signature: deriveSignatureKeys(stretchedSeed),
@@ -27,15 +27,12 @@ export const generateKeys = (
 /**
  * Randomly generates a new set of keys with the provided metadata
  */
-export const newKeys = (args: Optional<KeyMetadata, 'name' | 'generation'>): KeysWithSecrets => {
-  const { type, name = type, generation = 0 } = args
-  return {
-    type,
-    name,
-    generation,
-    ...generateKeys(),
-  }
-}
+export const newKeys = ({ type, name = type }: Optional<KeyScope, 'name'>): Keys => ({
+  type,
+  name,
+  generation: 0,
+  ...generateKeys(),
+})
 
 // private
 

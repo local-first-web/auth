@@ -1,7 +1,7 @@
 ﻿import { symmetric } from '/crypto'
 import { deriveId } from '/invitation/deriveId'
 import { Invitation, InvitationPayload } from '/invitation/types'
-import { generateKeys, KeysWithSecrets } from '/keys'
+import { generateKeys, Keys } from '/keys'
 
 export const IKEY_LENGTH = 16
 
@@ -43,7 +43,7 @@ export const create = (args: InvitationArgs): Invitation => {
 }
 
 interface InvitationArgs {
-  teamKeys: KeysWithSecrets
+  teamKeys: Keys
   userName: string
   roles?: string[]
   secretKey: string

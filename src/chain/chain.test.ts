@@ -66,7 +66,7 @@ describe('chains', () => {
       const { secretKey, publicKey } = alice.keys.signature
       const signature = signatures.sign(body, secretKey)
       chain[0].signed = {
-        name: alice.userName,
+        name: alice.name,
         signature,
         key: publicKey,
       }

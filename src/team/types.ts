@@ -1,29 +1,28 @@
 import { LinkBody, SignatureChain, SignedLink, ValidationResult } from '/chain'
-import { Context, ContextWithSecrets } from '/context'
+import { LocalUserContext, MemberContext } from '/context'
 import { Invitation } from '/invitation/types'
-import { KeysetHistory, KeyMetadata } from '/keys'
+import { KeyMetadata } from '/keys'
+import { Base64, Payload } from '/lib'
 import { Lockbox } from '/lockbox'
 import { Member } from '/member'
 import { PermissionsMap, Role } from '/role'
-import { User } from '/user'
-import { Base64 } from '/lib'
 
 // TEAM CONSTRUCTOR
 
 export interface NewTeamOptions {
   teamName: string
-  context: ContextWithSecrets
+  context: LocalUserContext
 }
 
 export interface ExistingTeamOptions {
   source: SignatureChain<TeamLink>
-  context: ContextWithSecrets
+  context: LocalUserContext
 }
 
 export type TeamOptions = NewTeamOptions | ExistingTeamOptions
 
-// type guard for NewTeamOptions vs OldTeamOptions
-export function isNew(options: TeamOptions): options is NewTeamOptions {
+// type guard for NewTeamOptions vs ExistingTeamOptions
+export function isNewTeam(options: TeamOptions): options is NewTeamOptions {
   return (options as ExistingTeamOptions).source === undefined
 }
 
@@ -31,7 +30,7 @@ export function isNew(options: TeamOptions): options is NewTeamOptions {
 
 export interface TeamState {
   teamName: string
-  rootContext?: Context
+  rootContext?: MemberContext
   members: Member[]
   roles: Role[]
   lockboxes: Lockbox[]
@@ -44,12 +43,6 @@ export interface TeamLockboxMap {
 
 export interface UserLockboxMap {
   [publicKey: string]: Lockbox[]
-}
-
-export interface KeysetMap {
-  [type: string]: {
-    [name: string]: KeysetHistory
-  }
 }
 
 export interface InvitationMap {
@@ -67,13 +60,13 @@ export type TeamAction =
       type: 'ROOT'
       payload: BasePayload & {
         teamName: string
-        rootMember: User
+        rootMember: Member
       }
     }
   | {
       type: 'ADD_MEMBER'
       payload: BasePayload & {
-        user: User
+        member: Member
         roles?: string[]
       }
     }
@@ -137,7 +130,7 @@ export type TeamAction =
       type: 'ADMIT_INVITED_MEMBER'
       payload: BasePayload & {
         id: string
-        user: User
+        member: Member
         roles?: string[]
       }
     }
@@ -160,7 +153,13 @@ export type ValidationArgs = [TeamState, SignedLink<TeamLinkBody>]
 
 // CRYPTO
 
-export interface EncryptedMessage {
-  encryptedPayload: Base64
+export interface EncryptedEnvelope {
+  contents: Base64
   recipient: KeyMetadata
+}
+
+export interface SignedEnvelope {
+  contents: Payload
+  signature: Base64
+  author: KeyMetadata
 }

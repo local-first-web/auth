@@ -1,4 +1,4 @@
-﻿import { Context } from '/context'
+﻿import { MemberContext } from '/context'
 import { Base64, UnixTimestamp } from '/lib/types'
 
 /** A hash-chained array of signed links */
@@ -29,7 +29,7 @@ export interface LinkBody {
   payload: unknown
 
   /** Context in which this link was authored (user, device, client) */
-  context: Context
+  context: MemberContext
 
   /** Unix timestamp on device that created this block */
   timestamp: UnixTimestamp

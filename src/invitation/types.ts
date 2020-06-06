@@ -1,5 +1,5 @@
 ﻿import { Base64, Encrypted } from '/lib'
-import { User } from '/user'
+import { Member } from '/member'
 
 /** The public invitation to be recorded on the signature chain. When Bob shows up with
 `ProofOfInvitation`, someone on the team will need to check it against this. */
@@ -27,7 +27,7 @@ export interface ProofOfInvitation {
   id: Base64
 
   /** Bob's username and public keys*/
-  user: User
+  member: Member
 
   /** Signature of the invitation id and Bob's username, using the signing keys derived from the
    * secret invitation key */
