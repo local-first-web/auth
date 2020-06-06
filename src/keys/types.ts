@@ -1,24 +1,29 @@
 ﻿import { Base64, Base64Keypair } from '/lib'
 
-export enum KeyType {
-  TEAM = 'TEAM',
-  ROLE = 'ROLE',
-  MEMBER = 'MEMBER',
-  DEVICE = 'DEVICE',
-  EPHEMERAL = 'EPHEMERAL',
-}
-
 export interface Keyset {
   encryption: Base64Keypair
   signature: Base64Keypair
 }
 
 /**
- * A KeyNode represents the
+ * Represents the scope of a keyset. Could be:
+ * - an entire team: `{type: TEAM, name: TEAM}`
+ * - a specific role: `{type: ROLE, name: 'admin'}`
+ * - a specific member: `{type: MEMBER, name: 'alice'}`
+ * - a specific device: `{type: DEVICE, name: 'alice laptop'}`
+ * - a single-use keyset: `{type: EPHEMERAL, name: EPHEMERAL}`
  */
 export interface KeyScope {
   type: KeyType
   name: string
+}
+
+export enum KeyType {
+  TEAM = 'TEAM',
+  ROLE = 'ROLE',
+  MEMBER = 'MEMBER',
+  DEVICE = 'DEVICE',
+  EPHEMERAL = 'EPHEMERAL',
 }
 
 export interface KeyMetadata extends KeyScope {

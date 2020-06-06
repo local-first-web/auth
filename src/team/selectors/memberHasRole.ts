@@ -1,10 +1,10 @@
 ﻿import { ADMIN } from '/role'
-import { getMember } from '/team/selectors/getMember'
+import { member } from './member'
 import { TeamState } from '/team/types'
 
 export const memberHasRole = (state: TeamState, userName: string, role: string) => {
-  const member = getMember(state, userName)
-  return member.roles.includes(role)
+  const m = member(state, userName)
+  return m.roles.includes(role)
 }
 
 export const memberIsAdmin = (state: TeamState, userName: string) =>

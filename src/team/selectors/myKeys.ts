@@ -15,7 +15,7 @@ import { UserWithSecrets } from '/user'
  * }
  * ```
  */
-export const getMyKeys = (state: TeamState, currentUser: UserWithSecrets): KeysetMap => {
+export const myKeys = (state: TeamState, currentUser: UserWithSecrets): KeysetMap => {
   const usersOwnKeys = currentUser.keysetHistory || [currentUser.keys] // if there's no history, just use the keys we have
   const allVisibleKeys = usersOwnKeys.flatMap(keys => getDerivedKeys(state, keys))
   return allVisibleKeys.reduce(organizeKeysIntoMap, {})

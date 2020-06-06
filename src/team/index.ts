@@ -78,7 +78,7 @@ export class Team extends EventEmitter {
   public members(userName: string = ALL): Member | Member[] {
     return userName === ALL //
       ? this.state.members // all members
-      : select.getMember(this.state, userName) // one member
+      : select.member(this.state, userName) // one member
   }
 
   // Roles
@@ -92,7 +92,7 @@ export class Team extends EventEmitter {
   public roles(roleName: string = ALL): Role | Role[] {
     return roleName === ALL //
       ? this.state.roles // all roles
-      : select.getRole(this.state, roleName) // one role
+      : select.role(this.state, roleName) // one role
   }
 
   /** Returns true if the member with the given userName has the given role*/
@@ -117,7 +117,7 @@ export class Team extends EventEmitter {
 
   /** Returns the keyset (if found) for the given type and name */
   public keys({ type, name }: KeyScope): KeysWithSecrets {
-    const keysFromLockboxes = select.getMyKeys(this.state, this.context.user)
+    const keysFromLockboxes = select.myKeys(this.state, this.context.user)
     const keys = keysFromLockboxes[type] && keysFromLockboxes[type][name]
     if (!keys) throw new Error(`Keys not found for ${type.toLowerCase()} '${name}`)
     return keys[keys.length - 1] // return the most recent one we have
@@ -310,26 +310,26 @@ export class Team extends EventEmitter {
     this.state = this.chain.reduce(reducer, initialState)
   }
 
-  /** Given a compromised node (e.g. a member or a role), finds all nodes that are visible from that
-   * node, and generates new keys and lockboxes for each of those. Returns all of the new lockboxes in
+  /** Given a compromised scope (e.g. a member or a role), finds all scopes that are visible from that
+   * scope, and generates new keys and lockboxes for each of those. Returns all of the new lockboxes in
    * a single array to be posted to the signature chain. */
-  private rotateKeys(compromisedNode: KeyScope) {
-    // make a list containing this node plus all nodes that it sees
-    const compromisedNodes = select.getNodesToRotate(this.state, compromisedNode)
+  private rotateKeys(compromisedScope: KeyScope) {
+    // make a list containing this scope plus all scopes that it sees
+    const compromisedScopes = select.scopesToRotate(this.state, compromisedScope)
 
     // generate new keys and lockboxes for each one
-    const rotateNodeKeys = (node: KeyScope) => {
+    const rotateScopeKeys = (scope: KeyScope) => {
       // create a new keyset for this scope
-      const replacementKeys = newKeys(node)
+      const replacementKeys = newKeys(scope)
 
-      // find all lockboxes containing keys for this node
-      const oldLockboxes = select.getLockboxesForNode(this.state, node)
+      // find all lockboxes containing keys for this scope
+      const oldLockboxes = select.lockboxesInScope(this.state, scope)
 
       // replace each one with a new one
       return oldLockboxes.map(oldLockbox => lockbox.rotate(oldLockbox, replacementKeys))
     }
-    const newLockboxes = compromisedNodes.flatMap(rotateNodeKeys)
 
+    const newLockboxes = compromisedScopes.flatMap(rotateScopeKeys)
     return newLockboxes
   }
 }
