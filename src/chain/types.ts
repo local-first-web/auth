@@ -14,7 +14,7 @@ export interface SignedLink<T = LinkBody> {
     /** NaCL-generated base64 signature of the link's body */
     signature: Base64
     /** The username (or ID or email) of the person signing the link */
-    name: string
+    userName: string
     /** The public half of the key used to sign the link, in base64 encoding */
     key: Base64
   }

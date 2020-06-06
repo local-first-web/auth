@@ -1,5 +1,5 @@
 import { bob, eve, defaultContext, storage, teamChain, charlie, bobsContext } from './utils'
-import { accept } from '/invitation'
+import { accept, ProofOfInvitation } from '/invitation'
 import { Team } from '/team'
 import { redactUser } from '/user'
 
@@ -50,9 +50,9 @@ describe('Team', () => {
       const proofOfInvitation = accept(secretKey, redactUser(bob))
 
       // Eve intercepts the invitation and tries to use it by swapping out bob's info for hers
-      const forgedProofOfInvitation = {
+      const forgedProofOfInvitation: ProofOfInvitation = {
         ...proofOfInvitation,
-        user: redactUser(eve),
+        member: redactUser(eve),
       }
 
       // Eve shows Alice her fake proof of invitation

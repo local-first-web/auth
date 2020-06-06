@@ -16,10 +16,12 @@ export const IKEY_LENGTH = 16
  * @param secretKey A randomly generated secret (Step 1a) to be passed to Bob via a side channel
  * @see newSecretKey
  */
-export const create = (args: InvitationArgs): Invitation => {
-  const { teamKeys, userName, roles = [], secretKey } = args
-  const generation = teamKeys.generation || 0
-
+export const create = ({
+  teamKeys,
+  userName,
+  roles = [],
+  secretKey,
+}: InvitationArgs): Invitation => {
   // ## Step 1b, 1c
   // Stretch the key and hash it to obtain an invitation ID (Keybase docs: `inviteID`)
   const id = deriveId(secretKey)
@@ -34,11 +36,11 @@ export const create = (args: InvitationArgs): Invitation => {
   // chain. We also include the public half of the signature keyset, which will be used to verify
   // Bob's proof of invitation.
   const payload: InvitationPayload = { userName, roles, publicKey }
-  const body = symmetric.encrypt(payload, teamKeys.encryption.secretKey)
+  const encryptedPayload = symmetric.encrypt(payload, teamKeys.encryption.secretKey)
 
   // ## Step 2b
   // We put it all together to create the invitation.
-  const invitation: Invitation = { id, encryptedPayload: body, generation }
+  const invitation: Invitation = { id, encryptedPayload, generation: teamKeys.generation }
   return invitation
 }
 

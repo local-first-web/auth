@@ -19,13 +19,13 @@ export const append = <T extends LinkBody = LinkBody>(
 }
 
 const signLink = <T extends LinkBody = LinkBody>(body: T, userWithSecrets: LocalUser) => {
-  const { name: name, keys } = userWithSecrets
+  const { userName, keys } = userWithSecrets
   const { publicKey, secretKey } = keys.signature
 
   const signature = signatures.sign(body, secretKey)
   return {
     body,
-    signed: { name, signature, key: publicKey },
+    signed: { userName, signature, key: publicKey },
   } as SignedLink<T>
 }
 

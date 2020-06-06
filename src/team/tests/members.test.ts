@@ -27,7 +27,7 @@ describe('Team', () => {
       const { team } = setup()
       expect(team.members().length).toBe(1)
       const alice = team.members('alice')
-      expect(alice.name).toBe('alice')
+      expect(alice.userName).toBe('alice')
     })
 
     it('has lockboxes for Alice containing the admin and team secrets', () => {
@@ -43,7 +43,7 @@ describe('Team', () => {
       const { team } = setup()
       team.add(bob)
       expect(team.members().length).toBe(2)
-      expect(team.members('bob').name).toBe('bob')
+      expect(team.members('bob').userName).toBe('bob')
     })
 
     it('makes lockboxes for added members', () => {
@@ -128,7 +128,7 @@ describe('Team', () => {
       const { team } = setup()
       team.add(bob)
       const member = team.members('bob')
-      expect(member.name).toBe('bob')
+      expect(member.userName).toBe('bob')
     })
 
     it('throws if asked to get a nonexistent member', () => {
@@ -143,12 +143,12 @@ describe('Team', () => {
       const { team } = setup()
 
       expect(team.members()).toHaveLength(1)
-      expect(team.members().map(m => m.name)).toEqual(['alice'])
+      expect(team.members().map(m => m.userName)).toEqual(['alice'])
 
       team.add(bob)
       team.add(charlie)
       expect(team.members()).toHaveLength(3)
-      expect(team.members().map(m => m.name)).toEqual(['alice', 'bob', 'charlie'])
+      expect(team.members().map(m => m.userName)).toEqual(['alice', 'bob', 'charlie'])
     })
 
     it.todo('automatically resolves concurrent edits')

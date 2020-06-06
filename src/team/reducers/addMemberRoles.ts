@@ -8,7 +8,7 @@ export const addMemberRoles = (userName: string, roles: string[] = []): Reducer[
       return {
         ...member,
         roles:
-          member.name !== userName || memberRoles.includes(roleName)
+          member.userName !== userName || memberRoles.includes(roleName)
             ? memberRoles
             : [...memberRoles, roleName],
       }

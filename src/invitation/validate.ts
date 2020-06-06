@@ -13,11 +13,11 @@ export const validate = (proof: ProofOfInvitation, invitation: Invitation, teamK
   const invitationPayload: InvitationPayload = JSON.parse(decryptedInvitation)
   const { userName, publicKey } = invitationPayload
 
-  if (userName !== proof.member.name)
+  if (userName !== proof.member.userName)
     return fail(`User names don't match`, { invitationPayload, ...details })
 
-  const { signature, member: user } = proof
-  const signedMessage = { payload: { id, user }, signature, publicKey }
+  const { signature, member } = proof
+  const signedMessage = { payload: { id, member }, signature, publicKey }
   const signatureIsValid = signatures.verify(signedMessage)
 
   if (!signatureIsValid)

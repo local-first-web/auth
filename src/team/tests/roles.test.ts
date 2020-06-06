@@ -164,7 +164,7 @@ describe('Team', () => {
 
       // Bob loads the team and tries to remove charlie
       const bobsTeam = storage.load(bobsContext)
-      const remove = () => bobsTeam.remove(charlie.name)
+      const remove = () => bobsTeam.remove(charlie.userName)
 
       // Bob can't because Bob is not an admin
       expect(remove).toThrow(/not an admin/)

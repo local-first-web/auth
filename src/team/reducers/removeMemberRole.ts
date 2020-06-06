@@ -8,7 +8,7 @@ export const removeMemberRole = (userName: string, roleName: string): Reducer =>
   members: state.members.map(member => ({
     ...member,
     roles:
-      member.name !== userName //
+      member.userName !== userName //
         ? member.roles
         : (member.roles || []).filter(r => r !== roleName),
   })),

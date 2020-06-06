@@ -294,7 +294,7 @@ export class Team extends EventEmitter {
     signature: signatures.sign(payload, this.context.user.keys.signature.secretKey),
     author: {
       type: MEMBER,
-      name: this.context.user.name,
+      name: this.context.user.userName,
       generation: this.context.user.keys.generation,
     },
   })

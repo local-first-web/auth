@@ -11,7 +11,7 @@ export const expectToLookLikeKeyset = (maybeKeyset: any) => {
 
 const makeUser = (userName: string): LocalUser => {
   const keys = newKeys({ type: KeyType.MEMBER, name: userName })
-  return { name: userName, keys }
+  return { userName, keys }
 }
 
 // A simple little storage emulator
