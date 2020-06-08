@@ -1,9 +1,9 @@
 ﻿import { LocalUser } from '/user/types'
-import { redactKeys } from '/keys'
+import { redact } from '/keyset'
 import { Member } from '/member'
 
 export const redactUser = (user: Member | LocalUser) =>
   ({
     ...user,
-    keys: redactKeys(user.keys),
+    keys: redact(user.keys),
   } as Member)

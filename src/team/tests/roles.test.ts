@@ -12,7 +12,7 @@ import {
   teamChain,
 } from '/team/tests/utils'
 import { redactUser } from '/user'
-import { KeyType, ADMIN_SCOPE } from '/keys'
+import { KeyType, ADMIN_SCOPE } from '/keyset'
 import { symmetric } from '/crypto'
 import { EncryptedEnvelope } from '../types'
 

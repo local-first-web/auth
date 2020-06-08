@@ -1,5 +1,5 @@
 ﻿import { Reducer } from './index'
-import { KeyType } from '/keys'
+import { KeyType } from '/keyset'
 
 export const removeMemberRole = (userName: string, roleName: string): Reducer => state => ({
   ...state,

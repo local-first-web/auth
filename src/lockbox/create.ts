@@ -1,19 +1,25 @@
 ﻿import { asymmetric } from '/crypto'
-import { EPHEMERAL_SCOPE, generateKeys, Keys, PublicKeys, redactKeys } from '/keys'
+import * as keyset from '/keyset'
+import { KeysetWithSecrets, PublicKeyset } from '/keyset'
 import { isKeyManifest, KeyManifest, Lockbox } from '/lockbox/types'
 
+const { EPHEMERAL_SCOPE } = keyset
+
 /** Creates a new lockbox that can be opened using the recipient's private key. */
-export const create = (contents: Keys, recipientKeys: Keys | PublicKeys | KeyManifest): Lockbox => {
+export const create = (
+  contents: KeysetWithSecrets,
+  recipientKeys: KeysetWithSecrets | PublicKeyset | KeyManifest
+): Lockbox => {
   // Don't leak the recipient's secrets if we have them
-  const redactedRecipientKeys: PublicKeys | KeyManifest = isKeyManifest(recipientKeys)
+  const redactedRecipientKeys: PublicKeyset | KeyManifest = isKeyManifest(recipientKeys)
     ? recipientKeys
-    : redactKeys(recipientKeys)
+    : keyset.redact(recipientKeys)
 
   // Don't leak secrets from the contents
-  const redactedContents = redactKeys(contents)
+  const redactedContents = keyset.redact(contents)
 
   // Generate a new single-use keypair to encrypt the lockbox with
-  const encryptionKeys = generateKeys().encryption
+  const encryptionKeys = keyset.create(EPHEMERAL_SCOPE).encryption
 
   const recipientPublicKey = isKeyManifest(redactedRecipientKeys)
     ? redactedRecipientKeys.publicKey

@@ -1,4 +1,4 @@
-﻿import { PublicKeys, Keys, KeyMetadata, KeyType } from '/keys'
+﻿import { PublicKeyset, KeysetWithSecrets, KeyMetadata, KeyType } from '/keyset'
 import { Base64 } from '/lib'
 
 export type KeyManifest = KeyMetadata & {
@@ -6,7 +6,9 @@ export type KeyManifest = KeyMetadata & {
 }
 
 // type guard
-export const isKeyManifest = (keys: PublicKeys | Keys | KeyManifest): keys is KeyManifest => {
+export const isKeyManifest = (
+  keys: PublicKeyset | KeysetWithSecrets | KeyManifest
+): keys is KeyManifest => {
   return keys.hasOwnProperty('publicKey')
 }
 

@@ -5,10 +5,11 @@ A signature chain is an ordered list of links. Each link
 - is **cryptographically signed** by the author; and
 - includes a **hash of the previous link**.
 
-A signature chain is just data and can be stored as JSON. For example, here's a signature block containing two links:
+A signature chain is just data and can be stored as JSON. For example, here's a signature chain containing two links:
 
 ```json
 [
+  // root link
   {
     "body": {
       "type": 0,
@@ -26,6 +27,7 @@ A signature chain is just data and can be stored as JSON. For example, here's a 
       "key": "/I7WZRWBGTAJD30JJRq+CVOLWL7iGxIHlbBmq80bjLg="
     }
   },
+  // another link
   {
     "body": {
       "type": "something",
@@ -69,6 +71,7 @@ export interface LinkBody {
 - `payload` is the content of the action - for example, it might contain the name and public keys of a member being added. (Likewise, this is analogous to the payload of a Redux action.)
 
 - `context` contains information about the environment in which the link was created - who authored it, on what device, using what software. For example:
+  
   ```ts
   context: {
     user: 'alice',
@@ -125,8 +128,8 @@ Runs a chain through a set of validators that ensure that each link
 
 Returns an object with two properties:
 
-- `isValid` a boolean
-- `error` is an object containing (if `isValid` is false)
+- **`isValid`** is true or false
+- if `isValid` is false, **`error`** is an object containing 
   - `message` describing the first error found, an
   - `index` the index of the link containing the error
   - `details` any additional specifics about the error

@@ -23,7 +23,7 @@ Optionally, you can identify the client application.
 
 ```ts
 const client = {
-  name: 'AmazingTeamApp',
+  name: 'MyAmazingTeamApp',
   version: '1.2.3',
 }
 ```

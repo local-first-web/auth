@@ -1,5 +1,5 @@
 ﻿import { Client, LocalUserContext, Device, DeviceType } from '/context'
-import { KeyType, newKeys } from '/keys'
+import { KeyType, create } from '/keyset'
 import { Role } from '/role'
 import { Team } from '/team'
 import { LocalUser } from '/user'
@@ -10,7 +10,7 @@ export const expectToLookLikeKeyset = (maybeKeyset: any) => {
 }
 
 const makeUser = (userName: string): LocalUser => {
-  const keys = newKeys({ type: KeyType.MEMBER, name: userName })
+  const keys = create({ type: KeyType.MEMBER, name: userName })
   return { userName, keys }
 }
 

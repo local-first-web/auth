@@ -1,4 +1,4 @@
-﻿import { KeyScope } from '/keys'
+﻿import { KeyScope } from '/keyset'
 import { TeamState } from '/team/types'
 import { Lockbox } from '/lockbox'
 

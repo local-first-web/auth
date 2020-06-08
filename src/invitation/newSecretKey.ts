@@ -2,6 +2,8 @@
 import { base30 } from '/lib'
 import { IKEY_LENGTH } from './create'
 
+// TODO make key strength & encoding pluggable
+
 // ## Step 1a
 // The invitation key is a randomly generated secret that is sent to Bob via a pre-authenticated
 // channel (e.g. WhatsApp). If Alice is inviting Bob, only Alice and Bob will ever have this key.

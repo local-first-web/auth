@@ -30,13 +30,13 @@ export interface KeyMetadata extends KeyScope {
   generation: number
 }
 
-export interface Keys extends KeyMetadata, Keyset {}
+export interface KeysetWithSecrets extends KeyMetadata, Keyset {}
 
-export interface PublicKeys extends KeyMetadata {
+export interface PublicKeyset extends KeyMetadata {
   encryption: Base64 // = encryption.publicKey
   signature: Base64 // = signature.publicKey
 }
 
 // type guard: PublicKeys vs KeysWithSecrets
-export const hasSecrets = (keys: PublicKeys | Keys): keys is Keys =>
+export const hasSecrets = (keys: PublicKeyset | KeysetWithSecrets): keys is KeysetWithSecrets =>
   keys.encryption.hasOwnProperty('secretKey') || keys.signature.hasOwnProperty('secretKey')

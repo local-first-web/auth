@@ -1,9 +1,13 @@
 ﻿import { Invitation, InvitationPayload, ProofOfInvitation } from '/invitation/types'
 import { ValidationResult } from '/chain'
 import { signatures, symmetric } from '/crypto'
-import { Keys } from '/keys'
+import { KeysetWithSecrets } from '/keyset'
 
-export const validate = (proof: ProofOfInvitation, invitation: Invitation, teamKeys: Keys) => {
+export const validate = (
+  proof: ProofOfInvitation,
+  invitation: Invitation,
+  teamKeys: KeysetWithSecrets
+) => {
   const { id, encryptedPayload } = invitation
   const details = { invitation, proof }
 

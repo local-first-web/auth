@@ -1,7 +1,7 @@
 import { LinkBody, SignatureChain, SignedLink, ValidationResult } from '/chain'
 import { LocalUserContext, MemberContext } from '/context'
 import { Invitation } from '/invitation/types'
-import { KeyMetadata } from '/keys'
+import { KeyMetadata } from '/keyset'
 import { Base64, Payload } from '/lib'
 import { Lockbox } from '/lockbox'
 import { Member } from '/member'

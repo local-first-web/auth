@@ -4,7 +4,15 @@ import { LocalUserContext } from '/context'
 import { signatures, symmetric } from '/crypto'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
-import { ADMIN_SCOPE, KeyMetadata, KeyScope, Keys, KeyType, newKeys, TEAM_SCOPE } from '/keys'
+import {
+  ADMIN_SCOPE,
+  KeyMetadata,
+  KeyScope,
+  KeysetWithSecrets,
+  KeyType,
+  create,
+  TEAM_SCOPE,
+} from '/keyset'
 import { Optional, Payload } from '/lib'
 import * as lockbox from '/lockbox'
 import { Member } from '/member'
@@ -38,8 +46,8 @@ export class Team extends EventEmitter {
 
       // Team & role secrets are never stored in plaintext, only encrypted into individual lockboxes.
       // Here we create new lockboxes with the team & admin keys for the founding member
-      const teamLockbox = lockbox.create(newKeys(TEAM_SCOPE), this.context.user.keys)
-      const adminLockbox = lockbox.create(newKeys(ADMIN_SCOPE), this.context.user.keys)
+      const teamLockbox = lockbox.create(create(TEAM_SCOPE), this.context.user.keys)
+      const adminLockbox = lockbox.create(create(ADMIN_SCOPE), this.context.user.keys)
 
       // Post root link to signature chain
       this.dispatch({
@@ -116,17 +124,18 @@ export class Team extends EventEmitter {
   // Keys
 
   /** Returns the keyset (if available to the current user) for the given type and name */
-  public keys = (scope: Optional<KeyMetadata, 'generation'>): Keys =>
+  public keys = (scope: Optional<KeyMetadata, 'generation'>): KeysetWithSecrets =>
     select.keys(this.state, this.context.user, scope)
 
   /** Returns the team keyset */
-  public teamKeys = (): Keys => this.keys(TEAM_SCOPE)
+  public teamKeys = (): KeysetWithSecrets => this.keys(TEAM_SCOPE)
 
   /** Returns the keys for the given role */
-  public roleKeys = (roleName: string): Keys => this.keys({ type: ROLE, name: roleName })
+  public roleKeys = (roleName: string): KeysetWithSecrets =>
+    this.keys({ type: ROLE, name: roleName })
 
   /** Returns the admin keyset */
-  public adminKeys = (): Keys => this.roleKeys(ADMIN)
+  public adminKeys = (): KeysetWithSecrets => this.roleKeys(ADMIN)
 
   // ## WRITE METHODS
 
@@ -173,7 +182,7 @@ export class Team extends EventEmitter {
   /** Adds a role */
   public addRole = (role: Role) => {
     // we're creating this role so we need to generate new keys
-    const roleKeys = newKeys({ type: ROLE, name: role.roleName })
+    const roleKeys = create({ type: ROLE, name: role.roleName })
 
     // make a lockbox for the admin role, so that all admins can access this role's keys
     const lockboxForAdmin = lockbox.create(roleKeys, this.adminKeys())
@@ -345,7 +354,7 @@ export class Team extends EventEmitter {
 
     // generate new keys and lockboxes for each one
     const newLockboxes = compromisedScopes.flatMap(scope => {
-      const keys = newKeys(scope)
+      const keys = create(scope)
       const oldLockboxes = select.lockboxesInScope(this.state, scope)
       const newLockboxes = oldLockboxes.map(oldLockbox => lockbox.rotate(oldLockbox, keys))
       return newLockboxes

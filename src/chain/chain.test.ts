@@ -2,7 +2,7 @@ import { append } from '/chain/append'
 import { create } from '/chain/create'
 import { validate } from '/chain/validate'
 import { signatures } from '/crypto'
-import { defaultContext, alice, bobsContext } from '/team/tests/utils'
+import { alice, defaultContext } from '/team/tests/utils'
 
 describe('chains', () => {
   describe('Alice creats a new chain', () => {

@@ -2,12 +2,14 @@ import { newSecretKey } from './newSecretKey'
 import { accept } from '/invitation/accept'
 import { create } from '/invitation/create'
 import { validate } from '/invitation/validate'
-import { newKeys, TEAM_SCOPE } from '/keys'
+import * as keyset from '/keyset'
 import { bob } from '/team/tests/utils'
 import { redactUser } from '/user'
 
+const { TEAM_SCOPE } = keyset
+
 describe('invitations', () => {
-  const teamKeys = newKeys(TEAM_SCOPE)
+  const teamKeys = keyset.create(TEAM_SCOPE)
 
   test('create', () => {
     const secretKey = newSecretKey()

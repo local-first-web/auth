@@ -1,7 +1,8 @@
 ﻿import { symmetric } from '/crypto'
 import { deriveId } from '/invitation/deriveId'
 import { Invitation, InvitationPayload } from '/invitation/types'
-import { generateKeys, Keys } from '/keys'
+import { EPHEMERAL_SCOPE, KeysetWithSecrets } from '/keyset'
+import * as keyset from '/keyset'
 
 export const IKEY_LENGTH = 16
 
@@ -29,7 +30,7 @@ export const create = ({
   // ## Step 1d
   // Generate a signing keypair for Bob to use to verify that he knows the secret key. This keypair
   // is also derived from the secret key, so Bob can generate it independently.
-  const { publicKey } = generateKeys(secretKey).signature
+  const { publicKey } = keyset.create(EPHEMERAL_SCOPE, secretKey).signature
 
   // ## Step 2a
   // Encrypt Bob's username and roles so that we don't leak that information in the public signature
@@ -45,7 +46,7 @@ export const create = ({
 }
 
 interface InvitationArgs {
-  teamKeys: Keys
+  teamKeys: KeysetWithSecrets
   userName: string
   roles?: string[]
   secretKey: string

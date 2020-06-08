@@ -1,11 +1,11 @@
 # 🌮 taco-js
 
-Decentralized authentication and authorization for team collaboration, using a secure chain of
+**Decentralized authentication and authorization** for team collaboration, using a secure chain of
 cryptographic signatures.
 
 ## Why
 
-💻🤝 You're building a [local-first](http://inkandswitch.com/local-first.html) app to enable distributed collaboration [without a central
+📱🤝 You're building a [local-first](http://inkandswitch.com/local-first.html) app to enable distributed collaboration [without a central
 server](http://medium.com/all-the-things/a-web-application-with-no-web-server-61000a6aed8f).
 
 👩🏾🔑 You want to **authenticate** users and manage their **permissions**.
@@ -18,17 +18,24 @@ server](http://medium.com/all-the-things/a-web-application-with-no-web-server-61
 
 ## How
 
-When Alice first creates a team, she is assigned a set of **cryptographic keys** for signatures,
-asymmetric encryption, and symmetric encryption. These are stored in her device's **secure storage**.
+Taco solves the following problems without requiring a server or any other central source of truth:
 
-She writes the first link of a **signature chain**, containing her public keys for signatures and
+- **Authorization**, using a signature chain
+- **Authentication**, using signature challenges
+- **Invitations**, using a Seitan token exchange
+- **Multi-reader encryption**, using lockboxes
+- **Key revocation and rotation**, using an acyclic directed graph of keys and lockboxes
+
+Each user is assigned a set of cryptographic keys for signatures, asymmetric encryption, and symmetric encryption. These are stored in their device's secure storage.
+
+When Alice first creates a team, she writes the first link of a **signature chain**, containing her public keys for signatures and
 encryption. All subsequent links must be signed by Alice or by another team member with admin
 permissions.
 
 Subsequent links in the chain can serve to add new team members, authorize new devices, define
 roles, and assign people to roles.
 
-Invitations, permissions, and device authorizations can also be **revoked**, in which case secret keys
+When roles are changed, members leave, or devices are lost or replaced, keys
 are **rotated** and associated data **re-encrypted**.
 
 👉 Learn more: [Internals](./docs/internals.md)
@@ -36,15 +43,16 @@ are **rotated** and associated data **re-encrypted**.
 ## What
 
 Taco exposes a `Team` class, which wraps the signature chain and encapsulates the team's members,
-devices, and roles. This object can also use the public keys embedded in the signature chain, along
-with the user's own secret keys, to provide encryption, decryption, signatures, and signature
-verification within the team.
+devices, and roles. With this object, you can **invite new members** and **manage their permissions.**
+
+This object can also use the public keys embedded in the signature chain, along
+with the user's own secret keys, to provide **encryption** and **signature verification** within the team.
 
 #### Not included
 
 - **Storage** Taco uses the secure storage provided by the device to store the user's keys.
-  Taco does **not** deal with storage for the signature chain.
-- **Networking** Taco can synchronize with other instances to ensure that everyone has the same signature chain, but you need to provide a working socket connecting us to a peer.
+  Taco does **not** provide storage for the signature chain.
+- **Networking** Taco can communicate with other instances to synchronize everyone's signature chains, but you need to provide a working socket connecting us to a peer.
 
 ### Examples
 
@@ -57,6 +65,7 @@ yarn add taco-js
 ```ts
 import { user, Team } from 'taco'
 
+// 👩🏾 Alice
 const alice = user.create('alice')
 const context = { user: alice, device }
 const team = new Team({ name: 'Spies Я Us', context })
@@ -68,6 +77,7 @@ existing user IDs or names, or email addresses.
 #### Alice invites Bob
 
 ```ts
+// 👩🏾 Alice
 const invitationKey = team.invite('bob')
 ```
 
@@ -78,51 +88,54 @@ appended to a URL that Bob can click to accept:
 
 > Alice has invited you to team XYZ. To accept, click: http://xyz.org/accept/aj7x+d2jr+9c8f+zrbs
 
-Alice will send the invitation to Bob via a pre-authenticated channel.
-
-- If the stakes are low, she could use email or SMS
-- If more security is needed, she could use an encrypted service like WhatsApp, Telegram, or Signal
+Alice will send the invitation to Bob via a side channel she already trusts (phone call, email, SMS, WhatsApp, Telegram, etc).
 
 #### Bob accepts the invitation
 
+Bob uses the secret invitation key to generate proof that he was invited, without divulging the key.
+
 ```ts
+// 👴🏻 Bob
 import { accept } from 'taco'
 const proofOfInvitation = accept('aj7x d2jr 9c8f zrbs')
 ```
 
-TODO: complete this process
-
-#### Alice defines a role
+When Bob shows up to join the team, anyone can validate his proof of invitation to admit him to the team - it doesn't have to be an admin.
 
 ```ts
-team.addRole('managers', { isAdmin: true })
+// 👳‍♂️ Charlie
+team.admit(proofOfInvitation)
+const success = team.has('bob') // TRUE
 ```
 
-#### Alice adds Bob to this role
+#### Alice defines a role and adds Bob
 
 ```ts
+// 👩🏾 Alice
+team.addRole('managers')
 team.addMemberRole('bob', 'managers')
 ```
 
-#### Alice checks Bob's permissions
+#### Alice checks Bob's role membership
 
 ```ts
+// 👩🏾 Alice
 const isAdmin = team.isAdmin('bob') // TRUE
 ```
 
 #### Alice encrypts a message for managers
 
 ```ts
+// 👩🏾 Alice
 const message = 'the condor flies at midnight'
-const { encrypt, decrypt } = team.crypto.asymmetric
-const encrypted = encrypt(message, { roles: ['managers'] })
+const encrypted = team.encrypt(message, 'managers')
 ```
 
 #### Bob decrypts the message
 
 ```ts
-const { encrypt, decrypt } = team.crypto.asymmetric
-const decrypted = decrypt(encrypted) // 'the condor flies at midnight'
+// 👴🏻 Bob
+const decrypted = team.decrypt(encrypted) // 'the condor flies at midnight'
 ```
 
 👉 Learn more: [API documentation](./docs/api.md).

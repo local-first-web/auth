@@ -1,4 +1,4 @@
-﻿import { KeyType } from '/keys/types'
+﻿import { KeyType } from './types'
 import { ADMIN } from '/role'
 
 export const TEAM_SCOPE = { type: KeyType.TEAM, name: KeyType.TEAM }
