@@ -2,7 +2,7 @@
 
 The local user and their private & public keys. The name provided can be an existing username, an email address, or an ID. It needs to uniquely identify the user within this team.
 
-```ts
+```js
 import { user } from 'taco'
 const alice = user.create('alice')
 

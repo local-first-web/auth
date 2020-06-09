@@ -52,7 +52,7 @@ The `chain` module doesn't know anything about teams or access rules. It just cr
 
 ### Link structure
 
-```ts
+```js
 export interface LinkBody {
   type: string
   payload: any
@@ -71,8 +71,8 @@ export interface LinkBody {
 - `payload` is the content of the action - for example, it might contain the name and public keys of a member being added. (Likewise, this is analogous to the payload of a Redux action.)
 
 - `context` contains information about the environment in which the link was created - who authored it, on what device, using what software. For example:
-  
-  ```ts
+
+  ```js
   context: {
     user: 'alice',
     device: {
@@ -101,7 +101,7 @@ export interface LinkBody {
 
 Returns a signature chain containing a single root element.
 
-```ts
+```js
 const payload = { team: 'Spies Я Us' }
 const chain = create(payload, context)
 ```
@@ -110,7 +110,7 @@ const chain = create(payload, context)
 
 Takes a chain, a partial link (containing just a `type` and a `payload`), and a context; and returns a new chain with the link filled out, signed, and populated with the hash of the preceding link.
 
-```ts
+```js
 const newChain = append(
   chain,
   { type: 'ADD_USER', payload: { name: 'bob', keys: {...} } },
@@ -129,14 +129,14 @@ Runs a chain through a set of validators that ensure that each link
 Returns an object with two properties:
 
 - **`isValid`** is true or false
-- if `isValid` is false, **`error`** is an object containing 
+- if `isValid` is false, **`error`** is an object containing
   - `message` describing the first error found, an
   - `index` the index of the link containing the error
   - `details` any additional specifics about the error
 
 For example, suppose Eve tampers with the root link's payload to change the name of the team from "Spies Я Us" to "Dorks Я Us". Validation will show that the signature of the link no longer matches the body of the link:
 
-```ts
+```js
 const result = validate(chain)
 
 // {

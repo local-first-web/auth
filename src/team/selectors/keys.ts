@@ -11,7 +11,7 @@ export const keys = (
 ) => {
   const { type, name, generation: generationOrUndefined } = scope
 
-  const keysFromLockboxes = myKeys(state, currentUser)
+  const keysFromLockboxes = getKeyMap(state, currentUser)
   const keys = keysFromLockboxes[type] && keysFromLockboxes[type][name]
   if (!keys) throw new Error(`Keys not found for ${type.toLowerCase()} '${name}`)
 
@@ -22,7 +22,7 @@ export const keys = (
 // TODO: memoize this
 
 /** Returns all keysets from the current user's lockboxes in a structure that looks like this:
- * ```ts
+ * ```js
  * {
  *    TEAM: {
  *      TEAM: Keyset[], // <- all keys starting with generation 0
@@ -33,7 +33,7 @@ export const keys = (
  * }
  * ```
  */
-const myKeys = (state: TeamState, currentUser: LocalUser): KeysetMap => {
+const getKeyMap = (state: TeamState, currentUser: LocalUser): KeyMap => {
   const usersOwnKeys = currentUser.keyHistory || [currentUser.keys] // if there's no history, just use the keys we have
   const allVisibleKeys = usersOwnKeys.flatMap(keys => getDerivedKeys(state, keys))
   return allVisibleKeys.reduce(organizeKeysIntoMap, {})
@@ -48,7 +48,7 @@ const getDerivedKeys = (state: TeamState, keyset: KeysetWithSecrets): KeysetWith
   return [...keysets, ...derivedKeysets]
 }
 
-const organizeKeysIntoMap = (result: KeysetMap, keys: KeysetWithSecrets) => {
+const organizeKeysIntoMap = (result: KeyMap, keys: KeysetWithSecrets) => {
   const { type, name, generation } = keys
   const keysetsForScope = result[type] || {}
   const keysetHistory = keysetsForScope[name] || []
@@ -59,10 +59,10 @@ const organizeKeysIntoMap = (result: KeysetMap, keys: KeysetWithSecrets) => {
       ...keysetsForScope,
       [name]: keysetHistory,
     },
-  } as KeysetMap
+  } as KeyMap
 }
 
-export interface KeysetMap {
+interface KeyMap {
   [type: string]: {
     [name: string]: KeysetWithSecrets[]
   }

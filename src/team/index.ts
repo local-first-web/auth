@@ -4,16 +4,9 @@ import { LocalUserContext } from '/context'
 import { signatures, symmetric } from '/crypto'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
-import {
-  ADMIN_SCOPE,
-  KeyMetadata,
-  KeyScope,
-  KeysetWithSecrets,
-  KeyType,
-  create,
-  TEAM_SCOPE,
-} from '/keyset'
+import { ADMIN_SCOPE, KeyMetadata, KeyScope, KeysetWithSecrets, KeyType, TEAM_SCOPE } from '/keyset'
 import { Optional, Payload } from '/lib'
+import * as keyset from '/keyset'
 import * as lockbox from '/lockbox'
 import { Member } from '/member'
 import { ADMIN, Role } from '/role'
@@ -354,7 +347,7 @@ export class Team extends EventEmitter {
 
     // generate new keys and lockboxes for each one
     const newLockboxes = compromisedScopes.flatMap(scope => {
-      const keys = create(scope)
+      const keys = keyset.create(scope)
       const oldLockboxes = select.lockboxesInScope(this.state, scope)
       const newLockboxes = oldLockboxes.map(oldLockbox => lockbox.rotate(oldLockbox, keys))
       return newLockboxes

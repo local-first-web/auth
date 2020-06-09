@@ -17,7 +17,7 @@ A lockbox is just data: An encrypted payload, plus some metadata.
 
 For example:
 
-```ts
+```js
 const lockbox = {
   // need this to open the lockbox
   encryptionKey: {
@@ -55,42 +55,65 @@ We use lockboxes to:
 - share **all role keys** with the **admin role**
 - share **user keys** with the user's **devices**
 
-#### `create()`
+## API
+
+#### `lockbox.create(contents, recipientKeys)`
 
 To make a lockbox, pass in two keysets:
 
-- `contents`, the keys to be encrypted in the lockbox
-- `recipient`, the keys used to open the lockbox
+- `contents`, the secret keys to be encrypted in the lockbox. This has to be a `KeysetWithSecrets`.
+- `recipientKeys`, the public keys used to open the lockbox. At minimum, this needs to include the recipient's public encryption key (plus metadata for scope and generation). 
 
 This makes a lockbox for Alice containing the admin keys.
 
-```ts
+```js
 import * as lockbox from '/lockbox'
+const adminLockboxForAlice = lockbox.create(adminKeys, alice.keys)
+```
 
-const adminKeysForAlice = lockbox.create({
-  contents: {
+This illustrates the minimum information needed to create a lockbox:
+
+```js
+const adminLockboxForAlice = lockbox.create(
+  {
     type: 'ROLE',
     name: 'admin',
-    seed: 'CrVdFPwluPaVIHUS22I0LrJOM47wCOnN853V3OonqnToO9i5',
-  	publicKey: 'CSiD5BxujROcznaLdfowq9W8d4voS8CGL06fOuiyHO7trRml',
+    generation: 0,
+  	signature: { 
+      publicKey: 'B3B8xMFdLDLbd72tXLlgxyvsAJravbATqMtTtje1PQdikGjN=', 
+      privateKey: 'QI4vBzCKvn6SBvyR7PBKFuuKiSGk3naX0oetx3XUtPK...AX1W0LCdWwMlHhNO3T5jVwnkz='
+    },
+    encryption: { 
+      publicKey: 'asuM3NexDiDs2P2OKQOu3tdXWz2zV6LoaxPfZPLIb8gFIIU0=', 
+      privateKey: 'e1tcEjpGfKuJz8JObrVJGqq9zrXpNwyHafYEd298p3MyYThJ='
+    },
   },
-  recipient: {
+  {
   	type: 'USER',
   	name: 'alice',
+    generation: 0, 
   	publicKey: 'JG81tVDDfp3BqXedrtiRiWtvqQKt2175nAceYIPjjMR7z2Y1',
 	}
 )
 ```
 
-This example illustrates the minimal data that `create` needs to make a lockbox. In practice, we're more likely to just pass two keysets, and the function will take what it needs from each:
+#### `lockbox.open(lockbox, decryptionKeys)`
 
-```tsx
-const adminKeysForAlice = lockbox.create({
-  contents: adminKeys,
-  recipient: aliceKeys,
-})
+To open a lockbox:
+
+```js
+const adminKeys = open(adminLockboxForAlice, alice.keys)
 ```
 
-#### `open()`
+#### `lockbox.rotate(oldLockbox, contents)`
 
-To
+"Rotating" a lockbox means replacing the keys it contains with new ones. 
+
+For example, if the admin keys are compromised, we'll need to come up with a new set of keys; then we'll need to find every lockbox that contained the old keys, and replace them with the new ones. 
+
+```js
+const newAdminKeys = keyset.create({ type: ROLE, name: ADMIN })
+const newAdminLockboxForAlice = lockbox.rotate(adminLockboxForAlice, newAdminKeys)
+```
+
+This is implemented in the private `rotateKeys` method in the `Team` class.

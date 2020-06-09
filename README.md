@@ -62,7 +62,7 @@ yarn add taco-js
 
 #### Alice creates a new team
 
-```ts
+```js
 import { user, Team } from 'taco'
 
 // 👩🏾 Alice
@@ -76,7 +76,7 @@ existing user IDs or names, or email addresses.
 
 #### Alice invites Bob
 
-```ts
+```js
 // 👩🏾 Alice
 const invitationKey = team.invite('bob')
 ```
@@ -94,7 +94,7 @@ Alice will send the invitation to Bob via a side channel she already trusts (pho
 
 Bob uses the secret invitation key to generate proof that he was invited, without divulging the key.
 
-```ts
+```js
 // 👴🏻 Bob
 import { accept } from 'taco'
 const proofOfInvitation = accept('aj7x d2jr 9c8f zrbs')
@@ -102,7 +102,7 @@ const proofOfInvitation = accept('aj7x d2jr 9c8f zrbs')
 
 When Bob shows up to join the team, anyone can validate his proof of invitation to admit him to the team - it doesn't have to be an admin.
 
-```ts
+```js
 // 👳‍♂️ Charlie
 team.admit(proofOfInvitation)
 const success = team.has('bob') // TRUE
@@ -110,7 +110,7 @@ const success = team.has('bob') // TRUE
 
 #### Alice defines a role and adds Bob
 
-```ts
+```js
 // 👩🏾 Alice
 team.addRole('managers')
 team.addMemberRole('bob', 'managers')
@@ -118,14 +118,14 @@ team.addMemberRole('bob', 'managers')
 
 #### Alice checks Bob's role membership
 
-```ts
+```js
 // 👩🏾 Alice
 const isAdmin = team.isAdmin('bob') // TRUE
 ```
 
 #### Alice encrypts a message for managers
 
-```ts
+```js
 // 👩🏾 Alice
 const message = 'the condor flies at midnight'
 const encrypted = team.encrypt(message, 'managers')
@@ -133,7 +133,7 @@ const encrypted = team.encrypt(message, 'managers')
 
 #### Bob decrypts the message
 
-```ts
+```js
 // 👴🏻 Bob
 const decrypted = team.decrypt(encrypted) // 'the condor flies at midnight'
 ```

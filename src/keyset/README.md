@@ -1,14 +1,16 @@
 ## 🔑🗝 Keyset
 
-Each team, each role, each user, and each device has its own **keyset**. A keyset consists of two keypairs - one for encryption and one for signatures. 
+Each team, each role, each member, and each device has its own **keyset**. A keyset consists of two keypairs - one for encryption and one for signatures.
 
-> **Note:** The encryption keypair can be used for asymmetric encryption; its private key can also be used for symmetric encryption. 
+> **TODO:** The encryption keypair is used for asymmetric encryption; the private key of this keypair is also used for symmetric encryption. After making this change, I consulted the Cryptography Stack Exchange on the wisdom of simplifying things this way; they [unanimously concluded it was a bad idea](https://crypto.stackexchange.com/questions/81045/can-i-use-the-secret-part-of-a-asymmetric-encryption-keypair-as-a-symmetric-encr). I'm not totally convinced by their logic, but it probably makes sense to do what they say.
 
-### `create(scope)`
+## API
+
+### `keyset.create(scope)`
 
 A keyset is generated from a single randomly-generated secret, following a procedure roughly based on the [Keybase docs on Per-User Keys](http://keybase.io/docs/teams/puk).
 
-Each keyset is associated with a **scope**, which could be:
+Each keyset is associated with a **scope**, indicating what or who the keys belong to:
 
 - an entire **team**: `{ type: TEAM }`
 - a specific **role**: `{ type: ROLE, name: 'admin' }`
@@ -16,11 +18,11 @@ Each keyset is associated with a **scope**, which could be:
 - a specific **device**: `{ type: DEVICE, name: 'alice laptop' }`
 - **ephemeral** (a throwaway or single-use keyset): `{ type: EPHEMERAL }`
 
-```ts
+```js
 const adminKeys = keyset.create({type: ROLE, name: 'admin'})
 
 {
-	type: 'ROLE', 
+  type: 'ROLE',
   name: 'admin',
   generation: 0,
   signature: {
@@ -34,17 +36,17 @@ const adminKeys = keyset.create({type: ROLE, name: 'admin'})
 }
 ```
 
-### `create(scope, seed)`
+### `keyset.create(scope, seed)`
 
 In some cases we need to generate a keyset from a known seed. We can pass that seed to `create` as a second parameter.
 
-```ts 
+```js
 const ephemeralKeys = keyset.create({ type: EPHEMERAL }, seed)
 ```
 
-### `redact(secretKeyset)`
+### `keyset.redact(secretKeyset)`
 
-There are two kinds of keysets: 
+There are two kinds of keysets:
 
 - **`KeysetWithSecrets`** includes the secret keys  
   (for example, our user or device keys, or keys for roles we belong to)
@@ -53,15 +55,18 @@ There are two kinds of keysets:
 
 The `redact` function takes a `KeysetWithSecrets`, and returns a `PublicKeyset`.
 
-```ts
-const publicKeyset = keyset.redact(adminKeys)
+```js
+const adminPublicKeys = keyset.redact(adminKeys)
 
 {
-	type: 'ROLE', 
+  // the metadata is unchanged
+  type: 'ROLE',
   name: 'admin',
   generation: 0,
+  // instead of keypairs, these are just the public keys
   signature: 'v44ZAwFgdPMXaS8vFEkqlvKfqf3wlhxS1WrpB7KAG7=', // = adminKeys.signature.publicKey
   encryption: 'XKLCZ4oO6KqfTnFFeY4kr3EKs0V98eSbSyUjDROxX=', // = adminKeys.encryption.publicKey
 }
 ```
 
+You can also pass in a `PublicKeyset`, in which case it will be returned as-is.

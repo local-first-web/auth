@@ -1,6 +1,6 @@
 ﻿## 👩🏾👨‍🦲👳‍♂️👵 Team
 
-```ts
+```js
 import { Team } from 'taco'
 
 // create new
@@ -17,7 +17,7 @@ const chain = team.save()
 
 ### Members
 
-```ts
+```js
 // invite member
 const invitationKey = team.invite('bob')
 
@@ -39,7 +39,7 @@ const bob = team.members('bob')
 
 If a role has `admin` permissions, it can write to the team signature chain. That is the only permissions setting we understand; anything beyond that is managed by your application.
 
-```ts
+```js
 // create role
 const readers = team.roles.add('reader', { permissions: { ... }})
 const managers = team.roles.add('manager', { permissions: { admin: true }})
@@ -70,7 +70,7 @@ const bobIsManager = team.memberHasRole('bob', 'manager')
 
 Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `teamState` from `teamChain`, by applying a Redux-style reducer to the array of links. (See [reducer.ts](reducer.ts).)
 
-```ts
+```js
 const reducer = (prevState, link) => {
   const { type, payload, context } = link.body
   switch (type) {
@@ -100,7 +100,7 @@ const reducer = (prevState, link) => {
 
 The `TeamCrypto` class provides tools for public-key encryption and signatures using the keys recorded in the team's signature chain.
 
-```ts
+```js
 const { encrypt, decrypt, sign, verify } = new TeamCrypto(team)
 
 // alice encrypts the message asymmetrically for bob
