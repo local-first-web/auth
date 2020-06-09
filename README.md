@@ -63,10 +63,10 @@ yarn add taco-js
 #### Alice creates a new team
 
 ```js
-import { user, Team } from 'taco'
+import { localUser, Team } from 'taco'
 
 // 👩🏾 Alice
-const alice = user.create('alice')
+const alice = localUser('alice')
 const context = { user: alice, device }
 const team = new Team({ name: 'Spies Я Us', context })
 ```
@@ -78,7 +78,7 @@ existing user IDs or names, or email addresses.
 
 ```js
 // 👩🏾 Alice
-const invitationKey = team.invite('bob')
+const { secretKey } = team.invite('bob')
 ```
 
 The invitation key is a single-use 16-character string like `aj7x d2jr 9c8f zrbs`. To make it easier

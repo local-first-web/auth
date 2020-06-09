@@ -1,4 +1,13 @@
-﻿export * from './create'
-export * from './load'
-export * from './redact'
+﻿export * from './redact'
 export * from './types'
+
+import * as keyset from '/keyset'
+import { loadKeyset, storeKeyset } from '/storage'
+
+const { MEMBER } = keyset.KeyType
+
+export const localUser = (userName: string) => {
+  const keys = loadKeyset(userName) || keyset.create({ type: MEMBER, name: userName })
+  storeKeyset(userName, keys)
+  return { userName, keys }
+}

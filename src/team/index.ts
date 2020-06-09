@@ -288,6 +288,7 @@ export class Team extends EventEmitter {
 
   /** Decrypt a payload using keys available to the current user. */
   public decrypt = (message: EncryptedEnvelope): string => {
+    // TODO: use the correct generation
     const { secretKey } = this.keys(message.recipient).encryption
     return symmetric.decrypt(message.contents, secretKey)
   }

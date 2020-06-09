@@ -4,7 +4,7 @@ Each team, each role, each member, and each device has its own **keyset**. A key
 
 > **TODO:** The encryption keypair is used for asymmetric encryption; the private key of this keypair is also used for symmetric encryption. After making this change, I consulted the Cryptography Stack Exchange on the wisdom of simplifying things this way; they [unanimously concluded it was a bad idea](https://crypto.stackexchange.com/questions/81045/can-i-use-the-secret-part-of-a-asymmetric-encryption-keypair-as-a-symmetric-encr). I'm not totally convinced by their logic, but it probably makes sense to do what they say.
 
-## API
+## Internal API 
 
 ### `keyset.create(scope)`
 

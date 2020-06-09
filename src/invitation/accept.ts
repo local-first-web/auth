@@ -4,7 +4,7 @@ import { ProofOfInvitation } from '/invitation/types'
 import { EPHEMERAL_SCOPE, KeyType, create } from '/keyset'
 import { Member } from '/member'
 
-export const accept = (key: string, member: Member): ProofOfInvitation => {
+export const acceptInvitation = (key: string, member: Member): ProofOfInvitation => {
   // ## Step 4
 
   // TODO filter out any non-base30 characters

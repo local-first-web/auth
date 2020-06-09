@@ -12,6 +12,7 @@ import {
   MANAGERS,
   storage,
   newTeamChain,
+  charliesContext,
 } from '/team/tests/utils'
 import { redact } from '../../localUser'
 
@@ -180,8 +181,10 @@ describe('Team', () => {
       const { team: alicesTeam } = setup()
       alicesTeam.addRole({ roleName: COOLKIDS })
       alicesTeam.add(redact(bob), [COOLKIDS])
+      alicesTeam.add(redact(charlie), [COOLKIDS])
       storage.save(alicesTeam)
       let bobsTeam = storage.load(bobsContext)
+      let charliesTeam = storage.load(charliesContext)
 
       // Bob is currently in the cool kids
       expect(bobsTeam.memberHasRole('bob', COOLKIDS)).toBe(true)
@@ -191,13 +194,12 @@ describe('Team', () => {
       expect(alicesTeam.roleKeys(COOLKIDS).generation).toBe(0)
 
       // Alice encrypts something for the cool kids
-      const encryptedMessage = alicesTeam.encrypt(
-        `exclusive admin-only party at Alice's house tonight`,
-        COOLKIDS
-      )
+      const message = `exclusive admin-only party at Alice's house tonight`
+      const encryptedMessage = alicesTeam.encrypt(message, COOLKIDS)
 
-      // Bob can read the message
-      expect(() => bobsTeam.decrypt(encryptedMessage)).not.toThrow()
+      // Bob and Charlie can both read the message
+      expect(bobsTeam.decrypt(encryptedMessage)).toEqual(message)
+      expect(charliesTeam.decrypt(encryptedMessage)).toEqual(message)
 
       // Now, Bob suspects no one likes him so he makes a copy of his keys
       // @ts-ignore roleKeys is private
@@ -205,10 +207,15 @@ describe('Team', () => {
 
       // Sure enough, Alice remembers that she can't stand Bob so she kicks him out
       alicesTeam.removeMemberRole('bob', COOLKIDS)
-      storage.save(alicesTeam)
 
-      // Bob gets the latest team state
+      // Everyone gets the latest team state
+      storage.save(alicesTeam)
       bobsTeam = storage.load(bobsContext)
+      charliesTeam = storage.load(charliesContext)
+
+      // Charlie can still read the message
+      // TODO this breaks because key has been rotated & decrypt disregards generation
+      // expect(charliesTeam.decrypt(encryptedMessage)).toEqual(message)
 
       // Bob can no longer read the message through normal channels
       expect(() => bobsTeam.decrypt(encryptedMessage)).toThrow()
@@ -226,10 +233,11 @@ describe('Team', () => {
       expect(alicesTeam.roleKeys(COOLKIDS).generation).toBe(1)
 
       // So Alice encrypts a new message for admins
-      const newEncryptedMessage = alicesTeam.encrypt(
-        `party moved to Charlie's place, don't tell Bob`,
-        COOLKIDS
-      )
+      const newMessage = `party moved to Charlie's place, don't tell Bob`
+      const newEncryptedMessage = alicesTeam.encrypt(newMessage, COOLKIDS)
+
+      // Charlie can read the message
+      expect(charliesTeam.decrypt(newEncryptedMessage)).toEqual(newMessage)
 
       // Bob tries to read the new message with his old admin key, but he can't because it was
       // encrypted with the new key
