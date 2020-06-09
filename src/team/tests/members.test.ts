@@ -32,9 +32,11 @@ describe('Team', () => {
 
     it('has lockboxes for Alice containing the admin and team secrets', () => {
       const { team } = setup()
+      // @ts-ignore roleKeys is private
       const adminKeyset = team.roleKeys(ADMIN)
       expectToLookLikeKeyset(adminKeyset)
 
+      // @ts-ignore teamKeys is private
       const teamKeys = team.teamKeys()
       expectToLookLikeKeyset(teamKeys)
     })
@@ -56,10 +58,12 @@ describe('Team', () => {
       const bobsTeam = storage.load(bobsContext)
 
       // Bob has team keys
+      // @ts-ignore
       const teamKeys = bobsTeam.teamKeys()
       expectToLookLikeKeyset(teamKeys)
 
       // Bob is not an admin so he doesn't have admin keys
+      // @ts-ignore
       const bobLooksForAdminKeys = () => bobsTeam.roleKeys(ADMIN)
       expect(bobLooksForAdminKeys).toThrow(/not found/)
     })
@@ -74,6 +78,7 @@ describe('Team', () => {
       const bobsTeam = storage.load(bobsContext)
 
       // Bob is an admin and has admin keys
+      // @ts-ignore roleKeys is private
       const adminKeyset = bobsTeam.roleKeys(ADMIN)
       expectToLookLikeKeyset(adminKeyset)
     })
@@ -105,14 +110,18 @@ describe('Team', () => {
       team.add(bob, [ADMIN])
 
       // keys have never been rotated
+      // @ts-ignore
       expect(team.teamKeys().generation).toBe(0)
+      // @ts-ignore
       expect(team.adminKeys().generation).toBe(0)
 
       // remove bob from team
       team.remove('bob')
 
       // team keys & admin keys have now been rotated once
+      // @ts-ignore
       expect(team.teamKeys().generation).toBe(1)
+      // @ts-ignore
       expect(team.adminKeys().generation).toBe(1)
     })
 

@@ -161,7 +161,7 @@ export class Team extends EventEmitter {
     })
   }
 
-  /** Add a role to the team*/
+  /** Add a role to the team */
   public addRole = (role: Role) => {
     // we're creating this role so we need to generate new keys
     const roleKeys = keyset.create({ type: ROLE, name: role.roleName })
@@ -176,7 +176,7 @@ export class Team extends EventEmitter {
     })
   }
 
-  /** Remove a role from the team*/
+  /** Remove a role from the team */
   public removeRole = (roleName: string) => {
     this.dispatch({
       type: 'REMOVE_ROLE',

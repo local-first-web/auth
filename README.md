@@ -142,6 +142,6 @@ const decrypted = team.decrypt(encrypted) // 'the condor flies at midnight'
 
 ## Prior art
 
-💡 This project is inspired by and borrows heavily from Keybase: The signature chain is inspired by [their implementation for Teams](https://keybase.io/docs/team), and the invitation mechanism is based on their [Seitan token exchange specification](https://keybase.io/docs/teams/seitan_v2), proposed as a more secure alternative to TOFU, or _**T**rust **O**n **F**irst **U**se_.
+💡 This project is inspired by and borrows heavily from Keybase: The signature chain is inspired by [their implementation for Keybase Teams](https://keybase.io/docs/team), and the invitation mechanism is based on their [Seitan token exchange specification](https://keybase.io/docs/teams/seitan_v2), proposed as a more secure alternative to TOFU, or _**T**rust **O**n **F**irst **U**se_.
 
 TACO stands for _**T**rust **A**fter **C**onfirmation **O**f invitation_.
