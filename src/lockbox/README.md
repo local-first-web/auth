@@ -4,11 +4,11 @@ A lockbox allows you to **encrypt content once for multiple readers**.
 
 <img src='../../docs/img/lockboxes.png' width='500' />
 
-For example, you can **encrypt a dataset once for an entire team using a single secret key**, and
+For example, you can **encrypt a dataset once for an entire team using a single secret key `T`**, and
 **distribute one lockbox per team member containing the secret key**. In each lockbox, the secret key is encrypted
 asymmetrically using an ephemeral private key and the member's public key.
 
-To encrypt content using lockboxes, you only need to know the public half of the recipients' encryption key. You don't need a trusted
+To encrypt content using lockboxes, you only need to know the recipients' public keys. You don't need a trusted
 side channel to communicate with the recipients, and you never have to transmit the secret in
 cleartext. The lockboxes are clearly labeled and can be attached to the encrypted content for
 storage, publication, or transmission.
@@ -39,12 +39,12 @@ const lockbox = {
     publicKey: 'BmY3ZojiKMQavrPaGc3dp7N1E0nlw6ZtBvqAN4rOIXcWn9ej',
   },
 
-  // the payload
-  encryptedSecret: 'BxAOzkrxpu2vwL+j98X9VDkW6cKqDoDQUNM2dJ9dXDsr...2wKeaT0T5wi0JVGh2lbW2VG5==',
+  // the encrypted keyset
+  encryptedPayload: 'BxAOzkrxpu2vwL+j98X9VDkcKqDoDQUNM2dJ9dXDsr...2wKeaT0T5wi0JVGh2lbW2VG5==',
 }
 ```
 
-The lockbox is encrypted using a single-use, randomly-generated key. The public half of this
+The lockbox contents are encrypted using a single-use, randomly-generated key. The public half of this
 ephemeral key is posted publicly on the lockbox; the secret half is used to encrypt the lockbox
 contents, and is then discarded.
 

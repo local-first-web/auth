@@ -1,6 +1,6 @@
 ﻿import * as keyset from '/keyset'
 import { loadKeyset, storeKeyset } from '/storage'
-import { LocalUser } from '/user/types'
+import { LocalUser } from './types'
 
 const { MEMBER } = keyset.KeyType
 

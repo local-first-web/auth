@@ -1,2 +1,2 @@
-﻿export * from '/user'
+﻿export * from '/localUser'
 export * from '/team'

@@ -1,3 +1,5 @@
+import { EncryptedEnvelope } from '../types'
+import { symmetric } from '/crypto'
 import { ADMIN } from '/role'
 import { Team } from '/team'
 import {
@@ -9,12 +11,9 @@ import {
   managers,
   MANAGERS,
   storage,
-  teamChain,
+  newTeamChain,
 } from '/team/tests/utils'
-import { redactUser } from '/user'
-import { KeyType, ADMIN_SCOPE } from '/keyset'
-import { symmetric } from '/crypto'
-import { EncryptedEnvelope } from '../types'
+import { redact } from '../../localUser'
 
 describe('Team', () => {
   beforeEach(() => {
@@ -24,7 +23,7 @@ describe('Team', () => {
 
   const setup = () => {
     const context = defaultContext
-    const team = new Team({ source: teamChain, context })
+    const team = new Team({ source: newTeamChain, context })
     return { team, context }
   }
 
@@ -36,7 +35,7 @@ describe('Team', () => {
 
     it('Bob is not admin by default', () => {
       const { team } = setup()
-      team.add(redactUser(bob))
+      team.add(redact(bob))
       expect(team.memberIsAdmin('bob')).toBe(false)
     })
 
@@ -55,13 +54,14 @@ describe('Team', () => {
       expect(team.memberHasRole('alice', MANAGERS)).toBe(false)
 
       // But Alice does have access to the managers' keys
+      // @ts-ignore roleKeys is private
       const managersKeys = team.roleKeys(MANAGERS)
       expectToLookLikeKeyset(managersKeys)
     })
 
     it('adds a member to a role', () => {
       const { team: alicesTeam } = setup()
-      alicesTeam.add(redactUser(bob))
+      alicesTeam.add(redact(bob))
 
       // Bob isn't an admin yet
       expect(alicesTeam.memberIsAdmin('bob')).toBe(false)
@@ -78,13 +78,14 @@ describe('Team', () => {
       const bobsTeam = storage.load(bobsContext)
 
       // Bob has admin keys
+      // @ts-ignore roleKeys is private
       const bobsAdminKeys = bobsTeam.roleKeys(ADMIN)
       expectToLookLikeKeyset(bobsAdminKeys)
     })
 
     it('removes a member from a role', () => {
       const { team: alicesTeam } = setup()
-      alicesTeam.add(redactUser(bob), [ADMIN])
+      alicesTeam.add(redact(bob), [ADMIN])
 
       // Bob is an admin
       expect(alicesTeam.memberIsAdmin('bob')).toBe(true)
@@ -105,6 +106,7 @@ describe('Team', () => {
       expect(bobsTeam.memberIsAdmin('bob')).toBe(false)
 
       // Bob doesn't have admin keys any more
+      // @ts-ignore roleKeys is private
       const bobLooksForAdminKeys = () => bobsTeam.roleKeys(ADMIN)
       expect(bobLooksForAdminKeys).toThrow()
     })
@@ -132,12 +134,12 @@ describe('Team', () => {
     it('allows an admin other than Alice to add a member', () => {
       // Alice creates a team and adds Bob as an admin
       const { team: alicesTeam } = setup()
-      alicesTeam.add(redactUser(bob), [ADMIN]) // bob is an admin
+      alicesTeam.add(redact(bob), [ADMIN]) // bob is an admin
       storage.save(alicesTeam)
 
-      // Bob loads the team and tries to add Charlie as a member
+      // Bob loads the team and adds Charlie as a member
       const bobsTeam = storage.load(bobsContext)
-      const addUser = () => bobsTeam.add(redactUser(charlie))
+      const addUser = () => bobsTeam.add(redact(charlie))
 
       // Bob is allowed because he is an admin
       expect(addUser).not.toThrow()
@@ -146,25 +148,25 @@ describe('Team', () => {
     it('does not allow a non-admin to add a member', () => {
       // Alice creates a team and adds Bob with no admin rights
       const { team: alicesTeam } = setup()
-      alicesTeam.add(redactUser(bob), []) // Bob is not an admin
+      alicesTeam.add(redact(bob), []) // Bob is not an admin
       storage.save(alicesTeam)
 
       // Bob loads the team and tries to add Charlie as a member
       const bobsTeam = storage.load(bobsContext)
-      const addUser = () => bobsTeam.add(redactUser(charlie))
+      const addUser = () => bobsTeam.add(redact(charlie))
 
       // Bob can't because Bob is not an admin
       expect(addUser).toThrow(/not an admin/)
     })
 
     it('does not allow a non-admin to remove a member', () => {
-      // Alice creates a team and adds Bob and charlie
+      // Alice creates a team and adds Bob and Charlie
       const { team: alicesTeam } = setup()
-      alicesTeam.add(redactUser(bob), []) // Bob is not an admin
-      alicesTeam.add(redactUser(charlie), [])
+      alicesTeam.add(redact(bob), []) // Bob is not an admin
+      alicesTeam.add(redact(charlie), [])
       storage.save(alicesTeam)
 
-      // Bob loads the team and tries to remove charlie
+      // Bob loads the team and tries to remove Charlie
       const bobsTeam = storage.load(bobsContext)
       const remove = () => bobsTeam.remove(charlie.userName)
 
@@ -177,7 +179,7 @@ describe('Team', () => {
 
       const { team: alicesTeam } = setup()
       alicesTeam.addRole({ roleName: COOLKIDS })
-      alicesTeam.add(redactUser(bob), [COOLKIDS])
+      alicesTeam.add(redact(bob), [COOLKIDS])
       storage.save(alicesTeam)
       let bobsTeam = storage.load(bobsContext)
 
@@ -185,6 +187,7 @@ describe('Team', () => {
       expect(bobsTeam.memberHasRole('bob', COOLKIDS)).toBe(true)
 
       // The cool kids keys have never been rotated
+      // @ts-ignore roleKeys is private
       expect(alicesTeam.roleKeys(COOLKIDS).generation).toBe(0)
 
       // Alice encrypts something for the cool kids
@@ -197,6 +200,7 @@ describe('Team', () => {
       expect(() => bobsTeam.decrypt(encryptedMessage)).not.toThrow()
 
       // Now, Bob suspects no one likes him so he makes a copy of his keys
+      // @ts-ignore roleKeys is private
       const copyOfKeysInCaseTheyKickMeOut = bobsTeam.roleKeys(COOLKIDS).encryption
 
       // Sure enough, Alice remembers that she can't stand Bob so she kicks him out
@@ -213,11 +217,12 @@ describe('Team', () => {
       const decryptUsingSavedKey = (message: EncryptedEnvelope) => () =>
         symmetric.decrypt(message.contents, copyOfKeysInCaseTheyKickMeOut.secretKey)
 
-      // Bob can still see the old message using his saved key, because it was encrypted before he was kicked out
-      // (you can't un-disclose what you've disclosed)
+      // Bob can still see the old message using his saved key, because it was encrypted before he
+      // was kicked out (can't undisclose what you've disclosed)
       expect(decryptUsingSavedKey(encryptedMessage)).not.toThrow()
 
       // However! the group's keys have been rotated
+      // @ts-ignore roleKeys is private
       expect(alicesTeam.roleKeys(COOLKIDS).generation).toBe(1)
 
       // So Alice encrypts a new message for admins
@@ -226,7 +231,8 @@ describe('Team', () => {
         COOLKIDS
       )
 
-      // Bob tries to read the new message with his old admin key, but he can't because it was encrypted with the new key
+      // Bob tries to read the new message with his old admin key, but he can't because it was
+      // encrypted with the new key
       expect(decryptUsingSavedKey(newEncryptedMessage)).toThrow()
     })
   })

@@ -1,12 +1,14 @@
 import { EventEmitter } from 'events'
+import * as user from '../localUser'
+import { LocalUser } from '../localUser'
 import { chain, SignatureChain, validate } from '/chain'
 import { LocalUserContext } from '/context'
 import { signatures, symmetric } from '/crypto'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
-import { ADMIN_SCOPE, KeyMetadata, KeyScope, KeysetWithSecrets, KeyType, TEAM_SCOPE } from '/keyset'
-import { Optional, Payload } from '/lib'
 import * as keyset from '/keyset'
+import { ADMIN_SCOPE, KeyMetadata, KeyScope, KeysetWithSecrets, KeyType, TEAM_SCOPE } from '/keyset'
+import { Optional, Payload, Key } from '/lib'
 import * as lockbox from '/lockbox'
 import { Member } from '/member'
 import { ADMIN, Role } from '/role'
@@ -22,11 +24,10 @@ import {
   TeamOptions,
   TeamState,
 } from '/team/types'
-import { redactUser, LocalUser } from '/user'
 
 export * from '/team/types'
 
-const { TEAM, ROLE, MEMBER } = KeyType
+const { ROLE, MEMBER } = KeyType
 
 export class Team extends EventEmitter {
   constructor(options: TeamOptions) {
@@ -37,17 +38,19 @@ export class Team extends EventEmitter {
       // Create a new team with the current user as founding member
       this.chain = []
 
+      const localUser = this.context.user
+
       // Team & role secrets are never stored in plaintext, only encrypted into individual lockboxes.
       // Here we create new lockboxes with the team & admin keys for the founding member
-      const teamLockbox = lockbox.create(create(TEAM_SCOPE), this.context.user.keys)
-      const adminLockbox = lockbox.create(create(ADMIN_SCOPE), this.context.user.keys)
+      const teamLockbox = lockbox.create(keyset.create(TEAM_SCOPE), localUser.keys)
+      const adminLockbox = lockbox.create(keyset.create(ADMIN_SCOPE), localUser.keys)
 
       // Post root link to signature chain
       this.dispatch({
         type: 'ROOT',
         payload: {
           teamName: options.teamName,
-          rootMember: redactUser(this.context.user),
+          rootMember: user.redact(localUser),
           lockboxes: [teamLockbox, adminLockbox],
         },
       })
@@ -114,22 +117,6 @@ export class Team extends EventEmitter {
   /** Returns a list of members who are in the admin role */
   public admins = (): Member[] => select.admins(this.state)
 
-  // Keys
-
-  /** Returns the keyset (if available to the current user) for the given type and name */
-  public keys = (scope: Optional<KeyMetadata, 'generation'>): KeysetWithSecrets =>
-    select.keys(this.state, this.context.user, scope)
-
-  /** Returns the team keyset */
-  public teamKeys = (): KeysetWithSecrets => this.keys(TEAM_SCOPE)
-
-  /** Returns the keys for the given role */
-  public roleKeys = (roleName: string): KeysetWithSecrets =>
-    this.keys({ type: ROLE, name: roleName })
-
-  /** Returns the admin keyset */
-  public adminKeys = (): KeysetWithSecrets => this.roleKeys(ADMIN)
-
   // ## WRITE METHODS
 
   // Most of the logic for modifying team state is in reducers. To mutate team state, we dispatch
@@ -137,17 +124,19 @@ export class Team extends EventEmitter {
   // state.
 
   // Any crypto operations involving the current user's secrets (for example, opening or creating
-  // lockboxes, signing links) are done here. Only the public-facing outputs (for example, the
+  // lockboxes, or signing links) are done here. Only the public-facing outputs (for example, the
   // resulting lockboxes, the signed links) are posted on the chain.
 
-  /** Adds a member */
-  public add = (user: Member | LocalUser, roles: string[] = []) => {
+  /** Add a member to the team */
+  public add = (member: Member | LocalUser, roles: string[] = []) => {
     // don't leak user secrets if we have them
-    const redactedUser = redactUser(user)
+    const redactedUser = user.redact(member)
 
     // make lockboxes for the new member
-    const teamLockbox = lockbox.create(this.teamKeys(), user.keys)
-    const roleLockboxes = roles.map(roleName => lockbox.create(this.roleKeys(roleName), user.keys))
+    const teamLockbox = lockbox.create(this.teamKeys(), member.keys)
+    const roleLockboxes = roles.map(roleName =>
+      lockbox.create(this.roleKeys(roleName), member.keys)
+    )
     const lockboxes = [teamLockbox, ...roleLockboxes]
 
     // post the member to the signature chain
@@ -157,7 +146,7 @@ export class Team extends EventEmitter {
     })
   }
 
-  /** Removes a member */
+  /** Remove a member from the team */
   public remove = (userName: string) => {
     // create new keys & lockboxes for any keys this person had access to
     const lockboxes = this.rotateKeys({ type: MEMBER, name: userName })
@@ -172,10 +161,10 @@ export class Team extends EventEmitter {
     })
   }
 
-  /** Adds a role */
+  /** Add a role to the team*/
   public addRole = (role: Role) => {
     // we're creating this role so we need to generate new keys
-    const roleKeys = create({ type: ROLE, name: role.roleName })
+    const roleKeys = keyset.create({ type: ROLE, name: role.roleName })
 
     // make a lockbox for the admin role, so that all admins can access this role's keys
     const lockboxForAdmin = lockbox.create(roleKeys, this.adminKeys())
@@ -187,7 +176,7 @@ export class Team extends EventEmitter {
     })
   }
 
-  /** Removes a role */
+  /** Remove a role from the team*/
   public removeRole = (roleName: string) => {
     this.dispatch({
       type: 'REMOVE_ROLE',
@@ -195,10 +184,11 @@ export class Team extends EventEmitter {
     })
   }
 
-  /** Gives a member a role */
+  /** Give a member a role */
   public addMemberRole = (userName: string, roleName: string) => {
     // make a lockbox for the role
-    const roleLockbox = lockbox.create(this.roleKeys(roleName), this.members(userName).keys)
+    const member = this.members(userName)
+    const roleLockbox = lockbox.create(this.roleKeys(roleName), member.keys)
 
     // post the member role to the signature chain
     this.dispatch({
@@ -207,7 +197,7 @@ export class Team extends EventEmitter {
     })
   }
 
-  /** Removes a role from a member */
+  /** Remove a role from a member */
   public removeMemberRole = (userName: string, roleName: string) => {
     // create new keys & lockboxes for any keys this person had access to via this role
     const lockboxes = this.rotateKeys({ type: ROLE, name: roleName })
@@ -219,7 +209,9 @@ export class Team extends EventEmitter {
     })
   }
 
-  /** Invites a new member to the team */
+  // Invitations
+
+  /** Invite a new member to the team */
   public invite = (
     userName: string,
     roles: string[] = [],
@@ -235,11 +227,20 @@ export class Team extends EventEmitter {
       payload: { invitation },
     })
 
-    // return the secret key to be passed on to the invitee
-    return secretKey
+    return {
+      secretKey, // the secret key to be passed on to the invitee
+      id: invitation.id, // the invitation id would be needed to revoke the invitation
+    }
   }
 
-  /** Admits a new member to the team based on proof of invitation */
+  public revokeInvitation = (id: string) => {
+    this.dispatch({
+      type: 'REVOKE_INVITATION',
+      payload: { id },
+    })
+  }
+
+  /** Admit a new member to the team based on proof of invitation */
   public admit = (proof: ProofOfInvitation) => {
     const { id, member: user } = proof
     const teamKeys = this.teamKeys()
@@ -264,10 +265,10 @@ export class Team extends EventEmitter {
     })
   }
 
-  // ## CRYPTO API
+  // ## CRYPTO
 
   /**
-   * Symmetrically encrypts a payload for the given scope using keys available to the current user.
+   * Symmetrically encrypt a payload for the given scope using keys available to the current user.
    *
    * > *Note*: Since this convenience function uses symmetric encryption, we can only use it to
    * encrypt for scopes the current user has keys for (e.g. the whole team, or roles they belong
@@ -285,13 +286,13 @@ export class Team extends EventEmitter {
     }
   }
 
-  /** Decrypts a payload using keys available to the current user. */
+  /** Decrypt a payload using keys available to the current user. */
   public decrypt = (message: EncryptedEnvelope): string => {
     const { secretKey } = this.keys(message.recipient).encryption
     return symmetric.decrypt(message.contents, secretKey)
   }
 
-  /** Signs a message using the current user's keys. */
+  /** Sign a message using the current user's keys. */
   public sign = (payload: Payload): SignedEnvelope => ({
     contents: payload,
     signature: signatures.sign(payload, this.context.user.keys.signature.secretKey),
@@ -302,7 +303,7 @@ export class Team extends EventEmitter {
     },
   })
 
-  /** Verifies a signed message against the author's public key */
+  /** Verify a signed message against the author's public key */
   public verify = (message: SignedEnvelope): boolean =>
     signatures.verify({
       payload: message.contents,
@@ -318,27 +319,27 @@ export class Team extends EventEmitter {
 
   // # PRIVATE METHODS
 
-  /** Add a link to the chain, then recompute team state from the new chain */
-  public dispatch(link: TeamAction) {
-    this.chain = chain.append(this.chain, link, this.context)
-    // TODO: this is doing more work than necessary - we don't have to calculate the team state from
-    // scratch each time, we could just run the previous state and this link through the reducer
-    // function
-    this.updateState()
-  }
+  // Keys
 
-  /** Runs the reducer on the entire chain to reconstruct the current team state. */
-  private updateState = () => {
-    /** Validate the chain's integrity. (This does not enforce team rules - that is done in the
-     * reducer as it progresses through each link.) */
-    const validation = validate(this.chain)
-    if (!validation.isValid) throw validation.error
+  // These methods all return keysets with secrets, and will throw an error if the local user
+  // does not have access to the requested keys. To get other members' keys, look up the member -
+  // the `keys` property contains their public keys.
 
-    /* Run the chain through the reducer to calculate the current team state */
-    this.state = this.chain.reduce(reducer, initialState)
-  }
+  /** Returns the keyset (if available to the current user) for the given type and name */
+  private keys = (scope: Optional<KeyMetadata, 'generation'>): KeysetWithSecrets =>
+    select.keys(this.state, this.context.user, scope)
 
-  /** Given a compromised scope (e.g. a member or a role), finds all scopes that are visible from that
+  /** Returns the team keyset */
+  private teamKeys = (): KeysetWithSecrets => this.keys(TEAM_SCOPE)
+
+  /** Returns the keys for the given role */
+  private roleKeys = (roleName: string): KeysetWithSecrets =>
+    this.keys({ type: ROLE, name: roleName })
+
+  /** Returns the admin keyset */
+  private adminKeys = (): KeysetWithSecrets => this.roleKeys(ADMIN)
+
+  /** Given a compromised scope (e.g. a member or a role), find all scopes that are visible from that
    * scope, and generates new keys and lockboxes for each of those. Returns all of the new lockboxes in
    * a single array to be posted to the signature chain. */
   private rotateKeys(compromisedScope: KeyScope) {
@@ -354,5 +355,27 @@ export class Team extends EventEmitter {
     })
 
     return newLockboxes
+  }
+
+  // Team state
+
+  /** Add a link to the chain, then recompute team state from the new chain */
+  public dispatch(link: TeamAction) {
+    this.chain = chain.append(this.chain, link, this.context)
+    // TODO: this is doing more work than necessary - we don't have to calculate the team state from
+    // scratch each time, we could just run the previous state and this link through the reducer
+    // function
+    this.updateState()
+  }
+
+  /** Run the reducer on the entire chain to reconstruct the current team state. */
+  private updateState = () => {
+    /** Validate the chain's integrity. (This does not enforce team rules - that is done in the
+    //  * reducer as it progresses through each link.) */
+    const validation = validate(this.chain)
+    if (!validation.isValid) throw validation.error
+
+    /* Run the chain through the reducer to calculate the current team state */
+    this.state = this.chain.reduce(reducer, initialState)
   }
 }

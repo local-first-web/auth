@@ -5,7 +5,7 @@ import {
   defaultContext,
   expectToLookLikeKeyset,
   storage,
-  teamChain,
+  newTeamChain,
 } from './utils'
 import { ADMIN } from '/role'
 import { Team } from '/team'
@@ -18,7 +18,7 @@ describe('Team', () => {
 
   const setup = () => {
     const context = defaultContext
-    const team = new Team({ source: teamChain, context })
+    const team = new Team({ source: newTeamChain, context })
     return { team, context }
   }
 
@@ -150,7 +150,5 @@ describe('Team', () => {
       expect(team.members()).toHaveLength(3)
       expect(team.members().map(m => m.userName)).toEqual(['alice', 'bob', 'charlie'])
     })
-
-    it.todo('automatically resolves concurrent edits')
   })
 })

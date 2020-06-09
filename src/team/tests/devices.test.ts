@@ -1,5 +1,5 @@
 ﻿import { Team } from '/team'
-import { defaultContext, storage, teamChain } from '/team/tests/utils'
+import { defaultContext, storage, newTeamChain } from '/team/tests/utils'
 
 describe('Team', () => {
   beforeEach(() => {
@@ -9,7 +9,7 @@ describe('Team', () => {
 
   const setup = () => {
     const context = defaultContext
-    const team = new Team({ source: teamChain, context })
+    const team = new Team({ source: newTeamChain, context })
     return { team, context }
   }
 

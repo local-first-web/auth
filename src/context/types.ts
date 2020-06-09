@@ -1,5 +1,5 @@
 ﻿import { SemVer } from '/lib'
-import { LocalUser } from '/user'
+import { LocalUser } from '../localUser'
 import { Member } from '/member'
 
 interface Context {

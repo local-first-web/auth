@@ -1,7 +1,7 @@
 ﻿import { KeysetWithSecrets, KeyMetadata } from '/keyset'
 import { open } from '/lockbox'
 import { TeamState } from '/team/types'
-import { LocalUser } from '/user'
+import { LocalUser } from '../../localUser'
 import { Optional } from '/lib'
 
 export const keys = (

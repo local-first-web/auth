@@ -3,14 +3,14 @@ import {
   eve,
   defaultContext,
   storage,
-  teamChain,
+  newTeamChain,
   charlie,
   bobsContext,
   alicesContext,
 } from './utils'
 import { accept, ProofOfInvitation } from '/invitation'
 import { Team } from '/team'
-import { redactUser } from '/user'
+import { redact } from '../../localUser'
 
 describe('Team', () => {
   beforeEach(() => {
@@ -20,7 +20,7 @@ describe('Team', () => {
 
   const setup = () => {
     const context = defaultContext
-    const team = new Team({ source: teamChain, context })
+    const team = new Team({ source: newTeamChain, context })
     return { team, context }
   }
 
@@ -29,7 +29,7 @@ describe('Team', () => {
       const { team } = setup()
 
       // Alice invites Bob
-      const secretKey = team.invite('bob')
+      const { secretKey } = team.invite('bob')
       expect(secretKey).toHaveLength(16)
     })
 
@@ -37,10 +37,10 @@ describe('Team', () => {
       const { team: alicesTeam } = setup()
 
       // Alice invites Bob by sending him a secret key
-      const secretKey = alicesTeam.invite('bob')
+      const { secretKey } = alicesTeam.invite('bob')
 
       // Bob accepts the invitation
-      const proofOfInvitation = accept(secretKey, redactUser(bob))
+      const proofOfInvitation = accept(secretKey, redact(bob))
 
       // Bob shows Alice his proof of invitation, and she lets him in
       alicesTeam.admit(proofOfInvitation)
@@ -53,15 +53,15 @@ describe('Team', () => {
       const { team: alicesTeam } = setup()
 
       // Alice invites Bob
-      const secretKey = alicesTeam.invite('bob')
+      const { secretKey } = alicesTeam.invite('bob')
 
       // Bob accepts the invitation
-      const proofOfInvitation = accept(secretKey, redactUser(bob))
+      const proofOfInvitation = accept(secretKey, redact(bob))
 
       // Eve intercepts the invitation and tries to use it by swapping out Bob's info for hers
       const forgedProofOfInvitation: ProofOfInvitation = {
         ...proofOfInvitation,
-        member: redactUser(eve),
+        member: redact(eve),
       }
 
       // Eve shows Alice her fake proof of invitation
@@ -73,14 +73,14 @@ describe('Team', () => {
 
     it('allows non-admins to accept an invitation', () => {
       let { team: alicesTeam } = setup()
-      alicesTeam.add(redactUser(bob)) // bob is not an admin
+      alicesTeam.add(redact(bob)) // bob is not an admin
 
       // Alice invites Charlie by sending him a secret key
-      const secretKey = alicesTeam.invite('charlie')
+      const { secretKey } = alicesTeam.invite('charlie')
       storage.save(alicesTeam)
 
       // Charlie accepts the invitation
-      const proofOfInvitation = accept(secretKey, redactUser(charlie))
+      const proofOfInvitation = accept(secretKey, redact(charlie))
 
       // Alice is no longer around, but Bob is online
       const bobsTeam = storage.load(bobsContext)

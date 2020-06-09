@@ -1,6 +1,6 @@
 ﻿import { LocalUserContext, redactContext } from '/context'
 import { signatures } from '/crypto'
-import { LocalUser } from '/user'
+import { LocalUser } from '../localUser'
 import { hashLink } from '/chain/hashLink'
 import { LinkBody, PartialLinkBody, SignatureChain, SignedLink } from '/chain/types'
 

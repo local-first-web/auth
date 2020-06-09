@@ -2,7 +2,7 @@
 import { KeyType, create } from '/keyset'
 import { Role } from '/role'
 import { Team } from '/team'
-import { LocalUser } from '/user'
+import { LocalUser } from '../../localUser'
 
 export const expectToLookLikeKeyset = (maybeKeyset: any) => {
   expect(maybeKeyset).toHaveProperty('encryption')
@@ -45,8 +45,9 @@ export const client: Client = {
 
 export const alicesContext: LocalUserContext = { user: alice, device, client }
 export const bobsContext: LocalUserContext = { user: bob, device, client }
+export const charliesContext: LocalUserContext = { user: charlie, device, client }
 export const defaultContext = alicesContext
 
-export const teamChain = JSON.parse(
+export const newTeamChain = JSON.parse(
   new Team({ teamName: 'Spies Я Us', context: defaultContext }).save()
 )

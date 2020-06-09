@@ -1,5 +1,5 @@
 ﻿import { loadKeyset } from '/storage'
-import { LocalUser } from '/user/types'
+import { LocalUser } from './types'
 
 export const load = (userName: string): LocalUser => {
   const keys = loadKeyset(userName)

@@ -1,15 +1,14 @@
-import { defaultContext, storage, teamChain } from './utils'
+import { defaultContext, storage, newTeamChain } from './utils'
 import { Team } from '/team'
 
 describe('Team', () => {
   beforeEach(() => {
-    localStorage.clear()
     storage.contents = undefined
   })
 
   const setup = () => {
     const context = defaultContext
-    const team = new Team({ source: teamChain, context })
+    const team = new Team({ source: newTeamChain, context })
     return { team, context }
   }
 
