@@ -26,14 +26,14 @@ describe('Team', () => {
     })
 
     it('throws if saved chain is tampered with', () => {
-      // Alice creates and persists a team
+      // 👩🏾 Alice creates and persists a team
       const { team, context } = setup()
       storage.save(team)
 
-      // Eve tampers with the team in storage
+      // 🦹‍♀️ Eve tampers with the team in storage, replacing Alice's name with hers
       storage.contents = storage.contents!.replace(/alice/gi, 'eve')
 
-      // Alice reloads the team and is not fooled
+      // 👩🏾 Alice reloads the team and is not fooled
       const restoreTampered = () => storage.load(context)
       expect(restoreTampered).toThrow(/not valid/)
     })
