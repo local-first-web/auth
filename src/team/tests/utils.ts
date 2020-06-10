@@ -2,14 +2,14 @@
 import { KeyType, create } from '/keyset'
 import { Role } from '/role'
 import { Team } from '/team'
-import { LocalUser } from '../../localUser'
+import { User } from '../../user'
 
 export const expectToLookLikeKeyset = (maybeKeyset: any) => {
   expect(maybeKeyset).toHaveProperty('encryption')
   expect(maybeKeyset).toHaveProperty('signature')
 }
 
-const makeUser = (userName: string): LocalUser => {
+const makeUser = (userName: string): User => {
   const keys = create({ type: KeyType.MEMBER, name: userName })
   return { userName, keys }
 }

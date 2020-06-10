@@ -1,8 +1,6 @@
 ﻿## 👩🏾👨‍🦲👳‍♂️👵 Team
 
-
-The `Team` class wraps the signature chain and encapsulates the team's members, devices, and roles. 
-
+The `Team` class wraps the signature chain and encapsulates the team's members, devices, and roles.
 
 ## Public API
 
@@ -14,15 +12,15 @@ Alice can create a new team by passing the local user's context, along with a na
 
 ```js
 // 👩🏾 Alice
-import { Team, localUser } from 'taco'
+import { Team, user} from 'taco'
 
-const alice = localUser.create('alice')
+const alice = user.create('alice')
 const context = { user: alice, device: { ... } }
-                 
+
 const team = new Team({ name: 'Spies Я Us', context })
 ```
 
-As the founding member of the team, Alice is automatically an admin. 
+As the founding member of the team, Alice is automatically an admin.
 
 #### `team.save()`
 
@@ -46,9 +44,9 @@ const team = new Team({ source: chain, context })
 
 ### Invitations
 
-The core problem this library was created to solve is how to invite people securely to a team, without relying on a central server. This is one of the trickier practical problems in public-key cryptography: How does Alice obtain Bob's public keys in the first place, without worrying that someone else is passing off their own credentials as Bob's? 
+The core problem this library was created to solve is how to invite people securely to a team, without relying on a central server. This is one of the trickier practical problems in public-key cryptography: How does Alice obtain Bob's public keys in the first place, without worrying that someone else is passing off their own credentials as Bob's?
 
-One solution is to trust one or more certification authorities. For example, this is how SSL/TLS solves the problem. But we don't want to rely on any central sources of truth. 
+One solution is to trust one or more certification authorities. For example, this is how SSL/TLS solves the problem. But we don't want to rely on any central sources of truth.
 
 Another solution is **t**rust **o**n **f**irst **u**se (TOFU): When Alice invites Bob, she accepts the first Bob she's introduced to. This is what many services offering end-to-end encryption do, including WhatsApp, Signal, and Telegram. But as [this Keybase blog post](https://keybase.io/blog/chat-apps-softer-than-tofu) points out, TOFU should really be called TADA (**t**rust **a**fter each **d**evice **a**ddition), because every time a user deauthorizes a device or authorizes a new one, you have to trust the server; and in our current multi-device world this happens more and more often.
 
@@ -63,7 +61,7 @@ Our protocol, TACO (**t**rust **a**fter **c**onfirmation **o**f invitation), is 
 - **Admittance**  
   Charlie verifies that Bob's proof was signed with the invitation's public signing key, and lets Bob in
 
-This protocol relies on a trusted side channel only once, to transmit the secret invitation key. 
+This protocol relies on a trusted side channel only once, to transmit the secret invitation key.
 
 #### `team.invite(member, [roles])`
 
@@ -116,35 +114,35 @@ Alice needs the invitation `id` in case she has to revoke an invitation.
 team.revokeInvitation(id)
 ```
 
-If Bob has not accepted the invitation, he will not be admitted. If he has already accepted, this will throw an error. 
+If Bob has not accepted the invitation, he will not be admitted. If he has already accepted, this will throw an error.
 
 ### Members
 
-A `Member` needs to have a `userName` and a `keys` property containing the member's public keys. 
+A `Member` needs to have a `userName` and a `keys` property containing the member's public keys.
 
 ```js
 const bob = {
   userName: 'bob',
-  keys: { 
+  keys: {
     encryption: `ptpo61ySZBKW63EjetFpTMpwwPqTjfdLRBkWux0xTtdA7lE3=`,
-    signature: `P80ESmjlXydk5g6GbItyzVz3L903mEJUChjF1Nv2rTsznV5e=`
-  }, 
+    signature: `P80ESmjlXydk5g6GbItyzVz3L903mEJUChjF1Nv2rTsznV5e=`,
+  },
 }
 ```
 
 A member's `userName` needs to identify a person uniquely within your team. You could use existing user names, staff IDs, or email addresses.
 
-#### 	`team.add(member, roles)`
+#### `team.add(member, roles)`
 
-To add a member directly, they need to already have NaCl-compatible keypairs for encryption and signatures, and they need to give you the corresponding public keys. 
+To add a member directly, they need to already have NaCl-compatible keypairs for encryption and signatures, and they need to give you the corresponding public keys.
 
-In practice, you're more likely to use the invitation process to add members, since it takes care of generating and exchanging keys. 
+In practice, you're more likely to use the invitation process to add members, since it takes care of generating and exchanging keys.
 
 ```js
-team.add(bob) 
+team.add(bob)
 ```
 
-When adding a member, you can optionally pass an array of role names to add them to. 
+When adding a member, you can optionally pass an array of role names to add them to.
 
 ```js
 team.add(bob, ['managers'])
@@ -168,7 +166,7 @@ const members = team.members()
 
 #### `team.members(userName)`
 
-Provide a user name to retrieve a specific member. An error will be thrown if the member is not on the team. 
+Provide a user name to retrieve a specific member. An error will be thrown if the member is not on the team.
 
 ```js
 const bob = team.members('bob')
@@ -184,15 +182,15 @@ const bobIsMember = team.has('bob') // TRUE
 
 ### Roles
 
-A `Role` has a `roleName` and an optional `permissions` object. 
+A `Role` has a `roleName` and an optional `permissions` object.
 
 ```js
 const managers = { roleName: 'manager', permissions: { ... }}
 ```
 
-The role named `admin` is built into every team and can't be altered. The admin role is required to invite or remove members and to manage roles. 
+The role named `admin` is built into every team and can't be altered. The admin role is required to invite or remove members and to manage roles.
 
-A role's `permissions` payload is for your application's use; Taco doesn't care what it contains. 
+A role's `permissions` payload is for your application's use; Taco doesn't care what it contains.
 
 #### `team.addRole(role)`
 
@@ -316,6 +314,3 @@ const reducer = (prevState, link) => {
   return prevState
 }
 ```
-
-
-

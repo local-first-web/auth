@@ -1,12 +1,12 @@
 ﻿import { KeysetWithSecrets, KeyMetadata } from '/keyset'
 import { open } from '/lockbox'
 import { TeamState } from '/team/types'
-import { LocalUser } from '../../localUser'
+import { User } from '../../user'
 import { Optional } from '/lib'
 
 export const keys = (
   state: TeamState,
-  currentUser: LocalUser,
+  currentUser: User,
   scope: Optional<KeyMetadata, 'generation'>
 ) => {
   const { type, name, generation: generationOrUndefined } = scope
@@ -33,7 +33,7 @@ export const keys = (
  * }
  * ```
  */
-const getKeyMap = (state: TeamState, currentUser: LocalUser): KeyMap => {
+const getKeyMap = (state: TeamState, currentUser: User): KeyMap => {
   const usersOwnKeys = currentUser.keyHistory || [currentUser.keys] // if there's no history, just use the keys we have
   const allVisibleKeys = usersOwnKeys.flatMap(keys => getDerivedKeys(state, keys))
   return allVisibleKeys.reduce(organizeKeysIntoMap, {})

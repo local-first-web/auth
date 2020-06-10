@@ -4,7 +4,7 @@ import { create } from '/invitation/create'
 import { validate } from '/invitation/validate'
 import * as keyset from '/keyset'
 import { bob } from '/team/tests/utils'
-import { redact } from '../localUser'
+import { redact } from '../user'
 
 const { TEAM_SCOPE } = keyset
 

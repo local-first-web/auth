@@ -7,8 +7,8 @@ import { ProofOfInvitation } from '/invitation'
 import * as keyset from '/keyset'
 import { ADMIN_SCOPE, KeyMetadata, KeyScope, KeysetWithSecrets, KeyType, TEAM_SCOPE } from '/keyset'
 import { Optional, Payload } from '/lib'
-import * as user from '/localUser'
-import { LocalUser } from '/localUser'
+import * as user from '../user'
+import { User } from '../user'
 import * as lockbox from '/lockbox'
 import { Member } from '/member'
 import { ADMIN, Role } from '/role'
@@ -128,7 +128,7 @@ export class Team extends EventEmitter {
   // resulting lockboxes, the signed links) are posted on the chain.
 
   /** Add a member to the team */
-  public add = (member: Member | LocalUser, roles: string[] = []) => {
+  public add = (member: Member | User, roles: string[] = []) => {
     // don't leak user secrets if we have them
     const redactedUser = user.redact(member)
 

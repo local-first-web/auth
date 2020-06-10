@@ -10,7 +10,7 @@ import {
 } from './utils'
 import { acceptInvitation, ProofOfInvitation } from '/invitation'
 import { Team } from '/team'
-import { redact } from '../../localUser'
+import { redact } from '../../user'
 
 describe('Team', () => {
   beforeEach(() => {

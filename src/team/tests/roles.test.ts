@@ -14,7 +14,7 @@ import {
   newTeamChain,
   charliesContext,
 } from '/team/tests/utils'
-import { redact } from '../../localUser'
+import { redact } from '../../user'
 
 describe('Team', () => {
   beforeEach(() => {

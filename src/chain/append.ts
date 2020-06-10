@@ -1,6 +1,6 @@
 ﻿import { LocalUserContext, redactContext } from '/context'
 import { signatures } from '/crypto'
-import { LocalUser } from '../localUser'
+import { User } from '../user'
 import { hashLink } from '/chain/hashLink'
 import { LinkBody, PartialLinkBody, SignatureChain, SignedLink } from '/chain/types'
 
@@ -18,7 +18,7 @@ export const append = <T extends LinkBody = LinkBody>(
   return [...chain, signedLink] as SignatureChain<SignedLink<T>>
 }
 
-const signLink = <T extends LinkBody = LinkBody>(body: T, userWithSecrets: LocalUser) => {
+const signLink = <T extends LinkBody = LinkBody>(body: T, userWithSecrets: User) => {
   const { userName, keys } = userWithSecrets
   const { publicKey, secretKey } = keys.signature
 

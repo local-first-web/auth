@@ -2,7 +2,7 @@
 import { KeysetWithSecrets } from '/keyset'
 
 /** The local user and their full set of keys, including secrets.   */
-export interface LocalUser {
+export interface User {
   /** Username (or ID or email) */
   userName: string
 

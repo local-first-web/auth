@@ -1,5 +1,5 @@
 ﻿import { SemVer } from '/lib'
-import { LocalUser } from '../localUser'
+import { User } from '../user'
 import { Member } from '/member'
 
 interface Context {
@@ -8,7 +8,7 @@ interface Context {
 }
 
 export interface LocalUserContext extends Context {
-  user: LocalUser
+  user: User
 }
 
 export interface MemberContext extends Context {

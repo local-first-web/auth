@@ -63,10 +63,10 @@ yarn add taco-js
 #### Alice creates a new team
 
 ```js
-import { localUser, Team } from 'taco'
+import { user, Team } from 'taco'
 
 // 👩🏾 Alice
-const alice = localUser('alice')
+const alice = user('alice')
 const context = { user: alice, device }
 const team = new Team({ name: 'Spies Я Us', context })
 ```
