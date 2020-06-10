@@ -1,6 +1,6 @@
 ﻿import { KeysetWithSecrets } from '/keyset'
 import { Lockbox } from '/lockbox/types'
-import { create } from './create'
+import { create } from '/lockbox/create'
 
 /**
  * "Rotating" a lockbox means replacing the keys it contains with new ones.

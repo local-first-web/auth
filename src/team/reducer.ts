@@ -11,7 +11,7 @@
   removeMemberRole,
   removeRole,
   setTeamName,
-} from './reducers'
+} from '/team/reducers'
 import { ADMIN } from '/role'
 import { TeamAction, TeamLink, TeamState } from '/team/types'
 import { validate } from '/team/validate'

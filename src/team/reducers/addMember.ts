@@ -1,4 +1,4 @@
-﻿import { Reducer } from './index'
+﻿import { Reducer } from '/team/reducers/index'
 import { Member } from '/member'
 
 export const addMember = (newMember: Member): Reducer => state => ({

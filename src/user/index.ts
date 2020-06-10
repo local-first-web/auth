@@ -1,5 +1,5 @@
-﻿export * from './redact'
-export * from './types'
+﻿export * from '/user/redact'
+export * from '/user/types'
 
 import * as keyset from '/keyset'
 import { loadKeyset, storeKeyset } from '/storage'

@@ -1,7 +1,4 @@
-import { create } from './create'
-import { redact } from './redact'
-import { KeyType, KeysetWithSecrets } from './types'
-import { EPHEMERAL_SCOPE } from './constants'
+import { create, EPHEMERAL_SCOPE, KeysetWithSecrets, KeyType, redact } from '/keyset'
 
 describe('redact', () => {
   it('should redact secrets from a random keyset', () => {

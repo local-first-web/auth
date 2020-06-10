@@ -6,7 +6,7 @@ import {
   expectToLookLikeKeyset,
   storage,
   newTeamChain,
-} from './utils'
+} from '/team/tests/utils'
 import { ADMIN } from '/role'
 import { Team } from '/team'
 

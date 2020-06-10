@@ -1,6 +1,6 @@
 ﻿import nacl from 'tweetnacl'
-import { randomKey } from './randomKey'
-import { KeyScope, KeysetWithSecrets } from './types'
+import { randomKey } from '/keyset/randomKey'
+import { KeyScope, KeysetWithSecrets } from '/keyset/types'
 import { hash, stretch } from '/crypto'
 import { HashPurpose, Key, keypairToBase64, Optional } from '/lib'
 

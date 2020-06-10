@@ -2,7 +2,7 @@
 import { KeyType, create } from '/keyset'
 import { Role } from '/role'
 import { Team } from '/team'
-import { User } from '../../user'
+import { User } from '/user'
 
 export const expectToLookLikeKeyset = (maybeKeyset: any) => {
   expect(maybeKeyset).toHaveProperty('encryption')

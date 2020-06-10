@@ -20,8 +20,7 @@ export type ProveIdentityMessage = {
   }
 }
 
-type ChallengePayload = {
-  scope: KeyScope
+type ChallengePayload = KeyScope & {
   nonce: Base64
   timestamp: UnixTimestamp
 }

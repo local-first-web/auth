@@ -1,2 +1,2 @@
-﻿export * from './constants'
-export * from './types'
+﻿export * from '/role/constants'
+export * from '/role/types'

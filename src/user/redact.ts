@@ -1,4 +1,4 @@
-﻿import { User } from './types'
+﻿import { User } from '/user/types'
 import * as keyset from '/keyset'
 import { Member } from '/member'
 

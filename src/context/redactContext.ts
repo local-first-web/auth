@@ -1,5 +1,5 @@
 ﻿import { MemberContext, LocalUserContext } from '/context/types'
-import { redact } from '../user'
+import { redact } from '/user'
 
 export const redactContext = (context: LocalUserContext): MemberContext => ({
   ...context,

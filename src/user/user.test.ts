@@ -1,5 +1,5 @@
 import { asymmetric, signatures, symmetric } from '/crypto'
-import { user } from './index'
+import { user } from '/user'
 import { expectToLookLikeKeyset } from '/team/tests/utils'
 
 describe('user', () => {

@@ -12,7 +12,8 @@ export const verify = (
 
   if (proof.nonce !== challenge.nonce) return fail('Nonce does not match', details)
   if (proof.timestamp !== challenge.timestamp) return fail('Timestamp does not match', details)
-  if (proof.scope !== challenge.scope) return fail('Scope does not match', details)
+  if (proof.type !== challenge.type) return fail('Scope type does not match', details)
+  if (proof.name !== challenge.name) return fail('Scope name does not match', details)
 
   const signatureIsValid = signatures.verify({
     payload: challenge,

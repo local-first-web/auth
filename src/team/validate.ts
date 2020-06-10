@@ -1,5 +1,5 @@
 ﻿import { SignedLink, ValidationError, ValidationResult } from '/chain'
-import * as select from './selectors'
+import * as select from '/team/selectors'
 import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '/team/types'
 
 export const validate: TeamStateValidator = (...args: ValidationArgs) => {

@@ -1,5 +1,5 @@
 ﻿import { ADMIN } from '/role'
-import { member as selectMember } from './member'
+import { member as selectMember } from '/team/selectors/member'
 import { TeamState } from '/team/types'
 
 export const memberHasRole = (state: TeamState, userName: string, role: string) => {

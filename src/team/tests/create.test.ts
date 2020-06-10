@@ -1,4 +1,4 @@
-import { defaultContext, storage, newTeamChain } from './utils'
+import { defaultContext, storage, newTeamChain } from '/team/tests/utils'
 import { Team } from '/team'
 
 describe('Team', () => {

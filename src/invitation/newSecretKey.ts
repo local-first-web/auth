@@ -1,6 +1,6 @@
 ﻿import nacl from 'tweetnacl'
 import { base30 } from '/lib'
-import { IKEY_LENGTH } from './create'
+import { IKEY_LENGTH } from '/invitation/create'
 
 // TODO make key strength & encoding pluggable
 

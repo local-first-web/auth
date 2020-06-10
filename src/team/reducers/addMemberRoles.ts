@@ -1,4 +1,4 @@
-﻿import { Reducer } from './index'
+﻿import { Reducer } from '/team/reducers/index'
 
 export const addMemberRoles = (userName: string, roles: string[] = []): Reducer[] =>
   roles.map(roleName => state => ({

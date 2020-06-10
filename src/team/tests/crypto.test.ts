@@ -6,7 +6,7 @@
   bob,
   charlie,
   charliesContext,
-} from './utils'
+} from '/team/tests/utils'
 import { ADMIN } from '/role'
 import { Team } from '/team'
 

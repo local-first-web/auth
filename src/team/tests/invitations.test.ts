@@ -7,10 +7,10 @@ import {
   charlie,
   bobsContext,
   alicesContext,
-} from './utils'
+} from '/team/tests/utils'
 import { acceptInvitation, ProofOfInvitation } from '/invitation'
 import { Team } from '/team'
-import { redact } from '../../user'
+import { redact } from '/user'
 
 describe('Team', () => {
   beforeEach(() => {
