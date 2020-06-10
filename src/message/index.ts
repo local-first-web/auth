@@ -15,17 +15,18 @@ export type ClaimIdentityMessage = {
 
 export type ChallengeIdentityMessage = {
   type: 'CHALLENGE_IDENTITY'
-  payload: ChallengePayload
+  payload: Challenge
 }
 
 export type ProveIdentityMessage = {
   type: 'PROVE_IDENTITY'
-  payload: ChallengePayload & {
+  payload: {
+    challenge: Challenge
     signature: Base64
   }
 }
 
-type ChallengePayload = KeyScope & {
+type Challenge = KeyScope & {
   nonce: Base64
   timestamp: UnixTimestamp
 }

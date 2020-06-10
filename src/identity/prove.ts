@@ -8,7 +8,7 @@ export const prove = (
 ): ProveIdentityMessage => ({
   type: 'PROVE_IDENTITY',
   payload: {
-    ...payload,
+    challenge: payload,
     signature: signatures.sign(payload, keys.signature.secretKey),
   },
 })

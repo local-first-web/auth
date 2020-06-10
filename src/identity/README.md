@@ -45,10 +45,12 @@ Specifically, here's how our signature challenge protocol works:
   {
     type: 'PROVE_IDENTITY',
     payload: {
-      type: 'MEMBER',
-      name: 'bob',
-      nonce: 'ueQhdcS9Ky3nNzWLnAcg25PAW9KqMXbOhbzfUM46G8lFpV8A',
-      timestamp: 1591785804793,
+      challenge: {
+        type: 'MEMBER',
+        name: 'bob',
+        nonce: 'ueQhdcS9Ky3nNzWLnAcg25PAW9KqMXbOhbzfUM46G8lFpV8A',
+        timestamp: 1591785804793,
+      },
       signature: 'UmCLHmSRT+4qUfl1W1t/hXsPaSdPoVXuANWdcDz52bJzO...UEdN9bZ=='
     }
   }
