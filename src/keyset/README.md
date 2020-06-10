@@ -6,7 +6,7 @@ Each team, each role, each member, and each device has its own **keyset**. A key
 
 ## Internal API 
 
-### `keyset.create(scope)`
+### `keyset.create(scope, [seed])`
 
 A keyset is generated from a single randomly-generated secret, following a procedure roughly based on the [Keybase docs on Per-User Keys](http://keybase.io/docs/teams/puk).
 
@@ -35,8 +35,6 @@ const adminKeys = keyset.create({type: ROLE, name: 'admin'})
   }
 }
 ```
-
-### `keyset.create(scope, seed)`
 
 In some cases we need to generate a keyset from a known seed. We can pass that seed to `create` as a second parameter.
 

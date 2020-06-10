@@ -1,7 +1,7 @@
 ﻿import { KeysetWithSecrets } from '/keyset'
 const STORAGE_KEY = 'TACO_KEY_STORAGE'
 
-const storage = localStorage // TODO - replace with device secure storage, or password-protected browser storage
+const storage = localStorage // TODO - replace with device secure storage e.g. https://github.com/atom/node-keytar, or password-protected browser storage
 
 export const loadKeyset = (userName: string): KeysetWithSecrets | undefined => {
   const allKeysets = getKeysets()
