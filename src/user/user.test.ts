@@ -1,6 +1,6 @@
 import { asymmetric, signatures, symmetric } from '/crypto'
 import { user } from '/user'
-import { expectToLookLikeKeyset } from '/team/tests/utils'
+import { expectToLookLikeKeyset } from '/util/testing'
 
 describe('user', () => {
   beforeEach(() => {

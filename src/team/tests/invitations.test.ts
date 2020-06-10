@@ -7,7 +7,7 @@ import {
   charlie,
   bobsContext,
   alicesContext,
-} from '/team/tests/utils'
+} from '/util/testing'
 import { acceptInvitation, ProofOfInvitation } from '/invitation'
 import { Team } from '/team'
 import { redact } from '/user'

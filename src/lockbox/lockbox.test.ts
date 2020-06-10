@@ -3,7 +3,7 @@ import * as keyset from '/keyset'
 import { create } from '/lockbox/create'
 import { open } from '/lockbox/open'
 import { ADMIN } from '/role'
-import { bob } from '/team/tests/utils'
+import { bob } from '/util/testing'
 
 describe('lockbox', () => {
   it('round trip', () => {

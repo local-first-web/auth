@@ -1,7 +1,7 @@
 ﻿import { signatures } from '/crypto'
 import { PublicKeyset } from '/keyset'
 import { ChallengeIdentityMessage, ProveIdentityMessage } from '/message'
-import { ValidationResult } from '/chain'
+import { ValidationResult } from '/util'
 
 export const verify = (
   { payload: challenge }: ChallengeIdentityMessage,

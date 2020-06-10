@@ -1,7 +1,7 @@
 ﻿import { claim, challenge, prove, verify } from '/identity'
 import { KeyType, TEAM_SCOPE } from '/keyset'
 import * as keyset from '/keyset'
-import { bob, eve } from '/team/tests/utils'
+import { bob, eve } from '/util/testing'
 
 const { MEMBER } = KeyType
 

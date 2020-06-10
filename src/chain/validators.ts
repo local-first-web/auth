@@ -1,4 +1,5 @@
-﻿import { ValidatorSet, ValidationError } from '/chain/types'
+﻿import { ValidatorSet } from '/chain/types'
+import { ValidationError } from '/util'
 import { hashLink } from '/chain/hashLink'
 import { signatures } from '/crypto'
 

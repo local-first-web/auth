@@ -1,4 +1,5 @@
-﻿import { SignedLink, ValidationError, ValidationResult } from '/chain'
+﻿import { SignedLink } from '/chain'
+import { ValidationError, ValidationResult } from '/util'
 import * as select from '/team/selectors'
 import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '/team/types'
 

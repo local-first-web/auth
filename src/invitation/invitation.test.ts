@@ -1,7 +1,7 @@
 import * as user from '/user'
 import { acceptInvitation, create, newSecretKey, validate } from '/invitation'
 import * as keyset from '/keyset'
-import { bob } from '/team/tests/utils'
+import { bob } from '/util/testing'
 
 const { TEAM_SCOPE } = keyset
 

@@ -2,23 +2,9 @@ import { append } from '/chain/append'
 import { create } from '/chain/create'
 import { validate } from '/chain/validate'
 import { signatures } from '/crypto'
-import { alice, defaultContext } from '/team/tests/utils'
-import { ValidationResult } from '/util'
+import { alice, defaultContext } from '/util/testing'
 
-expect.extend({
-  toBeValid(validation: ValidationResult) {
-    if (validation.isValid)
-      return {
-        message: () => 'expected validation not to pass',
-        pass: true,
-      }
-    else
-      return {
-        message: () => validation.error.message,
-        pass: false,
-      }
-  },
-})
+import '/util/testing/expect/toBeValid'
 
 describe('chains', () => {
   describe('Alice creats a new chain', () => {
@@ -27,8 +13,7 @@ describe('chains', () => {
       const chain = create({ team: 'Spies Я Us' }, defaultContext)
 
       // 👨‍🦲 Bob
-      const { isValid } = validate(chain)
-      expect(isValid).toBe(true)
+      expect(validate(chain)).toBeValid()
     })
 
     test('Mallory tampers with the payload; Bob is not fooled', () => {
@@ -40,8 +25,7 @@ describe('chains', () => {
       payload.team = payload.team.replace('Spies', 'Dorks')
 
       // 👨‍🦲 Bob
-      const validation = validate(chain)
-      expect(validation.isValid).toBe(false)
+      expect(validate(chain)).not.toBeValid()
     })
   })
 
@@ -67,7 +51,7 @@ describe('chains', () => {
       const wrongOrderChain = newChain.reverse()
 
       // 👨‍🦲 Bob
-      expect(validate(wrongOrderChain)).toBeValid()
+      expect(validate(wrongOrderChain)).not.toBeValid()
     })
 
     test('Alice, for reasons only she understands, munges the type of the first link; validation fails', () => {
@@ -87,8 +71,7 @@ describe('chains', () => {
       }
 
       // 👨‍🦲 Bob
-      const validation = validate(chain)
-      expect(validation).not.toBeValid()
+      expect(validate(chain)).not.toBeValid()
     })
 
     test('Bob saves a chain to a file and loads it later', () => {

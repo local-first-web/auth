@@ -13,7 +13,7 @@ import {
   storage,
   newTeamChain,
   charliesContext,
-} from '/team/tests/utils'
+} from '/util/testing'
 import { redact } from '/user'
 
 describe('Team', () => {

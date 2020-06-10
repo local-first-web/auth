@@ -1,5 +1,5 @@
 ﻿import { Invitation, InvitationPayload, ProofOfInvitation } from '/invitation/types'
-import { ValidationResult } from '/chain'
+import { ValidationResult } from '/util'
 import { signatures, symmetric } from '/crypto'
 import { KeysetWithSecrets } from '/keyset'
 

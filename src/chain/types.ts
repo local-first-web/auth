@@ -1,5 +1,5 @@
 ﻿import { MemberContext } from '/context'
-import { Base64, UnixTimestamp } from '/util/types'
+import { Base64, UnixTimestamp, ValidationResult } from '/util/types'
 
 /** A hash-chained array of signed links */
 export type SignatureChain<T extends SignedLink = SignedLink> = T[]
@@ -42,3 +42,9 @@ export interface LinkBody {
 
 /** User-writable fields of a link (omits fields that are added automatically) */
 export type PartialLinkBody<T extends LinkBody = LinkBody> = Pick<T, 'type' | 'payload'>
+
+export type Validator = (currentLink: SignedLink, prevLink?: SignedLink) => ValidationResult
+
+export type ValidatorSet = {
+  [key: string]: Validator
+}
