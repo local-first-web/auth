@@ -1,13 +1,18 @@
 ﻿export * from '/message/identity'
 export * from '/message/sync'
+
 import {
-  ACCEPT_IDENTITY,
-  ChallengeIdentityMessage,
   ClaimIdentityMessage,
+  ChallengeIdentityMessage,
   ProveIdentityMessage,
+  ACCEPT_IDENTITY,
   REJECT_IDENTITY,
 } from '/message/identity'
-import { SendHashes } from '/message/sync'
+import {
+  SendHashesMessage, //
+  RequestLinksMessage,
+  SendLinksMessage,
+} from '/message/sync'
 
 export type Message =
   // identity messages
@@ -16,5 +21,8 @@ export type Message =
   | ProveIdentityMessage
   | typeof ACCEPT_IDENTITY
   | typeof REJECT_IDENTITY
+
   // sync messages
-  | SendHashes
+  | SendHashesMessage
+  | RequestLinksMessage
+  | SendLinksMessage

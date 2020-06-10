@@ -1,13 +1,13 @@
 ﻿import { SignatureChain } from '/chain'
-import { SendHashes } from '/message'
+import { SendHashesMessage } from '/message'
 
-export const sendHashes = (chain: SignatureChain): SendHashes => {
+export const sendHashes = (chain: SignatureChain): SendHashesMessage => {
   return {
     type: 'SEND_HASHES',
     payload: {
-      // hashes: chain.map(link => link.body.prev),
-      hashes: [],
-      totalLength: 0,
+      // TODO: only send last few hashes, send more if needed
+      hashes: chain.map(link => link.hash),
+      chainLength: chain.length,
     },
   }
 }
