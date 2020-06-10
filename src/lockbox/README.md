@@ -55,6 +55,13 @@ We use lockboxes to:
 - share **all role keys** with the **admin role**
 - share **user keys** with the user's **devices**
 
+### The key graph
+
+Keys provide access to other keys, via lockboxes; so we have an acyclic directed graph where keys are nodes and
+lockboxes are edges.
+
+![](../../docs/img/key-graph.png)
+
 ## API
 
 #### `lockbox.create(contents, recipientKeys)`
@@ -62,7 +69,7 @@ We use lockboxes to:
 To make a lockbox, pass in two keysets:
 
 - `contents`, the secret keys to be encrypted in the lockbox. This has to be a `KeysetWithSecrets`.
-- `recipientKeys`, the public keys used to open the lockbox. At minimum, this needs to include the recipient's public encryption key (plus metadata for scope and generation). 
+- `recipientKeys`, the public keys used to open the lockbox. At minimum, this needs to include the recipient's public encryption key (plus metadata for scope and generation).
 
 This makes a lockbox for Alice containing the admin keys.
 
@@ -79,21 +86,21 @@ const adminLockboxForAlice = lockbox.create(
     type: 'ROLE',
     name: 'admin',
     generation: 0,
-  	signature: { 
-      publicKey: 'B3B8xMFdLDLbd72tXLlgxyvsAJravbATqMtTtje1PQdikGjN=', 
-      privateKey: 'QI4vBzCKvn6SBvyR7PBKFuuKiSGk3naX0oetx3XUtPK...AX1W0LCdWwMlHhNO3T5jVwnkz='
+    signature: {
+      publicKey: 'B3B8xMFdLDLbd72tXLlgxyvsAJravbATqMtTtje1PQdikGjN=',
+      privateKey: 'QI4vBzCKvn6SBvyR7PBKFuuKiSGk3naX0oetx3XUtPK...AX1W0LCdWwMlHhNO3T5jVwnkz=',
     },
-    encryption: { 
-      publicKey: 'asuM3NexDiDs2P2OKQOu3tdXWz2zV6LoaxPfZPLIb8gFIIU0=', 
-      privateKey: 'e1tcEjpGfKuJz8JObrVJGqq9zrXpNwyHafYEd298p3MyYThJ='
+    encryption: {
+      publicKey: 'asuM3NexDiDs2P2OKQOu3tdXWz2zV6LoaxPfZPLIb8gFIIU0=',
+      privateKey: 'e1tcEjpGfKuJz8JObrVJGqq9zrXpNwyHafYEd298p3MyYThJ=',
     },
   },
   {
-  	type: 'USER',
-  	name: 'alice',
-    generation: 0, 
-  	publicKey: 'JG81tVDDfp3BqXedrtiRiWtvqQKt2175nAceYIPjjMR7z2Y1',
-	}
+    type: 'USER',
+    name: 'alice',
+    generation: 0,
+    publicKey: 'JG81tVDDfp3BqXedrtiRiWtvqQKt2175nAceYIPjjMR7z2Y1',
+  }
 )
 ```
 
@@ -107,13 +114,20 @@ const adminKeys = open(adminLockboxForAlice, alice.keys)
 
 #### `lockbox.rotate(oldLockbox, contents)`
 
-"Rotating" a lockbox means replacing the keys it contains with new ones. 
+"Rotating" a lockbox means replacing the keys it contains with new ones.
 
-For example, if the admin keys are compromised, we'll need to come up with a new set of keys; then we'll need to find every lockbox that contained the old keys, and replace them with the new ones. 
+When a member leaves a team or a role, or a device is lost, we say the corresponding keyset is
+'compromised' and we need to replace it -- along with any keys that it provided access to.
+
+For example, if the admin keys are compromised, we'll need to come up with a new set of keys; then
+we'll need to find every lockbox that contained the old keys, and replace them with the new ones.
 
 ```js
 const newAdminKeys = keyset.create({ type: ROLE, name: ADMIN })
 const newAdminLockboxForAlice = lockbox.rotate(adminLockboxForAlice, newAdminKeys)
 ```
 
-This is implemented in the private `rotateKeys` method in the `Team` class.
+![](../../docs/img/key-rotation.png)
+
+We'll need to so the same for any keys _in lockboxes that the admin keys opened_. This is
+implemented in the private `rotateKeys` method in the `Team` class.
