@@ -127,9 +127,8 @@ const newAdminKeys = keyset.create({ type: ROLE, name: ADMIN })
 const newAdminLockboxForAlice = lockbox.rotate(adminLockboxForAlice, newAdminKeys)
 ```
 
-We'll also need to so the same for any keys _in lockboxes that the those keys opened_. 
+We'll also need to so the same for any keys _in lockboxes that the those keys opened_.
 
 ![](../../docs/img/key-rotation.png)
 
-This is
-logic implemented in the private `rotateKeys` method in the `Team` class.
+This logic is implemented in the private `rotateKeys` method in the `Team` class.
