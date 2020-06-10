@@ -2,7 +2,7 @@
 import { decode as utf8Decode } from '@stablelib/utf8'
 import nacl from 'tweetnacl'
 import { newNonce, nonceLength } from '/crypto/nonce'
-import { Key, keypairToBase64, keyToBytes, Payload, payloadToBytes } from '/lib'
+import { Key, keypairToBase64, keyToBytes, Payload, payloadToBytes } from '/util'
 
 export const asymmetric = {
   /**

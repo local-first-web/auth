@@ -1,5 +1,5 @@
 ﻿import { hash, stretch } from '/crypto'
-import { base64, HashPurpose } from '/lib'
+import { base64, HashPurpose } from '/util'
 
 export function deriveId(key: string) {
   // ## Step 1b

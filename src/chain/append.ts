@@ -25,6 +25,7 @@ const signLink = <T extends LinkBody = LinkBody>(body: T, userWithSecrets: User)
   const signature = signatures.sign(body, secretKey)
   return {
     body,
+    hash: hashLink(body),
     signed: { userName, signature, key: publicKey },
   } as SignedLink<T>
 }
@@ -44,7 +45,7 @@ const chainToPreviousLink = <T extends LinkBody = LinkBody>(
 
   const prevLink = chain[chain.length - 1]
   const index = (prevLink.body.index || 0) + 1
-  const prevLinkHash = hashLink(prevLink)
+  const prevLinkHash = hashLink(prevLink.body)
   return {
     ...link,
     timestamp,

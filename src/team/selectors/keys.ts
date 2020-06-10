@@ -2,7 +2,7 @@
 import { open } from '/lockbox'
 import { TeamState } from '/team/types'
 import { User } from '/user'
-import { Optional } from '/lib'
+import { Optional } from '/util'
 
 export const keys = (
   state: TeamState,

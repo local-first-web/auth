@@ -1,7 +1,7 @@
 ﻿import nacl from 'tweetnacl'
-import { Key, Payload } from '/lib/types'
-import { keyToBytes } from '/lib/keyToBytes'
-import { payloadToBytes } from '/lib/payloadToBytes'
+import { Key, Payload } from '/util/types'
+import { keyToBytes } from '/util/keyToBytes'
+import { payloadToBytes } from '/util/payloadToBytes'
 
 export const hash = (seed: Key, payload: Payload) => {
   const seedBytes = keyToBytes(seed, 'utf8')

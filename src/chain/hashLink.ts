@@ -1,5 +1,5 @@
-﻿import { base64, HashPurpose } from '/lib'
+﻿import { LinkBody } from '/chain/types'
 import { hash } from '/crypto'
-import { SignedLink } from '/chain/types'
+import { base64, HashPurpose } from '/util'
 
-export const hashLink = (link: SignedLink) => base64.encode(hash(HashPurpose.LinkToPrevious, link))
+export const hashLink = (body: LinkBody) => base64.encode(hash(HashPurpose.LinkToPrevious, body))

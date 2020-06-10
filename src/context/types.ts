@@ -1,4 +1,4 @@
-﻿import { SemVer } from '/lib'
+﻿import { SemVer } from '/util'
 import { User } from '/user'
 import { Member } from '/member'
 

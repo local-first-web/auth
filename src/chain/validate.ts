@@ -1,11 +1,6 @@
-﻿import {
-  InvalidResult,
-  SignatureChain,
-  SignedLink,
-  ValidationResult,
-  ValidatorSet,
-} from '/chain/types'
+﻿import { SignatureChain, SignedLink } from '/chain/types'
 import { validators } from '/chain/validators'
+import { ValidationResult, InvalidResult } from '/util'
 
 const VALID = { isValid: true } as ValidationResult
 
@@ -58,3 +53,9 @@ const composeValidators = (...validators: ValidatorSet[]) => (
 // merges multiple validator sets into one object
 const merge = (validatorSets: ValidatorSet[]) =>
   validatorSets.reduce((result, vs) => Object.assign(result, vs), {})
+
+type Validator = (currentLink: SignedLink, prevLink?: SignedLink) => ValidationResult
+
+export type ValidatorSet = {
+  [key: string]: Validator
+}

@@ -2,7 +2,7 @@
 import { randomKey } from '/keyset/randomKey'
 import { KeyScope, KeysetWithSecrets } from '/keyset/types'
 import { hash, stretch } from '/crypto'
-import { HashPurpose, Key, keypairToBase64, Optional } from '/lib'
+import { HashPurpose, Key, keypairToBase64, Optional } from '/util'
 
 /**
  * Generates a full set of per-user keys from a single 32-byte secret, roughly following the

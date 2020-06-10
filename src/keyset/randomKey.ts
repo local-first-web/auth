@@ -1,5 +1,5 @@
 ﻿import nacl from 'tweetnacl'
-import { base64 } from '/lib'
+import { base64 } from '/util'
 
 /**
  * Returns a cryptographically random 32-byte secret key, as a base64-encoded string.

@@ -7,7 +7,7 @@ export const validators: ValidatorSet = {
   validateHash: (currentLink, prevLink) => {
     const isFirstLink = prevLink === undefined
     if (isFirstLink) return { isValid: true } // nothing to validate on first link
-    const expected = hashLink(prevLink!)
+    const expected = hashLink(prevLink!.body)
     const actual = currentLink.body.prev
     return actual === expected
       ? { isValid: true }

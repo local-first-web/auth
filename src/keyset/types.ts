@@ -1,4 +1,4 @@
-﻿import { Base64, Base64Keypair } from '/lib'
+﻿import { Base64, Base64Keypair } from '/util'
 
 export interface Keyset {
   encryption: Base64Keypair

@@ -1,4 +1,4 @@
-﻿import { Base64, Encrypted } from '/lib'
+﻿import { Base64, Encrypted } from '/util'
 import { Member } from '/member'
 
 /** The public invitation to be recorded on the signature chain. When Bob shows up with

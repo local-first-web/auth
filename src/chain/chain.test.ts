@@ -3,6 +3,22 @@ import { create } from '/chain/create'
 import { validate } from '/chain/validate'
 import { signatures } from '/crypto'
 import { alice, defaultContext } from '/team/tests/utils'
+import { ValidationResult } from '/util'
+
+expect.extend({
+  toBeValid(validation: ValidationResult) {
+    if (validation.isValid)
+      return {
+        message: () => 'expected validation not to pass',
+        pass: true,
+      }
+    else
+      return {
+        message: () => validation.error.message,
+        pass: false,
+      }
+  },
+})
 
 describe('chains', () => {
   describe('Alice creats a new chain', () => {
@@ -51,8 +67,7 @@ describe('chains', () => {
       const wrongOrderChain = newChain.reverse()
 
       // 👨‍🦲 Bob
-      const { isValid } = validate(wrongOrderChain)
-      expect(isValid).toBe(false)
+      expect(validate(wrongOrderChain)).toBeValid()
     })
 
     test('Alice, for reasons only she understands, munges the type of the first link; validation fails', () => {
@@ -73,7 +88,7 @@ describe('chains', () => {
 
       // 👨‍🦲 Bob
       const validation = validate(chain)
-      expect(validation.isValid).toBe(false)
+      expect(validation).not.toBeValid()
     })
 
     test('Bob saves a chain to a file and loads it later', () => {
