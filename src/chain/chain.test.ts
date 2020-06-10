@@ -37,8 +37,7 @@ describe('chains', () => {
       const newChain = append(chain, newLink, defaultContext)
 
       // 👨‍🦲 Bob
-      const { isValid } = validate(newChain)
-      expect(isValid).toBe(true)
+      expect(validate(chain)).toBeValid()
     })
 
     test('Mallory changes the order of the links; Bob is not fooled', () => {
@@ -82,8 +81,7 @@ describe('chains', () => {
       const chainJson = JSON.stringify(chain)
       // deserialize
       const rehydratedChain = JSON.parse(chainJson)
-      const { isValid } = validate(rehydratedChain)
-      expect(isValid).toBe(true)
+      expect(validate(rehydratedChain)).toBeValid()
     })
   })
 })

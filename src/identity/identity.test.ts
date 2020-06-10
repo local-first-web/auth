@@ -3,6 +3,8 @@ import { KeyType, TEAM_SCOPE } from '/keyset'
 import * as keyset from '/keyset'
 import { bob, eve } from '/util/testing'
 
+import '/util/testing/expect/toBeValid'
+
 const { MEMBER } = KeyType
 
 describe('identity', () => {
@@ -23,7 +25,7 @@ describe('identity', () => {
     const validation = verify(alicesChallenge, bobsProof, bobPublicKeys)
 
     // ✅ Bob's proof checks out
-    expect(validation.isValid).toBe(true)
+    expect(validation).toBeValid()
   })
 
   it('rejects proof of identity with the wrong signature', () => {
@@ -43,7 +45,7 @@ describe('identity', () => {
     const validation = verify(alicesChallenge, evesProof, bobPublicKeys)
 
     // ❌ Eve's proof fails because she doesn't have Bob's secret signature key
-    expect(validation.isValid).toBe(false)
+    expect(validation).not.toBeValid()
   })
 
   it('rejects reused proof of identity', () => {
@@ -63,7 +65,7 @@ describe('identity', () => {
     const validationOfBobsProof = verify(alicesChallengeToBob, bobsProof, bobPublicKeys)
 
     // ✅ Bob's proof checks out
-    expect(validationOfBobsProof.isValid).toBe(true)
+    expect(validationOfBobsProof).toBeValid()
 
     // 👀 BUT! Eve intercepted Bob's proof, so she tries to re-use it
 
@@ -80,7 +82,7 @@ describe('identity', () => {
     const validationOfEvesProof = verify(alicesChallengeToEve, evesProof, bobPublicKeys)
 
     // ❌ FOILED AGAIN!! Eve's proof fails because the challenge she was given is different
-    expect(validationOfEvesProof.isValid).toBe(false)
+    expect(validationOfEvesProof).not.toBeValid()
   })
 
   it('validates team membership', () => {
@@ -99,6 +101,6 @@ describe('identity', () => {
     const validation = verify(alicesChallenge, bobsProof, keyset.redact(teamKeys))
 
     // ✅ Bob's proof checks out
-    expect(validation.isValid).toBe(true)
+    expect(validation).toBeValid()
   })
 })
