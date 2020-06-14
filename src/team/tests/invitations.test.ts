@@ -28,7 +28,7 @@ describe('Team', () => {
     it('creates an invitation', () => {
       const { team } = setup()
 
-      // Alice invites Bob
+      // 👩🏾 Alice invites Bob
       const { secretKey } = team.invite('bob')
       expect(secretKey).toHaveLength(16)
     })
@@ -36,29 +36,29 @@ describe('Team', () => {
     it('accepts valid proof of invitation', () => {
       const { team: alicesTeam } = setup()
 
-      // Alice invites Bob by sending him a secret key
+      // 👩🏾 Alice invites Bob by sending him a secret key
       const { secretKey } = alicesTeam.invite('bob')
 
-      // Bob accepts the invitation
+      // 👨‍🦲 Bob accepts the invitation
       const proofOfInvitation = acceptInvitation(secretKey, redact(bob))
 
       // Bob shows Alice his proof of invitation, and she lets him in
       alicesTeam.admit(proofOfInvitation)
 
-      // Bob is now on the team. Congratulations, Bob!
+      // ✅ Bob is now on the team. Congratulations, Bob!
       expect(alicesTeam.has('bob')).toBe(true)
     })
 
     it('rejects forged proof of invitation', () => {
       const { team: alicesTeam } = setup()
 
-      // Alice invites Bob
+      // 👩🏾 Alice invites Bob
       const { secretKey } = alicesTeam.invite('bob')
 
-      // Bob accepts the invitation
+      // 👨‍🦲 Bob accepts the invitation
       const proofOfInvitation = acceptInvitation(secretKey, redact(bob))
 
-      // Eve intercepts the invitation and tries to use it by swapping out Bob's info for hers
+      // 🦹‍♀️ Eve intercepts the invitation and tries to use it by swapping out Bob's info for hers
       const forgedProofOfInvitation: ProofOfInvitation = {
         ...proofOfInvitation,
         member: redact(eve),
@@ -67,7 +67,7 @@ describe('Team', () => {
       // Eve shows Alice her fake proof of invitation
       const presentForgedInvitation = () => alicesTeam.admit(forgedProofOfInvitation)
 
-      // but Alice is not fooled
+      // ❌ but Alice is not fooled
       expect(presentForgedInvitation).toThrow()
     })
 
