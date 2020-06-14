@@ -1,14 +1,15 @@
 ## 🔑🗝 Keyset
 
-Each team, each role, each member, and each device has its own **keyset**. A keyset consists of two keypairs - one for encryption and one for signatures.
+Each team, each role, each member, and each device has its own **keyset**. A keyset consists of two
+keypairs - one for asymmetric encryption and one for signatures - and one secret key for symmetric
+encryption.
 
-> **TODO:** The encryption keypair is used for asymmetric encryption; the private key of this keypair is also used for symmetric encryption. After making this change, I consulted the Cryptography Stack Exchange on the wisdom of simplifying things this way; they [unanimously concluded it was a bad idea](https://crypto.stackexchange.com/questions/81045/can-i-use-the-secret-part-of-a-asymmetric-encryption-keypair-as-a-symmetric-encr). I'm not totally convinced by their logic, but it probably makes sense to do what they say.
-
-## Internal API 
+## Internal API
 
 ### `keyset.create(scope, [seed])`
 
-A keyset is generated from a single randomly-generated secret, following a procedure roughly based on the [Keybase docs on Per-User Keys](http://keybase.io/docs/teams/puk).
+A keyset is generated from a single randomly-generated secret, following a procedure roughly based
+on the [Keybase docs on Per-User Keys](http://keybase.io/docs/teams/puk).
 
 Each keyset is associated with a **scope**, indicating what or who the keys belong to:
 
@@ -25,18 +26,20 @@ const adminKeys = keyset.create({type: ROLE, name: 'admin'})
   type: 'ROLE',
   name: 'admin',
   generation: 0,
-  signature: {
-    publicKey: 'v44ZAwFgdPMXaS8vFEkqlvKfqf3wlhxS1WrpB7KAG7=',
-    secretKey: 'Ejw9fWXkfzKBjwC6ms0h2y...HxbMLKCJINwBrZgDGzFlKYQCjHdEYEknHsdoFNc2bwwO='
-  },
+  secretKey: 'rrud13krDmxeY9XZSeJYoAqKrOKhCJ0SuhqEqaiyaLyja5Pm=',
   encryption: {
     publicKey: 'XKLCZ4oO6KqfTnFFeY4kr3EKs0V98eSbSyUjDROxX=',
     secretKey: 'A5p7EN8Kmxk9lm7xqjxF6Z6IVIkP3ZO8533agYEVz='
   }
+  signature: {
+    publicKey: 'v44ZAwFgdPMXaS8vFEkqlvKfqf3wlhxS1WrpB7KAG7=',
+    secretKey: 'Ejw9fWXkfzKBjwC6ms0h2y...HxbMLKCJINwBrZgDGzFlKYQCjHdEYEknHsdoFNc2bwwO='
+  },
 }
 ```
 
-In some cases we need to generate a keyset from a known seed. We can pass that seed to `create` as a second parameter.
+In some cases we need to generate a keyset from a known seed. We can pass that seed to `create` as a
+second parameter.
 
 ```js
 const ephemeralKeys = keyset.create({ type: EPHEMERAL }, seed)

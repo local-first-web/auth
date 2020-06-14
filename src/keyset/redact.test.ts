@@ -25,6 +25,7 @@ describe('redact', () => {
         publicKey: 'Yxb5B79mNvtDg9kjvDHIlFK4pu8XvXT0to9TtILijig=',
         secretKey: 'P2rSWEUUInw/ZwkbVwV8/W6+2n2JCNeiV2S5rtyRa5I=',
       },
+      secretKey: 'j2KNRYXtlmRDwfLqynNJKnpQUuGlKcdUqJU7fgqbkjvBbulH',
     }
 
     const publicKeyset = redact(secretKeyset)

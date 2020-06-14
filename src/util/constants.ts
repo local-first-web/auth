@@ -1,8 +1,7 @@
 ﻿export enum HashPurpose {
-  Signature = 'SIGNATURE',
-  Encryption = 'ENCRYPTION',
-  LinkToPrevious = 'LINK_TO_PREVIOUS',
-  InvitationIdFromInvitationKey = 'INVITATION_ID_FROM_INVITATION_KEY',
-  SigningPairFromFromInvitationKey = 'SIGNING_PAIR_FROM_FROM_INVITATION_KEY',
-  Invitation = 'INVITATION',
+  SIGNATURE = 'SIGNATURE',
+  ENCRYPTION = 'ENCRYPTION',
+  SYMMETRIC = 'SYMMETRIC',
+  LINK_TO_PREVIOUS = 'LINK_TO_PREVIOUS',
+  INVITATION = 'INVITATION',
 }

@@ -13,7 +13,7 @@ export const validate = (
 
   if (id !== proof.id) return fail(`IDs don't match`, details)
 
-  const decryptedInvitation = symmetric.decrypt(encryptedPayload, teamKeys.encryption.secretKey)
+  const decryptedInvitation = symmetric.decrypt(encryptedPayload, teamKeys.secretKey)
   const invitationPayload: InvitationPayload = JSON.parse(decryptedInvitation)
   const { userName, publicKey } = invitationPayload
 

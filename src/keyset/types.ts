@@ -1,7 +1,8 @@
 ﻿import { Base64, Base64Keypair } from '/util'
 
 export interface Keyset {
-  encryption: Base64Keypair
+  secretKey: Base64 // for symmetric encryption
+  encryption: Base64Keypair // for asymmetric encryption
   signature: Base64Keypair
 }
 
@@ -37,6 +38,8 @@ export interface PublicKeyset extends KeyMetadata {
   signature: Base64 // = signature.publicKey
 }
 
-// type guard: PublicKeys vs KeysWithSecrets
+// type guard: PublicKeyset vs KeysetWithSecrets
 export const hasSecrets = (keys: PublicKeyset | KeysetWithSecrets): keys is KeysetWithSecrets =>
-  keys.encryption.hasOwnProperty('secretKey') || keys.signature.hasOwnProperty('secretKey')
+  keys.encryption.hasOwnProperty('secretKey') ||
+  keys.signature.hasOwnProperty('secretKey') ||
+  'secretKey' in keys

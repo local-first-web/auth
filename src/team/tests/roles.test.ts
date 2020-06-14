@@ -203,7 +203,7 @@ describe('Team', () => {
 
       // Now, Bob suspects no one likes him so he makes a copy of his keys
       // @ts-ignore roleKeys is private
-      const copyOfKeysInCaseTheyKickMeOut = bobsTeam.roleKeys(COOLKIDS).encryption
+      const copyOfKeysInCaseTheyKickMeOut = bobsTeam.roleKeys(COOLKIDS)
 
       // Sure enough, Alice remembers that she can't stand Bob so she kicks him out
       alicesTeam.removeMemberRole('bob', COOLKIDS)

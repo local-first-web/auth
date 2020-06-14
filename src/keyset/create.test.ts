@@ -11,7 +11,7 @@ describe('create', () => {
   it('returns keys with the expected lengths', () => {
     const keys = create(EPHEMERAL_SCOPE)
 
-    const { signature, encryption } = keys
+    const { signature, encryption: encryption } = keys
 
     // signature keys look right
     expect(keyToBytes(signature.publicKey)).toHaveLength(32)

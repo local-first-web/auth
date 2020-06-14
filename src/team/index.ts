@@ -276,10 +276,7 @@ export class Team extends EventEmitter {
    */
   public encrypt = (payload: Payload, roleName?: string): EncryptedEnvelope => {
     const scope = roleName ? { type: ROLE, name: roleName } : TEAM_SCOPE
-    const {
-      encryption: { secretKey }, // TODO: go back to having a separate key for symmetric encryption
-      generation,
-    } = this.keys(scope)
+    const { secretKey, generation } = this.keys(scope)
     return {
       contents: symmetric.encrypt(payload, secretKey),
       recipient: { ...scope, generation },
@@ -289,7 +286,7 @@ export class Team extends EventEmitter {
   /** Decrypt a payload using keys available to the current user. */
   public decrypt = (message: EncryptedEnvelope): string => {
     // TODO: use the correct generation
-    const { secretKey } = this.keys(message.recipient).encryption
+    const { secretKey } = this.keys(message.recipient)
     return symmetric.decrypt(message.contents, secretKey)
   }
 

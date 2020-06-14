@@ -50,9 +50,10 @@ describe('user', () => {
       expect(signatures.verify(signedMessage)).toBe(true)
     })
 
-    it('provides a working keyset for encryption', () => {
+    it('provides a working keyset for asymmetric encryption', () => {
       const charlie = user('charlie').keys.encryption
       const bob = asymmetric.keyPair()
+
       // Charlie encrypts a message for Bob
       const cipher = asymmetric.encrypt(message, bob.publicKey, charlie.secretKey)
 
@@ -61,11 +62,10 @@ describe('user', () => {
       expect(decrypted).toEqual(message)
     })
 
-    it('can use the secret half of the encryption key for symmetric encryption', () => {
-      const { keys } = user('eve')
-      const key = keys.encryption.secretKey
-      const cipher = symmetric.encrypt(message, key)
-      const decrypted = symmetric.decrypt(cipher, key)
+    it('provides a working keyset for symmetric encryption', () => {
+      const { secretKey } = user('eve').keys
+      const cipher = symmetric.encrypt(message, secretKey)
+      const decrypted = symmetric.decrypt(cipher, secretKey)
       expect(decrypted).toEqual(message)
     })
   })
