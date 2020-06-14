@@ -5,7 +5,8 @@ cryptographic signatures.
 
 ## Why
 
-📱🤝 You're building a [local-first](http://inkandswitch.com/local-first.html) app to enable distributed collaboration [without a central
+📱🤝 You're building a [local-first](http://inkandswitch.com/local-first.html) app to enable
+distributed collaboration [without a central
 server](http://medium.com/all-the-things/a-web-application-with-no-web-server-61000a6aed8f).
 
 👩🏾🔑 You want to **authenticate** users and manage their **permissions**.
@@ -26,33 +27,36 @@ Taco solves the following problems without requiring a server or any other centr
 - **Multi-reader encryption**, using lockboxes
 - **Key revocation and rotation**, using an acyclic directed graph of keys and lockboxes
 
-Each user is assigned a set of cryptographic keys for signatures, asymmetric encryption, and symmetric encryption. These are stored in their device's secure storage.
+Each user is assigned a set of cryptographic keys for signatures, asymmetric encryption, and
+symmetric encryption. These are stored in their device's secure storage.
 
-When Alice first creates a team, she writes the first link of a **signature chain**, containing her public keys for signatures and
-encryption. All subsequent links must be signed by Alice or by another team member with admin
-permissions.
+When Alice first creates a team, she writes the first link of a **signature chain**, containing her
+public keys for signatures and encryption. All subsequent links must be signed by Alice or by
+another team member with admin permissions.
 
 Subsequent links in the chain can serve to add new team members, authorize new devices, define
 roles, and assign people to roles.
 
-When roles are changed, members leave, or devices are lost or replaced, keys
-are **rotated** and associated data **re-encrypted**.
+When roles are changed, members leave, or devices are lost or replaced, keys are **rotated** and
+associated data **re-encrypted**.
 
 👉 Learn more: [Internals](./docs/internals.md)
 
 ## What
 
 Taco exposes a `Team` class, which wraps the signature chain and encapsulates the team's members,
-devices, and roles. With this object, you can **invite new members** and **manage their permissions.**
+devices, and roles. With this object, you can **invite new members** and **manage their
+permissions.**
 
-This object can also use the public keys embedded in the signature chain, along
-with the user's own secret keys, to provide **encryption** and **signature verification** within the team.
+This object can also use the public keys embedded in the signature chain, along with the user's own
+secret keys, to provide **encryption** and **signature verification** within the team.
 
 #### Not included
 
-- **Storage** Taco uses the secure storage provided by the device to store the user's keys.
-  Taco does **not** provide storage for the signature chain.
-- **Networking** Taco can communicate with other instances to synchronize everyone's signature chains, but you need to provide a working socket connecting us to a peer.
+- **Storage** Taco uses the secure storage provided by the device to store the user's keys. Taco
+  does **not** provide storage for the signature chain.
+- **Networking** Taco can communicate with other instances to synchronize everyone's signature
+  chains, but you need to provide a working socket connecting us to a peer.
 
 ### Examples
 
@@ -88,7 +92,8 @@ appended to a URL that Bob can click to accept:
 
 > Alice has invited you to team XYZ. To accept, click: http://xyz.org/accept/aj7x+d2jr+9c8f+zrbs
 
-Alice will send the invitation to Bob via a side channel she already trusts (phone call, email, SMS, WhatsApp, Telegram, etc).
+Alice will send the invitation to Bob via a side channel she already trusts (phone call, email, SMS,
+WhatsApp, Telegram, etc).
 
 #### Bob accepts the invitation
 
@@ -100,7 +105,8 @@ import { accept } from 'taco'
 const proofOfInvitation = accept('aj7x d2jr 9c8f zrbs')
 ```
 
-When Bob shows up to join the team, anyone can validate his proof of invitation to admit him to the team - it doesn't have to be an admin.
+When Bob shows up to join the team, anyone can validate his proof of invitation to admit him to the
+team - it doesn't have to be an admin.
 
 ```js
 // 👳‍♂️ Charlie
@@ -142,6 +148,9 @@ const decrypted = team.decrypt(encrypted) // 'the condor flies at midnight'
 
 ## Prior art
 
-💡 This project is inspired by and borrows heavily from Keybase: The signature chain is inspired by [their implementation for Keybase Teams](https://keybase.io/docs/team), and the invitation mechanism is based on their [Seitan token exchange specification](https://keybase.io/docs/teams/seitan_v2), proposed as a more secure alternative to TOFU, or _**T**rust **O**n **F**irst **U**se_.
+💡 This project is inspired by and borrows heavily from Keybase: The signature chain is inspired by
+[their implementation for Keybase Teams](https://keybase.io/docs/team), and the invitation mechanism
+is based on their [Seitan token exchange specification](https://keybase.io/docs/teams/seitan_v2),
+proposed as a more secure alternative to TOFU, or _**T**rust **O**n **F**irst **U**se_.
 
 TACO stands for _**T**rust **A**fter **C**onfirmation **O**f invitation_.
