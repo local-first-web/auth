@@ -1,8 +1,9 @@
 ﻿import { symmetric } from '/crypto'
 import { deriveId } from '/invitation/deriveId'
+import { normalize } from '/invitation/normalize'
 import { Invitation, InvitationPayload } from '/invitation/types'
-import { EPHEMERAL_SCOPE, KeysetWithSecrets } from '/keyset'
 import * as keyset from '/keyset'
+import { EPHEMERAL_SCOPE, KeysetWithSecrets } from '/keyset'
 
 export const IKEY_LENGTH = 16
 
@@ -23,6 +24,8 @@ export const create = ({
   roles = [],
   secretKey,
 }: InvitationArgs): Invitation => {
+  secretKey = normalize(secretKey)
+
   // ## Step 1b, 1c
   // Stretch the key and hash it to obtain an invitation ID (Keybase docs: `inviteID`)
   const id = deriveId(secretKey)
