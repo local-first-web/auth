@@ -85,10 +85,10 @@ existing user IDs or names, or email addresses.
 const { secretKey } = team.invite('bob')
 ```
 
-The invitation key is a single-use secret that only Alice and Bob will ever know. By default, it is a 16-character string like
-`aj7x d2jr 9c8f zrbs`, and to make it easier to retype if needed, it is in base-30 format, which omits
-easily confused characters. It might be typed
-directly into your application, or appended to a URL that Bob can click to accept:
+The invitation key is a single-use secret that only Alice and Bob will ever know. By default, it is
+a 16-character string like `aj7x d2jr 9c8f zrbs`, and to make it easier to retype if needed, it is
+in base-30 format, which omits easily confused characters. It might be typed directly into your
+application, or appended to a URL that Bob can click to accept:
 
 > Alice has invited you to team XYZ. To accept, click: http://xyz.org/accept/aj7x+d2jr+9c8f+zrbs
 
