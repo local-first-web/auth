@@ -1,4 +1,4 @@
-﻿import { Device } from '/context'
+﻿import { DeviceWithKeys } from '/context'
 import { KeysetWithSecrets } from '/keyset'
 
 /** The local user and their full set of keys, including secrets.   */
@@ -15,5 +15,6 @@ export interface User {
    */
   keyHistory?: KeysetWithSecrets[]
 
-  devices?: Device[]
+  /** The local device in use */
+  device: DeviceWithKeys
 }

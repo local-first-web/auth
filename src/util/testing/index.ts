@@ -1,22 +1,13 @@
-﻿import { Client, LocalUserContext, Device, DeviceType } from '/context'
-import { KeyType } from '/keyset'
+﻿import { Client, DeviceType, DeviceWithKeys, LocalUserContext } from '/context'
 import * as keyset from '/keyset'
+import { KeyType } from '/keyset'
 import { Role } from '/role'
-import * as teams from '/Team'
-import { Team } from '/Team'
-import { User } from '/user'
-
-export const expectToLookLikeKeyset = (maybeKeyset: any) => {
-  expect(maybeKeyset).toHaveProperty('encryption')
-  expect(maybeKeyset).toHaveProperty('signature')
-}
-
-const makeUser = (userName: string): User => {
-  const keys = keyset.create({ type: KeyType.MEMBER, name: userName })
-  return { userName, keys }
-}
+import * as teams from '/team'
+import { Team } from '/team'
+import * as user from '/user'
 
 // A simple little storage emulator
+
 export const storage = {
   contents: undefined as string | undefined,
   save: (team: Team) => {
@@ -28,26 +19,42 @@ export const storage = {
   },
 }
 
+// test assets
+
+export const makeUser = (userName: string) => user.create(userName, makeDevice(userName))
+
+export const makeDevice = (userName: string): DeviceWithKeys => {
+  const deviceName = `${userName}'s laptop`
+  return {
+    name: deviceName,
+    userName,
+    type: DeviceType.laptop,
+    keys: keyset.create({ type: KeyType.DEVICE, name: deviceName }),
+  }
+}
+
 export const alice = makeUser('alice')
 export const bob = makeUser('bob')
 export const charlie = makeUser('charlie')
 export const eve = makeUser('eve')
 
+export const alicesLaptop = alice.device
+export const bobsLaptop = bob.device
+export const charliesLaptop = charlie.device
+export const evesLaptop = eve.device
+
 export const MANAGERS = 'managers'
 export const managers: Role = { roleName: MANAGERS }
 
-export const device: Device = {
-  name: 'windows laptop',
-  type: DeviceType.laptop,
-}
 export const client: Client = {
   name: 'test',
   version: '0',
 }
 
-export const alicesContext: LocalUserContext = { user: alice, device, client }
-export const bobsContext: LocalUserContext = { user: bob, device, client }
-export const charliesContext: LocalUserContext = { user: charlie, device, client }
+export const alicesContext: LocalUserContext = { user: alice, client }
+export const bobsContext: LocalUserContext = { user: bob, client }
+export const charliesContext: LocalUserContext = { user: charlie, client }
+
 export const defaultContext = alicesContext
 
 export const newTeam = () => teams.create('Spies Я Us', defaultContext)

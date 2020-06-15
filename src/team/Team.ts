@@ -1,6 +1,6 @@
 ﻿import { EventEmitter } from 'events'
 import { chain, SignatureChain, validate } from '/chain'
-import { LocalUserContext } from '/context'
+import { LocalUserContext, DeviceWithKeys } from '/context'
 import { signatures, symmetric } from '/crypto'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
@@ -205,6 +205,14 @@ export class Team extends EventEmitter {
       payload: { userName, roleName, lockboxes },
     })
   }
+
+  // Devices
+
+  public addDevice = (
+    userName: string,
+    device: DeviceWithKeys,
+    secretKey = invitations.newSecretKey()
+  ) => {}
 
   // Invitations
 

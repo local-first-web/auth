@@ -1,9 +1,9 @@
-﻿import { SemVer } from '/util'
-import { User } from '/user'
+﻿import { KeysetWithSecrets } from '/keyset'
 import { Member } from '/member'
+import { User } from '/user'
+import { SemVer } from '/util'
 
 interface Context {
-  device: Device
   client?: Client
 }
 
@@ -13,6 +13,7 @@ export interface LocalUserContext extends Context {
 
 export interface MemberContext extends Context {
   member: Member
+  device: Device
 }
 
 export enum DeviceType {
@@ -27,7 +28,12 @@ export enum DeviceType {
 
 export interface Device {
   name: string
+  userName: string
   type: DeviceType
+}
+
+export interface DeviceWithKeys extends Device {
+  keys: KeysetWithSecrets
 }
 
 export interface Client {

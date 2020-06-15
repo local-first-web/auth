@@ -1,4 +1,4 @@
-import { EncryptedEnvelope } from '../types'
+import { EncryptedEnvelope } from '/team/types'
 import { symmetric } from '/crypto'
 import { ADMIN } from '/role'
 import { redact } from '/user'

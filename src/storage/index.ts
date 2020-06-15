@@ -1,17 +1,15 @@
-﻿import { KeysetWithSecrets } from '/keyset'
-const STORAGE_KEY = 'TACO_KEY_STORAGE'
+﻿import { User } from '/user'
+const STORAGE_KEY = 'TACO_STORAGE'
+const USER_STORAGE_KEY = `${STORAGE_KEY}__USER`
 
 const storage = localStorage // TODO - replace with device secure storage e.g. https://github.com/atom/node-keytar, or password-protected browser storage
 
-export const loadKeyset = (userName: string): KeysetWithSecrets | undefined => {
-  const allKeysets = getKeysets()
-  return allKeysets[userName]
+export const loadUser = (): User | undefined => {
+  const serializedUser = storage.getItem(USER_STORAGE_KEY)
+  if (serializedUser === null) return undefined
+  else return JSON.parse(serializedUser)
 }
 
-export const storeKeyset = (userName: string, keys: KeysetWithSecrets) => {
-  const allKeysets = getKeysets()
-  allKeysets[userName] = keys
-  storage.setItem(STORAGE_KEY, JSON.stringify(allKeysets))
+export const saveUser = (user: User) => {
+  storage.setItem(STORAGE_KEY, JSON.stringify(user))
 }
-
-const getKeysets = () => JSON.parse(storage.getItem(STORAGE_KEY) || '{}')

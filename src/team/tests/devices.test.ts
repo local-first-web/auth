@@ -1,4 +1,4 @@
-﻿import { defaultContext, newTeam, storage } from '/util/testing'
+﻿import { alice, defaultContext, newTeam, storage } from '/util/testing'
 
 describe('Team', () => {
   beforeEach(() => {
@@ -12,8 +12,13 @@ describe('Team', () => {
   })
 
   describe('devices', () => {
-    it.todo('adds a device')
-    it.todo('removes a device')
-    it.todo('rotates keys after removing a device')
+    it('adds a device', () => {
+      const { team } = setup()
+      // team.addDevice(alice.userName, laptop)
+    })
+
+    it('removes a device', () => {})
+
+    it('rotates keys after removing a device', () => {})
   })
 })
