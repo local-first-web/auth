@@ -1,7 +1,9 @@
 ﻿import { Client, LocalUserContext, Device, DeviceType } from '/context'
-import { KeyType, create } from '/keyset'
+import { KeyType } from '/keyset'
+import * as keyset from '/keyset'
 import { Role } from '/role'
-import { Team } from '/team'
+import * as teams from '/Team'
+import { Team } from '/Team'
 import { User } from '/user'
 
 export const expectToLookLikeKeyset = (maybeKeyset: any) => {
@@ -10,7 +12,7 @@ export const expectToLookLikeKeyset = (maybeKeyset: any) => {
 }
 
 const makeUser = (userName: string): User => {
-  const keys = create({ type: KeyType.MEMBER, name: userName })
+  const keys = keyset.create({ type: KeyType.MEMBER, name: userName })
   return { userName, keys }
 }
 
@@ -22,7 +24,7 @@ export const storage = {
   },
   load: (context: LocalUserContext) => {
     if (storage.contents === undefined) throw new Error('need to save before you can load')
-    return new Team({ source: JSON.parse(storage.contents), context })
+    return teams.load(JSON.parse(storage.contents), context)
   },
 }
 
@@ -48,6 +50,5 @@ export const bobsContext: LocalUserContext = { user: bob, device, client }
 export const charliesContext: LocalUserContext = { user: charlie, device, client }
 export const defaultContext = alicesContext
 
-export const newTeamChain = JSON.parse(
-  new Team({ teamName: 'Spies Я Us', context: defaultContext }).save()
-)
+export const newTeam = () => teams.create('Spies Я Us', defaultContext)
+export const newTeamChain = JSON.parse(newTeam().save())

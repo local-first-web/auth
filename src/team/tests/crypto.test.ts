@@ -1,25 +1,22 @@
-﻿import {
-  defaultContext,
-  storage,
-  newTeamChain,
-  bobsContext,
+﻿import { ADMIN } from '/role'
+import {
   bob,
+  bobsContext,
   charlie,
   charliesContext,
+  defaultContext,
+  newTeam,
+  storage,
 } from '/util/testing'
-import { ADMIN } from '/role'
-import { Team } from '/team'
-
 describe('Team', () => {
   beforeEach(() => {
     storage.contents = undefined
   })
 
-  const setup = () => {
-    const context = defaultContext
-    const team = new Team({ source: newTeamChain, context })
-    return { team, context }
-  }
+  const setup = () => ({
+    team: newTeam(),
+    context: defaultContext,
+  })
 
   describe('crypto', () => {
     describe('encryption', () => {

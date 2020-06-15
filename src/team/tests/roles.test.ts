@@ -1,20 +1,19 @@
 import { EncryptedEnvelope } from '../types'
 import { symmetric } from '/crypto'
 import { ADMIN } from '/role'
-import { Team } from '/team'
+import { redact } from '/user'
 import {
   bob,
   bobsContext,
   charlie,
+  charliesContext,
   defaultContext,
   expectToLookLikeKeyset,
   managers,
   MANAGERS,
+  newTeam,
   storage,
-  newTeamChain,
-  charliesContext,
 } from '/util/testing'
-import { redact } from '/user'
 
 describe('Team', () => {
   beforeEach(() => {
@@ -22,11 +21,10 @@ describe('Team', () => {
     storage.contents = undefined
   })
 
-  const setup = () => {
-    const context = defaultContext
-    const team = new Team({ source: newTeamChain, context })
-    return { team, context }
-  }
+  const setup = () => ({
+    team: newTeam(),
+    context: defaultContext,
+  })
 
   describe('roles', () => {
     it('Alice is admin by default', () => {
@@ -55,7 +53,6 @@ describe('Team', () => {
       expect(team.memberHasRole('alice', MANAGERS)).toBe(false)
 
       // But Alice does have access to the managers' keys
-      // @ts-ignore roleKeys is private
       const managersKeys = team.roleKeys(MANAGERS)
       expectToLookLikeKeyset(managersKeys)
     })
@@ -214,8 +211,7 @@ describe('Team', () => {
       charliesTeam = storage.load(charliesContext)
 
       // Charlie can still read the message
-      // TODO this breaks because key has been rotated & decrypt disregards generation
-      // expect(charliesTeam.decrypt(encryptedMessage)).toEqual(message)
+      expect(charliesTeam.decrypt(encryptedMessage)).toEqual(message)
 
       // Bob can no longer read the message through normal channels
       expect(() => bobsTeam.decrypt(encryptedMessage)).toThrow()

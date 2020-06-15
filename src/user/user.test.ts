@@ -32,7 +32,7 @@ describe('user', () => {
     const bob = user('bob')
 
     // Alice uses app on the same device
-    // TODO is this actually a scenario we want to support?
+    // (not sure if this is a scenario we want to support but it works)
     const alice = user('alice')
 
     // keyset is different

@@ -1,16 +1,15 @@
-import {
-  bob,
-  eve,
-  defaultContext,
-  storage,
-  newTeamChain,
-  charlie,
-  bobsContext,
-  alicesContext,
-} from '/util/testing'
 import { acceptInvitation, ProofOfInvitation } from '/invitation'
-import { Team } from '/team'
 import { redact } from '/user'
+import {
+  alicesContext,
+  bob,
+  bobsContext,
+  charlie,
+  defaultContext,
+  eve,
+  newTeam,
+  storage,
+} from '/util/testing'
 
 describe('Team', () => {
   beforeEach(() => {
@@ -18,11 +17,10 @@ describe('Team', () => {
     storage.contents = undefined
   })
 
-  const setup = () => {
-    const context = defaultContext
-    const team = new Team({ source: newTeamChain, context })
-    return { team, context }
-  }
+  const setup = () => ({
+    team: newTeam(),
+    context: defaultContext,
+  })
 
   describe('invitations', () => {
     it('creates an invitation', () => {

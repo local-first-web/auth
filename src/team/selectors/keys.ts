@@ -9,13 +9,13 @@ export const keys = (
   currentUser: User,
   scope: Optional<KeyMetadata, 'generation'>
 ) => {
-  const { type, name, generation: generationOrUndefined } = scope
+  const { type, name, generation: maybeGeneration } = scope
 
   const keysFromLockboxes = getKeyMap(state, currentUser)
   const keys = keysFromLockboxes[type] && keysFromLockboxes[type][name]
   if (!keys) throw new Error(`Keys not found for ${type.toLowerCase()} '${name}`)
 
-  const generation = generationOrUndefined || keys.length - 1 // use latest generation by default
+  const generation = maybeGeneration === undefined ? keys.length - 1 : maybeGeneration // use latest generation by default
   return keys[generation]
 }
 

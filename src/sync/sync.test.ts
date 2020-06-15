@@ -1,13 +1,11 @@
-﻿import { defaultContext, newTeamChain } from '/util/testing'
-import { Team } from '/team'
-import { sendHashes } from '/sync'
+﻿import { sendHashes } from '/sync'
+import { defaultContext, newTeam } from '/util/testing'
 
 describe('sync', () => {
-  const setup = () => {
-    const context = defaultContext
-    const team = new Team({ source: newTeamChain, context })
-    return { team, context }
-  }
+  const setup = () => ({
+    team: newTeam(),
+    context: defaultContext,
+  })
 
   it('should send hashes', () => {
     const { team: aliceTeam } = setup()

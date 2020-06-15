@@ -1,16 +1,15 @@
-import { defaultContext, storage, newTeamChain } from '/util/testing'
-import { Team } from '/team'
+import { load } from '/Team'
+import { defaultContext, newTeam, storage } from '/util/testing'
 
 describe('Team', () => {
   beforeEach(() => {
     storage.contents = undefined
   })
 
-  const setup = () => {
-    const context = defaultContext
-    const team = new Team({ source: newTeamChain, context })
-    return { team, context }
-  }
+  const setup = () => ({
+    team: newTeam(),
+    context: defaultContext,
+  })
 
   describe('create', () => {
     it('returns a new team', () => {
@@ -21,7 +20,7 @@ describe('Team', () => {
     it('saves & loads', () => {
       const { team, context } = setup()
       const savedChain = team.save()
-      const restoredTeam = new Team({ source: JSON.parse(savedChain), context })
+      const restoredTeam = load(JSON.parse(savedChain), context)
       expect(restoredTeam.teamName).toBe('Spies Я Us')
     })
 

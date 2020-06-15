@@ -1,5 +1,4 @@
-﻿import { Team } from '/team'
-import { defaultContext, storage, newTeamChain } from '/util/testing'
+﻿import { defaultContext, newTeam, storage } from '/util/testing'
 
 describe('Team', () => {
   beforeEach(() => {
@@ -7,11 +6,10 @@ describe('Team', () => {
     storage.contents = undefined
   })
 
-  const setup = () => {
-    const context = defaultContext
-    const team = new Team({ source: newTeamChain, context })
-    return { team, context }
-  }
+  const setup = () => ({
+    team: newTeam(),
+    context: defaultContext,
+  })
 
   describe('devices', () => {
     it.todo('adds a device')

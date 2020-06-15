@@ -1,14 +1,13 @@
+import { ADMIN } from '/role'
 import {
   bob,
   bobsContext,
   charlie,
   defaultContext,
   expectToLookLikeKeyset,
+  newTeam,
   storage,
-  newTeamChain,
 } from '/util/testing'
-import { ADMIN } from '/role'
-import { Team } from '/team'
 
 describe('Team', () => {
   beforeEach(() => {
@@ -16,11 +15,10 @@ describe('Team', () => {
     storage.contents = undefined
   })
 
-  const setup = () => {
-    const context = defaultContext
-    const team = new Team({ source: newTeamChain, context })
-    return { team, context }
-  }
+  const setup = () => ({
+    team: newTeam(),
+    context: defaultContext,
+  })
 
   describe('members', () => {
     it('has Alice as a root member', () => {

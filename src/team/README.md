@@ -6,18 +6,18 @@ The `Team` class wraps the signature chain and encapsulates the team's members, 
 
 ### Team
 
-#### `new Team({name context})`
+#### `create(name, context)`
 
-Alice can create a new team by passing the local user's context, along with a name for the team.
+Alice can create a new team by passing a name for the team, along with the local user's context.
 
 ```js
 // 👩🏾 Alice
-import { Team, user} from 'taco'
+import { user, create } from 'taco'
 
 const alice = user.create('alice')
 const context = { user: alice, device: { ... } }
 
-const team = new Team({ name: 'Spies Я Us', context })
+const team = create('Spies Я Us', context)
 ```
 
 As the founding member of the team, Alice is automatically an admin.
@@ -33,13 +33,15 @@ const chain = team.save()
 localStorage.setItem('myTeamChain', chain)
 ```
 
-#### `new Team({source, context})`
+#### `load(source, context)`
 
-To retrieve a team from storage, instantiate a new team with the stored chain and the local user's context.
+To retrieve a team from storage, pass the serialized chain and the local user's context.
 
 ```js
+import { load } from 'taco'
+
 const chain = localStorage.getItem('myTeamChain')
-const team = new Team({ source: chain, context })
+const team = load(chain, context)
 ```
 
 ### Invitations
@@ -61,7 +63,7 @@ Our protocol, TACO (**t**rust **a**fter **c**onfirmation **o**f invitation), is 
 - **Admittance**  
   Charlie verifies that Bob's proof was signed with the invitation's public signing key, and lets Bob in
 
-This protocol relies on a trusted side channel only once, to transmit the secret invitation key.
+This protocol relies on a trusted side channel only once per member, to transmit the secret invitation key.
 
 #### `team.invite(member, [roles])`
 
