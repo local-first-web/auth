@@ -1,7 +1,7 @@
-﻿import { SignedLink } from '/chain'
+﻿import { TeamStateValidator, ValidationArgs, TeamStateValidatorSet, TeamState } from '/team/types'
+import { SignedLink } from '/chain'
 import { ValidationError, ValidationResult } from '/util'
 import * as select from '/team/selectors'
-import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '/team/types'
 
 export const validate: TeamStateValidator = (...args: ValidationArgs) => {
   for (const key in validators) {
@@ -56,6 +56,17 @@ const validators: TeamStateValidatorSet = {
     }
     return VALID
   },
+
+  cantAddExistingDevice: (...args) => {
+    const [prevState, link] = args
+    if (link.body.type === 'ADD_DEVICE') {
+      const { userName, deviceName } = link.body.payload
+      if (select.hasMember(prevState, name))
+        return fail(`There is already a member called '${name}'`, ...args)
+    }
+    return VALID
+  },
+  Í,
 }
 
 const fail = (message: string, prevState: TeamState, link: SignedLink) => {
