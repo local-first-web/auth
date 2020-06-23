@@ -13,12 +13,12 @@ export const IKEY_LENGTH = 16
 /**
  * Returns an an invitation to public post on the team's signature chain.
  * @param teamKeys The global team keys (Alice obtains these from the appropriate lockbox)
- * @param userName Bob's username
- *
+ * @param type
+ * @param payload
  * @param secretKey A randomly generated secret (Step 1a) to be passed to Bob via a side channel
  * @see newSecretKey
  */
-export const create = ({ teamKeys, payload, secretKey }: InvitationArgs): Invitation => {
+export const createInternal = ({ teamKeys, type, payload, secretKey }: InvitationArgsInternal) => {
   secretKey = normalize(secretKey)
 
   // ## Step 1b, 1c
@@ -47,8 +47,19 @@ export const create = ({ teamKeys, payload, secretKey }: InvitationArgs): Invita
   return invitation
 }
 
+export const create = ({ teamKeys, payload, secretKey }: InvitationArgs): Invitation => {
+  return createInternal({ teamKeys, type: 'MEMBER', payload, secretKey })
+}
+
 interface InvitationArgs {
   teamKeys: KeysetWithSecrets
   payload: MemberInvitationPayload
+  secretKey: string
+}
+
+interface InvitationArgsInternal {
+  teamKeys: KeysetWithSecrets
+  type: InvitationBody['type']
+  payload: InvitationBody['payload']
   secretKey: string
 }
