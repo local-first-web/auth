@@ -1,5 +1,6 @@
 ﻿import { Base64, Encrypted } from '/util'
 import { Member } from '/member'
+import { DeviceWithPublicKeys } from '/context'
 
 /** The public invitation to be recorded on the signature chain. When Bob shows up with
 `ProofOfInvitation`, someone on the team will need to check it against this. */
@@ -28,6 +29,9 @@ export interface ProofOfInvitation {
 
   /** Bob's username and public keys*/
   member: Member
+
+  /** Bob's first device */
+  device: DeviceWithPublicKeys
 
   /** Signature of the invitation id and Bob's username, using the signing keys derived from the
    * secret invitation key */
