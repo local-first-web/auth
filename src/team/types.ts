@@ -1,5 +1,5 @@
 import { LinkBody, SignatureChain, SignedLink } from '/chain'
-import { LocalUserContext, MemberContext } from '/context'
+import { LocalUserContext, MemberContext, DeviceWithPublicKeys } from '/context'
 import { Invitation } from '/invitation/types'
 import { KeyMetadata } from '/keyset'
 import { Base64, Payload, ValidationResult } from '/util'
@@ -74,6 +74,7 @@ export type TeamAction =
       type: 'ADD_DEVICE'
       payload: BasePayload & {
         userName: string
+        deviceId: string
       }
     }
   | {
@@ -131,6 +132,7 @@ export type TeamAction =
       payload: BasePayload & {
         id: string
         member: Member
+        device: DeviceWithPublicKeys
         roles?: string[]
       }
     }
