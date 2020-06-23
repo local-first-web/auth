@@ -1,7 +1,12 @@
 ﻿import { symmetric } from '/crypto'
 import { deriveId } from '/invitation/deriveId'
 import { normalize } from '/invitation/normalize'
-import { Invitation, InvitationBody, MemberInvitationPayload } from '/invitation/types'
+import {
+  Invitation,
+  InvitationBody,
+  MemberInvitationPayload,
+  DeviceInvitationPayload,
+} from '/invitation/types'
 import * as keyset from '/keyset'
 import { EPHEMERAL_SCOPE, KeysetWithSecrets } from '/keyset'
 
@@ -18,7 +23,7 @@ export const IKEY_LENGTH = 16
  * @param secretKey A randomly generated secret (Step 1a) to be passed to Bob via a side channel
  * @see newSecretKey
  */
-export const createInternal = ({ teamKeys, type, payload, secretKey }: InvitationArgsInternal) => {
+export const create = ({ teamKeys, type, payload, secretKey }: InvitationArgsInternal) => {
   secretKey = normalize(secretKey)
 
   // ## Step 1b, 1c
@@ -47,13 +52,21 @@ export const createInternal = ({ teamKeys, type, payload, secretKey }: Invitatio
   return invitation
 }
 
-export const create = ({ teamKeys, payload, secretKey }: InvitationArgs): Invitation => {
-  return createInternal({ teamKeys, type: 'MEMBER', payload, secretKey })
-}
+export const inviteMember = ({ teamKeys, payload, secretKey }: MemberInvitationArgs): Invitation =>
+  create({ teamKeys, type: 'MEMBER', payload, secretKey })
 
-interface InvitationArgs {
+export const inviteDevice = ({ teamKeys, payload, secretKey }: DeviceInvitationArgs): Invitation =>
+  create({ teamKeys, type: 'DEVICE', payload, secretKey })
+
+interface MemberInvitationArgs {
   teamKeys: KeysetWithSecrets
   payload: MemberInvitationPayload
+  secretKey: string
+}
+
+interface DeviceInvitationArgs {
+  teamKeys: KeysetWithSecrets
+  payload: DeviceInvitationPayload
   secretKey: string
 }
 

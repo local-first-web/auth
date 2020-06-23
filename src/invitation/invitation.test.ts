@@ -1,4 +1,4 @@
-import { acceptInvitation, create, newSecretKey, validate } from '/invitation'
+import { acceptInvitation, inviteMember, newSecretKey, validate } from '/invitation'
 import * as keyset from '/keyset'
 import { bob } from '/util/testing'
 
@@ -9,7 +9,7 @@ describe('invitations', () => {
 
   test('create', () => {
     const secretKey = newSecretKey()
-    const invitation = create({ teamKeys, payload: { userName: 'bob' }, secretKey })
+    const invitation = inviteMember({ teamKeys, payload: { userName: 'bob' }, secretKey })
     expect(secretKey).toHaveLength(16)
     expect(invitation).toHaveProperty('id')
     expect(invitation.id).toHaveLength(15)
@@ -21,7 +21,7 @@ describe('invitations', () => {
     // team's signature chain.
     const secretKey = newSecretKey()
 
-    const invitation = create({ teamKeys, payload: { userName: 'bob' }, secretKey })
+    const invitation = inviteMember({ teamKeys, payload: { userName: 'bob' }, secretKey })
 
     // Bob accepts invitation and obtains a credential proving that he was invited.
     const proofOfInvitation = acceptInvitation(secretKey, bob)

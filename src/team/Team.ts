@@ -229,7 +229,7 @@ export class Team extends EventEmitter {
   ) => {
     // generate invitation
     const teamKeys = this.teamKeys()
-    const invitation = invitations.create({
+    const invitation = invitations.inviteMember({
       teamKeys,
       payload: { userName, roles },
       secretKey,
