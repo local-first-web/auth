@@ -1,4 +1,5 @@
 ﻿import {
+  addDevice,
   addMember,
   addMemberRoles,
   addRole,
@@ -70,8 +71,10 @@ const getTransforms = (action: TeamAction): Reducer[] => {
     }
 
     case 'ADD_DEVICE': {
-      // TODO: ADD_DEVICE
-      return []
+      const { userName } = action.payload
+      return [
+        addDevice(userName), //
+      ]
     }
 
     case 'ADD_ROLE': {
