@@ -1,5 +1,6 @@
 ﻿import { TeamState } from '/team/types'
 
+export * from '/team/reducers/addDevice'
 export * from '/team/reducers/addMember'
 export * from '/team/reducers/addMemberRoles'
 export * from '/team/reducers/addRole'
