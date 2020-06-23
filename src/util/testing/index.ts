@@ -1,4 +1,4 @@
-﻿import { Client, DeviceType, DeviceWithKeys, LocalUserContext } from '/context'
+﻿import { Client, DeviceType, DeviceWithSecretKeys, LocalUserContext } from '/context'
 import * as keyset from '/keyset'
 import { KeyType } from '/keyset'
 import { Role } from '/role'
@@ -23,7 +23,7 @@ export const storage = {
 
 export const makeUser = (userName: string) => user.create(userName, makeDevice(userName))
 
-export const makeDevice = (userName: string): DeviceWithKeys => {
+export const makeDevice = (userName: string): DeviceWithSecretKeys => {
   const deviceName = `${userName}'s laptop`
   return {
     name: deviceName,
