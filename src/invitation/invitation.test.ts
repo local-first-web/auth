@@ -1,4 +1,3 @@
-import * as user from '/user'
 import { acceptInvitation, create, newSecretKey, validate } from '/invitation'
 import * as keyset from '/keyset'
 import { bob } from '/util/testing'
@@ -25,7 +24,7 @@ describe('invitations', () => {
     const invitation = create({ teamKeys, userName: 'bob', secretKey })
 
     // Bob accepts invitation and obtains a credential proving that he was invited.
-    const proofOfInvitation = acceptInvitation(secretKey, user.redact(bob))
+    const proofOfInvitation = acceptInvitation(secretKey, bob)
 
     // Bob shows up to join the team & sees Charlie. Bob shows Charlie his proof of invitation, and
     // Charlie checks it against the invitation that Alice posted on the signature chain.

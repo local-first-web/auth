@@ -1,13 +1,7 @@
 import { ADMIN } from '/role'
-import {
-  bob,
-  bobsContext,
-  charlie,
-  defaultContext,
-  expectToLookLikeKeyset,
-  newTeam,
-  storage,
-} from '/util/testing'
+import { bob, bobsContext, charlie, defaultContext, newTeam, storage } from '/util/testing'
+
+import '/util/testing/expect/toLookLikeKeyset'
 
 describe('Team', () => {
   beforeEach(() => {
@@ -32,11 +26,11 @@ describe('Team', () => {
       const { team } = setup()
       // @ts-ignore roleKeys is private
       const adminKeyset = team.roleKeys(ADMIN)
-      expectToLookLikeKeyset(adminKeyset)
+      expect(adminKeyset).toLookLikeKeyset()
 
       // @ts-ignore teamKeys is private
       const teamKeys = team.teamKeys()
-      expectToLookLikeKeyset(teamKeys)
+      expect(teamKeys).toLookLikeKeyset()
     })
 
     it('adds a member', () => {
@@ -58,7 +52,7 @@ describe('Team', () => {
       // Bob has team keys
       // @ts-ignore
       const teamKeys = bobsTeam.teamKeys()
-      expectToLookLikeKeyset(teamKeys)
+      expect(teamKeys).toLookLikeKeyset()
 
       // Bob is not an admin so he doesn't have admin keys
       // @ts-ignore
@@ -78,7 +72,7 @@ describe('Team', () => {
       // Bob is an admin and has admin keys
       // @ts-ignore roleKeys is private
       const adminKeyset = bobsTeam.roleKeys(ADMIN)
-      expectToLookLikeKeyset(adminKeyset)
+      expect(adminKeyset).toLookLikeKeyset()
     })
 
     it('does not add a member that is already present', () => {

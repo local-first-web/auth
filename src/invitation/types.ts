@@ -3,24 +3,34 @@ import { Member } from '/member'
 import { Device } from '/device'
 
 /** The public invitation to be recorded on the signature chain. When Bob shows up with
-`ProofOfInvitation`, someone on the team will need to check it against this. */
+ * `ProofOfInvitation`, someone on the team will need to check it against this.
+ */
 export interface Invitation {
   /** Public, unique identifier for the invitation */
   id: Base64
 
   /** An `InvitationPayload` containing Bob's username and a public signature key, symmetrically
-   * encrypted using the team key */
+   *  encrypted using the team key */
   encryptedPayload: Encrypted<InvitationPayload>
 
   /** Generation # of the team keyset */
   generation: number
 }
 
-export interface InvitationPayload {
-  userName: string
-  roles?: string[]
+export type InvitationPayload = {
   publicKey: Base64
-}
+} & (
+  | {
+      type: 'MEMBER'
+      userName: string
+      roles?: string[]
+    }
+  | {
+      type: 'DEVICE'
+      deviceId: Base64
+      userName: string
+    }
+)
 
 /** This is what Bob takes to the team so they'll let him in */
 export interface ProofOfInvitation {

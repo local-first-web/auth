@@ -20,8 +20,8 @@ export const validate = (
   if (userName !== proof.member.userName)
     return fail(`User names don't match`, { invitationPayload, ...details })
 
-  const { signature, member } = proof
-  const signedMessage = { payload: { id, member }, signature, publicKey }
+  const { signature, member, device } = proof
+  const signedMessage = { payload: { id, member, device }, signature, publicKey }
   const signatureIsValid = signatures.verify(signedMessage)
 
   if (!signatureIsValid)

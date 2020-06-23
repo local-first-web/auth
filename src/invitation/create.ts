@@ -39,7 +39,7 @@ export const create = ({
   // Encrypt Bob's username and roles so that we don't leak that information in the public signature
   // chain. We also include the public half of the signature keyset, which will be used to verify
   // Bob's proof of invitation.
-  const payload: InvitationPayload = { userName, roles, publicKey }
+  const payload: InvitationPayload = { type: 'MEMBER', userName, roles, publicKey }
   const encryptedPayload = symmetric.encrypt(payload, teamKeys.secretKey)
 
   // ## Step 2b

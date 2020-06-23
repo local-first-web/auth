@@ -11,5 +11,5 @@ export const loadUser = (): User | undefined => {
 }
 
 export const saveUser = (user: User) => {
-  storage.setItem(STORAGE_KEY, JSON.stringify(user))
+  storage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
 }

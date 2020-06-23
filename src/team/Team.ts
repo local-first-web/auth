@@ -121,12 +121,13 @@ export class Team extends EventEmitter {
   // Most of the logic for modifying team state is in reducers. To mutate team state, we dispatch
   // changes to the signature chain, and then run the chain through the reducer to recalculate team
   // state.
+  //
   // Any crypto operations involving the current user's secrets (for example, opening or creating
   // lockboxes, or signing links) are done here. Only the public-facing outputs (for example, the
   // resulting lockboxes, the signed links) are posted on the chain.
 
   /** Add a member to the team */
-  public add = (member: User, roles: string[] = []) => {
+  public add = (member: User | Member, roles: string[] = []) => {
     // don't leak user secrets if we have them
     const redactedUser = user.redact(member)
 
@@ -143,7 +144,8 @@ export class Team extends EventEmitter {
       payload: { member: redactedUser, roles, lockboxes },
     })
 
-    this.addDevice(member.device)
+    // TODO
+    // this.inviteDevice(member.device)
   }
 
   /** Remove a member from the team */
@@ -263,7 +265,9 @@ export class Team extends EventEmitter {
     if (invitation === undefined) throw new Error(`An invitation with id '${id}' was not found.`)
 
     // open the invitation
-    const { roles } = invitations.open(invitation, teamKeys)
+    const payload = invitations.open(invitation, teamKeys)
+    if (payload.type !== 'MEMBER') throw new Error() // TODO
+    const { roles } = payload
 
     // validate proof against original invitation
     const validation = invitations.validate(proof, invitation, teamKeys)
@@ -279,7 +283,10 @@ export class Team extends EventEmitter {
 
   // Devices
 
-  public addDevice = (deviceInfo: DeviceInfo, secretKey = invitations.newSecretKey()) => {
+  public inviteDevice = (deviceInfo: DeviceInfo, secretKey = invitations.newSecretKey()) => {
+    // generate invitation
+    const teamKeys = this.teamKeys()
+
     const { user } = this.context
     const deviceId = getDeviceId(deviceInfo)
 
@@ -301,6 +308,10 @@ export class Team extends EventEmitter {
     // return the secretKey, to be shown to the device
     return secretKey
   }
+
+  public revokeDeviceInvitation = (id: string) => {}
+
+  public admitDevice = (proof: ProofOfInvitation) => {}
 
   // ## CRYPTO
 

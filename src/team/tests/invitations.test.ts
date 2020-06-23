@@ -38,7 +38,7 @@ describe('Team', () => {
       const { secretKey } = alicesTeam.invite('bob')
 
       // 👨‍🦲 Bob accepts the invitation
-      const proofOfInvitation = acceptInvitation(secretKey, redact(bob))
+      const proofOfInvitation = acceptInvitation(secretKey, bob)
 
       // Bob shows Alice his proof of invitation, and she lets him in
       alicesTeam.admit(proofOfInvitation)
@@ -54,7 +54,7 @@ describe('Team', () => {
       const { secretKey } = alicesTeam.invite('bob')
 
       // 👨‍🦲 Bob accepts the invitation
-      const proofOfInvitation = acceptInvitation(secretKey, redact(bob))
+      const proofOfInvitation = acceptInvitation(secretKey, bob)
 
       // 🦹‍♀️ Eve intercepts the invitation and tries to use it by swapping out Bob's info for hers
       const forgedProofOfInvitation: ProofOfInvitation = {
@@ -71,14 +71,14 @@ describe('Team', () => {
 
     it('allows non-admins to accept an invitation', () => {
       let { team: alicesTeam } = setup()
-      alicesTeam.add(redact(bob)) // bob is not an admin
+      alicesTeam.add(bob) // bob is not an admin
 
       // Alice invites Charlie by sending him a secret key
       const { secretKey } = alicesTeam.invite('charlie')
       storage.save(alicesTeam)
 
       // Charlie accepts the invitation
-      const proofOfInvitation = acceptInvitation(secretKey, redact(charlie))
+      const proofOfInvitation = acceptInvitation(secretKey, charlie)
 
       // Alice is no longer around, but Bob is online
       const bobsTeam = storage.load(bobsContext)

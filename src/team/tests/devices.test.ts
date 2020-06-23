@@ -20,7 +20,7 @@ describe('Team', () => {
       expect(context.user.device.name).toBe(`alice's laptop`)
 
       // Alice decides to add a phone
-      const secretKey = team.addDevice({
+      const secretKey = team.inviteDevice({
         userName: 'alice',
         name: 'iPhone 11',
         type: DeviceType.mobile,

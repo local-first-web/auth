@@ -1,7 +1,8 @@
 import { asymmetric, signatures, symmetric } from '/crypto'
 import { create, load } from '/user'
-import { expectToLookLikeKeyset, bobsLaptop, charliesLaptop } from '/util/testing'
-import { DeviceType, Device } from '/context'
+import { bobsLaptop, charliesLaptop } from '/util/testing'
+
+import '/util/testing/expect/toLookLikeKeyset'
 
 describe('user', () => {
   beforeEach(() => {
@@ -18,10 +19,10 @@ describe('user', () => {
     // Bob uses app for the first time
     const bob1 = create('bob', bobsLaptop)
     const { keys } = bob1
-    expectToLookLikeKeyset(keys)
+    expect(keys).toLookLikeKeyset()
 
     // Bob uses app for the second time
-    const bob2 = load('bob')!
+    const bob2 = load()!
     expect(bob2.userName).toBe('bob')
     expect(bob2).toHaveProperty('keys')
     // keyset is the same

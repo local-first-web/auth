@@ -8,12 +8,13 @@ import {
   charlie,
   charliesContext,
   defaultContext,
-  expectToLookLikeKeyset,
   managers,
   MANAGERS,
   newTeam,
   storage,
 } from '/util/testing'
+
+import '/util/testing/expect/toLookLikeKeyset'
 
 describe('Team', () => {
   beforeEach(() => {
@@ -54,7 +55,7 @@ describe('Team', () => {
 
       // But Alice does have access to the managers' keys
       const managersKeys = team.roleKeys(MANAGERS)
-      expectToLookLikeKeyset(managersKeys)
+      expect(managersKeys).toLookLikeKeyset()
     })
 
     it('adds a member to a role', () => {
@@ -78,7 +79,7 @@ describe('Team', () => {
       // Bob has admin keys
       // @ts-ignore roleKeys is private
       const bobsAdminKeys = bobsTeam.roleKeys(ADMIN)
-      expectToLookLikeKeyset(bobsAdminKeys)
+      expect(bobsAdminKeys).toLookLikeKeyset()
     })
 
     it('removes a member from a role', () => {
