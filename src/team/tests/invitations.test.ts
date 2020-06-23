@@ -1,4 +1,4 @@
-import { acceptInvitation, ProofOfInvitation } from '/invitation'
+import { acceptMemberInvitation, ProofOfInvitation } from '/invitation'
 import { redact } from '/user'
 import {
   alicesContext,
@@ -38,7 +38,7 @@ describe('Team', () => {
       const { secretKey } = alicesTeam.invite('bob')
 
       // 👨‍🦲 Bob accepts the invitation
-      const proofOfInvitation = acceptInvitation(secretKey, bob)
+      const proofOfInvitation = acceptMemberInvitation(secretKey, bob)
 
       // Bob shows Alice his proof of invitation, and she lets him in
       alicesTeam.admit(proofOfInvitation)
@@ -54,7 +54,7 @@ describe('Team', () => {
       const { secretKey } = alicesTeam.invite('bob')
 
       // 👨‍🦲 Bob accepts the invitation
-      const proofOfInvitation = acceptInvitation(secretKey, bob)
+      const proofOfInvitation = acceptMemberInvitation(secretKey, bob)
 
       // 🦹‍♀️ Eve intercepts the invitation and tries to use it by swapping out Bob's info for hers
       const forgedProofOfInvitation: ProofOfInvitation = {
@@ -78,7 +78,7 @@ describe('Team', () => {
       storage.save(alicesTeam)
 
       // Charlie accepts the invitation
-      const proofOfInvitation = acceptInvitation(secretKey, charlie)
+      const proofOfInvitation = acceptMemberInvitation(secretKey, charlie)
 
       // Alice is no longer around, but Bob is online
       const bobsTeam = storage.load(bobsContext)

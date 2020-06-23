@@ -1,4 +1,4 @@
-import { acceptInvitation, inviteMember, newSecretKey, validate } from '/invitation'
+import { acceptMemberInvitation, inviteMember, newSecretKey, validate } from '/invitation'
 import * as keyset from '/keyset'
 import { bob } from '/util/testing'
 
@@ -24,7 +24,7 @@ describe('invitations', () => {
     const invitation = inviteMember({ teamKeys, payload: { userName: 'bob' }, secretKey })
 
     // Bob accepts invitation and obtains a credential proving that he was invited.
-    const proofOfInvitation = acceptInvitation(secretKey, bob)
+    const proofOfInvitation = acceptMemberInvitation(secretKey, bob)
 
     // Bob shows up to join the team & sees Charlie. Bob shows Charlie his proof of invitation, and
     // Charlie checks it against the invitation that Alice posted on the signature chain.

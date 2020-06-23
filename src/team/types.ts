@@ -132,8 +132,15 @@ export type TeamAction =
       payload: BasePayload & {
         id: string
         member: Member
-        device: Device
         roles?: string[]
+        device: Device
+      }
+    }
+  | {
+      type: 'ADMIT_INVITED_DEVICE'
+      payload: BasePayload & {
+        id: string
+        device: Device
       }
     }
 

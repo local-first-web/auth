@@ -1,3 +1,3 @@
 ﻿export { create, load } from '/user'
 export * from '/team'
-export { acceptInvitation } from '/invitation'
+export { acceptMemberInvitation as acceptInvitation } from '/invitation'

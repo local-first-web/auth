@@ -6,7 +6,7 @@ import { ProofOfInvitation } from '/invitation/types'
 import { create, EPHEMERAL_SCOPE } from '/keyset'
 import { redact as redactUser, User } from '/user'
 
-export const acceptInvitation = (secretKey: string, user: User): ProofOfInvitation => {
+export const acceptMemberInvitation = (secretKey: string, user: User): ProofOfInvitation => {
   // don't leak secrets to the signature chain
   const member = redactUser(user)
   const device = redactDevice(user.device)

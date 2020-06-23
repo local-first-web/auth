@@ -263,14 +263,14 @@ export class Team extends EventEmitter {
     const invitation = this.state.invitations[id]
     if (invitation === undefined) throw new Error(`An invitation with id '${id}' was not found.`)
 
+    // validate proof against original invitation
+    const validation = invitations.validate(proof, invitation, teamKeys)
+    if (validation.isValid === false) throw validation.error
+
     // open the invitation
     const invitationBody = invitations.open(invitation, teamKeys)
     if (invitationBody.type !== 'MEMBER') throw new Error() // TODO
     const { roles = [] } = invitationBody.payload
-
-    // validate proof against original invitation
-    const validation = invitations.validate(proof, invitation, teamKeys)
-    if (validation.isValid === false) throw validation.error
 
     // all good, let them in
     // post admission to the signature chain
@@ -286,31 +286,50 @@ export class Team extends EventEmitter {
     // generate invitation
     const teamKeys = this.teamKeys()
 
-    const { user } = this.context
+    const { userName } = deviceInfo
     const deviceId = getDeviceId(deviceInfo)
-
-    // generate a new keyset from the secretKey
-    const deviceKeys = keyset.create({ type: DEVICE, name: deviceId })
-
-    // make a lockbox for the device containing the user keys
-    const deviceLockbox = lockbox.create(user.keys, deviceKeys)
-    const lockboxes = [deviceLockbox]
-
-    const device = redactDevice({ ...deviceInfo, keys: deviceKeys })
-
-    // post the device to the signature chain
-    this.dispatch({
-      type: 'ADD_DEVICE',
-      payload: { device, lockboxes },
+    const invitation = invitations.inviteDevice({
+      teamKeys,
+      payload: { deviceId, userName },
+      secretKey,
     })
 
-    // return the secretKey, to be shown to the device
-    return secretKey
+    // post invitation to signature chain
+    this.dispatch({
+      type: 'POST_INVITATION',
+      payload: { invitation },
+    })
+
+    return {
+      secretKey,
+      id: invitation.id,
+    }
   }
 
-  public revokeDeviceInvitation = (id: string) => {}
+  /** Admit a new device based on proof of invitation */
+  public admitDevice = (proof: ProofOfInvitation) => {
+    const { id, device } = proof
+    const teamKeys = this.teamKeys()
 
-  public admitDevice = (proof: ProofOfInvitation) => {}
+    // look up the invitation
+    const invitation = this.state.invitations[id]
+    if (invitation === undefined) throw new Error(`An invitation with id '${id}' was not found.`)
+
+    // validate proof against original invitation
+    const validation = invitations.validate(proof, invitation, teamKeys)
+    if (validation.isValid === false) throw validation.error
+
+    // open the invitation
+    const invitationBody = invitations.open(invitation, teamKeys)
+    if (invitationBody.type !== 'DEVICE') throw new Error() // TODO
+
+    // all good, let them in
+    // post admission to the signature chain
+    this.dispatch({
+      type: 'ADMIT_INVITED_DEVICE',
+      payload: { id, device },
+    })
+  }
 
   // ## CRYPTO
 
