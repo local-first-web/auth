@@ -1,4 +1,4 @@
-﻿import { KeysetWithSecrets } from '/keyset'
+﻿import { KeysetWithSecrets, PublicKeyset } from '/keyset'
 import { Member } from '/member'
 import { User } from '/user'
 import { SemVer } from '/util'
@@ -32,8 +32,12 @@ export interface Device {
   type: DeviceType
 }
 
-export interface DeviceWithKeys extends Device {
+export interface DeviceWithSecretKeys extends Device {
   keys: KeysetWithSecrets
+}
+
+export interface DeviceWithPublicKeys extends Device {
+  keys: PublicKeyset
 }
 
 export interface Client {
