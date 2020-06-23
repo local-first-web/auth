@@ -1,16 +1,12 @@
-﻿import { MemberContext, LocalUserContext } from '/context/types'
-import { redact } from '/user'
+﻿import { LocalUserContext, MemberContext } from '/context/types'
+import { redact as redactDevice } from '/device'
+import { redact as redactUser } from '/user'
 
 export const redactContext = (context: LocalUserContext): MemberContext => {
   const { client, user } = context
-  const { userName, device } = user
   return {
-    member: redact(user),
-    device: {
-      name: device.name,
-      type: device.type,
-      userName,
-    },
+    member: redactUser(user),
+    device: redactDevice(user.device),
     client,
   }
 }

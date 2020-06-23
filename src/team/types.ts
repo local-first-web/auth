@@ -1,11 +1,12 @@
 import { LinkBody, SignatureChain, SignedLink } from '/chain'
-import { LocalUserContext, MemberContext, DeviceWithPublicKeys } from '/context'
+import { LocalUserContext, MemberContext } from '/context'
 import { Invitation } from '/invitation/types'
 import { KeyMetadata } from '/keyset'
 import { Base64, Payload, ValidationResult } from '/util'
 import { Lockbox } from '/lockbox'
 import { Member } from '/member'
 import { PermissionsMap, Role } from '/role'
+import { Device } from '/device'
 
 // TEAM CONSTRUCTOR
 
@@ -73,8 +74,7 @@ export type TeamAction =
   | {
       type: 'ADD_DEVICE'
       payload: BasePayload & {
-        userName: string
-        deviceId: string
+        device: Device
       }
     }
   | {
@@ -132,7 +132,7 @@ export type TeamAction =
       payload: BasePayload & {
         id: string
         member: Member
-        device: DeviceWithPublicKeys
+        device: Device
         roles?: string[]
       }
     }

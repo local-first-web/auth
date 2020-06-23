@@ -1,4 +1,5 @@
-﻿import { alice, defaultContext, newTeam, storage } from '/util/testing'
+﻿import { DeviceType } from '/device'
+import { defaultContext, newTeam, storage } from '/util/testing'
 
 describe('Team', () => {
   beforeEach(() => {
@@ -13,8 +14,17 @@ describe('Team', () => {
 
   describe('devices', () => {
     it('adds a device', () => {
-      const { team } = setup()
-      // team.addDevice(alice.userName, laptop)
+      const { team, context } = setup()
+
+      // Alice is on her laptop
+      expect(context.user.device.name).toBe(`alice's laptop`)
+
+      // Alice decides to add a phone
+      const secretKey = team.addDevice({
+        userName: 'alice',
+        name: 'iPhone 11',
+        type: DeviceType.mobile,
+      })
     })
 
     it('removes a device', () => {})

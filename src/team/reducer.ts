@@ -71,9 +71,9 @@ const getTransforms = (action: TeamAction): Reducer[] => {
     }
 
     case 'ADD_DEVICE': {
-      const { userName } = action.payload
+      const { device } = action.payload
       return [
-        addDevice(userName), //
+        addDevice(device), //
       ]
     }
 

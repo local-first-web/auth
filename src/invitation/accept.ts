@@ -1,19 +1,15 @@
 ﻿import { signatures } from '/crypto'
+import { redact as redactDevice } from '/device'
 import { deriveId } from '/invitation/deriveId'
 import { normalize } from '/invitation/normalize'
 import { ProofOfInvitation } from '/invitation/types'
-import { create, EPHEMERAL_SCOPE, redact as redactKeyset } from '/keyset'
+import { create, EPHEMERAL_SCOPE } from '/keyset'
 import { redact as redactUser, User } from '/user'
 
 export const acceptInvitation = (secretKey: string, user: User): ProofOfInvitation => {
   // don't leak secrets to the signature chain
   const member = redactUser(user)
-  const device = {
-    userName: user.userName,
-    name: user.device.name,
-    type: user.device.type,
-    keys: redactKeyset(user.device.keys),
-  }
+  const device = redactDevice(user.device)
 
   secretKey = normalize(secretKey)
 
@@ -22,7 +18,8 @@ export const acceptInvitation = (secretKey: string, user: User): ProofOfInvitati
   // Bob independently derives the invitation id
   const id = deriveId(secretKey)
 
-  // Bob uses the one-time signature keys to sign a message consisting of his username and public keys, and the invitation id
+  // Bob uses the one-time signature keys to sign a message consisting of the invitation id,
+  // along with public info about him and his initial device
   const signatureKeys = create(EPHEMERAL_SCOPE, secretKey).signature
   const payload = { id, member, device }
   const signature = signatures.sign(payload, signatureKeys.secretKey)

@@ -1,7 +1,8 @@
 ﻿import { EventEmitter } from 'events'
 import { chain, SignatureChain, validate } from '/chain'
-import { LocalUserContext, DeviceWithSecretKeys, Device } from '/context'
+import { LocalUserContext } from '/context'
 import { signatures, symmetric } from '/crypto'
+import { DeviceInfo, getDeviceId, redact as redactDevice } from '/device'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
 import * as keyset from '/keyset'
@@ -278,19 +279,23 @@ export class Team extends EventEmitter {
 
   // Devices
 
-  public addDevice = (device: Device, secretKey = invitations.newSecretKey()) => {
+  public addDevice = (deviceInfo: DeviceInfo, secretKey = invitations.newSecretKey()) => {
     const { user } = this.context
+    const deviceId = getDeviceId(deviceInfo)
 
     // generate a new keyset from the secretKey
-    const deviceKeys = keyset.create({ type: DEVICE, name: device.name })
+    const deviceKeys = keyset.create({ type: DEVICE, name: deviceId })
 
     // make a lockbox for the device containing the user keys
     const deviceLockbox = lockbox.create(user.keys, deviceKeys)
+    const lockboxes = [deviceLockbox]
 
-    // add the device to the signature chain
+    const device = redactDevice({ ...deviceInfo, keys: deviceKeys })
+
+    // post the device to the signature chain
     this.dispatch({
       type: 'ADD_DEVICE',
-      payload: { userName: user.userName, lockboxes: [deviceLockbox] },
+      payload: { device, lockboxes },
     })
 
     // return the secretKey, to be shown to the device

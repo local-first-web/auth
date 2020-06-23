@@ -57,16 +57,25 @@ const validators: TeamStateValidatorSet = {
     return VALID
   },
 
+  cantAddDeviceForSomeoneElse: (...args) => {
+    const [prevState, link] = args
+
+    return VALID
+  },
+
   cantAddExistingDevice: (...args) => {
     const [prevState, link] = args
     if (link.body.type === 'ADD_DEVICE') {
-      const { userName, deviceName } = link.body.payload
-      if (select.hasMember(prevState, name))
-        return fail(`There is already a member called '${name}'`, ...args)
+      const { device } = link.body.payload
+      const { deviceId, userName } = device
+      const member = select.member(prevState, userName)
+      const { devices = [] } = member
+      const existingDevice = devices.find(d => (d.deviceId = deviceId))
+      if (existingDevice !== undefined)
+        return fail(`The member ${userName} already has a device with id '${deviceId}'`, ...args)
     }
     return VALID
   },
-  Í,
 }
 
 const fail = (message: string, prevState: TeamState, link: SignedLink) => {
