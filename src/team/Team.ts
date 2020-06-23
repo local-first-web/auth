@@ -1,6 +1,6 @@
 ﻿import { EventEmitter } from 'events'
 import { chain, SignatureChain, validate } from '/chain'
-import { LocalUserContext, DeviceWithKeys } from '/context'
+import { LocalUserContext, DeviceWithSecretKeys, Device } from '/context'
 import { signatures, symmetric } from '/crypto'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
@@ -25,7 +25,7 @@ import * as user from '/user'
 import { User } from '/user'
 import { Optional, Payload } from '/util'
 
-const { ROLE, MEMBER } = KeyType
+const { DEVICE, ROLE, MEMBER } = KeyType
 
 export class Team extends EventEmitter {
   constructor(options: TeamOptions) {
@@ -125,7 +125,7 @@ export class Team extends EventEmitter {
   // resulting lockboxes, the signed links) are posted on the chain.
 
   /** Add a member to the team */
-  public add = (member: Member | User, roles: string[] = []) => {
+  public add = (member: User, roles: string[] = []) => {
     // don't leak user secrets if we have them
     const redactedUser = user.redact(member)
 
@@ -141,9 +141,12 @@ export class Team extends EventEmitter {
       type: 'ADD_MEMBER',
       payload: { member: redactedUser, roles, lockboxes },
     })
+
+    this.addDevice(member.device)
   }
 
   /** Remove a member from the team */
+
   public remove = (userName: string) => {
     // create new keys & lockboxes for any keys this person had access to
     const lockboxes = this.rotateKeys({ type: MEMBER, name: userName })
@@ -206,14 +209,6 @@ export class Team extends EventEmitter {
     })
   }
 
-  // Devices
-
-  public addDevice = (
-    userName: string,
-    device: DeviceWithKeys,
-    secretKey = invitations.newSecretKey()
-  ) => {}
-
   // Invitations
 
   /** Invite a new member to the team
@@ -259,7 +254,7 @@ export class Team extends EventEmitter {
 
   /** Admit a new member to the team based on proof of invitation */
   public admit = (proof: ProofOfInvitation) => {
-    const { id, member: user } = proof
+    const { id, member, device } = proof
     const teamKeys = this.teamKeys()
 
     // look up the invitation
@@ -277,8 +272,29 @@ export class Team extends EventEmitter {
     // post admission to the signature chain
     this.dispatch({
       type: 'ADMIT_INVITED_MEMBER',
-      payload: { id, member: user, roles },
+      payload: { id, member, device, roles },
     })
+  }
+
+  // Devices
+
+  public addDevice = (device: Device, secretKey = invitations.newSecretKey()) => {
+    const { user } = this.context
+
+    // generate a new keyset from the secretKey
+    const deviceKeys = keyset.create({ type: DEVICE, name: device.name })
+
+    // make a lockbox for the device containing the user keys
+    const deviceLockbox = lockbox.create(user.keys, deviceKeys)
+
+    // add the device to the signature chain
+    this.dispatch({
+      type: 'ADD_DEVICE',
+      payload: { userName: user.userName, lockboxes: [deviceLockbox] },
+    })
+
+    // return the secretKey, to be shown to the device
+    return secretKey
   }
 
   // ## CRYPTO
@@ -331,10 +347,13 @@ export class Team extends EventEmitter {
   private state: TeamState // derived from chain, only updated by running chain through reducer
 
   // # PRIVATE METHODS
+
   // Keys
+
   // These methods all return keysets with secrets, and will throw an error if the local user
   // does not have access to the requested keys. To get other members' keys, look up the member -
   // the `keys` property contains their public keys.
+
   /** Returns the keyset (if available to the current user) for the given type and name */
   public keys = (scope: Optional<KeyMetadata, 'generation'>): KeysetWithSecrets =>
     select.keys(this.state, this.context.user, scope)
@@ -369,6 +388,7 @@ export class Team extends EventEmitter {
   }
 
   // Team state
+
   /** Add a link to the chain, then recompute team state from the new chain */
   public dispatch(link: TeamAction) {
     this.chain = chain.append(this.chain, link, this.context)
@@ -381,7 +401,7 @@ export class Team extends EventEmitter {
   /** Run the reducer on the entire chain to reconstruct the current team state. */
   private updateState = () => {
     /** Validate the chain's integrity. (This does not enforce team rules - that is done in the
-    //  * reducer as it progresses through each link.) */
+     * reducer as it progresses through each link.) */
     const validation = validate(this.chain)
     if (!validation.isValid) throw validation.error
 
