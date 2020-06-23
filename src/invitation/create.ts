@@ -1,7 +1,7 @@
 ﻿import { symmetric } from '/crypto'
 import { deriveId } from '/invitation/deriveId'
 import { normalize } from '/invitation/normalize'
-import { Invitation, InvitationPayload } from '/invitation/types'
+import { Invitation, InvitationBody, MemberInvitationPayload } from '/invitation/types'
 import * as keyset from '/keyset'
 import { EPHEMERAL_SCOPE, KeysetWithSecrets } from '/keyset'
 
@@ -18,12 +18,7 @@ export const IKEY_LENGTH = 16
  * @param secretKey A randomly generated secret (Step 1a) to be passed to Bob via a side channel
  * @see newSecretKey
  */
-export const create = ({
-  teamKeys,
-  userName,
-  roles = [],
-  secretKey,
-}: InvitationArgs): Invitation => {
+export const create = ({ teamKeys, payload, secretKey }: InvitationArgs): Invitation => {
   secretKey = normalize(secretKey)
 
   // ## Step 1b, 1c
@@ -39,18 +34,21 @@ export const create = ({
   // Encrypt Bob's username and roles so that we don't leak that information in the public signature
   // chain. We also include the public half of the signature keyset, which will be used to verify
   // Bob's proof of invitation.
-  const payload: InvitationPayload = { type: 'MEMBER', userName, roles, publicKey }
-  const encryptedPayload = symmetric.encrypt(payload, teamKeys.secretKey)
+  const invitationBody: InvitationBody = { type: 'MEMBER', payload, publicKey }
+  const encryptedBody = symmetric.encrypt(invitationBody, teamKeys.secretKey)
 
   // ## Step 2b
   // We put it all together to create the invitation.
-  const invitation: Invitation = { id, encryptedPayload, generation: teamKeys.generation }
+  const invitation: Invitation = {
+    id,
+    encryptedBody,
+    generation: teamKeys.generation,
+  }
   return invitation
 }
 
 interface InvitationArgs {
   teamKeys: KeysetWithSecrets
-  userName: string
-  roles?: string[]
+  payload: MemberInvitationPayload
   secretKey: string
 }

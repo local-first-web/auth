@@ -1,4 +1,4 @@
-﻿import { Invitation, InvitationPayload, ProofOfInvitation } from '/invitation/types'
+﻿import { Invitation, InvitationBody, ProofOfInvitation } from '/invitation/types'
 import { ValidationResult } from '/util'
 import { signatures, symmetric } from '/crypto'
 import { KeysetWithSecrets } from '/keyset'
@@ -8,17 +8,19 @@ export const validate = (
   invitation: Invitation,
   teamKeys: KeysetWithSecrets
 ) => {
-  const { id, encryptedPayload } = invitation
+  const { id, encryptedBody: encryptedPayload } = invitation
   const details = { invitation, proof }
 
   if (id !== proof.id) return fail(`IDs don't match`, details)
 
   const decryptedInvitation = symmetric.decrypt(encryptedPayload, teamKeys.secretKey)
-  const invitationPayload: InvitationPayload = JSON.parse(decryptedInvitation)
-  const { userName, publicKey } = invitationPayload
+  const invitationBody: InvitationBody = JSON.parse(decryptedInvitation)
+  const { publicKey, type, payload } = invitationBody
 
-  if (userName !== proof.member.userName)
-    return fail(`User names don't match`, { invitationPayload, ...details })
+  if (type !== 'MEMBER') throw new Error() // TODO
+
+  if (payload.userName !== proof.member.userName)
+    return fail(`User names don't match`, { invitationPayload: invitationBody, ...details })
 
   const { signature, member, device } = proof
   const signedMessage = { payload: { id, member, device }, signature, publicKey }

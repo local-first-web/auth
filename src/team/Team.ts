@@ -231,8 +231,7 @@ export class Team extends EventEmitter {
     const teamKeys = this.teamKeys()
     const invitation = invitations.create({
       teamKeys,
-      userName,
-      roles,
+      payload: { userName, roles },
       secretKey,
     })
 
@@ -265,9 +264,9 @@ export class Team extends EventEmitter {
     if (invitation === undefined) throw new Error(`An invitation with id '${id}' was not found.`)
 
     // open the invitation
-    const payload = invitations.open(invitation, teamKeys)
-    if (payload.type !== 'MEMBER') throw new Error() // TODO
-    const { roles } = payload
+    const invitationBody = invitations.open(invitation, teamKeys)
+    if (invitationBody.type !== 'MEMBER') throw new Error() // TODO
+    const { roles = [] } = invitationBody.payload
 
     // validate proof against original invitation
     const validation = invitations.validate(proof, invitation, teamKeys)

@@ -9,11 +9,11 @@ describe('invitations', () => {
 
   test('create', () => {
     const secretKey = newSecretKey()
-    const invitation = create({ teamKeys, userName: 'bob', secretKey })
+    const invitation = create({ teamKeys, payload: { userName: 'bob' }, secretKey })
     expect(secretKey).toHaveLength(16)
     expect(invitation).toHaveProperty('id')
     expect(invitation.id).toHaveLength(15)
-    expect(invitation).toHaveProperty('encryptedPayload')
+    expect(invitation).toHaveProperty('encryptedBody')
   })
 
   test('validate', () => {
@@ -21,7 +21,7 @@ describe('invitations', () => {
     // team's signature chain.
     const secretKey = newSecretKey()
 
-    const invitation = create({ teamKeys, userName: 'bob', secretKey })
+    const invitation = create({ teamKeys, payload: { userName: 'bob' }, secretKey })
 
     // Bob accepts invitation and obtains a credential proving that he was invited.
     const proofOfInvitation = acceptInvitation(secretKey, bob)
