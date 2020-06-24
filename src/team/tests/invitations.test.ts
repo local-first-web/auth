@@ -59,7 +59,8 @@ describe('Team', () => {
       // 🦹‍♀️ Eve intercepts the invitation and tries to use it by swapping out Bob's info for hers
       const forgedProofOfInvitation: ProofOfInvitation = {
         ...proofOfInvitation,
-        member: redact(eve),
+        type: 'MEMBER',
+        payload: redact(eve),
       }
 
       // Eve shows Alice her fake proof of invitation

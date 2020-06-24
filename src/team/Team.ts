@@ -256,27 +256,33 @@ export class Team extends EventEmitter {
 
   /** Admit a new member to the team based on proof of invitation */
   public admit = (proof: ProofOfInvitation) => {
-    const { id, member, device } = proof
+    const typeError = new Error('Team.admit() is only for accepting invitations for members.')
+    if (proof.type !== 'MEMBER') throw typeError
+
+    const { id, payload: member } = proof
+
     const teamKeys = this.teamKeys()
 
     // look up the invitation
-    const invitation = this.state.invitations[id]
-    if (invitation === undefined) throw new Error(`An invitation with id '${id}' was not found.`)
-
-    // validate proof against original invitation
-    const validation = invitations.validate(proof, invitation, teamKeys)
-    if (validation.isValid === false) throw validation.error
+    const encryptedInvitation = this.state.invitations[id]
+    if (encryptedInvitation === undefined)
+      throw new Error(`An invitation with id '${id}' was not found.`)
 
     // open the invitation
-    const invitationBody = invitations.open(invitation, teamKeys)
-    if (invitationBody.type !== 'MEMBER') throw new Error() // TODO
-    const { roles = [] } = invitationBody.payload
+    const invitation = invitations.open(encryptedInvitation, teamKeys)
+    if (invitation.type !== 'MEMBER') throw typeError
+
+    // validate proof against original invitation
+    const validation = invitations.validate(proof, encryptedInvitation, teamKeys)
+    if (validation.isValid === false) throw validation.error
+
+    const { roles = [] } = invitation.payload
 
     // all good, let them in
     // post admission to the signature chain
     this.dispatch({
       type: 'ADMIT_INVITED_MEMBER',
-      payload: { id, member, device, roles },
+      payload: { id, member, roles },
     })
   }
 
@@ -308,7 +314,9 @@ export class Team extends EventEmitter {
 
   /** Admit a new device based on proof of invitation */
   public admitDevice = (proof: ProofOfInvitation) => {
-    const { id, device } = proof
+    const typeError = new Error('Team.admitDevice() is only for accepting invitations for devices.')
+    if (proof.type !== 'DEVICE') throw typeError
+    const { id, payload: device } = proof
     const teamKeys = this.teamKeys()
 
     // look up the invitation
@@ -321,7 +329,7 @@ export class Team extends EventEmitter {
 
     // open the invitation
     const invitationBody = invitations.open(invitation, teamKeys)
-    if (invitationBody.type !== 'DEVICE') throw new Error() // TODO
+    if (invitationBody.type !== 'DEVICE') throw typeError
 
     // all good, let them in
     // post admission to the signature chain

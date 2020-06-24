@@ -2,31 +2,37 @@
 import { ValidationResult } from '/util'
 import { signatures, symmetric } from '/crypto'
 import { KeysetWithSecrets } from '/keyset'
+import { open } from './open'
 
 export const validate = (
   proof: ProofOfInvitation,
-  invitation: Invitation,
+  encryptedInvitation: Invitation,
   teamKeys: KeysetWithSecrets
 ) => {
-  const { id, encryptedBody: encryptedPayload } = invitation
+  // Decrypt invitation
+  const invitation = open(encryptedInvitation, teamKeys)
   const details = { invitation, proof }
 
-  if (id !== proof.id) return fail(`IDs don't match`, details)
+  // Check that IDs match
+  if (encryptedInvitation.id !== proof.id) return fail(`IDs don't match`, details)
 
-  const decryptedInvitation = symmetric.decrypt(encryptedPayload, teamKeys.secretKey)
-  const invitationBody: InvitationBody = JSON.parse(decryptedInvitation)
-  const { publicKey, type, payload } = invitationBody
+  if (invitation.type === 'MEMBER' && proof.type === 'MEMBER') {
+    // Member invitation: Check that userNames match
+    if (invitation.payload.userName !== proof.payload.userName)
+      return fail(`User names don't match`, details)
+  } else if (invitation.type === 'DEVICE' && proof.type === 'DEVICE') {
+    // Device invitation: Check that deviceIds match
+    if (invitation.payload.deviceId !== proof.payload.deviceId)
+      return fail(`Device IDs don't match`, details)
+  }
 
-  if (type !== 'MEMBER') throw new Error() // TODO
-
-  if (payload.userName !== proof.member.userName)
-    return fail(`User names don't match`, { invitationPayload: invitationBody, ...details })
-
-  const { signature, member, device } = proof
-  const signedMessage = { payload: { id, member, device }, signature, publicKey }
-  const signatureIsValid = signatures.verify(signedMessage)
-
-  if (!signatureIsValid)
+  // Check signature on proof
+  const signedMessage = {
+    payload: { id: proof.id, ...proof.payload },
+    signature: proof.signature,
+    publicKey: invitation.publicKey,
+  }
+  if (!signatures.verify(signedMessage))
     return fail(`Signature provided is not valid`, { signedMessage, ...details })
 
   // TODO: invite hasn't already been used

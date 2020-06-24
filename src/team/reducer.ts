@@ -134,10 +134,11 @@ const getTransforms = (action: TeamAction): Reducer[] => {
     }
 
     case 'ADMIT_INVITED_MEMBER': {
-      const { id, member: user, roles } = action.payload
+      const { id, member, roles } = action.payload
+
       return [
-        addMember(user), // Add member
-        ...addMemberRoles(user.userName, roles), // Add member to roles
+        addMember(member), // Add member
+        ...addMemberRoles(member.userName, roles), // Add member to roles
         revokeInvitation(id), // Remove invitation from open invitations
       ]
     }

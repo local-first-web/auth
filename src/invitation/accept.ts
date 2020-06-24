@@ -19,12 +19,11 @@ export const acceptMemberInvitation = (secretKey: string, user: User): ProofOfIn
   const id = deriveId(secretKey)
 
   // Bob uses the one-time signature keys to sign a message consisting of the invitation id,
-  // along with public info about him and his initial device
+  // along with public info about him
   const signatureKeys = create(EPHEMERAL_SCOPE, secretKey).signature
-  const payload = { id, member, device }
-  const signature = signatures.sign(payload, signatureKeys.secretKey)
+  const signature = signatures.sign({ id, ...member }, signatureKeys.secretKey)
 
   // The invitation id and the signature will be shown to an existing team member as proof that Bob
   // knows the secret invitation key. His user public keys and device public keys will be added to the signature chain.
-  return { ...payload, signature }
+  return { id, type: 'MEMBER', payload: member, signature }
 }

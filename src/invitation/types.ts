@@ -9,6 +9,8 @@ export interface Invitation {
   /** Public, unique identifier for the invitation */
   id: Base64
 
+  type: InvitationBody['type']
+
   /** An `InvitationBody` containing Bob's username and a public signature key, symmetrically
    *  encrypted using the team key */
   encryptedBody: Encrypted<InvitationBody>
@@ -41,17 +43,19 @@ export type InvitationBody = (
 }
 
 /** This is what Bob takes to the team so they'll let him in */
-export interface ProofOfInvitation {
+export type ProofOfInvitation = {
   /** Public, unique identifier for the invitation */
   id: Base64
 
-  /** Bob's username and public keys*/
-  member: Member
-
-  /** Bob's first device */
-  device: Device
-
-  /** Signature of the invitation id and Bob's username, using the signing keys derived from the
-   * secret invitation key */
+  /** Signature of the payload, using the signing keys derived from the secret invitation key */
   signature: Base64
-}
+} & (
+  | {
+      type: 'MEMBER'
+      payload: Member
+    }
+  | {
+      type: 'DEVICE'
+      payload: Device
+    }
+)

@@ -133,7 +133,6 @@ export type TeamAction =
         id: string
         member: Member
         roles?: string[]
-        device: Device
       }
     }
   | {
