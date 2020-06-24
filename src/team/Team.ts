@@ -2,7 +2,7 @@
 import { chain, SignatureChain, validate } from '/chain'
 import { LocalUserContext } from '/context'
 import { signatures, symmetric } from '/crypto'
-import { DeviceInfo, getDeviceId, redact as redactDevice } from '/device'
+import { DeviceInfo, getDeviceId } from '/device'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
 import * as keyset from '/keyset'
@@ -144,7 +144,7 @@ export class Team extends EventEmitter {
       payload: { member: redactedUser, roles, lockboxes },
     })
 
-    // TODO
+    // TODO - this should just be this.addDevice
     // this.inviteDevice(member.device)
   }
 
@@ -247,6 +247,7 @@ export class Team extends EventEmitter {
     }
   }
 
+  /** Revoke an invitation. This can be used for member invitations as well as device invitations. */
   public revokeInvitation = (id: string) => {
     this.dispatch({
       type: 'REVOKE_INVITATION',
@@ -288,6 +289,8 @@ export class Team extends EventEmitter {
 
   // Devices
 
+  public addDevice = () => {}
+
   public inviteDevice = (deviceInfo: DeviceInfo, secretKey = invitations.newSecretKey()) => {
     // generate invitation
     const teamKeys = this.teamKeys()
@@ -316,7 +319,9 @@ export class Team extends EventEmitter {
   public admitDevice = (proof: ProofOfInvitation) => {
     const typeError = new Error('Team.admitDevice() is only for accepting invitations for devices.')
     if (proof.type !== 'DEVICE') throw typeError
+
     const { id, payload: device } = proof
+
     const teamKeys = this.teamKeys()
 
     // look up the invitation
