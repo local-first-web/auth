@@ -46,6 +46,7 @@ export const create = ({ teamKeys, type, payload, secretKey }: InvitationArgsInt
   // We put it all together to create the invitation.
   const invitation: Invitation = {
     id,
+    type,
     encryptedBody,
     generation: teamKeys.generation,
   }
