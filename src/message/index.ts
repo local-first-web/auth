@@ -5,9 +5,10 @@ import {
   ClaimIdentityMessage,
   ChallengeIdentityMessage,
   ProveIdentityMessage,
-  ACCEPT_IDENTITY,
-  REJECT_IDENTITY,
+  AcceptIdentityMessage,
+  RejectIdentityMessage,
 } from '/message/identity'
+
 import {
   SendHashesMessage, //
   RequestLinksMessage,
@@ -19,8 +20,8 @@ export type Message =
   | ClaimIdentityMessage
   | ChallengeIdentityMessage
   | ProveIdentityMessage
-  | typeof ACCEPT_IDENTITY
-  | typeof REJECT_IDENTITY
+  | AcceptIdentityMessage
+  | RejectIdentityMessage
 
   // sync messages
   | SendHashesMessage

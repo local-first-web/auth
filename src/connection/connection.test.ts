@@ -1,24 +1,129 @@
-import { connectionMachine } from './connection'
-import { interpret } from 'xstate'
+import { ConnectionEvent, ConnectionService } from '/connection'
+import * as identity from '/identity'
+import { KeyType, redact, randomKey } from '/keyset'
+import { alice, newTeam, bob, storage, bobsContext } from '/util/testing'
+import {
+  ChallengeIdentityMessage,
+  ClaimIdentityMessage,
+  ProveIdentityMessage,
+  AcceptIdentityMessage,
+} from '/message'
+
+const { MEMBER } = KeyType
 
 describe('connection', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    storage.contents = undefined
+  })
+
   const setup = () => {
-    const connectionService = interpret(connectionMachine).start()
-    return { connectionService }
+    // Create a new team and add Bob to it
+    const aliceTeam = newTeam()
+    aliceTeam.add(bob)
+
+    storage.save(aliceTeam)
+    const bobTeam = storage.load(bobsContext)
+
+    // Our dummy `sendMessage` just pushes messages onto a queue
+    const messageQueue: ConnectionEvent[] = []
+    const sendMessage = (message: ConnectionEvent) => messageQueue.push(message)
+
+    // Instantiate the connection service
+    const aliceConnection = new ConnectionService({
+      context: { team: aliceTeam, user: alice },
+      sendMessage,
+    }).start()
+
+    const bobConnection = new ConnectionService({
+      context: { team: bobTeam, user: bob },
+      sendMessage,
+    }).start()
+
+    const lastMessage = () => messageQueue[messageQueue.length - 1]
+
+    return { aliceConnection, bobConnection, aliceTeam, bobTeam, lastMessage }
   }
 
-  it('should work', () => {
-    const { connectionService } = setup()
+  it(`should successfully verify someone's identity`, () => {
+    // we test the one side of the verification workflow, using a real ConnectionService for Alice
+    // and manually simulating Bob's responses
 
-    // closed at beginning
-    expect(connectionService.state.value).toEqual('disconnected')
+    const { aliceConnection, lastMessage } = setup()
 
-    connectionService.send('CONNECT')
-    expect(connectionService.state.value).toEqual({
-      connecting: {
-        claimingIdentity: 'awaitingChallenge',
-        verifyingIdentity: 'awaitingClaim',
-      },
+    // at the beginning, Alice is disconnected
+    expect(aliceConnection.state.value).toEqual('disconnected')
+
+    // Alice connects & waits for the other end to claim an identity
+    aliceConnection.send('CONNECT')
+    expect(aliceConnection.state.value).toEqual({
+      connecting: { claimingIdentity: 'awaitingChallenge', verifyingIdentity: 'awaitingClaim' },
+    })
+
+    // Bob sends a message claiming that he is Bob
+    const claimMessage = identity.claim({ type: MEMBER, name: 'bob' })
+    aliceConnection.send(claimMessage)
+
+    // Alice automatically sends Bob a challenge & waits for proof
+    expect(aliceConnection.state.value).toEqual({
+      connecting: { claimingIdentity: 'awaitingChallenge', verifyingIdentity: 'awaitingProof' },
+    })
+
+    // Bob generates proof by signing Alice's challenge and sends it back
+    const challengeMessage = lastMessage() as ChallengeIdentityMessage
+    const proofMessage = identity.prove(challengeMessage, bob.keys)
+    aliceConnection.send(proofMessage)
+
+    // Success! Alice has verified Bob's identity
+    expect(aliceConnection.state.value).toEqual({
+      connecting: { claimingIdentity: 'awaitingChallenge', verifyingIdentity: 'success' },
+    })
+  })
+
+  it(`should successfully prove the user's identity`, () => {
+    // we test the other side of the verification workflow, using a real ConnectionService for Bob
+    // and manually simulating Alice's responses
+
+    const { bobConnection, lastMessage } = setup()
+
+    // at the beginning, Bob is disconnected
+    expect(bobConnection.state.value).toEqual('disconnected')
+
+    // Bob connects, automatically asserts his identity, and awaits a challenge
+    bobConnection.send('CONNECT')
+    expect(bobConnection.state.value).toEqual({
+      connecting: { claimingIdentity: 'awaitingChallenge', verifyingIdentity: 'awaitingClaim' },
+    })
+
+    // Alice challenges Bob's identity claim
+    const claimMessage = lastMessage() as ClaimIdentityMessage
+    const challengeMessage = identity.challenge(claimMessage)
+    bobConnection.send(challengeMessage)
+
+    // Bob automatically responds to the challenge with proof, and awaits confirmation
+    expect(bobConnection.state.value).toEqual({
+      connecting: { claimingIdentity: 'awaitingConfirmation', verifyingIdentity: 'awaitingClaim' },
+    })
+
+    // Alice verifies Bob's proof
+    const proofMessage = lastMessage() as ProveIdentityMessage
+    const bobPublicKeys = redact(bob.keys)
+    const validation = identity.verify(challengeMessage, proofMessage, bobPublicKeys)
+
+    // The proof is valid
+    if (!validation.isValid) throw validation.error
+
+    // Alice sends Bob a confirmation message
+    // TODO: This should probably be generated by a method in the `identity` module, analogous to `claim`, `challenge`, etc
+    const confirmationMessage: AcceptIdentityMessage = {
+      type: 'ACCEPT_IDENTITY',
+      payload: { nonce: randomKey() },
+    }
+    bobConnection.send(confirmationMessage)
+
+    // Success! Bob has proved his identity
+    expect(bobConnection.state.value).toEqual({
+      connecting: { claimingIdentity: 'success', verifyingIdentity: 'awaitingClaim' },
     })
   })
 })

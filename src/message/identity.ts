@@ -11,6 +11,11 @@ export type ChallengeIdentityMessage = {
   payload: Challenge
 }
 
+type Challenge = KeyScope & {
+  nonce: Base64
+  timestamp: UnixTimestamp
+}
+
 export type ProveIdentityMessage = {
   type: 'PROVE_IDENTITY'
   payload: {
@@ -19,12 +24,18 @@ export type ProveIdentityMessage = {
   }
 }
 
-type Challenge = KeyScope & {
-  nonce: Base64
-  timestamp: UnixTimestamp
+export type AcceptIdentityMessage = {
+  type: 'ACCEPT_IDENTITY'
+  payload: {
+    nonce: Base64
+  }
 }
 
-export const ACCEPT_IDENTITY = { type: 'ACCEPT_IDENTITY' }
-export const REJECT_IDENTITY = { type: 'REJECT_IDENTITY' }
+export type RejectIdentityMessage = {
+  type: 'REJECT_IDENTITY'
+  payload: {
+    message: string
+  }
+}
 
 export type UnixTimestamp = number
