@@ -11,8 +11,8 @@ import {
   managers,
   MANAGERS,
   newTeam,
-  storage,
 } from '/util/testing'
+import { storage } from '/util/testing'
 
 import '/util/testing/expect/toLookLikeKeyset'
 
