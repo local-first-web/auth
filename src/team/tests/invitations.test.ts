@@ -8,8 +8,8 @@ import {
   defaultContext,
   eve,
   newTeam,
-  storage,
 } from '/util/testing'
+import { storage } from '/util/testing'
 
 describe('Team', () => {
   beforeEach(() => {
