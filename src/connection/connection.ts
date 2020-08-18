@@ -1,212 +1,170 @@
-﻿import { assign, createMachine, interpret } from 'xstate'
-import { challenge, claim, prove, verify } from '/identity'
+﻿import { EventEmitter } from 'events'
+import { createMachine, interpret } from 'xstate'
+import { machineConfig } from './machineConfig'
+import { deriveSharedKey } from '/connection/deriveSharedKey'
+import { Action, Condition, ConnectionParams, SendFunction } from '/connection/types'
+import { asymmetric } from '/crypto'
+import * as identity from '/identity'
 import { KeyType, randomKey } from '/keyset'
 import {
   AcceptIdentityMessage,
   ChallengeIdentityMessage,
   ClaimIdentityMessage,
   ProveIdentityMessage,
-  RejectIdentityMessage,
 } from '/message'
 import { Team } from '/team'
 import { User } from '/user'
 
 const { MEMBER } = KeyType
 
-export interface ConnectionStateSchema {
-  states: {
-    disconnected: {}
-    connecting: {
-      states: {
-        claimingIdentity: {
-          states: {
-            awaitingChallenge: {}
-            awaitingConfirmation: {}
-            success: {}
-          }
-        }
-        verifyingIdentity: {
-          states: {
-            awaitingClaim: {}
-            awaitingProof: {}
-            success: {}
-          }
-        }
-      }
-    }
-    connected: {}
-  }
-}
+/** A `ConnectionService` wraps a state machine (using [XState](https://xstate.js.org/docs/)) that
+ * implements the connection protocol.  */
+export class ConnectionService extends EventEmitter {
+  private sendMessage: SendFunction
+  private team: Team
+  private user: User
 
-export type ConnectionEvent =
-  | { type: 'CONNECT' }
-  | ClaimIdentityMessage
-  | ChallengeIdentityMessage
-  | ProveIdentityMessage
-  | AcceptIdentityMessage
-  | RejectIdentityMessage
-  | { type: 'DISCONNECT' }
-
-export interface ConnectionContext {
-  team: Team
-  user: User
-  challenge?: ChallengeIdentityMessage
-}
-
-export type ConnectionState = {
-  value:
-    | 'disconnected'
-    | {
-        connecting:
-          | { claimingIdentity: 'awaitingChallenge' | 'awaitingConfirmation' }
-          | { verifyingIdentity: 'awaitingClaim' | 'awaitingProof' }
-      }
-    | 'connected'
-  context: ConnectionContext
-}
-
-type SendFunction = (message: ConnectionEvent) => void
-
-export class ConnectionService {
-  private sendMessage: SendFunction = message => {
-    throw new Error('Send must be implemented')
+  constructor(params: ConnectionParams) {
+    super()
+    this.sendMessage = params.sendMessage
+    this.team = params.team
+    this.user = params.user
   }
 
-  private context: ConnectionContext
-
-  constructor(options: { sendMessage: SendFunction; context: ConnectionContext }) {
-    const { sendMessage, context } = options
-    this.sendMessage = sendMessage
-    this.context = context
-  }
-
+  /**
+   * @returns a running instance of an XState state machine
+   */
   public start = () => {
-    const machine = this.connectionMachine.withContext(this.context)
+    // define state machine
+    const machineDefinition = createMachine(machineConfig, {
+      actions: {
+        claim: this.claim,
+        challenge: this.challenge,
+        prove: this.prove,
+        accept: this.accept,
+        saveSeed: this.saveSeed,
+        onConnected: this.onConnected,
+        deriveSecretKey: this.deriveSecretKey,
+      },
+      guards: {
+        identityIsKnown: this.identityIsKnown,
+        proofIsValid: this.proofIsValid,
+      },
+    })
+
+    // provide our starting context to the state machine
+    const machine = machineDefinition.withContext({
+      team: this.team,
+      user: this.user,
+    })
+
+    // instantiate the machine
     const service = interpret(machine)
+
+    // start the instance
     return service.start()
   }
 
-  private connectionMachine = createMachine<ConnectionContext, ConnectionEvent, ConnectionState>(
-    {
-      id: 'connection',
-      initial: 'disconnected',
-      states: {
-        disconnected: {
-          id: 'disconnected',
-          on: { CONNECT: 'connecting' },
-        },
-        connecting: {
-          id: 'connecting',
-          type: 'parallel',
-          states: {
-            claimingIdentity: {
-              initial: 'awaitingChallenge',
-              states: {
-                awaitingChallenge: {
-                  entry: ['claimIdentity'],
-                  on: {
-                    CHALLENGE_IDENTITY: {
-                      actions: ['sendProof'],
-                      target: 'awaitingConfirmation',
-                    },
-                  },
-                },
-                awaitingConfirmation: {
-                  on: { ACCEPT_IDENTITY: { target: 'success' } },
-                },
-                success: { type: 'final' },
-              },
-            },
-            verifyingIdentity: {
-              initial: 'awaitingClaim',
-              states: {
-                awaitingClaim: {
-                  on: {
-                    CLAIM_IDENTITY: [
-                      {
-                        cond: { type: 'identityIsKnown' },
-                        actions: ['challengeClaim'],
-                        target: 'awaitingProof',
-                      },
-                      {
-                        actions: ['sendErrorIdentityUnknown'],
-                      },
-                    ],
-                  },
-                },
-                awaitingProof: {
-                  on: {
-                    PROVE_IDENTITY: [
-                      {
-                        cond: { type: 'proofIsValid' },
-                        actions: ['sendConfirmation'],
-                        target: 'success',
-                      },
-                      {
-                        actions: ['sendErrorInvalidProof'],
-                      },
-                    ],
-                  },
-                },
-                success: { type: 'final' },
-              },
-            },
-          },
-          onDone: 'connected',
-        },
-        connected: { type: 'final' },
-      },
-    },
-    {
-      actions: {
-        claimIdentity: (context, event) => {
-          const { user } = context
-          const claimMessage = claim({ type: MEMBER, name: user.userName })
-          this.sendMessage(claimMessage)
-        },
+  public connect = async () => {
+    this.start()
+    return new Promise((resolve, reject) => {
+      this.on('connected', () => resolve(this))
+      // this.on('error', something something)
+    })
+  }
 
-        challengeClaim: (context, event) => {
-          const claimMessage = event as ClaimIdentityMessage
+  public send = () => {}
 
-          const challengeMessage = challenge(claimMessage)
+  public receive = () => {}
 
-          // store our challenge in context so we can confirm later
-          context.challenge = challengeMessage
+  // ACTIONS
 
-          this.sendMessage(challengeMessage)
-        },
+  private claim: Action = context => {
+    const { user } = context
+    // generate claim
+    const claimMessage = identity.claim({ type: MEMBER, name: user.userName })
 
-        sendProof: (context, event) => {
-          const { user } = context
-          const proofMessage = prove(event as ChallengeIdentityMessage, user.keys)
-          this.sendMessage(proofMessage)
-        },
+    this.sendMessage(claimMessage)
+  }
 
-        sendConfirmation: (context, event) => {
-          const confirmMessage: AcceptIdentityMessage = {
-            type: 'ACCEPT_IDENTITY',
-            payload: { nonce: randomKey() },
-          }
-          this.sendMessage(confirmMessage)
-        },
-      },
-      guards: {
-        identityIsKnown: (context, event) => {
-          const claim = (event as ClaimIdentityMessage).payload
-          const userName = claim.name
-          const { team } = context
-          return team.has(userName)
-        },
+  private challenge: Action = (context, event) => {
+    const claimMessage = event as ClaimIdentityMessage
 
-        proofIsValid: (context, event) => {
-          const { team, challenge } = context
-          const proofMessage = event as ProveIdentityMessage
-          const userName = challenge!.payload.name!
-          const publicKeys = team.members(userName).keys
-          const validation = verify(challenge!, proofMessage, publicKeys)
-          return validation.isValid
-        },
-      },
-    }
-  )
+    // store peer on context
+    context.peer = context.team.members(claimMessage.payload.name)
+
+    // generate challenge
+    const challengeMessage = identity.challenge(claimMessage)
+
+    // store challenge in context, to check against later
+    context.challenge = challengeMessage
+
+    this.sendMessage(challengeMessage)
+  }
+
+  private prove: Action = (context, event) => {
+    const challenge = event as ChallengeIdentityMessage
+
+    // generate proof
+    const proofMessage = identity.prove(challenge, context.user.keys)
+
+    this.sendMessage(proofMessage)
+  }
+
+  private accept: Action = context => {
+    // generate a seed that will be combined with the peer's seed to create a symmetric encryption key
+    const seed = randomKey()
+    // save it in context so we can retrieve it later
+    context.seed = seed
+
+    const peerKeys = context.peer!.keys
+    const userKeys = context.user.keys
+    const acceptanceMessage = identity.accept({ seed, peerKeys, userKeys })
+
+    this.sendMessage(acceptanceMessage)
+  }
+
+  private deriveSecretKey: Action = (context, event) => {
+    const userKeys = context.user.keys
+    const peerKeys = context.peer!.keys
+
+    // we saved our seed in context
+    const userSeed = context.seed!
+    // the peer's seed is in context but is encrypted; decrypt it
+    const peerSeed = asymmetric.decrypt(
+      context.encryptedPeerSeed!,
+      peerKeys.encryption,
+      userKeys.encryption.secretKey
+    )
+
+    context.secretKey = deriveSharedKey(userSeed, peerSeed)
+  }
+
+  private onConnected: Action = (context, event) => {
+    this.emit('connected')
+  }
+
+  private saveSeed: Action = (context, event) => {
+    // save seed
+    const acceptanceMessage = event as AcceptIdentityMessage
+    context.encryptedPeerSeed = acceptanceMessage.payload.encryptedSeed
+  }
+
+  // GUARDS!! GUARDS!!
+
+  private identityIsKnown: Condition = (context, event) => {
+    const claim = (event as ClaimIdentityMessage).payload
+    const userName = claim.name
+    const { team } = context
+    return team.has(userName)
+  }
+
+  private proofIsValid: Condition = (context, event) => {
+    const { team, challenge } = context
+    const proofMessage = event as ProveIdentityMessage
+    const userName = challenge!.payload.name!
+    const publicKeys = team.members(userName).keys
+    const validation = identity.verify(challenge!, proofMessage, publicKeys)
+    return validation.isValid
+  }
 }
