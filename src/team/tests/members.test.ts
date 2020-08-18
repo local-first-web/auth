@@ -1,5 +1,6 @@
 import { ADMIN } from '/role'
-import { bob, bobsContext, charlie, defaultContext, newTeam, storage } from '/util/testing'
+import { bob, bobsContext, charlie, defaultContext, newTeam } from '/util/testing'
+import { storage } from '/util/testing'
 
 import '/util/testing/expect/toLookLikeKeyset'
 
