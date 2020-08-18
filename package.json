@@ -22,7 +22,8 @@
     "build": "tsdx build",
     "test": "tsdx test",
     "lint": "tsdx lint src",
-    "prepare": "tsdx build"
+    "prepare": "tsdx build",
+    "purge": "scripts/purge.bat"
   },
   "peerDependencies": {},
   "dependencies": {
