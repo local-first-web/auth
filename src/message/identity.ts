@@ -27,7 +27,7 @@ export type ProveIdentityMessage = {
 export type AcceptIdentityMessage = {
   type: 'ACCEPT_IDENTITY'
   payload: {
-    nonce: Base64
+    encryptedSeed: Base64
   }
 }
 
