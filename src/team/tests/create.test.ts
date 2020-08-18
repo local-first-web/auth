@@ -1,5 +1,6 @@
 import { load } from '/Team'
-import { defaultContext, newTeam, storage } from '/util/testing'
+import { defaultContext, newTeam } from '/util/testing'
+import { storage } from '/util/testing'
 
 describe('Team', () => {
   beforeEach(() => {
