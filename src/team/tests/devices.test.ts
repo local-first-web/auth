@@ -18,7 +18,7 @@ describe('Team', () => {
       const { team, context } = setup()
 
       // Alice is on her laptop
-      expect(context.user.device.name).toBe(`alice's laptop`)
+      expect(context.user.device.name).toBe(`alice's device`)
 
       // Alice authorizes her phone from her laptop
       const secretKey = team.inviteDevice({

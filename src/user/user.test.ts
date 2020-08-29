@@ -1,5 +1,6 @@
 import { asymmetric, signatures, symmetric } from '/crypto'
-import { create, load } from '/user'
+import { create } from '/user/create'
+import { load } from '/user/load'
 import { bobsLaptop, charliesLaptop } from '/util/testing'
 
 import '/util/testing/expect/toLookLikeKeyset'
@@ -10,14 +11,14 @@ describe('user', () => {
   })
 
   it('creates a new user', () => {
-    const bob = create('bob', bobsLaptop)
+    const bob = create('bob')
     expect(bob.userName).toBe('bob')
     expect(bob).toHaveProperty('keys')
   })
 
   it('loads an existing user', () => {
     // Bob uses app for the first time
-    const bob1 = create('bob', bobsLaptop)
+    const bob1 = create('bob')
     const { keys } = bob1
     expect(keys).toLookLikeKeyset()
 
@@ -33,7 +34,7 @@ describe('user', () => {
     const message = 'the crocodile lunges at dawn'
 
     it('provides a working keypair for signatures', () => {
-      const keypair = create('bob', bobsLaptop).keys.signature
+      const keypair = create('bob').keys.signature
       const { secretKey, publicKey } = keypair
       const signature = signatures.sign(message, secretKey)
       const signedMessage = { payload: message, signature, publicKey }
@@ -41,7 +42,7 @@ describe('user', () => {
     })
 
     it('provides a working keyset for asymmetric encryption', () => {
-      const charlie = create('charlie', charliesLaptop).keys.encryption
+      const charlie = create('charlie').keys.encryption
       const bob = asymmetric.keyPair()
 
       // Charlie encrypts a message for Bob
@@ -53,7 +54,7 @@ describe('user', () => {
     })
 
     it('provides a working keyset for symmetric encryption', () => {
-      const { secretKey } = create('bob', bobsLaptop).keys
+      const { secretKey } = create('bob').keys
       const cipher = symmetric.encrypt(message, secretKey)
       const decrypted = symmetric.decrypt(cipher, secretKey)
       expect(decrypted).toEqual(message)

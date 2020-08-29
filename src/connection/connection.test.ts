@@ -79,7 +79,7 @@ describe('connection', () => {
    * Here we test the other side, using a real ConnectionService for Bob and manually simulating
    * Alice's responses
    */
-  it.only(`should successfully prove our identity to the other peer`, async () => {
+  it(`should successfully prove our identity to the other peer`, async () => {
     const { bobTeam, sendMessage, lastMessage } = setup()
 
     // Instantiate the connection service

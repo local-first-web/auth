@@ -5,9 +5,7 @@ cryptographic signatures.
 
 ## Why
 
-📱🤝 You're building a [local-first](http://inkandswitch.com/local-first.html) app to enable
-distributed collaboration [without a central
-server](http://medium.com/all-the-things/a-web-application-with-no-web-server-61000a6aed8f).
+📱🤝 You're building a [local-first](http://inkandswitch.com/local-first.html) app to enable distributed collaboration [without a central server](http://medium.com/all-the-things/a-web-application-with-no-web-server-61000a6aed8f).
 
 👩🏾🔑 You want to **authenticate** users and manage their **permissions**.
 
@@ -64,13 +62,26 @@ secret keys, to provide **encryption** and **signature verification** within the
 yarn add taco-js
 ```
 
+#### We create a new user, Alice
+
+```ts
+import { user, create } from 'taco'
+
+// 👩🏾 Alice
+const alice = user.create('alice', aliceLaptop)
+
+```
+
+
+
 #### Alice creates a new team
 
 ```js
 import { user, create } from 'taco'
 
 // 👩🏾 Alice
-const alice = user('alice')
+const aliceLaptop = { }
+const alice = user.create('alice', {})
 const context = { user: alice, device }
 const team = create({ name: 'Spies Я Us', context })
 ```

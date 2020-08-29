@@ -7,22 +7,10 @@ import * as teams from '/team'
 import * as user from '/user'
 // test assets
 
-export const makeUser = (userName: string) => user.create(userName, makeDevice(userName))
-
-export const makeDevice = (userName: string): DeviceWithSecrets => {
-  const deviceName = `${userName}'s laptop`
-  return {
-    name: deviceName,
-    userName,
-    type: DeviceType.laptop,
-    keys: keyset.create({ type: KeyType.DEVICE, name: deviceName }),
-  }
-}
-
-export const alice = makeUser('alice')
-export const bob = makeUser('bob')
-export const charlie = makeUser('charlie')
-export const eve = makeUser('eve')
+export const alice = user.create('alice')
+export const bob = user.create('bob')
+export const charlie = user.create('charlie')
+export const eve = user.create('eve')
 
 export const alicesLaptop = alice.device
 export const bobsLaptop = bob.device
