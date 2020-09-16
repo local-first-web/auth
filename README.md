@@ -62,38 +62,23 @@ secret keys, to provide **encryption** and **signature verification** within the
 yarn add taco-js
 ```
 
-#### We create a new user, Alice
-
-```ts
-import { user, create } from 'taco'
-
-// 👩🏾 Alice
-const alice = user.create('alice', aliceLaptop)
-
-```
-
-
-
 #### Alice creates a new team
 
 ```js
-import { user, create } from 'taco'
+import { user, team } from 'taco'
 
 // 👩🏾 Alice
-const aliceLaptop = { }
-const alice = user.create('alice', {})
-const context = { user: alice, device }
-const team = create({ name: 'Spies Я Us', context })
+const alice = user.create('alice')
+const alicesTeam = team.create({ name: 'Spies Я Us', context: { user: alice } })
 ```
 
-Usernames (`alice` in the example) identify a person uniquely within the team. You could use
-existing user IDs or names, or email addresses.
+Usernames (`alice` in the example) identify a person uniquely within the team. You could use existing user IDs or names, or email addresses.
 
 #### Alice invites Bob
 
 ```js
 // 👩🏾 Alice
-const { secretKey } = team.invite('bob')
+const { secretKey } = alicesTeam.invite('bob')
 ```
 
 The invitation key is a single-use secret that only Alice and Bob will ever know. By default, it is

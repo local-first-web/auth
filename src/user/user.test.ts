@@ -1,8 +1,6 @@
 import { asymmetric, signatures, symmetric } from '/crypto'
 import { create } from '/user/create'
 import { load } from '/user/load'
-import { bobsLaptop, charliesLaptop } from '/util/testing'
-
 import '/util/testing/expect/toLookLikeKeyset'
 
 describe('user', () => {

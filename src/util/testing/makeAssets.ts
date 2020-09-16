@@ -3,7 +3,7 @@ import { DeviceType, DeviceWithSecrets } from '/device'
 import * as keyset from '/keyset'
 import { KeyType } from '/keyset'
 import { Role } from '/role'
-import * as teams from '/team'
+import * as team from '/team'
 import * as user from '/user'
 // test assets
 
@@ -31,5 +31,5 @@ export const charliesContext: LocalUserContext = { user: charlie, client }
 
 export const defaultContext = alicesContext
 
-export const newTeam = () => teams.create('Spies Я Us', defaultContext)
+export const newTeam = () => team.create('Spies Я Us', defaultContext)
 export const newTeamChain = JSON.parse(newTeam().save())

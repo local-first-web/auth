@@ -20,6 +20,7 @@
   "scripts": {
     "start": "tsdx watch",
     "build": "tsdx build",
+    "postbuild": "tscpaths -p tsconfig.json -s ./src -o ./dist",
     "test": "tsdx test",
     "lint": "tsdx lint src",
     "prepare": "tsdx build",
@@ -44,6 +45,7 @@
     "@types/scryptsy": "2",
     "husky": "4",
     "prettier": "2",
+    "tscpaths": "^0.0.9",
     "tsdx": "0",
     "tslib": "1",
     "typescript": "3"
