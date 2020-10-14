@@ -1,3 +1,4 @@
+// ignore file coverage
 import { LocalUserContext } from '/context'
 import * as teams from '/team'
 import { Team } from '/team'
