@@ -1,4 +1,5 @@
-﻿expect.extend({
+﻿// ignore coverage
+expect.extend({
   toLookLikeKeyset(maybeKeyset: any) {
     const looksLikeKeyset =
       maybeKeyset.hasOwnProperty('encryption') && maybeKeyset.hasOwnProperty('signature')
