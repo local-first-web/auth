@@ -1,7 +1,4 @@
 import { Client, LocalUserContext } from '/context'
-import { DeviceType, DeviceWithSecrets } from '/device'
-import * as keyset from '/keyset'
-import { KeyType } from '/keyset'
 import { Role } from '/role'
 import * as team from '/team'
 import * as user from '/user'
