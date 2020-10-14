@@ -1,8 +1,8 @@
-﻿import { Invitation, InvitationBody, ProofOfInvitation } from '/invitation/types'
-import { ValidationResult } from '/util'
-import { signatures, symmetric } from '/crypto'
+﻿import { open } from './open'
+import { signatures } from '/crypto'
+import { Invitation, ProofOfInvitation } from '/invitation/types'
 import { KeysetWithSecrets } from '/keyset'
-import { open } from './open'
+import { ValidationResult } from '/util'
 
 export const validate = (
   proof: ProofOfInvitation,
