@@ -15,17 +15,18 @@ import {
 import { storage } from '/util/testing'
 
 import '/util/testing/expect/toLookLikeKeyset'
+import { Team } from '/team'
 
 describe('Team', () => {
-  beforeEach(() => {
+  const setup = () => {
     localStorage.clear()
     storage.contents = undefined
-  })
 
-  const setup = () => ({
-    team: newTeam(),
-    context: defaultContext,
-  })
+    return {
+      team: new Team({ teamName: 'Spies Я Us', context: defaultContext }),
+      context: defaultContext,
+    }
+  }
 
   describe('roles', () => {
     it('Alice is admin by default', () => {
@@ -41,9 +42,12 @@ describe('Team', () => {
 
     it('adds a role', () => {
       const { team } = setup()
+      expect(team.roles().map(r => r.roleName)).toEqual([ADMIN])
+      expect(team.hasRole(ADMIN)).toBe(true)
       team.addRole(managers)
-      expect(team.roles().length).toBe(2)
+      expect(team.roles().map(r => r.roleName)).toEqual([ADMIN, MANAGERS])
       expect(team.roles(MANAGERS).roleName).toBe(MANAGERS)
+      expect(team.hasRole(MANAGERS)).toBe(true)
     })
 
     it('admins have access to all role keys', () => {
@@ -110,8 +114,41 @@ describe('Team', () => {
       expect(bobLooksForAdminKeys).toThrow()
     })
 
+    it.only('removes a role', () => {
+      let chain1: string, chain2: string
+      {
+        const { team } = setup()
+        chain1 = team.save()
+        expect(team.roles().map(r => r.roleName)).toEqual([ADMIN])
+        expect(team.hasRole(ADMIN)).toBe(true)
+        team.addRole(managers)
+        expect(team.roles().map(r => r.roleName)).toEqual([ADMIN, MANAGERS])
+        expect(team.roles(MANAGERS).roleName).toBe(MANAGERS)
+        expect(team.hasRole(MANAGERS)).toBe(true)
+      }
+
+      {
+        const { team } = setup()
+        chain2 = team.save()
+        let allRoles = team.roles()
+        team.addRole(managers)
+        expect(team.roles().map(r => r.roleName)).toEqual([ADMIN, MANAGERS])
+        expect(team.roles(MANAGERS).roleName).toBe(MANAGERS)
+
+        team.removeRole(MANAGERS)
+        expect(team.roles().length).toBe(1)
+      }
+    })
+
+    it(`won't remove the admin role`, () => {
+      const { team } = setup()
+      const attemptToRemoveAdminRole = () => team.removeRole(ADMIN)
+      expect(attemptToRemoveAdminRole).toThrow()
+    })
+
     it('gets an individual role', () => {
       const { team } = setup()
+      console.log(team.roles())
       const adminRole = team.roles(ADMIN)
       expect(adminRole.roleName).toBe(ADMIN)
     })
@@ -128,6 +165,12 @@ describe('Team', () => {
       const roles = team.roles()
       expect(roles).toHaveLength(2)
       expect(roles.map(role => role.roleName)).toEqual([ADMIN, MANAGERS])
+    })
+
+    it('lists all members in a role ', () => {
+      const { team } = setup()
+      team.add(redact(bob), [ADMIN])
+      expect(team.membersInRole(ADMIN).map(m => m.userName)).toEqual(['alice', 'bob'])
     })
 
     it('allows an admin other than Alice to add a member', () => {
