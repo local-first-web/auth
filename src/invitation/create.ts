@@ -8,7 +8,9 @@ import {
   DeviceInvitationPayload,
 } from '/invitation/types'
 import * as keyset from '/keyset'
-import { EPHEMERAL_SCOPE, KeysetWithSecrets } from '/keyset'
+import { EPHEMERAL_SCOPE, KeysetWithSecrets, KeyType } from '/keyset'
+
+const { DEVICE, MEMBER } = KeyType
 
 export const IKEY_LENGTH = 16
 
@@ -54,10 +56,10 @@ export const create = ({ teamKeys, type, payload, secretKey }: InvitationArgsInt
 }
 
 export const inviteMember = ({ teamKeys, payload, secretKey }: MemberInvitationArgs): Invitation =>
-  create({ teamKeys, type: 'MEMBER', payload, secretKey })
+  create({ teamKeys, type: MEMBER, payload, secretKey })
 
 export const inviteDevice = ({ teamKeys, payload, secretKey }: DeviceInvitationArgs): Invitation =>
-  create({ teamKeys, type: 'DEVICE', payload, secretKey })
+  create({ teamKeys, type: DEVICE, payload, secretKey })
 
 interface MemberInvitationArgs {
   teamKeys: KeysetWithSecrets
