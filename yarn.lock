@@ -6108,7 +6108,7 @@ ts-toolbelt@^6.3.3:
   resolved "https://registry.yarnpkg.com/ts-toolbelt/-/ts-toolbelt-6.8.9.tgz#e290b433ffdaa7114345103bece34a49753e6978"
   integrity sha512-H0SkumcqG7uyoYYU/0dZYJIVGainU332XJFtXCIKx3uMBJ6/VlSjqTo1U0xs432D9PneUkWsXSX+BpfMD+R4IA==
 
-tscpaths@^0.0.9:
+tscpaths@0:
   version "0.0.9"
   resolved "https://registry.yarnpkg.com/tscpaths/-/tscpaths-0.0.9.tgz#c77abfde6820920f10c64f83c27753b9505814ab"
   integrity sha512-tz4qimSJTCjYtHVsoY7pvxLcxhmhgmwzm7fyMEiL3/kPFFVyUuZOwuwcWwjkAsIrSUKJK22A7fNuJUwxzQ+H+w==
@@ -6514,10 +6514,10 @@ xregexp@^4.3.0:
   dependencies:
     "@babel/runtime-corejs3" "^7.8.3"
 
-xstate@^4.11.0:
-  version "4.11.0"
-  resolved "https://registry.yarnpkg.com/xstate/-/xstate-4.11.0.tgz#dc0bd31079fe22918c2c27c118d6310bef3dcd9e"
-  integrity sha512-v+S3jF2YrM2tFOit8o7+4N3FuFd9IIGcIKHyfHeeNjMlmNmwuiv/IbY9uw7ECifx7H/A9aGLcxPSr0jdjTGDww==
+xstate@4:
+  version "4.13.0"
+  resolved "https://registry.yarnpkg.com/xstate/-/xstate-4.13.0.tgz#0be22ceb8bae2bc6a025fab330fe44204d76771c"
+  integrity sha512-UnUJJzP2KTPqnmxIoD/ymXtpy/hehZnUlO6EXqWC/72XkPb15p9Oz/X4WhS3QE+by7NP+6b5bCi/GTGFzm5D+A==
 
 y18n@^4.0.0:
   version "4.0.0"
