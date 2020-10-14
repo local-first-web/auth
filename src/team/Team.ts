@@ -36,7 +36,6 @@ export class Team extends EventEmitter {
     if (isNewTeam(options)) {
       // Create a new team with the current user as founding member
       this.chain = []
-
       const localUser = this.context.user
 
       // Team & role secrets are never stored in plaintext, only encrypted into individual lockboxes.
@@ -181,6 +180,7 @@ export class Team extends EventEmitter {
 
   /** Remove a role from the team */
   public removeRole = (roleName: string) => {
+    if (roleName === ADMIN) throw new Error('Cannot remove admin role.')
     this.dispatch({
       type: 'REMOVE_ROLE',
       payload: { roleName },
