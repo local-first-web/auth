@@ -1,12 +1,9 @@
-﻿import { ADMIN_ROLE } from '/role'
-import { TeamState } from '/team/types'
+﻿export const ALL = 'ALL'
 
-export const initialState: TeamState = {
+export const initialState = {
   teamName: '',
   members: [],
-  roles: [ADMIN_ROLE],
+  roles: [],
   lockboxes: [],
   invitations: {},
 }
-
-export const ALL = 'ALL'
