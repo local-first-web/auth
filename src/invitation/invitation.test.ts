@@ -30,7 +30,7 @@ describe('invitations', () => {
     // Charlie checks it against the invitation that Alice posted on the signature chain.
     const validation = () => {
       const validationResult = validate(proofOfInvitation, invitation, teamKeys)
-      if (!validationResult.isValid) throw validationResult.error
+      expect(validationResult.isValid).toBe(true)
     }
 
     expect(validation).not.toThrow()
