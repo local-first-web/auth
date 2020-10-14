@@ -57,7 +57,8 @@ const getTransforms = (action: TeamAction): Reducer[] => {
     case 'ROOT':
       const { teamName, rootMember } = action.payload
       return [
-        setTeamName(teamName), //
+        setTeamName(teamName),
+        addRole({ roleName: ADMIN }),
         addMember(rootMember),
         ...addMemberRoles(rootMember.userName, [ADMIN]),
       ]
