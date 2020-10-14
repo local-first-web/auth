@@ -48,7 +48,8 @@
     "tscpaths": "^0.0.9",
     "tsdx": "0",
     "tslib": "1",
-    "typescript": "3"
+    "typescript": "3",
+    "v8-profiler-node8": "6"
   },
   "husky": {
     "hooks": {}
