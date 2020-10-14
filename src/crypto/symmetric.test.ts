@@ -18,10 +18,6 @@ describe('crypto', () => {
       expect(cipher).not.toEqual(knownCipher) // each encryption is different
     })
 
-    test('bob decrypts using the password they both know', () => {
-      expect(decrypt(knownCipher, password)).toEqual(plaintext)
-    })
-
     test(`eve tries to decrypt but gets an error because she doesn't know the password`, () => {
       const wrongPassword = 'nachopassword'
       expect(() => decrypt(knownCipher, wrongPassword)).toThrow()
