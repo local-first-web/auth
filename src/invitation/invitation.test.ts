@@ -81,8 +81,10 @@ describe('invitations', () => {
     // On his phone, Bob generates a credential proving that he was invited.
     const proofOfInvitation = acceptDeviceInvitation(secretKey, redactDevice(deviceWithSecrets))
 
-    // The phone attempts to connect to the team & gets the laptop. The phone sends the laptop the proof
-    // of invitation, and the laptop checks it against the invitation that's posted in the signature chain.
+    // The phone attempts to connect to the team and contacts some other device - say it's Alice's
+    // laptop, although it could be any online device that belongs to the team. The phone sends the
+    // laptop the proof of invitation, and the laptop checks it against the invitation that's posted
+    // in the signature chain.
     const validationResult = validate(proofOfInvitation, invitation, teamKeys)
     expect(validationResult.isValid).toBe(true)
   })
