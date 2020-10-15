@@ -258,7 +258,7 @@ export class Team extends EventEmitter {
   /** Admit a new member to the team based on proof of invitation */
   public admit = (proof: ProofOfInvitation) => {
     const typeError = new Error('Team.admit() is only for accepting invitations for members.')
-    if (proof.type !== 'MEMBER') throw typeError
+    if (proof.type !== MEMBER) throw typeError
 
     const { id, payload: member } = proof
 
@@ -271,7 +271,7 @@ export class Team extends EventEmitter {
 
     // open the invitation
     const invitation = invitations.open(encryptedInvitation, teamKeys)
-    if (invitation.type !== 'MEMBER') throw typeError
+    if (invitation.type !== MEMBER) throw typeError
 
     // validate proof against original invitation
     const validation = invitations.validate(proof, encryptedInvitation, teamKeys)
@@ -318,7 +318,7 @@ export class Team extends EventEmitter {
   /** Admit a new device based on proof of invitation */
   public admitDevice = (proof: ProofOfInvitation) => {
     const typeError = new Error('Team.admitDevice() is only for accepting invitations for devices.')
-    if (proof.type !== 'DEVICE') throw typeError
+    if (proof.type !== DEVICE) throw typeError
 
     const { id, payload: device } = proof
 
@@ -334,7 +334,7 @@ export class Team extends EventEmitter {
 
     // open the invitation
     const invitationBody = invitations.open(invitation, teamKeys)
-    if (invitationBody.type !== 'DEVICE') throw typeError
+    if (invitationBody.type !== DEVICE) throw typeError
 
     // all good, let them in
     // post admission to the signature chain
