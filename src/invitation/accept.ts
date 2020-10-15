@@ -1,18 +1,17 @@
 ﻿import { signatures } from '/crypto'
-import { DeviceWithSecrets, redact as redactDevice } from '/device'
+import { Device } from '/device'
 import { deriveId } from '/invitation/deriveId'
 import { normalize } from '/invitation/normalize'
 import { ProofOfInvitation } from '/invitation/types'
 import { create, EPHEMERAL_SCOPE, KeyType } from '/keyset'
-import { redact as redactUser, User } from '/user'
+import { Member } from '/member'
 
 const { DEVICE, MEMBER } = KeyType
 
 // TODO rename redact as redactUser etc.
 
-export const acceptMemberInvitation = (secretKey: string, user: User): ProofOfInvitation => {
+export const acceptMemberInvitation = (secretKey: string, member: Member): ProofOfInvitation => {
   // don't leak secrets to the signature chain
-  const member = redactUser(user)
 
   secretKey = normalize(secretKey)
 
@@ -31,12 +30,8 @@ export const acceptMemberInvitation = (secretKey: string, user: User): ProofOfIn
   return { id, type: MEMBER, payload: member, signature }
 }
 
-export const acceptDeviceInvitation = (
-  secretKey: string,
-  deviceWithSecrets: DeviceWithSecrets
-): ProofOfInvitation => {
+export const acceptDeviceInvitation = (secretKey: string, device: Device): ProofOfInvitation => {
   // don't leak secrets to the signature chain
-  const device = redactDevice(deviceWithSecrets)
 
   secretKey = normalize(secretKey)
 
