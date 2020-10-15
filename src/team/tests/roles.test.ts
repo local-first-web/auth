@@ -1,6 +1,7 @@
-import { EncryptedEnvelope } from '/team/types'
 import { symmetric } from '/crypto'
 import { ADMIN } from '/role'
+import { Team } from '/team'
+import { EncryptedEnvelope } from '/team/types'
 import { redact } from '/user'
 import {
   bob,
@@ -10,12 +11,9 @@ import {
   defaultContext,
   managers,
   MANAGERS,
-  newTeam,
+  storage,
 } from '/util/testing'
-import { storage } from '/util/testing'
-
 import '/util/testing/expect/toLookLikeKeyset'
-import { Team } from '/team'
 
 describe('Team', () => {
   const setup = () => {
@@ -42,12 +40,21 @@ describe('Team', () => {
 
     it('adds a role', () => {
       const { team } = setup()
+      team.add(redact(bob))
+
+      // only default roles to start out
       expect(team.roles().map(r => r.roleName)).toEqual([ADMIN])
       expect(team.hasRole(ADMIN)).toBe(true)
+
+      // add managers
       team.addRole(managers)
       expect(team.roles().map(r => r.roleName)).toEqual([ADMIN, MANAGERS])
       expect(team.roles(MANAGERS).roleName).toBe(MANAGERS)
       expect(team.hasRole(MANAGERS)).toBe(true)
+
+      // add bob to managers
+      team.addMemberRole('bob', MANAGERS)
+      expect(team.membersInRole(MANAGERS).map(m => m.userName)).toEqual(['bob'])
     })
 
     it('admins have access to all role keys', () => {
@@ -115,28 +122,13 @@ describe('Team', () => {
     })
 
     it('removes a role', () => {
-      let chain1: string, chain2: string
-      {
-        const { team } = setup()
-        chain1 = team.save()
-        expect(team.roles().map(r => r.roleName)).toEqual([ADMIN])
-        expect(team.hasRole(ADMIN)).toBe(true)
-        team.addRole(managers)
-        expect(team.roles().map(r => r.roleName)).toEqual([ADMIN, MANAGERS])
-        expect(team.roles(MANAGERS).roleName).toBe(MANAGERS)
-        expect(team.hasRole(MANAGERS)).toBe(true)
-      }
+      const { team } = setup()
+      team.addRole(managers)
+      expect(team.roles().map(r => r.roleName)).toEqual([ADMIN, MANAGERS])
+      expect(team.roles(MANAGERS).roleName).toBe(MANAGERS)
 
-      {
-        const { team } = setup()
-        chain2 = team.save()
-        team.addRole(managers)
-        expect(team.roles().map(r => r.roleName)).toEqual([ADMIN, MANAGERS])
-        expect(team.roles(MANAGERS).roleName).toBe(MANAGERS)
-
-        team.removeRole(MANAGERS)
-        expect(team.roles().length).toBe(1)
-      }
+      team.removeRole(MANAGERS)
+      expect(team.roles().length).toBe(1)
     })
 
     it(`won't remove the admin role`, () => {
@@ -169,6 +161,7 @@ describe('Team', () => {
       const { team } = setup()
       team.add(redact(bob), [ADMIN])
       expect(team.membersInRole(ADMIN).map(m => m.userName)).toEqual(['alice', 'bob'])
+      expect(team.admins().map(m => m.userName)).toEqual(['alice', 'bob'])
     })
 
     it('allows an admin other than Alice to add a member', () => {
