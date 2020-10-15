@@ -1,13 +1,21 @@
-import { DeviceInfo, DeviceType, getDeviceId } from '/device'
 import {
+  DeviceInfo,
+  DeviceType,
+  DeviceWithSecrets,
+  getDeviceId,
+  redact as redactDevice,
+} from '/device'
+import {
+  acceptDeviceInvitation,
   acceptMemberInvitation,
   inviteDevice,
   inviteMember,
-  newSecretKey,
+  newInvitationKey,
   validate,
 } from '/invitation'
 import * as keyset from '/keyset'
 import { KeyType } from '/keyset'
+import { redact as redactUser } from '/user'
 import { bob } from '/util/testing'
 
 const { TEAM_SCOPE } = keyset
@@ -17,7 +25,7 @@ describe('invitations', () => {
   const teamKeys = keyset.create(TEAM_SCOPE)
 
   test('invite member', () => {
-    const secretKey = newSecretKey()
+    const secretKey = newInvitationKey()
     const invitation = inviteMember({ teamKeys, payload: { userName: 'bob' }, secretKey })
     expect(invitation.type).toBe(MEMBER)
     expect(secretKey).toHaveLength(16)
@@ -27,16 +35,13 @@ describe('invitations', () => {
   })
 
   test('invite device', () => {
-    const secretKey = newSecretKey()
+    const secretKey = newInvitationKey()
 
     const device: DeviceInfo = { userName: 'bob', name: `bob's phone`, type: DeviceType.mobile }
     const deviceId = getDeviceId(device)
 
-    const invitation = inviteDevice({
-      teamKeys,
-      payload: { ...device, deviceId },
-      secretKey,
-    })
+    const invitation = inviteDevice({ teamKeys, payload: { ...device, deviceId }, secretKey })
+
     expect(invitation.type).toBe(DEVICE)
     expect(secretKey).toHaveLength(16)
     expect(invitation).toHaveProperty('id')
@@ -44,23 +49,41 @@ describe('invitations', () => {
     expect(invitation).toHaveProperty('encryptedBody')
   })
 
-  test('validate', () => {
-    // Alice creates invitation. She sends the secret key to Bob, and records the invitation on the
-    // team's signature chain.
-    const secretKey = newSecretKey()
+  test('validate member invitation', () => {
+    // Alice generates a secret key and sends it to Bob via a trusted side channel.
+    const secretKey = newInvitationKey()
 
+    // She generates an invitation with this key. Normally the invitation would be stored on the
+    // team's signature chain; here we're just keeping it around in a variable.
     const invitation = inviteMember({ teamKeys, payload: { userName: 'bob' }, secretKey })
 
     // Bob accepts invitation and obtains a credential proving that he was invited.
-    const proofOfInvitation = acceptMemberInvitation(secretKey, bob)
+    const proofOfInvitation = acceptMemberInvitation(secretKey, redactUser(bob))
 
     // Bob shows up to join the team & sees Charlie. Bob shows Charlie his proof of invitation, and
     // Charlie checks it against the invitation that Alice posted on the signature chain.
-    const validation = () => {
-      const validationResult = validate(proofOfInvitation, invitation, teamKeys)
-      expect(validationResult.isValid).toBe(true)
-    }
+    const validationResult = validate(proofOfInvitation, invitation, teamKeys)
+    expect(validationResult.isValid).toBe(true)
+  })
 
-    expect(validation).not.toThrow()
+  test('validate device invitation', () => {
+    // On his laptop, Bob generates a secret key. He gets the secret key to his phone, perhaps by
+    // typing it in or by scanning a QR code
+    const secretKey = newInvitationKey()
+
+    // He generates an invitation, which would normally be stored on the team's signature chain.
+    const device: DeviceInfo = { userName: 'bob', name: `bob's phone`, type: DeviceType.mobile }
+    const deviceId = getDeviceId(device)
+    const deviceKeys = keyset.create({ type: DEVICE, name: deviceId })
+    const deviceWithSecrets: DeviceWithSecrets = { ...device, keys: deviceKeys }
+    const invitation = inviteDevice({ teamKeys, payload: { ...device, deviceId }, secretKey })
+
+    // On his phone, Bob generates a credential proving that he was invited.
+    const proofOfInvitation = acceptDeviceInvitation(secretKey, redactDevice(deviceWithSecrets))
+
+    // The phone attempts to connect to the team & gets the laptop. The phone sends the laptop the proof
+    // of invitation, and the laptop checks it against the invitation that's posted in the signature chain.
+    const validationResult = validate(proofOfInvitation, invitation, teamKeys)
+    expect(validationResult.isValid).toBe(true)
   })
 })
