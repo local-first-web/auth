@@ -1,4 +1,4 @@
-﻿import { EventEmitter } from 'events'
+import { EventEmitter } from 'events'
 import { chain, SignatureChain, validate } from '/chain'
 import { LocalUserContext } from '/context'
 import { signatures, symmetric } from '/crypto'
@@ -391,7 +391,7 @@ export class Team extends EventEmitter {
 
   private context: LocalUserContext
   private chain: SignatureChain<TeamLink>
-  private state: TeamState // derived from chain, only updated by running chain through reducer
+  private state: TeamState = initialState // derived from chain, only updated by running chain through reducer
 
   // # PRIVATE METHODS
 
@@ -439,10 +439,7 @@ export class Team extends EventEmitter {
   /** Add a link to the chain, then recompute team state from the new chain */
   public dispatch(link: TeamAction) {
     this.chain = chain.append(this.chain, link, this.context)
-    // TODO: this is doing more work than necessary - we don't have to calculate the team state from
-    // scratch each time, we could just run the previous state and this link through the reducer
-    // function
-    this.updateState()
+    this.state = reducer(this.state, this.chain[this.chain.length - 1])
   }
 
   /** Run the reducer on the entire chain to reconstruct the current team state. */
