@@ -2,8 +2,6 @@
 import { base30 } from '/util'
 import { IKEY_LENGTH } from '/invitation/create'
 
-// TODO make key strength & encoding pluggable
-
 // ## Step 1a
 // The invitation key is a randomly generated secret that is sent to Bob via a pre-authenticated
 // channel (e.g. WhatsApp). If Alice is inviting Bob, only Alice and Bob will ever have this key.
@@ -21,4 +19,4 @@ import { IKEY_LENGTH } from '/invitation/create'
  * 32-character strings using the full ASCII character set (stronger but practically impossible to
  * remember or communicate verbally).
  */
-export const newSecretKey = (length = IKEY_LENGTH) => base30.encode(nacl.randomBytes(length))
+export const newInvitationKey = (length = IKEY_LENGTH) => base30.encode(nacl.randomBytes(length))
