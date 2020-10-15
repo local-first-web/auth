@@ -20,7 +20,7 @@ export const rotate = (oldLockbox: Lockbox, contents: KeysetWithSecrets): Lockbo
     throw new Error('The type and name of the new contents must match those of the old lockbox')
 
   // increment the keys' generation index
-  const prevGeneration = oldLockbox.contents.generation || 0
+  const prevGeneration = oldLockbox.contents.generation ?? 0
   const newContents = {
     ...contents,
     generation: prevGeneration + 1,
