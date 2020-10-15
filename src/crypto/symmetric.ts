@@ -57,6 +57,4 @@ export const symmetric = {
     if (!decrypted) throw new Error('Could not decrypt message')
     return utf8.decode(decrypted)
   },
-
-  key: () => base64.encode(nacl.randomBytes(32)),
 }
