@@ -144,6 +144,15 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       ]
     }
 
+    case 'ADMIT_INVITED_DEVICE': {
+      const { id, device } = action.payload
+
+      return [
+        addDevice(device), // Add device
+        revokeInvitation(id), // Remove invitation from open invitations
+      ]
+    }
+
     default:
       // @ts-ignore (should never get here)
       throw new Error(`Unrecognized link type: ${action.type}`)
