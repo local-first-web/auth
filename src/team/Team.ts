@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events'
+﻿import { EventEmitter } from 'events'
 import { chain, SignatureChain, validate } from '/chain'
 import { LocalUserContext } from '/context'
 import { signatures, symmetric } from '/crypto'
@@ -225,7 +225,7 @@ export class Team extends EventEmitter {
   public invite = (
     userName: string,
     roles: string[] = [],
-    secretKey = invitations.newSecretKey()
+    secretKey = invitations.newInvitationKey()
   ) => {
     // generate invitation
     const teamKeys = this.teamKeys()
@@ -291,7 +291,7 @@ export class Team extends EventEmitter {
 
   public addDevice = () => {}
 
-  public inviteDevice = (deviceInfo: DeviceInfo, secretKey = invitations.newSecretKey()) => {
+  public inviteDevice = (deviceInfo: DeviceInfo, secretKey = invitations.newInvitationKey()) => {
     // generate invitation
     const teamKeys = this.teamKeys()
 
