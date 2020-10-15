@@ -1,6 +1,7 @@
 ﻿import { Base64, Encrypted } from '/util'
 import { Member } from '/member'
 import { Device } from '/device'
+import { KeyType } from '/keyset'
 
 /** The public invitation to be recorded on the signature chain. When Bob shows up with
  * `ProofOfInvitation`, someone on the team will need to check it against this.
