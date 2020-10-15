@@ -130,7 +130,6 @@ describe('Team', () => {
       {
         const { team } = setup()
         chain2 = team.save()
-        let allRoles = team.roles()
         team.addRole(managers)
         expect(team.roles().map(r => r.roleName)).toEqual([ADMIN, MANAGERS])
         expect(team.roles(MANAGERS).roleName).toBe(MANAGERS)
@@ -148,7 +147,6 @@ describe('Team', () => {
 
     it('gets an individual role', () => {
       const { team } = setup()
-      console.log(team.roles())
       const adminRole = team.roles(ADMIN)
       expect(adminRole.roleName).toBe(ADMIN)
     })
