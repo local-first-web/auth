@@ -28,5 +28,3 @@ export interface Lockbox {
   /** The encrypted keyset */
   encryptedPayload: Base64
 }
-
-export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<T>
