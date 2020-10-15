@@ -1,4 +1,3 @@
-// ignore file coverage
 import { LocalUserContext } from '/context'
 import * as teams from '/team'
 import { Team } from '/team'
@@ -10,6 +9,7 @@ export const storage = {
     storage.contents = team.save()
   },
   load: (context: LocalUserContext) => {
+    // ignore coverage
     if (storage.contents === undefined) throw new Error('need to save before you can load')
     return teams.load(JSON.parse(storage.contents), context)
   },
