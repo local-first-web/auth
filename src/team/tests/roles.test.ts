@@ -114,7 +114,7 @@ describe('Team', () => {
       expect(bobLooksForAdminKeys).toThrow()
     })
 
-    it.only('removes a role', () => {
+    it('removes a role', () => {
       let chain1: string, chain2: string
       {
         const { team } = setup()
