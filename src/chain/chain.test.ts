@@ -1,3 +1,4 @@
+import { PartialLinkBody } from './types'
 import { append } from '/chain/append'
 import { create } from '/chain/create'
 import { validate } from '/chain/validate'
@@ -37,7 +38,7 @@ describe('chains', () => {
       const newChain = append(chain, newLink, defaultContext)
 
       // 👨‍🦲 Bob
-      expect(validate(chain)).toBeValid()
+      expect(validate(newChain)).toBeValid()
     })
 
     test('Mallory changes the order of the links; Bob is not fooled', () => {
@@ -83,5 +84,21 @@ describe('chains', () => {
       const rehydratedChain = JSON.parse(chainJson)
       expect(validate(rehydratedChain)).toBeValid()
     })
+  })
+
+  test('Alice gets high and tries to add another ROOT link', () => {
+    // 👩🏾 Alice
+    const chain = create({ team: 'Spies Я Us' }, defaultContext)
+
+    const link: PartialLinkBody = {
+      type: 'ROOT',
+      payload: { foo: 'pizza' },
+    }
+
+    // add it to an empty chain
+    const newChain = append(chain, link, defaultContext)
+
+    // nope
+    expect(validate(newChain)).not.toBeValid()
   })
 })
