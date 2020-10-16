@@ -7,11 +7,11 @@ export const open = (lockbox: Lockbox, decryptionKeys: KeysetWithSecrets): Keyse
   const { encryptionKey, encryptedPayload } = lockbox
 
   const keys = JSON.parse(
-    asymmetric.decrypt(
-      encryptedPayload,
-      encryptionKey.publicKey,
-      decryptionKeys.encryption.secretKey
-    )
+    asymmetric.decrypt({
+      cipher: encryptedPayload,
+      senderPublicKey: encryptionKey.publicKey,
+      recipientSecretKey: decryptionKeys.encryption.secretKey,
+    })
   )
 
   return keys

@@ -7,7 +7,11 @@ export const accept = ({ seed, peerKeys, userKeys }: AcceptArgs): AcceptIdentity
   // encrypt the seed for our peer
   const peerPublicKey = peerKeys.encryption
   const mySecretKey = userKeys.encryption.secretKey
-  const encryptedSeed = asymmetric.encrypt(seed, peerPublicKey, mySecretKey)
+  const encryptedSeed = asymmetric.encrypt({
+    secret: seed,
+    recipientPublicKey: peerPublicKey,
+    senderSecretKey: mySecretKey,
+  })
 
   return {
     type: 'ACCEPT_IDENTITY',

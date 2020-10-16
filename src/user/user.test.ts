@@ -8,6 +8,11 @@ describe('user', () => {
     localStorage.clear()
   })
 
+  it('returns undefined if no user exists', () => {
+    const user = load()
+    expect(user).toBeUndefined()
+  })
+
   it('creates a new user', () => {
     const bob = create('bob')
     expect(bob.userName).toBe('bob')
@@ -44,10 +49,18 @@ describe('user', () => {
       const bob = asymmetric.keyPair()
 
       // Charlie encrypts a message for Bob
-      const cipher = asymmetric.encrypt(message, bob.publicKey, charlie.secretKey)
+      const cipher = asymmetric.encrypt({
+        secret: message,
+        recipientPublicKey: bob.publicKey,
+        senderSecretKey: charlie.secretKey,
+      })
 
       // Bob decrypts the message
-      const decrypted = asymmetric.decrypt(cipher, charlie.publicKey, bob.secretKey)
+      const decrypted = asymmetric.decrypt({
+        cipher: cipher,
+        senderPublicKey: charlie.publicKey,
+        recipientSecretKey: bob.secretKey,
+      })
       expect(decrypted).toEqual(message)
     })
 

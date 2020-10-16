@@ -50,10 +50,18 @@ describe('create', () => {
     const bob = create({ type: MEMBER, name: 'bob' }).encryption
 
     // Alice encrypts a message for Bob
-    const encrypted = asymmetric.encrypt(message, bob.publicKey, alice.secretKey)
+    const encrypted = asymmetric.encrypt({
+      secret: message,
+      recipientPublicKey: bob.publicKey,
+      senderSecretKey: alice.secretKey,
+    })
 
     // Bob decrypts it
-    const decrypted = asymmetric.decrypt(encrypted, alice.publicKey, bob.secretKey)
+    const decrypted = asymmetric.decrypt({
+      cipher: encrypted,
+      senderPublicKey: alice.publicKey,
+      recipientSecretKey: bob.secretKey,
+    })
     expect(decrypted).toEqual(message)
   })
 })

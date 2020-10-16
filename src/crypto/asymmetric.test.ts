@@ -28,25 +28,45 @@ describe('crypto', () => {
     const knownCipher = '0UllJr2FBwolmAGHg0FUuAfpweLyUSgYT74U/RH6FeEiDw64zFxvFeLJd6LX0D/YMYxj1aNwRmy5LapQIyh1QnKLuQ==' // prettier-ignore
 
     test(`alice encrypts using her secret key and bob's public key`, () => {
-      const cipherFromAlice = encrypt(plaintext, bob.publicKey, alice.secretKey)
+      const cipherFromAlice = encrypt({
+        secret: plaintext,
+        recipientPublicKey: bob.publicKey,
+        senderSecretKey: alice.secretKey,
+      })
       expect(cipherFromAlice).toHaveLength(24 + 68) // IV + ciphertext
       expect(cipherFromAlice).not.toEqual(knownCipher) // each encryption is different
     })
 
     test(`bob decrypts using his secret key and alice's public key`, () => {
       const cipherFromAlice = knownCipher
-      expect(decrypt(cipherFromAlice, alice.publicKey, bob.secretKey)).toEqual(plaintext)
+      expect(
+        decrypt({
+          cipher: cipherFromAlice,
+          senderPublicKey: alice.publicKey,
+          recipientSecretKey: bob.secretKey,
+        })
+      ).toEqual(plaintext)
     })
 
     test(`eve can't decrypt with her secret key`, () => {
       const cipherFromAlice = knownCipher
-      const attemptToDecrypt = () => decrypt(cipherFromAlice, alice.publicKey, eve.secretKey)
+      const attemptToDecrypt = () =>
+        decrypt({
+          cipher: cipherFromAlice,
+          senderPublicKey: alice.publicKey,
+          recipientSecretKey: eve.secretKey,
+        })
       expect(attemptToDecrypt).toThrow()
     })
 
     test(`can't decrypt with the wrong public key`, () => {
       const cipherFromAlice = knownCipher
-      const attemptToDecrypt = () => decrypt(cipherFromAlice, eve.publicKey, bob.secretKey)
+      const attemptToDecrypt = () =>
+        decrypt({
+          cipher: cipherFromAlice,
+          senderPublicKey: eve.publicKey,
+          recipientSecretKey: bob.secretKey,
+        })
       expect(attemptToDecrypt).toThrow()
     })
 
@@ -58,18 +78,37 @@ describe('crypto', () => {
       ${'stringified json'} | ${json}
       ${'zalgo text'}       | ${zalgoText}
     `('round trip: $label', ({ message }) => {
-      const encrypted = encrypt(message, bob.publicKey, alice.secretKey)
-      const decrypted = decrypt(encrypted, alice.publicKey, bob.secretKey)
+      const encrypted = encrypt({
+        secret: message,
+        recipientPublicKey: bob.publicKey,
+        senderSecretKey: alice.secretKey,
+      })
+      const decrypted = decrypt({
+        cipher: encrypted,
+        senderPublicKey: alice.publicKey,
+        recipientSecretKey: bob.secretKey,
+      })
       expect(decrypted).toEqual(message)
 
-      const attemptToDecrypt = () => decrypt(encrypted, alice.publicKey, eve.secretKey)
+      const attemptToDecrypt = () =>
+        decrypt({
+          cipher: encrypted,
+          senderPublicKey: alice.publicKey,
+          recipientSecretKey: eve.secretKey,
+        })
       expect(attemptToDecrypt).toThrow()
     })
 
     test('fwiw: cannot use signature keys to encrypt', () => {
       const a = signatures.keyPair()
       const b = signatures.keyPair()
-      expect(() => encrypt(plaintext, b.publicKey, a.secretKey)).toThrow()
+      expect(() =>
+        encrypt({
+          secret: plaintext,
+          recipientPublicKey: b.publicKey,
+          senderSecretKey: a.secretKey,
+        })
+      ).toThrow()
     })
   })
 })
