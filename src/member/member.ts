@@ -4,7 +4,7 @@ import { Device } from '/device'
 export interface Member {
   userName: string
   keys: PublicKeyset
-  roles?: string[]
+  roles: string[]
   devices?: Device[]
   keyHistory?: PublicKeyset[]
 }
