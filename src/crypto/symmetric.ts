@@ -1,7 +1,8 @@
 ﻿import * as base64 from '@stablelib/base64'
 import * as utf8 from '@stablelib/utf8'
+import msgpack from 'msgpack-lite'
 import nacl from 'tweetnacl'
-import { newNonce, nonceLength } from '/crypto/nonce'
+import { newNonce } from '/crypto/nonce'
 import { stretch } from '/crypto/stretch'
 import { Encrypted, Key, keyToBytes, Payload, payloadToBytes, Serialized } from '/util'
 
@@ -17,28 +18,23 @@ export const symmetric = {
    * Symmetrically encrypts a string of text (or utf8-encoded byte array).
    * @param payload The plaintext (or utf8-encoded byte array) to encrypt
    * @param password The password to use as a seed for an encryption key
-   * @returns The encrypted data. The first 24 characters are the nonce; the rest is the encrypted message.
+   * @returns The encrypted data, in msgpack format
    * @see symmetric.decrypt
    */
   encrypt: <T extends Payload = Payload>(payload: Payload, password: Key): Encrypted<T> => {
     const key = stretch(password)
     const nonce = newNonce()
     const messageBytes = payloadToBytes(payload)
-    const box = nacl.secretbox(messageBytes, nonce, key)
-    const cipherBytes = new Uint8Array(nonceLength + box.length)
+    const encrypted = nacl.secretbox(messageBytes, nonce, key)
 
-    // the first 24 characters are the nonce
-    cipherBytes.set(nonce)
-
-    // the rest is the message
-    cipherBytes.set(box, nonceLength)
+    const cipherBytes = msgpack.encode({ nonce, message: encrypted })
 
     return base64.encode(cipherBytes)
   },
 
   /**
    * Symmetrically decrypts a message encrypted by `symmetric.encrypt`.
-   * @param cipher The encrypted data (the first 24 bytes are the nonce; the rest is the encrypted message)
+   * @param cipher The encrypted data in msgpack format
    * @param password The password used as a seed for an encryption key
    * @returns The original plaintext
    * @see symmetric.encrypt
@@ -47,11 +43,7 @@ export const symmetric = {
     const key = stretch(password)
     const cipherBytes = keyToBytes(cipher)
 
-    // the first 24 characters are the nonce
-    const nonce = cipherBytes.slice(0, nonceLength)
-
-    // the rest is the message
-    const message = cipherBytes.slice(nonceLength, cipher.length)
+    const { nonce, message } = msgpack.decode(cipherBytes)
 
     const decrypted = nacl.secretbox.open(message, nonce, key)
     if (!decrypted) throw new Error('Could not decrypt message')

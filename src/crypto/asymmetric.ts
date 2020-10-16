@@ -1,10 +1,21 @@
 ﻿import * as base64 from '@stablelib/base64'
 import { decode as utf8Decode } from '@stablelib/utf8'
+import msgpack from 'msgpack-lite'
 import nacl from 'tweetnacl'
 import { newNonce } from '/crypto/nonce'
 import { Key, keypairToBase64, keyToBytes, Payload, payloadToBytes } from '/util'
 
-import msgpack from 'msgpack-lite'
+interface EncryptParams {
+  secret: Payload
+  recipientPublicKey: Key
+  senderSecretKey: Key
+}
+
+interface DecryptParams {
+  cipher: Key
+  senderPublicKey: Key
+  recipientSecretKey: Key
+}
 
 export const asymmetric = {
   /**
@@ -13,24 +24,16 @@ export const asymmetric = {
    * used for signatures, and vice versa.)
    */
   keyPair: () => keypairToBase64(nacl.box.keyPair()),
+
   /**
    * Asymmetrically encrypts a string of text.
    * @param secret The plaintext to encrypt
    * @param recipientPublicKey The public key of the intended recipient
    * @param senderSecretKey The secret key of the sender
-   * @returns The encrypted data, encoded as a base64 string. The first 24 characters are the nonce;
-   * the rest of the string is the encrypted message.
+   * @returns The encrypted data, encoded in msgpack format as a base64 string
    * @see asymmetric.decrypt
    */
-  encrypt: ({
-    secret,
-    recipientPublicKey,
-    senderSecretKey,
-  }: {
-    secret: Payload
-    recipientPublicKey: Key
-    senderSecretKey: Key
-  }) => {
+  encrypt: ({ secret, recipientPublicKey, senderSecretKey }: EncryptParams) => {
     const nonce = newNonce()
     const messageBytes = payloadToBytes(secret)
     const encrypted = nacl.box(
@@ -46,22 +49,13 @@ export const asymmetric = {
 
   /**
    * Asymmetrically decrypts a message encrypted by `asymmetric.encrypt`.
-   * @param cipher The encrypted data, encoded as a base64 string (the first 24 characters are the nonce;
-   * the rest of the string is the encrypted message)
+   * @param cipher The encrypted data, encoded in msgpack format as a base64 string
    * @param senderPublicKey The public key of the sender
    * @param recipientSecretKey The secret key of the recipient
    * @returns The original plaintext
    * @see asymmetric.encrypt
    */
-  decrypt: ({
-    cipher,
-    senderPublicKey,
-    recipientSecretKey,
-  }: {
-    cipher: Key
-    senderPublicKey: Key
-    recipientSecretKey: Key
-  }) => {
+  decrypt: ({ cipher, senderPublicKey, recipientSecretKey }: DecryptParams) => {
     const cipherBytes = keyToBytes(cipher)
 
     const { nonce, message } = msgpack.decode(cipherBytes)

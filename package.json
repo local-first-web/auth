@@ -32,7 +32,7 @@
     "@stablelib/utf8": "1",
     "fast-memoize": "2",
     "json-stable-stringify": "1",
-    "msgpack-lite": "0",
+    "msgpack-lite": "^0.1.26",
     "ramda": "0",
     "scryptsy": "2",
     "tweetnacl": "1",
