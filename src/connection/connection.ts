@@ -65,13 +65,13 @@ export class ConnectionService extends EventEmitter {
     return service.start()
   }
 
-  public connect = async () => {
-    this.start()
-    return new Promise((resolve, reject) => {
-      this.on('connected', () => resolve(this))
-      // this.on('error', something something)
-    })
-  }
+  // public connect = async () => {
+  //   this.start()
+  //   return new Promise((resolve, reject) => {
+  //     this.on('connected', () => resolve(this))
+  //     // this.on('error', something something)
+  //   })
+  // }
 
   public send = () => {}
 
@@ -131,11 +131,11 @@ export class ConnectionService extends EventEmitter {
     // we saved our seed in context
     const userSeed = context.seed!
     // the peer's seed is in context but is encrypted; decrypt it
-    const peerSeed = asymmetric.decrypt(
-      context.encryptedPeerSeed!,
-      peerKeys.encryption,
-      userKeys.encryption.secretKey
-    )
+    const peerSeed = asymmetric.decrypt({
+      cipher: context.encryptedPeerSeed!,
+      senderPublicKey: peerKeys.encryption,
+      recipientSecretKey: userKeys.encryption.secretKey,
+    })
 
     context.secretKey = deriveSharedKey(userSeed, peerSeed)
   }
