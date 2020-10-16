@@ -258,6 +258,7 @@ export class Team extends EventEmitter {
   /** Admit a new member to the team based on proof of invitation */
   public admit = (proof: ProofOfInvitation) => {
     const typeError = new Error('Team.admit() is only for accepting invitations for members.')
+    // ignore coverage
     if (proof.type !== MEMBER) throw typeError
 
     const { id, payload: member } = proof
@@ -266,8 +267,8 @@ export class Team extends EventEmitter {
 
     // look up the invitation
     const encryptedInvitation = this.state.invitations[id]
-    if (encryptedInvitation === undefined)
-      throw new Error(`An invitation with id '${id}' was not found.`)
+    // ignore coverage
+    if (encryptedInvitation === undefined) throw new Error(`No invitation with id '${id}' found.`)
 
     // open the invitation
     const invitation = invitations.open(encryptedInvitation, teamKeys)
@@ -289,8 +290,6 @@ export class Team extends EventEmitter {
 
   // Devices
 
-  public addDevice = () => {}
-
   public inviteDevice = (deviceInfo: DeviceInfo, secretKey = invitations.newInvitationKey()) => {
     // generate invitation
     const teamKeys = this.teamKeys()
@@ -309,6 +308,8 @@ export class Team extends EventEmitter {
       payload: { invitation },
     })
 
+    // if the caller didn't provide the secret key, they'll need that
+    // they might also need the invitation id in case they want to revoke it
     return {
       secretKey,
       id: invitation.id,
@@ -318,6 +319,7 @@ export class Team extends EventEmitter {
   /** Admit a new device based on proof of invitation */
   public admitDevice = (proof: ProofOfInvitation) => {
     const typeError = new Error('Team.admitDevice() is only for accepting invitations for devices.')
+    // ignore coverage
     if (proof.type !== DEVICE) throw typeError
 
     const { id, payload: device } = proof
@@ -334,6 +336,7 @@ export class Team extends EventEmitter {
 
     // open the invitation
     const invitationBody = invitations.open(invitation, teamKeys)
+    // ignore coverage
     if (invitationBody.type !== DEVICE) throw typeError
 
     // all good, let them in
@@ -341,6 +344,24 @@ export class Team extends EventEmitter {
     this.dispatch({
       type: 'ADMIT_INVITED_DEVICE',
       payload: { id, device },
+    })
+  }
+
+  public removeDevice = (deviceInfo: DeviceInfo) => {
+    const { userName } = deviceInfo
+    const deviceId = getDeviceId(deviceInfo)
+
+    // create new keys & lockboxes for any keys this device had access to
+    const lockboxes = this.rotateKeys({ type: DEVICE, name: deviceId })
+
+    // post the removal to the signature chain
+    this.dispatch({
+      type: 'REMOVE_DEVICE',
+      payload: {
+        userName,
+        deviceId,
+        lockboxes,
+      },
     })
   }
 
