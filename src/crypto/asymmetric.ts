@@ -68,4 +68,53 @@ export const asymmetric = {
     if (!decrypted) throw new Error('Could not decrypt message')
     return utf8Decode(decrypted)
   },
+
+  /**
+   * Asymmetrically encrypts a string of text, using an ephemeral keypair for the sender rather than
+   * the sender's own keys. The public half of the sender keys is included in the cipher.
+   * @param secret The plaintext to encrypt
+   * @param recipientPublicKey The public key of the intended recipient
+   * @returns The encrypted data, encoded in msgpack format as a base64 string
+   * @see asymmetric.decryptWithEphemeralKey
+   */
+  encryptWithEphemeralKey: ({ secret, recipientPublicKey }: EncryptParams) => {
+    const nonce = newNonce()
+    const senderKeys = asymmetric.keyPair()
+    const messageBytes = payloadToBytes(secret)
+    const encrypted = nacl.box(
+      messageBytes,
+      nonce,
+      keyToBytes(recipientPublicKey),
+      keyToBytes(senderKeys.secretKey)
+    )
+    const cipherBytes = msgpack.encode({
+      nonce,
+      message: encrypted,
+      senderPublicKey: senderKeys.publicKey,
+    })
+
+    return base64.encode(cipherBytes)
+  },
+
+  /**
+   * Asymmetrically decrypts a message encrypted by `asymmetric.encryptWithEphemeralKey`. Looks for
+   * the sender's public key in the cipher text rather than expecting it as a parameter.
+   * @param cipher The encrypted data, encoded in msgpack format as a base64 string
+   * @param recipientSecretKey The secret key of the recipient
+   * @returns The original plaintext
+   * @see asymmetric.encryptWithEphemeralKey
+   */
+  decryptWithEphemeralKey: ({ cipher, recipientSecretKey }: DecryptParams) => {
+    const cipherBytes = keyToBytes(cipher)
+
+    const { nonce, message, senderPublicKey } = msgpack.decode(cipherBytes)
+    const decrypted = nacl.box.open(
+      message,
+      nonce,
+      keyToBytes(senderPublicKey),
+      keyToBytes(recipientSecretKey)
+    )
+    if (!decrypted) throw new Error('Could not decrypt message')
+    return utf8Decode(decrypted)
+  },
 }
