@@ -1,4 +1,5 @@
-﻿import {
+﻿import { ADMIN } from '/role'
+import {
   addDevice,
   addMember,
   addMemberRoles,
@@ -7,13 +8,13 @@
   compose,
   postInvitation,
   Reducer,
-  revokeInvitation,
+  removeDevice,
   removeMember,
   removeMemberRole,
   removeRole,
+  revokeInvitation,
   setTeamName,
 } from '/team/reducers'
-import { ADMIN } from '/role'
 import { TeamAction, TeamLink, TeamState } from '/team/types'
 import { validate } from '/team/validate'
 
@@ -71,13 +72,6 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       ]
     }
 
-    case 'ADD_DEVICE': {
-      const { device } = action.payload
-      return [
-        addDevice(device), //
-      ]
-    }
-
     case 'ADD_ROLE': {
       const newRole = action.payload
       return [
@@ -100,8 +94,10 @@ const getTransforms = (action: TeamAction): Reducer[] => {
     }
 
     case 'REMOVE_DEVICE': {
-      // TODO: REMOVE_DEVICE
-      return []
+      const { userName, deviceId } = action.payload
+      return [
+        removeDevice(userName, deviceId), //
+      ]
     }
 
     case 'REMOVE_ROLE': {
