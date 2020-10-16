@@ -17,6 +17,7 @@ import {
   storage,
   TestChannel,
 } from '/util/testing'
+import '/util/testing/expect/toBeValid'
 
 const { MEMBER } = KeyType
 
@@ -105,9 +106,7 @@ describe('connection', () => {
     const proofMessage = lastMessage() as ProveIdentityMessage
     const peerKeys = redact(bob.keys)
     const validation = identity.verify(challengeMessage, proofMessage, peerKeys)
-
-    // The proof is valid
-    if (!validation.isValid) throw validation.error
+    expect(validation).toBeValid()
 
     // Alice generates a acceptance message and sends it to Bob
     const seed = randomKey()
