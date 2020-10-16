@@ -95,7 +95,12 @@ describe('Team', () => {
 
     it('removes a member from a role', () => {
       const { team: alicesTeam } = setup()
+      // Alice adds a couple of members
       alicesTeam.add(redact(bob), [ADMIN])
+
+      // Create manager role and add Bob to it
+      alicesTeam.addRole(managers)
+      alicesTeam.addMemberRole('bob', MANAGERS)
 
       // Bob is an admin
       expect(alicesTeam.memberIsAdmin('bob')).toBe(true)
@@ -105,6 +110,7 @@ describe('Team', () => {
 
       // Bob is no longer an admin
       expect(alicesTeam.memberIsAdmin('bob')).toBe(false)
+      expect(alicesTeam.memberHasRole('bob', MANAGERS)).toBe(true)
 
       // Alice persists the team
       storage.save(alicesTeam)
