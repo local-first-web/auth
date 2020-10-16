@@ -25,51 +25,6 @@ describe('crypto', () => {
       secretKey: 'qiSxzj2NgUt5YUj6PccfiEjYQI8wIlPgWqs9HeaBEbs=',
     }
 
-    const knownCipher = '0UllJr2FBwolmAGHg0FUuAfpweLyUSgYT74U/RH6FeEiDw64zFxvFeLJd6LX0D/YMYxj1aNwRmy5LapQIyh1QnKLuQ==' // prettier-ignore
-
-    test(`alice encrypts using her secret key and bob's public key`, () => {
-      const cipherFromAlice = encrypt({
-        secret: plaintext,
-        recipientPublicKey: bob.publicKey,
-        senderSecretKey: alice.secretKey,
-      })
-      expect(cipherFromAlice).toHaveLength(24 + 68) // IV + ciphertext
-      expect(cipherFromAlice).not.toEqual(knownCipher) // each encryption is different
-    })
-
-    test(`bob decrypts using his secret key and alice's public key`, () => {
-      const cipherFromAlice = knownCipher
-      expect(
-        decrypt({
-          cipher: cipherFromAlice,
-          senderPublicKey: alice.publicKey,
-          recipientSecretKey: bob.secretKey,
-        })
-      ).toEqual(plaintext)
-    })
-
-    test(`eve can't decrypt with her secret key`, () => {
-      const cipherFromAlice = knownCipher
-      const attemptToDecrypt = () =>
-        decrypt({
-          cipher: cipherFromAlice,
-          senderPublicKey: alice.publicKey,
-          recipientSecretKey: eve.secretKey,
-        })
-      expect(attemptToDecrypt).toThrow()
-    })
-
-    test(`can't decrypt with the wrong public key`, () => {
-      const cipherFromAlice = knownCipher
-      const attemptToDecrypt = () =>
-        decrypt({
-          cipher: cipherFromAlice,
-          senderPublicKey: eve.publicKey,
-          recipientSecretKey: bob.secretKey,
-        })
-      expect(attemptToDecrypt).toThrow()
-    })
-
     test.each`
       label                 | message
       ${'plain text'}       | ${plaintext}
