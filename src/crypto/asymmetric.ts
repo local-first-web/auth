@@ -77,7 +77,13 @@ export const asymmetric = {
    * @returns The encrypted data, encoded in msgpack format as a base64 string
    * @see asymmetric.decryptWithEphemeralKey
    */
-  encryptWithEphemeralKey: ({ secret, recipientPublicKey }: EncryptParams) => {
+  encryptWithEphemeralKey: ({
+    secret,
+    recipientPublicKey,
+  }: {
+    secret: Payload
+    recipientPublicKey: Key
+  }) => {
     const nonce = newNonce()
     const senderKeys = asymmetric.keyPair()
     const messageBytes = payloadToBytes(secret)
@@ -104,7 +110,13 @@ export const asymmetric = {
    * @returns The original plaintext
    * @see asymmetric.encryptWithEphemeralKey
    */
-  decryptWithEphemeralKey: ({ cipher, recipientSecretKey }: DecryptParams) => {
+  decryptWithEphemeralKey: ({
+    cipher,
+    recipientSecretKey,
+  }: {
+    cipher: Key
+    recipientSecretKey: Key
+  }) => {
     const cipherBytes = keyToBytes(cipher)
 
     const { nonce, message, senderPublicKey } = msgpack.decode(cipherBytes)
