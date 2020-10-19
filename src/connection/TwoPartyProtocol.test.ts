@@ -28,7 +28,8 @@ describe('TwoWaySecureMessagingProtocol', () => {
       expect(decrypted).toEqual(plainText)
     }
   })
-  it('decrypts a series of strictly alternating  messages', () => {
+
+  it('decrypts a series of strictly alternating messages', () => {
     const aliceKeys = asymmetric.keyPair()
     const bobKeys = asymmetric.keyPair()
     const alice = new TwoPartyProtocol(aliceKeys.secretKey, bobKeys.publicKey)
@@ -84,6 +85,26 @@ describe('TwoWaySecureMessagingProtocol', () => {
 
     // so if we try to decrypt the same message a second time, it fails
     const tryToDecryptAgain = () => bob.receive(encrypted)
-    expect(tryToDecryptAgain).toThrow()
+    expect(tryToDecryptAgain).toThrow('A cipher can only be decrypted once')
+  })
+
+  it(`requires messages to be processed in order`, () => {
+    const aliceKeys = asymmetric.keyPair()
+    const bobKeys = asymmetric.keyPair()
+
+    const alice = new TwoPartyProtocol(aliceKeys.secretKey, bobKeys.publicKey)
+    const bob = new TwoPartyProtocol(bobKeys.secretKey, aliceKeys.publicKey)
+
+    const encrypted1 = alice.send('alice 1')
+    const encrypted2 = alice.send('alice 2')
+    const encrypted3 = alice.send('alice 3')
+
+    const tryToProcessOutOfOrder = () => {
+      bob.receive(encrypted1)
+      bob.receive(encrypted3)
+      bob.receive(encrypted2)
+    }
+
+    expect(tryToProcessOutOfOrder).toThrow()
   })
 })
