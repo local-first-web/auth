@@ -12,7 +12,7 @@ export class TwoPartyProtocol {
   private receivedSk: string
   private nextIndex: number
   private otherPk: string
-  private otherPkSender: MeOrOther
+  private otherPkSender: MeOrYou
   private otherPkIndex: number
 
   constructor(sk: string, pk: string) {
@@ -97,11 +97,11 @@ const EMPTY = ''
 const ME = 'me'
 const YOU = 'you'
 
-type MeOrOther = typeof ME | typeof YOU
+type MeOrYou = typeof ME | typeof YOU
 
 interface TwoPartyMessage {
   cipher: string // ciphertext
-  keySender: MeOrOther // senderOtherPkSender
+  keySender: MeOrYou // senderOtherPkSender
   keyIndex: number // receiverPkIndex
 }
 
