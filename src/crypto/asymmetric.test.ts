@@ -1,7 +1,7 @@
 ﻿import { asymmetric } from '/crypto/asymmetric'
 import { signatures } from '/crypto/signatures'
 
-const { encrypt, decrypt, encryptWithEphemeralKey, decryptWithEphemeralKey } = asymmetric
+const { encrypt, decrypt } = asymmetric
 
 const plaintext = 'The leopard pounces at noon'
 const zalgoText = 'ẓ̴̇a̷̰̚l̶̥͑g̶̼͂o̴̅͜ ̸̻̏í̴͜s̵̜͠ ̴̦̃u̸̼̎p̵̘̔o̵̦͑ǹ̵̰ ̶̢͘u̵̇ͅș̷̏'
@@ -68,18 +68,18 @@ describe('crypto', () => {
       ${'stringified json'} | ${json}
       ${'zalgo text'}       | ${zalgoText}
     `('round trip: $label', ({ message }) => {
-      const encrypted = encryptWithEphemeralKey({
+      const encrypted = encrypt({
         secret: message,
         recipientPublicKey: bob.publicKey,
       })
-      const decrypted = decryptWithEphemeralKey({
+      const decrypted = decrypt({
         cipher: encrypted,
         recipientSecretKey: bob.secretKey,
       })
       expect(decrypted).toEqual(message)
 
       const attemptToDecrypt = () =>
-        decryptWithEphemeralKey({
+        decrypt({
           cipher: encrypted,
           recipientSecretKey: eve.secretKey,
         })
