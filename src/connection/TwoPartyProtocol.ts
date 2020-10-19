@@ -2,11 +2,14 @@
 import msgpack from 'msgpack-lite'
 import { asymmetric, hash } from '/crypto'
 
-// implementation of 2-Party Secure Messaging (2SM) Protocol
-// described in "Key Agreement for Decentralized Secure Group Messaging with Strong Security Guarantees"
-// by Matthew Weidner, Martin Kleppmann, Daniel Hugenroth, and Alastair R. Beresford
-// https://eprint.iacr.org/2020/1281
-// reference implementation in java: https://github.com/trvedata/key-agreement/blob/main/group_protocol_library/src/main/java/org/trvedata/sgm/crypto/TwoPartyProtocol.java
+/**
+ * Implementation of 2-Party Secure Messaging (2SM) Protocol
+ * described in "Key Agreement for Decentralized Secure Group Messaging with Strong Security Guarantees"
+ * by Matthew Weidner, Martin Kleppmann, Daniel Hugenroth, and Alastair R. Beresford
+ * https://eprint.iacr.org/2020/1281
+ *
+ * Reference implementation in java: https://github.com/trvedata/key-agreement/blob/main/group_protocol_library/src/main/java/org/trvedata/sgm/crypto/TwoPartyProtocol.java
+ */
 export class TwoPartyProtocol {
   private mySks: string[]
   private receivedSk: string
@@ -66,7 +69,8 @@ export class TwoPartyProtocol {
     if (keySender === YOU) {
       // 'YOU' is from the sender's perspective; indicates the last one to send a key was 'ME'
       sk = this.mySks[keyIndex]
-      if (sk === undefined) throw new Error('A given cipher can only be decrypted once')
+      if (sk === undefined) throw new Error('A cipher can only be decrypted once')
+      // delete older keys
       for (let i = 0; i <= keyIndex; i++) delete this.mySks[i]
     } else {
       sk = this.receivedSk
