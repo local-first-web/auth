@@ -1,13 +1,13 @@
 ﻿import * as base64 from '@stablelib/base64'
 import msgpack from 'msgpack-lite'
-import { asymmetric } from '/crypto'
+import { asymmetric, hash } from '/crypto'
 
-// implementation of 2-Way Secure Messaging (2SM) Protocol
+// implementation of 2-Party Secure Messaging (2SM) Protocol
 // described in "Key Agreement for Decentralized Secure Group Messaging with Strong Security Guarantees"
 // by Matthew Weidner, Martin Kleppmann, Daniel Hugenroth, and Alastair R. Beresford
 // https://eprint.iacr.org/2020/1281
-// reference implementation in java: https://github.com/trvedata/key-agreement
-export class TwoPartySecureMessagingProtocol {
+// reference implementation in java: https://github.com/trvedata/key-agreement/blob/main/group_protocol_library/src/main/java/org/trvedata/sgm/crypto/TwoPartyProtocol.java
+export class TwoPartyProtocol {
   private mySks: string[]
   private receivedSk: string
   private nextIndex: number
@@ -20,7 +20,7 @@ export class TwoPartySecureMessagingProtocol {
     this.receivedSk = EMPTY
     this.nextIndex = 1
     this.otherPk = pk
-    this.otherPkSender = OTHER
+    this.otherPkSender = YOU
     this.otherPkIndex = 0
   }
 
@@ -30,23 +30,24 @@ export class TwoPartySecureMessagingProtocol {
 
     this.mySks[this.nextIndex] = myNewKeyPair.secretKey
 
-    const secret = pack({
+    const plainText: TwoPartyPlaintext = {
       message,
       otherNewSk: otherNewKeyPair.secretKey,
       nextIndex: this.nextIndex,
       myNewPk: myNewKeyPair.publicKey,
-    } as TwoPartyPlaintext)
+    }
+    const payload = pack(plainText)
 
-    const encryptedPayload = asymmetric.encryptWithEphemeralKey({
-      secret,
+    const cipher = asymmetric.encrypt({
+      secret: payload,
       recipientPublicKey: this.otherPk,
     })
 
-    const msg = pack({
-      encryptedPayload,
+    const cipherWithMetadata = {
+      cipher,
       keySender: this.otherPkSender,
       keyIndex: this.otherPkIndex,
-    } as TwoPartyMessage)
+    } as TwoPartyMessage
 
     this.nextIndex += 1
 
@@ -54,14 +55,16 @@ export class TwoPartySecureMessagingProtocol {
     this.otherPkSender = ME
     this.otherPkIndex = 0
 
-    return msg
+    return pack(cipherWithMetadata)
   }
 
-  receive(cipher: string) {
-    const { encryptedPayload, keySender, keyIndex } = unpack(cipher) as TwoPartyMessage
+  receive(packedCipherWithMetadata: string) {
+    const cipherWithMetadata = unpack(packedCipherWithMetadata) as TwoPartyMessage
+    const { cipher, keySender, keyIndex } = cipherWithMetadata
 
     let sk: string
-    if (keySender === OTHER) {
+    if (keySender === YOU) {
+      // last one to send a key was me
       sk = this.mySks[keyIndex]
       if (sk === undefined) throw new Error('A given cipher can only be decrypted once')
       for (let i = 0; i <= keyIndex; i++) delete this.mySks[i]
@@ -69,16 +72,18 @@ export class TwoPartySecureMessagingProtocol {
       sk = this.receivedSk
     }
 
-    const decrypted = asymmetric.decryptWithEphemeralKey({
-      cipher: encryptedPayload,
+    const payload = asymmetric.decrypt({
+      cipher: cipher,
       recipientSecretKey: sk,
     })
-    const { message, otherNewSk, nextIndex, myNewPk } = unpack(decrypted) as TwoPartyPlaintext
+
+    const plainText: TwoPartyPlaintext = unpack(payload)
+    const { message, otherNewSk, nextIndex, myNewPk } = plainText
 
     this.receivedSk = otherNewSk
 
     this.otherPk = myNewPk
-    this.otherPkSender = OTHER
+    this.otherPkSender = YOU
     this.otherPkIndex = nextIndex
 
     return message
@@ -90,12 +95,12 @@ const unpack = (s: string) => msgpack.decode(base64.decode(s))
 
 const EMPTY = ''
 const ME = 'me'
-const OTHER = 'other'
+const YOU = 'you'
 
-type MeOrOther = typeof ME | typeof OTHER
+type MeOrOther = typeof ME | typeof YOU
 
 interface TwoPartyMessage {
-  encryptedPayload: string // ciphertext
+  cipher: string // ciphertext
   keySender: MeOrOther // senderOtherPkSender
   keyIndex: number // receiverPkIndex
 }

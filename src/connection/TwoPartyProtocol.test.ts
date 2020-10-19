@@ -1,4 +1,4 @@
-import { TwoPartySecureMessagingProtocol } from './TwoPartySecureMessagingProtocol'
+import { TwoPartyProtocol } from './TwoPartyProtocol'
 import { asymmetric } from '/crypto'
 
 describe('TwoWaySecureMessagingProtocol', () => {
@@ -6,8 +6,8 @@ describe('TwoWaySecureMessagingProtocol', () => {
     const aliceKeys = asymmetric.keyPair()
     const bobKeys = asymmetric.keyPair()
 
-    const alice = new TwoPartySecureMessagingProtocol(aliceKeys.secretKey, bobKeys.publicKey)
-    const bob = new TwoPartySecureMessagingProtocol(bobKeys.secretKey, aliceKeys.publicKey)
+    const alice = new TwoPartyProtocol(aliceKeys.secretKey, bobKeys.publicKey)
+    const bob = new TwoPartyProtocol(bobKeys.secretKey, aliceKeys.publicKey)
 
     const plainText = 'the eagle lands at midnight'
     const encrypted = alice.send(plainText)
@@ -18,8 +18,8 @@ describe('TwoWaySecureMessagingProtocol', () => {
   it('decrypts a series of unidirectional messages', () => {
     const aliceKeys = asymmetric.keyPair()
     const bobKeys = asymmetric.keyPair()
-    const alice = new TwoPartySecureMessagingProtocol(aliceKeys.secretKey, bobKeys.publicKey)
-    const bob = new TwoPartySecureMessagingProtocol(bobKeys.secretKey, aliceKeys.publicKey)
+    const alice = new TwoPartyProtocol(aliceKeys.secretKey, bobKeys.publicKey)
+    const bob = new TwoPartyProtocol(bobKeys.secretKey, aliceKeys.publicKey)
 
     for (let i = 0; i < 10; i++) {
       const plainText = 'the eagle lands at ' + i
@@ -31,8 +31,8 @@ describe('TwoWaySecureMessagingProtocol', () => {
   it('decrypts a series of strictly alternating  messages', () => {
     const aliceKeys = asymmetric.keyPair()
     const bobKeys = asymmetric.keyPair()
-    const alice = new TwoPartySecureMessagingProtocol(aliceKeys.secretKey, bobKeys.publicKey)
-    const bob = new TwoPartySecureMessagingProtocol(bobKeys.secretKey, aliceKeys.publicKey)
+    const alice = new TwoPartyProtocol(aliceKeys.secretKey, bobKeys.publicKey)
+    const bob = new TwoPartyProtocol(bobKeys.secretKey, aliceKeys.publicKey)
 
     for (let i = 0; i < 10; i++) {
       const alicePlainText = 'alice ' + i
@@ -50,8 +50,8 @@ describe('TwoWaySecureMessagingProtocol', () => {
   it('decrypts a series of concurrent messages in lockstep', () => {
     const aliceKeys = asymmetric.keyPair()
     const bobKeys = asymmetric.keyPair()
-    const alice = new TwoPartySecureMessagingProtocol(aliceKeys.secretKey, bobKeys.publicKey)
-    const bob = new TwoPartySecureMessagingProtocol(bobKeys.secretKey, aliceKeys.publicKey)
+    const alice = new TwoPartyProtocol(aliceKeys.secretKey, bobKeys.publicKey)
+    const bob = new TwoPartyProtocol(bobKeys.secretKey, aliceKeys.publicKey)
 
     for (let i = 0; i < 10; i++) {
       const alicePlainText = 'alice ' + i
@@ -72,8 +72,8 @@ describe('TwoWaySecureMessagingProtocol', () => {
     const aliceKeys = asymmetric.keyPair()
     const bobKeys = asymmetric.keyPair()
 
-    const alice = new TwoPartySecureMessagingProtocol(aliceKeys.secretKey, bobKeys.publicKey)
-    const bob = new TwoPartySecureMessagingProtocol(bobKeys.secretKey, aliceKeys.publicKey)
+    const alice = new TwoPartyProtocol(aliceKeys.secretKey, bobKeys.publicKey)
+    const bob = new TwoPartyProtocol(bobKeys.secretKey, aliceKeys.publicKey)
 
     const plainText = 'the eagle lands at midnight'
     const encrypted = alice.send(plainText)
