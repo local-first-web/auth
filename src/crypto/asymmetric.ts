@@ -5,18 +5,6 @@ import nacl from 'tweetnacl'
 import { newNonce } from '/crypto/nonce'
 import { Key, keypairToBase64, keyToBytes, Payload, payloadToBytes } from '/util'
 
-interface EncryptParams {
-  secret: Payload
-  recipientPublicKey: Key
-  senderSecretKey: Key
-}
-
-interface DecryptParams {
-  cipher: Key
-  senderPublicKey: Key
-  recipientSecretKey: Key
-}
-
 export const asymmetric = {
   /**
    * @returns A key pair consisting of a public key and a secret key, encoded as base64 strings, to
@@ -77,13 +65,7 @@ export const asymmetric = {
    * @returns The encrypted data, encoded in msgpack format as a base64 string
    * @see asymmetric.decryptWithEphemeralKey
    */
-  encryptWithEphemeralKey: ({
-    secret,
-    recipientPublicKey,
-  }: {
-    secret: Payload
-    recipientPublicKey: Key
-  }) => {
+  encryptWithEphemeralKey: ({ secret, recipientPublicKey }: EncryptWithEphemeralKeyParams) => {
     const nonce = newNonce()
     const senderKeys = asymmetric.keyPair()
     const messageBytes = payloadToBytes(secret)
@@ -110,13 +92,7 @@ export const asymmetric = {
    * @returns The original plaintext
    * @see asymmetric.encryptWithEphemeralKey
    */
-  decryptWithEphemeralKey: ({
-    cipher,
-    recipientSecretKey,
-  }: {
-    cipher: Key
-    recipientSecretKey: Key
-  }) => {
+  decryptWithEphemeralKey: ({ cipher, recipientSecretKey }: DecryptWithEphemeralKeyParams) => {
     const cipherBytes = keyToBytes(cipher)
 
     const { nonce, message, senderPublicKey } = msgpack.decode(cipherBytes)
@@ -129,4 +105,26 @@ export const asymmetric = {
     if (!decrypted) throw new Error('Could not decrypt message')
     return utf8Decode(decrypted)
   },
+}
+
+interface EncryptParams {
+  secret: Payload
+  recipientPublicKey: Key
+  senderSecretKey: Key
+}
+
+interface DecryptParams {
+  cipher: Key
+  senderPublicKey: Key
+  recipientSecretKey: Key
+}
+
+interface EncryptWithEphemeralKeyParams {
+  secret: Payload
+  recipientPublicKey: Key
+}
+
+interface DecryptWithEphemeralKeyParams {
+  cipher: Key
+  recipientSecretKey: Key
 }
