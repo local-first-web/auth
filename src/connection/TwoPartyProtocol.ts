@@ -64,7 +64,7 @@ export class TwoPartyProtocol {
 
     let sk: string
     if (keySender === YOU) {
-      // last one to send a key was me
+      // 'YOU' is from the sender's perspective; indicates the last one to send a key was 'ME'
       sk = this.mySks[keyIndex]
       if (sk === undefined) throw new Error('A given cipher can only be decrypted once')
       for (let i = 0; i <= keyIndex; i++) delete this.mySks[i]
