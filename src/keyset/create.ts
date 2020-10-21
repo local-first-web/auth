@@ -36,16 +36,14 @@ export const create = (
 // private
 
 const deriveSignatureKeys = (secretKey: Key) => {
-  const { keyPair } = nacl.sign
   const derivedSeed = hash(SIGNATURE, secretKey).slice(0, 32)
-  const keys = keyPair.fromSeed(derivedSeed)
+  const keys = nacl.sign.keyPair.fromSeed(derivedSeed)
   return keypairToBase64(keys)
 }
 
 const deriveEncryptionKeys = (secretKey: Key) => {
-  const { keyPair, secretKeyLength } = nacl.box
-  const derivedSecretKey = hash(ENCRYPTION, secretKey).slice(0, secretKeyLength)
-  const keys = keyPair.fromSecretKey(derivedSecretKey)
+  const derivedSecretKey = hash(ENCRYPTION, secretKey).slice(0, nacl.box.secretKeyLength)
+  const keys = nacl.box.keyPair.fromSecretKey(derivedSecretKey)
   return keypairToBase64(keys)
 }
 
