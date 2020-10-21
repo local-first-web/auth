@@ -1,6 +1,6 @@
 ﻿import { KeysetWithSecrets } from '/keyset'
 import { Invitation, InvitationBody } from '/invitation'
-import { symmetric } from '/crypto'
+import { symmetric } from '@herbcaudill/crypto'
 
 export const open = (invitation: Invitation, teamKeys: KeysetWithSecrets): InvitationBody => {
   const decryptedBody = symmetric.decrypt(invitation.encryptedBody, teamKeys.secretKey)

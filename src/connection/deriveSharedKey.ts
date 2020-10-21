@@ -1,5 +1,5 @@
-import { hash } from '/crypto'
-import { Base64, base64, HashPurpose } from '/util'
+import { hash, Base64, base64 } from '@herbcaudill/crypto'
+import { HashPurpose } from '/util'
 
 /**
  * Takes two seeds (in this case, provided by each of two peers that are connecting) and

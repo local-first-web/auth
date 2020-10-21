@@ -1,7 +1,7 @@
 ﻿import { ValidatorSet } from '/chain/types'
 import { ValidationError } from '/util'
 import { hashLink } from '/chain/hashLink'
-import { signatures } from '/crypto'
+import { signatures } from '@herbcaudill/crypto'
 
 export const validators: ValidatorSet = {
   /** Does this link contain a hash of the previous link?  */

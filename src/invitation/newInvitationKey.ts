@@ -1,6 +1,6 @@
-﻿import nacl from 'tweetnacl'
-import { base30 } from '/util'
+﻿import { randomKey } from '@herbcaudill/crypto'
 import { IKEY_LENGTH } from '/invitation/create'
+import { base30 } from '/util/base30'
 
 // ## Step 1a
 // The invitation key is a randomly generated secret that is sent to Bob via a pre-authenticated
@@ -19,4 +19,4 @@ import { IKEY_LENGTH } from '/invitation/create'
  * 32-character strings using the full ASCII character set (stronger but practically impossible to
  * remember or communicate verbally).
  */
-export const newInvitationKey = (length = IKEY_LENGTH) => base30.encode(nacl.randomBytes(length))
+export const newInvitationKey = (length = IKEY_LENGTH) => randomKey(length, base30.encode)

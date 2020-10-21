@@ -1,4 +1,4 @@
-﻿import { signatures } from '/crypto'
+﻿import { signatures } from '@herbcaudill/crypto'
 import { PublicKeyset } from '/keyset'
 import { ChallengeIdentityMessage, ProveIdentityMessage } from '/message'
 import { ValidationResult } from '/util'

@@ -1,4 +1,4 @@
-﻿import { symmetric } from '/crypto'
+﻿import { symmetric } from '@herbcaudill/crypto'
 import { deriveId } from '/invitation/deriveId'
 import { normalize } from '/invitation/normalize'
 import {

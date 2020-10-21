@@ -1,4 +1,4 @@
-import { symmetric } from '/crypto'
+import { symmetric } from '@herbcaudill/crypto'
 import { ADMIN } from '/role'
 import { Team } from '/team'
 import { EncryptedEnvelope } from '/team/types'

@@ -1,5 +1,5 @@
 import { TwoPartyProtocol } from './TwoPartyProtocol'
-import { asymmetric } from '/crypto'
+import { asymmetric } from '@herbcaudill/crypto'
 
 describe('TwoWaySecureMessagingProtocol', () => {
   it('decrypts one message', () => {

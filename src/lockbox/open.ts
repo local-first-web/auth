@@ -1,4 +1,4 @@
-﻿import { asymmetric } from '/crypto'
+﻿import { asymmetric } from '@herbcaudill/crypto'
 import { KeysetWithSecrets } from '/keyset'
 import { Lockbox } from '/lockbox/types'
 

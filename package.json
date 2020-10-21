@@ -20,7 +20,7 @@
   "scripts": {
     "start": "tsdx watch",
     "build": "tsdx build",
-    "postbuild": "tscpaths -p tsconfig.json -s ./src -o ./dist",
+    "postbuild": "tscpaths -p tsconfig.json -s ./src -o ./dist --silent",
     "test": "tsdx test",
     "lint": "tsdx lint src",
     "prepare": "tsdx build",
@@ -28,31 +28,22 @@
   },
   "peerDependencies": {},
   "dependencies": {
-    "@stablelib/base64": "1",
-    "@stablelib/utf8": "1",
+    "@herbcaudill/crypto": "0",
     "fast-memoize": "2",
-    "json-stable-stringify": "1",
     "msgpack-lite": "^0.1.26",
     "ramda": "0",
-    "scryptsy": "2",
-    "tweetnacl": "1",
     "xstate": "4"
   },
   "devDependencies": {
-    "@types/json-stable-stringify": "1",
+    "@herbcaudill/tscpaths": "0",
     "@types/msgpack-lite": "0",
     "@types/ramda": "0",
-    "@types/scryptsy": "2",
     "husky": "4",
     "prettier": "2",
-    "tscpaths": "0",
     "tsdx": "0",
     "tslib": "1",
     "typescript": "3",
     "v8-profiler-node8": "6"
-  },
-  "husky": {
-    "hooks": {}
   },
   "prettier": {
     "printWidth": 100,

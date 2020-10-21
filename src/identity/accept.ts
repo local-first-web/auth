@@ -1,7 +1,7 @@
 ﻿﻿import { randomKey, KeysetWithSecrets, PublicKeyset } from '/keyset'
 import { AcceptIdentityMessage, ClaimIdentityMessage } from '/message'
 import { Base64 } from '/util'
-import { asymmetric } from '/crypto'
+import { asymmetric } from '@herbcaudill/crypto'
 
 export const accept = ({ seed, peerKeys, userKeys }: AcceptArgs): AcceptIdentityMessage => {
   // encrypt the seed for our peer

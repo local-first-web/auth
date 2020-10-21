@@ -1,8 +1,14 @@
-﻿import nacl from 'tweetnacl'
+﻿import {
+  base64,
+  hash,
+  Key,
+  stretch,
+  signatures,
+  asymmetric,
+} from '@herbcaudill/crypto'
 import { randomKey } from '/keyset/randomKey'
 import { KeyScope, KeysetWithSecrets } from '/keyset/types'
-import { hash, stretch } from '/crypto'
-import { HashPurpose, Key, keypairToBase64, Optional, base64 } from '/util'
+import { HashPurpose, Optional } from '/util'
 
 const { SIGNATURE, ENCRYPTION, SYMMETRIC } = HashPurpose
 
@@ -36,15 +42,13 @@ export const create = (
 // private
 
 const deriveSignatureKeys = (secretKey: Key) => {
-  const derivedSeed = hash(SIGNATURE, secretKey).slice(0, 32)
-  const keys = nacl.sign.keyPair.fromSeed(derivedSeed)
-  return keypairToBase64(keys)
+  const derivedSeed = base64.encode(hash(SIGNATURE, secretKey).slice(0, 32))
+  return signatures.keyPair(derivedSeed)
 }
 
 const deriveEncryptionKeys = (secretKey: Key) => {
-  const derivedSecretKey = hash(ENCRYPTION, secretKey).slice(0, nacl.box.secretKeyLength)
-  const keys = nacl.box.keyPair.fromSecretKey(derivedSecretKey)
-  return keypairToBase64(keys)
+  const derivedSecretKey = base64.encode(hash(ENCRYPTION, secretKey).slice(0, 32))
+  return asymmetric.keyPair(derivedSecretKey)
 }
 
 const deriveSymmetricKey = (secretKey: Key) => {

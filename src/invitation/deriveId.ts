@@ -1,5 +1,5 @@
-﻿import { hash, stretch } from '/crypto'
-import { base64, HashPurpose } from '/util'
+﻿import { hash, stretch, base64 } from '@herbcaudill/crypto'
+import { HashPurpose } from '/util'
 
 const { INVITATION } = HashPurpose
 

@@ -3,7 +3,7 @@ import { createMachine, interpret } from 'xstate'
 import { machineConfig } from './machineConfig'
 import { deriveSharedKey } from '/connection/deriveSharedKey'
 import { Action, Condition, ConnectionParams, SendFunction } from '/connection/types'
-import { asymmetric } from '/crypto'
+import { asymmetric } from '@herbcaudill/crypto'
 import * as identity from '/identity'
 import { KeyType, randomKey } from '/keyset'
 import {

@@ -1,4 +1,4 @@
-﻿import { Base64, Base64Keypair } from '/util'
+﻿import { Base64, Base64Keypair } from '@herbcaudill/crypto'
 
 export interface Keyset {
   secretKey: Base64 // for symmetric encryption

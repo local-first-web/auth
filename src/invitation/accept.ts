@@ -1,4 +1,4 @@
-﻿import { signatures } from '/crypto'
+﻿import { signatures } from '@herbcaudill/crypto'
 import { Device } from '/device'
 import { deriveId } from '/invitation/deriveId'
 import { normalize } from '/invitation/normalize'

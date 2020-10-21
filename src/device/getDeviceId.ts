@@ -1,6 +1,6 @@
-﻿import { hash } from '/crypto'
+﻿import { hash, base64, Base64 } from '@herbcaudill/crypto'
 import { DeviceInfo } from '/device/types'
-import { base64, Base64, HashPurpose } from '/util'
+import { HashPurpose } from '/util'
 
 /** The deviceId is a hash of the name and username; we use it to identify the device uniquely in
  *  public situations where we want to avoid leaking more info than necessary

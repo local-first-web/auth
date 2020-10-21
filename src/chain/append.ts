@@ -1,5 +1,5 @@
 ﻿import { LocalUserContext, redactContext } from '/context'
-import { signatures } from '/crypto'
+import { signatures } from '@herbcaudill/crypto'
 import { User } from '/user'
 import { hashLink } from '/chain/hashLink'
 import { LinkBody, PartialLinkBody, SignatureChain, SignedLink } from '/chain/types'

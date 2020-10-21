@@ -1,4 +1,4 @@
-import { asymmetric, signatures, symmetric } from '/crypto'
+import { asymmetric, signatures, symmetric } from '@herbcaudill/crypto'
 import { create } from '/user/create'
 import { load } from '/user/load'
 import '/util/testing/expect/toLookLikeKeyset'

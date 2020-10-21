@@ -1,5 +1,5 @@
 ﻿import { open } from './open'
-import { signatures } from '/crypto'
+import { signatures } from '@herbcaudill/crypto'
 import { Invitation, ProofOfInvitation } from '/invitation/types'
 import { KeysetWithSecrets } from '/keyset'
 import { ValidationResult } from '/util'

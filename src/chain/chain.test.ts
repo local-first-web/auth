@@ -2,7 +2,7 @@ import { PartialLinkBody } from './types'
 import { append } from '/chain/append'
 import { create } from '/chain/create'
 import { validate } from '/chain/validate'
-import { signatures } from '/crypto'
+import { signatures } from '@herbcaudill/crypto'
 import { alice, defaultContext } from '/util/testing'
 
 import '/util/testing/expect/toBeValid'

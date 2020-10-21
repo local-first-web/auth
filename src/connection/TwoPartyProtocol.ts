@@ -1,12 +1,11 @@
-﻿import * as base64 from '@stablelib/base64'
+﻿import { asymmetric, base64 } from '@herbcaudill/crypto'
 import msgpack from 'msgpack-lite'
-import { asymmetric, hash } from '/crypto'
 
 /**
  * Implementation of 2-Party Secure Messaging (2SM) Protocol
  * described in "Key Agreement for Decentralized Secure Group Messaging with Strong Security Guarantees"
  * by Matthew Weidner, Martin Kleppmann, Daniel Hugenroth, and Alastair R. Beresford
- * https://eprint.iacr.org/2020/1281
+ * https://eprint.iacr.org/2020/1281.pdf
  *
  * Reference implementation in java: https://github.com/trvedata/key-agreement/blob/main/group_protocol_library/src/main/java/org/trvedata/sgm/crypto/TwoPartyProtocol.java
  */
@@ -45,7 +44,7 @@ export class TwoPartyProtocol {
       secret: payload,
       recipientPublicKey: this.otherPk,
     })
- 
+
     const cipherWithMetadata = {
       cipher,
       keySender: this.otherPkSender,

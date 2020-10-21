@@ -1,7 +1,7 @@
 ﻿import { EventEmitter } from 'events'
 import { chain, SignatureChain, validate } from '/chain'
 import { LocalUserContext } from '/context'
-import { signatures, symmetric } from '/crypto'
+import { signatures, symmetric } from '@herbcaudill/crypto'
 import { DeviceInfo, getDeviceId } from '/device'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
