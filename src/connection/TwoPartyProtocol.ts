@@ -45,7 +45,7 @@ export class TwoPartyProtocol {
       secret: payload,
       recipientPublicKey: this.otherPk,
     })
-
+ 
     const cipherWithMetadata = {
       cipher,
       keySender: this.otherPkSender,
