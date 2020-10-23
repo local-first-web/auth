@@ -9,7 +9,7 @@ A signature chain is an ordered list of links. Each link
 
 A signature chain is just data and can be stored as JSON. For example, here's a signature chain containing two links:
 
-```json
+```jsonc
 [
   // root link
   {
