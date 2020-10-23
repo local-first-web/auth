@@ -19,11 +19,10 @@
   },
   "scripts": {
     "start": "tsdx watch",
-    "build": "tsdx build",
-    "postbuild": "tscpaths -p tsconfig.json -s ./src -o ./dist --silent",
+    "build": "tsdx build && tscpaths -p tsconfig.json -s ./src -o ./dist --silent",
     "test": "tsdx test",
     "lint": "tsdx lint src",
-    "prepare": "tsdx build",
+    "prepare": "yarn build",
     "purge": "scripts/purge.bat"
   },
   "peerDependencies": {},
