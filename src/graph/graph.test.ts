@@ -65,25 +65,30 @@ describe('SignatureGraph', () => {
       const bobGraph = { ...aliceGraph }
 
       // They make concurrent edits
-      const aliceBranch = append(aliceGraph, { type: 'FOO', payload: 'alice' }, alicesContext)
+      const aliceBranch1 = append(aliceGraph, { type: 'FOO', payload: 'alice 1' }, alicesContext)
+      const aliceBranch2 = append(aliceBranch1, { type: 'FOO', payload: 'alice 2' }, alicesContext)
       const bobBranch = append(bobGraph, { type: 'FOO', payload: 'bob' }, bobsContext)
 
       // They sync back up
-      const aliceMerged = merge(aliceBranch, bobBranch)
-      const bobMerged = merge(bobBranch, aliceBranch)
+      const aliceMerged = merge(aliceBranch2, bobBranch)
+      const bobMerged = merge(bobBranch, aliceBranch2)
 
       // Both graphs have changed
-      expect(aliceMerged).not.toEqual(aliceBranch)
+      expect(aliceMerged).not.toEqual(aliceBranch2)
       expect(bobMerged).not.toEqual(bobBranch)
 
       // but they're in sync with each other now
       expect(aliceMerged).toEqual(bobMerged)
+
+      // The merged graphs have five nodes: ROOT, bob's change, alice's two changes, and MERGE
+      expect(aliceMerged.nodes.size).toBe(5)
     })
 
     test(`can't merge graphs with different roots`, () => {
       const aliceGraph = create('a', alicesContext)
       const bobGraph = create('b', bobsContext)
 
+      // nope
       const tryToMerge = () => merge(aliceGraph, bobGraph)
       expect(tryToMerge).toThrow()
     })
