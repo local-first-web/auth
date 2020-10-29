@@ -72,12 +72,12 @@ describe('SignatureGraph', () => {
       const aliceMerged = merge(aliceBranch, bobBranch)
       const bobMerged = merge(bobBranch, aliceBranch)
 
-      // They now have the same graph again
-      expect(aliceMerged).toEqual(bobMerged)
-
-      // The resulting graph is not equal to what either one had before merging
+      // Both graphs have changed
       expect(aliceMerged).not.toEqual(aliceBranch)
       expect(bobMerged).not.toEqual(bobBranch)
+
+      // but they're in sync with each other now
+      expect(aliceMerged).toEqual(bobMerged)
     })
 
     test(`can't merge graphs with different roots`, () => {
