@@ -19,20 +19,13 @@ A U M P W Z B D Q
 (I think we want to treat the divergent segments atomically - so `Z B D` is a single unit, and it's
 not an option to merge `Q` into the middle of it.)
 
-### Things I haven't figured out
-
 We need a deterministic comparison function that takes two chain segments and indicates which one is
 to go first.
 
 - Start with something arbitrary but deterministic; we'll need this as a tie-breaker.
 - The tie-breaker needs to be impossible to game. Could be a hash that combines the hashes of the
   two segments, but in different orders.
-- The
-
-How do we handle a situation where the resulting chain doesn't validate? e.g. `Z` removes a user and
-`Q` gives the user a role.
-
-- we could just
+- The next step would be to implement more complex logic, starting with strong-remove
 
 ## N-way merge
 
@@ -50,3 +43,7 @@ A U M P W Z B D Q
 
 Alice + Charlie:
 ```
+
+### Things I haven't figured out
+
+- How do you rewrite the chain when each element is hard-linked to its antecedent?
