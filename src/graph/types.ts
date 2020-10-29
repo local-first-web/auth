@@ -43,3 +43,9 @@ export type Validator = (currentNode: SignedNode, prevNode?: SignedNode) => Vali
 export type ValidatorSet = {
   [key: string]: Validator
 }
+
+export interface SignatureGraph<T extends NodeBody = NodeBody> {
+  root: Hash
+  head: Hash
+  nodes: Map<Hash, SignedNode<T>>
+}
