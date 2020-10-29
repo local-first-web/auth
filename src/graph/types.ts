@@ -50,4 +50,7 @@ export interface SignatureGraph<T extends NodeBody = NodeBody> {
   nodes: Map<Hash, SignedNode<T> | MergeNode>
 }
 
-export type MergeNode = [Hash, Hash]
+export type MergeNode = {
+  type: 'MERGE'
+  payload: [Hash, Hash]
+}

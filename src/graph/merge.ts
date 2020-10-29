@@ -14,7 +14,7 @@ export const merge = (a: SignatureGraph, b: SignatureGraph): SignatureGraph => {
   const root = a.root
 
   // create a merge node, which is just a pointer to each of the two heads
-  const mergeNode = [a.head, b.head].sort() as MergeNode
+  const mergeNode = { type: 'MERGE', payload: [a.head, b.head].sort() } as MergeNode
 
   // add this node as the new head
   const head = hashNode(mergeNode)

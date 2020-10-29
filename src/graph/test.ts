@@ -55,7 +55,7 @@ describe('SignatureGraph', () => {
 
     test('concurrent edits', () => {
       // Alice creates a graph and shares it with Bob
-      const aliceGraph = create('a', defaultContext)
+      const aliceGraph = create('a', alicesContext)
       const bobGraph = { ...aliceGraph }
 
       // They make concurrent edits
@@ -68,6 +68,14 @@ describe('SignatureGraph', () => {
 
       // They now have the same graph again
       expect(aliceMerged).toEqual(bobMerged)
+    })
+
+    test(`can't merge graphs with different roots`, () => {
+      const aliceGraph = create('a', alicesContext)
+      const bobGraph = create('b', bobsContext)
+
+      const tryToMerge = () => merge(aliceGraph, bobGraph)
+      expect(tryToMerge).toThrow()
     })
   })
 })
