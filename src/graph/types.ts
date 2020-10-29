@@ -1,6 +1,22 @@
 ﻿import { MemberContext } from '/context'
 import { Base64, Hash, UnixTimestamp, ValidationResult } from '/util/types'
 
+/** The part of the link that is signed */
+export interface NodeBody {
+  /** Label identifying the type of action this link represents */
+  type: 'ROOT' | unknown
+  /** Payload of the action */
+  payload: unknown
+  /** Context in which this link was authored (user, device, client) */
+  context: MemberContext
+  /** Unix timestamp on device that created this link */
+  timestamp: UnixTimestamp
+  /** Unix time after which this link should be ignored */
+  expires?: UnixTimestamp
+  /** hash of previous link */
+  prev: Base64 | null
+}
+
 /** The full link, consisting of a body and a signature link */
 export interface SignedNode<T = NodeBody> {
   /** The part of the link that is signed & hashed */
@@ -19,22 +35,6 @@ export interface SignedNode<T = NodeBody> {
   }
 }
 
-/** The part of the link that is signed */
-export interface NodeBody {
-  /** Label identifying the type of action this link represents */
-  type: 'ROOT' | unknown
-  /** Payload of the action */
-  payload: unknown
-  /** Context in which this link was authored (user, device, client) */
-  context: MemberContext
-  /** Unix timestamp on device that created this link */
-  timestamp: UnixTimestamp
-  /** Unix time after which this link should be ignored */
-  expires?: UnixTimestamp
-  /** hash of previous link */
-  prev: Base64 | null
-}
-
 /** User-writable fields of a link (omits fields that are added automatically) */
 export type PartialNodeBody<T extends NodeBody = NodeBody> = Pick<T, 'type' | 'payload'>
 
@@ -47,5 +47,7 @@ export type ValidatorSet = {
 export interface SignatureGraph<T extends NodeBody = NodeBody> {
   root: Hash
   head: Hash
-  nodes: Map<Hash, SignedNode<T>>
+  nodes: Map<Hash, SignedNode<T> | MergeNode>
 }
+
+export type MergeNode = [Hash, Hash]
