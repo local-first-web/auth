@@ -51,6 +51,12 @@ describe('SignatureGraph', () => {
 
       // They now have the same graph again
       expect(aliceMerged).toEqual(bobMerged)
+
+      // Alice's graph didn't change
+      expect(aliceMerged).toEqual(aliceGraph)
+
+      // Bob's graph did
+      expect(bobMerged).not.toEqual(bobGraph)
     })
 
     test('concurrent edits', () => {
@@ -59,8 +65,8 @@ describe('SignatureGraph', () => {
       const bobGraph = { ...aliceGraph }
 
       // They make concurrent edits
-      const aliceBranch = append(aliceGraph, { type: 'FOO', payload: 'branch-a' }, alicesContext)
-      const bobBranch = append(bobGraph, { type: 'FOO', payload: 'branch-b' }, bobsContext)
+      const aliceBranch = append(aliceGraph, { type: 'FOO', payload: 'alice' }, alicesContext)
+      const bobBranch = append(bobGraph, { type: 'FOO', payload: 'bob' }, bobsContext)
 
       // They sync back up
       const aliceMerged = merge(aliceBranch, bobBranch)
@@ -68,6 +74,10 @@ describe('SignatureGraph', () => {
 
       // They now have the same graph again
       expect(aliceMerged).toEqual(bobMerged)
+
+      // The resulting graph is not equal to what either one had before merging
+      expect(aliceMerged).not.toEqual(aliceBranch)
+      expect(bobMerged).not.toEqual(bobBranch)
     })
 
     test(`can't merge graphs with different roots`, () => {
