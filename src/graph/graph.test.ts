@@ -55,7 +55,7 @@ describe('SignatureGraph', () => {
       // Alice's graph didn't change
       expect(aliceMerged).toEqual(aliceGraph)
 
-      // Bob's graph did
+      // Bob's graph did change
       expect(bobMerged).not.toEqual(bobGraph)
     })
 
