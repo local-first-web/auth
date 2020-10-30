@@ -40,6 +40,7 @@ const composeValidators = (...validators: ValidatorSet[]) => (
       if (result.isValid === false) return result
     } catch (e) {
       // any errors thrown cause validation to fail and are returned with the validation result
+      // ignore coverage
       return {
         isValid: false,
         error: { message: e.message, index: i, details: e },
