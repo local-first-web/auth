@@ -1,7 +1,7 @@
 ﻿import { GraphNode, isMergeNode, isRootNode, NodeBody, SignatureGraph } from '/graph/types'
 import * as R from 'ramda'
 
-export const getAncestors = <T extends NodeBody = NodeBody>(
+export const getAncestors = <T extends NodeBody>(
   graph: SignatureGraph<T>,
   node: GraphNode<T>
 ): GraphNode<T>[] => {
@@ -18,7 +18,7 @@ export const getAncestors = <T extends NodeBody = NodeBody>(
   return R.uniq(ancestors)
 }
 
-export const getCommonAncestor = <T extends NodeBody = NodeBody>(
+export const getCommonAncestor = <T extends NodeBody>(
   graph: SignatureGraph<T>,
   a: GraphNode<T>,
   b: GraphNode<T>
