@@ -22,15 +22,13 @@ export interface ValidResult {
 }
 
 export class ValidationError extends Error {
-  constructor(message: string, index?: number, details?: any) {
+  constructor(message: string, details?: any) {
     super()
     this.message = message
-    this.index = index
     this.details = details
   }
 
-  public name: 'Signature chain validation error'
-  public index?: number
+  public name: 'Signature graph validation error'
   public details?: any
 }
 
