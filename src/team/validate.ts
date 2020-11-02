@@ -2,6 +2,7 @@
 import { SignedLink } from '/chain'
 import { ValidationError, ValidationResult } from '/util'
 import * as select from '/team/selectors'
+import { SignedNode, RootNode } from '/graph'
 
 export const validate: TeamStateValidator = (...args: ValidationArgs) => {
   for (const key in validators) {
@@ -78,11 +79,10 @@ const validators: TeamStateValidatorSet = {
   },
 }
 
-const fail = (message: string, prevState: TeamState, link: SignedLink) => {
-  const { index } = link.body
+const fail = (message: string, prevState: TeamState, link: SignedNode | RootNode) => {
   return {
     isValid: false,
-    error: new ValidationError(message, index, { prevState, link }),
+    error: new ValidationError(message, { prevState, link }),
   }
 }
 
