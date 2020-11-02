@@ -1,4 +1,4 @@
-import { NodeBody, SignatureGraph, SignedNode } from './types'
+import { NodeBody, RootNode, SignatureGraph } from './types'
 
-export const getRoot = <T extends NodeBody = NodeBody>(graph: SignatureGraph<T>) =>
-  graph.nodes.get(graph.root) as SignedNode<T>
+export const getRoot = <T extends NodeBody>(graph: SignatureGraph<T>): RootNode =>
+  graph.nodes.get(graph.root) as RootNode
