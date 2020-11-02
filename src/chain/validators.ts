@@ -14,7 +14,7 @@ export const validators: ValidatorSet = {
       ? { isValid: true }
       : {
           isValid: false,
-          error: new ValidationError('Hash does not match previous link', currentLink.body.index, {
+          error: new ValidationError('Hash does not match previous link', {
             actual,
             expected,
           }),
@@ -36,7 +36,7 @@ export const validators: ValidatorSet = {
           'The first link in the signature chain must be the root link. '
       return {
         isValid: false,
-        error: new ValidationError(message, currentLink.body.index),
+        error: new ValidationError(message),
       }
     }
   },
@@ -52,11 +52,7 @@ export const validators: ValidatorSet = {
       ? { isValid: true }
       : {
           isValid: false,
-          error: new ValidationError(
-            'Signature is not valid',
-            currentLink.body.index,
-            signedMessage
-          ),
+          error: new ValidationError('Signature is not valid', signedMessage),
         }
   },
 
@@ -71,7 +67,7 @@ export const validators: ValidatorSet = {
       ? { isValid: true }
       : {
           isValid: false,
-          error: new ValidationError('Index is not consecutive', currentLink.body.index, {
+          error: new ValidationError('Index is not consecutive', {
             actual: index,
             expected,
           }),
