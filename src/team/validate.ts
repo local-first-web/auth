@@ -1,8 +1,7 @@
-﻿import { TeamStateValidator, ValidationArgs, TeamStateValidatorSet, TeamState } from '/team/types'
-import { SignedLink } from '/chain'
-import { ValidationError, ValidationResult } from '/util'
+﻿import { RootNode, SignedNode } from '/graph'
 import * as select from '/team/selectors'
-import { SignedNode, RootNode } from '/graph'
+import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '/team/types'
+import { ValidationError, ValidationResult } from '/util'
 
 export const validate: TeamStateValidator = (...args: ValidationArgs) => {
   for (const key in validators) {
