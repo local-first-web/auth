@@ -3,7 +3,7 @@ import { EventEmitter } from 'events'
 import { LocalUserContext } from '/context'
 import { DeviceInfo, getDeviceId } from '/device'
 import * as graphs from '/graph'
-import { SerializableSignatureGraph, SignatureGraph, SignedNode } from '/graph'
+import { SignatureGraph, SignedNode } from '/graph'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
 import * as keyset from '/keyset'
@@ -52,7 +52,7 @@ export class Team extends EventEmitter {
       this.graph = graphs.create<TeamNodeBody>(payload, this.context)
     } else {
       // Load a team from a serialized graph
-      this.graph = this.load(options.source)
+      this.graph = graphs.deserialize(options.source)
     }
     this.updateState()
   }
@@ -63,29 +63,7 @@ export class Team extends EventEmitter {
     return this.state.teamName
   }
 
-  // Note on persistence: A Map object isn't serializable without a little help.
-  // https://stackoverflow.com/questions/50153172/how-to-serialize-a-map-in-javascript
-  //
-  // So in order to persist the SignatureGraph, we need to convert the `nodes` Map to an array of
-  // entries, which we can serialize and deserialize.
-  // TODO: We don't really need a Map here, could just use a JS object
-
-  public save = () => {
-    const serializableGraph = {
-      ...this.graph,
-      nodes: Array.from(this.graph.nodes.entries()),
-    } as SerializableSignatureGraph<TeamNodeBody>
-
-    return JSON.stringify(serializableGraph)
-  }
-
-  public load = (serializedGraph: string): SignatureGraph<TeamNodeBody> => {
-    const parsed = JSON.parse(serializedGraph) as SerializableSignatureGraph<TeamNodeBody>
-    return {
-      ...parsed,
-      nodes: new Map(parsed.nodes),
-    }
-  }
+  public save = () => graphs.serialize(this.graph)
 
   // ## READ METHODS
   // All the logic for reading from team state is in selectors.

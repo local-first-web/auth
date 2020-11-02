@@ -1,9 +1,104 @@
-import { merge, create, append } from '/graph'
+import { signatures } from '@herbcaudill/crypto'
+import { validate } from '/graph/validate'
+import { append, create, merge } from '/graph'
 import { getHead } from '/graph/getHead'
 import { getRoot } from '/graph/getRoot'
-import { defaultContext, alicesContext, bobsContext } from '/util/testing'
+import { alice, alicesContext, bobsContext, defaultContext } from '/util/testing'
+import '/util/testing/expect/toBeValid'
+import { serialize } from './serialize'
+import { deserialize } from './deserialize'
 
 const __ = expect.objectContaining
+
+describe('graphs', () => {
+  describe('Alice creats a new graph', () => {
+    test('Bob validates it', () => {
+      // 👩🏾 Alice
+      const graph = create({ team: 'Spies Я Us' }, defaultContext)
+
+      // 👨‍🦲 Bob
+      expect(validate(graph)).toBeValid()
+    })
+
+    test('Mallory tampers with the payload; Bob is not fooled', () => {
+      // 👩🏾 Alice
+      const graph = create({ team: 'Spies Я Us' }, defaultContext)
+
+      // 🦹‍♂️ Mallory
+      const payload = getRoot(graph).body.payload as any
+      payload.team = payload.team.replace('Spies', 'Dorks')
+
+      // 👨‍🦲 Bob
+      expect(validate(graph)).not.toBeValid()
+    })
+  })
+
+  describe('Alice adds a link', () => {
+    test('Bob validates it', () => {
+      // 👩🏾 Alice
+      const graph = create({ team: 'Spies Я Us' }, defaultContext)
+      const newLink = { type: 'add-user', payload: { name: 'charlie' } }
+      const newGraph = append(graph, newLink, defaultContext)
+
+      // 👨‍🦲 Bob
+      expect(validate(newGraph)).toBeValid()
+    })
+
+    test('Alice, for reasons only she understands, munges the type of the first link; validation fails', () => {
+      // 👩🏾 Alice
+      const graph = create({ team: 'Spies Я Us' }, defaultContext)
+
+      const root = getRoot(graph)
+      // @ts-ignore
+      root.body.type = 'IS_IT_SPELLED_ROOT_OR_ROUTE_OR_REWT'
+
+      // she re-signs the messed-up link because she wants the world to burn
+      const { secretKey, publicKey } = alice.keys.signature
+      const signature = signatures.sign(root.body, secretKey)
+
+      graph.nodes.set(graph.root, {
+        ...root,
+        signed: {
+          userName: alice.userName,
+          signature,
+          key: publicKey,
+        },
+      })
+
+      // 👨‍🦲 Bob
+      expect(validate(graph)).not.toBeValid()
+    })
+
+    test('Bob saves a graph to a file and loads it later', () => {
+      // 👨‍🦲 Bob
+      const graph = create({ team: 'Spies Я Us' }, defaultContext)
+
+      // serialize
+      const graphJson = serialize(graph)
+
+      // deserialize
+      const rehydratedGraph = deserialize(graphJson)
+
+      expect(validate(rehydratedGraph)).toBeValid()
+    })
+  })
+
+  test('Alice gets high and tries to add another ROOT link', () => {
+    // 👩🏾 Alice
+    const graph = create({ team: 'Spies Я Us' }, defaultContext)
+
+    const link = {
+      type: 'ROOT',
+      payload: { foo: 'pizza' },
+    }
+
+    // add it to an empty graph
+    const newGraph = append(graph, link, defaultContext)
+
+    // nope
+    expect(validate(newGraph)).not.toBeValid()
+  })
+})
 
 describe('SignatureGraph', () => {
   test('create', () => {
