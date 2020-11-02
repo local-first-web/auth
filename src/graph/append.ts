@@ -4,7 +4,7 @@ import { hashNode } from './hashNode'
 import { LocalUserContext, redactContext } from '/context'
 import { NodeBody, SignatureGraph, SignedNode } from '/graph'
 
-export const append = <T extends NodeBody = NodeBody>(
+export const append = <T extends NodeBody>(
   graph: SignatureGraph | typeof EMPTY_GRAPH,
   node: Partial<T>,
   context: LocalUserContext
@@ -20,8 +20,6 @@ export const append = <T extends NodeBody = NodeBody>(
   const { userName, keys } = context.user
   const hash = hashNode(body)
 
-  const nodes = new Map(graph.nodes)
-
   // attach signature
   const signedNode = {
     body,
@@ -33,6 +31,8 @@ export const append = <T extends NodeBody = NodeBody>(
     },
   } as SignedNode<T>
 
+  // clone the previous map of nodes
+  const nodes = new Map(graph.nodes)
   nodes.set(hash, signedNode)
 
   // return new graph
