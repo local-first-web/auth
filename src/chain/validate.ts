@@ -43,7 +43,7 @@ const composeValidators = (...validators: ValidatorSet[]) => (
       // ignore coverage
       return {
         isValid: false,
-        error: { message: e.message, index: i, details: e },
+        error: { message: e.message, details: e },
       } as InvalidResult
     }
   }
