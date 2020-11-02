@@ -1,10 +1,7 @@
 ﻿import { MemberContext } from '/context'
 import { Base64, Hash, UnixTimestamp, ValidationResult } from '/util/types'
 
-/** The part of the link that is signed */
-export interface NodeBody {
-  /** Label identifying the type of action this link represents */
-  type: 'ROOT' | unknown
+export interface NodeBodyCommon {
   /** Payload of the action */
   payload: unknown
   /** Context in which this link was authored (user, device, client) */
@@ -13,12 +10,24 @@ export interface NodeBody {
   timestamp: UnixTimestamp
   /** Unix time after which this link should be ignored */
   expires?: UnixTimestamp
-  /** hash of previous link */
-  prev: Base64 | null
 }
 
+export type RootNodeBody = NodeBodyCommon & {
+  type: 'ROOT'
+  prev: null
+}
+
+export type NonRootNodeBody = NodeBodyCommon & {
+  /** Label identifying the type of action this link represents */
+  type: unknown
+  prev: Base64
+}
+
+/** The part of the link that is signed */
+export type NodeBody = RootNodeBody | NonRootNodeBody
+
 /** The full link, consisting of a body and a signature link */
-export interface SignedNode<T = NodeBody> {
+export interface SignedNode<T extends NodeBody = NodeBody> {
   /** The part of the link that is signed & hashed */
   body: T
   /** hash of this link */
@@ -38,19 +47,24 @@ export interface SignedNode<T = NodeBody> {
 /** User-writable fields of a link (omits fields that are added automatically) */
 export type PartialNodeBody<T extends NodeBody = NodeBody> = Pick<T, 'type' | 'payload'>
 
-export type Validator = (currentNode: SignedNode, prevNode?: SignedNode) => ValidationResult
+export type GraphNode<T extends NodeBody = NodeBody> = SignedNode<T> | RootNode | MergeNode
 
-export type ValidatorSet = {
-  [key: string]: Validator
+export type RootNode = SignedNode<RootNodeBody>
+
+export type MergeNode = {
+  type: 'MERGE'
+  hash: Hash
+  body: [Hash, Hash]
 }
 
 export interface SignatureGraph<T extends NodeBody = NodeBody> {
   root: Hash
   head: Hash
-  nodes: Map<Hash, SignedNode<T> | MergeNode>
+  nodes: Map<Hash, GraphNode<T>>
 }
 
-export type MergeNode = {
-  type: 'MERGE'
-  payload: [Hash, Hash]
-}
+// type guards
+
+export const isMergeNode = (o: GraphNode): o is MergeNode => 'type' in o && o.type === 'MERGE'
+
+export const isRootNode = (o: GraphNode): o is RootNode => !isMergeNode(o) && o.body.prev === null
