@@ -1,6 +1,15 @@
 ﻿import { MemberContext } from '/context'
 import { Base64, Hash, UnixTimestamp, ValidationResult } from '/util/types'
 
+export type Validator = <T extends NodeBody>(
+  currentLink: GraphNode<T>,
+  graph: SignatureGraph<T>
+) => ValidationResult
+
+export type ValidatorSet = {
+  [key: string]: Validator
+}
+
 export interface NodeBodyCommon {
   /** Payload of the action */
   payload: unknown
@@ -27,7 +36,7 @@ export type NonRootNodeBody = NodeBodyCommon & {
 export type NodeBody = RootNodeBody | NonRootNodeBody
 
 /** The full link, consisting of a body and a signature link */
-export interface SignedNode<T extends NodeBody = NodeBody> {
+export interface SignedNode<T extends NodeBody> {
   /** The part of the link that is signed & hashed */
   body: T
   /** hash of this link */
@@ -45,9 +54,9 @@ export interface SignedNode<T extends NodeBody = NodeBody> {
 }
 
 /** User-writable fields of a link (omits fields that are added automatically) */
-export type PartialNodeBody<T extends NodeBody = NodeBody> = Pick<T, 'type' | 'payload'>
+export type PartialNodeBody<T extends NodeBody> = Pick<T, 'type' | 'payload'>
 
-export type GraphNode<T extends NodeBody = NodeBody> = SignedNode<T> | RootNode | MergeNode
+export type GraphNode<T extends NodeBody> = SignedNode<T> | RootNode | MergeNode
 
 export type RootNode = SignedNode<RootNodeBody>
 
@@ -57,14 +66,21 @@ export type MergeNode = {
   body: [Hash, Hash]
 }
 
-export interface SignatureGraph<T extends NodeBody = NodeBody> {
+export interface SignatureGraph<T extends NodeBody> {
   root: Hash
   head: Hash
   nodes: Map<Hash, GraphNode<T>>
 }
 
+export interface SerializableSignatureGraph<T extends NodeBody> {
+  root: Hash
+  head: Hash
+  nodes: [Hash, GraphNode<T>][]
+}
+
 // type guards
 
-export const isMergeNode = (o: GraphNode): o is MergeNode => 'type' in o && o.type === 'MERGE'
+export const isMergeNode = (o: GraphNode<any>): o is MergeNode => 'type' in o && o.type === 'MERGE'
 
-export const isRootNode = (o: GraphNode): o is RootNode => !isMergeNode(o) && o.body.prev === null
+export const isRootNode = (o: GraphNode<any>): o is RootNode =>
+  !isMergeNode(o) && o.body.prev === null
