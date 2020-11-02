@@ -1,9 +1,6 @@
-﻿import { SignatureGraph } from './types'
-
-export * from './types'
-export * from './append'
+﻿export * from './append'
 export * from './create'
+export * from './getHead'
+export * from './getRoot'
 export * from './merge'
-
-export const getRoot = (graph: SignatureGraph) => graph.nodes.get(graph.root)!
-export const getHead = (graph: SignatureGraph) => graph.nodes.get(graph.head)!
+export * from './types'
