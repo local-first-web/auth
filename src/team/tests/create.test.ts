@@ -21,7 +21,7 @@ describe('Team', () => {
     it('saves & loads', () => {
       const { team, context } = setup()
       const savedChain = team.save()
-      const restoredTeam = load(JSON.parse(savedChain), context)
+      const restoredTeam = load(savedChain, context)
       expect(restoredTeam.teamName).toBe('Spies Я Us')
     })
 
