@@ -1,4 +1,6 @@
-import { merge, create, getHead, getRoot, append } from '/graph'
+import { merge, create, append } from '/graph'
+import { getHead } from '/graph/getHead'
+import { getRoot } from '/graph/getRoot'
 import { defaultContext, alicesContext, bobsContext } from '/util/testing'
 
 const __ = expect.objectContaining
