@@ -1,5 +1,5 @@
 ﻿import { append } from './append'
-import { SignatureGraph } from './types'
+import { NodeBody, SignatureGraph } from './types'
 import { LocalUserContext } from '/context'
 
 export const EMPTY_GRAPH = {
@@ -8,7 +8,7 @@ export const EMPTY_GRAPH = {
   nodes: new Map(),
 }
 
-export const create = (payload: any = {}, context: LocalUserContext) => {
+export const create = <T extends NodeBody>(payload: any = {}, context: LocalUserContext) => {
   const node = { type: 'ROOT', payload }
-  return append(EMPTY_GRAPH, node, context) as SignatureGraph
+  return append(EMPTY_GRAPH, node, context) as SignatureGraph<T>
 }
