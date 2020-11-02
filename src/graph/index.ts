@@ -2,5 +2,7 @@
 export * from './create'
 export * from './getHead'
 export * from './getRoot'
+export * from './getSequence'
 export * from './merge'
 export * from './types'
+export * from './validate'
