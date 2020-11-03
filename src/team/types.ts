@@ -1,4 +1,4 @@
-import { LinkBody, RootLink, SignatureChain, SignedLink } from '/chain'
+import { LinkBody, ROOT, RootLink, SignatureChain, SignedLink } from '/chain'
 import { LocalUserContext, MemberContext } from '/context'
 import { Invitation } from '/invitation/types'
 import { KeyMetadata } from '/keyset'
@@ -58,7 +58,7 @@ interface BasePayload {
 
 export type TeamAction =
   | {
-      type: 'ROOT'
+      type: typeof ROOT
       payload: BasePayload & {
         teamName: string
         rootMember: Member
