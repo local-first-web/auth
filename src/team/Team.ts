@@ -1,6 +1,6 @@
 ﻿import { signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
-import * as chain from '/chain'
+import * as chains from '/chain'
 import { SignatureChain, SignedLink } from '/chain'
 import { LocalUserContext } from '/context'
 import { DeviceInfo, getDeviceId } from '/device'
@@ -49,10 +49,10 @@ export class Team extends EventEmitter {
         lockboxes: [teamLockbox, adminLockbox],
       }
       // Post root link to signature chain
-      this.chain = chain.create<TeamLinkBody>(payload, this.context)
+      this.chain = chains.create<TeamLinkBody>(payload, this.context)
     } else {
       // Load a team from a serialized chain
-      this.chain = chain.deserialize(options.source)
+      this.chain = chains.deserialize(options.source)
     }
     this.updateState()
   }
@@ -63,7 +63,7 @@ export class Team extends EventEmitter {
     return this.state.teamName
   }
 
-  public save = () => chain.serialize(this.chain)
+  public save = () => chains.serialize(this.chain)
 
   // ## READ METHODS
   // All the logic for reading from team state is in selectors.
@@ -457,8 +457,8 @@ export class Team extends EventEmitter {
 
   /** Add a link to the chain, then recompute team state from the new chain */
   public dispatch(link: TeamAction) {
-    this.chain = chain.append<TeamLinkBody>(this.chain, link, this.context)
-    const head = chain.getHead(this.chain) as SignedLink<TeamLinkBody>
+    this.chain = chains.append<TeamLinkBody>(this.chain, link, this.context)
+    const head = chains.getHead(this.chain) as SignedLink<TeamLinkBody>
     // we don't need to pass the whole chain through the reducer, just the current state + the new head
     this.state = reducer(this.state, head)
   }
@@ -467,13 +467,13 @@ export class Team extends EventEmitter {
   private updateState = () => {
     // Validate the chain's integrity. (This does not enforce team rules - that is done in the
     // reducer as it progresses through each link.)
-    const validation = chain.validate(this.chain)
+    const validation = chains.validate(this.chain)
     if (!validation.isValid) throw validation.error
 
     // Run the chain through the reducer to calculate the current team state
     // TODO: create reconciler to implement strong-remove
     // const sequence = chains.getSequence(this.chain, reconciler)
-    const sequence = chain.getSequence(this.chain)
+    const sequence = chains.getSequence(this.chain)
     this.state = sequence.reduce(reducer, initialState)
   }
 }
