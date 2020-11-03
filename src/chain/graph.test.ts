@@ -88,8 +88,8 @@ describe('chains', () => {
       // but they're in sync with each other now
       expect(aliceMerged).toEqual(bobMerged)
 
-      // The merged chains have five nodes: ROOT, bob's change, alice's two changes, and MERGE
-      expect(aliceMerged.nodes.size).toBe(5)
+      // The merged chains have five links: ROOT, bob's change, alice's two changes, and MERGE
+      expect(aliceMerged.links.size).toBe(5)
     })
 
     test(`can't merge chains with different roots`, () => {
@@ -160,14 +160,14 @@ describe('chains', () => {
       const { secretKey, publicKey } = alice.keys.signature
       const signature = signatures.sign(root.body, secretKey)
 
-      chain.nodes.set(chain.root, {
+      chain.links[chain.root] = {
         ...root,
         signed: {
           userName: alice.userName,
           signature,
           key: publicKey,
         },
-      })
+      }
 
       // 👨‍🦲 Bob
       expect(validate(chain)).not.toBeValid()

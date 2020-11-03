@@ -1,4 +1,4 @@
-﻿import { RootNode, SignedNode } from '/chain'
+﻿import { RootLink, SignedLink } from '/chain'
 import * as select from '/team/selectors'
 import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '/team/types'
 import { ValidationError, ValidationResult } from '/util'
@@ -78,7 +78,7 @@ const validators: TeamStateValidatorSet = {
   },
 }
 
-const fail = (message: string, prevState: TeamState, link: SignedNode | RootNode) => {
+const fail = (message: string, prevState: TeamState, link: SignedLink | RootLink) => {
   return {
     isValid: false,
     error: new ValidationError(message, { prevState, link }),

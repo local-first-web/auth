@@ -1,7 +1,7 @@
 import { buildChain, getPayloads, findByPayload } from './testUtils'
 import { getAncestors, getCommonAncestor } from '/chain/getAncestors'
 import { getHead } from '/chain/getHead'
-import { SignedNode } from '/chain/types'
+import { SignedLink } from '/chain/types'
 
 describe('getAncestors', () => {
   it('head', () => {
@@ -30,9 +30,9 @@ describe('getAncestors', () => {
 describe('getCommonAncestor', () => {
   const testCase = (a: string, b: string) => {
     const chain = buildChain()
-    const aNode = findByPayload(chain, a)
-    const bNode = findByPayload(chain, b)
-    return (getCommonAncestor(chain, aNode, bNode) as SignedNode<any>).body.payload
+    const aLink = findByPayload(chain, a)
+    const bLink = findByPayload(chain, b)
+    return (getCommonAncestor(chain, aLink, bLink) as SignedLink<any>).body.payload
   }
 
   test('o/f', () => expect(testCase('o', 'f')).toBe('d'))

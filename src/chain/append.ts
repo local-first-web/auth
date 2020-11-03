@@ -1,27 +1,27 @@
 ﻿import { signatures } from '@herbcaudill/crypto'
 import { EMPTY_CHAIN } from './create'
-import { hashNode } from './hashNode'
+import { hashLink } from './hashLink'
 import { LocalUserContext, redactContext } from '/context'
-import { NodeBody, SignatureChain, SignedNode } from '/chain'
+import { LinkBody, SignatureChain, SignedLink } from '/chain'
 
-export const append = <T extends NodeBody>(
+export const append = <T extends LinkBody>(
   chain: SignatureChain<T> | typeof EMPTY_CHAIN,
-  node: Partial<T>,
+  link: Partial<T>,
   context: LocalUserContext
 ): SignatureChain<T> => {
   // chain to previous head
   const body = {
-    ...node,
+    ...link,
     context: redactContext(context),
     timestamp: new Date().getTime(),
     prev: chain.head,
   } as T
 
   const { userName, keys } = context.user
-  const hash = hashNode(body)
+  const hash = hashLink(body)
 
   // attach signature
-  const signedNode = {
+  const signedLink = {
     body,
     hash,
     signed: {
@@ -29,14 +29,13 @@ export const append = <T extends NodeBody>(
       signature: signatures.sign(body, keys.signature.secretKey),
       key: keys.signature.publicKey,
     },
-  } as SignedNode<T>
+  } as SignedLink<T>
 
-  // clone the previous map of nodes
-  const nodes = new Map(chain.nodes)
-  nodes.set(hash, signedNode)
+  // clone the previous map of links and add the new one
+  const links = { ...chain.links, [hash]: signedLink }
 
   // return new chain
-  const root = chain.root ?? hash // if the root is null, this was the first node
+  const root = chain.root ?? hash // if the root is null, this was the first link
   const head = hash
-  return { root, head, nodes } as SignatureChain<T>
+  return { root, head, links } as SignatureChain<T>
 }

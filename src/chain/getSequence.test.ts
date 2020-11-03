@@ -1,4 +1,4 @@
-import { append, create, SignedNode } from '.'
+import { append, create, SignedLink } from '.'
 import { getSequence, Reconciler } from './getSequence'
 import { buildChain, findByPayload, getPayloads } from './testUtils'
 import { defaultContext } from '/util/testing'
@@ -40,7 +40,7 @@ describe('getSequence', () => {
       const [_a, _b] = [a, b].sort() // ensure deterministic order
       // rule 1: q goes first
       // rule 2: e is omitted
-      const merged = _a.concat(_b) as SignedNode<any>[]
+      const merged = _a.concat(_b) as SignedLink<any>[]
       return merged
         .filter(n => n.body.payload === 'q')
         .concat(merged.filter(n => n.body.payload !== 'e' && n.body.payload !== 'q'))

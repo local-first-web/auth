@@ -1,8 +1,11 @@
 ﻿import { MemberContext } from '/context'
 import { Base64, Hash, UnixTimestamp, ValidationResult } from '/util/types'
 
-export type Validator = <T extends NodeBody>(
-  currentLink: ChainNode<T>,
+export const ROOT = 'ROOT'
+export const MERGE = 'MERGE'
+
+export type Validator = <T extends LinkBody>(
+  currentLink: ChainLink<T>,
   chain: SignatureChain<T>
 ) => ValidationResult
 
@@ -10,7 +13,7 @@ export type ValidatorSet = {
   [key: string]: Validator
 }
 
-export interface NodeBodyCommon {
+export interface LinkBodyCommon {
   /** Payload of the action */
   payload: unknown
   /** Context in which this link was authored (user, device, client) */
@@ -21,22 +24,22 @@ export interface NodeBodyCommon {
   expires?: UnixTimestamp
 }
 
-export type RootNodeBody = NodeBodyCommon & {
-  type: 'ROOT'
+export type RootLinkBody = LinkBodyCommon & {
+  type: typeof ROOT
   prev: null
 }
 
-export type NonRootNodeBody = NodeBodyCommon & {
+export type NonRootLinkBody = LinkBodyCommon & {
   /** Label identifying the type of action this link represents */
   type: unknown
   prev: Base64
 }
 
 /** The part of the link that is signed */
-export type NodeBody = RootNodeBody | NonRootNodeBody
+export type LinkBody = RootLinkBody | NonRootLinkBody
 
 /** The full link, consisting of a body and a signature link */
-export interface SignedNode<T extends NodeBody> {
+export interface SignedLink<T extends LinkBody> {
   /** The part of the link that is signed & hashed */
   body: T
   /** hash of this link */
@@ -54,33 +57,27 @@ export interface SignedNode<T extends NodeBody> {
 }
 
 /** User-writable fields of a link (omits fields that are added automatically) */
-export type PartialNodeBody<T extends NodeBody> = Pick<T, 'type' | 'payload'>
+export type PartialLinkBody<T extends LinkBody> = Pick<T, 'type' | 'payload'>
 
-export type ChainNode<T extends NodeBody> = SignedNode<T> | RootNode | MergeNode
+export type ChainLink<T extends LinkBody> = SignedLink<T> | RootLink | MergeLink
 
-export type RootNode = SignedNode<RootNodeBody>
+export type RootLink = SignedLink<RootLinkBody>
 
-export type MergeNode = {
-  type: 'MERGE'
+export type MergeLink = {
+  type: typeof MERGE
   hash: Hash
   body: [Hash, Hash]
 }
 
-export interface SignatureChain<T extends NodeBody> {
+export interface SignatureChain<T extends LinkBody> {
   root: Hash
   head: Hash
-  nodes: Map<Hash, ChainNode<T>>
-}
-
-export interface SerializableSignatureChain<T extends NodeBody> {
-  root: Hash
-  head: Hash
-  nodes: [Hash, ChainNode<T>][]
+  links: { [hash: string]: ChainLink<T> }
 }
 
 // type guards
 
-export const isMergeNode = (o: ChainNode<any>): o is MergeNode => 'type' in o && o.type === 'MERGE'
+export const isMergeLink = (o: ChainLink<any>): o is MergeLink => 'type' in o && o.type === MERGE
 
-export const isRootNode = (o: ChainNode<any>): o is RootNode =>
-  !isMergeNode(o) && o.body.prev === null
+export const isRootLink = (o: ChainLink<any>): o is RootLink =>
+  !isMergeLink(o) && o.body.prev === null

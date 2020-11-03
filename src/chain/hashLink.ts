@@ -3,4 +3,4 @@ import { HashPurpose } from '/util'
 
 const { LINK_TO_PREVIOUS } = HashPurpose
 
-export const hashNode = (body: any) => base64.encode(hash(LINK_TO_PREVIOUS, body))
+export const hashLink = (body: any) => base64.encode(hash(LINK_TO_PREVIOUS, body))

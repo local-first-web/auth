@@ -1,31 +1,31 @@
 ﻿import {
-  isMergeNode,
-  isRootNode,
-  NodeBody,
-  NonRootNodeBody,
-  RootNodeBody,
+  isMergeLink,
+  isRootLink,
+  LinkBody,
+  NonRootLinkBody,
+  RootLinkBody,
   ValidatorSet,
 } from '/chain/types'
 import { ValidationError } from '/util'
-import { hashNode } from '/chain/hashNode'
+import { hashLink } from '/chain/hashLink'
 import { signatures } from '@herbcaudill/crypto'
 import { getRoot } from './getRoot'
 
 export const validators: ValidatorSet = {
   /** Does this link contain a hash of the previous link?  */
-  validateHash: (node, chain) => {
-    if (isRootNode(node)) return { isValid: true } // nothing to validate on first link
-    const prevHashes = isMergeNode(node) ? node.body : [(node.body as NonRootNodeBody).prev]
+  validateHash: (link, chain) => {
+    if (isRootLink(link)) return { isValid: true } // nothing to validate on first link
+    const prevHashes = isMergeLink(link) ? link.body : [(link.body as NonRootLinkBody).prev]
     for (const hash of prevHashes) {
-      const prevNode = chain.nodes.get(hash)!
-      const expected = hashNode(prevNode.body)
+      const prevLink = chain.links[hash]!
+      const expected = hashLink(prevLink.body)
       const actual = hash
       if (expected !== actual) {
-        console.log({ node, prevNode, expected, actual })
+        console.log({ link, prevLink, expected, actual })
         return {
           isValid: false,
           error: new ValidationError('Hash does not match previous link', {
-            node,
+            link,
             expected,
             actual,
           }),
@@ -36,16 +36,16 @@ export const validators: ValidatorSet = {
   },
 
   /** If this is a root link, is it the first link in the chain? */
-  validateRoot: (node, chain) => {
-    const hasNoPreviousNode = isRootNode(node)
-    const hasRootType = (node.body as RootNodeBody).type === 'ROOT'
-    const isDesignatedAsRoot = getRoot(chain) === node
+  validateRoot: (link, chain) => {
+    const hasNoPreviousLink = isRootLink(link)
+    const hasRootType = (link.body as RootLinkBody).type === 'ROOT'
+    const isDesignatedAsRoot = getRoot(chain) === link
     // all should be true, or all should be false
-    if (hasNoPreviousNode === isDesignatedAsRoot && isDesignatedAsRoot === hasRootType)
+    if (hasNoPreviousLink === isDesignatedAsRoot && isDesignatedAsRoot === hasRootType)
       return { isValid: true }
     else {
       // TODO sort out all these possibilities?
-      const message = hasNoPreviousNode
+      const message = hasNoPreviousLink
         ? // has type ROOT but isn't first
           'The root link must be the first link in the signature chain.'
         : // is first but doesn't have type ROOT
@@ -58,13 +58,13 @@ export const validators: ValidatorSet = {
   },
 
   /** Does this link's signature check out? */
-  validateSignatures: node => {
-    if (isMergeNode(node)) return { isValid: true } // merge nodes aren't signed
+  validateSignatures: link => {
+    if (isMergeLink(link)) return { isValid: true } // merge links aren't signed
 
     const signedMessage = {
-      payload: node.body,
-      signature: node.signed.signature,
-      publicKey: node.signed.key,
+      payload: link.body,
+      signature: link.signed.signature,
+      publicKey: link.signed.key,
     }
     return signatures.verify(signedMessage)
       ? { isValid: true }

@@ -1,29 +1,29 @@
-﻿import { ChainNode, isMergeNode, isRootNode, NodeBody, SignatureChain } from '/chain/types'
+﻿import { ChainLink, isMergeLink, isRootLink, LinkBody, SignatureChain } from '/chain/types'
 import * as R from 'ramda'
 
-export const getAncestors = <T extends NodeBody>(
+export const getAncestors = <T extends LinkBody>(
   chain: SignatureChain<T>,
-  node: ChainNode<T>
-): ChainNode<T>[] => {
-  const visit = (node: ChainNode<T>): ChainNode<T>[] => {
-    const parents = isRootNode(node)
-      ? [] // root node
-      : isMergeNode(node)
-      ? node.body.map(hash => chain.nodes.get(hash)!) // merge node
-      : [chain.nodes.get(node.body.prev!)!] // other node
+  link: ChainLink<T>
+): ChainLink<T>[] => {
+  const visit = (link: ChainLink<T>): ChainLink<T>[] => {
+    const parents = isRootLink(link)
+      ? [] // root link
+      : isMergeLink(link)
+      ? link.body.map(hash => chain.links[hash]!) // merge link
+      : [chain.links[link.body.prev!]!] // other link
 
     return parents.concat(parents.flatMap(parent => visit(parent)))
   }
-  const ancestors = visit(node)
+  const ancestors = visit(link)
   return R.uniq(ancestors)
 }
 
-export const getCommonAncestor = <T extends NodeBody>(
+export const getCommonAncestor = <T extends LinkBody>(
   chain: SignatureChain<T>,
-  a: ChainNode<T>,
-  b: ChainNode<T>
-): ChainNode<T> => {
+  a: ChainLink<T>,
+  b: ChainLink<T>
+): ChainLink<T> => {
   const aAncestors = getAncestors(chain, a)
   const bAncestors = getAncestors(chain, b)
-  return aAncestors.find(node => bAncestors.includes(node))!
+  return aAncestors.find(link => bAncestors.includes(link))!
 }

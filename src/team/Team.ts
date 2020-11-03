@@ -1,7 +1,7 @@
 ﻿import { signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
 import * as chain from '/chain'
-import { SignatureChain, SignedNode } from '/chain'
+import { SignatureChain, SignedLink } from '/chain'
 import { LocalUserContext } from '/context'
 import { DeviceInfo, getDeviceId } from '/device'
 import * as invitations from '/invitation'
@@ -19,7 +19,7 @@ import {
   isNewTeam,
   SignedEnvelope,
   TeamAction,
-  TeamNodeBody,
+  TeamLinkBody,
   TeamOptions,
   TeamState,
 } from '/team/types'
@@ -48,8 +48,8 @@ export class Team extends EventEmitter {
         rootMember: user.redact(localUser),
         lockboxes: [teamLockbox, adminLockbox],
       }
-      // Post root node to signature chain
-      this.chain = chain.create<TeamNodeBody>(payload, this.context)
+      // Post root link to signature chain
+      this.chain = chain.create<TeamLinkBody>(payload, this.context)
     } else {
       // Load a team from a serialized chain
       this.chain = chain.deserialize(options.source)
@@ -120,8 +120,8 @@ export class Team extends EventEmitter {
   // state.
   //
   // Any crypto operations involving the current user's secrets (for example, opening or creating
-  // lockboxes, or signing nodes) are done here. Only the public-facing outputs (for example, the
-  // resulting lockboxes, the signed nodes) are posted on the chain.
+  // lockboxes, or signing links) are done here. Only the public-facing outputs (for example, the
+  // resulting lockboxes, the signed links) are posted on the chain.
 
   /** Add a member to the team */
   public add = (member: User | Member, roles: string[] = []) => {
@@ -409,7 +409,7 @@ export class Team extends EventEmitter {
   // # PRIVATE PROPERTIES
 
   private context: LocalUserContext
-  private chain: SignatureChain<TeamNodeBody>
+  private chain: SignatureChain<TeamLinkBody>
   private state: TeamState = initialState // derived from chain, only updated by running chain through reducer
 
   // # PRIVATE METHODS
@@ -455,17 +455,18 @@ export class Team extends EventEmitter {
 
   // Team state
 
-  /** Add a node to the chain, then recompute team state from the new chain */
-  public dispatch(node: TeamAction) {
-    this.chain = chain.append<TeamNodeBody>(this.chain, node, this.context)
-    const head = chain.getHead(this.chain) as SignedNode<TeamNodeBody>
+  /** Add a link to the chain, then recompute team state from the new chain */
+  public dispatch(link: TeamAction) {
+    this.chain = chain.append<TeamLinkBody>(this.chain, link, this.context)
+    const head = chain.getHead(this.chain) as SignedLink<TeamLinkBody>
+    // we don't need to pass the whole chain through the reducer, just the current state + the new head
     this.state = reducer(this.state, head)
   }
 
   /** Run the reducer on the entire chain to reconstruct the current team state. */
   private updateState = () => {
     // Validate the chain's integrity. (This does not enforce team rules - that is done in the
-    // reducer as it progresses through each node.)
+    // reducer as it progresses through each link.)
     const validation = chain.validate(this.chain)
     if (!validation.isValid) throw validation.error
 

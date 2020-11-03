@@ -1,11 +1,5 @@
-import { NodeBody, SerializableSignatureChain, SignatureChain } from '/chain'
-import { TeamNodeBody } from '/team/types'
+import { LinkBody, SignatureChain } from '/chain'
 
-export const serialize = <T extends NodeBody>(chain: SignatureChain<T>) => {
-  const serializableChain = {
-    ...chain,
-    nodes: Array.from(chain.nodes.entries()),
-  } as SerializableSignatureChain<TeamNodeBody>
-
-  return JSON.stringify(serializableChain)
+export const serialize = <T extends LinkBody>(chain: SignatureChain<T>) => {
+  return JSON.stringify(chain)
 }

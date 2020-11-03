@@ -1,4 +1,4 @@
-import { NodeBody, RootNode, SignatureChain } from './types'
+import { LinkBody, RootLink, SignatureChain } from './types'
 
-export const getRoot = <T extends NodeBody>(chain: SignatureChain<T>): RootNode =>
-  chain.nodes.get(chain.root) as RootNode
+export const getRoot = <T extends LinkBody>(chain: SignatureChain<T>): RootLink =>
+  chain.links[chain.root] as RootLink

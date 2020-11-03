@@ -1,4 +1,4 @@
-import { NodeBody, RootNode, SignatureChain, SignedNode } from '/chain'
+import { LinkBody, RootLink, SignatureChain, SignedLink } from '/chain'
 import { LocalUserContext, MemberContext } from '/context'
 import { Invitation } from '/invitation/types'
 import { KeyMetadata } from '/keyset'
@@ -50,7 +50,7 @@ export interface InvitationMap {
   [id: string]: Invitation
 }
 
-// NODE TYPES
+// LINK TYPES
 
 interface BasePayload {
   lockboxes?: Lockbox[]
@@ -143,21 +143,21 @@ export type TeamAction =
       }
     }
 
-export type TeamNodeBody = NodeBody & TeamAction
-export type TeamNode = SignedNode<TeamNodeBody>
+export type TeamLinkBody = LinkBody & TeamAction
+export type TeamLink = SignedLink<TeamLinkBody>
 
 // VALIDATION
 
 export type TeamStateValidator = (
   prevState: TeamState,
-  node: SignedNode<TeamNodeBody> | RootNode
+  link: SignedLink<TeamLinkBody> | RootLink
 ) => ValidationResult
 
 export type TeamStateValidatorSet = {
   [key: string]: TeamStateValidator
 }
 
-export type ValidationArgs = [TeamState, RootNode | SignedNode<TeamNodeBody>]
+export type ValidationArgs = [TeamState, RootLink | SignedLink<TeamLinkBody>]
 
 // CRYPTO
 

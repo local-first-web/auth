@@ -1,9 +1,9 @@
 ﻿## ✍🔗 Signature chain
 
-A signature chain is an ordered list of links. Each link
+A signature chain is an acyclic directed graph of links. Each link
 
 - is **cryptographically signed** by the author; and
-- includes a **hash of the previous link**.
+- includes a **hash of the parent link**.
 
 ![](../../docs/img/sigchain.png)
 

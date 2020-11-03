@@ -1,5 +1,5 @@
 ﻿import { getSequence } from './getSequence'
-import { ChainNode, NodeBody } from './types'
+import { ChainLink, LinkBody } from './types'
 import { SignatureChain, ValidatorSet } from '/chain'
 import { validators } from '/chain/validators'
 import { InvalidResult, ValidationResult } from '/util'
@@ -13,7 +13,7 @@ const VALID = { isValid: true } as ValidationResult
  * @customValidators Any additional validators (besides the base validators that test the chain's
  * integrity)
  */
-export const validate = <T extends NodeBody>(
+export const validate = <T extends LinkBody>(
   chain: SignatureChain<T>,
   customValidators: ValidatorSet = {}
 ): ValidationResult => {
@@ -23,7 +23,7 @@ export const validate = <T extends NodeBody>(
    */
   const composeValidators = (...validators: ValidatorSet[]) => (
     result: ValidationResult,
-    currentLink: ChainNode<T>
+    currentLink: ChainLink<T>
   ) => {
     const mergedValidators = merge(validators)
     // short-circuit validation if any previous validation has failed
