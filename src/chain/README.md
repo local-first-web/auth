@@ -10,44 +10,7 @@ A signature chain is an acyclic directed graph of links. Each link
 A signature chain is just data and can be stored as JSON. For example, here's a signature chain containing two links:
 
 ```jsonc
-[
-  // root link
-  {
-    "body": {
-      "type": 0,
-      "payload": { "team": "Spies Я Us" },
-      "user": "alice",
-      "device": { "id": "PKN4tM7BtW8=", "name": "windows laptop", "type": 1 },
-      "client": { "name": "test", "version": "0" },
-      "timestamp": 1588421926221,
-      "prev": null,
-      "index": 0
-    },
-    "signed": {
-      "name": "alice",
-      "signature": "oTKyn8iTwrrAdH...CuhPEkqNaGRKYBW64RL3NJlnwMoIg+6NiYrhh2RBg==",
-      "key": "/I7WZRWBGTAJD30JJRq+CVOLWL7iGxIHlbBmq80bjLg="
-    }
-  },
-  // another link
-  {
-    "body": {
-      "type": "something",
-      "payload": {},
-      "user": "alice",
-      "device": { "id": "PKN4tM7BtW8=", "name": "windows laptop", "type": 1 },
-      "client": { "name": "test", "version": "0" },
-      "timestamp": 1588421926268,
-      "prev": "fog76617S9wsklpT...gMe/rGZicPZFEItOKNNbgiB3JbGU2P1VKWERIVnyvcmQ==",
-      "index": 1
-    },
-    "signed": {
-      "name": "alice",
-      "signature": "OM3MZ0lHL9Pdpex4WO9IDcii...D8bUnxFiKXJ3ECpfRgpedBCmB9CW3Cw==",
-      "key": "/I7WZRWBGTAJD30JJRq+CVOLWL7iGxIHlbBmq80bjLg="
-    }
-  }
-]
+TODO
 ```
 
 The `chain` module doesn't know anything about teams or access rules. It just creates chains, appends to them, and checks them for internal validity.
