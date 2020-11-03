@@ -23,7 +23,7 @@ Taco solves the following problems without requiring a server or any other centr
 - **Authentication**, using signature challenges
 - **Invitations**, using a Seitan token exchange
 - **Multi-reader encryption**, using lockboxes
-- **Key revocation and rotation**, using an acyclic directed chain of keys and lockboxes
+- **Key revocation and rotation**, using an acyclic directed graph of keys and lockboxes
 
 Each user is assigned a set of cryptographic keys for signatures, asymmetric encryption, and
 symmetric encryption. These are stored in their device's secure storage.
