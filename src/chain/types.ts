@@ -2,8 +2,8 @@
 import { Base64, Hash, UnixTimestamp, ValidationResult } from '/util/types'
 
 export type Validator = <T extends NodeBody>(
-  currentLink: GraphNode<T>,
-  graph: SignatureGraph<T>
+  currentLink: ChainNode<T>,
+  chain: SignatureChain<T>
 ) => ValidationResult
 
 export type ValidatorSet = {
@@ -56,7 +56,7 @@ export interface SignedNode<T extends NodeBody> {
 /** User-writable fields of a link (omits fields that are added automatically) */
 export type PartialNodeBody<T extends NodeBody> = Pick<T, 'type' | 'payload'>
 
-export type GraphNode<T extends NodeBody> = SignedNode<T> | RootNode | MergeNode
+export type ChainNode<T extends NodeBody> = SignedNode<T> | RootNode | MergeNode
 
 export type RootNode = SignedNode<RootNodeBody>
 
@@ -66,21 +66,21 @@ export type MergeNode = {
   body: [Hash, Hash]
 }
 
-export interface SignatureGraph<T extends NodeBody> {
+export interface SignatureChain<T extends NodeBody> {
   root: Hash
   head: Hash
-  nodes: Map<Hash, GraphNode<T>>
+  nodes: Map<Hash, ChainNode<T>>
 }
 
-export interface SerializableSignatureGraph<T extends NodeBody> {
+export interface SerializableSignatureChain<T extends NodeBody> {
   root: Hash
   head: Hash
-  nodes: [Hash, GraphNode<T>][]
+  nodes: [Hash, ChainNode<T>][]
 }
 
 // type guards
 
-export const isMergeNode = (o: GraphNode<any>): o is MergeNode => 'type' in o && o.type === 'MERGE'
+export const isMergeNode = (o: ChainNode<any>): o is MergeNode => 'type' in o && o.type === 'MERGE'
 
-export const isRootNode = (o: GraphNode<any>): o is RootNode =>
+export const isRootNode = (o: ChainNode<any>): o is RootNode =>
   !isMergeNode(o) && o.body.prev === null

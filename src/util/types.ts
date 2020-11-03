@@ -28,7 +28,7 @@ export class ValidationError extends Error {
     this.details = details
   }
 
-  public name: 'Signature graph validation error'
+  public name: 'Signature chain validation error'
   public details?: any
 }
 

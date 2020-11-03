@@ -5,19 +5,19 @@
   NonRootNodeBody,
   RootNodeBody,
   ValidatorSet,
-} from '/graph/types'
+} from '/chain/types'
 import { ValidationError } from '/util'
-import { hashNode } from '/graph/hashNode'
+import { hashNode } from '/chain/hashNode'
 import { signatures } from '@herbcaudill/crypto'
 import { getRoot } from './getRoot'
 
 export const validators: ValidatorSet = {
   /** Does this link contain a hash of the previous link?  */
-  validateHash: (node, graph) => {
+  validateHash: (node, chain) => {
     if (isRootNode(node)) return { isValid: true } // nothing to validate on first link
     const prevHashes = isMergeNode(node) ? node.body : [(node.body as NonRootNodeBody).prev]
     for (const hash of prevHashes) {
-      const prevNode = graph.nodes.get(hash)!
+      const prevNode = chain.nodes.get(hash)!
       const expected = hashNode(prevNode.body)
       const actual = hash
       if (expected !== actual) {
@@ -36,10 +36,10 @@ export const validators: ValidatorSet = {
   },
 
   /** If this is a root link, is it the first link in the chain? */
-  validateRoot: (node, graph) => {
+  validateRoot: (node, chain) => {
     const hasNoPreviousNode = isRootNode(node)
     const hasRootType = (node.body as RootNodeBody).type === 'ROOT'
-    const isDesignatedAsRoot = getRoot(graph) === node
+    const isDesignatedAsRoot = getRoot(chain) === node
     // all should be true, or all should be false
     if (hasNoPreviousNode === isDesignatedAsRoot && isDesignatedAsRoot === hasRootType)
       return { isValid: true }
@@ -49,7 +49,7 @@ export const validators: ValidatorSet = {
         ? // has type ROOT but isn't first
           'The root link must be the first link in the signature chain.'
         : // is first but doesn't have type ROOT
-          'The first link in the signature graph must be the root link. '
+          'The first link in the signature chain must be the root link. '
       return {
         isValid: false,
         error: new ValidationError(message),

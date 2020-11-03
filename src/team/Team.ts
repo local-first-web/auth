@@ -1,9 +1,9 @@
 ﻿import { signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
+import * as chain from '/chain'
+import { SignatureChain, SignedNode } from '/chain'
 import { LocalUserContext } from '/context'
 import { DeviceInfo, getDeviceId } from '/device'
-import * as graphs from '/graph'
-import { SignatureGraph, SignedNode } from '/graph'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
 import * as keyset from '/keyset'
@@ -48,11 +48,11 @@ export class Team extends EventEmitter {
         rootMember: user.redact(localUser),
         lockboxes: [teamLockbox, adminLockbox],
       }
-      // Post root node to signature graph
-      this.graph = graphs.create<TeamNodeBody>(payload, this.context)
+      // Post root node to signature chain
+      this.chain = chain.create<TeamNodeBody>(payload, this.context)
     } else {
-      // Load a team from a serialized graph
-      this.graph = graphs.deserialize(options.source)
+      // Load a team from a serialized chain
+      this.chain = chain.deserialize(options.source)
     }
     this.updateState()
   }
@@ -63,7 +63,7 @@ export class Team extends EventEmitter {
     return this.state.teamName
   }
 
-  public save = () => graphs.serialize(this.graph)
+  public save = () => chain.serialize(this.chain)
 
   // ## READ METHODS
   // All the logic for reading from team state is in selectors.
@@ -116,12 +116,12 @@ export class Team extends EventEmitter {
   // ## WRITE METHODS
 
   // Most of the logic for modifying team state is in reducers. To mutate team state, we dispatch
-  // changes to the signature graph, and then run the graph through the reducer to recalculate team
+  // changes to the signature chain, and then run the chain through the reducer to recalculate team
   // state.
   //
   // Any crypto operations involving the current user's secrets (for example, opening or creating
   // lockboxes, or signing nodes) are done here. Only the public-facing outputs (for example, the
-  // resulting lockboxes, the signed nodes) are posted on the graph.
+  // resulting lockboxes, the signed nodes) are posted on the chain.
 
   /** Add a member to the team */
   public add = (member: User | Member, roles: string[] = []) => {
@@ -135,7 +135,7 @@ export class Team extends EventEmitter {
     )
     const lockboxes = [teamLockbox, ...roleLockboxes]
 
-    // post the member to the signature graph
+    // post the member to the signature chain
     this.dispatch({
       type: 'ADD_MEMBER',
       payload: { member: redactedUser, roles, lockboxes },
@@ -151,7 +151,7 @@ export class Team extends EventEmitter {
     // create new keys & lockboxes for any keys this person had access to
     const lockboxes = this.rotateKeys({ type: MEMBER, name: userName })
 
-    // post the removal to the signature graph
+    // post the removal to the signature chain
     this.dispatch({
       type: 'REMOVE_MEMBER',
       payload: {
@@ -169,7 +169,7 @@ export class Team extends EventEmitter {
     // make a lockbox for the admin role, so that all admins can access this role's keys
     const lockboxForAdmin = lockbox.create(roleKeys, this.adminKeys())
 
-    // post the role to the signature graph
+    // post the role to the signature chain
     this.dispatch({
       type: 'ADD_ROLE',
       payload: { ...role, lockboxes: [lockboxForAdmin] },
@@ -191,7 +191,7 @@ export class Team extends EventEmitter {
     const member = this.members(userName)
     const roleLockbox = lockbox.create(this.roleKeys(roleName), member.keys)
 
-    // post the member role to the signature graph
+    // post the member role to the signature chain
     this.dispatch({
       type: 'ADD_MEMBER_ROLE',
       payload: { userName, roleName, lockboxes: [roleLockbox] },
@@ -203,7 +203,7 @@ export class Team extends EventEmitter {
     // create new keys & lockboxes for any keys this person had access to via this role
     const lockboxes = this.rotateKeys({ type: ROLE, name: roleName })
 
-    // post the removal to the signature graph
+    // post the removal to the signature chain
     this.dispatch({
       type: 'REMOVE_MEMBER_ROLE',
       payload: { userName, roleName, lockboxes },
@@ -233,7 +233,7 @@ export class Team extends EventEmitter {
       secretKey,
     })
 
-    // post invitation to signature graph
+    // post invitation to signature chain
     this.dispatch({
       type: 'POST_INVITATION',
       payload: { invitation },
@@ -279,7 +279,7 @@ export class Team extends EventEmitter {
     const { roles = [] } = invitation.payload
 
     // all good, let them in
-    // post admission to the signature graph
+    // post admission to the signature chain
     this.dispatch({
       type: 'ADMIT_INVITED_MEMBER',
       payload: { id, member, roles },
@@ -300,7 +300,7 @@ export class Team extends EventEmitter {
       secretKey,
     })
 
-    // post invitation to signature graph
+    // post invitation to signature chain
     this.dispatch({
       type: 'POST_INVITATION',
       payload: { invitation },
@@ -338,7 +338,7 @@ export class Team extends EventEmitter {
     if (invitationBody.type !== DEVICE) throw typeError
 
     // all good, let them in
-    // post admission to the signature graph
+    // post admission to the signature chain
     this.dispatch({
       type: 'ADMIT_INVITED_DEVICE',
       payload: { id, device },
@@ -352,7 +352,7 @@ export class Team extends EventEmitter {
     // create new keys & lockboxes for any keys this device had access to
     const lockboxes = this.rotateKeys({ type: DEVICE, name: deviceId })
 
-    // post the removal to the signature graph
+    // post the removal to the signature chain
     this.dispatch({
       type: 'REMOVE_DEVICE',
       payload: {
@@ -409,8 +409,8 @@ export class Team extends EventEmitter {
   // # PRIVATE PROPERTIES
 
   private context: LocalUserContext
-  private graph: SignatureGraph<TeamNodeBody>
-  private state: TeamState = initialState // derived from graph, only updated by running graph through reducer
+  private chain: SignatureChain<TeamNodeBody>
+  private state: TeamState = initialState // derived from chain, only updated by running chain through reducer
 
   // # PRIVATE METHODS
 
@@ -436,7 +436,7 @@ export class Team extends EventEmitter {
 
   /** Given a compromised scope (e.g. a member or a role), find all scopes that are visible from that
    * scope, and generates new keys and lockboxes for each of those. Returns all of the new lockboxes in
-   * a single array to be posted to the signature graph. */
+   * a single array to be posted to the signature chain. */
 
   private rotateKeys(compromisedScope: KeyScope) {
     // make a list containing this scope plus all scopes that it sees
@@ -455,24 +455,24 @@ export class Team extends EventEmitter {
 
   // Team state
 
-  /** Add a node to the graph, then recompute team state from the new graph */
+  /** Add a node to the chain, then recompute team state from the new chain */
   public dispatch(node: TeamAction) {
-    this.graph = graphs.append<TeamNodeBody>(this.graph, node, this.context)
-    const head = graphs.getHead(this.graph) as SignedNode<TeamNodeBody>
+    this.chain = chain.append<TeamNodeBody>(this.chain, node, this.context)
+    const head = chain.getHead(this.chain) as SignedNode<TeamNodeBody>
     this.state = reducer(this.state, head)
   }
 
-  /** Run the reducer on the entire graph to reconstruct the current team state. */
+  /** Run the reducer on the entire chain to reconstruct the current team state. */
   private updateState = () => {
-    // Validate the graph's integrity. (This does not enforce team rules - that is done in the
+    // Validate the chain's integrity. (This does not enforce team rules - that is done in the
     // reducer as it progresses through each node.)
-    const validation = graphs.validate(this.graph)
+    const validation = chain.validate(this.chain)
     if (!validation.isValid) throw validation.error
 
-    // Run the graph through the reducer to calculate the current team state
+    // Run the chain through the reducer to calculate the current team state
     // TODO: create reconciler to implement strong-remove
-    // const sequence = graphs.getSequence(this.graph, reconciler)
-    const sequence = graphs.getSequence(this.graph)
+    // const sequence = chains.getSequence(this.chain, reconciler)
+    const sequence = chain.getSequence(this.chain)
     this.state = sequence.reduce(reducer, initialState)
   }
 }

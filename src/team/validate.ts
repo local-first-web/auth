@@ -1,4 +1,4 @@
-﻿import { RootNode, SignedNode } from '/graph'
+﻿import { RootNode, SignedNode } from '/chain'
 import * as select from '/team/selectors'
 import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '/team/types'
 import { ValidationError, ValidationResult } from '/util'

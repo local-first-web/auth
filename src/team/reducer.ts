@@ -1,4 +1,4 @@
-﻿import { RootNode } from '/graph'
+﻿import { RootNode } from '/chain'
 import { ADMIN } from '/role'
 import {
   addDevice,

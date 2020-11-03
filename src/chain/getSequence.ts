@@ -1,17 +1,17 @@
 ﻿import { getCommonAncestor } from './getAncestors'
 import { getHead } from './getHead'
-import { getRoot } from '/graph/getRoot'
+import { getRoot } from '/chain/getRoot'
 import {
-  GraphNode,
+  ChainNode,
   isMergeNode,
   NodeBody,
   RootNode,
-  SignatureGraph,
+  SignatureChain,
   SignedNode,
-} from '/graph/types'
+} from '/chain/types'
 
 /**
- * Takes a `SignatureGraph` and returns an array of nodes. For example, this graph
+ * Takes a `SignatureChain` and returns an array of nodes. For example, this chain
  *```
  *           ┌─→ c ─→ d ─┐
  * a ─→ b ─→ ┴─→ e ───── * ─→ f
@@ -25,38 +25,38 @@ import {
  * c, d]`. A different reconciler might return the nodes in a different order, and/or omit some
  * nodes.
  *
- * @param graph The SignatureGraph containing the nodes to be sequenced
+ * @param chain The SignatureChain containing the nodes to be sequenced
  * @param options.reconciler A function that takes two sequences and returns a single sequence
  * combining the two while applying any necessary business logic regarding which nodes take
  * precedence, which are omitted, etc.
- * @param options.root The node to use as the graph's root (used to process a subgraph)
- * @param options.head The node to use as the graph's head (used to process a subgraph)
+ * @param options.root The node to use as the chain's root (used to process a subchain)
+ * @param options.head The node to use as the chain's head (used to process a subchain)
  */
 export const getSequence = <T extends NodeBody>(
-  graph: SignatureGraph<T>,
+  chain: SignatureChain<T>,
   options: GetSequenceOptions<T> = {}
 ): (SignedNode<T> | RootNode)[] => {
   const {
     reconciler = trivialReconciler, //
-    root = getRoot(graph),
-    head = getHead(graph),
+    root = getRoot(chain),
+    head = getHead(chain),
   } = options
 
   // recursive inner function - returns the given node's ancestors and the given node
-  const visit = (node: GraphNode<T>): (SignedNode<T> | RootNode)[] => {
+  const visit = (node: ChainNode<T>): (SignedNode<T> | RootNode)[] => {
     if (node === root) {
       // root - we're done
       return []
     } else if (!isMergeNode(node)) {
       // just one parent - keep going
-      const parent = graph.nodes.get(node.body.prev!)!
+      const parent = chain.nodes.get(node.body.prev!)!
       return visit(parent).concat(isMergeNode(parent) ? [] : [parent])
     } else {
       // merge node - need to reconcile the branches it merges, going back to the first common ancestor
-      const [a, b] = node.body.map(hash => graph.nodes.get(hash)!) // these are the two heads being merged
-      const ancestor = getCommonAncestor(graph, a, b)
-      const branchA = getSequence(graph, { root: ancestor, head: a, reconciler }).slice(1) // omit the ancestor itself
-      const branchB = getSequence(graph, { root: ancestor, head: b, reconciler }).slice(1)
+      const [a, b] = node.body.map(hash => chain.nodes.get(hash)!) // these are the two heads being merged
+      const ancestor = getCommonAncestor(chain, a, b)
+      const branchA = getSequence(chain, { root: ancestor, head: a, reconciler }).slice(1) // omit the ancestor itself
+      const branchB = getSequence(chain, { root: ancestor, head: b, reconciler }).slice(1)
       const mergedBranches = reconciler(branchA, branchB)
       return visit(ancestor)
         .concat(isMergeNode(ancestor) ? [] : [ancestor])
@@ -85,6 +85,6 @@ export type Reconciler = <T extends NodeBody>(
 
 export type GetSequenceOptions<T extends NodeBody> = {
   reconciler?: Reconciler
-  root?: GraphNode<T>
-  head?: GraphNode<T>
+  root?: ChainNode<T>
+  head?: ChainNode<T>
 }

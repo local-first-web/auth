@@ -1,4 +1,4 @@
-import { NodeBody, RootNode, SignatureGraph, SignedNode } from '/graph'
+import { NodeBody, RootNode, SignatureChain, SignedNode } from '/chain'
 import { LocalUserContext, MemberContext } from '/context'
 import { Invitation } from '/invitation/types'
 import { KeyMetadata } from '/keyset'

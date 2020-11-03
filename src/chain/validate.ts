@@ -1,20 +1,20 @@
 ﻿import { getSequence } from './getSequence'
-import { GraphNode, NodeBody } from './types'
-import { SignatureGraph, ValidatorSet } from '/graph'
-import { validators } from '/graph/validators'
+import { ChainNode, NodeBody } from './types'
+import { SignatureChain, ValidatorSet } from '/chain'
+import { validators } from '/chain/validators'
 import { InvalidResult, ValidationResult } from '/util'
 
 const VALID = { isValid: true } as ValidationResult
 
 /**
- * Runs a signature graph through a series of validators to ensure that it is correctly formed, has
+ * Runs a signature chain through a series of validators to ensure that it is correctly formed, has
  * not been tampered with, etc.
- * @graph The signature graph to validate
- * @customValidators Any additional validators (besides the base validators that test the graph's
+ * @chain The signature chain to validate
+ * @customValidators Any additional validators (besides the base validators that test the chain's
  * integrity)
  */
 export const validate = <T extends NodeBody>(
-  graph: SignatureGraph<T>,
+  chain: SignatureChain<T>,
   customValidators: ValidatorSet = {}
 ): ValidationResult => {
   /**
@@ -23,7 +23,7 @@ export const validate = <T extends NodeBody>(
    */
   const composeValidators = (...validators: ValidatorSet[]) => (
     result: ValidationResult,
-    currentLink: GraphNode<T>
+    currentLink: ChainNode<T>
   ) => {
     const mergedValidators = merge(validators)
     // short-circuit validation if any previous validation has failed
@@ -32,7 +32,7 @@ export const validate = <T extends NodeBody>(
     for (const key in mergedValidators) {
       const validator = mergedValidators[key]
       try {
-        const result = validator(currentLink, graph)
+        const result = validator(currentLink, chain)
         if (result.isValid === false) return result
       } catch (e) {
         // any errors thrown cause validation to fail and are returned with the validation result
@@ -53,5 +53,5 @@ export const validate = <T extends NodeBody>(
 
   const initialValue = VALID
   const v = composeValidators(validators, customValidators)
-  return getSequence(graph).reduce(v, initialValue)
+  return getSequence(chain).reduce(v, initialValue)
 }

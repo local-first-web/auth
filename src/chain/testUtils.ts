@@ -1,18 +1,18 @@
-import { append } from '/graph/append'
-import { clone } from '/graph/clone'
-import { create } from '/graph/create'
-import { merge } from '/graph/merge'
-import { GraphNode, isMergeNode, NodeBody, SignatureGraph, SignedNode } from '/graph/types'
+import { append } from '/chain/append'
+import { clone } from '/chain/clone'
+import { create } from '/chain/create'
+import { merge } from '/chain/merge'
+import { ChainNode, isMergeNode, NodeBody, SignatureChain, SignedNode } from '/chain/types'
 import { defaultContext } from '/util/testing'
 
-export const getPayloads = (sequence: GraphNode[]) =>
+export const getPayloads = (sequence: ChainNode[]) =>
   sequence.filter(n => !isMergeNode(n)).map(n => (n.body as NodeBody).payload)
 
-export const findByPayload = (graph: SignatureGraph, payload: any) =>
-  [...graph.nodes.values()].find(n => !isMergeNode(n) && n.body.payload === payload) as SignedNode
+export const findByPayload = (chain: SignatureChain, payload: any) =>
+  [...chain.nodes.values()].find(n => !isMergeNode(n) && n.body.payload === payload) as SignedNode
 
 /**
- * Returns a graph with these nodes and branches (`*` = merge node):
+ * Returns a chain with these nodes and branches (`*` = merge node):
  *
  *```
  *                   ┌─→ e ─→ o ─┐
@@ -21,8 +21,8 @@ export const findByPayload = (graph: SignatureGraph, payload: any) =>
  *        └─→ j ─→ p ─→ q ──────────────────────┘
  *```
  */
-export const buildGraph = () => {
-  const appendNode = (g: SignatureGraph, payload: string) =>
+export const buildChain = () => {
+  const appendNode = (g: SignatureChain, payload: string) =>
     append(g, { type: 'X', payload }, defaultContext)
 
   var a = create('a', defaultContext)
