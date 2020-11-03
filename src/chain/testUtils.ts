@@ -5,11 +5,13 @@ import { merge } from '/chain/merge'
 import { ChainLink, isMergeLink, LinkBody, SignatureChain, SignedLink } from '/chain/types'
 import { defaultContext } from '/util/testing'
 
-export const getPayloads = (sequence: ChainLink[]) =>
+export const getPayloads = (sequence: ChainLink<any>[]) =>
   sequence.filter(n => !isMergeLink(n)).map(n => (n.body as LinkBody).payload)
 
-export const findByPayload = (chain: SignatureChain, payload: any) =>
-  [...chain.links.values()].find(n => !isMergeLink(n) && n.body.payload === payload) as SignedLink
+export const findByPayload = (chain: SignatureChain<any>, payload: any) => {
+  const links = Object.values(chain.links)
+  return links.find(n => !isMergeLink(n) && n.body.payload === payload) as SignedLink<any>
+}
 
 /**
  * Returns a chain with these links and branches (`*` = merge link):
@@ -22,8 +24,8 @@ export const findByPayload = (chain: SignatureChain, payload: any) =>
  *```
  */
 export const buildChain = () => {
-  const appendLink = (g: SignatureChain, payload: string) =>
-    append(g, { type: 'X', payload }, defaultContext)
+  const appendLink = (chain: SignatureChain<any>, payload: string) =>
+    append(chain, { type: 'X', payload }, defaultContext)
 
   var a = create('a', defaultContext)
   a = appendLink(a, 'b')

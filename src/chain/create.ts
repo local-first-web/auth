@@ -5,7 +5,7 @@ import { LocalUserContext } from '/context'
 export const EMPTY_CHAIN = {
   root: null,
   head: null,
-  links: new Map(),
+  links: {},
 }
 
 export const create = <T extends LinkBody>(payload: any = {}, context: LocalUserContext) => {

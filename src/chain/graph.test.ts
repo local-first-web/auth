@@ -89,7 +89,7 @@ describe('chains', () => {
       expect(aliceMerged).toEqual(bobMerged)
 
       // The merged chains have five links: ROOT, bob's change, alice's two changes, and MERGE
-      expect(aliceMerged.links.size).toBe(5)
+      expect(Object.keys(aliceMerged.links)).toHaveLength(5)
     })
 
     test(`can't merge chains with different roots`, () => {
