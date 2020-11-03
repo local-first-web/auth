@@ -13,7 +13,7 @@ export type ValidatorSet = {
   [key: string]: Validator
 }
 
-export interface LinkBodyCommon {
+interface LinkBodyCommon {
   /** Payload of the action */
   payload: unknown
   /** Context in which this link was authored (user, device, client) */
@@ -40,10 +40,11 @@ export type LinkBody = RootLinkBody | NonRootLinkBody
 
 /** The full link, consisting of a body and a signature link */
 export interface SignedLink<T extends LinkBody> {
-  /** The part of the link that is signed & hashed */
-  body: T
   /** hash of this link */
   hash: Hash
+
+  /** The part of the link that is signed & hashed */
+  body: T
 
   /** The signature block (signature, name, and key) */
   signed: {
