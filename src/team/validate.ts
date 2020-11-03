@@ -1,4 +1,4 @@
-﻿import { RootLink, SignedLink } from '/chain'
+﻿import { ROOT, RootLink, SignedLink } from '/chain'
 import * as select from '/team/selectors'
 import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '/team/types'
 import { ValidationError, ValidationResult } from '/util'
@@ -18,7 +18,7 @@ const validators: TeamStateValidatorSet = {
     const [prevState, link] = args
 
     const { type, context } = link.body
-    const preMembershipActions = ['ROOT'] // team doesn't have members when these actions happen
+    const preMembershipActions = [ROOT] // team doesn't have members when these actions happen
     const nonAdminActions = ['ADMIT_INVITED_MEMBER'] // any team member can do these things
 
     if (!preMembershipActions.includes(type)) {
