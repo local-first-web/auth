@@ -1,4 +1,4 @@
-﻿import { RootLink } from '/chain'
+﻿import { ROOT, RootLink } from '/chain'
 import { ADMIN } from '/role'
 import {
   addDevice,
@@ -56,7 +56,7 @@ export const reducer = (state: TeamState, link: TeamLink | RootLink) => {
  */
 const getTransforms = (action: TeamAction): Reducer[] => {
   switch (action.type) {
-    case 'ROOT':
+    case ROOT:
       const { teamName, rootMember } = action.payload
       return [
         setTeamName(teamName),
