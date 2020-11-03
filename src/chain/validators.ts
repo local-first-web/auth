@@ -3,6 +3,7 @@
   isRootLink,
   LinkBody,
   NonRootLinkBody,
+  ROOT,
   RootLinkBody,
   ValidatorSet,
 } from '/chain/types'
@@ -38,7 +39,7 @@ export const validators: ValidatorSet = {
   /** If this is a root link, is it the first link in the chain? */
   validateRoot: (link, chain) => {
     const hasNoPreviousLink = isRootLink(link)
-    const hasRootType = (link.body as RootLinkBody).type === 'ROOT'
+    const hasRootType = (link.body as RootLinkBody).type === ROOT
     const isDesignatedAsRoot = getRoot(chain) === link
     // all should be true, or all should be false
     if (hasNoPreviousLink === isDesignatedAsRoot && isDesignatedAsRoot === hasRootType)
