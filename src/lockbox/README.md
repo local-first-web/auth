@@ -57,7 +57,7 @@ We use lockboxes to:
 
 ### The key chain
 
-Keys provide access to other keys, via lockboxes; so we have an acyclic directed chain where keys are nodes and
+Keys provide access to other keys, via lockboxes; so we have an acyclic directed graph where keys are nodes and
 lockboxes are edges.
 
 ![](../../docs/img/key-chain.png)
