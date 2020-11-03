@@ -1,6 +1,6 @@
 import { signatures } from '@herbcaudill/crypto'
 import { validate } from '/chain/validate'
-import { append, create, merge } from '/chain'
+import { append, create, merge, ROOT } from '/chain'
 import { getHead } from '/chain/getHead'
 import { getRoot } from '/chain/getRoot'
 import { alice, alicesContext, bobsContext, defaultContext } from '/util/testing'
@@ -178,7 +178,7 @@ describe('chains', () => {
       const chain = create({ team: 'Spies Я Us' }, defaultContext)
 
       const link = {
-        type: 'ROOT',
+        type: ROOT,
         payload: { foo: 'pizza' },
       }
 
