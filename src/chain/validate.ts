@@ -1,6 +1,8 @@
-﻿import { SignatureChain, SignedLink, ValidatorSet } from '/chain/types'
+﻿import { getSequence } from './getSequence'
+import { ChainLink, LinkBody } from './types'
+import { SignatureChain, ValidatorSet } from '/chain'
 import { validators } from '/chain/validators'
-import { ValidationResult, InvalidResult } from '/util'
+import { InvalidResult, ValidationResult } from '/util'
 
 const VALID = { isValid: true } as ValidationResult
 
@@ -11,45 +13,45 @@ const VALID = { isValid: true } as ValidationResult
  * @customValidators Any additional validators (besides the base validators that test the chain's
  * integrity)
  */
-export const validate = (
-  chain: SignatureChain,
+export const validate = <T extends LinkBody>(
+  chain: SignatureChain<T>,
   customValidators: ValidatorSet = {}
 ): ValidationResult => {
-  const initialValue = VALID
-  return chain.reduce(composeValidators(validators, customValidators), initialValue)
-}
+  /**
+   * Returns a single reducer function that runs all validators.
+   * @param validators A map of validators
+   */
+  const composeValidators = (...validators: ValidatorSet[]) => (
+    result: ValidationResult,
+    currentLink: ChainLink<T>
+  ) => {
+    const mergedValidators = merge(validators)
+    // short-circuit validation if any previous validation has failed
+    if (result.isValid === false) return result as InvalidResult
 
-/**
- * Returns a single reducer function that runs all validators.
- * @param validators A map of validators
- */
-const composeValidators = (...validators: ValidatorSet[]) => (
-  result: ValidationResult,
-  currentLink: SignedLink,
-  i: number,
-  chain: SignatureChain
-) => {
-  const mergedValidators = merge(validators)
-  // short-circuit validation if any previous validation has failed
-  if (result.isValid === false) return result as InvalidResult
-  const prevLink = i === 0 ? undefined : chain[i - 1]
-  for (const key in mergedValidators) {
-    const validator = mergedValidators[key]
-    try {
-      const result = validator(currentLink, prevLink)
-      if (result.isValid === false) return result
-    } catch (e) {
-      // any errors thrown cause validation to fail and are returned with the validation result
-      return {
-        isValid: false,
-        error: { message: e.message, index: i, details: e },
-      } as InvalidResult
+    for (const key in mergedValidators) {
+      const validator = mergedValidators[key]
+      try {
+        const result = validator(currentLink, chain)
+        if (result.isValid === false) return result
+      } catch (e) {
+        // any errors thrown cause validation to fail and are returned with the validation result
+        // ignore coverage
+        return {
+          isValid: false,
+          error: { message: e.message, details: e },
+        } as InvalidResult
+      }
     }
+    // no validators failed
+    return VALID
   }
-  // no validators failed
-  return VALID
-}
 
-// merges multiple validator sets into one object
-const merge = (validatorSets: ValidatorSet[]) =>
-  validatorSets.reduce((result, vs) => Object.assign(result, vs), {})
+  // merges multiple validator sets into one object
+  const merge = (validatorSets: ValidatorSet[]) =>
+    validatorSets.reduce((result, vs) => Object.assign(result, vs), {})
+
+  const initialValue = VALID
+  const v = composeValidators(validators, customValidators)
+  return getSequence(chain).reduce(v, initialValue)
+}

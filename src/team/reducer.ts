@@ -1,4 +1,5 @@
-﻿import { ADMIN } from '/role'
+﻿import { ROOT, RootLink } from '/chain'
+import { ADMIN } from '/role'
 import {
   addDevice,
   addMember,
@@ -31,13 +32,13 @@ import { validate } from '/team/validate'
  * @param state The team state as of the previous link in the signature chain.
  * @param link The current link being processed.
  */
-export const reducer = (state: TeamState, link: TeamLink) => {
+export const reducer = (state: TeamState, link: TeamLink | RootLink) => {
   // make sure this link can be applied to the previous state & doesn't put us in an invalid state
   const validation = validate(state, link)
   if (!validation.isValid) throw validation.error
 
   // recast as TeamAction so we get type enforcement on payloads
-  const action: TeamAction = link.body
+  const action = link.body as TeamAction
 
   // get all transforms and compose them into a single function
   const applyTransforms = compose([
@@ -55,7 +56,7 @@ export const reducer = (state: TeamState, link: TeamLink) => {
  */
 const getTransforms = (action: TeamAction): Reducer[] => {
   switch (action.type) {
-    case 'ROOT':
+    case ROOT:
       const { teamName, rootMember } = action.payload
       return [
         setTeamName(teamName),

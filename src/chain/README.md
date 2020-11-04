@@ -1,68 +1,75 @@
 ﻿## ✍🔗 Signature chain
 
-A signature chain is an ordered list of links. Each link
+A signature chain is an acyclic directed graph of links. Each link
 
 - is **cryptographically signed** by the author; and
-- includes a **hash of the previous link**.
+- includes a **hash of the parent link**.
 
-![](../../docs/img/sigchain.png)
+This means that the chain is **append-only**: Existing nodes can’t be modified, reordered, or removed without causing the hash and signature checks to fail. 
 
-A signature chain is just data and can be stored as JSON. For example, here's a signature chain containing two links:
+![sigchain.1](https://raw.githubusercontent.com/HerbCaudill/pics/master/sigchain.1.png)A signature chain is just data and can be stored as JSON. It consists of a hash table of the links themselves, plus a pointer to the **root** (the “founding” link added when the chain was created) and the **head** (the most recent link we know about).
 
-```jsonc
-[
-  // root link
-  {
-    "body": {
-      "type": 0,
-      "payload": { "team": "Spies Я Us" },
-      "user": "alice",
-      "device": { "id": "PKN4tM7BtW8=", "name": "windows laptop", "type": 1 },
-      "client": { "name": "test", "version": "0" },
-      "timestamp": 1588421926221,
-      "prev": null,
-      "index": 0
-    },
-    "signed": {
-      "name": "alice",
-      "signature": "oTKyn8iTwrrAdH...CuhPEkqNaGRKYBW64RL3NJlnwMoIg+6NiYrhh2RBg==",
-      "key": "/I7WZRWBGTAJD30JJRq+CVOLWL7iGxIHlbBmq80bjLg="
-    }
-  },
-  // another link
-  {
-    "body": {
-      "type": "something",
-      "payload": {},
-      "user": "alice",
-      "device": { "id": "PKN4tM7BtW8=", "name": "windows laptop", "type": 1 },
-      "client": { "name": "test", "version": "0" },
-      "timestamp": 1588421926268,
-      "prev": "fog76617S9wsklpT...gMe/rGZicPZFEItOKNNbgiB3JbGU2P1VKWERIVnyvcmQ==",
-      "index": 1
-    },
-    "signed": {
-      "name": "alice",
-      "signature": "OM3MZ0lHL9Pdpex4WO9IDcii...D8bUnxFiKXJ3ECpfRgpedBCmB9CW3Cw==",
-      "key": "/I7WZRWBGTAJD30JJRq+CVOLWL7iGxIHlbBmq80bjLg="
-    }
-  }
-]
-```
+### Determining group membership
 
-The `chain` module doesn't know anything about teams or access rules. It just creates chains, appends to them, and checks them for internal validity.
+By itself, the `chain` module doesn't know anything about teams or access rules. It just creates chains, appends to them, and checks them for internal validity. 
+
+The `team` module contributes the semantics of different types of links and their corresponding payloads: For example, a link with the `ADD_MEMBER` type has a payload containing information about the member to be added, as well as a list of roles to add them to. 
+
+A team’s latest membership state is calculated by running a chain’s collection of links through a reducer, much the same way Redux uses a reducer to calculate state as the accumulated effect of a sequence of actions. The reducer will throw an error if there are any violations of group rules—for example, a non-admin inviting or removing members, or a non-member doing anything at all. 
+
+### Merging and conflict resolution
+
+This system is designed to allow **decentralized, intermittently connected peers** to collaborate **without a central server**; so we take for granted that any two members might make membership changes while disconnected from each other. 
+
+If Alice adds new links to the signature chain while disconnected from Bob, there’s no problem: When they sync up, Bob will realize that he’s behind and he’ll get the latest links in the chain. 
+
+Now suppose Alice and Bob *both* add new links to the signature while they’re disconnected from each other. When they sync up, they each add a special **merge link**, pointing to their two divergent heads. This merge link becomes the new head for both of them. 
+
+![sigchain.2](G:\My Drive\Projects\taco-deck illustrations\sigchain.2.png)
+
+In many cases, we can accept all the concurrent changes in some arbitrary order, and it all works out. There are a few tricky scenarios, though, where Alice and Bob’s concurrent changes may be at odds with each other. Specifically, what do you do if…
+
+1. Alice and Bob concurrently remove each other? 
+2. Alice removes Bob, and Bob concurrently adds a new member Charlie?
+3. Alice removes Bob, while concurrently Charlie removes Bob and then adds him back? 
+
+(The questions are the same whether you read “remove” as “remove from the group” or “remove from the admin role”.)
+
+In all of these cases, we adopt a “strong-remove” policy for group membership: We **err on the side of removal**, reasoning that we can always add someone back if they shouldn’t have been removed, but you can’t reverse the leak of information that might take place if someone who you thought was removed was in fact still around. So in case (1), we remove both Alice and Bob; in case (2), we don’t allow Bob’s addition of Debbie; and in case (3), Bob stays removed. <a id='link-note-1' href='#note-1'>[1]</a>
+
+We implement this policy using a custom **reconciler**. A reconciler is a function that takes two concurrent sequences of links and turns them into a single sequence. This is done deterministically, so that every member processing the same signature chain independently converges on the same group membership state. 
+
+A reconciler decides how to order the links in the two sequences, and which links to omit. This diagram shows a few different ways that one graph might be sequenced, depending on the reconciler’s rules: 
+
+
+
+![sigchain.3](https://raw.githubusercontent.com/HerbCaudill/pics/master/sigchain.3.png)
+
+Here’s how we resolve scenario (2) above: Bob’s addition of Charlie is omitted, because he was concurrently being removed by Alice. 
+
+![sigchain.5](https://raw.githubusercontent.com/HerbCaudill/pics/master/sigchain.5.png)
+
+So we end up with this ordered sequence of links: 
+
+![sigchain.6](https://raw.githubusercontent.com/HerbCaudill/pics/master/sigchain.6.png)
 
 ### Link structure
 
-```js
-export interface LinkBody {
+This is the structure of a typical link:
+
+```ts
+hash: Base64
+body: {
   type: string
   payload: any
   context: Context
   timestamp: UnixTimestamp
-  expires?: UnixTimestamp
-  prev: Base64 | null
-  index: number
+  prev: Base64 
+}
+signed: {
+  signature: Base64
+  userName: string
+  key: Base64
 }
 ```
 
@@ -91,11 +98,10 @@ export interface LinkBody {
 
 #### Generated fields
 
+- `hash` is a hash of the link’s own `body`; it also serves as the ID for referring to the link. 
+- `prev` contains the hash of the previous link (or `null` in the case of the root link).
 - `timestamp` contains the Unix timestamp of the creation of the link.
 
-- `prev` contains the hash of the previous link (or `null` in the case of the root link).
-
-- `index` contains the zero-based sequential index of the link. The root link has index `0`, the next link has index `1`, and so on.
 
 ### Helper functions
 
@@ -110,7 +116,7 @@ const chain = create(payload, context)
 
 #### `append(chain, link, context)`
 
-Takes a chain, a partial link (containing just a `type` and a `payload`), and a context; and returns a new chain with the link filled out, signed, and populated with the hash of the preceding link.
+Takes a chain, a partial link body (containing just a `type` and a `payload`), and a context; and returns a new chain with the link filled out, signed, and populated with the hash of the preceding link.
 
 ```js
 const newChain = append(
@@ -161,3 +167,7 @@ const result = validate(chain)
 //   }
 // }
 ```
+
+----
+
+<a id='note-1' href='#link-note-1'>[1]</a> The notion of “strong-remove” group membership scheme, and this discussion of potential conflicts, is taken from: Matthew Weidner, Martin Kleppmann, Daniel Hugenroth, and Alastair R. Beresford. Key Agreement for Decentralized Secure Group Messaging. *Cryptology ePrint Archive, Report 2020/1281*, 2020. https://eprint.iacr.org/2020/1281 

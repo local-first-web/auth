@@ -29,7 +29,7 @@
   "dependencies": {
     "@herbcaudill/crypto": "0",
     "fast-memoize": "2",
-    "msgpack-lite": "^0.1.26",
+    "msgpack-lite": "0",
     "ramda": "0",
     "xstate": "4"
   },
@@ -39,6 +39,7 @@
     "@types/ramda": "0",
     "husky": "4",
     "prettier": "2",
+    "ts-jest": "26",
     "tsdx": "0",
     "tslib": "1",
     "typescript": "3",

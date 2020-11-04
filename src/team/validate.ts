@@ -1,7 +1,7 @@
-﻿import { TeamStateValidator, ValidationArgs, TeamStateValidatorSet, TeamState } from '/team/types'
-import { SignedLink } from '/chain'
-import { ValidationError, ValidationResult } from '/util'
+﻿import { ROOT, RootLink, SignedLink } from '/chain'
 import * as select from '/team/selectors'
+import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '/team/types'
+import { ValidationError, ValidationResult } from '/util'
 
 export const validate: TeamStateValidator = (...args: ValidationArgs) => {
   for (const key in validators) {
@@ -18,7 +18,7 @@ const validators: TeamStateValidatorSet = {
     const [prevState, link] = args
 
     const { type, context } = link.body
-    const preMembershipActions = ['ROOT'] // team doesn't have members when these actions happen
+    const preMembershipActions = [ROOT] // team doesn't have members when these actions happen
     const nonAdminActions = ['ADMIT_INVITED_MEMBER'] // any team member can do these things
 
     if (!preMembershipActions.includes(type)) {
@@ -78,11 +78,10 @@ const validators: TeamStateValidatorSet = {
   },
 }
 
-const fail = (message: string, prevState: TeamState, link: SignedLink) => {
-  const { index } = link.body
+const fail = (message: string, prevState: TeamState, link: SignedLink | RootLink) => {
   return {
     isValid: false,
-    error: new ValidationError(message, index, { prevState, link }),
+    error: new ValidationError(message, { prevState, link }),
   }
 }
 
