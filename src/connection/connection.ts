@@ -150,7 +150,7 @@ export class ConnectionService extends EventEmitter {
     context.encryptedPeerSeed = acceptanceMessage.payload.encryptedSeed
   }
 
-  // GUARDS!! GUARDS!!
+  // guards
 
   private identityIsKnown: Condition = (context, event) => {
     const claim = (event as ClaimIdentityMessage).payload
