@@ -20,8 +20,6 @@ interface LinkBodyCommon {
   context: MemberContext
   /** Unix timestamp on device that created this link */
   timestamp: UnixTimestamp
-  /** Unix time after which this link should be ignored */
-  expires?: UnixTimestamp
 }
 
 export type RootLinkBody = LinkBodyCommon & {
