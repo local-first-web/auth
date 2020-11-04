@@ -7,7 +7,9 @@ A signature chain is an acyclic directed graph of links. Each link
 
 This means that the chain is **append-only**: Existing nodes can’t be modified, reordered, or removed without causing the hash and signature checks to fail.
 
-![sigchain.1](https://raw.githubusercontent.com/HerbCaudill/pics/master/sigchain.1.png)A signature chain is just data and can be stored as JSON. It consists of a hash table of the links themselves, plus a pointer to the **root** (the “founding” link added when the chain was created) and the **head** (the most recent link we know about).
+![sigchain.1](https://raw.githubusercontent.com/HerbCaudill/pics/master/sigchain.1.png)
+
+A signature chain is just data and can be stored as JSON. It consists of a hash table of the links themselves, plus a pointer to the **root** (the “founding” link added when the chain was created) and the **head** (the most recent link we know about).
 
 ### Determining group membership
 
@@ -25,7 +27,7 @@ If Alice adds new links to the signature chain while disconnected from Bob, ther
 
 Now suppose Alice and Bob _both_ add new links to the signature while they’re disconnected from each other. When they sync up, they each add a special **merge link**, pointing to their two divergent heads. This merge link becomes the new head for both of them.
 
-![sigchain.2](G:\My Drive\Projects\taco-deck illustrations\sigchain.2.png)
+![image](https://user-images.githubusercontent.com/2136620/98110368-43240700-1e9f-11eb-9ea9-ecd1253e9ffe.png)
 
 In many cases, we can accept all the concurrent changes in some arbitrary order, and it all works out. There are a few tricky scenarios, though, where Alice and Bob’s concurrent changes may be at odds with each other. Specifically, what do you do if…
 
