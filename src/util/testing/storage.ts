@@ -11,6 +11,6 @@ export const storage = {
   load: (context: LocalUserContext) => {
     // ignore coverage
     if (storage.contents === undefined) throw new Error('need to save before you can load')
-    return teams.load(JSON.parse(storage.contents), context)
+    return teams.load(storage.contents, context)
   },
 }

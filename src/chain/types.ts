@@ -1,15 +1,48 @@
 ﻿import { MemberContext } from '/context'
-import { Base64, UnixTimestamp, ValidationResult } from '/util/types'
+import { Base64, Hash, UnixTimestamp, ValidationResult } from '/util/types'
 
-/** A hash-chained array of signed links */
-export type SignatureChain<T extends SignedLink = SignedLink> = T[]
+export const ROOT = 'ROOT'
+export const MERGE = 'MERGE'
+
+export type Validator = <T extends LinkBody>(
+  currentLink: ChainLink<T>,
+  chain: SignatureChain<T>
+) => ValidationResult
+
+export type ValidatorSet = {
+  [key: string]: Validator
+}
+
+interface LinkBodyCommon {
+  /** Payload of the action */
+  payload: unknown
+  /** Context in which this link was authored (user, device, client) */
+  context: MemberContext
+  /** Unix timestamp on device that created this link */
+  timestamp: UnixTimestamp
+}
+
+export type RootLinkBody = LinkBodyCommon & {
+  type: typeof ROOT
+  prev: null
+}
+
+export type NonRootLinkBody = LinkBodyCommon & {
+  /** Label identifying the type of action this link represents */
+  type: unknown
+  prev: Base64
+}
+
+/** The part of the link that is signed */
+export type LinkBody = RootLinkBody | NonRootLinkBody
 
 /** The full link, consisting of a body and a signature link */
-export interface SignedLink<T = LinkBody> {
+export interface SignedLink<T extends LinkBody> {
+  /** hash of this link */
+  hash: Hash
+
   /** The part of the link that is signed & hashed */
   body: T
-  /** hash of this link */
-  hash: Base64
 
   /** The signature block (signature, name, and key) */
   signed: {
@@ -22,29 +55,28 @@ export interface SignedLink<T = LinkBody> {
   }
 }
 
-/** The part of the link that is signed */
-export interface LinkBody {
-  /** Label identifying the type of action this link represents */
-  type: 'ROOT' | unknown
-  /** Payload of the action */
-  payload: unknown
-  /** Context in which this link was authored (user, device, client) */
-  context: MemberContext
-  /** Unix timestamp on device that created this link */
-  timestamp: UnixTimestamp
-  /** Unix time after which this link should be ignored */
-  expires?: UnixTimestamp
-  /** hash of previous link */
-  prev: Base64 | null
-  /** index of this link within signature chain */
-  index: number
-}
-
 /** User-writable fields of a link (omits fields that are added automatically) */
-export type PartialLinkBody<T extends LinkBody = LinkBody> = Pick<T, 'type' | 'payload'>
+export type PartialLinkBody<T extends LinkBody> = Pick<T, 'type' | 'payload'>
 
-export type Validator = (currentLink: SignedLink, prevLink?: SignedLink) => ValidationResult
+export type ChainLink<T extends LinkBody> = SignedLink<T> | RootLink | MergeLink
 
-export type ValidatorSet = {
-  [key: string]: Validator
+export type RootLink = SignedLink<RootLinkBody>
+
+export type MergeLink = {
+  type: typeof MERGE
+  hash: Hash
+  body: [Hash, Hash]
 }
+
+export interface SignatureChain<T extends LinkBody> {
+  root: Hash
+  head: Hash
+  links: { [hash: string]: ChainLink<T> }
+}
+
+// type guards
+
+export const isMergeLink = (o: ChainLink<any>): o is MergeLink => 'type' in o && o.type === MERGE
+
+export const isRootLink = (o: ChainLink<any>): o is RootLink =>
+  !isMergeLink(o) && o.body.prev === null

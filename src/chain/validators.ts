@@ -1,80 +1,77 @@
-﻿import { ValidatorSet } from '/chain/types'
+﻿import {
+  isMergeLink,
+  isRootLink,
+  LinkBody,
+  NonRootLinkBody,
+  ROOT,
+  RootLinkBody,
+  ValidatorSet,
+} from '/chain/types'
 import { ValidationError } from '/util'
 import { hashLink } from '/chain/hashLink'
 import { signatures } from '@herbcaudill/crypto'
+import { getRoot } from './getRoot'
 
 export const validators: ValidatorSet = {
   /** Does this link contain a hash of the previous link?  */
-  validateHash: (currentLink, prevLink) => {
-    const isFirstLink = prevLink === undefined
-    if (isFirstLink) return { isValid: true } // nothing to validate on first link
-    const expected = hashLink(prevLink!.body)
-    const actual = currentLink.body.prev
-    return actual === expected
-      ? { isValid: true }
-      : {
+  validateHash: (link, chain) => {
+    if (isRootLink(link)) return { isValid: true } // nothing to validate on first link
+    const prevHashes = isMergeLink(link) ? link.body : [(link.body as NonRootLinkBody).prev]
+    for (const hash of prevHashes) {
+      const prevLink = chain.links[hash]!
+      const expected = hashLink(prevLink.body)
+      const actual = hash
+      if (expected !== actual) {
+        console.log({ link, prevLink, expected, actual })
+        return {
           isValid: false,
-          error: new ValidationError('Hash does not match previous link', currentLink.body.index, {
-            actual,
+          error: new ValidationError('Hash does not match previous link', {
+            link,
             expected,
+            actual,
           }),
         }
+      }
+    }
+    return { isValid: true }
   },
 
   /** If this is a root link, is it the first link in the chain? */
-  validateRoot: (currentLink, prevLink) => {
-    const { type } = currentLink.body
-    const isRoot = type === 'ROOT'
-    const isFirstLink = prevLink === undefined
-    // both should be true, or both should be false
-    if (isRoot === isFirstLink) return { isValid: true }
+  validateRoot: (link, chain) => {
+    const hasNoPreviousLink = isRootLink(link)
+    const hasRootType = (link.body as RootLinkBody).type === ROOT
+    const isDesignatedAsRoot = getRoot(chain) === link
+    // all should be true, or all should be false
+    if (hasNoPreviousLink === isDesignatedAsRoot && isDesignatedAsRoot === hasRootType)
+      return { isValid: true }
     else {
-      const message = isRoot
+      // TODO sort out all these possibilities?
+      const message = hasNoPreviousLink
         ? // has type ROOT but isn't first
           'The root link must be the first link in the signature chain.'
         : // is first but doesn't have type ROOT
           'The first link in the signature chain must be the root link. '
       return {
         isValid: false,
-        error: new ValidationError(message, currentLink.body.index),
+        error: new ValidationError(message),
       }
     }
   },
 
   /** Does this link's signature check out? */
-  validateSignatures: currentLink => {
+  validateSignatures: link => {
+    if (isMergeLink(link)) return { isValid: true } // merge links aren't signed
+
     const signedMessage = {
-      payload: currentLink.body,
-      signature: currentLink.signed.signature,
-      publicKey: currentLink.signed.key,
+      payload: link.body,
+      signature: link.signed.signature,
+      publicKey: link.signed.key,
     }
     return signatures.verify(signedMessage)
       ? { isValid: true }
       : {
           isValid: false,
-          error: new ValidationError(
-            'Signature is not valid',
-            currentLink.body.index,
-            signedMessage
-          ),
-        }
-  },
-
-  /** Is this link's index consecutive to the previous link's index? */
-  validateSequence: (currentLink, prevLink) => {
-    const isFirstLink = prevLink === undefined
-    const expected = isFirstLink
-      ? 0 // first link should have index 0
-      : (prevLink!.body.index || 0) + 1 // other links should increment previous by one
-    const index = currentLink.body.index
-    return index === expected
-      ? { isValid: true }
-      : {
-          isValid: false,
-          error: new ValidationError('Index is not consecutive', currentLink.body.index, {
-            actual: index,
-            expected,
-          }),
+          error: new ValidationError('Signature is not valid', signedMessage),
         }
   },
 }

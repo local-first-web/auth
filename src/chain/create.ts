@@ -1,15 +1,14 @@
-﻿import { append } from '/chain/append'
-import { PartialLinkBody, SignatureChain } from '/chain/types'
+﻿import { append } from './append'
+import { LinkBody, ROOT, SignatureChain } from './types'
 import { LocalUserContext } from '/context'
 
-export const create = (payload: any = {}, context: LocalUserContext) => {
-  // create new root link
-  const link: PartialLinkBody = {
-    type: 'ROOT',
-    payload,
-  }
+export const EMPTY_CHAIN = {
+  root: null,
+  head: null,
+  links: {},
+}
 
-  // add it to an empty chain
-  const chain = [] as SignatureChain
-  return append(chain, link, context)
+export const create = <T extends LinkBody>(payload: any = {}, context: LocalUserContext) => {
+  const link = { type: ROOT, payload }
+  return append(EMPTY_CHAIN, link, context) as SignatureChain<T>
 }

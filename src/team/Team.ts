@@ -1,7 +1,8 @@
-﻿import { EventEmitter } from 'events'
-import { chain, SignatureChain, validate } from '/chain'
+﻿import { signatures, symmetric } from '@herbcaudill/crypto'
+import { EventEmitter } from 'events'
+import * as chains from '/chain'
+import { SignatureChain, SignedLink } from '/chain'
 import { LocalUserContext } from '/context'
-import { signatures, symmetric } from '@herbcaudill/crypto'
 import { DeviceInfo, getDeviceId } from '/device'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
@@ -18,7 +19,7 @@ import {
   isNewTeam,
   SignedEnvelope,
   TeamAction,
-  TeamLink,
+  TeamLinkBody,
   TeamOptions,
   TeamState,
 } from '/team/types'
@@ -35,7 +36,6 @@ export class Team extends EventEmitter {
 
     if (isNewTeam(options)) {
       // Create a new team with the current user as founding member
-      this.chain = []
       const localUser = this.context.user
 
       // Team & role secrets are never stored in plaintext, only encrypted into individual lockboxes.
@@ -43,20 +43,18 @@ export class Team extends EventEmitter {
       const teamLockbox = lockbox.create(keyset.create(TEAM_SCOPE), localUser.keys)
       const adminLockbox = lockbox.create(keyset.create(ADMIN_SCOPE), localUser.keys)
 
+      const payload = {
+        teamName: options.teamName,
+        rootMember: user.redact(localUser),
+        lockboxes: [teamLockbox, adminLockbox],
+      }
       // Post root link to signature chain
-      this.dispatch({
-        type: 'ROOT',
-        payload: {
-          teamName: options.teamName,
-          rootMember: user.redact(localUser),
-          lockboxes: [teamLockbox, adminLockbox],
-        },
-      })
+      this.chain = chains.create<TeamLinkBody>(payload, this.context)
     } else {
       // Load a team from a serialized chain
-      this.chain = options.source
-      this.updateState()
+      this.chain = chains.deserialize(options.source)
     }
+    this.updateState()
   }
 
   // # PUBLIC API
@@ -65,7 +63,7 @@ export class Team extends EventEmitter {
     return this.state.teamName
   }
 
-  public save = () => JSON.stringify(this.chain)
+  public save = () => chains.serialize(this.chain)
 
   // ## READ METHODS
   // All the logic for reading from team state is in selectors.
@@ -411,7 +409,7 @@ export class Team extends EventEmitter {
   // # PRIVATE PROPERTIES
 
   private context: LocalUserContext
-  private chain: SignatureChain<TeamLink>
+  private chain: SignatureChain<TeamLinkBody>
   private state: TeamState = initialState // derived from chain, only updated by running chain through reducer
 
   // # PRIVATE METHODS
@@ -459,18 +457,23 @@ export class Team extends EventEmitter {
 
   /** Add a link to the chain, then recompute team state from the new chain */
   public dispatch(link: TeamAction) {
-    this.chain = chain.append(this.chain, link, this.context)
-    this.state = reducer(this.state, this.chain[this.chain.length - 1])
+    this.chain = chains.append<TeamLinkBody>(this.chain, link, this.context)
+    const head = chains.getHead(this.chain) as SignedLink<TeamLinkBody>
+    // we don't need to pass the whole chain through the reducer, just the current state + the new head
+    this.state = reducer(this.state, head)
   }
 
   /** Run the reducer on the entire chain to reconstruct the current team state. */
   private updateState = () => {
-    /** Validate the chain's integrity. (This does not enforce team rules - that is done in the
-     * reducer as it progresses through each link.) */
-    const validation = validate(this.chain)
+    // Validate the chain's integrity. (This does not enforce team rules - that is done in the
+    // reducer as it progresses through each link.)
+    const validation = chains.validate(this.chain)
     if (!validation.isValid) throw validation.error
 
-    /* Run the chain through the reducer to calculate the current team state */
-    this.state = this.chain.reduce(reducer, initialState)
+    // Run the chain through the reducer to calculate the current team state
+    // TODO: create reconciler to implement strong-remove
+    // const sequence = chains.getSequence(this.chain, reconciler)
+    const sequence = chains.getSequence(this.chain)
+    this.state = sequence.reduce(reducer, initialState)
   }
 }

@@ -295,7 +295,7 @@ Each link has a `type` and a `payload`, just like a Redux action. So we can deri
 const reducer = (prevState, link) => {
   const { type, payload, context } = link.body
   switch (type) {
-    case 'ROOT': {
+    case ROOT: {
       const rootMember = { ...context.user, roles: [ADMIN] }
       const newState = {
         ...prevState,

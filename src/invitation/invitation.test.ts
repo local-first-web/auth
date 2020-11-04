@@ -16,7 +16,7 @@ import {
 import * as keyset from '/keyset'
 import { KeyType } from '/keyset'
 import { redact as redactUser } from '/user'
-import { bob } from '/util/testing'
+import { bob, eve } from '/util/testing'
 
 const { TEAM_SCOPE } = keyset
 const { DEVICE, MEMBER } = KeyType
@@ -66,6 +66,32 @@ describe('invitations', () => {
     expect(validationResult.isValid).toBe(true)
   })
 
+  test(`you have to have the secret key to accept an invitation`, () => {
+    // Alice generates a secret key and sends it to Bob via a trusted side channel.
+    const secretKey = newInvitationKey()
+    const invitation = inviteMember({ teamKeys, payload: { userName: 'bob' }, secretKey })
+
+    // Eve tries to accept the invitation in Bob's place, but she doesn't have the correct invitation key
+    const proofOfInvitation = acceptMemberInvitation('horsebatterycorrectstaple', redactUser(bob))
+
+    // Nice try, Eve!!!
+    const validationResult = validate(proofOfInvitation, invitation, teamKeys)
+    expect(validationResult.isValid).toBe(false)
+  })
+
+  test(`even if you know the key, you can't accept someone else's invitation under your own name`, () => {
+    // Alice generates a secret key and sends it to Bob via a trusted side channel.
+    const secretKey = newInvitationKey()
+    const invitation = inviteMember({ teamKeys, payload: { userName: 'bob' }, secretKey })
+
+    // Eve has the secret key, so she tries to use it to get herself accepted into the group
+    const proofOfInvitation = acceptMemberInvitation(secretKey, redactUser(eve))
+
+    // No dice, Eve!!! foiled again!!
+    const validationResult = validate(proofOfInvitation, invitation, teamKeys)
+    expect(validationResult.isValid).toBe(false)
+  })
+
   test('validate device invitation', () => {
     // On his laptop, Bob generates a secret key. He gets the secret key to his phone, perhaps by
     // typing it in or by scanning a QR code
@@ -87,5 +113,27 @@ describe('invitations', () => {
     // in the signature chain.
     const validationResult = validate(proofOfInvitation, invitation, teamKeys)
     expect(validationResult.isValid).toBe(true)
+  })
+
+  test(`you have to have the secret key to accept a device invitation`, () => {
+    // On his laptop, Bob generates a secret key. He gets the secret key to his phone
+    const secretKey = newInvitationKey()
+
+    // He generates an invitation
+    const device: DeviceInfo = { userName: 'bob', name: `bob's phone`, type: DeviceType.mobile }
+    const deviceId = getDeviceId(device)
+    const deviceKeys = keyset.create({ type: DEVICE, name: deviceId })
+    const deviceWithSecrets: DeviceWithSecrets = { ...device, keys: deviceKeys }
+    const invitation = inviteDevice({ teamKeys, payload: { ...device, deviceId }, secretKey })
+
+    // Eve tries to use the invitation
+    const proofOfInvitation = acceptDeviceInvitation(
+      'iamsupersneaky',
+      redactDevice(deviceWithSecrets)
+    )
+
+    // grrr...
+    const validationResult = validate(proofOfInvitation, invitation, teamKeys)
+    expect(validationResult.isValid).toBe(false)
   })
 })
