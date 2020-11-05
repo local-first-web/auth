@@ -17,7 +17,7 @@ By itself, the `chain` module doesn't know anything about teams or access rules.
 
 The `team` module contributes the semantics of different types of links and their corresponding payloads: For example, a link with the `ADD_MEMBER` type has a payload containing information about the member to be added, as well as a list of roles to add them to.
 
-A team’s latest membership state is calculated by running a chain’s collection of links through a reducer, much the same way Redux uses a reducer to calculate state as the accumulated effect of a sequence of actions. The reducer will throw an error if there are any violations of group rules—for example, a non-admin inviting or removing members, or a non-member doing anything at all.
+A team’s latest membership state is calculated by running a chain’s collection of links through a reducer, much the same way Redux uses a reducer to calculate state as the accumulated effect of a sequence of actions. The reducer will throw an error if there are any violations of group rules—for example, a non-admin inviting or removing members, or a member doing anything after they’ve been removed.
 
 ### Merging and conflict resolution
 
@@ -37,7 +37,7 @@ In many cases, we can accept all the concurrent changes in some arbitrary order,
 
 (The questions are the same whether you read “remove” as “remove from the group” or “remove from the admin role”.)
 
-In all of these cases, we adopt a “strong-remove” policy for group membership: We **err on the side of removal**, reasoning that we can always add someone back if they shouldn’t have been removed, but you can’t reverse the leak of information that might take place if someone who you thought was removed was in fact still around. So in case (1), we remove both Alice and Bob; in case (2), we don’t allow Bob’s addition of Debbie; and in case (3), Bob stays removed. <a id='link-note-1' href='#note-1'>[1]</a>
+In all of these cases, we adopt a “strong-remove” policy for group and role membership: We **err on the side of removal**, reasoning that we can always add someone back if they shouldn’t have been removed, but you can’t reverse the leak of information that might take place if someone who you thought was removed was in fact still around. So in case (1), we remove both Alice and Bob; in case (2), we don’t allow Bob’s addition of Debbie; and in case (3), Bob stays removed. <a id='link-note-1' href='#note-1'>[1]</a>
 
 We implement this policy using a custom **reconciler**. A reconciler is a function that takes two concurrent sequences of links and turns them into a single sequence. This is done deterministically, so that every member processing the same signature chain independently converges on the same group membership state.
 
@@ -53,23 +53,27 @@ So we end up with this ordered sequence of links:
 
 ![sigchain.6](https://raw.githubusercontent.com/HerbCaudill/pics/master/sigchain.6.png)
 
+----
+
 ### Link structure
 
-This is the structure of a typical link:
+A link is an object that looks like this:
 
 ```ts
-hash: Base64
-body: {
-  type: string
-  payload: any
-  context: Context
-  timestamp: UnixTimestamp
-  prev: Base64
-}
-signed: {
-  signature: Base64
-  userName: string
-  key: Base64
+{
+  hash: Base64
+  body: {
+    type: string
+    payload: any
+    context: Context
+    timestamp: UnixTimestamp
+    prev: Base64
+  }
+  signed: {
+    signature: Base64
+    userName: string
+    key: Base64
+  }
 }
 ```
 
