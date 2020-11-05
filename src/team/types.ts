@@ -16,7 +16,7 @@ export interface NewTeamOptions {
 }
 
 export interface ExistingTeamOptions {
-  source: string
+  source: string | SignatureChain<TeamLinkBody>
   context: LocalUserContext
 }
 
