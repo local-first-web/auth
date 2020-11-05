@@ -55,7 +55,7 @@ describe('connection', () => {
     const connectionState = () => (aliceConnection.state.value as ConnectingState).connecting
 
     // Alice waits for the other end to claim an identity
-    expect(connectionState().verifyingIdentity).toEqual('awaitingClaim')
+    expect(connectionState().verifyingIdentity).toEqual('awaitingIdentityClaim')
 
     // Bob sends a message claiming that he is Bob
     const claimMessage = identity.claim({
@@ -65,7 +65,7 @@ describe('connection', () => {
     aliceConnection.send(claimMessage)
 
     // Alice automatically sends Bob a challenge & waits for proof
-    expect(connectionState().verifyingIdentity).toEqual('awaitingProof')
+    expect(connectionState().verifyingIdentity).toEqual('awaitingIdentityProof')
 
     // Bob generates proof by signing Alice's challenge and sends it back
     const challengeMessage = lastMessage() as ChallengeIdentityMessage
@@ -92,7 +92,7 @@ describe('connection', () => {
     const connectionState = () => (bobConnection.state.value as ConnectingState).connecting
 
     // Bob automatically asserts his identity, and awaits a challenge
-    expect(connectionState().claimingIdentity).toEqual('awaitingChallenge')
+    expect(connectionState().claimingIdentity).toEqual('awaitingIdentityChallenge')
 
     // Alice challenges Bob's identity claim
     const claimMessage = lastMessage() as ClaimIdentityMessage
@@ -100,7 +100,7 @@ describe('connection', () => {
     bobConnection.send(challengeMessage)
 
     // Bob automatically responds to the challenge with proof, and awaits acceptance
-    expect(connectionState().claimingIdentity).toEqual('awaitingAcceptance')
+    expect(connectionState().claimingIdentity).toEqual('awaitingIdentityAcceptance')
 
     // Alice verifies Bob's proof
     const proofMessage = lastMessage() as ProveIdentityMessage
@@ -120,7 +120,7 @@ describe('connection', () => {
 
   /**
    * In this test, we wire up two ConnectionServices and have them talk to each other through a
-   * simple channel.
+   * simple channel with no handholding.
    */
   test('should automatically connect two peers', () => {
     const { aliceTeam, bobTeam } = setup()
