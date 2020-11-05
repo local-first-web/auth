@@ -22,5 +22,3 @@
 
 Q: How does Bob know he's talking to a team member?  
 A: He validates his own invitation after getting in
-
-start -> RECEIVE_CLAIM -> CHALLENGE -> awaitingProof -> RECEIVE_PROOF -> VERIFY_PROOF ->
