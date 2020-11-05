@@ -51,8 +51,9 @@ export class Team extends EventEmitter {
       // Post root link to signature chain
       this.chain = chains.create<TeamLinkBody>(payload, this.context)
     } else {
-      // Load a team from a serialized chain
-      this.chain = chains.deserialize(options.source)
+      // Load a team from an existing chain (maybe serialized)
+      this.chain =
+        typeof options.source === 'string' ? chains.deserialize(options.source) : options.source
     }
     this.updateState()
   }
