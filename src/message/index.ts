@@ -1,29 +1,26 @@
-﻿export * from '/message/identity'
+﻿export * from '/message/connection'
 export * from '/message/sync'
 
-import {
-  ClaimIdentityMessage,
-  ChallengeIdentityMessage,
-  ProveIdentityMessage,
-  AcceptIdentityMessage,
-  RejectIdentityMessage,
-} from '/message/identity'
+import * as connection from '/message/connection'
 
-import {
-  SendHashesMessage, //
-  RequestLinksMessage,
-  SendLinksMessage,
-} from '/message/sync'
+import * as sync from '/message/sync'
+
+export type ConnectionMessage =
+  | connection.ConnectMessage
+  | connection.ProveInvitationMessage
+  | connection.AcceptInvitationMessage
+  | connection.ClaimIdentityMessage
+  | connection.ChallengeIdentityMessage
+  | connection.ProveIdentityMessage
+  | connection.AcceptIdentityMessage
+  | connection.ErrorMessage
+  | connection.DisconnectMessage
+
+export type SyncMessage =
+  | sync.SendHashesMessage //
+  | sync.RequestLinksMessage
+  | sync.SendLinksMessage
 
 export type Message =
-  // identity messages
-  | ClaimIdentityMessage
-  | ChallengeIdentityMessage
-  | ProveIdentityMessage
-  | AcceptIdentityMessage
-  | RejectIdentityMessage
-
-  // sync messages
-  | SendHashesMessage
-  | RequestLinksMessage
-  | SendLinksMessage
+  | ConnectionMessage //
+  | SyncMessage
