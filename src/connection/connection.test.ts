@@ -1,4 +1,5 @@
-import { ConnectionState } from './types'
+import { pause } from './pause'
+import { ConnectionState, MemberConnectionState } from './types'
 import { ConnectionService } from '/connection'
 import { redactDevice } from '/device'
 import * as identity from '/identity'
@@ -25,7 +26,7 @@ import '/util/testing/expect/toBeValid'
 
 const { MEMBER } = KeyType
 
-describe('connection', () => {
+describe.only('connection', () => {
   beforeEach(() => {
     localStorage.clear()
     storage.contents = undefined
@@ -48,18 +49,28 @@ describe('connection', () => {
   }
 
   /**
-   * Here we test the one side of the verification workflow, using a real ConnectionService for
-   * Alice and manually simulating Bob's responses.
+   * Test one side of the verification workflow, using a real ConnectionService for Alice
+   * and manually simulating Bob's responses.
    */
   it(`should successfully verify the other peer's identity`, async () => {
     const { aliceTeam: team, sendMessage, lastMessage } = setup()
 
     // Instantiate the connection service
-    const aliceConnection = new ConnectionService({ sendMessage, team, user: alice }).start()
-    const connectionState = () => (aliceConnection.state.value as ConnectionState).connecting
+    const aliceConnection = new ConnectionService({
+      sendMessage,
+      context: {
+        team,
+        user: alice,
+        device: redactDevice(alicesLaptop),
+      },
+    }).start()
+    const connectionState = () => aliceConnection.state.value as any
+
+    // Bob sends a hello message
+    aliceConnection.send({ type: 'HELLO', payload: 'I AM A MEMBER' })
 
     // Alice waits for the other end to claim an identity
-    expect(connectionState().verifyingIdentity).toEqual('awaitingIdentityClaim')
+    expect(connectionState().authenticating.verifyingIdentity).toEqual('awaitingIdentityClaim')
 
     // Bob sends a message claiming that he is Bob
     const claimMessage = identity.claim({
@@ -69,7 +80,7 @@ describe('connection', () => {
     aliceConnection.send(claimMessage)
 
     // Alice automatically sends Bob a challenge & waits for proof
-    expect(connectionState().verifyingIdentity).toEqual('awaitingIdentityProof')
+    expect(connectionState().authenticating.verifyingIdentity).toEqual('awaitingIdentityProof')
 
     // Bob generates proof by signing Alice's challenge and sends it back
     const challengeMessage = lastMessage() as ChallengeIdentityMessage
@@ -77,12 +88,12 @@ describe('connection', () => {
     aliceConnection.send(proofMessage)
 
     // Success! Alice has verified Bob's identity
-    expect(connectionState().verifyingIdentity).toEqual('success')
+    expect(connectionState().authenticating.verifyingIdentity).toEqual('success')
   })
 
   /**
-   * Here we test the other side, using a real ConnectionService for Bob and manually simulating
-   * Alice's responses
+   * Test the other side, using a real ConnectionService for Bob
+   * and manually simulating Alice's responses
    */
   it(`should successfully prove our identity to the other peer`, async () => {
     const { bobTeam, sendMessage, lastMessage } = setup()
@@ -90,13 +101,19 @@ describe('connection', () => {
     // Instantiate the connection service
     const bobConnection = new ConnectionService({
       sendMessage,
-      team: bobTeam,
-      user: bob,
+      context: {
+        team: bobTeam,
+        user: bob,
+        device: redactDevice(bobsLaptop),
+      },
     }).start()
-    const connectionState = () => (bobConnection.state.value as ConnectionState).connecting
+    const connectionState = () => bobConnection.state.value as any
+
+    // Alice sends a hello message
+    bobConnection.send({ type: 'HELLO', payload: 'I AM A MEMBER' })
 
     // Bob automatically asserts his identity, and awaits a challenge
-    expect(connectionState().claimingIdentity).toEqual('awaitingIdentityChallenge')
+    expect(connectionState().authenticating.claimingIdentity).toEqual('awaitingIdentityChallenge')
 
     // Alice challenges Bob's identity claim
     const claimMessage = lastMessage() as ClaimIdentityMessage
@@ -104,7 +121,7 @@ describe('connection', () => {
     bobConnection.send(challengeMessage)
 
     // Bob automatically responds to the challenge with proof, and awaits acceptance
-    expect(connectionState().claimingIdentity).toEqual('awaitingIdentityAcceptance')
+    expect(connectionState().authenticating.claimingIdentity).toEqual('awaitingIdentityAcceptance')
 
     // Alice verifies Bob's proof
     const proofMessage = lastMessage() as ProveIdentityMessage
@@ -119,14 +136,14 @@ describe('connection', () => {
     bobConnection.send(acceptanceMessage)
 
     // Success! Bob has proved his identity
-    expect(connectionState().claimingIdentity).toEqual('success')
+    expect(connectionState().authenticating.claimingIdentity).toEqual('success')
   })
 
   /**
    * In this test, we wire up two ConnectionServices and have them talk to each other through a
    * simple channel with no handholding.
    */
-  test.only('should automatically connect two peers', () => {
+  test('should automatically connect two peers', async () => {
     const { aliceTeam, bobTeam } = setup()
     const channel = new TestChannel()
     const connect = joinTestChannel(channel)
@@ -143,7 +160,14 @@ describe('connection', () => {
       device: redactDevice(bobsLaptop),
     })
 
-    // They automatically connect
+    // Wait for them both to connect
+    const bothConnected = Promise.all([
+      new Promise(resolve => aliceConnection.on('connected', () => resolve())),
+      new Promise(resolve => bobConnection.on('connected', () => resolve())),
+    ])
+    await bothConnected
+
+    // They're both connected
     expect(aliceConnection.state.value).toEqual('connected')
     expect(bobConnection.state.value).toEqual('connected')
 

@@ -6,8 +6,8 @@ import { Base64 } from '/util'
 
 // Connection control
 
-export type ConnectMessage = {
-  type: 'CONNECT'
+export type HelloMessage = {
+  type: 'HELLO'
   payload: 'I AM A MEMBER' | 'I HAVE AN INVITATION'
 }
 

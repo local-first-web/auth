@@ -86,11 +86,9 @@ export type ConnectionContext = InitialContext & {
 // In these states, we don't know if we have an invitation or if we're a team member
 export type DisconnectedConnectionState = {
   value:
-    | { disconnected: {} }
+    | 'disconnected'
     | {
-        handlingInvitation: {
-          initializing: {}
-        }
+        handlingInvitation: 'initializing'
       }
   context: ConnectionContext // can't specify anything further
 }
@@ -98,9 +96,7 @@ export type DisconnectedConnectionState = {
 // In these states, we have an invitation & we're not a team member, so we have an invitationSecretKey and no team instance
 export type NonMemberConnectionState = {
   value: {
-    handlingInvitation: {
-      awaitingInvitationAcceptance: {}
-    }
+    handlingInvitation: 'awaitingInvitationAcceptance'
   }
   context: NonMemberConnectionContext
 }
@@ -114,21 +110,12 @@ export type NonMemberConnectionContext = ConnectionContext & {
 export type MemberConnectionState = {
   value:
     | {
-        handlingInvitation: {
-          awaitingInvitationProof: {}
-          success: {}
-        }
+        handlingInvitation: 'awaitingInvitationProof' | 'success'
       }
     | {
         authenticating: {
-          claimingIdentity:
-            | { awaitingIdentityChallenge: {} }
-            | { awaitingIdentityAcceptance: {} }
-            | { success: {} }
-          verifyingIdentity:
-            | { awaitingIdentityClaim: {} }
-            | { awaitingIdentityProof: {} }
-            | { success: {} }
+          claimingIdentity: 'awaitingIdentityChallenge' | 'awaitingIdentityAcceptance' | 'success'
+          verifyingIdentity: 'awaitingIdentityClaim' | 'awaitingIdentityProof' | 'success'
         }
       }
     | 'connected'

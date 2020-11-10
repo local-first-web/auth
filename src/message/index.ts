@@ -6,7 +6,7 @@ import * as connection from '/message/connection'
 import * as sync from '/message/sync'
 
 export type ConnectionMessage =
-  | connection.ConnectMessage
+  | connection.HelloMessage
   | connection.ProveInvitationMessage
   | connection.AcceptInvitationMessage
   | connection.ClaimIdentityMessage

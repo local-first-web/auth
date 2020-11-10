@@ -1,7 +1,7 @@
 ﻿import { redact as redactUser } from '/user'
 import { asymmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
-import { createMachine, interpret } from 'xstate'
+import { createMachine, interpret, Interpreter } from 'xstate'
 import { connectionMachine } from '/connection/connectionMachine'
 import { deriveSharedKey } from '/connection/deriveSharedKey'
 import {
@@ -10,6 +10,7 @@ import {
   ConnectionContext,
   ConnectionParams,
   ConnectionState,
+  ConnectionStateSchema,
   MemberConnectionContext,
   MemberConnectionState,
   SendFunction,
@@ -22,6 +23,7 @@ import {
   ChallengeIdentityMessage,
   ClaimIdentityMessage,
   ConnectionMessage,
+  HelloMessage,
   ProveIdentityMessage,
   ProveInvitationMessage,
 } from '/message'
@@ -37,6 +39,7 @@ const { MEMBER } = KeyType
 export class ConnectionService extends EventEmitter {
   private sendMessage: SendFunction
   private context: ConnectionContext
+  private instance: Interpreter<ConnectionContext, ConnectionStateSchema, ConnectionMessage>
 
   constructor({ sendMessage, context }: ConnectionParams) {
     super()
@@ -48,7 +51,6 @@ export class ConnectionService extends EventEmitter {
    * @returns a running instance of an XState state machine
    */
   public start = () => {
-    console.log('start')
     // define state machine
     const machine = createMachine<ConnectionContext, ConnectionMessage, ConnectionState>(
       connectionMachine,
@@ -59,13 +61,15 @@ export class ConnectionService extends EventEmitter {
     ).withContext(this.context)
 
     // instantiate the machine and start the instance
-    return interpret(machine)
-      .onTransition((state, event) => console.log(state.value, event))
-      .start()
+    this.instance = interpret(machine).start()
+    return this.instance
+  }
+
+  get state() {
+    return this.instance.state
   }
 
   // public connect = async () => {
-  //   console.log('connect')
   //   this.start()
   //   return new Promise((resolve, reject) => {
   //     this.on('connected', () => resolve(this))
@@ -73,20 +77,22 @@ export class ConnectionService extends EventEmitter {
   //   })
   // }
 
-  public send = () => {}
-
-  public receive = () => {}
-
   private actions: Record<string, Action> = {
-    failNeitherIsMember: () => this.fail('Neither one of us is a member'),
+    sendHello: (context, message) => {
+      const iHaveInvitation = context.invitationSecretKey !== undefined
+      const payload = iHaveInvitation ? 'I HAVE AN INVITATION' : 'I AM A MEMBER'
+      const helloMessage = { type: 'HELLO', payload } as HelloMessage
+      this.sendMessage(helloMessage)
+    },
 
-    initialize: (context, message) => {
-      const connectMessage = message as ConnectionMessage
-      const status = connectMessage.payload
-      console.log('initialize', status)
+    receiveHello: (context, message) => {
+      const helloMessage = message as HelloMessage
+      const status = helloMessage.payload
       if (status === 'I HAVE AN INVITATION') context.theyHaveInvitation = true
       else context.theyHaveInvitation = false
     },
+
+    failNeitherIsMember: () => this.fail('Neither one of us is a member'),
 
     proveInvitation: context => {
       const proofOfInvitation = invitations.acceptMemberInvitation(
@@ -120,16 +126,21 @@ export class ConnectionService extends EventEmitter {
       // add current device?
     },
 
-    claimIdentity: context => {
-      const { user } = context
-      // generate claim
-      const claimMessage = identity.claim({
-        type: MEMBER,
-        name: user.userName,
-      }) as ClaimIdentityMessage
+    claimIdentity: context =>
+      // new Promise(resolve =>
+      //   setTimeout(() =>
+      {
+        const { user } = context
+        // generate claim
+        const claimMessage = identity.claim({
+          type: MEMBER,
+          name: user.userName,
+        }) as ClaimIdentityMessage
 
-      this.sendMessage(claimMessage)
-    },
+        this.sendMessage(claimMessage)
+      },
+    //   )
+    // ),
 
     challengeIdentity: (context, event) => {
       const claimMessage = event as ClaimIdentityMessage

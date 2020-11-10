@@ -9,12 +9,12 @@ export const connectionMachine: MachineConfig<
 > = {
   id: 'connection',
   initial: 'disconnected',
-
+  entry: 'sendHello',
   states: {
     disconnected: {
       on: {
-        CONNECT: {
-          actions: ['initialize'],
+        HELLO: {
+          actions: ['receiveHello'],
           target: 'handlingInvitation',
         },
       },
@@ -85,7 +85,10 @@ export const connectionMachine: MachineConfig<
         },
 
         failure: {},
-        success: { type: 'final' },
+
+        success: {
+          type: 'final',
+        },
       },
 
       onDone: 'authenticating',
@@ -104,8 +107,8 @@ export const connectionMachine: MachineConfig<
           initial: 'awaitingIdentityChallenge',
           states: {
             awaitingIdentityChallenge: {
-              // automatically send our identity claim, then wait for a challenge
-              onEntry: ['claimIdentity'],
+              // send our claim, wait for a challenge
+              entry: 'claimIdentity',
               on: {
                 CHALLENGE_IDENTITY: {
                   // when we receive a challenge, respond with proof
@@ -183,7 +186,7 @@ export const connectionMachine: MachineConfig<
     },
 
     connected: {
-      onEntry: ['onConnected', 'deriveSecretKey'],
+      entry: ['onConnected', 'deriveSecretKey'],
       on: { DISCONNECT: 'disconnected' },
     },
   },
