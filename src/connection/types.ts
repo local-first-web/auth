@@ -98,12 +98,10 @@ export type NonMemberConnectionState = {
   value: {
     handlingInvitation: 'awaitingInvitationAcceptance'
   }
-  context: NonMemberConnectionContext
-}
-
-export type NonMemberConnectionContext = ConnectionContext & {
-  team: undefined // we don't have a team instance
-  invitationSecretKey: string // we do have an invitation
+  context: ConnectionContext & {
+    team: undefined // we don't have a team instance
+    invitationSecretKey: string // we do have an invitation
+  }
 }
 
 // In these states, we're a team member, so we have a team instance in context
@@ -119,11 +117,9 @@ export type MemberConnectionState = {
         }
       }
     | 'connected'
-  context: MemberConnectionContext
-}
-
-export type MemberConnectionContext = ConnectionContext & {
-  team: Team // we have a team instance
+  context: ConnectionContext & {
+    team: Team // we have a team instance
+  }
 }
 
 export type ConnectionState =
