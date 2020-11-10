@@ -168,12 +168,12 @@ describe.only('connection', () => {
     await bothConnected
 
     // They're both connected
-    expect(aliceConnection.state.value).toEqual('connected')
-    expect(bobConnection.state.value).toEqual('connected')
+    expect(aliceConnection.state).toEqual('connected')
+    expect(bobConnection.state).toEqual('connected')
 
     // They've converged on a shared secret key
-    const aliceKey = aliceConnection.state.context.secretKey
-    const bobKey = bobConnection.state.context.secretKey
+    const aliceKey = aliceConnection.context.secretKey
+    const bobKey = bobConnection.context.secretKey
     expect(aliceKey).toEqual(bobKey)
   })
 })
