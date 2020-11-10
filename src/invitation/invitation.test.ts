@@ -1,10 +1,4 @@
-import {
-  DeviceInfo,
-  DeviceType,
-  DeviceWithSecrets,
-  getDeviceId,
-  redact as redactDevice,
-} from '/device'
+import { DeviceInfo, DeviceType, DeviceWithSecrets, getDeviceId, redactDevice } from '/device'
 import {
   acceptDeviceInvitation,
   acceptMemberInvitation,
