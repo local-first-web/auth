@@ -1,4 +1,4 @@
-﻿import { redact as redactDevice, DeviceType, DeviceWithSecrets, getDeviceId } from '/device'
+﻿import { redactDevice, DeviceType, DeviceWithSecrets, getDeviceId } from '/device'
 import { KeyType } from '/keyset'
 import { defaultContext, newTeam } from '/util/testing'
 import { storage } from '/util/testing'
