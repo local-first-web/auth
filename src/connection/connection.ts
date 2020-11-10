@@ -38,8 +38,9 @@ const { MEMBER } = KeyType
  */
 export class ConnectionService extends EventEmitter {
   private sendMessage: SendFunction
-  private context: ConnectionContext
-  private instance: Interpreter<ConnectionContext, ConnectionStateSchema, ConnectionMessage>
+
+  public instance: Interpreter<ConnectionContext, ConnectionStateSchema, ConnectionMessage>
+  public context: ConnectionContext
 
   constructor({ sendMessage, context }: ConnectionParams) {
     super()
@@ -66,7 +67,7 @@ export class ConnectionService extends EventEmitter {
   }
 
   get state() {
-    return this.instance.state
+    return this.instance.state.value
   }
 
   // public connect = async () => {
@@ -126,21 +127,16 @@ export class ConnectionService extends EventEmitter {
       // add current device?
     },
 
-    claimIdentity: context =>
-      // new Promise(resolve =>
-      //   setTimeout(() =>
-      {
-        const { user } = context
-        // generate claim
-        const claimMessage = identity.claim({
-          type: MEMBER,
-          name: user.userName,
-        }) as ClaimIdentityMessage
+    claimIdentity: context => {
+      const { user } = context
+      // generate claim
+      const claimMessage = identity.claim({
+        type: MEMBER,
+        name: user.userName,
+      }) as ClaimIdentityMessage
 
-        this.sendMessage(claimMessage)
-      },
-    //   )
-    // ),
+      this.sendMessage(claimMessage)
+    },
 
     challengeIdentity: (context, event) => {
       const claimMessage = event as ClaimIdentityMessage
