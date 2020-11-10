@@ -1,4 +1,4 @@
-import { DeviceType, DeviceWithSecrets, getDeviceId, redact as redactDevice } from '/device'
+import { DeviceType, DeviceWithSecrets, getDeviceId, redactDevice } from '/device'
 import { acceptDeviceInvitation, acceptMemberInvitation, ProofOfInvitation } from '/invitation'
 import * as keyset from '/keyset'
 import { KeyType } from '/keyset'
