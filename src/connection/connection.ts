@@ -48,6 +48,7 @@ export class ConnectionService extends EventEmitter {
    * @returns a running instance of an XState state machine
    */
   public start = () => {
+    console.log('start')
     // define state machine
     const machine = createMachine<ConnectionContext, ConnectionMessage, ConnectionState>(
       connectionMachine,
@@ -57,20 +58,20 @@ export class ConnectionService extends EventEmitter {
       }
     ).withContext(this.context)
 
-    // instantiate the machine
-    const service = interpret(machine)
-
-    // start the instance
-    return service.start()
+    // instantiate the machine and start the instance
+    return interpret(machine)
+      .onTransition((state, event) => console.log(state.value, event))
+      .start()
   }
 
-  public connect = async () => {
-    this.start()
-    return new Promise((resolve, reject) => {
-      this.on('connected', () => resolve(this))
-      this.on('error', reject)
-    })
-  }
+  // public connect = async () => {
+  //   console.log('connect')
+  //   this.start()
+  //   return new Promise((resolve, reject) => {
+  //     this.on('connected', () => resolve(this))
+  //     this.on('error', reject)
+  //   })
+  // }
 
   public send = () => {}
 
@@ -82,6 +83,7 @@ export class ConnectionService extends EventEmitter {
     initialize: (context, message) => {
       const connectMessage = message as ConnectionMessage
       const status = connectMessage.payload
+      console.log('initialize', status)
       if (status === 'I HAVE AN INVITATION') context.theyHaveInvitation = true
       else context.theyHaveInvitation = false
     },
