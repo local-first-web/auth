@@ -1,17 +1,21 @@
-import { ConnectingState, ConnectionEvent } from './types'
+import { ConnectionState } from './types'
 import { ConnectionService } from '/connection'
+import { redactDevice } from '/device'
 import * as identity from '/identity'
 import { KeyType, randomKey, redact } from '/keyset'
 import {
   AcceptIdentityMessage,
   ChallengeIdentityMessage,
   ClaimIdentityMessage,
+  ConnectionMessage,
   ProveIdentityMessage,
 } from '/message'
 import {
   alice,
+  alicesLaptop,
   bob,
   bobsContext,
+  bobsLaptop,
   joinTestChannel,
   newTeam,
   storage,
@@ -36,8 +40,8 @@ describe('connection', () => {
     const bobTeam = storage.load(bobsContext)
 
     // Our dummy `sendMessage` just pushes messages onto a queue
-    const messageQueue: ConnectionEvent[] = []
-    const sendMessage = (message: ConnectionEvent) => messageQueue.push(message)
+    const messageQueue: ConnectionMessage[] = []
+    const sendMessage = (message: ConnectionMessage) => messageQueue.push(message)
     const lastMessage = () => messageQueue[messageQueue.length - 1]
 
     return { aliceTeam, bobTeam, sendMessage, lastMessage }
@@ -52,7 +56,7 @@ describe('connection', () => {
 
     // Instantiate the connection service
     const aliceConnection = new ConnectionService({ sendMessage, team, user: alice }).start()
-    const connectionState = () => (aliceConnection.state.value as ConnectingState).connecting
+    const connectionState = () => (aliceConnection.state.value as ConnectionState).connecting
 
     // Alice waits for the other end to claim an identity
     expect(connectionState().verifyingIdentity).toEqual('awaitingIdentityClaim')
@@ -89,7 +93,7 @@ describe('connection', () => {
       team: bobTeam,
       user: bob,
     }).start()
-    const connectionState = () => (bobConnection.state.value as ConnectingState).connecting
+    const connectionState = () => (bobConnection.state.value as ConnectionState).connecting
 
     // Bob automatically asserts his identity, and awaits a challenge
     expect(connectionState().claimingIdentity).toEqual('awaitingIdentityChallenge')
@@ -122,14 +126,22 @@ describe('connection', () => {
    * In this test, we wire up two ConnectionServices and have them talk to each other through a
    * simple channel with no handholding.
    */
-  test('should automatically connect two peers', () => {
+  test.only('should automatically connect two peers', () => {
     const { aliceTeam, bobTeam } = setup()
     const channel = new TestChannel()
     const connect = joinTestChannel(channel)
 
     // Alice and Bob both join the channel
-    const aliceConnection = connect('alice', { team: aliceTeam, user: alice })
-    const bobConnection = connect('bob', { team: bobTeam, user: bob })
+    const aliceConnection = connect('alice', {
+      team: aliceTeam,
+      user: alice,
+      device: redactDevice(alicesLaptop),
+    })
+    const bobConnection = connect('bob', {
+      team: bobTeam,
+      user: bob,
+      device: redactDevice(bobsLaptop),
+    })
 
     // They automatically connect
     expect(aliceConnection.state.value).toEqual('connected')
