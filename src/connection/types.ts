@@ -13,12 +13,21 @@ export type SendFunction = (message: ConnectionMessage) => void
 export interface ConnectionStateSchema {
   states: {
     disconnected: {}
-    connecting: {
+
+    handlingInvitation: {
+      states: {
+        initializing: {}
+        awaitingInvitationAcceptance: {}
+        awaitingInvitationProof: {}
+        failure: {}
+        success: {}
+      }
+    }
+
+    authenticating: {
       states: {
         claimingIdentity: {
           states: {
-            initializing: {}
-            awaitingInvitationAcceptance: {}
             awaitingIdentityChallenge: {}
             awaitingIdentityAcceptance: {}
             success: {}
@@ -26,15 +35,15 @@ export interface ConnectionStateSchema {
         }
         verifyingIdentity: {
           states: {
-            initializing: {}
-            awaitingInvitationProof: {}
             awaitingIdentityClaim: {}
             awaitingIdentityProof: {}
+            failure: {}
             success: {}
           }
         }
       }
     }
+
     connected: {}
   }
 }
@@ -70,7 +79,8 @@ export type ConnectionContext = InitialContext & {
 
 // Typestates
 
-// These define which context elements (from ConnectionContext) will or won't be present for specific states (from ConnectionStateSchema)
+// These define which context elements (from ConnectionContext) will or won't be present for
+// individual states (from ConnectionStateSchema)
 // http://xstate.js.org/docs/guides/typescript.html#typestates
 
 // In these states, we don't know if we have an invitation or if we're a team member
@@ -78,9 +88,9 @@ export type DisconnectedConnectionState = {
   value:
     | { disconnected: {} }
     | {
-        connecting:
-          | { claimingIdentity: { initializing: {} } } //
-          | { verifyingIdentity: 'initializing' }
+        handlingInvitation: {
+          initializing: {}
+        }
       }
   context: ConnectionContext // can't specify anything further
 }
@@ -88,7 +98,9 @@ export type DisconnectedConnectionState = {
 // In these states, we have an invitation & we're not a team member, so we have an invitationSecretKey and no team instance
 export type NonMemberConnectionState = {
   value: {
-    connecting: { claimingIdentity: 'awaitingInvitationAcceptance' }
+    handlingInvitation: {
+      awaitingInvitationAcceptance: {}
+    }
   }
   context: NonMemberConnectionContext
 }
@@ -102,16 +114,21 @@ export type NonMemberConnectionContext = ConnectionContext & {
 export type MemberConnectionState = {
   value:
     | {
-        connecting: {
+        handlingInvitation: {
+          awaitingInvitationProof: {}
+          success: {}
+        }
+      }
+    | {
+        authenticating: {
           claimingIdentity:
-            | { awaitingIdentityChallenge: {} } //
-            | 'awaitingIdentityAcceptance'
-            | 'success'
+            | { awaitingIdentityChallenge: {} }
+            | { awaitingIdentityAcceptance: {} }
+            | { success: {} }
           verifyingIdentity:
-            | 'awaitingInvitationProof'
-            | 'awaitingIdentityClaim'
-            | 'awaitingIdentityProof'
-            | 'success'
+            | { awaitingIdentityClaim: {} }
+            | { awaitingIdentityProof: {} }
+            | { success: {} }
         }
       }
     | 'connected'
