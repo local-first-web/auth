@@ -1,6 +1,7 @@
 ﻿import { SignatureChain } from '/chain'
 import { ProofOfInvitation } from '/invitation'
 import { KeyScope } from '/keyset'
+import { Member } from '/member'
 import { TeamLinkBody } from '/team'
 import { Base64 } from '/util'
 
@@ -8,7 +9,10 @@ import { Base64 } from '/util'
 
 export type HelloMessage = {
   type: 'HELLO'
-  payload: 'I AM A MEMBER' | 'I HAVE AN INVITATION'
+  payload: {
+    identityClaim: KeyScope // we always claim an identity
+    proofOfInvitation?: ProofOfInvitation // we only offer proof of invitation if we're not a member yet
+  }
 }
 
 export type ErrorMessage = {
@@ -28,11 +32,6 @@ export type DisconnectMessage = {
 
 // Invitations
 
-export type ProveInvitationMessage = {
-  type: 'PROVE_INVITATION'
-  payload: ProofOfInvitation
-}
-
 export type AcceptInvitationMessage = {
   type: 'ACCEPT_INVITATION'
   payload: {
@@ -41,11 +40,6 @@ export type AcceptInvitationMessage = {
 }
 
 // Identity
-
-export type ClaimIdentityMessage = {
-  type: 'CLAIM_IDENTITY'
-  payload: KeyScope
-}
 
 type Challenge = KeyScope & {
   nonce: Base64
