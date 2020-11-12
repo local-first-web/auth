@@ -78,7 +78,7 @@ const validators: TeamStateValidatorSet = {
   },
 }
 
-const fail = (message: string, prevState: TeamState, link: SignedLink | RootLink) => {
+const fail = (message: string, prevState: TeamState, link: SignedLink<any> | RootLink) => {
   return {
     isValid: false,
     error: new ValidationError(message, { prevState, link }),
