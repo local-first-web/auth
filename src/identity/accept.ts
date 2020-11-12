@@ -1,7 +1,9 @@
-﻿﻿import { randomKey, KeysetWithSecrets, PublicKeyset } from '/keyset'
-import { AcceptIdentityMessage, ClaimIdentityMessage } from '/message'
+﻿﻿import { asymmetric } from '@herbcaudill/crypto'
+import { KeysetWithSecrets, PublicKeyset } from '/keyset'
+import { AcceptIdentityMessage } from '/message'
 import { Base64 } from '/util'
-import { asymmetric } from '@herbcaudill/crypto'
+
+// TODO: refactor to just return payload
 
 export const accept = ({ seed, peerKeys, userKeys }: AcceptArgs): AcceptIdentityMessage => {
   // encrypt the seed for our peer
