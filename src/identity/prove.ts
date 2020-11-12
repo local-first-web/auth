@@ -2,6 +2,7 @@
 import { KeysetWithSecrets } from '/keyset'
 import { ChallengeIdentityMessage, ProveIdentityMessage } from '/message'
 
+// TODO: refactor so this just generates the payload
 export const prove = (
   { payload }: ChallengeIdentityMessage,
   keys: KeysetWithSecrets
