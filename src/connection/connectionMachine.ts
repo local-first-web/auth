@@ -9,44 +9,44 @@ export const connectionMachine: MachineConfig<
 > = {
   id: 'connection',
   initial: 'disconnected',
-  entry: 'sendHello',
+  entry: ['sendHello'],
+
   states: {
     disconnected: {
       on: {
         HELLO: {
-          actions: ['receiveHello'],
-          target: 'handlingInvitation',
+          target: 'checkingForInvitation',
         },
       },
     },
 
     // first we determine if anyone has an invitation to be processed;
     // the mutual authentication part of this requires both sides to be members of the team
-    handlingInvitation: {
-      on: { ERROR: { target: 'disconnected' } },
-      initial: 'initializing',
+    checkingForInvitation: {
+      on: { ERROR: 'disconnected' },
+      entry: ['receiveHello'],
+      initial: 'checking',
 
       states: {
-        initializing: {
+        checking: {
           always: [
             // we can't both present invitations - someone has to be a member
             {
               cond: 'bothHaveInvitation',
-              actions: ['failNeitherIsMember'],
+              actions: 'failNeitherIsMember',
               target: 'failure',
             },
 
-            // if I have an invitation, send proof then wait for acceptance
+            // if I have an invitation, wait for acceptance
             {
               cond: 'iHaveInvitation',
-              actions: ['proveInvitation'],
               target: 'awaitingInvitationAcceptance',
             },
 
             // if they have an invitation, wait for them to send proof
             {
               cond: 'theyHaveInvitation',
-              target: 'awaitingInvitationProof',
+              target: 'validatingInvitationProof',
             },
 
             // otherwise, we're done with this part
@@ -65,23 +65,21 @@ export const connectionMachine: MachineConfig<
           },
         },
 
-        awaitingInvitationProof: {
-          on: {
-            PROVE_INVITATION: [
-              // if the proof succeeds, add them to the team and send a welcome message,
-              // then proceed to the standard identity claim & challenge process
-              {
-                cond: 'invitationProofIsValid',
-                actions: 'acceptInvitation',
-                target: 'success',
-              },
-              // if the proof fails, disconnect with error
-              {
-                actions: 'rejectInvitation',
-                target: 'failure',
-              },
-            ],
-          },
+        validatingInvitationProof: {
+          always: [
+            // if the proof succeeds, add them to the team and send a welcome message,
+            // then proceed to the standard identity claim & challenge process
+            {
+              cond: 'invitationProofIsValid',
+              actions: 'acceptInvitation',
+              target: 'success',
+            },
+            // if the proof fails, disconnect with error
+            {
+              actions: 'rejectInvitation',
+              target: 'failure',
+            },
+          ],
         },
 
         failure: {},
@@ -100,15 +98,15 @@ export const connectionMachine: MachineConfig<
       // 1. claim an identity and provide proof when challenged
       // 2. verify the other peer's claimed identity
       type: 'parallel',
-      on: { ERROR: { target: 'disconnected' } },
+      on: { ERROR: 'disconnected' },
+
       states: {
         // 1. claim an identity and provide proof when challenged
         claimingIdentity: {
           initial: 'awaitingIdentityChallenge',
           states: {
             awaitingIdentityChallenge: {
-              // send our claim, wait for a challenge
-              entry: 'claimIdentity',
+              // wait for a challenge
               on: {
                 CHALLENGE_IDENTITY: {
                   // when we receive a challenge, respond with proof
@@ -135,25 +133,22 @@ export const connectionMachine: MachineConfig<
 
         // 2. verify the other peer's claimed identity: receive their claim, challenge it, and validate their proof
         verifyingIdentity: {
-          initial: 'awaitingIdentityClaim',
+          initial: 'challengingIdentityClaim',
           states: {
-            // wait for an identity claim
-            awaitingIdentityClaim: {
-              on: {
-                CLAIM_IDENTITY: [
-                  // if we have a member by that name on the team, send a challenge
-                  {
-                    cond: 'identityIsKnown',
-                    actions: 'challengeIdentity',
-                    target: 'awaitingIdentityProof',
-                  },
-                  // if we don't have anybody by that name in the team, disconnect with error
-                  {
-                    actions: 'rejectIdentity',
-                    target: 'failure',
-                  },
-                ],
-              },
+            challengingIdentityClaim: {
+              always: [
+                // if we have a member by that name on the team, send a challenge
+                {
+                  // cond: 'identityIsKnown',
+                  actions: 'challengeIdentity',
+                  target: 'awaitingIdentityProof',
+                },
+                // if we don't have anybody by that name in the team, disconnect with error
+                {
+                  actions: 'rejectIdentity',
+                  target: 'failure',
+                },
+              ],
             },
 
             // then wait for them to respond to the challenge with proof
