@@ -11,18 +11,20 @@ export const joinTestChannel = (channel: TestChannel) => (
   const sendMessage = (msg: ConnectionMessage) => channel.write(id, msg)
 
   // Instantiate the connection service
-  const connectionService = new ConnectionService({ sendMessage, context })
-  const connection = connectionService.start()
+  const connection = new ConnectionService({ sendMessage, context }).start()
 
   // hook up receive
   channel.addListener('data', async (senderId, msg) => {
     if (senderId === id) return // I can ignore messages that I sent
-    // yield, then deliver message
-    await pause(0)
-    connection.send(msg)
+
+    // simulate a random delay, then deliver the message
+    const delay = id === 'bob' ? 1000 : 1
+    console.log(`delivering to ${id} with a delay of ${delay}`)
+    await pause(delay)
+    connection.deliver(msg)
   })
 
   channel.addPeer()
 
-  return connectionService
+  return connection
 }
