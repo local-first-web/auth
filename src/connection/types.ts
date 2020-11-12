@@ -1,5 +1,7 @@
 import { ActionFunction, ConditionPredicate } from 'xstate'
 import { Device } from '/device'
+import { ProofOfInvitation } from '/invitation'
+import { KeyScope } from '/keyset'
 import { Member } from '/member'
 import { ChallengeIdentityMessage, ConnectionMessage } from '/message'
 import { Team } from '/team'
@@ -14,11 +16,11 @@ export interface ConnectionStateSchema {
   states: {
     disconnected: {}
 
-    handlingInvitation: {
+    checkingForInvitation: {
       states: {
-        initializing: {}
+        checking: {}
         awaitingInvitationAcceptance: {}
-        awaitingInvitationProof: {}
+        validatingInvitationProof: {}
         failure: {}
         success: {}
       }
@@ -35,7 +37,7 @@ export interface ConnectionStateSchema {
         }
         verifyingIdentity: {
           states: {
-            awaitingIdentityClaim: {}
+            challengingIdentityClaim: {}
             awaitingIdentityProof: {}
             failure: {}
             success: {}
@@ -70,62 +72,14 @@ export interface ConnectionParams {
 
 export type ConnectionContext = InitialContext & {
   theyHaveInvitation?: boolean
+  theirIdentityClaim?: KeyScope
+  theirProofOfInvitation?: ProofOfInvitation
   challenge?: ChallengeIdentityMessage
   peer?: Member
   seed?: Base64
   encryptedPeerSeed?: Base64
   secretKey?: Base64
 }
-
-// Typestates
-
-// These define which context elements (from ConnectionContext) will or won't be present for
-// individual states (from ConnectionStateSchema)
-// http://xstate.js.org/docs/guides/typescript.html#typestates
-
-// In these states, we don't know if we have an invitation or if we're a team member
-export type DisconnectedConnectionState = {
-  value:
-    | 'disconnected'
-    | {
-        handlingInvitation: 'initializing'
-      }
-  context: ConnectionContext // can't specify anything further
-}
-
-// In these states, we have an invitation & we're not a team member, so we have an invitationSecretKey and no team instance
-export type NonMemberConnectionState = {
-  value: {
-    handlingInvitation: 'awaitingInvitationAcceptance'
-  }
-  context: ConnectionContext & {
-    team: undefined // we don't have a team instance
-    invitationSecretKey: string // we do have an invitation
-  }
-}
-
-// In these states, we're a team member, so we have a team instance in context
-export type MemberConnectionState = {
-  value:
-    | {
-        handlingInvitation: 'awaitingInvitationProof' | 'success'
-      }
-    | {
-        authenticating: {
-          claimingIdentity: 'awaitingIdentityChallenge' | 'awaitingIdentityAcceptance' | 'success'
-          verifyingIdentity: 'awaitingIdentityClaim' | 'awaitingIdentityProof' | 'success'
-        }
-      }
-    | 'connected'
-  context: ConnectionContext & {
-    team: Team // we have a team instance
-  }
-}
-
-export type ConnectionState =
-  | DisconnectedConnectionState
-  | NonMemberConnectionState
-  | MemberConnectionState
 
 export type Action = ActionFunction<ConnectionContext, ConnectionMessage>
 export type Condition = ConditionPredicate<ConnectionContext, ConnectionMessage>
