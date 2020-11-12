@@ -19,6 +19,6 @@ export interface SendLinksMessage {
   type: 'SEND_LINKS'
   payload: {
     startingIndex: number
-    links: SignedLink[]
+    links: SignedLink<any>[]
   }
 }
