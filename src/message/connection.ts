@@ -1,8 +1,5 @@
-﻿import { SignatureChain } from '/chain'
-import { ProofOfInvitation } from '/invitation'
+﻿import { ProofOfInvitation } from '/invitation'
 import { KeyScope } from '/keyset'
-import { Member } from '/member'
-import { TeamLinkBody } from '/team'
 import { Base64 } from '/util'
 
 // Connection control
