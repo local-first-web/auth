@@ -18,9 +18,10 @@ export const joinTestChannel = (channel: TestChannel) => (
     if (senderId === id) return // I can ignore messages that I sent
 
     // simulate a random delay, then deliver the message
-    const delay = id === 'bob' ? 1000 : 1
-    console.log(`delivering to ${id} with a delay of ${delay}`)
-    await pause(delay)
+    // const delay = Math.random() * 100
+    // TODO: This will cause tests to intermittently fail; see TODO in connection.ts regarding timing of delivery
+
+    await pause(0)
     connection.deliver(msg)
   })
 
