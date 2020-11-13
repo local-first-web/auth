@@ -1,20 +1,18 @@
-﻿import { signatures } from '@herbcaudill/crypto'
+﻿import { Base64, signatures } from '@herbcaudill/crypto'
 import { PublicKeyset } from '/keyset'
-import { ChallengeIdentityMessage, ProveIdentityMessage } from '/message'
+import { Challenge } from '/identity'
 import { ValidationResult } from '/util'
 
 export const verify = (
-  { payload: challenge }: ChallengeIdentityMessage,
-  { payload: proof }: ProveIdentityMessage,
+  challenge: Challenge,
+  signature: Base64,
   publicKeys: PublicKeyset
 ): ValidationResult => {
-  const details = { proof, challenge }
-
-  if (proof.challenge !== challenge) return fail('Challenge document does not match', details)
+  const details = { challenge, signature }
 
   const signatureIsValid = signatures.verify({
     payload: challenge,
-    signature: proof.signature,
+    signature,
     publicKey: publicKeys.signature,
   })
   if (!signatureIsValid) return fail('Signature is not valid', details)

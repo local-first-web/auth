@@ -1,13 +1,8 @@
-﻿import { KeyScope, randomKey } from '/keyset'
-import { ChallengeIdentityMessage } from '/message'
+﻿import { Challenge } from './types'
+import { KeyScope, randomKey } from '/keyset'
 
-// TODO: refactor so this just generates the payload
-
-export const challenge = (identityClaim: KeyScope): ChallengeIdentityMessage => ({
-  type: 'CHALLENGE_IDENTITY',
-  payload: {
-    ...identityClaim,
-    nonce: randomKey(),
-    timestamp: new Date().getTime(),
-  },
+export const challenge = (identityClaim: KeyScope): Challenge => ({
+  ...identityClaim,
+  nonce: randomKey(),
+  timestamp: new Date().getTime(),
 })

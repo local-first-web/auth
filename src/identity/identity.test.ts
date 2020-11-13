@@ -1,5 +1,5 @@
-﻿import { claim, challenge, prove, verify } from '/identity'
-import { KeyType, TEAM_SCOPE } from '/keyset'
+﻿import { challenge, prove, verify } from '/identity'
+import { KeyScope, KeyType, TEAM_SCOPE } from '/keyset'
 import * as keyset from '/keyset'
 import { bob, eve } from '/util/testing'
 
@@ -10,10 +10,10 @@ const { MEMBER } = KeyType
 describe('identity', () => {
   it('accepts valid proof of identity', () => {
     const bobSecretKeys = bob.keys
-    const bobPublicKeys = keyset.redact(bob.keys)
+    const bobPublicKeys = keyset.redactKeys(bob.keys)
 
     // 👨‍🦲 Bob shows up and says he's Bob
-    const bobsClaim = claim({ type: MEMBER, name: 'bob' })
+    const bobsClaim: KeyScope = { type: MEMBER, name: 'bob' }
 
     // 👩🏾 Alice asks maybe-Bob to prove it by sending him a document to sign
     const alicesChallenge = challenge(bobsClaim)
@@ -30,10 +30,10 @@ describe('identity', () => {
 
   it('rejects proof of identity with the wrong signature', () => {
     const eveSecretKeys = eve.keys
-    const bobPublicKeys = keyset.redact(bob.keys)
+    const bobPublicKeys = keyset.redactKeys(bob.keys)
 
     // 🦹‍♀️ Eve shows up and says she's Bob
-    const evesClaimToBeBob = claim({ type: MEMBER, name: 'bob' })
+    const evesClaimToBeBob: KeyScope = { type: MEMBER, name: 'bob' }
 
     // 👩🏾 Alice asks maybe-Bob to prove it by sending him a document to sign
     const alicesChallenge = challenge(evesClaimToBeBob)
@@ -50,10 +50,10 @@ describe('identity', () => {
 
   it('rejects reused proof of identity', () => {
     const bobSecretKeys = bob.keys
-    const bobPublicKeys = keyset.redact(bob.keys)
+    const bobPublicKeys = keyset.redactKeys(bob.keys)
 
     // 👨‍🦲 Bob shows up and says he's Bob
-    const bobsClaim = claim({ type: MEMBER, name: 'bob' })
+    const bobsClaim: KeyScope = { type: MEMBER, name: 'bob' }
 
     // 👩🏾 Alice asks maybe-Bob to prove it by sending him a document to sign
     const alicesChallengeToBob = challenge(bobsClaim)
@@ -70,7 +70,7 @@ describe('identity', () => {
     // 👀 BUT! Eve intercepted Bob's proof, so she tries to re-use it
 
     // 🦹‍♀️ Eve shows up and says she's Bob
-    const evesClaimToBeBob = claim({ type: MEMBER, name: 'bob' })
+    const evesClaimToBeBob: KeyScope = { type: MEMBER, name: 'bob' }
 
     // 👩🏾 Alice checks asks maybe-Bob to prove it by sending him a document to sign
     const alicesChallengeToEve = challenge(evesClaimToBeBob)
@@ -89,7 +89,7 @@ describe('identity', () => {
     const teamKeys = keyset.create(TEAM_SCOPE)
 
     // 👨‍🦲 Bob shows up and says he's a member of the team
-    const bobsClaim = claim(TEAM_SCOPE)
+    const bobsClaim: KeyScope = TEAM_SCOPE
 
     // 👩🏾 Alice asks maybe-Bob to prove it by sending him a document to sign
     const alicesChallenge = challenge(bobsClaim)
@@ -98,7 +98,7 @@ describe('identity', () => {
     const bobsProof = prove(alicesChallenge, teamKeys)
 
     // 👩🏾 Alice checks his proof
-    const validation = verify(alicesChallenge, bobsProof, keyset.redact(teamKeys))
+    const validation = verify(alicesChallenge, bobsProof, keyset.redactKeys(teamKeys))
 
     // ✅ Bob's proof checks out
     expect(validation).toBeValid()

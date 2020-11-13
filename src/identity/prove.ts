@@ -1,15 +1,7 @@
 ﻿import { signatures } from '@herbcaudill/crypto'
+import { Challenge } from './types'
 import { KeysetWithSecrets } from '/keyset'
-import { ChallengeIdentityMessage, ProveIdentityMessage } from '/message'
+import { Base64 } from '/util'
 
-// TODO: refactor so this just generates the payload
-export const prove = (
-  { payload }: ChallengeIdentityMessage,
-  keys: KeysetWithSecrets
-): ProveIdentityMessage => ({
-  type: 'PROVE_IDENTITY',
-  payload: {
-    challenge: payload,
-    signature: signatures.sign(payload, keys.signature.secretKey),
-  },
-})
+export const prove = (challenge: Challenge, keys: KeysetWithSecrets): Base64 =>
+  signatures.sign(challenge, keys.signature.secretKey)
