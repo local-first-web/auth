@@ -13,10 +13,10 @@ export const create = (
   // Don't leak the recipient's secrets if we have them
   const redactedRecipientKeys: PublicKeyset | KeyManifest = isKeyManifest(recipientKeys)
     ? recipientKeys
-    : keyset.redact(recipientKeys)
+    : keyset.redactKeys(recipientKeys)
 
   // Don't leak secrets from the contents
-  const redactedContents = keyset.redact(contents)
+  const redactedContents = keyset.redactKeys(contents)
 
   // Generate a new single-use keypair to encrypt the lockbox with
   const encryptionKeys = keyset.create(EPHEMERAL_SCOPE).encryption
