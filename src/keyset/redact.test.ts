@@ -1,10 +1,10 @@
-import { create, EPHEMERAL_SCOPE, KeysetWithSecrets, KeyType, redact } from '/keyset'
+import { create, EPHEMERAL_SCOPE, KeysetWithSecrets, KeyType, redactKeys } from '/keyset'
 
 describe('redact', () => {
   it('should redact secrets from a random keyset', () => {
     const secretKeyset = create({ type: KeyType.MEMBER, name: 'foo' })
 
-    const publicKeyset = redact(secretKeyset)
+    const publicKeyset = redactKeys(secretKeyset)
 
     expect(publicKeyset).toHaveProperty('encryption')
     expect(publicKeyset).toHaveProperty('signature')
@@ -28,7 +28,7 @@ describe('redact', () => {
       secretKey: 'j2KNRYXtlmRDwfLqynNJKnpQUuGlKcdUqJU7fgqbkjvBbulH',
     }
 
-    const publicKeyset = redact(secretKeyset)
+    const publicKeyset = redactKeys(secretKeyset)
 
     expect(publicKeyset).toEqual({
       ...EPHEMERAL_SCOPE,
