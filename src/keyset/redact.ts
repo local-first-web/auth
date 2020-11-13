@@ -26,7 +26,7 @@
  *
  * You can also pass in a `PublicKeyset`, in which case it will be returned as-is.
  */
-export const redact = (keys: KeysetWithSecrets | PublicKeyset): PublicKeyset =>
+export const redactKeys = (keys: KeysetWithSecrets | PublicKeyset): PublicKeyset =>
   (!hasSecrets(keys)
     ? keys
     : {
