@@ -10,86 +10,66 @@ export const connectionMachine: MachineConfig<
   id: 'connection',
   initial: 'disconnected',
   entry: ['sendHello'],
+  on: { ERROR: 'disconnected' },
 
   states: {
     disconnected: {
       on: {
-        HELLO: {
-          target: 'checkingForInvitation',
+        HELLO: [
+          // we can't both present invitations - someone has to be a member
+          {
+            cond: 'bothHaveInvitation',
+            actions: ['failNeitherIsMember'],
+            target: 'disconnected',
+          },
+
+          // if I have an invitation, wait for acceptance
+          {
+            cond: 'iHaveInvitation',
+            actions: ['receiveHello'],
+            target: 'awaitingInvitationAcceptance',
+          },
+
+          // if they have an invitation, validate it
+          {
+            cond: 'theyHaveInvitation',
+            actions: ['receiveHello'],
+            target: 'validatingInvitationProof',
+          },
+
+          // otherwise, we can proceed directly to authentication
+          {
+            actions: ['receiveHello'],
+            target: 'authenticating',
+          },
+        ],
+      },
+    },
+
+    awaitingInvitationAcceptance: {
+      on: {
+        ACCEPT_INVITATION: {
+          actions: ['joinTeam'],
+          target: 'authenticating',
         },
       },
     },
 
-    // first we determine if anyone has an invitation to be processed;
-    // the mutual authentication part of this requires both sides to be members of the team
-    checkingForInvitation: {
-      on: { ERROR: 'disconnected' },
-      entry: ['receiveHello'],
-      initial: 'checking',
-
-      states: {
-        checking: {
-          always: [
-            // we can't both present invitations - someone has to be a member
-            {
-              cond: 'bothHaveInvitation',
-              actions: 'failNeitherIsMember',
-              target: 'failure',
-            },
-
-            // if I have an invitation, wait for acceptance
-            {
-              cond: 'iHaveInvitation',
-              target: 'awaitingInvitationAcceptance',
-            },
-
-            // if they have an invitation, wait for them to send proof
-            {
-              cond: 'theyHaveInvitation',
-              target: 'validatingInvitationProof',
-            },
-
-            // otherwise, we're done with this part
-            {
-              target: 'success',
-            },
-          ],
+    validatingInvitationProof: {
+      always: [
+        // if the proof succeeds, add them to the team and send a welcome message,
+        // then proceed to the standard identity claim & challenge process
+        {
+          cond: 'invitationProofIsValid',
+          actions: 'acceptInvitation',
+          target: 'authenticating',
         },
-
-        awaitingInvitationAcceptance: {
-          on: {
-            ACCEPT_INVITATION: {
-              actions: ['joinTeam'],
-              target: 'success',
-            },
-          },
+        // if the proof fails, disconnect with error
+        {
+          actions: 'rejectInvitation',
+          target: 'disconnected',
         },
-
-        validatingInvitationProof: {
-          always: [
-            // if the proof succeeds, add them to the team and send a welcome message,
-            // then proceed to the standard identity claim & challenge process
-            {
-              cond: 'invitationProofIsValid',
-              actions: 'acceptInvitation',
-              target: 'success',
-            },
-            // if the proof fails, disconnect with error
-            {
-              actions: 'rejectInvitation',
-              target: 'failure',
-            },
-          ],
-        },
-
-        failure: {},
-
-        success: {
-          type: 'final',
-        },
-      },
-
-      onDone: 'authenticating',
+      ],
     },
 
     authenticating: {
