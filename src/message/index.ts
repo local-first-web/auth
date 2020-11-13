@@ -7,9 +7,7 @@ import * as sync from '/message/sync'
 
 export type ConnectionMessage =
   | connection.HelloMessage
-  | connection.ProveInvitationMessage
   | connection.AcceptInvitationMessage
-  | connection.ClaimIdentityMessage
   | connection.ChallengeIdentityMessage
   | connection.ProveIdentityMessage
   | connection.AcceptIdentityMessage
