@@ -1,31 +1,21 @@
 import { ActionFunction, ConditionPredicate } from 'xstate'
 import { Device } from '/device'
+import { Challenge } from '/identity'
 import { ProofOfInvitation } from '/invitation'
 import { KeyScope } from '/keyset'
 import { Member } from '/member'
-import { ChallengeIdentityMessage, ConnectionMessage } from '/message'
+import { ConnectionMessage } from '/message'
 import { Team } from '/team'
 import { User } from '/user'
 import { Base64 } from '/util'
 
 export type SendFunction = (message: ConnectionMessage) => void
 
-// State schema: all the possible states
-
 export interface ConnectionStateSchema {
   states: {
     disconnected: {}
-
-    checkingForInvitation: {
-      states: {
-        checking: {}
-        awaitingInvitationAcceptance: {}
-        validatingInvitationProof: {}
-        failure: {}
-        success: {}
-      }
-    }
-
+    awaitingInvitationAcceptance: {}
+    validatingInvitationProof: {}
     authenticating: {
       states: {
         claimingIdentity: {
@@ -45,7 +35,6 @@ export interface ConnectionStateSchema {
         }
       }
     }
-
     connected: {}
   }
 }
@@ -74,7 +63,7 @@ export type ConnectionContext = InitialContext & {
   theyHaveInvitation?: boolean
   theirIdentityClaim?: KeyScope
   theirProofOfInvitation?: ProofOfInvitation
-  challenge?: ChallengeIdentityMessage
+  challenge?: Challenge
   peer?: Member
   seed?: Base64
   encryptedPeerSeed?: Base64
