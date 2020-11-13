@@ -2,10 +2,10 @@
 import * as keyset from '/keyset'
 import { Member } from '/member'
 
-export const redact = (user: Member | User) => {
+export const redactUser = (user: Member | User) => {
   const { userName } = user
   return {
     userName,
-    keys: keyset.redact(user.keys),
+    keys: keyset.redactKeys(user.keys),
   } as Member
 }
