@@ -41,7 +41,7 @@ const { MEMBER } = KeyType
 export class ConnectionService extends EventEmitter {
   private sendMessage: SendFunction
 
-  public instance: Interpreter<ConnectionContext, ConnectionStateSchema, ConnectionMessage>
+  public machine: Interpreter<ConnectionContext, ConnectionStateSchema, ConnectionMessage>
   public context: ConnectionContext
 
   constructor({ sendMessage, context }: ConnectionParams) {
@@ -58,17 +58,17 @@ export class ConnectionService extends EventEmitter {
     }).withContext(this.context)
 
     // instantiate the machine and start the instance
-    this.instance = interpret(machine).start()
+    this.machine = interpret(machine).start()
     return this
   }
 
   get state() {
-    return this.instance.state.value
+    return this.machine.state.value
   }
 
   public deliver(incomingMessage: ConnectionMessage) {
     console.log(`deliver to ${this.context.user.userName}`, incomingMessage)
-    this.instance.send(incomingMessage)
+    this.machine.send(incomingMessage)
   }
 
   private readonly actions: Record<string, Action> = {
