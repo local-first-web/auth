@@ -9,7 +9,7 @@ import {
 } from '/invitation'
 import * as keyset from '/keyset'
 import { KeyType } from '/keyset'
-import { redact as redactUser } from '/user'
+import { redactUser } from '/user'
 import { bob, eve } from '/util/testing'
 
 const { TEAM_SCOPE } = keyset
