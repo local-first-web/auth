@@ -1,4 +1,5 @@
-﻿import { ProofOfInvitation } from '/invitation'
+﻿import { Challenge } from '/identity'
+import { ProofOfInvitation } from '/invitation'
 import { KeyScope } from '/keyset'
 import { Base64 } from '/util'
 
@@ -38,11 +39,6 @@ export type AcceptInvitationMessage = {
 
 // Identity
 
-type Challenge = KeyScope & {
-  nonce: Base64
-  timestamp: UnixTimestamp
-}
-
 export type ChallengeIdentityMessage = {
   type: 'CHALLENGE_IDENTITY'
   payload: Challenge
@@ -52,7 +48,7 @@ export type ProveIdentityMessage = {
   type: 'PROVE_IDENTITY'
   payload: {
     challenge: Challenge
-    signature: Base64
+    proof: Base64 // this is a signature
   }
 }
 
