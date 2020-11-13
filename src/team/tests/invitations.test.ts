@@ -2,7 +2,7 @@ import { DeviceType, DeviceWithSecrets, getDeviceId, redactDevice } from '/devic
 import { acceptDeviceInvitation, acceptMemberInvitation, ProofOfInvitation } from '/invitation'
 import * as keyset from '/keyset'
 import { KeyType } from '/keyset'
-import { redact as redactUser } from '/user'
+import { redactUser } from '/user'
 import {
   alicesContext,
   bob,
