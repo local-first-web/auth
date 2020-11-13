@@ -45,7 +45,7 @@ export class Team extends EventEmitter {
 
       const payload = {
         teamName: options.teamName,
-        rootMember: user.redact(localUser),
+        rootMember: user.redactUser(localUser),
         lockboxes: [teamLockbox, adminLockbox],
       }
       // Post root link to signature chain
@@ -127,7 +127,7 @@ export class Team extends EventEmitter {
   /** Add a member to the team */
   public add = (member: User | Member, roles: string[] = []) => {
     // don't leak user secrets if we have them
-    const redactedUser = user.redact(member)
+    const redactedUser = user.redactUser(member)
 
     // make lockboxes for the new member
     const teamLockbox = lockbox.create(this.teamKeys(), member.keys)
