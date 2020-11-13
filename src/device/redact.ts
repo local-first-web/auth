@@ -5,5 +5,5 @@ import * as keyset from '/keyset'
 export const redactDevice = (device: DeviceWithSecrets): Device => ({
   userName: device.userName,
   deviceId: getDeviceId(device),
-  keys: keyset.redact(device.keys),
+  keys: keyset.redactKeys(device.keys),
 })
