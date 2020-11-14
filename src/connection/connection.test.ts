@@ -30,9 +30,6 @@ const bobsLaptop = redactDevice(_bobsLaptop)
 const charliesLaptop = redactDevice(_charliesLaptop)
 
 describe('connection', () => {
-  beforeAll(() => {
-    console.clear()
-  })
   beforeEach(() => {
     localStorage.clear()
     storage.contents = undefined
