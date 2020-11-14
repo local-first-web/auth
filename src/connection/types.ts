@@ -35,6 +35,7 @@ export interface ConnectionStateSchema {
         }
       }
     }
+    failure: {}
     connected: {}
   }
 }

@@ -19,6 +19,7 @@ import {
   AcceptInvitationMessage,
   ChallengeIdentityMessage,
   ConnectionMessage,
+  ErrorMessage,
   HelloMessage,
   ProveIdentityMessage,
 } from '/message'
@@ -27,10 +28,10 @@ import * as invitations from '/invitation'
 
 const { MEMBER } = KeyType
 
-// TODO: This is not robust against unexpected variations in the timing of message delivery, or the
-// order in which messages are delivered. The solution is probably to build in a queue of received
-// messages; order them correctly (presumably using an index or timestamp included in every
-// message); and only deliver them to the machine when it is ready.
+// TODO: This is not robust against unexpected variations in the timing of message delivery, or in
+// the order in which messages are delivered. The solution is probably to build in a queue of
+// received messages; order them correctly (presumably using an index included in every message);
+// and only deliver them to the machine when it is ready.
 //
 // See https://github.com/davidkpiano/xstate/discussions/1627
 
@@ -67,13 +68,13 @@ export class ConnectionService extends EventEmitter {
   }
 
   public deliver(incomingMessage: ConnectionMessage) {
-    console.log(`deliver to ${this.context.user.userName}`, incomingMessage)
+    // console.log(`deliver to ${this.context.user.userName}`, incomingMessage)
     this.machine.send(incomingMessage)
   }
 
   private readonly actions: Record<string, Action> = {
     sendHello: context => {
-      log('ACTION sendHello', context)
+      // log('ACTION sendHello', context)
 
       // claim our identity
       const identityClaim = { type: MEMBER, name: context.user.userName }
@@ -92,7 +93,7 @@ export class ConnectionService extends EventEmitter {
     },
 
     receiveHello: (context, message) => {
-      log('ACTION receiveHello', context)
+      // log('ACTION receiveHello', context)
 
       const helloMessage = message as HelloMessage
       const { payload } = helloMessage
@@ -129,7 +130,7 @@ export class ConnectionService extends EventEmitter {
     },
 
     challengeIdentity: context => {
-      log('ACTION challengeIdentity', context)
+      // log('ACTION challengeIdentity', context)
 
       const identityClaim = context.theirIdentityClaim!
 
@@ -138,16 +139,17 @@ export class ConnectionService extends EventEmitter {
 
       const challengeMessage: ChallengeIdentityMessage = {
         type: 'CHALLENGE_IDENTITY',
-        payload: context.challenge,
+        payload: { challenge: context.challenge },
       }
 
       this.sendMessage(challengeMessage)
     },
 
     proveIdentity: (context, event) => {
-      log('ACTION proveIdentity', context)
+      // log('ACTION proveIdentity', context)
 
-      const { payload: challenge } = event as ChallengeIdentityMessage
+      const { payload } = event as ChallengeIdentityMessage
+      const { challenge } = payload
 
       // generate proof
       const proof = identity.prove(challenge, context.user.keys)
@@ -160,7 +162,7 @@ export class ConnectionService extends EventEmitter {
     },
 
     acceptIdentity: context => {
-      log('ACTION acceptIdentity', context)
+      // log('ACTION acceptIdentity', context)
 
       // generate a seed that will be combined with the peer's seed to create a symmetric encryption key
       const seed = randomKey()
@@ -182,24 +184,19 @@ export class ConnectionService extends EventEmitter {
     },
 
     rejectIdentity: context => {
-      log('ACTION rejectIdentity', context)
+      // log('ACTION rejectIdentity', context)
       this.fail('Unable to confirm identity')
     },
 
     saveSeed: (context, event) => {
-      log('ACTION saveSeed', context)
+      // log('ACTION saveSeed', context)
       // save seed
       const acceptanceMessage = event as AcceptIdentityMessage
       context.encryptedPeerSeed = acceptanceMessage.payload.encryptedSeed
     },
 
-    onConnected: context => {
-      log('ACTION onConnected', context)
-      this.emit('connected')
-    },
-
     deriveSecretKey: context => {
-      log('ACTION deriveSecretKey', context)
+      // log('ACTION deriveSecretKey', context)
 
       const userKeys = context.user.keys
       const peerKeys = context.peer!.keys
@@ -215,27 +212,38 @@ export class ConnectionService extends EventEmitter {
 
       context.secretKey = deriveSharedKey(userSeed, peerSeed)
     },
+
+    onConnected: context => {
+      // log('ACTION onConnected', context)
+      this.emit('connected')
+    },
+
+    onError: (context, event) => {
+      // log('ACTION onError', context)
+      this.emit('error', event)
+    },
   }
 
   private fail = (message: string, details?: any) => {
-    console.error({ message, details })
-    this.sendMessage({ type: 'ERROR', payload: { message, details } })
+    const errorMessage: ErrorMessage = { type: 'ERROR', payload: { message, details } }
+    this.deliver(errorMessage) // force error state locally
+    this.sendMessage(errorMessage) // send error to peer
   }
 
   private readonly guards: Record<string, Condition> = {
     iHaveInvitation: (context, event) => {
-      log('GUARD iHaveInvitation', context)
+      // log('GUARD iHaveInvitation', context)
       return context.invitationSecretKey !== undefined
     },
 
     theyHaveInvitation: (context, event) => {
-      log('GUARD theyHaveInvitation', context)
+      // log('GUARD theyHaveInvitation', context)
       const helloMessage = event as HelloMessage
       return helloMessage.payload.proofOfInvitation !== undefined
     },
 
     bothHaveInvitation: (context, event, meta) => {
-      log('GUARD bothHaveInvitation', context)
+      // log('GUARD bothHaveInvitation', context)
       return (
         this.guards.iHaveInvitation(context, event, meta) &&
         this.guards.theyHaveInvitation(context, event, meta)
@@ -243,11 +251,8 @@ export class ConnectionService extends EventEmitter {
     },
 
     invitationProofIsValid: (context, event) => {
-      log('GUARD invitationProofIsValid', context)
-      console.log(event)
-      const helloMessage = event as HelloMessage
-      const proofOfInvitation = helloMessage.payload.proofOfInvitation!
-      console.log({ proofOfInvitation })
+      // log('GUARD invitationProofIsValid', context)
+      const proofOfInvitation = context.theirProofOfInvitation!
       try {
         context.team!.admit(proofOfInvitation)
       } catch (e) {
@@ -257,14 +262,14 @@ export class ConnectionService extends EventEmitter {
     },
 
     identityIsKnown: (context, event) => {
-      log('GUARD identityIsKnown', context)
+      // log('GUARD identityIsKnown', context)
       const identityClaim = context.theirIdentityClaim!
       const userName = identityClaim.name
       return context.team!.has(userName)
     },
 
     identityProofIsValid: (context, event) => {
-      log('GUARD identityProofIsValid', context)
+      // log('GUARD identityProofIsValid', context)
       const { team, challenge: originalChallenge } = context
       const identityProofMessage = event as ProveIdentityMessage
       const { challenge, proof } = identityProofMessage.payload
@@ -278,6 +283,6 @@ export class ConnectionService extends EventEmitter {
   }
 }
 
-function log(label: string, context: ConnectionContext) {
-  console.log(`${context.user.userName}: ${label} ${Object.keys(context)}`)
-}
+// function log(label: string, context: ConnectionContext) {
+// console.log(`${context.user.userName}: ${label} ${Object.keys(context)}`)
+// }

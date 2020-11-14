@@ -10,11 +10,18 @@ export const connectionMachine: MachineConfig<
   id: 'connection',
   initial: 'disconnected',
   entry: ['sendHello'],
-  on: { ERROR: 'disconnected' },
+
+  on: { ERROR: 'failure' },
 
   states: {
+    failure: {
+      entry: 'onError',
+      always: 'disconnected',
+    },
+
     disconnected: {
       on: {
+        ERROR: 'failure',
         HELLO: [
           // we can't both present invitations - someone has to be a member
           {
@@ -56,20 +63,23 @@ export const connectionMachine: MachineConfig<
     },
 
     validatingInvitationProof: {
-      always: [
-        // if the proof succeeds, add them to the team and send a welcome message,
-        // then proceed to the standard identity claim & challenge process
-        {
-          cond: 'invitationProofIsValid',
-          actions: 'acceptInvitation',
-          target: 'authenticating',
-        },
-        // if the proof fails, disconnect with error
-        {
-          actions: 'rejectInvitation',
-          target: 'disconnected',
-        },
-      ],
+      // TODO: `after: 0` is a cheesy workaround to `always` being overeager; see https://github.com/davidkpiano/xstate/discussions/1630
+      after: {
+        0: [
+          // if the proof succeeds, add them to the team and send a welcome message,
+          // then proceed to the standard identity claim & challenge process
+          {
+            cond: 'invitationProofIsValid',
+            actions: 'acceptInvitation',
+            target: 'authenticating',
+          },
+          // if the proof fails, disconnect with error
+          {
+            actions: 'rejectInvitation',
+            target: 'failure',
+          },
+        ],
+      },
     },
 
     authenticating: {
@@ -78,7 +88,6 @@ export const connectionMachine: MachineConfig<
       // 1. claim an identity and provide proof when challenged
       // 2. verify the other peer's claimed identity
       type: 'parallel',
-      on: { ERROR: 'disconnected' },
 
       states: {
         // 1. claim an identity and provide proof when challenged
@@ -116,19 +125,21 @@ export const connectionMachine: MachineConfig<
           initial: 'challengingIdentityClaim',
           states: {
             challengingIdentityClaim: {
-              always: [
-                // if we have a member by that name on the team, send a challenge
-                {
-                  // cond: 'identityIsKnown',
-                  actions: 'challengeIdentity',
-                  target: 'awaitingIdentityProof',
-                },
-                // if we don't have anybody by that name in the team, disconnect with error
-                {
-                  actions: 'rejectIdentity',
-                  target: 'failure',
-                },
-              ],
+              after: {
+                0: [
+                  // if we have a member by that name on the team, send a challenge
+                  {
+                    cond: 'identityIsKnown',
+                    actions: 'challengeIdentity',
+                    target: 'awaitingIdentityProof',
+                  },
+                  // if we don't have anybody by that name in the team, disconnect with error
+                  {
+                    actions: 'rejectIdentity',
+                    target: 'failure',
+                  },
+                ],
+              },
             },
 
             // then wait for them to respond to the challenge with proof

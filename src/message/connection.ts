@@ -41,7 +41,9 @@ export type AcceptInvitationMessage = {
 
 export type ChallengeIdentityMessage = {
   type: 'CHALLENGE_IDENTITY'
-  payload: Challenge
+  payload: {
+    challenge: Challenge
+  }
 }
 
 export type ProveIdentityMessage = {
