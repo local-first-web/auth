@@ -69,7 +69,7 @@ describe('connection', () => {
       const aliceContext = { team, user: alice, device: alicesLaptop }
       // 👩🏾 Alice connects
       const aliceConnection = new ConnectionService({ sendMessage, context: aliceContext }).start()
-      const connectionState = () => aliceConnection.state as any
+      const aliceState = () => aliceConnection.state as any
 
       // 👨‍🦲 Bob sends a hello message
       const identityClaim = { type: KeyType.MEMBER, name: 'bob' }
@@ -79,7 +79,7 @@ describe('connection', () => {
       })
 
       // 👩🏾 Alice automatically sends Bob a challenge & waits for proof
-      expect(connectionState().authenticating.verifyingIdentity).toEqual('awaitingIdentityProof')
+      expect(aliceState().authenticating.verifyingIdentity).toEqual('awaitingIdentityProof')
 
       // 👨‍🦲 Bob generates proof by signing Alice's challenge and sends it back
       const challengeMessage = lastMessage() as ChallengeIdentityMessage
@@ -92,8 +92,7 @@ describe('connection', () => {
       aliceConnection.deliver(proofMessage)
 
       // ✅ Success! Alice has verified Bob's identity
-      expect(connectionState().authenticating.verifyingIdentity).toEqual('success')
-      expectConnectionToSucceed([aliceConnection])
+      expect(aliceState().authenticating.verifyingIdentity).toEqual('success')
     })
 
     // Test the other side, using a real ConnectionService for Bob
@@ -105,7 +104,7 @@ describe('connection', () => {
       const bobContext = { team: bobTeam, user: bob, device: bobsLaptop }
       const bobConnection = new ConnectionService({ sendMessage, context: bobContext }).start()
 
-      const connectionState = () => bobConnection.state as any
+      const bobState = () => bobConnection.state as any
 
       // 👩🏾 Alice sends a hello message
       bobConnection.deliver({
@@ -116,7 +115,7 @@ describe('connection', () => {
       })
 
       // 👨‍🦲 Bob automatically asserts his identity, and awaits a challenge
-      expect(connectionState().authenticating.claimingIdentity).toEqual('awaitingIdentityChallenge')
+      expect(bobState().authenticating.claimingIdentity).toEqual('awaitingIdentityChallenge')
 
       // 👩🏾 Alice challenges Bob's identity claim
       const helloMessage = lastMessage() as HelloMessage
@@ -129,9 +128,7 @@ describe('connection', () => {
       bobConnection.deliver(challengeMessage)
 
       // 👨‍🦲 Bob automatically responds to the challenge with proof, and awaits acceptance
-      expect(connectionState().authenticating.claimingIdentity).toEqual(
-        'awaitingIdentityAcceptance'
-      )
+      expect(bobState().authenticating.claimingIdentity).toEqual('awaitingIdentityAcceptance')
 
       // 👩🏾 Alice verifies Bob's proof
       const proofMessage = lastMessage() as ProveIdentityMessage
@@ -151,8 +148,7 @@ describe('connection', () => {
       bobConnection.deliver(acceptanceMessage)
 
       // ✅ Success! Bob has proved his identity
-      expect(connectionState().authenticating.claimingIdentity).toEqual('success')
-      expectConnectionToSucceed([bobConnection])
+      expect(bobState().authenticating.claimingIdentity).toEqual('success')
     })
 
     // Create real ConnectionServices on both sides and let them work it out automatically
@@ -167,7 +163,7 @@ describe('connection', () => {
       })
       const bobConnection = connect('bob', { team: bobTeam, user: bob, device: bobsLaptop })
 
-      expectConnectionToSucceed([aliceConnection, bobConnection])
+      await expectConnectionToSucceed([aliceConnection, bobConnection])
     })
 
     it(`shouldn't connect with a member who has been removed`, async () => {
@@ -183,7 +179,7 @@ describe('connection', () => {
       const bobConnection = connect('bob', bobContext)
 
       // ❌ The connection fails
-      expectConnectionToFail([aliceConnection, bobConnection])
+      await expectConnectionToFail([aliceConnection, bobConnection])
     })
 
     it(`shouldn't connect with someone who doesn't belong to the team`, async () => {
@@ -195,7 +191,7 @@ describe('connection', () => {
       const charlieConnection = connect('charlie', charlieContext)
 
       // ❌ The connection fails
-      expectConnectionToFail([aliceConnection, charlieConnection])
+      await expectConnectionToFail([aliceConnection, charlieConnection])
     })
 
     it(
@@ -227,7 +223,7 @@ describe('connection', () => {
         // ...
 
         // ❌ The connection fails
-        expectConnectionToFail([aliceConnection])
+        await expectConnectionToFail([aliceConnection], 'timed out')
       },
       LONG_TIMEOUT
     )
@@ -368,7 +364,6 @@ describe('connection', () => {
       expect(aliceKey).toEqual(bobKey)
     })
 
-    // Create real ConnectionServices with invitees on both sides (expected to fail)
     it(`two invitees can't connect`, async () => {
       const { aliceTeam, connect } = setup()
 
@@ -386,7 +381,7 @@ describe('connection', () => {
       const charlieConnection = connect('charlie', charlieCtx)
 
       // ❌ The connection fails
-      expectConnectionToFail([bobConnection, charlieConnection])
+      await expectConnectionToFail([bobConnection, charlieConnection], `Can't connect`)
     })
   })
 })
@@ -406,7 +401,10 @@ const expectConnectionToSucceed = async (connections: ConnectionService[]) => {
   })
 }
 
-const expectConnectionToFail = async (connections: ConnectionService[]) => {
+const expectConnectionToFail = async (connections: ConnectionService[], message?: string) => {
   await connectionEvent(connections, 'disconnected')
-  connections.forEach(connection => expect(connection.state).toEqual('disconnected'))
+  connections.forEach(connection => {
+    expect(connection.state).toEqual('disconnected')
+    if (message !== undefined) expect(connection.context.error!.message).toContain(message)
+  })
 }
