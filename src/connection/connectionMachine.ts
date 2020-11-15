@@ -1,6 +1,11 @@
-import { MachineConfig } from 'xstate'
+import { assign, MachineConfig } from 'xstate'
 import { ConnectionContext, ConnectionStateSchema } from '/connection/types'
-import { ConnectionMessage } from '/message'
+import { AcceptInvitationMessage, ConnectionMessage, HelloMessage } from '/message'
+import { Team } from '/team'
+
+// common timeout settings
+const timeoutDelay = 7000
+const timeout = { after: { [timeoutDelay]: { actions: 'failTimeout', target: '#failure' } } }
 
 export const connectionMachine: MachineConfig<
   ConnectionContext,
@@ -11,82 +16,98 @@ export const connectionMachine: MachineConfig<
   initial: 'disconnected',
   entry: ['sendHello'],
 
-  on: { ERROR: 'failure' },
+  on: { ERROR: '#failure' },
 
   states: {
-    failure: {
-      entry: 'onError',
-      always: 'disconnected',
-    },
-
     disconnected: {
+      entry: 'onDisconnected',
       on: {
-        ERROR: 'failure',
-        HELLO: [
-          // we can't both present invitations - someone has to be a member
-          {
-            cond: 'bothHaveInvitation',
-            actions: ['failNeitherIsMember'],
-            target: 'disconnected',
-          },
+        HELLO: {
+          actions: assign((context, message) => {
+            const helloMessage = message as HelloMessage
+            const { payload } = helloMessage
+            return {
+              ...context,
+              theirIdentityClaim: payload.identityClaim,
+              theyHaveInvitation: payload.proofOfInvitation !== undefined ? true : false,
+              theirProofOfInvitation: payload.proofOfInvitation,
+            }
+          }),
 
-          // if I have an invitation, wait for acceptance
-          {
-            cond: 'iHaveInvitation',
-            actions: ['receiveHello'],
-            target: 'awaitingInvitationAcceptance',
-          },
-
-          // if they have an invitation, validate it
-          {
-            cond: 'theyHaveInvitation',
-            actions: ['receiveHello'],
-            target: 'validatingInvitationProof',
-          },
-
-          // otherwise, we can proceed directly to authentication
-          {
-            actions: ['receiveHello'],
-            target: 'authenticating',
-          },
-        ],
-      },
-    },
-
-    awaitingInvitationAcceptance: {
-      on: {
-        ACCEPT_INVITATION: {
-          actions: ['joinTeam'],
-          target: 'authenticating',
+          target: 'initializing',
         },
       },
     },
 
-    validatingInvitationProof: {
-      // TODO: `after: 0` is a cheesy workaround to `always` being overeager; see https://github.com/davidkpiano/xstate/discussions/1630
-      after: {
-        0: [
-          // if the proof succeeds, add them to the team and send a welcome message,
-          // then proceed to the standard identity claim & challenge process
-          {
-            cond: 'invitationProofIsValid',
-            actions: 'acceptInvitation',
-            target: 'authenticating',
-          },
-          // if the proof fails, disconnect with error
-          {
-            actions: 'rejectInvitation',
-            target: 'failure',
-          },
-        ],
+    // transient state to determine where to start
+    initializing: {
+      always: [
+        // we can't both present invitations - someone has to be a member
+        {
+          cond: 'bothHaveInvitation',
+          actions: ['failNeitherIsMember'],
+          target: 'disconnected',
+        },
+
+        // if I have an invitation, wait for acceptance
+        {
+          cond: 'iHaveInvitation',
+          target: 'awaitingInvitationAcceptance',
+        },
+
+        // if they have an invitation, validate it
+        {
+          cond: 'theyHaveInvitation',
+          target: 'validatingInvitationProof',
+        },
+
+        // otherwise, we can proceed directly to authentication
+        {
+          target: 'authenticating',
+        },
+      ],
+    },
+
+    awaitingInvitationAcceptance: {
+      // wait for them to validate the invitation we've shown
+      on: {
+        ACCEPT_INVITATION: {
+          actions: assign((context, event) => {
+            const welcomeMessage = event as AcceptInvitationMessage
+            const { chain } = welcomeMessage.payload
+            const team = new Team({ source: chain, context: { user: context.user } })
+            // TODO: add current device?
+            return { ...context, team }
+          }),
+          target: 'authenticating',
+        },
       },
+      ...timeout,
+    },
+
+    validatingInvitationProof: {
+      always: [
+        // if the proof succeeds, add them to the team and send a welcome message,
+        // then proceed to the standard identity claim & challenge process
+        {
+          cond: 'invitationProofIsValid',
+          actions: 'acceptInvitation',
+          target: 'authenticating',
+        },
+
+        // if the proof fails, disconnect with error
+        {
+          actions: 'rejectInvitation',
+          target: '#failure',
+        },
+      ],
     },
 
     authenticating: {
       // these are two peers, mutually authenticating to each other;
       // so we have to complete two parallel processes:
-      // 1. claim an identity and provide proof when challenged
-      // 2. verify the other peer's claimed identity
+      // 1. claim an identity
+      // 2. verify our peer's identity
       type: 'parallel',
 
       states: {
@@ -103,6 +124,7 @@ export const connectionMachine: MachineConfig<
                   target: 'awaitingIdentityAcceptance',
                 },
               },
+              ...timeout,
             },
 
             // wait for a message confirming that they've validated our identity
@@ -114,6 +136,7 @@ export const connectionMachine: MachineConfig<
                   target: 'success',
                 },
               },
+              ...timeout,
             },
 
             success: { type: 'final' },
@@ -125,21 +148,19 @@ export const connectionMachine: MachineConfig<
           initial: 'challengingIdentityClaim',
           states: {
             challengingIdentityClaim: {
-              after: {
-                0: [
-                  // if we have a member by that name on the team, send a challenge
-                  {
-                    cond: 'identityIsKnown',
-                    actions: 'challengeIdentity',
-                    target: 'awaitingIdentityProof',
-                  },
-                  // if we don't have anybody by that name in the team, disconnect with error
-                  {
-                    actions: 'rejectIdentity',
-                    target: 'failure',
-                  },
-                ],
-              },
+              always: [
+                // if we have a member by that name on the team, send a challenge
+                {
+                  cond: 'identityIsKnown',
+                  actions: 'challengeIdentity',
+                  target: 'awaitingIdentityProof',
+                },
+                // if we don't have anybody by that name in the team, disconnect with error
+                {
+                  actions: 'rejectIdentity',
+                  target: '#failure',
+                },
+              ],
             },
 
             // then wait for them to respond to the challenge with proof
@@ -155,13 +176,13 @@ export const connectionMachine: MachineConfig<
                   // if the proof fails, disconnect with error
                   {
                     actions: 'rejectIdentity',
-                    target: 'failure',
+                    target: '#failure',
                   },
                 ],
               },
+              ...timeout,
             },
 
-            failure: {},
             success: { type: 'final' },
           },
         },
@@ -174,6 +195,12 @@ export const connectionMachine: MachineConfig<
     connected: {
       entry: ['onConnected', 'deriveSecretKey'],
       on: { DISCONNECT: 'disconnected' },
+    },
+
+    failure: {
+      id: 'failure',
+      entry: 'onError',
+      always: 'disconnected',
     },
   },
 }
