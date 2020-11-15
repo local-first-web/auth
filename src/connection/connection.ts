@@ -1,6 +1,6 @@
 ﻿import { asymmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
-import { assign, createMachine, interpret, Interpreter } from 'xstate'
+import { createMachine, interpret, Interpreter } from 'xstate'
 import { connectionMachine } from '/connection/connectionMachine'
 import { deriveSharedKey } from '/connection/deriveSharedKey'
 import {
@@ -20,10 +20,8 @@ import {
   ChallengeIdentityMessage,
   ConnectionMessage,
   ErrorMessage,
-  HelloMessage,
   ProveIdentityMessage,
 } from '/message'
-import { Team } from '/team'
 import { redactUser } from '/user'
 
 const { MEMBER } = KeyType
@@ -91,8 +89,6 @@ export class ConnectionService extends EventEmitter {
         payload: { identityClaim, proofOfInvitation },
       })
     },
-
-    failNeitherIsMember: () => this.fail(`Can't connect; neither one of us is a member`),
 
     acceptInvitation: context => {
       // welcome them by sending the team's signature chain, so they can reconstruct team membership state
@@ -188,7 +184,13 @@ export class ConnectionService extends EventEmitter {
       context.secretKey = deriveSharedKey(userSeed, peerSeed)
     },
 
-    rejectInvitation: () => this.fail('Invalid invitation'),
+    failNeitherIsMember: () => {
+      this.fail(`Can't connect; neither one of us is a member`)
+    },
+
+    rejectInvitation: () => {
+      this.fail('Invalid invitation')
+    },
 
     failTimeout: () => {
       this.fail('Connection timed out')
@@ -210,6 +212,7 @@ export class ConnectionService extends EventEmitter {
   }
 
   private fail = (message: string, details?: any) => {
+    this.context.error = { message, details }
     const errorMessage: ErrorMessage = { type: 'ERROR', payload: { message, details } }
     this.deliver(errorMessage) // force error state locally
     this.sendMessage(errorMessage) // send error to peer
