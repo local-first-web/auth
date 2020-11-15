@@ -1,7 +1,6 @@
-import { assign, MachineConfig } from 'xstate'
+import { MachineConfig } from 'xstate'
 import { ConnectionContext, ConnectionStateSchema } from '/connection/types'
-import { AcceptInvitationMessage, ConnectionMessage, HelloMessage } from '/message'
-import { Team } from '/team'
+import { ConnectionMessage } from '/message'
 
 // common timeout settings
 const TIMEOUT_DELAY = 7000
@@ -23,16 +22,7 @@ export const connectionMachine: MachineConfig<
       entry: 'onDisconnected',
       on: {
         HELLO: {
-          actions: assign((context, message) => {
-            const helloMessage = message as HelloMessage
-            const { payload } = helloMessage
-            return {
-              ...context,
-              theirIdentityClaim: payload.identityClaim,
-              theyHaveInvitation: payload.proofOfInvitation !== undefined ? true : false,
-              theirProofOfInvitation: payload.proofOfInvitation,
-            }
-          }),
+          actions: 'receiveHello',
 
           target: 'initializing',
         },
@@ -72,13 +62,7 @@ export const connectionMachine: MachineConfig<
       // wait for them to validate the invitation we've shown
       on: {
         ACCEPT_INVITATION: {
-          actions: assign((context, event) => {
-            const welcomeMessage = event as AcceptInvitationMessage
-            const { chain } = welcomeMessage.payload
-            const team = new Team({ source: chain, context: { user: context.user } })
-            // TODO: add current device?
-            return { ...context, team }
-          }),
+          actions: 'joinTeam',
           target: 'authenticating',
         },
       },
@@ -106,17 +90,17 @@ export const connectionMachine: MachineConfig<
     authenticating: {
       // these are two peers, mutually authenticating to each other;
       // so we have to complete two parallel processes:
-      // 1. claim an identity
+      // 1. prove our identity
       // 2. verify our peer's identity
       type: 'parallel',
 
       states: {
-        // 1. claim an identity and provide proof when challenged
+        // 1. prove our identity
         claimingIdentity: {
           initial: 'awaitingIdentityChallenge',
           states: {
+            // we claimed our identity already, in our HELLO message; now we wait for a challenge
             awaitingIdentityChallenge: {
-              // wait for a challenge
               on: {
                 CHALLENGE_IDENTITY: {
                   // when we receive a challenge, respond with proof
@@ -127,12 +111,12 @@ export const connectionMachine: MachineConfig<
               ...timeout,
             },
 
-            // wait for a message confirming that they've validated our identity
+            // wait for a message confirming that they've validated our proof of identity
             awaitingIdentityAcceptance: {
               on: {
                 ACCEPT_IDENTITY: {
                   // save the encrypted seed they provide; we'll use it to derive a shared secret
-                  actions: ['saveSeed'],
+                  actions: 'storeTheirEncryptedSeed',
                   target: 'success',
                 },
               },
@@ -155,6 +139,7 @@ export const connectionMachine: MachineConfig<
                   actions: 'challengeIdentity',
                   target: 'awaitingIdentityProof',
                 },
+
                 // if we don't have anybody by that name in the team, disconnect with error
                 {
                   actions: 'rejectIdentity',
@@ -170,9 +155,10 @@ export const connectionMachine: MachineConfig<
                   // if the proof succeeds, we're done on this side
                   {
                     cond: 'identityProofIsValid',
-                    actions: 'acceptIdentity',
+                    actions: ['generateSeed', 'acceptIdentity'],
                     target: 'success',
                   },
+
                   // if the proof fails, disconnect with error
                   {
                     actions: 'rejectIdentity',
@@ -193,13 +179,12 @@ export const connectionMachine: MachineConfig<
     },
 
     connected: {
-      entry: ['onConnected', 'deriveSecretKey'],
+      entry: ['deriveSharedKey', 'onConnected'],
       on: { DISCONNECT: 'disconnected' },
     },
 
     failure: {
       id: 'failure',
-      entry: 'onError',
       always: 'disconnected',
     },
   },

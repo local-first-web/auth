@@ -1,4 +1,4 @@
-import { ActionFunction, ConditionPredicate } from 'xstate'
+import { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
 import { Device } from '/device'
 import { Challenge } from '/identity'
 import { ProofOfInvitation } from '/invitation'
@@ -67,7 +67,7 @@ export type ConnectionContext = InitialContext & {
   challenge?: Challenge
   peer?: Member
   seed?: Base64
-  encryptedPeerSeed?: Base64
+  theirEncryptedSeed?: Base64
   secretKey?: Base64
   error?: {
     message: string
@@ -75,5 +75,7 @@ export type ConnectionContext = InitialContext & {
   }
 }
 
-export type Action = ActionFunction<ConnectionContext, ConnectionMessage>
+export type Action =
+  | ActionFunction<ConnectionContext, ConnectionMessage>
+  | AssignAction<ConnectionContext, ConnectionMessage>
 export type Condition = ConditionPredicate<ConnectionContext, ConnectionMessage>
