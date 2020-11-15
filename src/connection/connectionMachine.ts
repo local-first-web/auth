@@ -4,8 +4,8 @@ import { AcceptInvitationMessage, ConnectionMessage, HelloMessage } from '/messa
 import { Team } from '/team'
 
 // common timeout settings
-const timeoutDelay = 7000
-const timeout = { after: { [timeoutDelay]: { actions: 'failTimeout', target: '#failure' } } }
+const TIMEOUT_DELAY = 7000
+const timeout = { after: { [TIMEOUT_DELAY]: { actions: 'failTimeout', target: '#failure' } } }
 
 export const connectionMachine: MachineConfig<
   ConnectionContext,
