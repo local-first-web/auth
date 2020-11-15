@@ -1,7 +1,6 @@
-﻿import { redactUser } from '/user'
-import { asymmetric } from '@herbcaudill/crypto'
+﻿import { asymmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
-import { createMachine, interpret, Interpreter } from 'xstate'
+import { assign, createMachine, interpret, Interpreter } from 'xstate'
 import { connectionMachine } from '/connection/connectionMachine'
 import { deriveSharedKey } from '/connection/deriveSharedKey'
 import {
@@ -13,6 +12,7 @@ import {
   SendFunction,
 } from '/connection/types'
 import * as identity from '/identity'
+import * as invitations from '/invitation'
 import { KeyType, randomKey } from '/keyset'
 import {
   AcceptIdentityMessage,
@@ -24,7 +24,7 @@ import {
   ProveIdentityMessage,
 } from '/message'
 import { Team } from '/team'
-import * as invitations from '/invitation'
+import { redactUser } from '/user'
 
 const { MEMBER } = KeyType
 
@@ -92,22 +92,6 @@ export class ConnectionService extends EventEmitter {
       })
     },
 
-    receiveHello: (context, message) => {
-      // log('ACTION receiveHello', context)
-
-      const helloMessage = message as HelloMessage
-      const { payload } = helloMessage
-      // store their identity claim for later reference
-      context.theirIdentityClaim = payload.identityClaim
-      // if they're presenting proof of invitation, store that also
-      if (payload.proofOfInvitation !== undefined) {
-        context.theyHaveInvitation = true
-        context.theirProofOfInvitation = payload.proofOfInvitation
-      } else {
-        context.theyHaveInvitation = false
-      }
-    },
-
     failNeitherIsMember: () => this.fail(`Can't connect; neither one of us is a member`),
 
     acceptInvitation: context => {
@@ -118,15 +102,6 @@ export class ConnectionService extends EventEmitter {
         payload: { chain },
       }
       this.sendMessage(welcomeMessage)
-    },
-
-    rejectInvitation: () => this.fail('Invalid invitation'),
-
-    joinTeam: (context, event) => {
-      const welcomeMessage = event as AcceptInvitationMessage
-      const { chain } = welcomeMessage.payload
-      this.context.team = new Team({ source: chain, context: { user: context.user } })
-      // TODO: add current device?
     },
 
     challengeIdentity: context => {
@@ -213,14 +188,24 @@ export class ConnectionService extends EventEmitter {
       context.secretKey = deriveSharedKey(userSeed, peerSeed)
     },
 
-    onConnected: context => {
+    rejectInvitation: () => this.fail('Invalid invitation'),
+
+    failTimeout: () => {
+      this.fail('Connection timed out')
+    },
+
+    onConnected: () => {
       // log('ACTION onConnected', context)
       this.emit('connected')
     },
 
+    onDisconnected: (context, event) => {
+      this.emit('disconnected', event)
+    },
+
     onError: (context, event) => {
       // log('ACTION onError', context)
-      this.emit('error', event)
+      // this.emit('error', event)
     },
   }
 
@@ -231,26 +216,22 @@ export class ConnectionService extends EventEmitter {
   }
 
   private readonly guards: Record<string, Condition> = {
-    iHaveInvitation: (context, event) => {
+    iHaveInvitation: context => {
       // log('GUARD iHaveInvitation', context)
       return context.invitationSecretKey !== undefined
     },
 
-    theyHaveInvitation: (context, event) => {
+    theyHaveInvitation: context => {
       // log('GUARD theyHaveInvitation', context)
-      const helloMessage = event as HelloMessage
-      return helloMessage.payload.proofOfInvitation !== undefined
+      return context.theirProofOfInvitation !== undefined
     },
 
-    bothHaveInvitation: (context, event, meta) => {
+    bothHaveInvitation: (...args) => {
       // log('GUARD bothHaveInvitation', context)
-      return (
-        this.guards.iHaveInvitation(context, event, meta) &&
-        this.guards.theyHaveInvitation(context, event, meta)
-      )
+      return this.guards.iHaveInvitation(...args) && this.guards.theyHaveInvitation(...args)
     },
 
-    invitationProofIsValid: (context, event) => {
+    invitationProofIsValid: context => {
       // log('GUARD invitationProofIsValid', context)
       const proofOfInvitation = context.theirProofOfInvitation!
       try {
@@ -261,8 +242,8 @@ export class ConnectionService extends EventEmitter {
       return true
     },
 
-    identityIsKnown: (context, event) => {
-      // log('GUARD identityIsKnown', context)
+    identityIsKnown: context => {
+      log('GUARD identityIsKnown', context)
       const identityClaim = context.theirIdentityClaim!
       const userName = identityClaim.name
       return context.team!.has(userName)
@@ -283,6 +264,6 @@ export class ConnectionService extends EventEmitter {
   }
 }
 
-// function log(label: string, context: ConnectionContext) {
-// console.log(`${context.user.userName}: ${label} ${Object.keys(context)}`)
-// }
+function log(label: string, context: ConnectionContext) {
+  // console.log(`${context.user.userName}: ${label} ${Object.keys(context)}`)
+}
