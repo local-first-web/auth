@@ -69,6 +69,10 @@ export type ConnectionContext = InitialContext & {
   seed?: Base64
   encryptedPeerSeed?: Base64
   secretKey?: Base64
+  error?: {
+    message: string
+    details?: any
+  }
 }
 
 export type Action = ActionFunction<ConnectionContext, ConnectionMessage>
