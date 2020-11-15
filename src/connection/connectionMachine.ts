@@ -46,7 +46,7 @@ export const connectionMachine: MachineConfig<
         {
           cond: 'bothHaveInvitation',
           actions: ['failNeitherIsMember'],
-          target: 'disconnected',
+          target: '#failure',
         },
 
         // if I have an invitation, wait for acceptance
