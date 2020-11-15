@@ -14,6 +14,7 @@ export type SendFunction = (message: ConnectionMessage) => void
 export interface ConnectionStateSchema {
   states: {
     disconnected: {}
+    initializing: {}
     awaitingInvitationAcceptance: {}
     validatingInvitationProof: {}
     authenticating: {
@@ -29,14 +30,13 @@ export interface ConnectionStateSchema {
           states: {
             challengingIdentityClaim: {}
             awaitingIdentityProof: {}
-            failure: {}
             success: {}
           }
         }
       }
     }
-    failure: {}
     connected: {}
+    failure: {}
   }
 }
 
