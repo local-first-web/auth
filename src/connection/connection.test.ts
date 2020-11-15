@@ -31,6 +31,8 @@ const alicesLaptop = redactDevice(_alicesLaptop)
 const bobsLaptop = redactDevice(_bobsLaptop)
 const charliesLaptop = redactDevice(_charliesLaptop)
 
+// used for tests of the connection's timeout - needs to be bigger than
+// the TIMEOUT_DELAY constant in connectionMachine, plus some slack
 const LONG_TIMEOUT = 10000
 
 describe('connection', () => {
@@ -91,6 +93,7 @@ describe('connection', () => {
 
       // ✅ Success! Alice has verified Bob's identity
       expect(connectionState().authenticating.verifyingIdentity).toEqual('success')
+      expectConnectionToSucceed([aliceConnection])
     })
 
     // Test the other side, using a real ConnectionService for Bob
@@ -149,10 +152,11 @@ describe('connection', () => {
 
       // ✅ Success! Bob has proved his identity
       expect(connectionState().authenticating.claimingIdentity).toEqual('success')
+      expectConnectionToSucceed([bobConnection])
     })
 
     // Create real ConnectionServices on both sides and let them work it out automatically
-    test('should automatically connect two members', async () => {
+    it('should automatically connect two members', async () => {
       const { aliceTeam, bobTeam, connect } = setup()
 
       // 👩🏾 👨‍🦲 Alice and Bob both join the channel
@@ -163,21 +167,39 @@ describe('connection', () => {
       })
       const bobConnection = connect('bob', { team: bobTeam, user: bob, device: bobsLaptop })
 
-      // Wait for them both to connect
-      await connectionEvent([bobConnection, aliceConnection], 'connected')
+      expectConnectionToSucceed([aliceConnection, bobConnection])
+    })
 
-      // ✅ They're both connected
-      expect(aliceConnection.state).toEqual('connected')
-      expect(bobConnection.state).toEqual('connected')
+    it(`shouldn't connect with a member who has been removed`, async () => {
+      const { aliceTeam, bobTeam, connect } = setup()
 
-      // ✅ They've converged on a shared secret key
-      const aliceKey = aliceConnection.context.secretKey
-      const bobKey = bobConnection.context.secretKey
-      expect(aliceKey).toEqual(bobKey)
+      // 👩🏾 Alice removes Bob
+      aliceTeam.remove('bob')
+
+      // 👩🏾 👨‍🦲 Alice and Bob both join the channel
+      const aliceContext = { team: aliceTeam, user: alice, device: alicesLaptop }
+      const aliceConnection = connect('alice', aliceContext)
+      const bobContext = { team: bobTeam, user: bob, device: bobsLaptop }
+      const bobConnection = connect('bob', bobContext)
+
+      // ❌ The connection fails
+      expectConnectionToFail([aliceConnection, bobConnection])
+    })
+
+    it(`shouldn't connect with someone who doesn't belong to the team`, async () => {
+      const { aliceTeam, connect } = setup()
+
+      const aliceContext = { team: aliceTeam, user: alice, device: alicesLaptop }
+      const aliceConnection = connect('alice', aliceContext)
+      const charlieContext = { team: aliceTeam, user: charlie, device: charliesLaptop }
+      const charlieConnection = connect('charlie', charlieContext)
+
+      // ❌ The connection fails
+      expectConnectionToFail([aliceConnection, charlieConnection])
     })
 
     it(
-      `eventually disconnects if the peer stops responding`,
+      'disconnects if the peer stops responding',
       async () => {
         const { aliceTeam: team, sendMessage } = setup()
 
@@ -204,9 +226,8 @@ describe('connection', () => {
         // ...
         // ...
 
-        // Alice waits for a little while then disconnects
-        await connectionEvent([aliceConnection], 'disconnected')
-        expect(aliceConnection.state).toEqual('disconnected')
+        // ❌ The connection fails
+        expectConnectionToFail([aliceConnection])
       },
       LONG_TIMEOUT
     )
@@ -321,7 +342,7 @@ describe('connection', () => {
     })
 
     // Create real ConnectionServices with a member on one side and an invitee on the other
-    test('should automatically connect an invitee with a member', async () => {
+    it('should automatically connect an invitee with a member', async () => {
       const { aliceTeam, connect } = setup()
 
       // Alice is a member
@@ -348,7 +369,7 @@ describe('connection', () => {
     })
 
     // Create real ConnectionServices with invitees on both sides (expected to fail)
-    test(`two invitees can't connect`, async () => {
+    it(`two invitees can't connect`, async () => {
       const { aliceTeam, connect } = setup()
 
       // 👩🏾 Alice invites 👨‍🦲 Bob
@@ -364,15 +385,28 @@ describe('connection', () => {
       const charlieCtx = { user: charlie, device: charliesLaptop, invitationSecretKey: charlieKey }
       const charlieConnection = connect('charlie', charlieCtx)
 
-      // ❌ Wait for them both to fail
-      await connectionEvent([bobConnection, charlieConnection], 'disconnected')
-
-      // ❌ They're both disconnected
-      expect(charlieConnection.state).toEqual('disconnected')
-      expect(bobConnection.state).toEqual('disconnected')
+      // ❌ The connection fails
+      expectConnectionToFail([bobConnection, charlieConnection])
     })
   })
 })
 
 const connectionEvent = (connections: ConnectionService[], event: string) =>
   Promise.all(connections.map(c => new Promise(resolve => c.on(event, () => resolve()))))
+
+const expectConnectionToSucceed = async (connections: ConnectionService[]) => {
+  await connectionEvent(connections, 'connected')
+
+  const firstKey = connections[0].context.secretKey
+  // ✅ They're both connected
+  connections.forEach(connection => {
+    expect(connection.state).toEqual('connected')
+    // ✅ They've converged on a shared secret key
+    expect(connection.context.secretKey).toEqual(firstKey)
+  })
+}
+
+const expectConnectionToFail = async (connections: ConnectionService[]) => {
+  await connectionEvent(connections, 'disconnected')
+  connections.forEach(connection => expect(connection.state).toEqual('disconnected'))
+}
