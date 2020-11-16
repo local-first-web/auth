@@ -1,9 +1,8 @@
 ﻿import { asymmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
-import { Team } from '/team'
-import { deriveSharedKey } from '/connection/deriveSharedKey'
 import { connectionMachine } from '/connection/connectionMachine'
+import { deriveSharedKey } from '/connection/deriveSharedKey'
 import {
   Action,
   Condition,
@@ -14,7 +13,7 @@ import {
 } from '/connection/types'
 import * as identity from '/identity'
 import * as invitations from '/invitation'
-import { KeyType, randomKey } from '/keyset'
+import { KeysetWithSecrets, KeyType, PublicKeyset, randomKey } from '/keyset'
 import {
   AcceptIdentityMessage,
   AcceptInvitationMessage,
@@ -24,7 +23,9 @@ import {
   HelloMessage,
   ProveIdentityMessage,
 } from '/message'
+import { Team } from '/team'
 import { redactUser } from '/user'
+import { Base64 } from '/util'
 
 const { MEMBER } = KeyType
 
@@ -139,19 +140,16 @@ export class ConnectionService extends EventEmitter {
     }),
 
     acceptIdentity: context => {
-      // encrypt the seed and send it
-      const encryptedSeed = identity.accept({
-        seed: context.seed!,
-        peerKeys: context.peer!.keys,
-        userKeys: context.user.keys,
-      })
-
-      const acceptanceMessage: AcceptIdentityMessage = {
+      this.sendMessage({
         type: 'ACCEPT_IDENTITY',
-        payload: { encryptedSeed },
-      }
-
-      this.sendMessage(acceptanceMessage)
+        payload: {
+          encryptedSeed: asymmetric.encrypt({
+            secret: context.seed!,
+            recipientPublicKey: context.peer!.keys.encryption,
+            senderSecretKey: context.user.keys.encryption.secretKey,
+          }),
+        },
+      } as AcceptIdentityMessage)
     },
 
     storeTheirEncryptedSeed: assign({
@@ -159,7 +157,7 @@ export class ConnectionService extends EventEmitter {
     }),
 
     deriveSharedKey: assign({
-      secretKey: context => {
+      sessionKey: context => {
         // we saved our seed in context
         const ourSeed = context.seed!
         // their seed is also in context but encrypted
@@ -182,7 +180,7 @@ export class ConnectionService extends EventEmitter {
   }
 
   private fail = (message: string, details?: any) => {
-    this.context.error = { message, details }
+    this.context.error = { message, details } // store error for external access
     const errorMessage: ErrorMessage = { type: 'ERROR', payload: { message, details } }
     this.deliver(errorMessage) // force error state locally
     this.sendMessage(errorMessage) // send error to peer
@@ -202,9 +200,8 @@ export class ConnectionService extends EventEmitter {
     },
 
     invitationProofIsValid: context => {
-      const proofOfInvitation = context.theirProofOfInvitation!
       try {
-        context.team!.admit(proofOfInvitation)
+        context.team!.admit(context.theirProofOfInvitation!)
       } catch (e) {
         return false
       }
