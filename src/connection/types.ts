@@ -11,35 +11,6 @@ import { Base64 } from '/util'
 
 export type SendFunction = (message: ConnectionMessage) => void
 
-export interface ConnectionStateSchema {
-  states: {
-    disconnected: {}
-    initializing: {}
-    awaitingInvitationAcceptance: {}
-    validatingInvitationProof: {}
-    authenticating: {
-      states: {
-        claimingIdentity: {
-          states: {
-            awaitingIdentityChallenge: {}
-            awaitingIdentityAcceptance: {}
-            done: {}
-          }
-        }
-        verifyingIdentity: {
-          states: {
-            challengingIdentityClaim: {}
-            awaitingIdentityProof: {}
-            done: {}
-          }
-        }
-      }
-    }
-    connected: {}
-    failure: {}
-  }
-}
-
 // Context schema
 
 export type InitialContext = {
@@ -79,3 +50,36 @@ export type Action =
   | ActionFunction<ConnectionContext, ConnectionMessage>
   | AssignAction<ConnectionContext, ConnectionMessage>
 export type Condition = ConditionPredicate<ConnectionContext, ConnectionMessage>
+
+// State schema
+
+export interface ConnectionStateSchema {
+  states: {
+    disconnected: {}
+    initializing: {}
+    awaitingInvitationAcceptance: {}
+    validatingInvitationProof: {}
+    authenticating: {
+      states: {
+        claimingIdentity: {
+          states: {
+            awaitingIdentityChallenge: {}
+            awaitingIdentityAcceptance: {}
+            done: {}
+          }
+        }
+        verifyingIdentity: {
+          states: {
+            challengingIdentityClaim: {}
+            awaitingIdentityProof: {}
+            done: {}
+          }
+        }
+      }
+    }
+    connected: {
+      states: {}
+    }
+    failure: {}
+  }
+}
