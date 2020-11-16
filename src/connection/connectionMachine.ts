@@ -191,6 +191,8 @@ export const connectionMachine: MachineConfig<
     connected: {
       entry: ['deriveSharedKey', 'onConnected'],
       on: { DISCONNECT: 'disconnected' },
+
+      states: {},
     },
 
     failure: {
