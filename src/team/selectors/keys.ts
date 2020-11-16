@@ -1,4 +1,5 @@
-﻿import { KeysetWithSecrets, KeyMetadata } from '/keyset'
+﻿import memoize from 'fast-memoize'
+import { KeyMetadata, KeysetWithSecrets } from '/keyset'
 import { open } from '/lockbox'
 import { TeamState } from '/team/types'
 import { User } from '/user'
@@ -19,8 +20,6 @@ export const keys = (
   return keys[generation]
 }
 
-// TODO: memoize this
-
 /** Returns all keysets from the current user's lockboxes in a structure that looks like this:
  * ```js
  * {
@@ -33,11 +32,13 @@ export const keys = (
  * }
  * ```
  */
-const getKeyMap = (state: TeamState, currentUser: User): KeyMap => {
-  const usersOwnKeys = currentUser.keyHistory || [currentUser.keys] // if there's no history, just use the keys we have
-  const allVisibleKeys = usersOwnKeys.flatMap(keys => getDerivedKeys(state, keys))
-  return allVisibleKeys.reduce(organizeKeysIntoMap, {})
-}
+const getKeyMap = memoize(
+  (state: TeamState, currentUser: User): KeyMap => {
+    const usersOwnKeys = currentUser.keyHistory || [currentUser.keys] // if there's no history, just use the keys we have
+    const allVisibleKeys = usersOwnKeys.flatMap(keys => getDerivedKeys(state, keys))
+    return allVisibleKeys.reduce(organizeKeysIntoMap, {})
+  }
+)
 
 const getDerivedKeys = (state: TeamState, keyset: KeysetWithSecrets): KeysetWithSecrets[] => {
   const { lockboxes } = state
