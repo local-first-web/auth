@@ -40,12 +40,10 @@ export const validate = (
   return VALID
 }
 
-const fail = (message: string, details: any) => {
-  return {
-    isValid: false,
-    error: new InvitationValidationError(message, details),
-  }
-}
+const fail = (message: string, details: any) => ({
+  isValid: false,
+  error: new InvitationValidationError(message, details),
+})
 
 const VALID = { isValid: true } as ValidationResult
 
