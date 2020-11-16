@@ -117,13 +117,13 @@ export const connectionMachine: MachineConfig<
                 ACCEPT_IDENTITY: {
                   // save the encrypted seed they provide; we'll use it to derive a shared secret
                   actions: 'storeTheirEncryptedSeed',
-                  target: 'success',
+                  target: 'done',
                 },
               },
               ...timeout,
             },
 
-            success: { type: 'final' },
+            done: { type: 'final' },
           },
         },
 
@@ -156,7 +156,7 @@ export const connectionMachine: MachineConfig<
                   {
                     cond: 'identityProofIsValid',
                     actions: ['generateSeed', 'acceptIdentity'],
-                    target: 'success',
+                    target: 'done',
                   },
 
                   // if the proof fails, disconnect with error
@@ -169,7 +169,7 @@ export const connectionMachine: MachineConfig<
               ...timeout,
             },
 
-            success: { type: 'final' },
+            done: { type: 'final' },
           },
         },
       },
