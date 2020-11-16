@@ -28,13 +28,6 @@ import { redactUser } from '/user'
 
 const { MEMBER } = KeyType
 
-// TODO: This is not robust against unexpected variations in the timing of message delivery, or in
-// the order in which messages are delivered. The solution is probably to build in a queue of
-// received messages; order them correctly (presumably using an index included in every message);
-// and only deliver them to the machine when it is ready.
-//
-// See https://github.com/davidkpiano/xstate/discussions/1627
-
 /**
  * Wraps a state machine (using [XState](https://xstate.js.org/docs/)) that
  * implements the connection protocol.  The XState configuration is in `machineConfig`.
@@ -72,6 +65,8 @@ export class Connection extends EventEmitter {
     this.machine.send(incomingMessage)
   }
 
+  ////////// ACTIONS
+
   /** Dictionary of actions referenced in `connectionMachine` */
   private readonly actions: Record<string, Action> = {
     sendHello: context => {
@@ -83,10 +78,7 @@ export class Connection extends EventEmitter {
           // if we're not a member yet, attach our proof of invitation
           proofOfInvitation:
             context.invitationSecretKey !== undefined
-              ? invitations.acceptMemberInvitation(
-                  context.invitationSecretKey,
-                  redactUser(context.user)
-                )
+              ? this.myProofOfInvitation(context)
               : undefined,
         },
       })
@@ -107,11 +99,7 @@ export class Connection extends EventEmitter {
     },
 
     joinTeam: assign({
-      team: (context, event) =>
-        new Team({
-          source: (event as AcceptInvitationMessage).payload.chain,
-          context: { user: context.user },
-        }),
+      team: (context, event) => this.rehydrateTeam(context, event),
     }),
 
     challengeIdentity: context => {
@@ -169,10 +157,15 @@ export class Connection extends EventEmitter {
       },
     }),
 
-    rejectIdentity: () => this.fail('Unable to confirm identity'),
-    failNeitherIsMember: () => this.fail(`Can't connect; neither one of us is a member`),
-    rejectInvitation: () => this.fail('Invalid invitation'),
+    // failure modes
+
+    rejectIdentity: () => this.fail(`I couldn't verify your identity`),
+    failNeitherIsMember: () => this.fail(`We can't connect because neither one of us is a member`),
+    rejectInvitation: () => this.fail('Your invitation is invalid'),
+    rejectTeam: () => this.fail(`This is not the team I was invited to`),
     failTimeout: () => this.fail('Connection timed out'),
+
+    // events for external listeners
 
     onConnected: () => this.emit('connected'),
     onDisconnected: (_, event) => this.emit('disconnected', event),
@@ -184,6 +177,21 @@ export class Connection extends EventEmitter {
     this.deliver(errorMessage) // force error state locally
     this.sendMessage(errorMessage) // send error to peer
   }
+
+  private rehydrateTeam = (context: ConnectionContext, event: ConnectionMessage) =>
+    new Team({
+      source: (event as AcceptInvitationMessage).payload.chain,
+      context: { user: context.user },
+    })
+
+  private myProofOfInvitation = (context: ConnectionContext) => {
+    return invitations.acceptMemberInvitation(
+      context.invitationSecretKey!,
+      redactUser(context.user)
+    )
+  }
+
+  ////////// GUARDS
 
   private readonly guards: Record<string, Condition> = {
     iHaveInvitation: context => {
@@ -205,6 +213,13 @@ export class Connection extends EventEmitter {
         return false
       }
       return true
+    },
+
+    joinedTheRightTeam: (context, event) => {
+      // Make sure my invitation exists on the signature chain of the team I'm about to join.
+      // This check prevents an attack in which a fake team pretends to accept my invitation.
+      const team = this.rehydrateTeam(context, event)
+      return team.hasInvitation(this.myProofOfInvitation(context))
     },
 
     identityIsKnown: context => {

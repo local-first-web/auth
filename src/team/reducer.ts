@@ -15,6 +15,7 @@ import {
   removeRole,
   revokeInvitation,
   setTeamName,
+  useInvitation,
 } from '/team/reducers'
 import { TeamAction, TeamLink, TeamState } from '/team/types'
 import { validate } from '/team/validate'
@@ -124,7 +125,7 @@ const getTransforms = (action: TeamAction): Reducer[] => {
     }
 
     case 'REVOKE_INVITATION': {
-      // When an invitation is revoked, we remove it from the list of open invitations.
+      // We mark an invitation revoked so it can't be used
       const { id } = action.payload
       return [
         revokeInvitation(id), //
@@ -137,7 +138,7 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       return [
         addMember(member), // Add member
         ...addMemberRoles(member.userName, roles), // Add member to roles
-        revokeInvitation(id), // Remove invitation from open invitations
+        useInvitation(id), // Mark invitation as used so it can't be used a second time
       ]
     }
 
@@ -146,7 +147,7 @@ const getTransforms = (action: TeamAction): Reducer[] => {
 
       return [
         addDevice(device), // Add device
-        revokeInvitation(id), // Remove invitation from open invitations
+        useInvitation(id), // Mark invitation as used so it can't be used a second time
       ]
     }
 

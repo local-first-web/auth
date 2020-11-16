@@ -17,6 +17,12 @@ export interface Invitation {
 
   /** Generation # of the team keyset */
   generation: number
+
+  /** If true, this invitation has already been used to admin a member or device */
+  used: Boolean
+
+  /** If true, this invitation was revoked at some point after it was created (but before it was used) */
+  revoked: Boolean
 }
 
 export interface MemberInvitationPayload {

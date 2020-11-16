@@ -2,6 +2,8 @@ import { asymmetric } from '@herbcaudill/crypto'
 import { Connection } from '/connection'
 import { redactDevice } from '/device'
 import * as identity from '/identity'
+import * as teams from '/team'
+import * as users from '/user'
 import { acceptMemberInvitation } from '/invitation'
 import { KeyType, randomKey, redactKeys } from '/keyset'
 import {
@@ -42,27 +44,27 @@ describe('connection', () => {
     storage.contents = undefined
   })
 
-  const setup = () => {
-    // Create a new team and add Bob to it
-    const aliceTeam = newTeam()
-    aliceTeam.add(bob)
-
-    storage.save(aliceTeam)
-    const bobTeam = storage.load(bobsContext)
-
-    // Our dummy `sendMessage` just pushes messages onto a queue
-    const messageQueue: ConnectionMessage[] = []
-    const sendMessage = (message: ConnectionMessage) => messageQueue.push(message)
-    const lastMessage = () => messageQueue[messageQueue.length - 1]
-
-    const channel = new TestChannel()
-    const connect = joinTestChannel(channel)
-
-    return { aliceTeam, bobTeam, sendMessage, lastMessage, connect }
-  }
-
   describe('between members', () => {
-    // Test one side of the verification workflow, using a real ConnectionService for Alice
+    const setup = () => {
+      // Create a new team and add Bob to it
+      const aliceTeam = newTeam()
+      aliceTeam.add(bob)
+
+      storage.save(aliceTeam)
+      const bobTeam = storage.load(bobsContext)
+
+      // Our dummy `sendMessage` just pushes messages onto a queue
+      const messageQueue: ConnectionMessage[] = []
+      const sendMessage = (message: ConnectionMessage) => messageQueue.push(message)
+      const lastMessage = () => messageQueue[messageQueue.length - 1]
+
+      const channel = new TestChannel()
+      const connect = joinTestChannel(channel)
+
+      return { aliceTeam, bobTeam, sendMessage, lastMessage, connect }
+    }
+
+    // Test one side of the verification workflow, using a real connection for Alice
     //  and manually simulating Bob's messages.
     it(`should successfully verify the other peer's identity`, async () => {
       const { aliceTeam: team, sendMessage, lastMessage } = setup()
@@ -96,7 +98,7 @@ describe('connection', () => {
       expect(aliceState().authenticating.verifyingIdentity).toEqual('done')
     })
 
-    // Test the other side, using a real ConnectionService for Bob
+    // Test the other side, using a real connection for Bob
     //  and manually simulating Alice's messages.
     it(`should successfully prove our identity to the other peer`, async () => {
       const { bobTeam, sendMessage, lastMessage } = setup()
@@ -156,7 +158,7 @@ describe('connection', () => {
       expect(bobState().authenticating.claimingIdentity).toEqual('done')
     })
 
-    // Create real ConnectionServices on both sides and let them work it out automatically
+    // Create real Connections on both sides and let them work it out automatically
     it('should automatically connect two members', async () => {
       const { aliceTeam, bobTeam, connect } = setup()
 
@@ -235,8 +237,25 @@ describe('connection', () => {
   })
 
   describe('with invitation', () => {
+    const setup = () => {
+      // Create a new team
+      const aliceTeam = newTeam()
+
+      storage.save(aliceTeam)
+
+      // Our dummy `sendMessage` just pushes messages onto a queue
+      const messageQueue: ConnectionMessage[] = []
+      const sendMessage = (message: ConnectionMessage) => messageQueue.push(message)
+      const lastMessage = () => messageQueue[messageQueue.length - 1]
+
+      const channel = new TestChannel()
+      const connect = joinTestChannel(channel)
+
+      return { aliceTeam, sendMessage, lastMessage, connect }
+    }
+
     // Test one side of the verification workflow with Bob presenting an invitation, using a real
-    // ConnectionService for Alice and manually simulating Bob's messages.
+    // connection for Alice and manually simulating Bob's messages.
     it(`should successfully verify the other peer's invitation`, async () => {
       const { aliceTeam: team, sendMessage, lastMessage } = setup()
 
@@ -274,7 +293,7 @@ describe('connection', () => {
       expect(aliceState().authenticating.verifyingIdentity).toEqual('done')
     })
 
-    // Test the other side with Bob presenting an invitation, using a real ConnectionService for Bob
+    // Test the other side with Bob presenting an invitation, using a real connection for Bob
     //  and manually simulating Alice's messages.
     it(`should successfully present an invitation to the other peer`, async () => {
       const { aliceTeam: team, sendMessage, lastMessage } = setup()
@@ -302,10 +321,9 @@ describe('connection', () => {
       const { proofOfInvitation } = helloMessage.payload
       team.admit(proofOfInvitation!)
 
-      const chain = team.save()
       const welcomeMessage: AcceptInvitationMessage = {
         type: 'ACCEPT_INVITATION',
-        payload: { chain },
+        payload: { chain: team.save() },
       }
       bobConnection.deliver(welcomeMessage)
 
@@ -318,6 +336,7 @@ describe('connection', () => {
       }
       bobConnection.deliver(challengeMessage)
 
+      console.log({ state: bobState(), error: bobConnection.context.error })
       // 👨‍🦲 Bob automatically responds to the challenge with proof, and awaits acceptance
       expect(bobState().authenticating.claimingIdentity).toEqual('awaitingIdentityAcceptance')
 
@@ -347,7 +366,7 @@ describe('connection', () => {
       expect(bobState().authenticating.claimingIdentity).toEqual('done')
     })
 
-    // Create real ConnectionServices with a member on one side and an invitee on the other
+    // Create real connections with a member on one side and an invitee on the other
     it('should automatically connect an invitee with a member', async () => {
       const { aliceTeam, connect } = setup()
 
@@ -391,7 +410,50 @@ describe('connection', () => {
       const charlieConnection = connect('charlie', charlieCtx)
 
       // ❌ The connection fails
-      await expectConnectionToFail([bobConnection, charlieConnection], `Can't connect`)
+      await expectConnectionToFail([bobConnection, charlieConnection], `neither one`)
+    })
+
+    // In which Eve tries to get Bob to join her team instead of Alice's
+    it(`isn't fooled into joining the wrong team`, async () => {
+      const { aliceTeam, sendMessage, lastMessage } = setup()
+
+      // 👩🏾 Alice invites 👨‍🦲 Bob
+      const { secretKey: invitationSecretKey } = aliceTeam.invite('bob')
+
+      // 🦹‍♀️ Eve is going to impersonate Alice to try to get Bob to join her team instead
+      const fakeAlice = users.create('alice')
+      const eveContext = { user: fakeAlice, device: alicesLaptop }
+      const eveTeam = teams.create('Spies Я Us', eveContext)
+
+      // 🦹‍♀️ Eve creates an bogus invitation for Bob
+      eveTeam.invite('bob')
+
+      // 👨‍🦲 Bob connects
+      const bobContext = { user: bob, device: bobsLaptop, invitationSecretKey }
+      const bobConnection = new Connection({ sendMessage, context: bobContext }).start()
+
+      const bobState = () => bobConnection.state as any
+
+      // 🦹‍♀️ Eve sends a hello message pretending to be Alice
+      bobConnection.deliver({
+        type: 'HELLO',
+        payload: { identityClaim: { type: KeyType.MEMBER, name: 'alice' } },
+      })
+
+      // 👨‍🦲 Bob is waiting for "Alice" (Eve) to accept his invitation
+      expect(bobState()).toEqual('awaitingInvitationAcceptance')
+
+      // 🦹‍♀️ Eve pretends to validate Bob's invitation
+      const chain = eveTeam.save()
+      const welcomeMessage: AcceptInvitationMessage = {
+        type: 'ACCEPT_INVITATION',
+        payload: { chain },
+      }
+
+      // 👨‍🦲 Bob won't see his invitation in Eve's team's sigchain, so he'll bail when he receives the welcome message
+      expectConnectionToFail([bobConnection], 'not the team I was invited to')
+
+      bobConnection.deliver(welcomeMessage)
     })
   })
 })

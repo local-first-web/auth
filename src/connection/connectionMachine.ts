@@ -61,10 +61,20 @@ export const connectionMachine: MachineConfig<
     awaitingInvitationAcceptance: {
       // wait for them to validate the invitation we've shown
       on: {
-        ACCEPT_INVITATION: {
-          actions: 'joinTeam',
-          target: 'authenticating',
-        },
+        ACCEPT_INVITATION: [
+          // make sure the team I'm joining is actually the one that invited me
+          {
+            cond: 'joinedTheRightTeam',
+            actions: 'joinTeam',
+            target: 'authenticating',
+          },
+
+          // if it's not, disconnect with error
+          {
+            actions: 'rejectTeam',
+            target: '#failure',
+          },
+        ],
       },
       ...timeout,
     },
@@ -152,7 +162,7 @@ export const connectionMachine: MachineConfig<
             awaitingIdentityProof: {
               on: {
                 PROVE_IDENTITY: [
-                  // if the proof succeeds, we're done on this side
+                  // if the proof succeeds, we're done on our side
                   {
                     cond: 'identityProofIsValid',
                     actions: ['generateSeed', 'acceptIdentity'],

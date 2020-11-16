@@ -1,14 +1,14 @@
 ﻿import { Reducer } from '/team/reducers/index'
 
-export const revokeInvitation = (id: string): Reducer => state => {
+export const useInvitation = (id: string): Reducer => state => {
   const invitations = { ...state.invitations }
-  const revokedInvitation = { ...invitations[id], revoked: true }
+  const usedInvitation = { ...invitations[id], used: true }
 
   return {
     ...state,
     invitations: {
       ...invitations,
-      [id]: revokedInvitation,
+      [id]: usedInvitation,
     },
   }
 }

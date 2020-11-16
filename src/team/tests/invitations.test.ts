@@ -126,7 +126,7 @@ describe('Team', () => {
       const tryToAdmitCharlie = () => bobsTeam.admit(proofOfInvitation)
 
       // But the invitation is rejected
-      expect(tryToAdmitCharlie).toThrowError(/No invitation/)
+      expect(tryToAdmitCharlie).toThrowError(/revoked/)
 
       // 👳‍♂️ Charlie is not on the team
       expect(bobsTeam.has('charlie')).toBe(false)
