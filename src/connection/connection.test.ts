@@ -1,3 +1,4 @@
+import { asymmetric } from '@herbcaudill/crypto'
 import { ConnectionService } from '/connection'
 import { redactDevice } from '/device'
 import * as identity from '/identity'
@@ -92,7 +93,7 @@ describe('connection', () => {
       aliceConnection.deliver(proofMessage)
 
       // ✅ Success! Alice has verified Bob's identity
-      expect(aliceState().authenticating.verifyingIdentity).toEqual('success')
+      expect(aliceState().authenticating.verifyingIdentity).toEqual('done')
     })
 
     // Test the other side, using a real ConnectionService for Bob
@@ -139,8 +140,12 @@ describe('connection', () => {
 
       // 👩🏾 Alice generates a acceptance message and sends it to Bob
       const seed = randomKey()
-      const userKeys = alice.keys
-      const encryptedSeed = identity.accept({ seed, peerKeys, userKeys })
+      const encryptedSeed = asymmetric.encrypt({
+        secret: seed,
+        recipientPublicKey: peerKeys.encryption,
+        senderSecretKey: alice.keys.encryption.secretKey,
+      })
+
       const acceptanceMessage: AcceptIdentityMessage = {
         type: 'ACCEPT_IDENTITY',
         payload: { encryptedSeed },
@@ -148,7 +153,7 @@ describe('connection', () => {
       bobConnection.deliver(acceptanceMessage)
 
       // ✅ Success! Bob has proved his identity
-      expect(bobState().authenticating.claimingIdentity).toEqual('success')
+      expect(bobState().authenticating.claimingIdentity).toEqual('done')
     })
 
     // Create real ConnectionServices on both sides and let them work it out automatically
@@ -266,7 +271,7 @@ describe('connection', () => {
       aliceConnection.deliver(proofMessage)
 
       // ✅ Success! Alice has verified Bob's identity
-      expect(aliceState().authenticating.verifyingIdentity).toEqual('success')
+      expect(aliceState().authenticating.verifyingIdentity).toEqual('done')
     })
 
     // Test the other side with Bob presenting an invitation, using a real ConnectionService for Bob
@@ -326,7 +331,12 @@ describe('connection', () => {
       // 👩🏾 Alice generates a acceptance message and sends it to Bob
       const seed = randomKey()
       const userKeys = alice.keys
-      const encryptedSeed = identity.accept({ seed, peerKeys, userKeys })
+      const encryptedSeed = asymmetric.encrypt({
+        secret: seed,
+        recipientPublicKey: peerKeys.encryption,
+        senderSecretKey: userKeys.encryption.secretKey,
+      })
+
       const acceptanceMessage: AcceptIdentityMessage = {
         type: 'ACCEPT_IDENTITY',
         payload: { encryptedSeed },
@@ -334,7 +344,7 @@ describe('connection', () => {
       bobConnection.deliver(acceptanceMessage)
 
       // ✅ Success! Bob has proved his identity
-      expect(bobState().authenticating.claimingIdentity).toEqual('success')
+      expect(bobState().authenticating.claimingIdentity).toEqual('done')
     })
 
     // Create real ConnectionServices with a member on one side and an invitee on the other
@@ -359,8 +369,8 @@ describe('connection', () => {
       expect(bobConnection.state).toEqual('connected')
 
       // ✅ They've converged on a shared secret key
-      const aliceKey = aliceConnection.context.secretKey
-      const bobKey = bobConnection.context.secretKey
+      const aliceKey = aliceConnection.context.sessionKey
+      const bobKey = bobConnection.context.sessionKey
       expect(aliceKey).toEqual(bobKey)
     })
 
@@ -390,21 +400,23 @@ const connectionEvent = (connections: ConnectionService[], event: string) =>
   Promise.all(connections.map(c => new Promise(resolve => c.on(event, () => resolve()))))
 
 const expectConnectionToSucceed = async (connections: ConnectionService[]) => {
+  // ✅ They're both connected
   await connectionEvent(connections, 'connected')
 
-  const firstKey = connections[0].context.secretKey
-  // ✅ They're both connected
+  const firstKey = connections[0].context.sessionKey
   connections.forEach(connection => {
     expect(connection.state).toEqual('connected')
     // ✅ They've converged on a shared secret key
-    expect(connection.context.secretKey).toEqual(firstKey)
+    expect(connection.context.sessionKey).toEqual(firstKey)
   })
 }
 
 const expectConnectionToFail = async (connections: ConnectionService[], message?: string) => {
+  // ✅ They're both disconnected
   await connectionEvent(connections, 'disconnected')
   connections.forEach(connection => {
     expect(connection.state).toEqual('disconnected')
+    // ✅ If we're checking for a message, it matches
     if (message !== undefined) expect(connection.context.error!.message).toContain(message)
   })
 }
