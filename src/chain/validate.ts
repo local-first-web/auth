@@ -2,7 +2,7 @@
 import { ChainLink, LinkBody } from './types'
 import { SignatureChain, ValidatorSet } from '/chain'
 import { validators } from '/chain/validators'
-import { InvalidResult, ValidationResult } from '/util'
+import { InvalidResult, VALID, ValidationResult } from '/util'
 
 /**
  * Runs a signature chain through a series of validators to ensure that it is correctly formed, has
