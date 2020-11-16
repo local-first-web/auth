@@ -2,7 +2,7 @@
 import { signatures } from '@herbcaudill/crypto'
 import { Invitation, ProofOfInvitation } from '/invitation/types'
 import { KeysetWithSecrets } from '/keyset'
-import { ValidationResult } from '/util'
+import { VALID, ValidationResult } from '/util'
 
 export const validate = (
   proof: ProofOfInvitation,
@@ -44,8 +44,6 @@ const fail = (message: string, details: any) => ({
   isValid: false,
   error: new InvitationValidationError(message, details),
 })
-
-const VALID = { isValid: true } as ValidationResult
 
 export class InvitationValidationError extends Error {
   constructor(message: string, details?: any) {
