@@ -1,5 +1,5 @@
 import { asymmetric } from '@herbcaudill/crypto'
-import { ConnectionService } from '/connection'
+import { Connection } from '/connection'
 import { redactDevice } from '/device'
 import * as identity from '/identity'
 import { acceptMemberInvitation } from '/invitation'
@@ -69,7 +69,7 @@ describe('connection', () => {
 
       const aliceContext = { team, user: alice, device: alicesLaptop }
       // 👩🏾 Alice connects
-      const aliceConnection = new ConnectionService({ sendMessage, context: aliceContext }).start()
+      const aliceConnection = new Connection({ sendMessage, context: aliceContext }).start()
       const aliceState = () => aliceConnection.state as any
 
       // 👨‍🦲 Bob sends a hello message
@@ -103,7 +103,7 @@ describe('connection', () => {
 
       // 👨‍🦲 Bob connects
       const bobContext = { team: bobTeam, user: bob, device: bobsLaptop }
-      const bobConnection = new ConnectionService({ sendMessage, context: bobContext }).start()
+      const bobConnection = new Connection({ sendMessage, context: bobContext }).start()
 
       const bobState = () => bobConnection.state as any
 
@@ -206,7 +206,7 @@ describe('connection', () => {
 
         const aliceContext = { team, user: alice, device: alicesLaptop }
         // 👩🏾 Alice connects
-        const aliceConnection = new ConnectionService({
+        const aliceConnection = new Connection({
           sendMessage,
           context: aliceContext,
         }).start()
@@ -246,7 +246,7 @@ describe('connection', () => {
       const { secretKey: invitationSecretKey } = team.invite('bob')
 
       // 👩🏾 Alice connects
-      const aliceConnection = new ConnectionService({ sendMessage, context: aliceContext }).start()
+      const aliceConnection = new Connection({ sendMessage, context: aliceContext }).start()
       const aliceState = () => aliceConnection.state as any
 
       // 👨‍🦲 Bob sends a hello message
@@ -284,7 +284,7 @@ describe('connection', () => {
 
       // 👨‍🦲 Bob connects
       const bobContext = { user: bob, device: bobsLaptop, invitationSecretKey }
-      const bobConnection = new ConnectionService({ sendMessage, context: bobContext }).start()
+      const bobConnection = new Connection({ sendMessage, context: bobContext }).start()
 
       const bobState = () => bobConnection.state as any
       const helloMessage = lastMessage() as HelloMessage
@@ -396,10 +396,10 @@ describe('connection', () => {
   })
 })
 
-const connectionEvent = (connections: ConnectionService[], event: string) =>
+const connectionEvent = (connections: Connection[], event: string) =>
   Promise.all(connections.map(c => new Promise(resolve => c.on(event, () => resolve()))))
 
-const expectConnectionToSucceed = async (connections: ConnectionService[]) => {
+const expectConnectionToSucceed = async (connections: Connection[]) => {
   // ✅ They're both connected
   await connectionEvent(connections, 'connected')
 
@@ -411,7 +411,7 @@ const expectConnectionToSucceed = async (connections: ConnectionService[]) => {
   })
 }
 
-const expectConnectionToFail = async (connections: ConnectionService[], message?: string) => {
+const expectConnectionToFail = async (connections: Connection[], message?: string) => {
   // ✅ They're both disconnected
   await connectionEvent(connections, 'disconnected')
   connections.forEach(connection => {

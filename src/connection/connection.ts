@@ -39,7 +39,7 @@ const { MEMBER } = KeyType
  * Wraps a state machine (using [XState](https://xstate.js.org/docs/)) that
  * implements the connection protocol.  The XState configuration is in `machineConfig`.
  */
-export class ConnectionService extends EventEmitter {
+export class Connection extends EventEmitter {
   private sendMessage: SendFunction
 
   public machine: Interpreter<ConnectionContext, ConnectionStateSchema, ConnectionMessage>

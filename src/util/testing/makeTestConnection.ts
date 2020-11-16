@@ -1,5 +1,5 @@
 import { TestChannel } from './TestChannel'
-import { ConnectionContext, ConnectionService } from '/connection'
+import { ConnectionContext, Connection } from '/connection'
 import { pause } from '/connection/pause'
 import { ConnectionMessage } from '/message'
 
@@ -11,7 +11,7 @@ export const joinTestChannel = (channel: TestChannel) => (
   const sendMessage = (msg: ConnectionMessage) => channel.write(id, msg)
 
   // Instantiate the connection service
-  const connection = new ConnectionService({ sendMessage, context }).start()
+  const connection = new Connection({ sendMessage, context }).start()
 
   // hook up receive
   channel.addListener('data', async (senderId, msg) => {
