@@ -45,7 +45,7 @@ second parameter.
 const ephemeralKeys = keyset.create({ type: EPHEMERAL }, seed)
 ```
 
-### `keyset.redact(secretKeyset)`
+### `keyset.redactKeys(secretKeyset)`
 
 There are two kinds of keysets:
 
@@ -54,10 +54,10 @@ There are two kinds of keysets:
 - **`PublicKeyset`** only includes the public keys  
   (for example, other users' keys, or keys for roles we don't belong to)
 
-The `redact` function takes a `KeysetWithSecrets`, and returns a `PublicKeyset`.
+The `redactKeys` function takes a `KeysetWithSecrets`, and returns a `PublicKeyset`.
 
 ```js
-const adminPublicKeys = keyset.redact(adminKeys)
+const adminPublicKeys = keyset.redactKeys(adminKeys)
 
 {
   // the metadata is unchanged
