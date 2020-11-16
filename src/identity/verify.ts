@@ -1,7 +1,7 @@
 ﻿import { Base64, signatures } from '@herbcaudill/crypto'
 import { PublicKeyset } from '/keyset'
 import { Challenge } from '/identity'
-import { ValidationResult } from '/util'
+import { VALID, ValidationResult } from '/util'
 
 export const verify = (
   challenge: Challenge,
@@ -26,8 +26,6 @@ const fail = (message: string, details: any) => {
     error: new IdentityChallengeFailure(message, details),
   } as ValidationResult
 }
-
-const VALID = { isValid: true } as ValidationResult
 
 export class IdentityChallengeFailure extends Error {
   constructor(message: string, details?: any) {
