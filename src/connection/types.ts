@@ -23,14 +23,14 @@ export interface ConnectionStateSchema {
           states: {
             awaitingIdentityChallenge: {}
             awaitingIdentityAcceptance: {}
-            success: {}
+            done: {}
           }
         }
         verifyingIdentity: {
           states: {
             challengingIdentityClaim: {}
             awaitingIdentityProof: {}
-            success: {}
+            done: {}
           }
         }
       }
@@ -68,7 +68,7 @@ export type ConnectionContext = InitialContext & {
   peer?: Member
   seed?: Base64
   theirEncryptedSeed?: Base64
-  secretKey?: Base64
+  sessionKey?: Base64
   error?: {
     message: string
     details?: any
