@@ -4,8 +4,6 @@ import { SignatureChain, ValidatorSet } from '/chain'
 import { validators } from '/chain/validators'
 import { InvalidResult, ValidationResult } from '/util'
 
-const VALID = { isValid: true } as ValidationResult
-
 /**
  * Runs a signature chain through a series of validators to ensure that it is correctly formed, has
  * not been tampered with, etc.
