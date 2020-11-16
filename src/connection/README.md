@@ -20,5 +20,5 @@
 | PROVE           | PROVE       |
 | VERIFY          | VERIFY      |
 
-Q: How does Bob know he's talking to a team member?  
-A: He validates his own invitation after getting in
+Q : How does Bob know he's talking to a team member?  
+A : He validates his own invitation after getting in
