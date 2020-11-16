@@ -13,7 +13,7 @@ import {
 } from '/connection/types'
 import * as identity from '/identity'
 import * as invitations from '/invitation'
-import { KeysetWithSecrets, KeyType, PublicKeyset, randomKey } from '/keyset'
+import { KeyType, randomKey } from '/keyset'
 import {
   AcceptIdentityMessage,
   AcceptInvitationMessage,
@@ -25,7 +25,6 @@ import {
 } from '/message'
 import { Team } from '/team'
 import { redactUser } from '/user'
-import { Base64 } from '/util'
 
 const { MEMBER } = KeyType
 
