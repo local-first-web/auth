@@ -8,8 +8,6 @@ import { Member } from '/member'
 
 const { DEVICE, MEMBER } = KeyType
 
-// TODO rename redact as redactUser etc.
-
 export const acceptMemberInvitation = (secretKey: string, member: Member): ProofOfInvitation => {
   // don't leak secrets to the signature chain
 
