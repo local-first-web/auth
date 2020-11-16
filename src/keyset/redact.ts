@@ -11,7 +11,7 @@
  * The `redact` function takes a `KeysetWithSecrets`, and returns a `PublicKeyset`.
  *
  * ```js
- * const adminPublicKeys = keyset.redact(adminKeys)
+ * const adminPublicKeys = keyset.redactKeys(adminKeys)
  *
  * {
  *   // the metadata is unchanged
