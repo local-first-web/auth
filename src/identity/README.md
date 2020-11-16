@@ -70,7 +70,7 @@ Here's a complete example from the test suite, showing how Eve cannot reuse an i
 
 ```js
 const bobSecretKeys = bob.keys
-const bobPublicKeys = keyset.redact(bob.keys)
+const bobPublicKeys = keyset.redactKeys(bob.keys)
 
 // 👨‍🦲 Bob shows up and says he's Bob
 const bobsClaim = claim({ type: MEMBER, name: 'bob' })
