@@ -1,4 +1,4 @@
-import { LinkBody, ROOT, RootLink, SignatureChain, SignedLink } from '/chain'
+import { ChainLink, LinkBody, LinkMap, ROOT, RootLink, SignatureChain, SignedLink } from '/chain'
 import { LocalUserContext, MemberContext } from '/context'
 import { Invitation } from '/invitation/types'
 import { KeyMetadata } from '/keyset'
@@ -144,7 +144,8 @@ export type TeamAction =
     }
 
 export type TeamLinkBody = LinkBody & TeamAction
-export type TeamLink = SignedLink<TeamLinkBody>
+export type TeamLink = ChainLink<TeamLinkBody>
+export type TeamLinkMap = LinkMap<TeamLinkBody>
 
 // VALIDATION
 
