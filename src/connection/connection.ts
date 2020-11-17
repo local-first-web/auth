@@ -19,10 +19,11 @@ import {
   AcceptInvitationMessage,
   ChallengeIdentityMessage,
   ConnectionMessage,
+  DisconnectMessage,
   ErrorMessage,
   HelloMessage,
   ProveIdentityMessage,
-} from '/message'
+} from '/connection/message'
 import { Team } from '/team'
 import { redactUser } from '/user'
 
@@ -56,6 +57,12 @@ export class Connection extends EventEmitter {
     return this
   }
 
+  public stop = () => {
+    const disconnectMessage = { type: 'DISCONNECT' } as DisconnectMessage
+    this.deliver(disconnectMessage) // send disconnect event to local machine
+    this.sendMessage(disconnectMessage) // send disconnect message to peer
+  }
+
   get state() {
     return this.machine.state.value
   }
@@ -65,7 +72,7 @@ export class Connection extends EventEmitter {
     this.machine.send(incomingMessage)
   }
 
-  ////////// ACTIONS
+  // ACTIONS
 
   /** Dictionary of actions referenced in `connectionMachine` */
   private readonly actions: Record<string, Action> = {
@@ -157,6 +164,17 @@ export class Connection extends EventEmitter {
       },
     }),
 
+    sendUpdate: (context, event) => this.sendMessage({
+      type: 'UPDATE',
+      payload: {
+        head: context.team!.
+      }
+    }),
+
+    sendMissingLinks: (context, event) => {},
+    
+    receiveMissingLinks: (context, event) => { },
+
     // failure modes
 
     rejectIdentity: () => this.fail(`I couldn't verify your identity`),
@@ -191,7 +209,7 @@ export class Connection extends EventEmitter {
     )
   }
 
-  ////////// GUARDS
+  // GUARDS
 
   private readonly guards: Record<string, Condition> = {
     iHaveInvitation: context => {
@@ -210,6 +228,7 @@ export class Connection extends EventEmitter {
       try {
         context.team!.admit(context.theirProofOfInvitation!)
       } catch (e) {
+        if (e instanceof Error) context.error = { message: e.message }
         return false
       }
       return true
@@ -238,6 +257,10 @@ export class Connection extends EventEmitter {
       const publicKeys = team!.members(userName).keys
       const validation = identity.verify(challenge, proof, publicKeys)
       return validation.isValid
+    },
+
+    headsAreEqual: (context, event) => {
+      return true
     },
   }
 }
