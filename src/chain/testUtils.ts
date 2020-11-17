@@ -17,10 +17,10 @@ export const findByPayload = (chain: SignatureChain<any>, payload: any) => {
  * Returns a chain with these links and branches (`*` = merge link):
  *
  *```
- *                   ┌─→ e ─→ o ─┐
- *a ─→ b ─┬─→ c ─→ d ┴─→ f ───── * ── * ─→ l ── * ─→ n
+ *                   ┌─→ e ─→ g ─┐
+ *a ─→ b ─┬─→ c ─→ d ┴─→ f ───── * ── * ─→ o ── * ─→ n
  *        ├─→ h ─→ i ─────────────────┘         │
- *        └─→ j ─→ p ─→ q ──────────────────────┘
+ *        └─→ j ─→ k ─→ l ──────────────────────┘
  *```
  */
 export const buildChain = () => {
@@ -43,24 +43,24 @@ export const buildChain = () => {
   var d2 = clone(b1)
 
   d1 = appendLink(d1, 'e')
-  d1 = appendLink(d1, 'o')
+  d1 = appendLink(d1, 'g')
 
   d2 = appendLink(d2, 'f')
 
-  b1 = merge(d1, d2) // *fo
+  b1 = merge(d1, d2) // *fg
 
   b2 = appendLink(b2, 'h')
   b2 = appendLink(b2, 'i')
 
-  b1 = merge(b1, b2) // *ix
+  b1 = merge(b1, b2) // *i(fg)
 
-  b1 = appendLink(b1, 'l')
+  b1 = appendLink(b1, 'o')
 
   b3 = appendLink(b3, 'j')
-  b3 = appendLink(b3, 'p')
-  b3 = appendLink(b3, 'q')
+  b3 = appendLink(b3, 'k')
+  b3 = appendLink(b3, 'l')
 
-  a = merge(b1, b3) // *lq
+  a = merge(b1, b3) // *ol
 
   a = appendLink(a, 'n')
 

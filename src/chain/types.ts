@@ -78,7 +78,15 @@ export interface SignatureChain<T extends LinkBody> {
 
 // type guards
 
-export const isMergeLink = (o: ChainLink<any>): o is MergeLink => 'type' in o && o.type === MERGE
+export const isMergeLink = (o: ChainLink<any>): o is MergeLink => {
+  return o && 'type' in o && o.type === MERGE
+}
 
-export const isRootLink = (o: ChainLink<any>): o is RootLink =>
-  !isMergeLink(o) && o.body.prev === null
+export const isRootLink = (o: ChainLink<any>): o is RootLink => {
+  return !isMergeLink(o) && o.body.prev === null
+}
+
+/// A resolver takes two sequences, and returns a single sequence combining the two
+/// while applying any necessary business logic regarding which links take precedence, which
+/// will be discarded, etc.
+export type Resolver = <T extends LinkBody>(a: ChainLink<T>[], b: ChainLink<T>[]) => ChainLink<T>[]
