@@ -402,6 +402,7 @@ export class Team extends EventEmitter {
 
       for (const hash in this.chain.links) {
       }
+      return {}
     }
   }
 
