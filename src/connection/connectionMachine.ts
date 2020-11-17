@@ -184,7 +184,7 @@ export const connectionMachine: MachineConfig<
       },
 
       // Once BOTH processes complete, we are connected
-      onDone: 'updating',
+      onDone: 'connected',
     },
 
     // having established each others' identities, we now make sure that our team signature chains are up to date
