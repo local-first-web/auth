@@ -164,16 +164,18 @@ export class Connection extends EventEmitter {
       },
     }),
 
-    sendUpdate: (context, event) => this.sendMessage({
-      type: 'UPDATE',
-      payload: {
-        head: context.team!.
-      }
-    }),
+    sendUpdate: (context, event) =>
+      this.sendMessage({
+        type: 'UPDATE',
+        payload: {
+          head: context.team!.head(),
+          filter: context.team!.filter(),
+        },
+      }),
 
     sendMissingLinks: (context, event) => {},
-    
-    receiveMissingLinks: (context, event) => { },
+
+    receiveMissingLinks: (context, event) => {},
 
     // failure modes
 
