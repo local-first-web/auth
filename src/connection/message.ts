@@ -1,9 +1,9 @@
-﻿import { Challenge } from '/identity'
+﻿import { ChainLink } from '/chain'
+import { Challenge } from '/identity'
 import { ProofOfInvitation } from '/invitation'
 import { KeyScope } from '/keyset'
-import { Base64 } from '/util'
-
-// Connection control
+import { TeamLink, TeamLinkBody, TeamLinkMap } from '/team'
+import { Base64, Hash } from '/util'
 
 export type HelloMessage = {
   type: 'HELLO'
@@ -23,7 +23,7 @@ export type ErrorMessage = {
 
 export type DisconnectMessage = {
   type: 'DISCONNECT'
-  payload: {
+  payload?: {
     message: string
   }
 }
@@ -68,4 +68,30 @@ export type RejectIdentityMessage = {
   }
 }
 
+export type UpdateMessage = {
+  type: 'UPDATE'
+  payload: {
+    head: Hash
+    filter: unknown
+  }
+}
+
+export type MissingLinksMessage = {
+  type: 'MISSING_LINKS'
+  payload: {
+    links: TeamLinkMap
+  }
+}
+
 export type UnixTimestamp = number
+
+export type ConnectionMessage =
+  | HelloMessage
+  | AcceptInvitationMessage
+  | ChallengeIdentityMessage
+  | ProveIdentityMessage
+  | AcceptIdentityMessage
+  | ErrorMessage
+  | DisconnectMessage
+  | UpdateMessage
+  | MissingLinksMessage
