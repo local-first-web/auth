@@ -1,6 +1,6 @@
 import { TestChannel } from './TestChannel'
 import { ConnectionContext, Connection } from '/connection'
-import { pause } from '/connection/pause'
+import { pause } from './pause'
 import { ConnectionMessage } from '/message'
 
 export const joinTestChannel = (channel: TestChannel) => (
