@@ -77,9 +77,8 @@ export interface ConnectionStateSchema {
         }
       }
     }
-    connected: {
-      states: {}
-    }
+    updating: {}
+    connected: {}
     failure: {}
   }
 }
