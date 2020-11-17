@@ -28,6 +28,8 @@
   "peerDependencies": {},
   "dependencies": {
     "@herbcaudill/crypto": "0",
+    "@types/bloomfilter": "^0.0.0",
+    "bloomfilter": "^0.0.18",
     "fast-memoize": "2",
     "msgpack-lite": "0",
     "ramda": "0",
