@@ -484,7 +484,7 @@ const expectConnectionToSucceed = async (connections: Connection[]) => {
 
   const firstKey = connections[0].context.sessionKey
   connections.forEach(connection => {
-    expect(connection.state).toHaveProperty('connected')
+    expect(connection.state).toEqual('connected')
     // ✅ They've converged on a shared secret key
     expect(connection.context.sessionKey).toEqual(firstKey)
   })
