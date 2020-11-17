@@ -1,6 +1,6 @@
 import { MachineConfig } from 'xstate'
 import { ConnectionContext, ConnectionStateSchema } from '/connection/types'
-import { ConnectionMessage } from '/message'
+import { ConnectionMessage } from '/connection/message'
 
 // common timeout settings
 const TIMEOUT_DELAY = 7000
@@ -23,7 +23,6 @@ export const connectionMachine: MachineConfig<
       on: {
         HELLO: {
           actions: 'receiveHello',
-
           target: 'initializing',
         },
       },
@@ -185,14 +184,43 @@ export const connectionMachine: MachineConfig<
       },
 
       // Once BOTH processes complete, we are connected
-      onDone: 'connected',
+      onDone: 'updating',
+    },
+
+    // having established each others' identities, we now make sure that our team signature chains are up to date
+    updating: {
+      // send our head & filter to tell them what we know
+      entry: ['sendUpdate'],
+      on: {
+        // when they send us their head & filter,
+        UPDATE: [
+          // if we have the same head, then we're caught up
+          {
+            cond: 'headsAreEqual',
+            target: 'connected',
+          },
+          // otherwise figure out what links we might have that they're missing, and send them
+          {
+            actions: 'sendMissingLinks',
+            target: 'updating',
+          },
+        ],
+
+        // when they send us missing links, add them to our chain and start over
+        MISSING_LINKS: {
+          actions: ['receiveMissingLinks', 'sendUpdate'],
+          target: 'updating',
+        },
+      },
+      ...timeout,
     },
 
     connected: {
       entry: ['deriveSharedKey', 'onConnected'],
-      on: { DISCONNECT: 'disconnected' },
-
-      states: {},
+      on: {
+        DISCONNECT: 'disconnected',
+        UPDATE: 'updating',
+      },
     },
 
     failure: {
