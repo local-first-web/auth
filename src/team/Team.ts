@@ -1,7 +1,7 @@
 ﻿import { signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
 import * as chains from '/chain'
-import { SignatureChain, SignedLink } from '/chain'
+import { ChainLink, SignatureChain, SignedLink } from '/chain'
 import { LocalUserContext } from '/context'
 import { DeviceInfo, getDeviceId } from '/device'
 import * as invitations from '/invitation'
@@ -19,13 +19,16 @@ import {
   isNewTeam,
   SignedEnvelope,
   TeamAction,
+  TeamLink,
   TeamLinkBody,
+  TeamLinkMap,
   TeamOptions,
   TeamState,
 } from '/team/types'
 import * as user from '/user'
 import { User } from '/user'
-import { Optional, Payload } from '/util'
+import { Hash, Optional, Payload } from '/util'
+import { BloomFilter } from 'bloomfilter'
 
 const { DEVICE, ROLE, MEMBER } = KeyType
 
@@ -372,6 +375,38 @@ export class Team extends EventEmitter {
     })
   }
 
+  // Connection
+
+  public head = () => {
+    return this.chain.head
+  }
+
+  public filter = () => {
+    const filter = new BloomFilter(
+      32 * 256, // number of bits to allocate.
+      16 // number of hash functions.
+    )
+    for (const hash in this.chain.links) filter.add(hash)
+    return Array.from(filter.buckets)
+  }
+
+  public missingLinks = (theirHead: Hash, theirFilter: Int32Array): TeamLinkMap => {
+    if (this.head() === theirHead) {
+      // we have the same head; there are no missing links
+      return {}
+    } else if (theirHead in this.chain.links) {
+      // their head is a predecessor of our head; send them all the successors of their head
+      return {}
+    } else {
+      // we have divergent chains; figure out what they need from their filter
+
+      for (const hash in this.chain.links) {
+      }
+    }
+  }
+
+  public receiveMissingLinks = () => {}
+
   // ## CRYPTO
 
   /**
@@ -480,8 +515,8 @@ export class Team extends EventEmitter {
     if (!validation.isValid) throw validation.error
 
     // Run the chain through the reducer to calculate the current team state
-    // TODO: create reconciler to implement strong-remove
-    // const sequence = chains.getSequence(this.chain, reconciler)
+    // TODO: create resolver to implement strong-remove
+    // const sequence = chains.getSequence(this.chain, resolver)
     const sequence = chains.getSequence(this.chain)
     this.state = sequence.reduce(reducer, initialState)
   }
