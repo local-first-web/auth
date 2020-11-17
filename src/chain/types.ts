@@ -68,10 +68,12 @@ export type MergeLink = {
   body: [Hash, Hash]
 }
 
+export type LinkMap<T extends LinkBody> = { [hash: string]: ChainLink<T> }
+
 export interface SignatureChain<T extends LinkBody> {
   root: Hash
   head: Hash
-  links: { [hash: string]: ChainLink<T> }
+  links: LinkMap<T>
 }
 
 // type guards

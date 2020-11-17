@@ -1,5 +1,5 @@
 import { append, create, SignedLink } from '.'
-import { getSequence, Reconciler } from './getSequence'
+import { getSequence, Resolver } from './getSequence'
 import { buildChain, findByPayload, getPayloads } from './testUtils'
 import { defaultContext } from '/util/testing'
 
@@ -33,10 +33,10 @@ describe('getSequence', () => {
     expect(getPayloads(sequence)).toEqual(expected)
   })
 
-  test('complex chain with custom reconciler', () => {
+  test('complex chain with custom resolver', () => {
     const chain = buildChain()
 
-    const reconciler: Reconciler = (a, b) => {
+    const resolver: Resolver = (a, b) => {
       const [_a, _b] = [a, b].sort() // ensure deterministic order
       // rule 1: q goes first
       // rule 2: e is omitted
@@ -45,7 +45,7 @@ describe('getSequence', () => {
         .filter(n => n.body.payload === 'q')
         .concat(merged.filter(n => n.body.payload !== 'e' && n.body.payload !== 'q'))
     }
-    const sequence = getSequence(chain, { reconciler })
+    const sequence = getSequence(chain, { resolver })
 
     const expected = ['a', 'b', 'q', 'j', 'p', 'h', 'i', 'c', 'd', 'f', 'o', 'l', 'n']
     expect(getPayloads(sequence)).toEqual(expected)

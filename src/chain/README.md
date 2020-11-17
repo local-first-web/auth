@@ -39,9 +39,9 @@ In many cases, we can accept all the concurrent changes in some arbitrary order,
 
 In all of these cases, we adopt a “strong-remove” policy for group and role membership: We **err on the side of removal**, reasoning that we can always add someone back if they shouldn’t have been removed, but you can’t reverse the leak of information that might take place if someone who you thought was removed was in fact still around. So in case (1), we remove both Alice and Bob; in case (2), we don’t allow Bob’s addition of Debbie; and in case (3), Bob stays removed. <a id='link-note-1' href='#note-1'>[1]</a>
 
-We implement this policy using a custom **reconciler**. A reconciler is a function that takes two concurrent sequences of links and turns them into a single sequence. This is done deterministically, so that every member processing the same signature chain independently converges on the same group membership state.
+We implement this policy using a custom **resolver**. A resolver is a function that takes two concurrent sequences of links and turns them into a single sequence. This is done deterministically, so that every member processing the same signature chain independently converges on the same group membership state.
 
-A reconciler decides how to order the links in the two sequences, and which links to omit. This diagram shows a few different ways that one graph might be sequenced, depending on the reconciler’s rules:
+A resolver decides how to order the links in the two sequences, and which links to omit. This diagram shows a few different ways that one graph might be sequenced, depending on the resolver’s rules:
 
 ![sigchain.3](https://raw.githubusercontent.com/HerbCaudill/pics/master/sigchain.3.png)
 
@@ -53,7 +53,7 @@ So we end up with this ordered sequence of links:
 
 ![sigchain.6](https://raw.githubusercontent.com/HerbCaudill/pics/master/sigchain.6.png)
 
-----
+---
 
 ### Link structure
 

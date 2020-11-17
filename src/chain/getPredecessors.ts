@@ -1,7 +1,7 @@
 ﻿import { ChainLink, isMergeLink, isRootLink, LinkBody, SignatureChain } from '/chain/types'
 import * as R from 'ramda'
 
-export const getAncestors = <T extends LinkBody>(
+export const getPredecessors = <T extends LinkBody>(
   chain: SignatureChain<T>,
   link: ChainLink<T>
 ): ChainLink<T>[] => {
@@ -14,16 +14,16 @@ export const getAncestors = <T extends LinkBody>(
 
     return parents.concat(parents.flatMap(parent => visit(parent)))
   }
-  const ancestors = visit(link)
-  return R.uniq(ancestors)
+  const predecessors = visit(link)
+  return R.uniq(predecessors)
 }
 
-export const getCommonAncestor = <T extends LinkBody>(
+export const getCommonPredecessor = <T extends LinkBody>(
   chain: SignatureChain<T>,
   a: ChainLink<T>,
   b: ChainLink<T>
 ): ChainLink<T> => {
-  const aAncestors = getAncestors(chain, a)
-  const bAncestors = getAncestors(chain, b)
-  return aAncestors.find(link => bAncestors.includes(link))!
+  const aPredecessors = getPredecessors(chain, a)
+  const bPredecessors = getPredecessors(chain, b)
+  return aPredecessors.find(link => bPredecessors.includes(link))!
 }
