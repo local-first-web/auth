@@ -1,11 +1,5 @@
 import { asymmetric } from '@herbcaudill/crypto'
 import { Connection } from '/connection'
-import { redactDevice } from '/device'
-import * as identity from '/identity'
-import * as teams from '/team'
-import * as users from '/user'
-import { acceptMemberInvitation } from '/invitation'
-import { KeyType, randomKey, redactKeys } from '/keyset'
 import {
   AcceptIdentityMessage,
   AcceptInvitationMessage,
@@ -13,7 +7,13 @@ import {
   ConnectionMessage,
   HelloMessage,
   ProveIdentityMessage,
-} from '/message'
+} from '/connection/message'
+import { redactDevice } from '/device'
+import * as identity from '/identity'
+import { acceptMemberInvitation } from '/invitation'
+import { KeyType, randomKey, redactKeys } from '/keyset'
+import * as teams from '/team'
+import * as users from '/user'
 import { redactUser } from '/user'
 import {
   alice,
@@ -29,6 +29,8 @@ import {
   TestChannel,
 } from '/util/testing'
 import '/util/testing/expect/toBeValid'
+
+// TODO: What if Bob concurrently presents his invitation to two different members?
 
 const alicesLaptop = redactDevice(_alicesLaptop)
 const bobsLaptop = redactDevice(_bobsLaptop)
@@ -64,8 +66,7 @@ describe('connection', () => {
       return { aliceTeam, bobTeam, sendMessage, lastMessage, connect }
     }
 
-    // Test one side of the verification workflow, using a real connection for Alice
-    //  and manually simulating Bob's messages.
+    // Test one side of the verification workflow, using a real connection for Alice and manually simulating Bob's messages.
     it(`should successfully verify the other peer's identity`, async () => {
       const { aliceTeam: team, sendMessage, lastMessage } = setup()
 
@@ -98,8 +99,7 @@ describe('connection', () => {
       expect(aliceState().authenticating.verifyingIdentity).toEqual('done')
     })
 
-    // Test the other side, using a real connection for Bob
-    //  and manually simulating Alice's messages.
+    // Test the other side, using a real connection for Bob and manually simulating Alice's messages.
     it(`should successfully prove our identity to the other peer`, async () => {
       const { bobTeam, sendMessage, lastMessage } = setup()
 
@@ -158,19 +158,24 @@ describe('connection', () => {
       expect(bobState().authenticating.claimingIdentity).toEqual('done')
     })
 
-    // Create real Connections on both sides and let them work it out automatically
+    // Let both processes play out automatically
     it('should automatically connect two members', async () => {
       const { aliceTeam, bobTeam, connect } = setup()
 
       // 👩🏾 👨‍🦲 Alice and Bob both join the channel
-      const aliceConnection = connect('alice', {
-        team: aliceTeam,
-        user: alice,
-        device: alicesLaptop,
-      })
-      const bobConnection = connect('bob', { team: bobTeam, user: bob, device: bobsLaptop })
+      const aConnection = connect('alice', { team: aliceTeam, user: alice, device: alicesLaptop })
+      const bConnection = connect('bob', { team: bobTeam, user: bob, device: bobsLaptop })
 
-      await expectConnectionToSucceed([aliceConnection, bobConnection])
+      await expectConnectionToSucceed([aConnection, bConnection])
+
+      // Alice stops the connection
+      aConnection.stop()
+
+      // Alice disconnects immediately
+      expect(aConnection.state).toEqual('disconnected')
+
+      // Bob disconnects shortly thereafter
+      await connectionEvent([bConnection], 'disconnected')
     })
 
     it(`shouldn't connect with a member who has been removed`, async () => {
@@ -380,20 +385,32 @@ describe('connection', () => {
       // 👨‍🦲 Bob uses the invitation secret key to connect with Alice
       const bobConnection = connect('bob', { user: bob, device: bobsLaptop, invitationSecretKey })
 
-      // Wait for them both to connect
-      await connectionEvent([bobConnection, aliceConnection], 'connected')
-
-      // ✅ They're both connected
-      expect(aliceConnection.state).toEqual('connected')
-      expect(bobConnection.state).toEqual('connected')
-
-      // ✅ They've converged on a shared secret key
-      const aliceKey = aliceConnection.context.sessionKey
-      const bobKey = bobConnection.context.sessionKey
-      expect(aliceKey).toEqual(bobKey)
+      await expectConnectionToSucceed([bobConnection, aliceConnection])
     })
 
-    it(`two invitees can't connect`, async () => {
+    it.skip(`shouldn't accept an invitation that's been revoked`, async () => {
+      const { aliceTeam, connect } = setup()
+
+      // Alice is a member
+      const aliceContext = { team: aliceTeam, user: alice, device: alicesLaptop }
+      const aliceConnection = connect('alice', aliceContext)
+
+      // 👩🏾 Alice invites 👨‍🦲 Bob
+      const { id, secretKey: invitationSecretKey } = aliceTeam.invite('bob')
+
+      // 👩🏾 Alice changes her mind and revokes Bob's invitation
+      aliceTeam.revokeInvitation(id)
+
+      // 👨‍🦲 Bob tries to use the invitation
+      const bobConnection = connect('bob', { user: bob, device: bobsLaptop, invitationSecretKey })
+
+      // ❌ The connection fails
+      await expectConnectionToFail([bobConnection, aliceConnection], `revoked`)
+    })
+
+    // Two people carrying invitations can't connect to each other - there needs to be at least one
+    // current member in a connection in order to let the invitee in.
+    it(`shouldn't allow two invitees to connect`, async () => {
       const { aliceTeam, connect } = setup()
 
       // 👩🏾 Alice invites 👨‍🦲 Bob
@@ -414,7 +431,7 @@ describe('connection', () => {
     })
 
     // In which Eve tries to get Bob to join her team instead of Alice's
-    it(`isn't fooled into joining the wrong team`, async () => {
+    it(`shouldn't be fooled into joining the wrong team`, async () => {
       const { aliceTeam, sendMessage, lastMessage } = setup()
 
       // 👩🏾 Alice invites 👨‍🦲 Bob
@@ -467,7 +484,7 @@ const expectConnectionToSucceed = async (connections: Connection[]) => {
 
   const firstKey = connections[0].context.sessionKey
   connections.forEach(connection => {
-    expect(connection.state).toEqual('connected')
+    expect(connection.state).toHaveProperty('connected')
     // ✅ They've converged on a shared secret key
     expect(connection.context.sessionKey).toEqual(firstKey)
   })
