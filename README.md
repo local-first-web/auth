@@ -96,7 +96,7 @@ WhatsApp, Telegram, etc).
 Bob uses the secret invitation key to generate proof that he was invited, without divulging the key.
 
 ```js
-// 👴🏻 Bob
+// 👨‍🦲 Bob
 import { accept } from 'taco'
 const proofOfInvitation = accept('aj7x d2jr 9c8f zrbs')
 ```
@@ -136,7 +136,7 @@ const encrypted = team.encrypt(message, 'managers')
 #### Bob decrypts the message
 
 ```js
-// 👴🏻 Bob
+// 👨‍🦲 Bob
 const decrypted = team.decrypt(encrypted) // 'the condor flies at midnight'
 ```
 
