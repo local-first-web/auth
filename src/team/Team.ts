@@ -1,14 +1,14 @@
 ﻿import { signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
 import * as chains from '/chain'
-import { ChainLink, SignatureChain, SignedLink } from '/chain'
+import { SignatureChain, SignedLink } from '/chain'
 import { LocalUserContext } from '/context'
 import { DeviceInfo, getDeviceId } from '/device'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
-import * as keyset from '/keyset'
+import * as keysets from '/keyset'
 import { ADMIN_SCOPE, KeyMetadata, KeyScope, KeysetWithSecrets, KeyType, TEAM_SCOPE } from '/keyset'
-import * as lockbox from '/lockbox'
+import * as lockboxes from '/lockbox'
 import { Member } from '/member'
 import { ADMIN, Role } from '/role'
 import { ALL, initialState } from '/team/constants'
@@ -19,20 +19,19 @@ import {
   isNewTeam,
   SignedEnvelope,
   TeamAction,
-  TeamLink,
   TeamLinkBody,
-  TeamLinkMap,
   TeamOptions,
   TeamState,
 } from '/team/types'
-import * as user from '/user'
+import * as users from '/user'
 import { User } from '/user'
-import { Hash, Optional, Payload } from '/util'
-import { BloomFilter } from 'bloomfilter'
+import { Optional, Payload } from '/util'
 
 const { DEVICE, ROLE, MEMBER } = KeyType
 
 export class Team extends EventEmitter {
+  public chain: SignatureChain<TeamLinkBody>
+
   constructor(options: TeamOptions) {
     super()
     this.context = options.context
@@ -43,12 +42,12 @@ export class Team extends EventEmitter {
 
       // Team & role secrets are never stored in plaintext, only encrypted into individual lockboxes.
       // Here we create new lockboxes with the team & admin keys for the founding member
-      const teamLockbox = lockbox.create(keyset.create(TEAM_SCOPE), localUser.keys)
-      const adminLockbox = lockbox.create(keyset.create(ADMIN_SCOPE), localUser.keys)
+      const teamLockbox = lockboxes.create(keysets.create(TEAM_SCOPE), localUser.keys)
+      const adminLockbox = lockboxes.create(keysets.create(ADMIN_SCOPE), localUser.keys)
 
       const payload = {
         teamName: options.teamName,
-        rootMember: user.redactUser(localUser),
+        rootMember: users.redactUser(localUser),
         lockboxes: [teamLockbox, adminLockbox],
       }
       // Post root link to signature chain
@@ -130,12 +129,12 @@ export class Team extends EventEmitter {
   /** Add a member to the team */
   public add = (member: User | Member, roles: string[] = []) => {
     // don't leak user secrets if we have them
-    const redactedUser = user.redactUser(member)
+    const redactedUser = users.redactUser(member)
 
     // make lockboxes for the new member
-    const teamLockbox = lockbox.create(this.teamKeys(), member.keys)
+    const teamLockbox = lockboxes.create(this.teamKeys(), member.keys)
     const roleLockboxes = roles.map(roleName =>
-      lockbox.create(this.roleKeys(roleName), member.keys)
+      lockboxes.create(this.roleKeys(roleName), member.keys)
     )
     const lockboxes = [teamLockbox, ...roleLockboxes]
 
@@ -168,10 +167,10 @@ export class Team extends EventEmitter {
   /** Add a role to the team */
   public addRole = (role: Role) => {
     // we're creating this role so we need to generate new keys
-    const roleKeys = keyset.create({ type: ROLE, name: role.roleName })
+    const roleKeys = keysets.create({ type: ROLE, name: role.roleName })
 
     // make a lockbox for the admin role, so that all admins can access this role's keys
-    const lockboxForAdmin = lockbox.create(roleKeys, this.adminKeys())
+    const lockboxForAdmin = lockboxes.create(roleKeys, this.adminKeys())
 
     // post the role to the signature chain
     this.dispatch({
@@ -193,7 +192,7 @@ export class Team extends EventEmitter {
   public addMemberRole = (userName: string, roleName: string) => {
     // make a lockbox for the role
     const member = this.members(userName)
-    const roleLockbox = lockbox.create(this.roleKeys(roleName), member.keys)
+    const roleLockbox = lockboxes.create(this.roleKeys(roleName), member.keys)
 
     // post the member role to the signature chain
     this.dispatch({
@@ -375,39 +374,6 @@ export class Team extends EventEmitter {
     })
   }
 
-  // Connection
-
-  public head = () => {
-    return this.chain.head
-  }
-
-  public filter = () => {
-    const filter = new BloomFilter(
-      32 * 256, // number of bits to allocate.
-      16 // number of hash functions.
-    )
-    for (const hash in this.chain.links) filter.add(hash)
-    return Array.from(filter.buckets)
-  }
-
-  public missingLinks = (theirHead: Hash, theirFilter: Int32Array): TeamLinkMap => {
-    if (this.head() === theirHead) {
-      // we have the same head; there are no missing links
-      return {}
-    } else if (theirHead in this.chain.links) {
-      // their head is a predecessor of our head; send them all the successors of their head
-      return {}
-    } else {
-      // we have divergent chains; figure out what they need from their filter
-
-      for (const hash in this.chain.links) {
-      }
-      return {}
-    }
-  }
-
-  public receiveMissingLinks = () => {}
-
   // ## CRYPTO
 
   /**
@@ -454,7 +420,6 @@ export class Team extends EventEmitter {
   // # PRIVATE PROPERTIES
 
   private context: LocalUserContext
-  private chain: SignatureChain<TeamLinkBody>
   private state: TeamState = initialState // derived from chain, only updated by running chain through reducer
 
   // # PRIVATE METHODS
@@ -489,9 +454,9 @@ export class Team extends EventEmitter {
 
     // generate new keys and lockboxes for each one
     const newLockboxes = compromisedScopes.flatMap(scope => {
-      const keys = keyset.create(scope)
+      const keys = keysets.create(scope)
       const oldLockboxes = select.lockboxesInScope(this.state, scope)
-      const newLockboxes = oldLockboxes.map(oldLockbox => lockbox.rotate(oldLockbox, keys))
+      const newLockboxes = oldLockboxes.map(oldLockbox => lockboxes.rotate(oldLockbox, keys))
       return newLockboxes
     })
 
