@@ -8,7 +8,7 @@ import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
 import * as keysets from '/keyset'
 import { ADMIN_SCOPE, KeyMetadata, KeyScope, KeysetWithSecrets, KeyType, TEAM_SCOPE } from '/keyset'
-import * as lockboxes from '/lockbox'
+import * as lockbox from '/lockbox'
 import { Member } from '/member'
 import { ADMIN, Role } from '/role'
 import { ALL, initialState } from '/team/constants'
@@ -42,8 +42,8 @@ export class Team extends EventEmitter {
 
       // Team & role secrets are never stored in plaintext, only encrypted into individual lockboxes.
       // Here we create new lockboxes with the team & admin keys for the founding member
-      const teamLockbox = lockboxes.create(keysets.create(TEAM_SCOPE), localUser.keys)
-      const adminLockbox = lockboxes.create(keysets.create(ADMIN_SCOPE), localUser.keys)
+      const teamLockbox = lockbox.create(keysets.create(TEAM_SCOPE), localUser.keys)
+      const adminLockbox = lockbox.create(keysets.create(ADMIN_SCOPE), localUser.keys)
 
       const payload = {
         teamName: options.teamName,
@@ -132,9 +132,9 @@ export class Team extends EventEmitter {
     const redactedUser = users.redactUser(member)
 
     // make lockboxes for the new member
-    const teamLockbox = lockboxes.create(this.teamKeys(), member.keys)
+    const teamLockbox = lockbox.create(this.teamKeys(), member.keys)
     const roleLockboxes = roles.map(roleName =>
-      lockboxes.create(this.roleKeys(roleName), member.keys)
+      lockbox.create(this.roleKeys(roleName), member.keys)
     )
     const lockboxes = [teamLockbox, ...roleLockboxes]
 
@@ -170,7 +170,7 @@ export class Team extends EventEmitter {
     const roleKeys = keysets.create({ type: ROLE, name: role.roleName })
 
     // make a lockbox for the admin role, so that all admins can access this role's keys
-    const lockboxForAdmin = lockboxes.create(roleKeys, this.adminKeys())
+    const lockboxForAdmin = lockbox.create(roleKeys, this.adminKeys())
 
     // post the role to the signature chain
     this.dispatch({
@@ -192,7 +192,7 @@ export class Team extends EventEmitter {
   public addMemberRole = (userName: string, roleName: string) => {
     // make a lockbox for the role
     const member = this.members(userName)
-    const roleLockbox = lockboxes.create(this.roleKeys(roleName), member.keys)
+    const roleLockbox = lockbox.create(this.roleKeys(roleName), member.keys)
 
     // post the member role to the signature chain
     this.dispatch({
@@ -456,7 +456,7 @@ export class Team extends EventEmitter {
     const newLockboxes = compromisedScopes.flatMap(scope => {
       const keys = keysets.create(scope)
       const oldLockboxes = select.lockboxesInScope(this.state, scope)
-      const newLockboxes = oldLockboxes.map(oldLockbox => lockboxes.rotate(oldLockbox, keys))
+      const newLockboxes = oldLockboxes.map(oldLockbox => lockbox.rotate(oldLockbox, keys))
       return newLockboxes
     })
 
