@@ -388,7 +388,7 @@ describe('connection', () => {
       await expectConnectionToSucceed([bobConnection, aliceConnection])
     })
 
-    it.skip(`shouldn't accept an invitation that's been revoked`, async () => {
+    it.only(`shouldn't accept an invitation that's been revoked`, async () => {
       const { aliceTeam, connect } = setup()
 
       // Alice is a member
@@ -405,7 +405,8 @@ describe('connection', () => {
       const bobConnection = connect('bob', { user: bob, device: bobsLaptop, invitationSecretKey })
 
       // ❌ The connection fails
-      await expectConnectionToFail([bobConnection, aliceConnection], `revoked`)
+      await expectConnectionToFail([bobConnection, aliceConnection])
+      expect(aliceConnection.context.error!.message).toContain('revoked')
     })
 
     // Two people carrying invitations can't connect to each other - there needs to be at least one

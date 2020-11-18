@@ -71,15 +71,17 @@ export type RejectIdentityMessage = {
 export type UpdateMessage = {
   type: 'UPDATE'
   payload: {
+    root: Hash
     head: Hash
-    filter: unknown
+    hashes: Hash[]
   }
 }
 
 export type MissingLinksMessage = {
   type: 'MISSING_LINKS'
   payload: {
-    links: TeamLinkMap
+    head: Hash
+    links: TeamLink[]
   }
 }
 

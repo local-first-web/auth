@@ -1,8 +1,22 @@
 ﻿import { asymmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
+import * as R from 'ramda'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
+import { createMergeLink, getParentHashes, getSuccessors, isPredecessor } from '/chain'
 import { connectionMachine } from '/connection/connectionMachine'
 import { deriveSharedKey } from '/connection/deriveSharedKey'
+import {
+  AcceptIdentityMessage,
+  AcceptInvitationMessage,
+  ChallengeIdentityMessage,
+  ConnectionMessage,
+  DisconnectMessage,
+  ErrorMessage,
+  HelloMessage,
+  MissingLinksMessage,
+  ProveIdentityMessage,
+  UpdateMessage,
+} from '/connection/message'
 import {
   Action,
   Condition,
@@ -14,17 +28,7 @@ import {
 import * as identity from '/identity'
 import * as invitations from '/invitation'
 import { KeyType, randomKey } from '/keyset'
-import {
-  AcceptIdentityMessage,
-  AcceptInvitationMessage,
-  ChallengeIdentityMessage,
-  ConnectionMessage,
-  DisconnectMessage,
-  ErrorMessage,
-  HelloMessage,
-  ProveIdentityMessage,
-} from '/connection/message'
-import { Team } from '/team'
+import { Team, TeamLink, TeamLinkMap, TeamSignatureChain } from '/team'
 import { redactUser } from '/user'
 
 const { MEMBER } = KeyType
@@ -164,24 +168,99 @@ export class Connection extends EventEmitter {
       },
     }),
 
-    sendUpdate: (context, event) =>
+    sendUpdate: context => {
+      const { chain } = context.team!
       this.sendMessage({
         type: 'UPDATE',
         payload: {
-          head: context.team!.head(),
-          filter: context.team!.filter(),
+          root: chain.root,
+          head: chain.head,
+          hashes: Object.keys(chain.links),
         },
-      }),
+      })
+    },
 
-    sendMissingLinks: (context, event) => {},
+    sendMissingLinks: (context, event) => {
+      const { chain } = context.team!
+      const { root, head, links } = chain
+      const hashes = Object.keys(links)
 
-    receiveMissingLinks: (context, event) => {},
+      const {
+        root: theirRoot,
+        head: theirHead,
+        hashes: theirHashes,
+      } = (event as UpdateMessage).payload
+
+      // if this happens something has gone unimaginably wrong
+      if (root !== theirRoot) throw new Error('Cannot merge two chains with different roots')
+
+      const weHaveTheSameHead = theirHead === head
+      const theirHeadIsBehindOurs =
+        theirHead in links && isPredecessor(chain, links[theirHead], links[head])
+
+      const getMissingLinks = (): TeamLink[] => {
+        // if we have the same head, there are no missing links
+        if (weHaveTheSameHead) return []
+
+        // if their head is a predecessor of our head, send them all the successors of their head
+        if (theirHeadIsBehindOurs) return getSuccessors(chain, links[theirHead])
+
+        // otherwise we have divergent chains
+
+        // compare their hashes to ours to figure out which links they're missing
+        const missingLinks = hashes
+          .filter(hash => theirHashes.includes(hash) === false)
+          .map(hash => links[hash])
+
+        // also include the successors of any links they're missing
+        const successors = missingLinks.flatMap(link => getSuccessors(chain, link))
+        return R.uniq(missingLinks.concat(successors))
+      }
+
+      this.sendMessage({
+        type: 'MISSING_LINKS',
+        payload: { head, links: getMissingLinks() },
+      })
+    },
+
+    receiveMissingLinks: (context, event) => {
+      const { chain } = context.team!
+      const { root, links } = chain
+
+      const { head: theirHead, links: theirLinks } = (event as MissingLinksMessage).payload
+
+      const allLinks = {
+        // all our links
+        ...links,
+        // all their new links, as a hashmap
+        ...theirLinks.reduce((r, c) => ({ ...r, [c.hash]: c }), {}),
+      } as TeamLinkMap
+
+      // make sure we're not missing any links that are referenced by these new links
+      const parentHashes = theirLinks.flatMap(link => getParentHashes(chain, link))
+      const missingHashes = parentHashes.filter(hash => !(hash in allLinks))
+      if (missingHashes.length > 0)
+        throw new Error(`Can't update, I'm missing some of your links: ${missingHashes}`)
+
+      // we can now reconstruct their chain
+      const theirChain = {
+        root,
+        head: theirHead,
+        links: allLinks,
+      }
+      // and merge with it
+      context.team!.merge(theirChain)
+    },
+
+    receiveError: assign({
+      error: (context, event) => (event as ErrorMessage).payload,
+    }),
 
     // failure modes
 
     rejectIdentity: () => this.fail(`I couldn't verify your identity`),
     failNeitherIsMember: () => this.fail(`We can't connect because neither one of us is a member`),
-    rejectInvitation: () => this.fail('Your invitation is invalid'),
+    rejectInvitation: () => this.fail(`Your invitation isn't valid - it may have been revoked`),
     rejectTeam: () => this.fail(`This is not the team I was invited to`),
     failTimeout: () => this.fail('Connection timed out'),
 
@@ -230,7 +309,7 @@ export class Connection extends EventEmitter {
       try {
         context.team!.admit(context.theirProofOfInvitation!)
       } catch (e) {
-        if (e instanceof Error) context.error = { message: e.message }
+        this.context.error = { message: e.toString() }
         return false
       }
       return true

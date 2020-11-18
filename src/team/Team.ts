@@ -1,7 +1,7 @@
 ﻿import { signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
 import * as chains from '/chain'
-import { SignatureChain, SignedLink } from '/chain'
+import { SignedLink } from '/chain'
 import { LocalUserContext } from '/context'
 import { DeviceInfo, getDeviceId } from '/device'
 import * as invitations from '/invitation'
@@ -21,6 +21,7 @@ import {
   TeamAction,
   TeamLinkBody,
   TeamOptions,
+  TeamSignatureChain,
   TeamState,
 } from '/team/types'
 import * as users from '/user'
@@ -30,7 +31,7 @@ import { Optional, Payload } from '/util'
 const { DEVICE, ROLE, MEMBER } = KeyType
 
 export class Team extends EventEmitter {
-  public chain: SignatureChain<TeamLinkBody>
+  public chain: TeamSignatureChain
 
   constructor(options: TeamOptions) {
     super()
@@ -67,6 +68,11 @@ export class Team extends EventEmitter {
   }
 
   public save = () => chains.serialize(this.chain)
+
+  public merge = (theirChain: TeamSignatureChain) => {
+    this.chain = chains.merge(this.chain, theirChain)
+    this.updateState()
+  }
 
   // ## READ METHODS
   // All the logic for reading from team state is in selectors.
@@ -272,7 +278,10 @@ export class Team extends EventEmitter {
     // look up the invitation
     const encryptedInvitation = this.state.invitations[id]
     if (encryptedInvitation === undefined) throw new Error(`No invitation with id '${id}' found.`)
-    if (encryptedInvitation.revoked) throw new Error(`This invitation has been revoked.`)
+    if (encryptedInvitation.revoked) {
+      console.log('revoked')
+      throw new Error(`This invitation has been revoked.`)
+    }
     if (encryptedInvitation.used) throw new Error(`This invitation has already been used.`)
 
     // open the invitation

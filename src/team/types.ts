@@ -16,7 +16,7 @@ export interface NewTeamOptions {
 }
 
 export interface ExistingTeamOptions {
-  source: string | SignatureChain<TeamLinkBody>
+  source: string | TeamSignatureChain
   context: LocalUserContext
 }
 
@@ -146,6 +146,7 @@ export type TeamAction =
 export type TeamLinkBody = LinkBody & TeamAction
 export type TeamLink = ChainLink<TeamLinkBody>
 export type TeamLinkMap = LinkMap<TeamLinkBody>
+export type TeamSignatureChain = SignatureChain<TeamLinkBody>
 
 // VALIDATION
 

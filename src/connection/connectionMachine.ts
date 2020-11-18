@@ -15,7 +15,12 @@ export const connectionMachine: MachineConfig<
   initial: 'disconnected',
   entry: ['sendHello'],
 
-  on: { ERROR: '#failure' },
+  on: {
+    ERROR: {
+      actions: 'receiveError',
+      target: '#failure',
+    },
+  },
 
   states: {
     disconnected: {
@@ -136,7 +141,7 @@ export const connectionMachine: MachineConfig<
           },
         },
 
-        // 2. verify the other peer's claimed identity: receive their claim, challenge it, and validate their proof
+        // 2. verify the otherr peer's claimed identity: receive their claim, challenge it, and validate their proof
         verifyingIdentity: {
           initial: 'challengingIdentityClaim',
           states: {
@@ -183,8 +188,8 @@ export const connectionMachine: MachineConfig<
         },
       },
 
-      // Once BOTH processes complete, we are connected
-      onDone: 'connected',
+      // Once BOTH processes complete, we're good to connect
+      onDone: 'updating',
     },
 
     // having established each others' identities, we now make sure that our team signature chains are up to date
