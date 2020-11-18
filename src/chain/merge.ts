@@ -1,6 +1,7 @@
 ﻿import { clone } from './clone'
 import { hashLink } from './hashLink'
 import { LinkBody, MergeLink, SignatureChain } from './types'
+import { Hash } from '/util'
 
 export const merge = <T extends LinkBody>(
   a: SignatureChain<T>,
@@ -17,13 +18,18 @@ export const merge = <T extends LinkBody>(
 
   const root = a.root
 
-  // create a merge link, which is just a pointer to each of the two heads
-  const body = [a.head, b.head].sort() // ensure deterministic order
-  const hash = hashLink(body)
-  const mergeLink = { type: 'MERGE', hash, body } as MergeLink
+  const mergeLink = createMergeLink(a.head, b.head)
 
   // add this link as the new head
-  const head = hash
-  links[hash] = mergeLink
+  const head = mergeLink.hash
+  links[mergeLink.hash] = mergeLink
+
   return { root, head, links }
+}
+
+/** Returns a merge link, which has no content other than a pointer to each of the two heads */
+export const createMergeLink = (a: Hash, b: Hash) => {
+  const body = [a, b].sort() // ensure deterministic order
+  const hash = hashLink(body)
+  return { type: 'MERGE', hash, body } as MergeLink
 }
