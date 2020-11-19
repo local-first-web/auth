@@ -1,6 +1,6 @@
 ﻿import { randomKey } from '@herbcaudill/crypto'
 import { IKEY_LENGTH } from '/invitation/create'
-import { base30 } from '/util/base30'
+import { base30 } from '/util'
 
 // ## Step 1a
 // The invitation key is a randomly generated secret that is sent to Bob via a pre-authenticated
