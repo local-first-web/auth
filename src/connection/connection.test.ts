@@ -515,10 +515,36 @@ describe('connection', () => {
 
       await expectConnection([aConnection, bConnection])
 
-      // 👨‍🦲 Bob is up to date with Alice's changes
+      // ✅ 👨‍🦲 Bob is up to date with Alice's changes
       expect(bobTeam.has('charlie')).toBe(true)
       expect(bobTeam.hasRole('managers')).toBe(true)
       expect(bobTeam.memberHasRole('charlie', 'managers')).toBe(true)
+    })
+
+    it('if we are behind, we will be caught up when we connect', async () => {
+      const { aliceTeam, connect } = setup()
+      aliceTeam.addMemberRole('bob', ADMIN)
+
+      storage.save(aliceTeam)
+      const bobTeam = storage.load(bobsContext)
+
+      // at this point, Alice and Bob have the same signature chain
+
+      // 👨‍🦲 but now Bob does some stuff
+      bobTeam.add(redactUser(charlie))
+      bobTeam.addRole({ roleName: 'managers' })
+      bobTeam.addMemberRole('charlie', 'managers')
+
+      // 👩🏾 👨‍🦲 Alice and Bob both join the channel
+      const aConnection = connect('alice', { team: aliceTeam, user: alice, device: alicesLaptop })
+      const bConnection = connect('bob', { team: bobTeam, user: bob, device: bobsLaptop })
+
+      await expectConnection([aConnection, bConnection])
+
+      // ✅ 👩🏾 Alice is up to date with Bob's changes
+      expect(aliceTeam.has('charlie')).toBe(true)
+      expect(aliceTeam.hasRole('managers')).toBe(true)
+      expect(aliceTeam.memberHasRole('charlie', 'managers')).toBe(true)
     })
 
     it(`if we've diverged, we will be caught up when we connect`, async () => {
@@ -550,7 +576,7 @@ describe('connection', () => {
       expect(bobTeam.hasRole('managers')).toBe(true)
       expect(bobTeam.memberHasRole('charlie', 'managers')).toBe(true)
 
-      // 👩🏾 and Alice is up to date with Bob's changes
+      // ✅ 👩🏾 and Alice is up to date with Bob's changes
       expect(aliceTeam.hasRole('finance')).toBe(true)
       expect(bobTeam.memberHasRole('alice', 'finance')).toBe(true)
     })
