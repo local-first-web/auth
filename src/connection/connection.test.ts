@@ -26,50 +26,47 @@ import {
   charliesLaptop as _charliesLaptop,
   joinTestChannel,
   newTeam,
-  storage,
   TestChannel,
 } from '/util/testing'
 import '/util/testing/expect/toBeValid'
 
-// TODO: What if Bob concurrently presents his invitation to two different members?
+describe.only('connection', () => {
+  const alicesLaptop = redactDevice(_alicesLaptop)
+  const bobsLaptop = redactDevice(_bobsLaptop)
+  const charliesLaptop = redactDevice(_charliesLaptop)
 
-const alicesLaptop = redactDevice(_alicesLaptop)
-const bobsLaptop = redactDevice(_bobsLaptop)
-const charliesLaptop = redactDevice(_charliesLaptop)
+  // used for tests of the connection's timeout - needs to be bigger than
+  // the TIMEOUT_DELAY constant in connectionMachine, plus some slack
+  const LONG_TIMEOUT = 10000
 
-// used for tests of the connection's timeout - needs to be bigger than
-// the TIMEOUT_DELAY constant in connectionMachine, plus some slack
-const LONG_TIMEOUT = 10000
+  const setup = () => {
+    // Create a new team
+    const aliceTeam = newTeam()
 
-describe('connection', () => {
-  beforeEach(() => {
-    localStorage.clear()
-    storage.contents = undefined
-  })
+    // Our dummy `sendMessage` just pushes messages onto a queue
+    const messageQueue: ConnectionMessage[] = []
+    const sendMessage = (message: ConnectionMessage) => messageQueue.push(message)
+    const lastMessage = () => messageQueue[messageQueue.length - 1]
+
+    const channel = new TestChannel()
+    const connect = joinTestChannel(channel)
+
+    return { aliceTeam, sendMessage, lastMessage, connect }
+  }
+
+  const setupWithBob = () => {
+    const { aliceTeam, sendMessage, lastMessage, connect } = setup()
+
+    aliceTeam.add(bob)
+    const bobTeam = teams.load(aliceTeam.chain, bobsContext)
+
+    return { aliceTeam, bobTeam, sendMessage, lastMessage, connect }
+  }
 
   describe('between members', () => {
-    const setup = () => {
-      // Create a new team and add Bob to it
-      const aliceTeam = newTeam()
-      aliceTeam.add(bob)
-
-      storage.save(aliceTeam)
-      const bobTeam = storage.load(bobsContext)
-
-      // Our dummy `sendMessage` just pushes messages onto a queue
-      const messageQueue: ConnectionMessage[] = []
-      const sendMessage = (message: ConnectionMessage) => messageQueue.push(message)
-      const lastMessage = () => messageQueue[messageQueue.length - 1]
-
-      const channel = new TestChannel()
-      const connect = joinTestChannel(channel)
-
-      return { aliceTeam, bobTeam, sendMessage, lastMessage, connect }
-    }
-
     // Test one side of the verification workflow, using a real connection for Alice and manually simulating Bob's messages.
     it(`should successfully verify the other peer's identity`, async () => {
-      const { aliceTeam: team, sendMessage, lastMessage } = setup()
+      const { aliceTeam: team, sendMessage, lastMessage } = setupWithBob()
 
       const aliceContext = { team, user: alice, device: alicesLaptop }
       // 👩🏾 Alice connects
@@ -102,7 +99,7 @@ describe('connection', () => {
 
     // Test the other side, using a real connection for Bob and manually simulating Alice's messages.
     it(`should successfully prove our identity to the other peer`, async () => {
-      const { bobTeam, sendMessage, lastMessage } = setup()
+      const { bobTeam, sendMessage, lastMessage } = setupWithBob()
 
       // 👨‍🦲 Bob connects
       const bobContext = { team: bobTeam, user: bob, device: bobsLaptop }
@@ -161,7 +158,7 @@ describe('connection', () => {
 
     // Let both processes play out automatically
     it('should automatically connect two members', async () => {
-      const { aliceTeam, bobTeam, connect } = setup()
+      const { aliceTeam, bobTeam, connect } = setupWithBob()
 
       // 👩🏾 👨‍🦲 Alice and Bob both join the channel
       const aConnection = connect('alice', { team: aliceTeam, user: alice, device: alicesLaptop })
@@ -180,7 +177,7 @@ describe('connection', () => {
     })
 
     it(`shouldn't connect with a member who has been removed`, async () => {
-      const { aliceTeam, bobTeam, connect } = setup()
+      const { aliceTeam, bobTeam, connect } = setupWithBob()
 
       // 👩🏾 Alice removes Bob
       aliceTeam.remove('bob')
@@ -196,7 +193,7 @@ describe('connection', () => {
     })
 
     it(`shouldn't connect with someone who doesn't belong to the team`, async () => {
-      const { aliceTeam, connect } = setup()
+      const { aliceTeam, connect } = setupWithBob()
 
       const aliceContext = { team: aliceTeam, user: alice, device: alicesLaptop }
       const aliceConnection = connect('alice', aliceContext)
@@ -210,7 +207,7 @@ describe('connection', () => {
     it(
       'disconnects if the peer stops responding',
       async () => {
-        const { aliceTeam: team, sendMessage } = setup()
+        const { aliceTeam: team, sendMessage } = setupWithBob()
 
         const aliceContext = { team, user: alice, device: alicesLaptop }
         // 👩🏾 Alice connects
@@ -242,24 +239,7 @@ describe('connection', () => {
     )
   })
 
-  describe('with invitation', () => {
-    const setup = () => {
-      // Create a new team
-      const aliceTeam = newTeam()
-
-      storage.save(aliceTeam)
-
-      // Our dummy `sendMessage` just pushes messages onto a queue
-      const messageQueue: ConnectionMessage[] = []
-      const sendMessage = (message: ConnectionMessage) => messageQueue.push(message)
-      const lastMessage = () => messageQueue[messageQueue.length - 1]
-
-      const channel = new TestChannel()
-      const connect = joinTestChannel(channel)
-
-      return { aliceTeam, sendMessage, lastMessage, connect }
-    }
-
+  describe.only('with invitation', () => {
     // Test one side of the verification workflow with Bob presenting an invitation, using a real
     // connection for Alice and manually simulating Bob's messages.
     it(`should successfully verify the other peer's invitation`, async () => {
@@ -388,8 +368,25 @@ describe('connection', () => {
       await expectConnection([bobConnection, aliceConnection])
     })
 
-    it(`shouldn't accept an invitation that's been revoked`, async () => {
+    it('should automatically connect an invitee with a member', async () => {
       const { aliceTeam, connect } = setup()
+
+      // Alice is a member
+      const aliceContext = { team: aliceTeam, user: alice, device: alicesLaptop }
+      const aliceConnection = connect('alice', aliceContext)
+
+      // 👩🏾 Alice invites 👨‍🦲 Bob
+      const { secretKey: invitationSecretKey } = aliceTeam.invite('bob')
+
+      // 👨‍🦲 Bob uses the invitation secret key to connect with Alice
+      const bobConnection = connect('bob', { user: bob, device: bobsLaptop, invitationSecretKey })
+
+      await expectConnection([bobConnection, aliceConnection])
+    })
+
+    // What if someone concurrently presents their invitation to two different members?
+    it.only(`concurrently present invitation`, async () => {
+      const { aliceTeam, bobTeam, connect } = setupWithBob()
 
       // Alice is a member
       const aliceContext = { team: aliceTeam, user: alice, device: alicesLaptop }
@@ -437,7 +434,7 @@ describe('connection', () => {
 
     // In which Eve tries to get Bob to join her team instead of Alice's
     it(`shouldn't be fooled into joining the wrong team`, async () => {
-      const { aliceTeam, sendMessage, lastMessage } = setup()
+      const { aliceTeam, sendMessage } = setup()
 
       // 👩🏾 Alice invites 👨‍🦲 Bob
       const { secretKey: invitationSecretKey } = aliceTeam.invite('bob')
@@ -462,7 +459,7 @@ describe('connection', () => {
         payload: { identityClaim: { type: KeyType.MEMBER, name: 'alice' } },
       })
 
-      // 👨‍🦲 Bob is waiting for "Alice" (Eve) to accept his invitation
+      // 👨‍🦲 Bob is waiting for fake Alice to accept his invitation
       expect(bobState()).toEqual('awaitingInvitationAcceptance')
 
       // 🦹‍♀️ Eve pretends to validate Bob's invitation
@@ -479,28 +476,9 @@ describe('connection', () => {
     })
   })
 
-  describe.only('update', () => {
-    const setup = () => {
-      // Create a new team and add Bob to it
-      const aliceTeam = newTeam()
-      aliceTeam.add(bob)
-
-      storage.save(aliceTeam)
-      const bobTeam = storage.load(bobsContext)
-
-      // Our dummy `sendMessage` just pushes messages onto a queue
-      const messageQueue: ConnectionMessage[] = []
-      const sendMessage = (message: ConnectionMessage) => messageQueue.push(message)
-      const lastMessage = () => messageQueue[messageQueue.length - 1]
-
-      const channel = new TestChannel()
-      const connect = joinTestChannel(channel)
-
-      return { aliceTeam, bobTeam, sendMessage, lastMessage, connect }
-    }
-
+  describe('update', () => {
     it('if they are behind, they will be caught up when they connect', async () => {
-      const { aliceTeam, bobTeam, connect } = setup()
+      const { aliceTeam, bobTeam, connect } = setupWithBob()
 
       // at this point, Alice and Bob have the same signature chain
 
@@ -508,6 +486,10 @@ describe('connection', () => {
       aliceTeam.add(redactUser(charlie))
       aliceTeam.addRole({ roleName: 'managers' })
       aliceTeam.addMemberRole('charlie', 'managers')
+
+      // // 👨‍🦲 Bob hasn't connected, so he doesn't have Alice's changes
+      // expect(bobTeam.has('charlie')).toBe(false)
+      // expect(bobTeam.hasRole('managers')).toBe(false)
 
       // 👩🏾 👨‍🦲 Alice and Bob both join the channel
       const aConnection = connect('alice', { team: aliceTeam, user: alice, device: alicesLaptop })
@@ -522,11 +504,10 @@ describe('connection', () => {
     })
 
     it('if we are behind, we will be caught up when we connect', async () => {
-      const { aliceTeam, connect } = setup()
+      const { aliceTeam, connect } = setupWithBob()
       aliceTeam.addMemberRole('bob', ADMIN)
 
-      storage.save(aliceTeam)
-      const bobTeam = storage.load(bobsContext)
+      const bobTeam = teams.load(aliceTeam.chain, bobsContext)
 
       // at this point, Alice and Bob have the same signature chain
 
@@ -548,11 +529,10 @@ describe('connection', () => {
     })
 
     it(`if we've diverged, we will be caught up when we connect`, async () => {
-      const { aliceTeam, connect } = setup()
+      const { aliceTeam, connect } = setupWithBob()
       aliceTeam.addMemberRole('bob', ADMIN)
 
-      storage.save(aliceTeam)
-      const bobTeam = storage.load(bobsContext)
+      const bobTeam = teams.load(aliceTeam.chain, bobsContext)
 
       // at this point, Alice and Bob have the same signature chain
 
@@ -581,30 +561,30 @@ describe('connection', () => {
       expect(bobTeam.memberHasRole('alice', 'finance')).toBe(true)
     })
   })
+
+  /** Promisified event */
+  const connectionEvent = (connections: Connection[], event: string) =>
+    Promise.all(connections.map(c => new Promise(resolve => c.on(event, () => resolve()))))
+
+  const expectConnection = async (connections: Connection[]) => {
+    // ✅ They're both connected
+    await connectionEvent(connections, 'connected')
+
+    const firstKey = connections[0].context.sessionKey
+    connections.forEach(connection => {
+      expect(connection.state).toEqual('connected')
+      // ✅ They've converged on a shared secret key
+      expect(connection.context.sessionKey).toEqual(firstKey)
+    })
+  }
+
+  const expectDisconnection = async (connections: Connection[], message?: string) => {
+    // ✅ They're both disconnected
+    await connectionEvent(connections, 'disconnected')
+    connections.forEach(connection => {
+      expect(connection.state).toEqual('disconnected')
+      // ✅ If we're checking for a message, it matches
+      if (message !== undefined) expect(connection.context.error!.message).toContain(message)
+    })
+  }
 })
-
-/** Promisified event */
-const connectionEvent = (connections: Connection[], event: string) =>
-  Promise.all(connections.map(c => new Promise(resolve => c.on(event, () => resolve()))))
-
-const expectConnection = async (connections: Connection[]) => {
-  // ✅ They're both connected
-  await connectionEvent(connections, 'connected')
-
-  const firstKey = connections[0].context.sessionKey
-  connections.forEach(connection => {
-    expect(connection.state).toEqual('connected')
-    // ✅ They've converged on a shared secret key
-    expect(connection.context.sessionKey).toEqual(firstKey)
-  })
-}
-
-const expectDisconnection = async (connections: Connection[], message?: string) => {
-  // ✅ They're both disconnected
-  await connectionEvent(connections, 'disconnected')
-  connections.forEach(connection => {
-    expect(connection.state).toEqual('disconnected')
-    // ✅ If we're checking for a message, it matches
-    if (message !== undefined) expect(connection.context.error!.message).toContain(message)
-  })
-}
