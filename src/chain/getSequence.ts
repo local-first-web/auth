@@ -1,19 +1,17 @@
-﻿import { hash } from '@herbcaudill/crypto'
-import { getHead } from './getHead'
+﻿import { getHead } from './getHead'
 import { getCommonPredecessor, isPredecessor } from './predecessors'
+import { trivialResolver } from './trivialResolver'
 import { getRoot } from '/chain/getRoot'
 import {
-  Link,
+  Action,
+  ActionLink,
   isMergeLink,
   isRootLink,
-  Action,
-  NonRootLinkBody,
+  Link,
   Resolver,
-  RootLink,
   SignatureChain,
-  SignedLink,
-  ActionLink,
 } from '/chain/types'
+import { assert } from '/util'
 
 /**
  * Takes a `SignatureChain` and returns an array of links by performing a topographical sort and
@@ -45,84 +43,80 @@ import {
  * @param options.root The link to use as the chain's root (used to process a subchain)
  * @param options.head The link to use as the chain's head (used to process a subchain)
  */
-export const getSequence = <A extends Action>(options: GetSequenceOptions<A>): ActionLink<A>[] => {
+export const getSequence = <A extends Action>(options: {
+  chain: SignatureChain<A>
+  root?: Link<A>
+  head?: Link<A>
+  resolver?: Resolver
+}): ActionLink<A>[] => {
   const {
     chain,
-    resolver = trivialResolver,
     root = getRoot(chain),
     head = getHead(chain),
+    resolver = trivialResolver,
   } = options
 
-  // if the head and the root are the same, just return that one node
+  // omit merge links from result
+  const filter = <A extends Action>(seq: Link<A>[]) =>
+    seq.filter(n => !isMergeLink(n)) as ActionLink<A>[]
+
+  // 0 parents (root link)
   if (head === root) {
+    // just return that one node
     return filter([head])
   }
 
-  //
+  // 1 parent (normal action link)
   else if (!isMergeLink(head)) {
-    // normal signed link - keep going
-    const signedLink = head as SignedLink<NonRootLinkBody<A>, A>
-    const parent = chain.links[signedLink.body.prev]
-    return filter(getSequence({ chain, resolver, root, head: parent }), [head])
+    assert(!isRootLink(head))
+
+    // work our way backwards
+    const parent = chain.links[head.body.prev]
+    const predecessors = getSequence({ chain, resolver, root, head: parent })
+    return filter([...predecessors, head])
   }
 
-  //
+  // 2 parents (merge link)
   else {
-    // merge link - need to resolve the two branches it merges, going back to the first common predecessor
+    // need to resolve the two branches it merges, going back to the first common predecessor,
+    // then continue from there
 
-    // these are two branch heads (the links merged by the merge link)
+    // these are the links merged by the merge link
     const branchHeads = head.body.map(hash => chain.links[hash]!)
 
-    // we need to work our way back to their latest common predecessor
+    // this is their most recent common ancestor
     const commonPredecessor = getCommonPredecessor(chain, branchHeads)
 
-    // however, if the common predecessor precedes the root we've been given,
-    // that means the root lives on one of these two branches
+    // if the common predecessor precedes the root we've been given, that means the root lives on
+    // one of these two branches
     if (isPredecessor(chain, commonPredecessor, root)) {
-      // we're only interested in the branch that the root is on; we can ignore the other one
+      // in this case we're only interested in the branch that the root is on;
+      // we can ignore the other one
       const ourBranchHead = branchHeads.find(h => root === h || isPredecessor(chain, root, h))!
       return getSequence({ chain, root, head: ourBranchHead, resolver })
     }
 
-    //
+    // we need to merge the two branches, going back to the most recent common predecessor
     else {
       const getBranchSequence = (branchHead: Link<A>): ActionLink<A>[] => {
         // each branch is the sequence from the common predecessor to the branch head
         const branch = getSequence({ chain, root: commonPredecessor, head: branchHead, resolver })
 
-        // omit the common predecessor itself from the two branches
+        // omit the common predecessor itself from the branch
         return branch.filter(n => n !== commonPredecessor)
       }
 
       // the common predecessor is after the root, so we have two branches that we'll need to merge
+      // let's first make sure each one is a sequence
       const [branchA, branchB] = branchHeads.map(getBranchSequence)
 
-      const resolvedBranches = filter(resolver(branchA, branchB))
+      // apply the resolver to these two sequences to come up with a single sequence
+      const resolvedBranches = resolver(branchA, branchB)
 
       // now we can resume working our way back from the common predecessor towards the root
       const predecessors = getSequence({ chain, resolver, root, head: commonPredecessor })
-      return filter([...predecessors, ...resolvedBranches], [head])
+
+      return filter([...predecessors, ...resolvedBranches, head])
     }
   }
-}
-
-const filter = <A extends Action>(seq: Link<A>[], h: Link<A> | Link<A>[] = []) =>
-  seq.concat(h).filter(n => !isMergeLink(n)) as ActionLink<A>[]
-
-/// If no resolver is provided, we just concatenate the two sequences in an arbitrary but deterministic manner
-const trivialResolver: Resolver = (a = [], b = []) => {
-  const [_a, _b] = [a, b].sort(arbitraryDeterministicSort) // ensure predictable order
-  return _a.concat(_b)
-}
-
-export type GetSequenceOptions<A extends Action> = {
-  chain: SignatureChain<A>
-  resolver?: Resolver
-  root?: Link<A>
-  head?: Link<A>
-}
-
-const arbitraryDeterministicSort = (a: Link<any>[], b: Link<any>[]) => {
-  const hashKey = 'DETERMINISTIC_SORT'
-  return hash(hashKey, a[0].body.payload) > hash(hashKey, b[0].body.payload) ? 1 : -1
 }

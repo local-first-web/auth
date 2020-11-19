@@ -77,7 +77,7 @@ export class Connection extends EventEmitter {
       incomingMessage.payload && 'head' in incomingMessage.payload
         ? incomingMessage.payload.head.slice(0, 5)
         : ''
-    console.log(`deliver to ${this.context.user.userName} : ${incomingMessage.type} ${head}`)
+    log(`deliver to ${this.context.user.userName} : ${incomingMessage.type} ${head}`)
     this.machine.send(incomingMessage)
   }
 
@@ -175,7 +175,7 @@ export class Connection extends EventEmitter {
 
     sendUpdate: context => {
       const { chain } = context.team!
-      console.log(`${context.user.userName} sendUpdate ${Object.keys(chain.links).length}`)
+      log(`${context.user.userName} sendUpdate ${Object.keys(chain.links).length}`)
       this.sendMessage({
         type: 'UPDATE',
         payload: {
@@ -187,7 +187,7 @@ export class Connection extends EventEmitter {
     },
 
     sendMissingLinks: (context, event) => {
-      console.log(context.user.userName, 'sendMissingLinks')
+      log(context.user.userName, 'sendMissingLinks')
       const { chain } = context.team!
       const { root, head, links } = chain
       const hashes = Object.keys(links)
@@ -232,7 +232,7 @@ export class Connection extends EventEmitter {
 
     receiveMissingLinks: assign({
       team: (context, event) => {
-        console.log(context.user.userName, 'receiveMissingLinks')
+        log(context.user.userName, 'receiveMissingLinks')
         const { chain } = context.team!
         const { root, links } = chain
 
@@ -353,10 +353,14 @@ export class Connection extends EventEmitter {
       const { head } = context.team!.chain
       const { head: theirHead } = (event as UpdateMessage).payload
       const result = head === theirHead
-      console.log(context.user.userName, 'headsAreEqual', result)
+      log(context.user.userName, 'headsAreEqual', result)
       return result
     },
 
     headsAreDifferent: (...args) => !this.guards.headsAreEqual(...args),
   }
+}
+
+const log = (...args: any[]) => {
+  // console.log(...args)
 }

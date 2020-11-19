@@ -65,7 +65,7 @@ export type MergeLink = {
 }
 
 export type RootLink<A extends Action> = SignedLink<RootLinkBody<A>, A>
-export type NonRootLink<A extends Action> = SignedLink<LinkBody<A>, A>
+export type NonRootLink<A extends Action> = SignedLink<NonRootLinkBody<A>, A>
 
 export type ActionLink<A extends Action> = NonRootLink<A> | RootLink<A> // excludes MergeLink
 
