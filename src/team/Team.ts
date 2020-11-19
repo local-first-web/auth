@@ -1,7 +1,7 @@
 ﻿import { signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
 import * as chains from '/chain'
-import { SignedLink } from '/chain'
+import { NonRootLink, SignedLink } from '/chain'
 import { LocalUserContext } from '/context'
 import { DeviceInfo, getDeviceId } from '/device'
 import * as invitations from '/invitation'
@@ -19,6 +19,7 @@ import {
   isNewTeam,
   SignedEnvelope,
   TeamAction,
+  TeamLink,
   TeamLinkBody,
   TeamOptions,
   TeamSignatureChain,
@@ -472,8 +473,8 @@ export class Team extends EventEmitter {
 
   /** Add a link to the chain, then recompute team state from the new chain */
   public dispatch(link: TeamAction) {
-    this.chain = chains.append<TeamLinkBody>(this.chain, link, this.context)
-    const head = chains.getHead(this.chain) as SignedLink<TeamLinkBody>
+    this.chain = chains.append<TeamAction>(this.chain, link, this.context)
+    const head = chains.getHead(this.chain) as TeamLink
     // we don't need to pass the whole chain through the reducer, just the current state + the new head
     this.state = reducer(this.state, head)
   }
@@ -488,7 +489,7 @@ export class Team extends EventEmitter {
     // Run the chain through the reducer to calculate the current team state
     // TODO: create resolver to implement strong-remove
     // const sequence = chains.getSequence(this.chain, resolver)
-    const sequence = chains.getSequence(this.chain)
+    const sequence = chains.getSequence({ chain: this.chain })
     this.state = sequence.reduce(reducer, initialState)
   }
 }

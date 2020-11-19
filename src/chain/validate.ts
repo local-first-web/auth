@@ -50,5 +50,5 @@ export const validate = <A extends Action>(
 
   const initialValue = VALID
   const v = composeValidators(validators, customValidators)
-  return getSequence(chain).reduce(v, initialValue)
+  return getSequence({ chain }).reduce(v, initialValue)
 }

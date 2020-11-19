@@ -1,31 +1,27 @@
 ﻿import { Link, isMergeLink, isRootLink, Action, SignatureChain } from '/chain/types'
 import * as R from 'ramda'
 
-/** Returns the set of strict predecessors of `link` */
-export const getPredecessors = <A extends Action>(
-  chain: SignatureChain<A>,
-  link: Link<A>
-): Link<A>[] => {
-  const visit = (link: Link<A>): Link<A>[] => {
-    const parents = getParents(chain, link)
-
-    return parents.concat(parents.flatMap(parent => visit(parent)))
-  }
-  const predecessors = visit(link)
-  return R.uniq(predecessors)
+/** Returns the set of predecessors of `link` (not including `link`) */
+export const getPredecessors = <T extends Action>(
+  chain: SignatureChain<T>,
+  link: Link<T>
+): Link<T>[] => {
+  const parents = getParents(chain, link)
+  const predecessors = parents.flatMap(parent => getPredecessors(chain, parent))
+  return R.uniq(parents.concat(predecessors))
 }
 
 /** Returns true if `a` is a predecessor of `b` */
-export const isPredecessor = <A extends Action>(
-  chain: SignatureChain<A>,
-  a: Link<A>,
-  b: Link<A>
+export const isPredecessor = <T extends Action>(
+  chain: SignatureChain<T>,
+  a: Link<T>,
+  b: Link<T>
 ): boolean => getPredecessors(chain, b).includes(a)
 
-export const getCommonPredecessor = <A extends Action>(
-  chain: SignatureChain<A>,
-  [a, b]: Link<A>[]
-): Link<A> => {
+export const getCommonPredecessor = <T extends Action>(
+  chain: SignatureChain<T>,
+  [a, b]: Link<T>[]
+): Link<T> => {
   // are they the same node?
   if (a === b) return a
 
