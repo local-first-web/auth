@@ -2,10 +2,10 @@ import { append } from '/chain/append'
 import { clone } from '/chain/clone'
 import { create } from '/chain/create'
 import { merge } from '/chain/merge'
-import { ChainLink, isMergeLink, LinkBody, SignatureChain, SignedLink } from '/chain/types'
+import { Link, isMergeLink, LinkBody, SignatureChain, SignedLink } from '/chain/types'
 import { defaultContext } from '/util/testing'
 
-export const getPayloads = (sequence: ChainLink<any>[]) =>
+export const getPayloads = (sequence: Link<any>[]) =>
   sequence.filter(n => !isMergeLink(n)).map(n => (n.body as LinkBody).payload)
 
 export const findByPayload = (chain: SignatureChain<any>, payload: any) => {

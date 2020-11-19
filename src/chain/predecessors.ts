@@ -1,12 +1,12 @@
-﻿import { ChainLink, isMergeLink, isRootLink, LinkBody, SignatureChain } from '/chain/types'
+﻿import { Link, isMergeLink, isRootLink, Action, SignatureChain } from '/chain/types'
 import * as R from 'ramda'
 
 /** Returns the set of strict predecessors of `link` */
-export const getPredecessors = <T extends LinkBody>(
-  chain: SignatureChain<T>,
-  link: ChainLink<T>
-): ChainLink<T>[] => {
-  const visit = (link: ChainLink<T>): ChainLink<T>[] => {
+export const getPredecessors = <A extends Action>(
+  chain: SignatureChain<A>,
+  link: Link<A>
+): Link<A>[] => {
+  const visit = (link: Link<A>): Link<A>[] => {
     const parents = getParents(chain, link)
 
     return parents.concat(parents.flatMap(parent => visit(parent)))
@@ -16,16 +16,16 @@ export const getPredecessors = <T extends LinkBody>(
 }
 
 /** Returns true if `a` is a predecessor of `b` */
-export const isPredecessor = <T extends LinkBody>(
-  chain: SignatureChain<T>,
-  a: ChainLink<T>,
-  b: ChainLink<T>
+export const isPredecessor = <A extends Action>(
+  chain: SignatureChain<A>,
+  a: Link<A>,
+  b: Link<A>
 ): boolean => getPredecessors(chain, b).includes(a)
 
-export const getCommonPredecessor = <T extends LinkBody>(
-  chain: SignatureChain<T>,
-  [a, b]: ChainLink<T>[]
-): ChainLink<T> => {
+export const getCommonPredecessor = <A extends Action>(
+  chain: SignatureChain<A>,
+  [a, b]: Link<A>[]
+): Link<A> => {
   // are they the same node?
   if (a === b) return a
 
@@ -38,12 +38,12 @@ export const getCommonPredecessor = <T extends LinkBody>(
   return aPredecessors.find(link => bPredecessors.includes(link))!
 }
 
-export const getParentHashes = (chain: SignatureChain<any>, link: ChainLink<any>) =>
+export const getParentHashes = (chain: SignatureChain<any>, link: Link<any>) =>
   isRootLink(link)
     ? [] // root link = 0 parents
     : isMergeLink(link)
     ? [...link.body] // merge link = 2 parents
     : [link.body.prev] // normal link = 1 parent
 
-export const getParents = (chain: SignatureChain<any>, link: ChainLink<any>) =>
+export const getParents = (chain: SignatureChain<any>, link: Link<any>) =>
   getParentHashes(chain, link).map(hash => chain.links[hash])

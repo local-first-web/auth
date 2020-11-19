@@ -1,6 +1,6 @@
-﻿import { LinkBody, SignatureChain } from './types'
+﻿import { Action, SignatureChain } from './types'
 
-export const clone = <T extends LinkBody>(chain: SignatureChain<T>) => ({
+export const clone = <A extends Action>(chain: SignatureChain<A>) => ({
   ...chain,
   links: { ...chain.links },
 })

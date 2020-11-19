@@ -3,15 +3,16 @@ import { getHead } from './getHead'
 import { getCommonPredecessor, isPredecessor } from './predecessors'
 import { getRoot } from '/chain/getRoot'
 import {
-  ChainLink,
+  Link,
   isMergeLink,
   isRootLink,
-  LinkBody,
+  Action,
   NonRootLinkBody,
   Resolver,
   RootLink,
   SignatureChain,
   SignedLink,
+  ActionLink,
 } from '/chain/types'
 
 /**
@@ -21,7 +22,7 @@ import {
  *           ┌─→ c ─→ d ─┐
  * a ─→ b ─→ ┴─→ e ───── * ─→ f
  *```
-
+ *
  * might be transformed to this sequence
  *```
  * [a, b, e, c, d, f]
@@ -49,22 +50,22 @@ import {
  * @param options.root The link to use as the chain's root (used to process a subchain)
  * @param options.head The link to use as the chain's head (used to process a subchain)
  */
-export const getSequence = <T extends LinkBody>(
-  chain: SignatureChain<T>,
+export const getSequence = <A extends Action>(
+  chain: SignatureChain<A>,
   {
     resolver = trivialResolver,
     root = getRoot(chain),
     head = getHead(chain),
-  }: GetSequenceOptions<T> = {}
-): ChainLink<T>[] => {
+  }: GetSequenceOptions<A> = {}
+): ActionLink<A>[] => {
   // recursive inner function - returns the given link's predecessors and the given link
-  const visit = (link: ChainLink<T>): ChainLink<T>[] => {
+  const visit = (link: Link<A>): Link<A>[] => {
     if (isRootLink(link) || link === root) {
       // root - we're done
       return []
     } else if (!isMergeLink(link)) {
       // normal signed link - keep going
-      const signedLink = link as SignedLink<NonRootLinkBody>
+      const signedLink = link as SignedLink<NonRootLinkBody<A>, A>
       const parent = chain.links[signedLink.body.prev]
       return visit(parent).concat(parent)
     } else {
@@ -80,28 +81,28 @@ export const getSequence = <T extends LinkBody>(
       // that means the root lives on one of these two branches
       if (isPredecessor(chain, commonPredecessor, root)) {
         // we're only interested in the branch that the root is on; we can ignore the other one
-        const rootBranchHead = branchHeads.find(h => root === h || isPredecessor(chain, root, h))!
-
-        // all we're interested is the sequence from the root to the head of the branch it's on
+        const ourBranchHead = branchHeads.find(h => root === h || isPredecessor(chain, root, h))!
         return getSequence(chain, {
           root,
-          head: rootBranchHead,
+          head: ourBranchHead,
           resolver,
         })
       } else {
-        // the common predecessor is after the root, so have two branches that we'll need to merge
-        const [branchA, branchB] = branchHeads
-          .map(branchHead =>
-            // each branch is the sequence from the common predecessor to the branch head
-            getSequence(chain, {
-              root: commonPredecessor,
-              head: branchHead,
-              resolver,
-            })
-          )
+        const getBranchSequence = (branchHead: Link<A>): ActionLink<A>[] => {
+          // each branch is the sequence from the common predecessor to the branch head
+          const branch = getSequence(chain, {
+            root: commonPredecessor,
+            head: branchHead,
+            resolver,
+          })
+
           // omit the common predecessor itself from the two branches, so it's not duplicated
-          // we'll add it once explicitly below
-          .map(branch => branch.filter(n => n !== commonPredecessor))
+          // (we'll add it back to the merged sequence below)
+          return branch.filter(n => n !== commonPredecessor)
+        }
+
+        // the common predecessor is after the root, so we have two branches that we'll need to merge
+        const [branchA, branchB] = branchHeads.map(getBranchSequence)
 
         const resolvedBranches = resolver(branchA, branchB)
 
@@ -116,7 +117,7 @@ export const getSequence = <T extends LinkBody>(
   // we start from the head and work our way back towards the root
   return visit(head)
     .concat(head)
-    .filter(n => !isMergeLink(n))
+    .filter(n => !isMergeLink(n)) as ActionLink<A>[]
 }
 
 /// If no resolver is provided, we just concatenate the two sequences in an arbitrary but deterministic manner
@@ -125,13 +126,13 @@ const trivialResolver: Resolver = (a = [], b = []) => {
   return _a.concat(_b)
 }
 
-export type GetSequenceOptions<T extends LinkBody> = {
+export type GetSequenceOptions<A extends Action> = {
   resolver?: Resolver
-  root?: ChainLink<T>
-  head?: ChainLink<T>
+  root?: Link<A>
+  head?: Link<A>
 }
 
-const arbitraryDeterministicSort = (a: ChainLink<any>[], b: ChainLink<any>[]) => {
+const arbitraryDeterministicSort = (a: Link<any>[], b: Link<any>[]) => {
   const hashKey = 'DETERMINISTIC_SORT'
   return hash(hashKey, a[0].body.payload) > hash(hashKey, b[0].body.payload) ? 1 : -1
 }

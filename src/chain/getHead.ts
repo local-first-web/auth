@@ -1,4 +1,4 @@
-import { ChainLink, LinkBody, SignatureChain } from './types'
+import { Link, Action, SignatureChain } from './types'
 
-export const getHead = <T extends LinkBody>(chain: SignatureChain<T>): ChainLink<T> =>
-  chain.links[chain.head]! as ChainLink<T>
+export const getHead = <A extends Action>(chain: SignatureChain<A>): Link<A> =>
+  chain.links[chain.head]! as Link<A>

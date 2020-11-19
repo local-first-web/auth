@@ -190,12 +190,12 @@ export const connectionMachine: MachineConfig<
 
       // Once BOTH processes complete, we're good to connect
       onDone: 'updating',
+      exit: ['sendUpdate'],
     },
 
     // having established each others' identities, we now make sure that our team signature chains are up to date
     updating: {
       // send our head & filter to tell them what we know
-      entry: ['sendUpdate'],
       on: {
         // when they send us their head & filter,
         UPDATE: [
@@ -207,6 +207,7 @@ export const connectionMachine: MachineConfig<
           // otherwise figure out what links we might have that they're missing, and send them
           {
             actions: 'sendMissingLinks',
+            // then wait for their message
             target: 'updating',
           },
         ],
@@ -224,7 +225,10 @@ export const connectionMachine: MachineConfig<
       entry: ['deriveSharedKey', 'onConnected'],
       on: {
         DISCONNECT: 'disconnected',
-        UPDATE: 'updating',
+        UPDATE: {
+          cond: 'headsAreDifferent',
+          target: 'updating',
+        },
       },
     },
 

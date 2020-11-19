@@ -73,6 +73,11 @@ export class Connection extends EventEmitter {
 
   /** Used to trigger connection events */
   public deliver(incomingMessage: ConnectionMessage) {
+    const head =
+      incomingMessage.payload && 'head' in incomingMessage.payload
+        ? incomingMessage.payload.head.slice(0, 5)
+        : ''
+    console.log(`deliver to ${this.context.user.userName} : ${incomingMessage.type} ${head}`)
     this.machine.send(incomingMessage)
   }
 
@@ -170,6 +175,7 @@ export class Connection extends EventEmitter {
 
     sendUpdate: context => {
       const { chain } = context.team!
+      console.log(`${context.user.userName} sendUpdate ${Object.keys(chain.links).length}`)
       this.sendMessage({
         type: 'UPDATE',
         payload: {
@@ -181,6 +187,7 @@ export class Connection extends EventEmitter {
     },
 
     sendMissingLinks: (context, event) => {
+      console.log(context.user.userName, 'sendMissingLinks')
       const { chain } = context.team!
       const { root, head, links } = chain
       const hashes = Object.keys(links)
@@ -223,34 +230,37 @@ export class Connection extends EventEmitter {
       })
     },
 
-    receiveMissingLinks: (context, event) => {
-      const { chain } = context.team!
-      const { root, links } = chain
+    receiveMissingLinks: assign({
+      team: (context, event) => {
+        console.log(context.user.userName, 'receiveMissingLinks')
+        const { chain } = context.team!
+        const { root, links } = chain
 
-      const { head: theirHead, links: theirLinks } = (event as MissingLinksMessage).payload
+        const { head: theirHead, links: theirLinks } = (event as MissingLinksMessage).payload
 
-      const allLinks = {
-        // all our links
-        ...links,
-        // all their new links, as a hashmap
-        ...theirLinks.reduce((r, c) => ({ ...r, [c.hash]: c }), {}),
-      } as TeamLinkMap
+        const allLinks = {
+          // all our links
+          ...links,
+          // all their new links, as a hashmap
+          ...theirLinks.reduce((r, c) => ({ ...r, [c.hash]: c }), {}),
+        } as TeamLinkMap
 
-      // make sure we're not missing any links that are referenced by these new links
-      const parentHashes = theirLinks.flatMap(link => getParentHashes(chain, link))
-      const missingHashes = parentHashes.filter(hash => !(hash in allLinks))
-      if (missingHashes.length > 0)
-        throw new Error(`Can't update, I'm missing some of your links: ${missingHashes}`)
+        // make sure we're not missing any links that are referenced by these new links
+        const parentHashes = theirLinks.flatMap(link => getParentHashes(chain, link))
+        const missingHashes = parentHashes.filter(hash => !(hash in allLinks))
+        if (missingHashes.length > 0)
+          throw new Error(`Can't update, I'm missing some of your links: ${missingHashes}`)
 
-      // we can now reconstruct their chain
-      const theirChain = {
-        root,
-        head: theirHead,
-        links: allLinks,
-      }
-      // and merge with it
-      context.team!.merge(theirChain)
-    },
+        // we can now reconstruct their chain
+        const theirChain = {
+          root,
+          head: theirHead,
+          links: allLinks,
+        }
+        // and merge with it
+        return context.team!.merge(theirChain)
+      },
+    }),
 
     receiveError: assign({
       error: (context, event) => (event as ErrorMessage).payload,
@@ -301,9 +311,8 @@ export class Connection extends EventEmitter {
       return context.theirProofOfInvitation !== undefined
     },
 
-    bothHaveInvitation: (...args) => {
-      return this.guards.iHaveInvitation(...args) && this.guards.theyHaveInvitation(...args)
-    },
+    bothHaveInvitation: (...args) =>
+      this.guards.iHaveInvitation(...args) && this.guards.theyHaveInvitation(...args),
 
     invitationProofIsValid: context => {
       try {
@@ -341,7 +350,13 @@ export class Connection extends EventEmitter {
     },
 
     headsAreEqual: (context, event) => {
-      return true
+      const { head } = context.team!.chain
+      const { head: theirHead } = (event as UpdateMessage).payload
+      const result = head === theirHead
+      console.log(context.user.userName, 'headsAreEqual', result)
+      return result
     },
+
+    headsAreDifferent: (...args) => !this.guards.headsAreEqual(...args),
   }
 }

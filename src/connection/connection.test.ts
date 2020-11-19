@@ -12,6 +12,7 @@ import { redactDevice } from '/device'
 import * as identity from '/identity'
 import { acceptMemberInvitation } from '/invitation'
 import { KeyType, randomKey, redactKeys } from '/keyset'
+import { ADMIN } from '/role'
 import * as teams from '/team'
 import * as users from '/user'
 import { redactUser } from '/user'
@@ -166,7 +167,7 @@ describe('connection', () => {
       const aConnection = connect('alice', { team: aliceTeam, user: alice, device: alicesLaptop })
       const bConnection = connect('bob', { team: bobTeam, user: bob, device: bobsLaptop })
 
-      await expectConnectionToSucceed([aConnection, bConnection])
+      await expectConnection([aConnection, bConnection])
 
       // Alice stops the connection
       aConnection.stop()
@@ -191,7 +192,7 @@ describe('connection', () => {
       const bobConnection = connect('bob', bobContext)
 
       // ❌ The connection fails
-      await expectConnectionToFail([aliceConnection, bobConnection])
+      await expectDisconnection([aliceConnection, bobConnection])
     })
 
     it(`shouldn't connect with someone who doesn't belong to the team`, async () => {
@@ -203,7 +204,7 @@ describe('connection', () => {
       const charlieConnection = connect('charlie', charlieContext)
 
       // ❌ The connection fails
-      await expectConnectionToFail([aliceConnection, charlieConnection])
+      await expectDisconnection([aliceConnection, charlieConnection])
     })
 
     it(
@@ -235,7 +236,7 @@ describe('connection', () => {
         // ...
 
         // ❌ The connection fails
-        await expectConnectionToFail([aliceConnection], 'timed out')
+        await expectDisconnection([aliceConnection], 'timed out')
       },
       LONG_TIMEOUT
     )
@@ -341,7 +342,6 @@ describe('connection', () => {
       }
       bobConnection.deliver(challengeMessage)
 
-      console.log({ state: bobState(), error: bobConnection.context.error })
       // 👨‍🦲 Bob automatically responds to the challenge with proof, and awaits acceptance
       expect(bobState().authenticating.claimingIdentity).toEqual('awaitingIdentityAcceptance')
 
@@ -385,10 +385,10 @@ describe('connection', () => {
       // 👨‍🦲 Bob uses the invitation secret key to connect with Alice
       const bobConnection = connect('bob', { user: bob, device: bobsLaptop, invitationSecretKey })
 
-      await expectConnectionToSucceed([bobConnection, aliceConnection])
+      await expectConnection([bobConnection, aliceConnection])
     })
 
-    it.only(`shouldn't accept an invitation that's been revoked`, async () => {
+    it(`shouldn't accept an invitation that's been revoked`, async () => {
       const { aliceTeam, connect } = setup()
 
       // Alice is a member
@@ -405,7 +405,7 @@ describe('connection', () => {
       const bobConnection = connect('bob', { user: bob, device: bobsLaptop, invitationSecretKey })
 
       // ❌ The connection fails
-      await expectConnectionToFail([bobConnection, aliceConnection])
+      await expectDisconnection([bobConnection, aliceConnection])
       expect(aliceConnection.context.error!.message).toContain('revoked')
     })
 
@@ -424,11 +424,15 @@ describe('connection', () => {
       const bobConnection = connect('bob', bobCtx)
 
       // 👳‍♂️ Charlie does the same
-      const charlieCtx = { user: charlie, device: charliesLaptop, invitationSecretKey: charlieKey }
+      const charlieCtx = {
+        user: charlie,
+        device: charliesLaptop,
+        invitationSecretKey: charlieKey,
+      }
       const charlieConnection = connect('charlie', charlieCtx)
 
       // ❌ The connection fails
-      await expectConnectionToFail([bobConnection, charlieConnection], `neither one`)
+      await expectDisconnection([bobConnection, charlieConnection], `neither one`)
     })
 
     // In which Eve tries to get Bob to join her team instead of Alice's
@@ -469,17 +473,95 @@ describe('connection', () => {
       }
 
       // 👨‍🦲 Bob won't see his invitation in Eve's team's sigchain, so he'll bail when he receives the welcome message
-      expectConnectionToFail([bobConnection], 'not the team I was invited to')
+      expectDisconnection([bobConnection], 'not the team I was invited to')
 
       bobConnection.deliver(welcomeMessage)
     })
   })
+
+  describe.only('update', () => {
+    const setup = () => {
+      // Create a new team and add Bob to it
+      const aliceTeam = newTeam()
+      aliceTeam.add(bob)
+
+      storage.save(aliceTeam)
+      const bobTeam = storage.load(bobsContext)
+
+      // Our dummy `sendMessage` just pushes messages onto a queue
+      const messageQueue: ConnectionMessage[] = []
+      const sendMessage = (message: ConnectionMessage) => messageQueue.push(message)
+      const lastMessage = () => messageQueue[messageQueue.length - 1]
+
+      const channel = new TestChannel()
+      const connect = joinTestChannel(channel)
+
+      return { aliceTeam, bobTeam, sendMessage, lastMessage, connect }
+    }
+
+    it('if they are behind, they will be caught up when they connect', async () => {
+      const { aliceTeam, bobTeam, connect } = setup()
+
+      // at this point, Alice and Bob have the same signature chain
+
+      // 👩🏾 but now Alice does some stuff
+      aliceTeam.add(redactUser(charlie))
+      aliceTeam.addRole({ roleName: 'managers' })
+      aliceTeam.addMemberRole('charlie', 'managers')
+
+      // 👩🏾 👨‍🦲 Alice and Bob both join the channel
+      const aConnection = connect('alice', { team: aliceTeam, user: alice, device: alicesLaptop })
+      const bConnection = connect('bob', { team: bobTeam, user: bob, device: bobsLaptop })
+
+      await expectConnection([aConnection, bConnection])
+
+      // 👨‍🦲 Bob is up to date with Alice's changes
+      expect(bobTeam.has('charlie')).toBe(true)
+      expect(bobTeam.hasRole('managers')).toBe(true)
+      expect(bobTeam.memberHasRole('charlie', 'managers')).toBe(true)
+    })
+
+    it(`if we've diverged, we will be caught up when we connect`, async () => {
+      const { aliceTeam, connect } = setup()
+      aliceTeam.addMemberRole('bob', ADMIN)
+
+      storage.save(aliceTeam)
+      const bobTeam = storage.load(bobsContext)
+
+      // at this point, Alice and Bob have the same signature chain
+
+      // 👩🏾 but now Alice does some stuff
+      aliceTeam.add(redactUser(charlie))
+      aliceTeam.addRole({ roleName: 'managers' })
+      aliceTeam.addMemberRole('charlie', 'managers')
+
+      // 👨‍🦲 and Bob does some stuff
+      bobTeam.addRole({ roleName: 'finance' })
+      bobTeam.addMemberRole('alice', 'finance')
+
+      // 👩🏾 👨‍🦲 Alice and Bob both join the channel
+      const aConnection = connect('alice', { team: aliceTeam, user: alice, device: alicesLaptop })
+      const bConnection = connect('bob', { team: bobTeam, user: bob, device: bobsLaptop })
+
+      await expectConnection([aConnection, bConnection])
+
+      // 👨‍🦲 Bob is up to date with Alice's changes
+      expect(bobTeam.has('charlie')).toBe(true)
+      expect(bobTeam.hasRole('managers')).toBe(true)
+      expect(bobTeam.memberHasRole('charlie', 'managers')).toBe(true)
+
+      // 👩🏾 and Alice is up to date with Bob's changes
+      expect(aliceTeam.hasRole('finance')).toBe(true)
+      expect(bobTeam.memberHasRole('alice', 'finance')).toBe(true)
+    })
+  })
 })
 
+/** Promisified event */
 const connectionEvent = (connections: Connection[], event: string) =>
   Promise.all(connections.map(c => new Promise(resolve => c.on(event, () => resolve()))))
 
-const expectConnectionToSucceed = async (connections: Connection[]) => {
+const expectConnection = async (connections: Connection[]) => {
   // ✅ They're both connected
   await connectionEvent(connections, 'connected')
 
@@ -491,7 +573,7 @@ const expectConnectionToSucceed = async (connections: Connection[]) => {
   })
 }
 
-const expectConnectionToFail = async (connections: Connection[], message?: string) => {
+const expectDisconnection = async (connections: Connection[], message?: string) => {
   // ✅ They're both disconnected
   await connectionEvent(connections, 'disconnected')
   connections.forEach(connection => {

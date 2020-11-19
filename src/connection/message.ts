@@ -1,4 +1,4 @@
-﻿import { ChainLink } from '/chain'
+﻿import { Link } from '/chain'
 import { Challenge } from '/identity'
 import { ProofOfInvitation } from '/invitation'
 import { KeyScope } from '/keyset'

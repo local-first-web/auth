@@ -1,12 +1,21 @@
-import { ChainLink, LinkBody, LinkMap, ROOT, RootLink, SignatureChain, SignedLink } from '/chain'
+import {
+  Link,
+  LinkBody,
+  LinkMap,
+  ActionLink,
+  ROOT,
+  RootLink,
+  SignatureChain,
+  SignedLink,
+} from '/chain'
 import { LocalUserContext, MemberContext } from '/context'
+import { Device } from '/device'
 import { Invitation } from '/invitation/types'
 import { KeyMetadata } from '/keyset'
-import { Base64, Payload, ValidationResult } from '/util'
 import { Lockbox } from '/lockbox'
 import { Member } from '/member'
 import { PermissionsMap, Role } from '/role'
-import { Device } from '/device'
+import { Base64, Payload, ValidationResult } from '/util'
 
 // TEAM CONSTRUCTOR
 
@@ -143,23 +152,23 @@ export type TeamAction =
       }
     }
 
-export type TeamLinkBody = LinkBody & TeamAction
-export type TeamLink = ChainLink<TeamLinkBody>
-export type TeamLinkMap = LinkMap<TeamLinkBody>
-export type TeamSignatureChain = SignatureChain<TeamLinkBody>
+export type TeamLinkBody = LinkBody<TeamAction>
+export type TeamLink = Link<TeamAction>
+export type TeamLinkMap = LinkMap<TeamAction>
+export type TeamSignatureChain = SignatureChain<TeamAction>
 
 // VALIDATION
 
 export type TeamStateValidator = (
   prevState: TeamState,
-  link: SignedLink<TeamLinkBody> | RootLink
+  link: ActionLink<TeamAction>
 ) => ValidationResult
 
 export type TeamStateValidatorSet = {
   [key: string]: TeamStateValidator
 }
 
-export type ValidationArgs = [TeamState, RootLink | SignedLink<TeamLinkBody>]
+export type ValidationArgs = [TeamState, ActionLink<TeamAction>]
 
 // CRYPTO
 

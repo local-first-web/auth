@@ -46,18 +46,16 @@ export class Team extends EventEmitter {
       const teamLockbox = lockbox.create(keysets.create(TEAM_SCOPE), localUser.keys)
       const adminLockbox = lockbox.create(keysets.create(ADMIN_SCOPE), localUser.keys)
 
+      // Post root link to signature chain
       const payload = {
         teamName: options.teamName,
         rootMember: users.redactUser(localUser),
         lockboxes: [teamLockbox, adminLockbox],
       }
-      // Post root link to signature chain
       this.chain = chains.create<TeamLinkBody>(payload, this.context)
-    } else {
-      // Load a team from an existing chain (maybe serialized)
-      this.chain =
-        typeof options.source === 'string' ? chains.deserialize(options.source) : options.source
     }
+    // Load a team from an existing chain
+    else this.chain = maybeDeserialize(options.source)
     this.updateState()
   }
 
@@ -72,6 +70,7 @@ export class Team extends EventEmitter {
   public merge = (theirChain: TeamSignatureChain) => {
     this.chain = chains.merge(this.chain, theirChain)
     this.updateState()
+    return this
   }
 
   // ## READ METHODS
@@ -278,10 +277,7 @@ export class Team extends EventEmitter {
     // look up the invitation
     const encryptedInvitation = this.state.invitations[id]
     if (encryptedInvitation === undefined) throw new Error(`No invitation with id '${id}' found.`)
-    if (encryptedInvitation.revoked) {
-      console.log('revoked')
-      throw new Error(`This invitation has been revoked.`)
-    }
+    if (encryptedInvitation.revoked) throw new Error(`This invitation has been revoked.`)
     if (encryptedInvitation.used) throw new Error(`This invitation has already been used.`)
 
     // open the invitation
@@ -496,3 +492,6 @@ export class Team extends EventEmitter {
     this.state = sequence.reduce(reducer, initialState)
   }
 }
+
+const maybeDeserialize = (source: string | TeamSignatureChain): TeamSignatureChain =>
+  typeof source === 'string' ? chains.deserialize(source) : source

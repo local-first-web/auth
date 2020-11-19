@@ -1,13 +1,13 @@
 ﻿import { getSequence } from './getSequence'
-import { ChainLink, LinkBody, SignatureChain } from '/chain/types'
+import { Link, Action, SignatureChain } from '/chain/types'
 
-export const getSuccessors = <T extends LinkBody>(
-  chain: SignatureChain<T>,
-  link: ChainLink<T>
-): ChainLink<T>[] => getSequence(chain, { root: link }).filter(n => n !== link)
+export const getSuccessors = <A extends Action>(
+  chain: SignatureChain<A>,
+  link: Link<A>
+): Link<A>[] => getSequence(chain, { root: link }).filter(n => n !== link)
 
-export const isSuccessor = <T extends LinkBody>(
-  chain: SignatureChain<T>,
-  a: ChainLink<T>,
-  b: ChainLink<T>
+export const isSuccessor = <A extends Action>(
+  chain: SignatureChain<A>,
+  a: Link<A>,
+  b: Link<A>
 ): boolean => getSuccessors(chain, b).includes(a)

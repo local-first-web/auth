@@ -1,14 +1,13 @@
 import { TestChannel } from './TestChannel'
-import { ConnectionContext, Connection } from '/connection'
+import { ConnectionContext, Connection, SendFunction } from '/connection'
 import { pause } from './pause'
-import { ConnectionMessage } from '/message'
 
 export const joinTestChannel = (channel: TestChannel) => (
   id: string,
   context: ConnectionContext
 ) => {
   // hook up send
-  const sendMessage = (msg: ConnectionMessage) => channel.write(id, msg)
+  const sendMessage: SendFunction = msg => channel.write(id, msg)
 
   // Instantiate the connection service
   const connection = new Connection({ sendMessage, context }).start()
