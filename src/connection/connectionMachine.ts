@@ -188,16 +188,20 @@ export const connectionMachine: MachineConfig<
         },
       },
 
-      // Once BOTH processes complete, we're good to connect
-      onDone: 'updating',
-      exit: ['sendUpdate'],
+      // Once BOTH processes complete, we continue
+
+      // Before connecting, we make sure sure we have the signature chain on both sides
+      onDone: {
+        // send our head & hashes to tell them what we know
+        actions: 'sendUpdate',
+        target: 'updating',
+      },
     },
 
     // having established each others' identities, we now make sure that our team signature chains are up to date
     updating: {
-      // send our head & filter to tell them what we know
       on: {
-        // when they send us their head & filter,
+        // when they send us their head & hashes,
         UPDATE: [
           // if we have the same head, then we're caught up
           {
@@ -207,7 +211,7 @@ export const connectionMachine: MachineConfig<
           // otherwise figure out what links we might have that they're missing, and send them
           {
             actions: 'sendMissingLinks',
-            // then wait for their message
+            // then wait for another message
             target: 'updating',
           },
         ],

@@ -2,10 +2,9 @@ import { TestChannel } from './TestChannel'
 import { ConnectionContext, Connection, SendFunction } from '/connection'
 import { pause } from './pause'
 
-export const joinTestChannel = (channel: TestChannel) => (
-  id: string,
-  context: ConnectionContext
-) => {
+export const joinTestChannel = (channel: TestChannel) => (context: ConnectionContext) => {
+  const id = context.user.userName
+
   // hook up send
   const sendMessage: SendFunction = msg => channel.write(id, msg)
 
@@ -17,10 +16,9 @@ export const joinTestChannel = (channel: TestChannel) => (
     if (senderId === id) return // I can ignore messages that I sent
 
     // simulate a random delay, then deliver the message
-    // const delay = Math.random() * 100
+    const delay = 0 //Math.random() * 100
     // TODO: This will cause tests to intermittently fail; see TODO in connection.ts regarding timing of delivery
-
-    await pause(0)
+    await pause(delay)
     connection.deliver(msg)
   })
 

@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events'
-import { ConnectionMessage } from '/message'
+import { ConnectionMessage } from '/connection/message'
 
 export class TestChannel extends EventEmitter {
   private peers: number = 0
