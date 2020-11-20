@@ -1,4 +1,4 @@
-﻿import { ROOT, RootLink, SignedLink } from '/chain'
+﻿import { ROOT } from '/chain'
 import { ADMIN } from '/role'
 import {
   addDevice,
@@ -17,7 +17,7 @@ import {
   setTeamName,
   useInvitation,
 } from '/team/reducers'
-import { TeamAction, TeamLink, TeamLinkBody, TeamState } from '/team/types'
+import { TeamAction, TeamActionLink, TeamState } from '/team/types'
 import { validate } from '/team/validate'
 
 /**
@@ -33,7 +33,7 @@ import { validate } from '/team/validate'
  * @param state The team state as of the previous link in the signature chain.
  * @param link The current link being processed.
  */
-export const reducer = (state: TeamState, link: SignedLink<TeamLinkBody> | RootLink) => {
+export const reducer = (state: TeamState, link: TeamActionLink) => {
   // make sure this link can be applied to the previous state & doesn't put us in an invalid state
   const validation = validate(state, link)
   if (!validation.isValid) throw validation.error

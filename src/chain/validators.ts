@@ -1,22 +1,21 @@
-﻿import {
+﻿import { signatures } from '@herbcaudill/crypto'
+import { getRoot } from './getRoot'
+import { hashLink } from '/chain/hashLink'
+import {
   isMergeLink,
   isRootLink,
-  LinkBody,
   NonRootLinkBody,
   ROOT,
   RootLinkBody,
   ValidatorSet,
 } from '/chain/types'
 import { ValidationError } from '/util'
-import { hashLink } from '/chain/hashLink'
-import { signatures } from '@herbcaudill/crypto'
-import { getRoot } from './getRoot'
 
 export const validators: ValidatorSet = {
   /** Does this link contain a hash of the previous link?  */
   validateHash: (link, chain) => {
     if (isRootLink(link)) return { isValid: true } // nothing to validate on first link
-    const prevHashes = isMergeLink(link) ? link.body : [(link.body as NonRootLinkBody).prev]
+    const prevHashes = isMergeLink(link) ? link.body : [(link.body as NonRootLinkBody<any>).prev]
     for (const hash of prevHashes) {
       const prevLink = chain.links[hash]!
       const expected = hashLink(prevLink.body)
@@ -39,7 +38,7 @@ export const validators: ValidatorSet = {
   /** If this is a root link, is it the first link in the chain? */
   validateRoot: (link, chain) => {
     const hasNoPreviousLink = isRootLink(link)
-    const hasRootType = (link.body as RootLinkBody).type === ROOT
+    const hasRootType = (link.body as RootLinkBody<any>).type === ROOT
     const isDesignatedAsRoot = getRoot(chain) === link
     // all should be true, or all should be false
     if (hasNoPreviousLink === isDesignatedAsRoot && isDesignatedAsRoot === hasRootType)

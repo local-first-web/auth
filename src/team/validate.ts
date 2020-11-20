@@ -1,7 +1,7 @@
-﻿import { ROOT, RootLink, SignedLink } from '/chain'
+﻿import { ActionLink, ROOT } from '/chain'
 import * as select from '/team/selectors'
 import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '/team/types'
-import { VALID, ValidationError, ValidationResult } from '/util'
+import { VALID, ValidationError } from '/util'
 
 export const validate: TeamStateValidator = (...args: ValidationArgs) => {
   for (const key in validators) {
@@ -59,7 +59,7 @@ const validators: TeamStateValidatorSet = {
 
   cantAddDeviceForSomeoneElse: (...args) => {
     const [prevState, link] = args
-    // TODO finish this
+    // TODO finish cantAddDeviceForSomeoneElse
     return VALID
   },
 
@@ -78,7 +78,7 @@ const validators: TeamStateValidatorSet = {
   },
 }
 
-const fail = (message: string, prevState: TeamState, link: SignedLink<any> | RootLink) => {
+const fail = (message: string, prevState: TeamState, link: ActionLink<any>) => {
   return {
     isValid: false,
     error: new ValidationError(message, { prevState, link }),

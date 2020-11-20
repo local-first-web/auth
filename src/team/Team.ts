@@ -1,7 +1,6 @@
 ﻿import { signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
 import * as chains from '/chain'
-import { NonRootLink, SignedLink } from '/chain'
 import { LocalUserContext } from '/context'
 import { DeviceInfo, getDeviceId } from '/device'
 import * as invitations from '/invitation'
@@ -19,8 +18,9 @@ import {
   isNewTeam,
   SignedEnvelope,
   TeamAction,
+  TeamActionLink,
   TeamLink,
-  TeamLinkBody,
+  TeamNonRootLink,
   TeamOptions,
   TeamSignatureChain,
   TeamState,
@@ -53,7 +53,7 @@ export class Team extends EventEmitter {
         rootMember: users.redactUser(localUser),
         lockboxes: [teamLockbox, adminLockbox],
       }
-      this.chain = chains.create<TeamLinkBody>(payload, this.context)
+      this.chain = chains.create<TeamAction>(payload, this.context)
     }
     // Load a team from an existing chain
     else this.chain = maybeDeserialize(options.source)
@@ -472,9 +472,10 @@ export class Team extends EventEmitter {
   // Team state
 
   /** Add a link to the chain, then recompute team state from the new chain */
-  public dispatch(link: TeamAction) {
-    this.chain = chains.append<TeamAction>(this.chain, link, this.context)
-    const head = chains.getHead(this.chain) as TeamLink
+  public dispatch(action: TeamAction) {
+    this.chain = chains.append(this.chain, action, this.context)
+    // get the newly appended link
+    const head = chains.getHead(this.chain) as TeamActionLink
     // we don't need to pass the whole chain through the reducer, just the current state + the new head
     this.state = reducer(this.state, head)
   }

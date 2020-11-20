@@ -2,7 +2,7 @@
 import { EventEmitter } from 'events'
 import * as R from 'ramda'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
-import { createMergeLink, getParentHashes, getSuccessors, isPredecessor } from '/chain'
+import { getParentHashes, getSuccessors, isPredecessor } from '/chain'
 import { connectionMachine } from '/connection/connectionMachine'
 import { deriveSharedKey } from '/connection/deriveSharedKey'
 import {
@@ -28,7 +28,7 @@ import {
 import * as identity from '/identity'
 import * as invitations from '/invitation'
 import { KeyType, randomKey } from '/keyset'
-import { Team, TeamLink, TeamLinkMap, TeamSignatureChain } from '/team'
+import { Team, TeamLink, TeamLinkMap } from '/team'
 import { redactUser } from '/user'
 
 const { MEMBER } = KeyType
