@@ -49,6 +49,7 @@ export class Connection extends EventEmitter {
     this.context = context
   }
 
+  /** Starts the connection machine. Returns this Connection object. */
   public start = () => {
     // define state machine
     const machine = createMachine(connectionMachine, {
@@ -61,17 +62,20 @@ export class Connection extends EventEmitter {
     return this
   }
 
+  /** Stops the connection machine and sends a disconnect message to the peer. */
   public stop = () => {
     const disconnectMessage = { type: 'DISCONNECT' } as DisconnectMessage
     this.deliver(disconnectMessage) // send disconnect event to local machine
     this.sendMessage(disconnectMessage) // send disconnect message to peer
   }
 
+  /** Returns the current state of the connection machine. */
   get state() {
     return this.machine.state.value
   }
 
-  /** Used to trigger connection events */
+  /** Passes an incoming message from the peer on to this connection machine.
+   *  Can also be used to manually trigger events not coming from the peer. */
   public deliver(incomingMessage: ConnectionMessage) {
     const head =
       incomingMessage.payload && 'head' in incomingMessage.payload
@@ -83,7 +87,7 @@ export class Connection extends EventEmitter {
 
   // ACTIONS
 
-  /** Dictionary of actions referenced in `connectionMachine` */
+  /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendHello'`) */
   private readonly actions: Record<string, Action> = {
     sendHello: context => {
       this.sendMessage({
@@ -138,7 +142,7 @@ export class Connection extends EventEmitter {
     },
 
     generateSeed: assign({
-      seed: context => randomKey(),
+      seed: _ => randomKey(),
       peer: context => context.team!.members(context.theirIdentityClaim!.name),
     }),
 
@@ -280,28 +284,9 @@ export class Connection extends EventEmitter {
     onDisconnected: (_, event) => this.emit('disconnected', event),
   }
 
-  private fail = (message: string, details?: any) => {
-    this.context.error = { message, details } // store error for external access
-    const errorMessage: ErrorMessage = { type: 'ERROR', payload: { message, details } }
-    this.deliver(errorMessage) // force error state locally
-    this.sendMessage(errorMessage) // send error to peer
-  }
-
-  private rehydrateTeam = (context: ConnectionContext, event: ConnectionMessage) =>
-    new Team({
-      source: (event as AcceptInvitationMessage).payload.chain,
-      context: { user: context.user },
-    })
-
-  private myProofOfInvitation = (context: ConnectionContext) => {
-    return invitations.acceptMemberInvitation(
-      context.invitationSecretKey!,
-      redactUser(context.user)
-    )
-  }
-
   // GUARDS
 
+  /** These are referred to by name in `connectionMachine` (e.g. `cond: 'iHaveInvitation'`) */
   private readonly guards: Record<string, Condition> = {
     iHaveInvitation: context => {
       return context.invitationSecretKey !== undefined
@@ -358,6 +343,28 @@ export class Connection extends EventEmitter {
     },
 
     headsAreDifferent: (...args) => !this.guards.headsAreEqual(...args),
+  }
+
+  // helpers
+
+  private fail = (message: string, details?: any) => {
+    this.context.error = { message, details } // store error for external access
+    const errorMessage: ErrorMessage = { type: 'ERROR', payload: { message, details } }
+    this.deliver(errorMessage) // force error state locally
+    this.sendMessage(errorMessage) // send error to peer
+  }
+
+  private rehydrateTeam = (context: ConnectionContext, event: ConnectionMessage) =>
+    new Team({
+      source: (event as AcceptInvitationMessage).payload.chain,
+      context: { user: context.user },
+    })
+
+  private myProofOfInvitation = (context: ConnectionContext) => {
+    return invitations.acceptMemberInvitation(
+      context.invitationSecretKey!,
+      redactUser(context.user)
+    )
   }
 }
 
