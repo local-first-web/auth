@@ -374,7 +374,7 @@ describe('connection', () => {
     })
 
     // What if someone concurrently presents their invitation to two different members?
-    // it.only(`not sure`, async () => {
+    // it.only(`not sure how this should work`, async () => {
     //   const { aliceTeam, bobTeam, connect } = setupWithBob()
     //   const aliceContext = { team: aliceTeam, user: alice, device: alicesLaptop }
 
