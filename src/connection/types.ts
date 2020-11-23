@@ -7,9 +7,9 @@ import { Member } from '/member'
 import { ConnectionMessage } from './message'
 import { Team } from '/team'
 import { User } from '/user'
-import { Base64 } from '/util'
+import { Base64, Hash } from '/util'
 
-export type SendFunction = (message: ConnectionMessage) => void
+export type SendFunction = (message: any) => void
 
 // Context schema
 
@@ -44,6 +44,7 @@ export type ConnectionContext = InitialContext & {
     message: string
     details?: any
   }
+  theirHead?: Hash
 }
 
 export type Action =
@@ -77,7 +78,16 @@ export interface ConnectionStateSchema {
         }
       }
     }
-    updating: {}
+    updating: {
+      states: {
+        sendingUpdate: {}
+        receivingUpdate: {}
+        sendingMissingLinks: {}
+        receivingMissingLinks: {}
+        waiting: {}
+        done: {}
+      }
+    }
     connected: {}
     failure: {}
   }
