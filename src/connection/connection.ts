@@ -1,8 +1,9 @@
 ﻿import { asymmetric } from '@herbcaudill/crypto'
+import debug from 'debug'
 import { EventEmitter } from 'events'
-import * as R from 'ramda'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
-import { getParentHashes, getSuccessors, isPredecessor } from '/chain'
+import { arrayToMap } from '../util/arrayToMap'
+import { getParentHashes } from '/chain'
 import { connectionMachine } from '/connection/connectionMachine'
 import { deriveSharedKey } from '/connection/deriveSharedKey'
 import {
@@ -28,8 +29,9 @@ import {
 import * as identity from '/identity'
 import * as invitations from '/invitation'
 import { KeyType, randomKey } from '/keyset'
-import { Team, TeamLink, TeamLinkMap } from '/team'
+import { Team, TeamLinkMap } from '/team'
 import { redactUser } from '/user'
+import { assert } from '/util'
 
 const { MEMBER } = KeyType
 
@@ -43,10 +45,23 @@ export class Connection extends EventEmitter {
   public machine: Interpreter<ConnectionContext, ConnectionStateSchema, ConnectionMessage>
   public context: ConnectionContext
 
+  private ourMessageIndex: number = 0
+  private theirMessageIndex: number = 0
+
   constructor({ sendMessage, context }: ConnectionParams) {
     super()
-    this.sendMessage = sendMessage
+    this.sendMessage = (message: ConnectionMessage) => {
+      this.ourMessageIndex += 1
+      sendMessage({
+        ...message,
+        index: this.ourMessageIndex,
+      })
+    }
     this.context = context
+  }
+
+  private get log() {
+    return debug(`taco:connection:${this.context.user.userName}`)
   }
 
   /** Starts the connection machine. Returns this Connection object. */
@@ -58,7 +73,9 @@ export class Connection extends EventEmitter {
     }).withContext(this.context)
 
     // instantiate the machine and start the instance
-    this.machine = interpret(machine).start()
+    this.machine = interpret(machine)
+      .onTransition(state => this.log(`state: %o`, state.value))
+      .start()
     return this
   }
 
@@ -77,11 +94,7 @@ export class Connection extends EventEmitter {
   /** Passes an incoming message from the peer on to this connection machine.
    *  Can also be used to manually trigger events not coming from the peer. */
   public deliver(incomingMessage: ConnectionMessage) {
-    const head =
-      incomingMessage.payload && 'head' in incomingMessage.payload
-        ? incomingMessage.payload.head.slice(0, 5)
-        : ''
-    log(`deliver to ${this.context.user.userName} : ${incomingMessage.type} ${head}`)
+    this.log(`<- ${incomingMessage.type} ${getHead(incomingMessage)}`)
     this.machine.send(incomingMessage)
   }
 
@@ -178,20 +191,24 @@ export class Connection extends EventEmitter {
     }),
 
     sendUpdate: context => {
-      const { chain } = context.team!
-      log(`${context.user.userName} sendUpdate ${Object.keys(chain.links).length}`)
+      const { root, head, links } = context.team!.chain
+      const hashes = Object.keys(links)
+      this.log(`sendUpdate ${trunc(head)} (${hashes.length})`)
       this.sendMessage({
         type: 'UPDATE',
-        payload: {
-          root: chain.root,
-          head: chain.head,
-          hashes: Object.keys(chain.links),
-        },
+        payload: { root, head, hashes },
       })
     },
 
+    recordTheirHead: assign({
+      theirHead: (context, event) => {
+        this.log('recordTheirHead')
+        const { payload } = event as UpdateMessage | MissingLinksMessage
+        return payload.head
+      },
+    }),
+
     sendMissingLinks: (context, event) => {
-      log(context.user.userName, 'sendMissingLinks')
       const { chain } = context.team!
       const { root, head, links } = chain
       const hashes = Object.keys(links)
@@ -202,72 +219,58 @@ export class Connection extends EventEmitter {
         hashes: theirHashes,
       } = (event as UpdateMessage).payload
 
-      // if this happens something has gone unimaginably wrong
-      if (root !== theirRoot) throw new Error('Cannot merge two chains with different roots')
+      assert(root === theirRoot, `Our roots should be the same`)
 
-      const weHaveTheSameHead = theirHead === head
-      const theirHeadIsBehindOurs =
-        theirHead in links && isPredecessor(chain, links[theirHead], links[head])
+      // if we have the same head, there are no missing links
+      if (theirHead === head) return
 
-      const getMissingLinks = (): TeamLink[] => {
-        // if we have the same head, there are no missing links
-        if (weHaveTheSameHead) return []
+      // send them every link that we have that they don't have
+      const missingLinks = hashes
+        .filter(hash => theirHashes.includes(hash) === false)
+        .map(hash => links[hash])
 
-        // if their head is a predecessor of our head, send them all the successors of their head
-        if (theirHeadIsBehindOurs) return getSuccessors(chain, links[theirHead])
-
-        // otherwise we have divergent chains
-
-        // compare their hashes to ours to figure out which links they're missing
-        const missingLinks = hashes
-          .filter(hash => theirHashes.includes(hash) === false)
-          .map(hash => links[hash])
-
-        // also include the successors of any links they're missing
-        const successors = missingLinks.flatMap(link => getSuccessors(chain, link))
-        return R.uniq(missingLinks.concat(successors))
+      this.log(`sendMissingLinks ${trunc(head)} (${missingLinks.length})`)
+      if (missingLinks.length > 0) {
+        this.sendMessage({
+          type: 'MISSING_LINKS',
+          payload: { head, links: missingLinks },
+        })
       }
-
-      this.sendMessage({
-        type: 'MISSING_LINKS',
-        payload: { head, links: getMissingLinks() },
-      })
     },
 
     receiveMissingLinks: assign({
       team: (context, event) => {
-        log(context.user.userName, 'receiveMissingLinks')
         const { chain } = context.team!
         const { root, links } = chain
-
         const { head: theirHead, links: theirLinks } = (event as MissingLinksMessage).payload
+
+        this.log(`receiveMissingLinks ${trunc(theirHead)} (${theirLinks.length})`)
 
         const allLinks = {
           // all our links
           ...links,
-          // all their new links, as a hashmap
-          ...theirLinks.reduce((r, c) => ({ ...r, [c.hash]: c }), {}),
+          // all their new links, converted from an array to a hashmap
+          ...theirLinks.reduce(arrayToMap('hash'), {}),
         } as TeamLinkMap
 
         // make sure we're not missing any links that are referenced by these new links
         const parentHashes = theirLinks.flatMap(link => getParentHashes(chain, link))
-        const missingHashes = parentHashes.filter(hash => !(hash in allLinks))
-        if (missingHashes.length > 0)
-          throw new Error(`Can't update, I'm missing some of your links: ${missingHashes}`)
+        const missingParents = parentHashes.filter(hash => !(hash in allLinks))
+        assert(
+          missingParents.length === 0,
+          `Can't update; missing parent links: \n${missingParents.join('\n')}`
+        )
 
         // we can now reconstruct their chain
-        const theirChain = {
-          root,
-          head: theirHead,
-          links: allLinks,
-        }
+        const theirChain = { root, head: theirHead, links: allLinks }
+
         // and merge with it
         return context.team!.merge(theirChain)
       },
     }),
 
     receiveError: assign({
-      error: (context, event) => (event as ErrorMessage).payload,
+      error: (_, event) => (event as ErrorMessage).payload,
     }),
 
     // failure modes
@@ -336,10 +339,15 @@ export class Connection extends EventEmitter {
 
     headsAreEqual: (context, event) => {
       const { head } = context.team!.chain
-      const { head: theirHead } = (event as UpdateMessage).payload
-      const result = head === theirHead
-      log(context.user.userName, 'headsAreEqual', result)
-      return result
+      const { payload } = event as UpdateMessage | MissingLinksMessage
+      const theirHead = payload !== undefined && head in payload ? payload.head : context.theirHead
+
+      this.log(
+        `headsAreEqual ${event.type} ${head === theirHead} (mine: ${trunc(head)}, theirs: ${trunc(
+          theirHead
+        )})`
+      )
+      return head === theirHead
     },
 
     headsAreDifferent: (...args) => !this.guards.headsAreEqual(...args),
@@ -368,6 +376,8 @@ export class Connection extends EventEmitter {
   }
 }
 
-const log = (...args: any[]) => {
-  // console.log(...args)
-}
+const trunc = (s?: string) => s?.slice(0, 5)
+
+// for debugging
+const getHead = (message: ConnectionMessage) =>
+  message.payload && 'head' in message.payload ? trunc(message.payload.head) : ''
