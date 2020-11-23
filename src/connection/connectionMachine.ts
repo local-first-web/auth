@@ -198,31 +198,105 @@ export const connectionMachine: MachineConfig<
       },
     },
 
+    /*
+NEXT
+
+Pretty sure what needs to happen is the `updating` state needs to be divided into several states.
+
+
+updating
+  on
+    UPDATE
+      actions: recordTheirHead
+      target: receivingUpdate      
+    MISSING_LINKS
+      actions: receiveMissingLinks
+      target: receivingMissingLinks 
+
+  initial: sendingUpdate 
+
+  states
+    
+    sendingUpdate
+      entry: sendUpdate
+      always: waiting
+
+    receivingUpdate
+      // if our heads are equal, we're done
+      - cond: headsAreEqual
+        target: #connected
+
+      // otherwise see if we have anything they don't
+      - target: sendingMissingLinks
+
+    sendingMissingLinks
+      entry: sendMissingLinks
+      always: waiting
+
+    receivingMissingLinks
+      // if our heads are now equal, we're done
+      - cond: headsAreEqual
+        target: #connected
+
+      // otherwise we're waiting for them to get missing links from us & confirm
+      - target: waiting
+
+      exit: sendUpdate // either way let them know our status
+
+    waiting
+
+
+*/
+
     // having established each others' identities, we now make sure that our team signature chains are up to date
     updating: {
+      initial: 'sendingUpdate',
       on: {
         // when they send us their head & hashes,
         UPDATE: [
           // if we have the same head, then we're caught up
           {
-            cond: 'headsAreEqual',
-            target: 'connected',
-          },
-          // otherwise figure out what links we might have that they're missing, and send them
-          {
-            actions: 'sendMissingLinks',
-            // then wait for another message
-            target: 'updating',
+            actions: 'recordTheirHead',
+            target: 'updating.receivingUpdate',
           },
         ],
 
-        // when they send us missing links, add them to our chain and start over
+        // when they send us missing links, add them to our chain
         MISSING_LINKS: {
-          actions: ['receiveMissingLinks', 'sendUpdate'],
-          target: 'updating',
+          actions: ['recordTheirHead', 'receiveMissingLinks'],
+          target: 'updating.receivingMissingLinks',
         },
       },
-      ...timeout,
+      states: {
+        sendingUpdate: {
+          entry: 'sendUpdate',
+          always: 'waiting',
+        },
+        receivingUpdate: {
+          always: [
+            // if our heads are equal, we're done
+            { cond: 'headsAreEqual', target: 'done' },
+            // otherwise see if we have anything they don't
+            { target: 'sendingMissingLinks' },
+          ],
+        },
+        sendingMissingLinks: {
+          entry: 'sendMissingLinks',
+          always: 'waiting',
+        },
+        receivingMissingLinks: {
+          always: [
+            // if our heads are now equal, we're done
+            { cond: 'headsAreEqual', target: 'done' },
+            // otherwise we're waiting for them to get missing links from us & confirm
+            { target: 'waiting' },
+          ],
+          exit: 'sendUpdate', // either way let them know our status
+        },
+        waiting: {},
+        done: { type: 'final' },
+      },
+      onDone: 'connected',
     },
 
     connected: {
