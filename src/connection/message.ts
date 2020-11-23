@@ -1,8 +1,8 @@
-﻿import { Link } from '/chain'
+﻿import { Connection } from './Connection'
 import { Challenge } from '/identity'
 import { ProofOfInvitation } from '/invitation'
 import { KeyScope } from '/keyset'
-import { TeamLink, TeamLinkBody, TeamLinkMap } from '/team'
+import { TeamLink } from '/team'
 import { Base64, Hash } from '/util'
 
 export type HelloMessage = {
@@ -85,7 +85,10 @@ export type MissingLinksMessage = {
   }
 }
 
-export type UnixTimestamp = number
+export type ContinueMessage = {
+  type: 'CONTINUE'
+  payload: {}
+}
 
 export type ConnectionMessage =
   | HelloMessage
@@ -97,3 +100,8 @@ export type ConnectionMessage =
   | DisconnectMessage
   | UpdateMessage
   | MissingLinksMessage
+  | ContinueMessage
+
+export type NumberedConnectionMessage = ConnectionMessage & {
+  index: number
+}
