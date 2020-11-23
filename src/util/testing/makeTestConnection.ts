@@ -1,6 +1,6 @@
-import { TestChannel } from './TestChannel'
+import { TestChannel } from '/util/testing/TestChannel'
 import { ConnectionContext, Connection, SendFunction } from '/connection'
-import { pause } from './pause'
+import { pause } from '/util/pause'
 
 export const joinTestChannel = (channel: TestChannel) => (context: ConnectionContext) => {
   const id = context.user.userName
