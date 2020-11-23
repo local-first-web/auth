@@ -3,6 +3,7 @@ import debug from 'debug'
 import { EventEmitter } from 'events'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
 import { arrayToMap } from '../util/arrayToMap'
+import { orderedDelivery } from './orderedDeliveryService'
 import { getParentHashes } from '/chain'
 import { connectionMachine } from '/connection/connectionMachine'
 import { deriveSharedKey } from '/connection/deriveSharedKey'
@@ -15,6 +16,7 @@ import {
   ErrorMessage,
   HelloMessage,
   MissingLinksMessage,
+  NumberedConnectionMessage,
   ProveIdentityMessage,
   UpdateMessage,
 } from '/connection/message'
@@ -32,6 +34,7 @@ import { KeyType, randomKey } from '/keyset'
 import { Team, TeamLinkMap } from '/team'
 import { redactUser } from '/user'
 import { assert } from '/util'
+import { pause } from '/util/pause'
 
 const { MEMBER } = KeyType
 
@@ -45,17 +48,18 @@ export class Connection extends EventEmitter {
   public machine: Interpreter<ConnectionContext, ConnectionStateSchema, ConnectionMessage>
   public context: ConnectionContext
 
-  private ourMessageIndex: number = 0
-  private theirMessageIndex: number = 0
+  private incomingMessageQueue: Record<number, NumberedConnectionMessage> = {}
+  private outgoingMessageIndex: number = 0
 
   constructor({ sendMessage, context }: ConnectionParams) {
     super()
     this.sendMessage = (message: ConnectionMessage) => {
-      this.ourMessageIndex += 1
+      this.log(`-> ${message.type} (m${this.outgoingMessageIndex})`)
       sendMessage({
         ...message,
-        index: this.ourMessageIndex,
+        index: this.outgoingMessageIndex,
       })
+      this.outgoingMessageIndex += 1
     }
     this.context = context
   }
@@ -82,7 +86,7 @@ export class Connection extends EventEmitter {
   /** Stops the connection machine and sends a disconnect message to the peer. */
   public stop = () => {
     const disconnectMessage = { type: 'DISCONNECT' } as DisconnectMessage
-    this.deliver(disconnectMessage) // send disconnect event to local machine
+    this.machine.send(disconnectMessage) // send disconnect event to local machine
     this.sendMessage(disconnectMessage) // send disconnect message to peer
   }
 
@@ -91,11 +95,24 @@ export class Connection extends EventEmitter {
     return this.machine.state.value
   }
 
-  /** Passes an incoming message from the peer on to this connection machine.
-   *  Can also be used to manually trigger events not coming from the peer. */
-  public deliver(incomingMessage: ConnectionMessage) {
-    this.log(`<- ${incomingMessage.type} ${getHead(incomingMessage)}`)
-    this.machine.send(incomingMessage)
+  /** Passes an incoming message from the peer on to this connection machine, guaranteeing that
+   *  messages will be delivered in the intended order (according to the `index` field on the
+   *  message) */
+  public deliver(incomingMessage: NumberedConnectionMessage) {
+    this.log(`<- ${incomingMessage.type} m${incomingMessage.index} ${getHead(incomingMessage)}`)
+
+    const { queue, nextMessages } = orderedDelivery(this.incomingMessageQueue, incomingMessage)
+
+    // update queue
+    this.incomingMessageQueue = queue
+
+    // send any messages that are ready to go out
+    for (const m of nextMessages) {
+      this.log(`(delivering m${m.index}) `)
+
+      this.machine.send(m)
+      // await pause(1) // yield so that state machine has a chance to update
+    }
   }
 
   // ACTIONS
@@ -358,7 +375,7 @@ export class Connection extends EventEmitter {
   private fail = (message: string, details?: any) => {
     this.context.error = { message, details } // store error for external access
     const errorMessage: ErrorMessage = { type: 'ERROR', payload: { message, details } }
-    this.deliver(errorMessage) // force error state locally
+    this.machine.send(errorMessage) // force error state locally
     this.sendMessage(errorMessage) // send error to peer
   }
 
