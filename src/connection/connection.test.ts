@@ -80,6 +80,7 @@ describe('connection', () => {
       // 👨‍🦲 Bob sends a hello message
       const identityClaim = { type: KeyType.MEMBER, name: 'bob' }
       aliceConnection.deliver({
+        index: 0,
         type: 'HELLO',
         payload: { identityClaim },
       })
@@ -91,11 +92,11 @@ describe('connection', () => {
       const challengeMessage = lastMessage() as ChallengeIdentityMessage
       const { challenge } = challengeMessage.payload
       const proof = identity.prove(challenge, bob.keys)
-      const proofMessage: ProveIdentityMessage = {
+      aliceConnection.deliver({
+        index: 1,
         type: 'PROVE_IDENTITY',
         payload: { challenge, proof },
-      }
-      aliceConnection.deliver(proofMessage)
+      })
 
       // ✅ Success! Alice has verified Bob's identity
       expect(aliceState().authenticating.verifyingIdentity).toEqual('done')
@@ -113,6 +114,7 @@ describe('connection', () => {
 
       // 👩🏾 Alice sends a hello message
       bobConnection.deliver({
+        index: 0,
         type: 'HELLO',
         payload: {
           identityClaim: { type: KeyType.MEMBER, name: 'alice' },
@@ -126,11 +128,11 @@ describe('connection', () => {
       const helloMessage = lastMessage() as HelloMessage
       const { identityClaim } = helloMessage.payload
       const challenge = identity.challenge(identityClaim)
-      const challengeMessage: ChallengeIdentityMessage = {
+      bobConnection.deliver({
+        index: 1,
         type: 'CHALLENGE_IDENTITY',
         payload: { challenge },
-      }
-      bobConnection.deliver(challengeMessage)
+      })
 
       // 👨‍🦲 Bob automatically responds to the challenge with proof, and awaits acceptance
       expect(bobState().authenticating.claimingIdentity).toEqual('awaitingIdentityAcceptance')
@@ -149,12 +151,11 @@ describe('connection', () => {
         recipientPublicKey: peerKeys.encryption,
         senderSecretKey: alice.keys.encryption.secretKey,
       })
-
-      const acceptanceMessage: AcceptIdentityMessage = {
+      bobConnection.deliver({
+        index: 2,
         type: 'ACCEPT_IDENTITY',
         payload: { encryptedSeed },
-      }
-      bobConnection.deliver(acceptanceMessage)
+      })
 
       // ✅ Success! Bob has proved his identity
       expect(bobState().authenticating.claimingIdentity).toEqual('done')
@@ -223,6 +224,7 @@ describe('connection', () => {
         // 👨‍🦲 Bob sends a hello message
         const identityClaim = { type: KeyType.MEMBER, name: 'bob' }
         aliceConnection.deliver({
+          index: 0,
           type: 'HELLO',
           payload: { identityClaim },
         })
@@ -261,6 +263,7 @@ describe('connection', () => {
       const identityClaim = { type: KeyType.MEMBER, name: 'bob' }
       const proofOfInvitation = acceptMemberInvitation(invitationSecretKey, redactUser(bob))
       aliceConnection.deliver({
+        index: 0,
         type: 'HELLO',
         payload: { identityClaim, proofOfInvitation },
       })
@@ -272,11 +275,11 @@ describe('connection', () => {
       const challengeMessage = lastMessage() as ChallengeIdentityMessage
       const { challenge } = challengeMessage.payload
       const proof = identity.prove(challenge, bob.keys)
-      const proofMessage: ProveIdentityMessage = {
+      aliceConnection.deliver({
+        index: 1,
         type: 'PROVE_IDENTITY',
         payload: { challenge, proof },
-      }
-      aliceConnection.deliver(proofMessage)
+      })
 
       // ✅ Success! Alice has verified Bob's identity
       expect(aliceState().authenticating.verifyingIdentity).toEqual('done')
@@ -299,6 +302,7 @@ describe('connection', () => {
 
       // 👩🏾 Alice sends a hello message
       bobConnection.deliver({
+        index: 0,
         type: 'HELLO',
         payload: { identityClaim: { type: KeyType.MEMBER, name: 'alice' } },
       })
@@ -309,21 +313,20 @@ describe('connection', () => {
       // 👩🏾 Alice validates Bob's invitation
       const { proofOfInvitation } = helloMessage.payload
       team.admit(proofOfInvitation!)
-
-      const welcomeMessage: AcceptInvitationMessage = {
+      bobConnection.deliver({
+        index: 1,
         type: 'ACCEPT_INVITATION',
         payload: { chain: team.save() },
-      }
-      bobConnection.deliver(welcomeMessage)
+      })
 
       // 👩🏾 Alice challenges Bob's identity claim
       const { identityClaim } = helloMessage.payload
       const challenge = identity.challenge(identityClaim)
-      const challengeMessage: ChallengeIdentityMessage = {
+      bobConnection.deliver({
+        index: 2,
         type: 'CHALLENGE_IDENTITY',
         payload: { challenge },
-      }
-      bobConnection.deliver(challengeMessage)
+      })
 
       // 👨‍🦲 Bob automatically responds to the challenge with proof, and awaits acceptance
       expect(bobState().authenticating.claimingIdentity).toEqual('awaitingIdentityAcceptance')
@@ -343,12 +346,11 @@ describe('connection', () => {
         recipientPublicKey: peerKeys.encryption,
         senderSecretKey: userKeys.encryption.secretKey,
       })
-
-      const acceptanceMessage: AcceptIdentityMessage = {
+      bobConnection.deliver({
+        index: 3,
         type: 'ACCEPT_IDENTITY',
         payload: { encryptedSeed },
-      }
-      bobConnection.deliver(acceptanceMessage)
+      })
 
       // ✅ Success! Bob has proved his identity
       expect(bobState().authenticating.claimingIdentity).toEqual('done')
@@ -436,6 +438,7 @@ describe('connection', () => {
 
       // 🦹‍♀️ Eve sends a hello message pretending to be Alice
       bobConnection.deliver({
+        index: 0,
         type: 'HELLO',
         payload: { identityClaim: { type: KeyType.MEMBER, name: 'alice' } },
       })
@@ -443,23 +446,22 @@ describe('connection', () => {
       // 👨‍🦲 Bob is waiting for fake Alice to accept his invitation
       expect(bobState()).toEqual('awaitingInvitationAcceptance')
 
-      // 🦹‍♀️ Eve pretends to validate Bob's invitation
-      const chain = eveTeam.save()
-      const welcomeMessage: AcceptInvitationMessage = {
-        type: 'ACCEPT_INVITATION',
-        payload: { chain },
-      }
-
       // 👨‍🦲 Bob won't see his invitation in Eve's team's sigchain, so he'll bail when he receives the welcome message
       expectDisconnection([bobConnection], 'not the team I was invited to')
 
-      bobConnection.deliver(welcomeMessage)
+      // 🦹‍♀️ Eve pretends to validate Bob's invitation
+      const chain = eveTeam.save()
+      bobConnection.deliver({
+        index: 1,
+        type: 'ACCEPT_INVITATION',
+        payload: { chain },
+      })
     })
   })
 
   // TODO: Figure out what's going on here, these tests fail when the other tests in this file are allowed to run
 
-  describe.only('update', () => {
+  describe('update', () => {
     it('if they are behind, they will be caught up when they connect', async () => {
       const { aliceTeam, bobTeam, connect } = setupWithBob()
 
