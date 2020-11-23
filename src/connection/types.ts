@@ -1,15 +1,15 @@
 import { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
+import { ConnectionMessage, NumberedConnectionMessage } from './message'
 import { Device } from '/device'
 import { Challenge } from '/identity'
 import { ProofOfInvitation } from '/invitation'
 import { KeyScope } from '/keyset'
 import { Member } from '/member'
-import { ConnectionMessage } from './message'
 import { Team } from '/team'
 import { User } from '/user'
 import { Base64, Hash } from '/util'
 
-export type SendFunction = (message: any) => void
+export type SendFunction = <T extends ConnectionMessage>(message: T) => void
 
 // Context schema
 
