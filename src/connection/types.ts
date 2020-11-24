@@ -56,29 +56,39 @@ export type Condition = ConditionPredicate<ConnectionContext, ConnectionMessage>
 
 export interface ConnectionStateSchema {
   states: {
+    idle: {}
     disconnected: {}
-    initializing: {}
-    awaitingInvitationAcceptance: {}
-    validatingInvitationProof: {}
-    authenticating: {
+    connecting: {
       states: {
-        claimingIdentity: {
+        maybeHandlingInvitations: {
           states: {
-            awaitingIdentityChallenge: {}
-            awaitingIdentityAcceptance: {}
-            done: {}
+            initializing: {}
+            awaitingInvitationAcceptance: {}
+            validatingInvitationProof: {}
           }
         }
-        verifyingIdentity: {
+        authenticating: {
           states: {
-            challengingIdentityClaim: {}
-            awaitingIdentityProof: {}
-            done: {}
+            provingOurIdentity: {
+              states: {
+                awaitingIdentityChallenge: {}
+                awaitingIdentityAcceptance: {}
+                done: {}
+              }
+            }
+            verifyingTheirIdentity: {
+              states: {
+                challengingIdentityClaim: {}
+                awaitingIdentityProof: {}
+                done: {}
+              }
+            }
           }
         }
+        done: {}
       }
     }
-    updating: {
+    synchronizing: {
       states: {
         sendingUpdate: {}
         receivingUpdate: {}

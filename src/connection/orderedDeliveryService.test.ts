@@ -9,7 +9,7 @@ const msgs = [
   { index: 4, payload: 'four' },
 ]
 
-describe.only('orderedDeliveryService', () => {
+describe('orderedDeliveryService', () => {
   describe('nextMessages', () => {
     const testCase = (queueIndexes: number[], nextIndex: number, expectedIndexes: number[]) => {
       const queue = msgs.filter(m => queueIndexes.includes(m.index)).reduce(arrayToMap('index'), {})

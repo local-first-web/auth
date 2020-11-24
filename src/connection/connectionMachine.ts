@@ -12,7 +12,7 @@ export const connectionMachine: MachineConfig<
   ConnectionMessage
 > = {
   id: 'connection',
-  initial: 'disconnected',
+  initial: 'idle',
   entry: ['sendHello'],
 
   on: {
@@ -23,159 +23,70 @@ export const connectionMachine: MachineConfig<
   },
 
   states: {
-    disconnected: {
-      entry: 'onDisconnected',
+    idle: {
       on: {
         HELLO: {
           actions: 'receiveHello',
-          target: 'initializing',
+          target: 'connecting',
         },
       },
     },
 
-    // transient state to determine where to start
-    initializing: {
-      always: [
-        // we can't both present invitations - someone has to be a member
-        {
-          cond: 'bothHaveInvitation',
-          actions: ['failNeitherIsMember'],
-          target: '#failure',
-        },
-
-        // if I have an invitation, wait for acceptance
-        {
-          cond: 'iHaveInvitation',
-          target: 'awaitingInvitationAcceptance',
-        },
-
-        // if they have an invitation, validate it
-        {
-          cond: 'theyHaveInvitation',
-          target: 'validatingInvitationProof',
-        },
-
-        // otherwise, we can proceed directly to authentication
-        {
-          target: 'authenticating',
-        },
-      ],
+    disconnected: {
+      id: 'disconnected',
+      entry: 'onDisconnected',
     },
 
-    awaitingInvitationAcceptance: {
-      // wait for them to validate the invitation we've shown
-      on: {
-        ACCEPT_INVITATION: [
-          // make sure the team I'm joining is actually the one that invited me
-          {
-            cond: 'joinedTheRightTeam',
-            actions: 'joinTeam',
-            target: 'authenticating',
-          },
-
-          // if it's not, disconnect with error
-          {
-            actions: 'rejectTeam',
-            target: '#failure',
-          },
-        ],
-      },
-      ...timeout,
-    },
-
-    validatingInvitationProof: {
-      always: [
-        // if the proof succeeds, add them to the team and send a welcome message,
-        // then proceed to the standard identity claim & challenge process
-        {
-          cond: 'invitationProofIsValid',
-          actions: 'acceptInvitation',
-          target: 'authenticating',
-        },
-
-        // if the proof fails, disconnect with error
-        {
-          actions: 'rejectInvitation',
-          target: '#failure',
-        },
-      ],
-    },
-
-    authenticating: {
-      // these are two peers, mutually authenticating to each other;
-      // so we have to complete two parallel processes:
-      // 1. prove our identity
-      // 2. verify our peer's identity
-      type: 'parallel',
+    connecting: {
+      id: 'connecting',
+      initial: 'maybeHandlingInvitations',
 
       states: {
-        // 1. prove our identity
-        claimingIdentity: {
-          initial: 'awaitingIdentityChallenge',
+        maybeHandlingInvitations: {
+          initial: 'initializing',
           states: {
-            // we claimed our identity already, in our HELLO message; now we wait for a challenge
-            awaitingIdentityChallenge: {
-              on: {
-                CHALLENGE_IDENTITY: {
-                  // when we receive a challenge, respond with proof
-                  actions: ['proveIdentity'],
-                  target: 'awaitingIdentityAcceptance',
-                },
-              },
-              ...timeout,
-            },
-
-            // wait for a message confirming that they've validated our proof of identity
-            awaitingIdentityAcceptance: {
-              on: {
-                ACCEPT_IDENTITY: {
-                  // save the encrypted seed they provide; we'll use it to derive a shared secret
-                  actions: 'storeTheirEncryptedSeed',
-                  target: 'done',
-                },
-              },
-              ...timeout,
-            },
-
-            done: { type: 'final' },
-          },
-        },
-
-        // 2. verify the otherr peer's claimed identity: receive their claim, challenge it, and validate their proof
-        verifyingIdentity: {
-          initial: 'challengingIdentityClaim',
-          states: {
-            challengingIdentityClaim: {
+            initializing: {
               always: [
-                // if we have a member by that name on the team, send a challenge
+                // we can't both present invitations - someone has to be a member
                 {
-                  cond: 'identityIsKnown',
-                  actions: 'challengeIdentity',
-                  target: 'awaitingIdentityProof',
+                  cond: 'bothHaveInvitation',
+                  actions: 'failNeitherIsMember',
+                  target: '#failure',
                 },
 
-                // if we don't have anybody by that name in the team, disconnect with error
+                // if I have an invitation, wait for acceptance
                 {
-                  actions: 'rejectIdentity',
-                  target: '#failure',
+                  cond: 'iHaveInvitation',
+                  target: 'awaitingInvitationAcceptance',
+                },
+
+                // if they have an invitation, validate it
+                {
+                  cond: 'theyHaveInvitation',
+                  target: 'validatingInvitationProof',
+                },
+
+                // otherwise, we can proceed directly to authentication
+                {
+                  target: '#authenticating',
                 },
               ],
             },
 
-            // then wait for them to respond to the challenge with proof
-            awaitingIdentityProof: {
+            awaitingInvitationAcceptance: {
+              // wait for them to validate the invitation we've shown
               on: {
-                PROVE_IDENTITY: [
-                  // if the proof succeeds, we're done on our side
+                ACCEPT_INVITATION: [
+                  // make sure the team I'm joining is actually the one that invited me
                   {
-                    cond: 'identityProofIsValid',
-                    actions: ['generateSeed', 'acceptIdentity'],
-                    target: 'done',
+                    cond: 'joinedTheRightTeam',
+                    actions: 'joinTeam',
+                    target: '#authenticating',
                   },
 
-                  // if the proof fails, disconnect with error
+                  // if it's not, disconnect with error
                   {
-                    actions: 'rejectIdentity',
+                    actions: 'rejectTeam',
                     target: '#failure',
                   },
                 ],
@@ -183,73 +94,132 @@ export const connectionMachine: MachineConfig<
               ...timeout,
             },
 
-            done: { type: 'final' },
+            validatingInvitationProof: {
+              always: [
+                // if the proof succeeds, add them to the team and send a welcome message,
+                // then proceed to the standard identity claim & challenge process
+                {
+                  cond: 'invitationProofIsValid',
+                  actions: 'acceptInvitation',
+                  target: '#authenticating',
+                },
+
+                // if the proof fails, disconnect with error
+                {
+                  actions: 'rejectInvitation',
+                  target: '#failure',
+                },
+              ],
+            },
           },
         },
-      },
 
-      // Once BOTH processes complete, we continue
+        authenticating: {
+          id: 'authenticating',
+
+          // peers mutually authenticate to each other, so we have to complete two parallel processes:
+          // 1. prove our identity
+          // 2. verify their identity
+          type: 'parallel',
+          states: {
+            // 1.
+            provingOurIdentity: {
+              initial: 'awaitingIdentityChallenge',
+              states: {
+                // we claimed our identity already, in our HELLO message; now we wait for a challenge
+                awaitingIdentityChallenge: {
+                  on: {
+                    CHALLENGE_IDENTITY: {
+                      // when we receive a challenge, respond with proof
+                      actions: ['proveIdentity'],
+                      target: 'awaitingIdentityAcceptance',
+                    },
+                  },
+                  ...timeout,
+                },
+
+                // wait for a message confirming that they've validated our proof of identity
+                awaitingIdentityAcceptance: {
+                  on: {
+                    ACCEPT_IDENTITY: {
+                      // save the encrypted seed they provide; we'll use it to derive a shared secret
+                      actions: 'storeTheirEncryptedSeed',
+                      target: 'done',
+                    },
+                  },
+                  ...timeout,
+                },
+
+                done: { type: 'final' },
+              },
+            },
+
+            // 2.
+            verifyingTheirIdentity: {
+              initial: 'challengingIdentityClaim',
+              states: {
+                // we received their identity claim in their HELLO message; wait for a challenge
+                challengingIdentityClaim: {
+                  always: [
+                    // if we have a member by that name on the team, send a challenge
+                    {
+                      cond: 'identityIsKnown',
+                      actions: 'challengeIdentity',
+                      target: 'awaitingIdentityProof',
+                    },
+
+                    // if we don't have anybody by that name in the team, disconnect with error
+                    {
+                      actions: 'rejectIdentity',
+                      target: '#failure',
+                    },
+                  ],
+                },
+
+                // then wait for them to respond to the challenge with proof
+                awaitingIdentityProof: {
+                  on: {
+                    PROVE_IDENTITY: [
+                      // if the proof succeeds, we're done on our side
+                      {
+                        cond: 'identityProofIsValid',
+                        actions: ['generateSeed', 'acceptIdentity'],
+                        target: 'done',
+                      },
+
+                      // if the proof fails, disconnect with error
+                      {
+                        actions: 'rejectIdentity',
+                        target: '#failure',
+                      },
+                    ],
+                  },
+                  ...timeout,
+                },
+
+                done: { type: 'final' },
+              },
+            },
+          },
+
+          // Once BOTH processes complete, we continue
+          onDone: '#connecting.done',
+        },
+
+        done: { type: 'final' },
+      },
 
       // Before connecting, we make sure sure we have the signature chain on both sides
       onDone: {
         // send our head & hashes to tell them what we know
         actions: 'sendUpdate',
-        target: 'updating',
+        target: '#synchronizing',
       },
     },
 
-    /*
-NEXT
-
-Pretty sure what needs to happen is the `updating` state needs to be divided into several states.
-
-
-updating
-  on
-    UPDATE
-      actions: recordTheirHead
-      target: receivingUpdate      
-    MISSING_LINKS
-      actions: receiveMissingLinks
-      target: receivingMissingLinks 
-
-  initial: sendingUpdate 
-
-  states
-    
-    sendingUpdate
-      entry: sendUpdate
-      always: waiting
-
-    receivingUpdate
-      // if our heads are equal, we're done
-      - cond: headsAreEqual
-        target: #connected
-
-      // otherwise see if we have anything they don't
-      - target: sendingMissingLinks
-
-    sendingMissingLinks
-      entry: sendMissingLinks
-      always: waiting
-
-    receivingMissingLinks
-      // if our heads are now equal, we're done
-      - cond: headsAreEqual
-        target: #connected
-
-      // otherwise we're waiting for them to get missing links from us & confirm
-      - target: waiting
-
-      exit: sendUpdate // either way let them know our status
-
-    waiting
-
-
-*/
-
     // having established each others' identities, we now make sure that our team signature chains are up to date
-    updating: {
+    synchronizing: {
+      id: 'synchronizing',
       initial: 'sendingUpdate',
       on: {
         // when they send us their head & hashes,
@@ -257,14 +227,14 @@ updating
           // if we have the same head, then we're caught up
           {
             actions: 'recordTheirHead',
-            target: 'updating.receivingUpdate',
+            target: 'synchronizing.receivingUpdate',
           },
         ],
 
         // when they send us missing links, add them to our chain
         MISSING_LINKS: {
           actions: ['recordTheirHead', 'receiveMissingLinks'],
-          target: 'updating.receivingMissingLinks',
+          target: 'synchronizing.receivingMissingLinks',
         },
       },
       states: {
@@ -302,17 +272,17 @@ updating
     connected: {
       entry: ['deriveSharedKey', 'onConnected'],
       on: {
-        DISCONNECT: 'disconnected',
+        DISCONNECT: '#disconnected',
         UPDATE: {
           cond: 'headsAreDifferent',
-          target: 'updating',
+          target: '#synchronizing',
         },
       },
     },
 
     failure: {
       id: 'failure',
-      always: 'disconnected',
+      always: '#disconnected',
     },
   },
 }

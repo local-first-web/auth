@@ -96,9 +96,8 @@ export class Connection extends EventEmitter {
   }
 
   /** Passes an incoming message from the peer on to this connection machine, guaranteeing that
-   *  messages will be delivered in the intended order (according to the `index` field on the
-   *  message) */
-  public deliver(incomingMessage: NumberedConnectionMessage) {
+   *  messages will be delivered in the intended order (according to the `index` field on the message) */
+  public async deliver(incomingMessage: NumberedConnectionMessage) {
     this.log(`<- ${incomingMessage.type} m${incomingMessage.index} ${getHead(incomingMessage)}`)
 
     const { queue, nextMessages } = orderedDelivery(this.incomingMessageQueue, incomingMessage)
@@ -111,7 +110,7 @@ export class Connection extends EventEmitter {
       this.log(`(delivering m${m.index}) `)
 
       this.machine.send(m)
-      // await pause(1) // yield so that state machine has a chance to update
+      await pause(1) // yield so that state machine has a chance to update
     }
   }
 
@@ -373,8 +372,10 @@ export class Connection extends EventEmitter {
   // helpers
 
   private fail = (message: string, details?: any) => {
-    this.context.error = { message, details } // store error for external access
-    const errorMessage: ErrorMessage = { type: 'ERROR', payload: { message, details } }
+    const errorPayload = { message, details }
+    this.log(errorPayload)
+    this.context.error = errorPayload // store error for external access
+    const errorMessage: ErrorMessage = { type: 'ERROR', payload: errorPayload }
     this.machine.send(errorMessage) // force error state locally
     this.sendMessage(errorMessage) // send error to peer
   }

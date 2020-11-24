@@ -1,8 +1,6 @@
 import { asymmetric } from '@herbcaudill/crypto'
 import { Connection, ConnectionContext } from '/connection'
 import {
-  AcceptIdentityMessage,
-  AcceptInvitationMessage,
   ChallengeIdentityMessage,
   ConnectionMessage,
   HelloMessage,
@@ -30,7 +28,7 @@ import {
 } from '/util/testing'
 import '/util/testing/expect/toBeValid'
 
-describe('connection', () => {
+describe.only('connection', () => {
   const alicesLaptop = redactDevice(_alicesLaptop)
   const bobsLaptop = redactDevice(_bobsLaptop)
   const charliesLaptop = redactDevice(_charliesLaptop)
@@ -86,7 +84,9 @@ describe('connection', () => {
       })
 
       // 👩🏾 Alice automatically sends Bob a challenge & waits for proof
-      expect(aliceState().authenticating.verifyingIdentity).toEqual('awaitingIdentityProof')
+      expect(aliceState().connecting.authenticating.verifyingTheirIdentity).toEqual(
+        'awaitingIdentityProof'
+      )
 
       // 👨‍🦲 Bob generates proof by signing Alice's challenge and sends it back
       const challengeMessage = lastMessage() as ChallengeIdentityMessage
@@ -99,7 +99,7 @@ describe('connection', () => {
       })
 
       // ✅ Success! Alice has verified Bob's identity
-      expect(aliceState().authenticating.verifyingIdentity).toEqual('done')
+      expect(aliceState().connecting.authenticating.verifyingTheirIdentity).toEqual('done')
     })
 
     // Test the other side, using a real connection for Bob and manually simulating Alice's messages.
@@ -122,7 +122,9 @@ describe('connection', () => {
       })
 
       // 👨‍🦲 Bob automatically asserts his identity, and awaits a challenge
-      expect(bobState().authenticating.claimingIdentity).toEqual('awaitingIdentityChallenge')
+      expect(bobState().connecting.authenticating.provingOurIdentity).toEqual(
+        'awaitingIdentityChallenge'
+      )
 
       // 👩🏾 Alice challenges Bob's identity claim
       const helloMessage = lastMessage() as HelloMessage
@@ -135,7 +137,9 @@ describe('connection', () => {
       })
 
       // 👨‍🦲 Bob automatically responds to the challenge with proof, and awaits acceptance
-      expect(bobState().authenticating.claimingIdentity).toEqual('awaitingIdentityAcceptance')
+      expect(bobState().connecting.authenticating.provingOurIdentity).toEqual(
+        'awaitingIdentityAcceptance'
+      )
 
       // 👩🏾 Alice verifies Bob's proof
       const proofMessage = lastMessage() as ProveIdentityMessage
@@ -158,7 +162,7 @@ describe('connection', () => {
       })
 
       // ✅ Success! Bob has proved his identity
-      expect(bobState().authenticating.claimingIdentity).toEqual('done')
+      expect(bobState().connecting.authenticating.provingOurIdentity).toEqual('done')
     })
 
     // Let both processes play out automatically
@@ -230,7 +234,9 @@ describe('connection', () => {
         })
 
         // 👩🏾 Alice automatically sends Bob a challenge & waits for proof
-        expect(connectionState().authenticating.verifyingIdentity).toEqual('awaitingIdentityProof')
+        expect(connectionState().connecting.authenticating.verifyingTheirIdentity).toEqual(
+          'awaitingIdentityProof'
+        )
 
         // 👨‍🦲 Bob doesn't respond
         // ...
@@ -269,7 +275,9 @@ describe('connection', () => {
       })
 
       // 👩🏾 Alice automatically validates the invitation
-      expect(aliceState().authenticating.verifyingIdentity).toEqual('awaitingIdentityProof')
+      expect(aliceState().connecting.authenticating.verifyingTheirIdentity).toEqual(
+        'awaitingIdentityProof'
+      )
 
       // 👨‍🦲 Bob generates proof by signing Alice's challenge and sends it back
       const challengeMessage = lastMessage() as ChallengeIdentityMessage
@@ -282,7 +290,7 @@ describe('connection', () => {
       })
 
       // ✅ Success! Alice has verified Bob's identity
-      expect(aliceState().authenticating.verifyingIdentity).toEqual('done')
+      expect(aliceState().connecting.authenticating.verifyingTheirIdentity).toEqual('done')
     })
 
     // Test the other side with Bob presenting an invitation, using a real connection for Bob
@@ -308,7 +316,7 @@ describe('connection', () => {
       })
 
       // 👨‍🦲 Bob awaits acceptance
-      expect(bobState()).toEqual('awaitingInvitationAcceptance')
+      expect(bobState().connecting.maybeHandlingInvitations).toEqual('awaitingInvitationAcceptance')
 
       // 👩🏾 Alice validates Bob's invitation
       const { proofOfInvitation } = helloMessage.payload
@@ -329,7 +337,9 @@ describe('connection', () => {
       })
 
       // 👨‍🦲 Bob automatically responds to the challenge with proof, and awaits acceptance
-      expect(bobState().authenticating.claimingIdentity).toEqual('awaitingIdentityAcceptance')
+      expect(bobState().connecting.authenticating.provingOurIdentity).toEqual(
+        'awaitingIdentityAcceptance'
+      )
 
       // 👩🏾 Alice verifies Bob's proof
       const proofMessage = lastMessage() as ProveIdentityMessage
@@ -353,7 +363,7 @@ describe('connection', () => {
       })
 
       // ✅ Success! Bob has proved his identity
-      expect(bobState().authenticating.claimingIdentity).toEqual('done')
+      expect(bobState().connecting.authenticating.provingOurIdentity).toEqual('done')
     })
 
     // Create real connections with a member on one side and an invitee on the other
@@ -374,7 +384,7 @@ describe('connection', () => {
     })
 
     // What if someone concurrently presents their invitation to two different members?
-    // it.only(`not sure how this should work`, async () => {
+    // it(`not sure how this should work`, async () => {
     //   const { aliceTeam, bobTeam, connect } = setupWithBob()
     //   const aliceContext = { team: aliceTeam, user: alice, device: alicesLaptop }
 
@@ -444,7 +454,7 @@ describe('connection', () => {
       })
 
       // 👨‍🦲 Bob is waiting for fake Alice to accept his invitation
-      expect(bobState()).toEqual('awaitingInvitationAcceptance')
+      expect(bobState().connecting.maybeHandlingInvitations).toEqual('awaitingInvitationAcceptance')
 
       // 👨‍🦲 Bob won't see his invitation in Eve's team's sigchain, so he'll bail when he receives the welcome message
       expectDisconnection([bobConnection], 'not the team I was invited to')
@@ -458,8 +468,6 @@ describe('connection', () => {
       })
     })
   })
-
-  // TODO: Figure out what's going on here, these tests fail when the other tests in this file are allowed to run
 
   describe('update', () => {
     it('if they are behind, they will be caught up when they connect', async () => {
