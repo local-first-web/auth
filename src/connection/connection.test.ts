@@ -28,7 +28,7 @@ import {
 } from '/util/testing'
 import '/util/testing/expect/toBeValid'
 
-describe.only('connection', () => {
+describe('connection', () => {
   const alicesLaptop = redactDevice(_alicesLaptop)
   const bobsLaptop = redactDevice(_bobsLaptop)
   const charliesLaptop = redactDevice(_charliesLaptop)
