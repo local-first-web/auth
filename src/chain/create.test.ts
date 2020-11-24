@@ -1,9 +1,4 @@
-import { deserialize } from './deserialize'
-import { serialize } from './serialize'
-import { create } from '/chain'
-import { getHead } from '/chain/getHead'
-import { getRoot } from '/chain/getRoot'
-import { validate } from '/chain/validate'
+import { create, deserialize, getHead, getRoot, serialize, validate } from '/chain'
 import { defaultContext } from '/util/testing'
 import '/util/testing/expect/toBeValid'
 

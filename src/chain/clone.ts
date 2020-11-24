@@ -1,4 +1,4 @@
-﻿import { Action, SignatureChain } from './types'
+﻿import { Action, SignatureChain } from '/chain/types'
 
 export const clone = <A extends Action>(chain: SignatureChain<A>) => ({
   ...chain,

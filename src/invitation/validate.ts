@@ -1,8 +1,8 @@
-﻿import { open } from './open'
-import { signatures } from '@herbcaudill/crypto'
+﻿import { signatures } from '@herbcaudill/crypto'
+import { open } from '/invitation/open'
 import { Invitation, ProofOfInvitation } from '/invitation/types'
 import { KeysetWithSecrets } from '/keyset'
-import { VALID, ValidationResult } from '/util'
+import { VALID } from '/util'
 
 export const validate = (
   proof: ProofOfInvitation,
@@ -35,8 +35,6 @@ export const validate = (
   if (!signatures.verify(signedMessage))
     return fail(`Signature provided is not valid`, { signedMessage, ...details })
 
-  // TODO: invite hasn't already been used
-  // TODO: invite hasn't expired
   return VALID
 }
 

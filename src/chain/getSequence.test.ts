@@ -1,8 +1,5 @@
-import { append } from './append'
-import { create } from './create'
-import { Resolver, SignedLink } from './types'
-import { getSequence } from './getSequence'
-import { buildChain, findByPayload, getPayloads } from './testUtils'
+import { buildChain, findByPayload, getPayloads } from '/chain/testUtils'
+import { append, create, getSequence, Resolver, SignedLink } from '/chain'
 import { defaultContext } from '/util/testing'
 
 describe('chains', () => {

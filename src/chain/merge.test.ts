@@ -1,5 +1,4 @@
-import { clone } from './clone'
-import { append, create, merge } from '/chain'
+import { append, clone, create, merge } from '/chain'
 import { alicesContext, bobsContext, defaultContext } from '/util/testing'
 import '/util/testing/expect/toBeValid'
 

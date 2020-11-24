@@ -1,5 +1,5 @@
 ﻿import { signatures } from '@herbcaudill/crypto'
-import { getRoot } from './getRoot'
+import { getRoot } from '/chain/getRoot'
 import { hashLink } from '/chain/hashLink'
 import {
   isMergeLink,

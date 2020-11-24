@@ -1,4 +1,4 @@
-﻿import { Challenge } from './types'
+﻿import { Challenge } from '/identity/types'
 import { KeyScope, randomKey } from '/keyset'
 
 export const challenge = (identityClaim: KeyScope): Challenge => ({

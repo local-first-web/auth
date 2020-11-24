@@ -1,5 +1,4 @@
-﻿import { Connection } from './Connection'
-import { Challenge } from '/identity'
+﻿import { Challenge } from '/identity'
 import { ProofOfInvitation } from '/invitation'
 import { KeyScope } from '/keyset'
 import { TeamLink } from '/team'

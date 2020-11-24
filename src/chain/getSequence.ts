@@ -1,6 +1,6 @@
-﻿import { getHead } from './getHead'
-import { getCommonPredecessor, isPredecessor } from './predecessors'
-import { trivialResolver } from './trivialResolver'
+﻿import { getHead } from '/chain/getHead'
+import { getCommonPredecessor, isPredecessor } from '/chain/predecessors'
+import { trivialResolver } from '/chain/trivialResolver'
 import { getRoot } from '/chain/getRoot'
 import {
   Action,

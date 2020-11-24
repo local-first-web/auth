@@ -1,10 +1,8 @@
-﻿import { KeyType } from '/keyset'
-import * as keyset from '/keyset'
-import { create } from '/lockbox/create'
-import { open } from '/lockbox/open'
+﻿import * as keyset from '/keyset'
+import { KeyType } from '/keyset'
+import { create, open, rotate } from '/lockbox'
 import { ADMIN } from '/role'
 import { bob, eve, MANAGERS } from '/util/testing'
-import { rotate } from './rotate'
 
 describe('lockbox', () => {
   it('can be opened by the intended recipient', () => {

@@ -1,7 +1,12 @@
-import { buildChain, getPayloads, findByPayload } from './testUtils'
-import { getPredecessors, getCommonPredecessor, isPredecessor } from './predecessors'
-import { getHead } from '/chain/getHead'
-import { isMergeLink, SignedLink } from '/chain/types'
+import {
+  getCommonPredecessor,
+  getHead,
+  getPredecessors,
+  isMergeLink,
+  isPredecessor,
+  SignedLink,
+} from '/chain'
+import { buildChain, findByPayload, getPayloads } from '/chain/testUtils'
 
 /*
                      ┌─→ e ─→ g ─┐

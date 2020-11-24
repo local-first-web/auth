@@ -1,5 +1,5 @@
 ﻿import { signatures } from '@herbcaudill/crypto'
-import { Challenge } from './types'
+import { Challenge } from '/identity/types'
 import { KeysetWithSecrets } from '/keyset'
 import { Base64 } from '/util'
 

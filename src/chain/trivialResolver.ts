@@ -1,5 +1,5 @@
 import { Resolver } from '/chain/types'
-import { arbitraryDeterministicSort } from './arbitraryDeterministicSort'
+import { arbitraryDeterministicSort } from '/chain/arbitraryDeterministicSort'
 
 /// If no resolver is provided, we just concatenate the two sequences in an arbitrary but deterministic manner
 export const trivialResolver: Resolver = (a = [], b = []) => {

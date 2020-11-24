@@ -1,5 +1,5 @@
 ﻿import { signatures } from '@herbcaudill/crypto'
-import { hashLink } from './hashLink'
+import { hashLink } from '/chain/hashLink'
 import { LocalUserContext, redactContext } from '/context'
 import { EMPTY_CHAIN, Action, SignatureChain, SignedLink, NonRootLinkBody } from '/chain'
 

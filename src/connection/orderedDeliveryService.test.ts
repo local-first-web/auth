@@ -1,4 +1,4 @@
-import { orderedDelivery } from './orderedDeliveryService'
+import { orderedDelivery } from '/connection/orderedDeliveryService'
 import { arrayToMap } from '/util/arrayToMap'
 
 const msgs = [

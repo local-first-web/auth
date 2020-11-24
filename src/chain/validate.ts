@@ -1,6 +1,5 @@
-﻿import { getSequence } from './getSequence'
-import { Link, Action } from './types'
-import { SignatureChain, ValidatorSet } from '/chain'
+﻿import { getSequence } from '/chain/getSequence'
+import { Action, Link, SignatureChain, ValidatorSet } from '/chain/types'
 import { validators } from '/chain/validators'
 import { InvalidResult, VALID, ValidationResult } from '/util'
 

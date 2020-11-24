@@ -2,8 +2,6 @@
 import debug from 'debug'
 import { EventEmitter } from 'events'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
-import { arrayToMap } from '../util/arrayToMap'
-import { orderedDelivery } from './orderedDeliveryService'
 import { getParentHashes } from '/chain'
 import { connectionMachine } from '/connection/connectionMachine'
 import { deriveSharedKey } from '/connection/deriveSharedKey'
@@ -20,6 +18,7 @@ import {
   ProveIdentityMessage,
   UpdateMessage,
 } from '/connection/message'
+import { orderedDelivery } from '/connection/orderedDeliveryService'
 import {
   Action,
   Condition,
@@ -33,8 +32,8 @@ import * as invitations from '/invitation'
 import { KeyType, randomKey } from '/keyset'
 import { Team, TeamLinkMap } from '/team'
 import { redactUser } from '/user'
-import { assert } from '/util'
-import { pause } from '/util/pause'
+import { assert, pause } from '/util'
+import { arrayToMap } from '/util/arrayToMap'
 
 const { MEMBER } = KeyType
 

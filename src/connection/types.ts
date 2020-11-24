@@ -1,5 +1,5 @@
 import { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
-import { ConnectionMessage, NumberedConnectionMessage } from './message'
+import { ConnectionMessage } from '/connection/message'
 import { Device } from '/device'
 import { Challenge } from '/identity'
 import { ProofOfInvitation } from '/invitation'

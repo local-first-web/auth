@@ -1,6 +1,5 @@
-import { getRoot } from './getRoot'
-import { getSuccessors, isSuccessor } from './successors'
-import { buildChain, findByPayload, getPayloads } from './testUtils'
+import { getRoot, getSuccessors, isSuccessor } from '/chain'
+import { buildChain, findByPayload, getPayloads } from '/chain/testUtils'
 
 /*
                      ┌─→ e ─→ g ─┐
