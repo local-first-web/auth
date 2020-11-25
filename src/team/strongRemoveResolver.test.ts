@@ -72,7 +72,27 @@ describe('teams', () => {
 
       // 🔌 Now Alice and Bob are disconnected
 
-      // 👨‍🦲 Bob makes a change
+      // 👨‍🦲 Bob adds Charlie to the group
+      bobChain = append(bobChain, ADD_CHARLIE, bobsContext)
+      expect(sequence(bobChain)).toEqual(['ROOT', 'ADD bob', 'ADD charlie'])
+
+      // 👩🏾 but concurrently, Alice removes Bob from the group
+      aliceChain = append(aliceChain, REMOVE_BOB, alicesContext)
+      expect(sequence(aliceChain)).toEqual(['ROOT', 'ADD bob', 'REMOVE bob'])
+
+      // 🔄 Alice and Bob reconnect and synchronize chains
+
+      // ✅ Bob's change is discarded - Charlie is not added
+      expectMergedResult(aliceChain, bobChain, ['ROOT', 'ADD bob', 'REMOVE bob'])
+    })
+
+    it('should discard changes made by a member who is concurrently demoted', () => {
+      // 👩🏾 🡒 👨‍🦲 Alice creates a chain and shares it with Bob
+      let { aliceChain, bobChain } = setup()
+
+      // 🔌 Now Alice and Bob are disconnected
+
+      // 👨‍🦲 Bob adds Charlie to the group
       bobChain = append(bobChain, ADD_CHARLIE, bobsContext)
       expect(sequence(bobChain)).toEqual(['ROOT', 'ADD bob', 'ADD charlie'])
 
@@ -173,6 +193,11 @@ const sequence = (chain: TeamSignatureChain) =>
 const ADD_BOB = {
   type: 'ADD_MEMBER',
   payload: { member: redactUser(bob), roles: [ADMIN] },
+} as TeamAction
+
+const REMOVE_BOB = {
+  type: 'REMOVE_MEMBER',
+  payload: { userName: 'bob' },
 } as TeamAction
 
 const DEMOTE_BOB = {
