@@ -379,7 +379,7 @@ describe('connection', () => {
       await expectDisconnection([bobConnection, charlieConnection], `neither one`)
     })
 
-    // In which Eve tries to get Bob to join her team instead of Alice's
+    // In which Eve tries to get Charlie to join her team instead of Alice's
     it(`shouldn't be fooled into joining the wrong team`, async () => {
       const { testUsers, sendMessage } = setup(['alice'], oneWay)
       const { alice } = testUsers
