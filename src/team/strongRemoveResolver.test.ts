@@ -56,9 +56,6 @@ describe('teams', () => {
 
       // 🔄 Alice and Bob reconnect
 
-      bobChain = merge(bobChain, aliceChain)
-      aliceChain = merge(aliceChain, bobChain)
-
       // the result will be one of these two (could be either because timestamps change with each test run)
       expectMergedResult(aliceChain, bobChain, [
         ['ROOT', 'ADD_MEMBER charlie', 'ADD_ROLE MANAGERS'],
@@ -89,6 +86,7 @@ describe('teams', () => {
       expect(sequence(aliceChain)).toEqual(['ROOT', 'REMOVE_MEMBER_ROLE managers bob'])
 
       // 🔄 Alice and Bob reconnect
+
       // Bob's change should be discarded
       expectMergedResult(aliceChain, bobChain, [['ROOT', 'REMOVE_MEMBER_ROLE managers bob']])
     })
