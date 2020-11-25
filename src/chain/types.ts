@@ -92,7 +92,7 @@ export const isRootLink = <A extends Action>(o: Link<A>): o is RootLink<A> => {
 /// A resolver takes two sequences, and returns a single sequence combining the two
 /// while applying any necessary business logic regarding which links take precedence, which
 /// will be discarded, etc.
-export type Resolver = <A extends Action>(a: Link<A>[], b: Link<A>[]) => Link<A>[]
+export type Resolver<A extends Action = Action> = (a: Link<A>[], b: Link<A>[]) => Link<A>[]
 
 export type Validator = <A extends Action>(
   currentLink: Link<A>,
