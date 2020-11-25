@@ -13,14 +13,13 @@ import { ADMIN, Role } from '/role'
 import { ALL, initialState } from '/team/constants'
 import { reducer } from '/team/reducer'
 import * as select from '/team/selectors'
+import { strongRemoveResolver } from '/team/strongRemoveResolver'
 import {
   EncryptedEnvelope,
   isNewTeam,
   SignedEnvelope,
   TeamAction,
   TeamActionLink,
-  TeamLink,
-  TeamNonRootLink,
   TeamOptions,
   TeamSignatureChain,
   TeamState,
@@ -488,9 +487,9 @@ export class Team extends EventEmitter {
     if (!validation.isValid) throw validation.error
 
     // Run the chain through the reducer to calculate the current team state
-    // TODO: create resolver to implement strong-remove
-    // const sequence = chains.getSequence(this.chain, resolver)
-    const sequence = chains.getSequence({ chain: this.chain })
+    const resolver = strongRemoveResolver
+    const sequence = chains.getSequence({ chain: this.chain, resolver })
+
     this.state = sequence.reduce(reducer, initialState)
   }
 }
