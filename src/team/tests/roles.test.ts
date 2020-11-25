@@ -45,6 +45,7 @@ describe('Team', () => {
       // only default roles to start out
       expect(team.roles().map(r => r.roleName)).toEqual([ADMIN])
       expect(team.hasRole(ADMIN)).toBe(true)
+      expect(team.hasRole(MANAGERS)).toBe(false)
 
       // add managers
       team.addRole(managers)
