@@ -47,7 +47,7 @@ export const getSequence = <A extends Action>(options: {
   chain: SignatureChain<A>
   root?: Link<A>
   head?: Link<A>
-  resolver?: Resolver
+  resolver?: Resolver<A>
 }): ActionLink<A>[] => {
   const {
     chain,
