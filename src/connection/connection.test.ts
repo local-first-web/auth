@@ -1,6 +1,6 @@
 import { asymmetric } from '@herbcaudill/crypto'
 import { InitialContext } from './types'
-import { Connection, ConnectionContext } from '/connection'
+import { Connection } from '/connection'
 import {
   ChallengeIdentityMessage,
   ConnectionMessage,
@@ -14,23 +14,10 @@ import { acceptMemberInvitation } from '/invitation'
 import { KeyType, randomKey, redactKeys } from '/keyset'
 import { ADMIN } from '/role'
 import * as teams from '/team'
-import { Team } from '/team'
 import * as users from '/user'
 import { redactUser, User } from '/user'
-import { pause } from '/util'
 import { arrayToMap } from '/util/arrayToMap'
-import {
-  alice,
-  alicesLaptop as _alicesLaptop,
-  bob,
-  bobsContext,
-  bobsLaptop as _bobsLaptop,
-  charlie,
-  charliesLaptop as _charliesLaptop,
-  joinTestChannel,
-  newTeam,
-  TestChannel,
-} from '/util/testing'
+import { alice, bob, charlie, joinTestChannel, TestChannel } from '/util/testing'
 import '/util/testing/expect/toBeValid'
 
 describe('connection', () => {
