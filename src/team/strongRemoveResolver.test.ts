@@ -93,16 +93,16 @@ describe('teams', () => {
   })
 })
 
-const sequence = (chain: TeamSignatureChain) => getSequence({ chain, resolver }).map(linkSummary)
-
-const linkSummary = (l: TeamActionLink) => {
-  const summary =
-    l.body.type === 'ADD_MEMBER'
-      ? l.body.payload.member.userName
-      : l.body.type === 'ADD_ROLE'
-      ? l.body.payload.roleName
-      : l.body.type === 'REMOVE_MEMBER_ROLE'
-      ? `${l.body.payload.roleName} ${l.body.payload.userName}`
-      : ''
-  return `${l.body.type} ${summary}`.trim()
-}
+// utility function to get a chain's sequence and represent it as an array of strings
+const sequence = (chain: TeamSignatureChain) =>
+  getSequence({ chain, resolver }).map((l: TeamActionLink) => {
+    const summary =
+      l.body.type === 'ADD_MEMBER'
+        ? l.body.payload.member.userName
+        : l.body.type === 'ADD_ROLE'
+        ? l.body.payload.roleName
+        : l.body.type === 'REMOVE_MEMBER_ROLE'
+        ? `${l.body.payload.roleName} ${l.body.payload.userName}`
+        : ''
+    return `${l.body.type} ${summary}`.trim()
+  })
