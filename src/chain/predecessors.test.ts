@@ -97,7 +97,7 @@ describe('chains', () => {
         const chain = buildChain()
         const aLink = findByPayload(chain, a)
         const bLink = findByPayload(chain, b)
-        const result = getCommonPredecessor(chain, [aLink, bLink]) as SignedLink<any>
+        const result = getCommonPredecessor(chain, [aLink, bLink]) as SignedLink<any, any>
         return result.body.payload
       }
 
