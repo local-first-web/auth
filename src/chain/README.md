@@ -29,7 +29,7 @@ Now suppose Alice and Bob _both_ add new links to the signature while they’re 
 
 ![image](https://user-images.githubusercontent.com/2136620/98110368-43240700-1e9f-11eb-9ea9-ecd1253e9ffe.png)
 
-In many cases, we can accept all the concurrent changes in some arbitrary order, and it all works out. There are a few tricky scenarios, though, where Alice and Bob’s concurrent changes may be at odds with each other. Specifically, what do you do if…
+In many cases, we can accept all the concurrent changes in some arbitrary order, and it all works out. There are a few tricky scenarios, though, where Alice and Bob’s concurrent changes may be at odds with each other. For example, what do you do if…
 
 1. Alice and Bob concurrently remove each other?
 2. Alice removes Bob, and Bob concurrently adds a new member Charlie?
