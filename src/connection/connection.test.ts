@@ -27,8 +27,8 @@ describe('connection', () => {
 
   const oneWay = true
   const setup = (userNames: string[] = [], isOneWay = false) => {
-    const allTestUsers = { alice, bob, charlie } as Record<string, User>
-    const userContext = (userName: string): LocalUserContext => {
+    const allTestUsers: Record<string, User> = { alice, bob, charlie }
+    const getUserContext = (userName: string): LocalUserContext => {
       const user = allTestUsers[userName]
       return { user }
     }
@@ -43,14 +43,14 @@ describe('connection', () => {
     const join = joinTestChannel(new TestChannel())
 
     // Create a new team
-    const team = teams.create('Spies Я Us', userContext('alice'))
+    const team = teams.create('Spies Я Us', getUserContext('alice'))
 
     //  Always add Bob as an admin
     team.add(bob, [ADMIN])
 
     const makeUserStuff = (userName: string) => {
       const user = allTestUsers[userName]
-      const context = userContext(userName)
+      const context = getUserContext(userName)
       const device = redactDevice(user.device)
       const userTeam = teams.load(team.chain, context)
       const connectionContext = { team: userTeam, user, device }
@@ -234,38 +234,38 @@ describe('connection', () => {
   })
 
   describe('with invitation', () => {
-    // Test one side of the verification workflow with Bob presenting an invitation, using a real
-    // connection for Alice and manually simulating Bob's messages.
+    // Test one side of the verification workflow with Charlie presenting an invitation, using a real
+    // connection for Alice and manually simulating Charlie's messages.
     it(`should successfully verify the other peer's invitation`, async () => {
       const { testUsers, lastMessage } = setup(['alice'], oneWay)
       const { alice } = testUsers
       const aliceAuthenticatingState = () => alice.getState().connecting.authenticating
 
-      // 👩🏾 Alice invites 👨‍🦲 Bob
-      const { secretKey: invitationSecretKey } = alice.team.invite('bob')
+      // 👩🏾 Alice invites 👳‍♂️ Charlie
+      const { secretKey: invitationSecretKey } = alice.team.invite('charlie')
 
       // 👩🏾 Alice connects
       alice.connection.start()
 
-      // 👨‍🦲 Bob sends a hello message
-      const identityClaim = { type: KeyType.MEMBER, name: 'bob' }
-      const proofOfInvitation = acceptMemberInvitation(invitationSecretKey, redactUser(bob))
+      // 👳‍♂️ Charlie sends a hello message
+      const identityClaim = { type: KeyType.MEMBER, name: 'charlie' }
+      const proofOfInvitation = acceptMemberInvitation(invitationSecretKey, redactUser(charlie))
       alice.deliver({ type: 'HELLO', payload: { identityClaim, proofOfInvitation } })
 
       // 👩🏾 Alice automatically validates the invitation
       expect(aliceAuthenticatingState().verifyingTheirIdentity).toEqual('awaitingIdentityProof')
 
-      // 👨‍🦲 Bob generates proof by signing Alice's challenge and sends it back
+      // 👳‍♂️ Charlie generates proof by signing Alice's challenge and sends it back
       const challengeMessage = lastMessage() as ChallengeIdentityMessage
       const { challenge } = challengeMessage.payload
-      const proof = identity.prove(challenge, bob.keys)
+      const proof = identity.prove(challenge, charlie.keys)
       alice.connection.deliver({ index: 1, type: 'PROVE_IDENTITY', payload: { challenge, proof } })
 
-      // ✅ Success! Alice has verified Bob's identity
+      // ✅ Success! Alice has verified Charlie's identity
       expect(aliceAuthenticatingState().verifyingTheirIdentity).toEqual('done')
     })
 
-    // Test the other side with Bob presenting an invitation, using a real connection for Bob
+    // Test the other side with Charlie presenting an invitation, using a real connection for Bob
     // and manually simulating Alice's messages.
     it(`should successfully present an invitation to the other peer`, async () => {
       const { testUsers, lastMessage, sendMessage } = setup(['alice'], oneWay)
@@ -306,7 +306,7 @@ describe('connection', () => {
       // 👳‍♂️ Charlie automatically responds to the challenge with proof, and awaits acceptance
       expect(charlieState().authenticating.provingOurIdentity).toEqual('awaitingIdentityAcceptance')
 
-      // 👩🏾 Alice verifies charlie's proof
+      // 👩🏾 Alice verifies Charlie's proof
       const proofMessage = lastMessage() as ProveIdentityMessage
       const peerKeys = redactKeys(charlie.keys)
       const validation = identity.verify(challenge, proofMessage.payload.proof, peerKeys)
@@ -330,13 +330,19 @@ describe('connection', () => {
       const { testUsers, join } = setup(['alice'])
       const { alice } = testUsers
 
-      // 👩🏾 Alice invites 👨‍🦲 Bob
-      const { secretKey: invitationSecretKey } = alice.team.invite('bob')
+      // 👩🏾 Alice invites 👳‍♂️ Charlie
+      const { secretKey: invitationSecretKey } = alice.team.invite('charlie')
 
-      // 👨‍🦲 Bob uses the invitation secret key to connect with Alice
-      const bobContext = { user: bob, device: redactDevice(bob.device), invitationSecretKey }
-      const bobConnection = join(bobContext)
-      await expectConnection([bobConnection, alice.connection])
+      // 👳‍♂️ Charlie uses the invitation secret key to connect with Alice
+      const charlieContext = {
+        user: charlie,
+        device: redactDevice(charlie.device),
+        invitationSecretKey,
+      }
+      const charlieConnection = join(charlieContext)
+
+      // ✅ Success
+      await expectConnection([charlieConnection, alice.connection])
     })
 
     it.todo(`What if someone concurrently presents their invitation to two different members?`)
