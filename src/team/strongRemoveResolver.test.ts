@@ -35,8 +35,7 @@ describe('teams', () => {
       const sequence2 = getSequence({ chain: chain2, resolver: strongRemoveResolver })
       expect(sequence).toEqual(sequence2)
 
-      // the result will be one of these two
-      // (could be either because there are hashes of timestamps involved)
+      // the result will be one of these two (could be either because timestamps change with each test run)
       const optionA = ['ROOT', 'ADD_MEMBER charlie', 'ADD_MEMBER bob']
       const optionB = ['ROOT', 'ADD_MEMBER bob', 'ADD_MEMBER charlie']
       expect([optionA, optionB]).toContainEqual(sequence.map(linkSummary))
