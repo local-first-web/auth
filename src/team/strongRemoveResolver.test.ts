@@ -1,6 +1,6 @@
 import * as chains from '/chain'
 import { clone, getSequence, merge } from '/chain'
-import { strongRemoveResolver as resolver } from '/team/strongRemoveResolver'
+import { strongRemoveResolver } from '/team/strongRemoveResolver'
 import { TeamAction, TeamActionLink, TeamSignatureChain } from '/team/types'
 import { redactUser } from '/user'
 import { alice, alicesContext, bobsContext, charlie, MANAGERS } from '/util/testing'
@@ -17,19 +17,25 @@ describe('teams', () => {
     }
 
     const expectMergedResult = (
-      a: TeamSignatureChain,
-      b: TeamSignatureChain,
-      expected: string[][]
+      aChain: TeamSignatureChain,
+      bChain: TeamSignatureChain,
+      expected: string[][] | string[]
     ) => {
       // 👩🏾 ⇄ 👨‍🦲 They synchronize chains
-      b = merge(b, a)
-      a = merge(a, b)
-      // They should now end up with the same sequence
-      const sequenceA = sequence(a)
-      const sequenceB = sequence(b)
-      expect(sequenceA).toEqual(sequenceB)
+      bChain = merge(bChain, aChain)
+      aChain = merge(aChain, bChain)
+
+      // 👩🏾 == 👨‍🦲 They should now end up with the same sequence
+      const aSequence = sequence(aChain)
+      const bSequence = sequence(bChain)
+      expect(aSequence).toEqual(bSequence)
+
+      // `expected` can be one sequence or multiple sequence options
+      // coerce to array of sequences
+      if (!Array.isArray(expected[0])) expected = [expected] as string[][]
+
       // The sequence should match one of the provided options
-      expect(expected).toContainEqual(sequenceA)
+      expect(expected).toContainEqual(aSequence)
     }
 
     it('should resolve two chains with no conflicting membership changes', () => {
@@ -54,9 +60,9 @@ describe('teams', () => {
       )
       expect(sequence(aliceChain)).toEqual(['ROOT', 'ADD_MEMBER charlie'])
 
-      // 🔄 Alice and Bob reconnect
+      // 🔄 Alice and Bob reconnect and synchronize chains
 
-      // the result will be one of these two (could be either because timestamps change with each test run)
+      // ✅ the result will be one of these two (could be either because timestamps change with each test run)
       expectMergedResult(aliceChain, bobChain, [
         ['ROOT', 'ADD_MEMBER charlie', 'ADD_ROLE MANAGERS'],
         ['ROOT', 'ADD_ROLE MANAGERS', 'ADD_MEMBER charlie'],
@@ -85,17 +91,18 @@ describe('teams', () => {
       )
       expect(sequence(aliceChain)).toEqual(['ROOT', 'REMOVE_MEMBER_ROLE managers bob'])
 
-      // 🔄 Alice and Bob reconnect
+      // 🔄 Alice and Bob reconnect and synchronize chains
 
-      // Bob's change should be discarded
-      expectMergedResult(aliceChain, bobChain, [['ROOT', 'REMOVE_MEMBER_ROLE managers bob']])
+      // ✅ Bob's change is discarded
+      expectMergedResult(aliceChain, bobChain, ['ROOT', 'REMOVE_MEMBER_ROLE managers bob'])
     })
   })
 })
 
-// utility function to get a chain's sequence and represent it as an array of strings
+// utility function to get a chain's sequence using `strongRemoveResolver`
+// and represent it as an array of strings
 const sequence = (chain: TeamSignatureChain) =>
-  getSequence({ chain, resolver }).map((l: TeamActionLink) => {
+  getSequence({ chain, resolver: strongRemoveResolver }).map((l: TeamActionLink) => {
     const summary =
       l.body.type === 'ADD_MEMBER'
         ? l.body.payload.member.userName
