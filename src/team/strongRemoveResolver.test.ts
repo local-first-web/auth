@@ -16,6 +16,22 @@ describe('teams', () => {
       return { aliceChain, bobChain }
     }
 
+    const expectMergedResult = (
+      a: TeamSignatureChain,
+      b: TeamSignatureChain,
+      expected: string[][]
+    ) => {
+      // 👩🏾 ⇄ 👨‍🦲 They synchronize chains
+      b = merge(b, a)
+      a = merge(a, b)
+      // They should now end up with the same sequence
+      const sequenceA = sequence(a)
+      const sequenceB = sequence(b)
+      expect(sequenceA).toEqual(sequenceB)
+      // The sequence should match one of the provided options
+      expect(expected).toContainEqual(sequenceA)
+    }
+
     it('should resolve two chains with no conflicting membership changes', () => {
       // 👩🏾 🡒 👨‍🦲 Alice creates a chain and shares it with Bob
       let { aliceChain, bobChain } = setup()
@@ -40,18 +56,14 @@ describe('teams', () => {
 
       // 🔄 Alice and Bob reconnect
 
-      // 👩🏾 ⇄ 👨‍🦲 They synchronize chains
       bobChain = merge(bobChain, aliceChain)
       aliceChain = merge(aliceChain, bobChain)
 
-      // Their chains now produce the same sequence
-      expect(sequence(bobChain)).toEqual(sequence(aliceChain))
-
       // the result will be one of these two (could be either because timestamps change with each test run)
-      expect([
+      expectMergedResult(aliceChain, bobChain, [
         ['ROOT', 'ADD_MEMBER charlie', 'ADD_ROLE MANAGERS'],
         ['ROOT', 'ADD_ROLE MANAGERS', 'ADD_MEMBER charlie'],
-      ]).toContainEqual(sequence(bobChain))
+      ])
     })
 
     it('should discard changes made by a member who is concurrently removed', () => {
@@ -77,16 +89,8 @@ describe('teams', () => {
       expect(sequence(aliceChain)).toEqual(['ROOT', 'REMOVE_MEMBER_ROLE managers bob'])
 
       // 🔄 Alice and Bob reconnect
-
-      // 👩🏾 ⇄ 👨‍🦲 They synchronize chains
-      bobChain = merge(bobChain, aliceChain)
-      aliceChain = merge(aliceChain, bobChain)
-
-      // Their chains now produce the same sequence
-      expect(sequence(bobChain)).toEqual(sequence(aliceChain))
-
       // Bob's change should be discarded
-      expect(sequence(aliceChain)).toEqual(['ROOT', 'REMOVE_MEMBER_ROLE managers bob'])
+      expectMergedResult(aliceChain, bobChain, [['ROOT', 'REMOVE_MEMBER_ROLE managers bob']])
     })
   })
 })
