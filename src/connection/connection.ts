@@ -307,11 +307,15 @@ export class Connection extends EventEmitter {
   /** These are referred to by name in `connectionMachine` (e.g. `cond: 'iHaveInvitation'`) */
   private readonly guards: Record<string, Condition> = {
     iHaveInvitation: context => {
-      return context.invitationSecretKey !== undefined
+      const result = context.invitationSecretKey !== undefined
+      this.log('iHaveInvitation', result)
+      return result
     },
 
     theyHaveInvitation: context => {
-      return context.theirProofOfInvitation !== undefined
+      const result = context.theirProofOfInvitation !== undefined
+      this.log('theyHaveInvitation', result)
+      return result
     },
 
     bothHaveInvitation: (...args) =>
@@ -335,9 +339,10 @@ export class Connection extends EventEmitter {
     },
 
     identityIsKnown: context => {
+      if (context.team === undefined) return true
       const identityClaim = context.theirIdentityClaim!
       const userName = identityClaim.name
-      return context.team!.has(userName)
+      return context.team.has(userName)
     },
 
     identityProofIsValid: (context, event) => {
