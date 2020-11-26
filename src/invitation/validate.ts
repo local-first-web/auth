@@ -16,10 +16,10 @@ export const validate = (
 
   // Decrypt invitation
   const invitation = open(encryptedInvitation, teamKeys)
-  return validateDecrypted(proof, invitation)
+  return validateInvitationBody(proof, invitation)
 }
 
-export const validateDecrypted = (proof: ProofOfInvitation, invitation: InvitationBody) => {
+export const validateInvitationBody = (proof: ProofOfInvitation, invitation: InvitationBody) => {
   const details = { invitation, proof }
 
   if (invitation.type === 'MEMBER' && proof.type === 'MEMBER') {
