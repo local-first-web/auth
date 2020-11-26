@@ -1,6 +1,7 @@
 ﻿import { signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
 import * as chains from '/chain'
+import { membershipResolver, TeamAction, TeamActionLink, TeamSignatureChain } from '/chain'
 import { LocalUserContext } from '/context'
 import { DeviceInfo, getDeviceId } from '/device'
 import * as invitations from '/invitation'
@@ -13,17 +14,7 @@ import { ADMIN, Role } from '/role'
 import { ALL, initialState } from '/team/constants'
 import { reducer } from '/team/reducer'
 import * as select from '/team/selectors'
-import { strongRemoveResolver } from '/team/strongRemoveResolver'
-import {
-  EncryptedEnvelope,
-  isNewTeam,
-  SignedEnvelope,
-  TeamAction,
-  TeamActionLink,
-  TeamOptions,
-  TeamSignatureChain,
-  TeamState,
-} from '/team/types'
+import { EncryptedEnvelope, isNewTeam, SignedEnvelope, TeamOptions, TeamState } from '/team/types'
 import * as users from '/user'
 import { User } from '/user'
 import { Optional, Payload } from '/util'
@@ -487,7 +478,7 @@ export class Team extends EventEmitter {
     if (!validation.isValid) throw validation.error
 
     // Run the chain through the reducer to calculate the current team state
-    const resolver = strongRemoveResolver
+    const resolver = membershipResolver
     const sequence = chains.getSequence({ chain: this.chain, resolver })
 
     this.state = sequence.reduce(reducer, initialState)

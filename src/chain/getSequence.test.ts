@@ -4,7 +4,7 @@ import { defaultContext } from '/util/testing'
 import { arbitraryDeterministicSort } from './arbitraryDeterministicSort'
 import { randomKey } from '@herbcaudill/crypto'
 
-const chaosMonkeyResolver: Resolver<any> = (a = [], b = []) => {
+const chaosMonkeyResolver: Resolver<any> = (a, b) => {
   // change the hash key on each run, to ensure our tests aren't bound to one arbitrary sort
   const hashKey = randomKey()
   const [_a, _b] = [a, b].sort(arbitraryDeterministicSort(hashKey))

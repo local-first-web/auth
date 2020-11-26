@@ -22,7 +22,7 @@ describe('chains', () => {
       test('d', () => {
         const d = findByPayload(chain, 'd')
         const successors = getPayloads(getSuccessors(chain, d))
-        expect(successors).toEqual('f e g o n'.split(' ')) // note correct order
+        expect(successors).toEqual('e g f o n'.split(' ')) // note correct order
       })
 
       test('o', () => {

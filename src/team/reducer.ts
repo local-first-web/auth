@@ -17,7 +17,8 @@ import {
   setTeamName,
   useInvitation,
 } from '/team/reducers'
-import { TeamAction, TeamActionLink, TeamState } from '/team/types'
+import { TeamState } from '/team/types'
+import { TeamAction, TeamActionLink } from '/chain'
 import { validate } from '/team/validate'
 
 /**

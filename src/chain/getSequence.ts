@@ -111,7 +111,7 @@ export const getSequence = <A extends Action>(options: {
       const [branchA, branchB] = branchHeads.map(getBranchSequence)
 
       // apply the resolver to these two sequences to come up with a single sequence
-      const resolvedBranches = resolver(branchA, branchB)
+      const resolvedBranches = resolver(branchA, branchB, chain)
 
       // now we can resume working our way back from the common predecessor towards the root
       const predecessors = getSequence({ chain, resolver, root, head: commonPredecessor })
