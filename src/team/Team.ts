@@ -141,8 +141,8 @@ export class Team extends EventEmitter {
       payload: { member: redactedUser, roles, lockboxes },
     })
 
-    // TODO - this should just be this.addDevice
-    // this.inviteDevice(member.device)
+    // TODO: implement addDevice
+    //  this.addDevice(member.device)
   }
 
   /** Remove a member from the team */
