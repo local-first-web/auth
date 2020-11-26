@@ -37,7 +37,7 @@ describe('Team', () => {
       it('accepts valid proof of invitation', () => {
         const { team: alicesTeam } = setup()
 
-        // 👩🏾 Alice invites 👨‍🦲 Bob by sending him a secret key
+        // 👩🏾 Alice invites 👨‍🦲 Bob by sending him a random secret key
         const { secretKey } = alicesTeam.invite('bob')
 
         // 👨‍🦲 Bob accepts the invitation
@@ -53,7 +53,7 @@ describe('Team', () => {
       it('lets you use a key of your choosing', () => {
         const { team: alicesTeam } = setup()
 
-        // 👩🏾 Alice invites 👨‍🦲 Bob by sending him a secret key
+        // 👩🏾 Alice invites 👨‍🦲 Bob by sending him a secret key of her choosing
         const { secretKey } = alicesTeam.invite('bob', { secretKey: 'passw0rd' })
 
         // 👨‍🦲 Bob accepts the invitation
@@ -119,7 +119,7 @@ describe('Team', () => {
 
       it('allows non-admins to accept an invitation', () => {
         let { team: alicesTeam } = setup()
-        alicesTeam.add(bob) // bob is not an admin
+        alicesTeam.add(bob)
 
         // 👩🏾 Alice invites 👳‍♂️ Charlie by sending him a secret key
         const { secretKey } = alicesTeam.invite('charlie')
@@ -131,7 +131,7 @@ describe('Team', () => {
         let persistedTeam = alicesTeam.save()
         const bobsTeam = load(persistedTeam, bobsContext)
 
-        // just to confirm: 👨‍🦲 Bob still isn't an admin
+        // just to confirm: 👨‍🦲 Bob isn't an admin
         expect(bobsTeam.memberIsAdmin('bob')).toBe(false)
 
         // 👳‍♂️ Charlie shows 👨‍🦲 Bob his proof of invitation
