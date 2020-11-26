@@ -1,6 +1,6 @@
 ﻿import { signatures } from '@herbcaudill/crypto'
 import { open } from '/invitation/open'
-import { Invitation, ProofOfInvitation } from '/invitation/types'
+import { Invitation, InvitationBody, ProofOfInvitation } from '/invitation/types'
 import { KeysetWithSecrets } from '/keyset'
 import { VALID } from '/util'
 
@@ -9,12 +9,18 @@ export const validate = (
   encryptedInvitation: Invitation,
   teamKeys: KeysetWithSecrets
 ) => {
-  // Decrypt invitation
-  const invitation = open(encryptedInvitation, teamKeys)
-  const details = { invitation, proof }
+  const details = { encryptedInvitation, proof }
 
   // Check that IDs match
   if (encryptedInvitation.id !== proof.id) return fail(`IDs don't match`, details)
+
+  // Decrypt invitation
+  const invitation = open(encryptedInvitation, teamKeys)
+  return validateDecrypted(proof, invitation)
+}
+
+export const validateDecrypted = (proof: ProofOfInvitation, invitation: InvitationBody) => {
+  const details = { invitation, proof }
 
   if (invitation.type === 'MEMBER' && proof.type === 'MEMBER') {
     // Member invitation: Check that userNames match
