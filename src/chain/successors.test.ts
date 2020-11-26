@@ -1,12 +1,11 @@
 import { getRoot, getSuccessors, isSuccessor } from '/chain'
 import { buildChain, findByPayload, getPayloads } from '/chain/testUtils'
 
-/*
-                     ┌─→ e ─→ g ─┐
-  a ─→ b ─┬─→ c ─→ d ┴─→ f ───── * ── * ─→ o ── * ─→ n
-          ├─→ h ─→ i ─────────────────┘         │
-          └─→ j ─→ k ─→ l ──────────────────────┘
- */
+/*                          ┌─→ e ─→ g ─┐
+         a ─→ b ─┬─→ c ─→ d ┴─→ f ───── * ── * ─→ o ── * ─→ n
+                 ├─→ h ─→ i ─────────────────┘         │
+                 └─→ j ─→ k ─→ l ──────────────────────┘           */
+
 const chain = buildChain()
 
 describe('chains', () => {
@@ -14,20 +13,20 @@ describe('chains', () => {
     describe('getSuccessors', () => {
       test('root', () => {
         const a = getRoot(chain)
-        const successors = getPayloads(getSuccessors(chain, a)).sort() // ignore order
+        const successors = getPayloads(getSuccessors(chain, a)).sort()
         const expected = 'b c d e f g h i j k l n o'.split(' ')
         expect(successors).toEqual(expected)
       })
 
       test('d', () => {
         const d = findByPayload(chain, 'd')
-        const successors = getPayloads(getSuccessors(chain, d))
-        expect(successors).toEqual('e g f o n'.split(' ')) // note correct order
+        const successors = getPayloads(getSuccessors(chain, d)).sort()
+        expect(successors).toEqual('e f g n o'.split(' '))
       })
 
       test('o', () => {
         const o = findByPayload(chain, 'o')
-        const successors = getPayloads(getSuccessors(chain, o)).sort() // ignore order
+        const successors = getPayloads(getSuccessors(chain, o)).sort()
         expect(successors).toEqual('n'.split(' '))
       })
     })

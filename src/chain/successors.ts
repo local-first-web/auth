@@ -1,5 +1,5 @@
 ﻿import { getSequence } from '/chain/getSequence'
-import { Link, Action, SignatureChain } from '/chain/types'
+import { Action, Link, SignatureChain } from '/chain/types'
 
 export const getSuccessors = <A extends Action>(
   chain: SignatureChain<A>,
