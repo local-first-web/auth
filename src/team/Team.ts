@@ -310,19 +310,19 @@ export class Team extends EventEmitter {
     const teamKeys = this.teamKeys()
     const { id } = proof
 
-    const encryptedInvitation = this.state.invitations[id]
-    if (encryptedInvitation === undefined) throw new Error(`No invitation with id '${id}' found.`)
-    if (encryptedInvitation.revoked) throw new Error(`This invitation has been revoked.`)
-    if (encryptedInvitation.used) throw new Error(`This invitation has already been used.`)
+    const invitation = this.state.invitations[id]
+    if (invitation === undefined) throw new Error(`No invitation with id '${id}' found.`)
+    if (invitation.revoked) throw new Error(`This invitation has been revoked.`)
+    if (invitation.used) throw new Error(`This invitation has already been used.`)
 
     // open the invitation
-    const invitation = invitations.open(encryptedInvitation, teamKeys)
+    const invitationBody = invitations.open(invitation, teamKeys)
 
     // validate proof against original invitation
-    const validation = invitations.validateDecrypted(proof, invitation)
+    const validation = invitations.validateInvitationBody(proof, invitationBody)
     if (validation.isValid === false) throw validation.error
 
-    return invitation
+    return invitationBody
   }
 
   public removeDevice = (deviceInfo: DeviceInfo) => {
