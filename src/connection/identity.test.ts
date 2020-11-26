@@ -1,5 +1,5 @@
-﻿import { challenge, prove, verify } from '/identity'
-import { KeyScope, KeyType, TEAM_SCOPE } from '/keyset'
+﻿import { challenge, prove, verify } from '/connection/identity'
+import { ADMIN_SCOPE, KeyScope, KeyType, TEAM_SCOPE } from '/keyset'
 import * as keyset from '/keyset'
 import { bob, eve } from '/util/testing'
 
@@ -85,11 +85,30 @@ describe('identity', () => {
     expect(validationOfEvesProof).not.toBeValid()
   })
 
+  it('validates role membership', () => {
+    const adminKeys = keyset.create(ADMIN_SCOPE)
+
+    // 👨‍🦲 Bob shows up and says he's an admin
+    const bobsClaim = ADMIN_SCOPE
+
+    // 👩🏾 Alice asks maybe-Bob to prove it by sending him a document to sign
+    const alicesChallenge = challenge(bobsClaim)
+
+    // 👨‍🦲 Bob submits proof
+    const bobsProof = prove(alicesChallenge, adminKeys)
+
+    // 👩🏾 Alice checks his proof
+    const validation = verify(alicesChallenge, bobsProof, keyset.redactKeys(adminKeys))
+
+    // ✅ Bob's proof checks out
+    expect(validation).toBeValid()
+  })
+
   it('validates team membership', () => {
     const teamKeys = keyset.create(TEAM_SCOPE)
 
     // 👨‍🦲 Bob shows up and says he's a member of the team
-    const bobsClaim: KeyScope = TEAM_SCOPE
+    const bobsClaim = TEAM_SCOPE
 
     // 👩🏾 Alice asks maybe-Bob to prove it by sending him a document to sign
     const alicesChallenge = challenge(bobsClaim)

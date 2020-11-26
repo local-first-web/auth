@@ -2,9 +2,10 @@
 import debug from 'debug'
 import { EventEmitter } from 'events'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
-import { getParentHashes } from '/chain'
+import { getParentHashes, TeamLinkMap } from '/chain'
 import { connectionMachine } from '/connection/connectionMachine'
 import { deriveSharedKey } from '/connection/deriveSharedKey'
+import * as identity from '/connection/identity'
 import {
   AcceptIdentityMessage,
   AcceptInvitationMessage,
@@ -18,7 +19,7 @@ import {
   ProveIdentityMessage,
   UpdateMessage,
 } from '/connection/message'
-import { orderedDelivery } from '/connection/orderedDeliveryService'
+import { orderedDelivery } from '/connection/orderedDelivery'
 import {
   Action,
   Condition,
@@ -27,10 +28,9 @@ import {
   ConnectionStateSchema,
   SendFunction,
 } from '/connection/types'
-import * as identity from '/identity'
 import * as invitations from '/invitation'
 import { KeyType, randomKey } from '/keyset'
-import { Team, TeamLinkMap } from '/team'
+import { Team } from '/team'
 import { redactUser } from '/user'
 import { assert, pause } from '/util'
 import { arrayToMap } from '/util/arrayToMap'

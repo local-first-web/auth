@@ -9,7 +9,7 @@ import {
 } from '/connection/message'
 import { LocalUserContext } from '/context'
 import { redactDevice } from '/device'
-import * as identity from '/identity'
+import * as identity from '/connection/identity'
 import { acceptMemberInvitation } from '/invitation'
 import { KeyType, randomKey, redactKeys } from '/keyset'
 import { ADMIN } from '/role'

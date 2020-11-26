@@ -1,4 +1,4 @@
-import { orderedDelivery } from '/connection/orderedDeliveryService'
+import { orderedDelivery } from '/connection/orderedDelivery'
 import { arrayToMap } from '/util/arrayToMap'
 
 const msgs = [
@@ -9,7 +9,7 @@ const msgs = [
   { index: 4, payload: 'four' },
 ]
 
-describe('orderedDeliveryService', () => {
+describe('orderedDelivery', () => {
   describe('nextMessages', () => {
     const testCase = (queueIndexes: number[], nextIndex: number, expectedIndexes: number[]) => {
       const queue = msgs.filter(m => queueIndexes.includes(m.index)).reduce(arrayToMap('index'), {})

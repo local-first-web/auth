@@ -1,7 +1,7 @@
-﻿import { Challenge } from '/identity'
+﻿import { Challenge } from '/connection/types'
+import { TeamLink } from '/chain'
 import { ProofOfInvitation } from '/invitation'
 import { KeyScope } from '/keyset'
-import { TeamLink } from '/team'
 import { Base64, Hash } from '/util'
 
 export type HelloMessage = {
@@ -66,6 +66,8 @@ export type RejectIdentityMessage = {
     message: string
   }
 }
+
+// Update (synchronization)
 
 export type UpdateMessage = {
   type: 'UPDATE'

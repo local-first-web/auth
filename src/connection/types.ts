@@ -1,17 +1,23 @@
 import { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
 import { ConnectionMessage } from '/connection/message'
 import { Device } from '/device'
-import { Challenge } from '/identity'
 import { ProofOfInvitation } from '/invitation'
 import { KeyScope } from '/keyset'
 import { Member } from '/member'
 import { Team } from '/team'
 import { User } from '/user'
-import { Base64, Hash } from '/util'
+import { Base64, Hash, UnixTimestamp } from '/util'
 
-export type SendFunction = <T extends ConnectionMessage>(message: T) => void
+// Identity
+
+export type Challenge = KeyScope & {
+  nonce: Base64
+  timestamp: UnixTimestamp
+}
 
 // Context schema
+
+export type SendFunction = <T extends ConnectionMessage>(message: T) => void
 
 export type InitialContext = {
   /** The local user, including their secret keys */
