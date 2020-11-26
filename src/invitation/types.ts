@@ -25,16 +25,6 @@ export interface Invitation {
   revoked: Boolean
 }
 
-export interface MemberInvitationPayload {
-  userName: string
-  roles?: string[]
-}
-
-export interface DeviceInvitationPayload {
-  deviceId: Base64
-  userName: string
-}
-
 export type InvitationBody = (
   | {
       type: 'MEMBER'
@@ -46,6 +36,16 @@ export type InvitationBody = (
     }
 ) & {
   publicKey: Base64
+}
+
+export interface MemberInvitationPayload {
+  userName: string
+  roles?: string[]
+}
+
+export interface DeviceInvitationPayload {
+  deviceId: Base64
+  userName: string
 }
 
 /** This is what Bob takes to the team so they'll let him in */

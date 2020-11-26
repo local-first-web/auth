@@ -6,6 +6,7 @@ import { LocalUserContext } from '/context'
 import { DeviceInfo, getDeviceId } from '/device'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
+import { normalize } from '/invitation/normalize'
 import * as keysets from '/keyset'
 import { ADMIN_SCOPE, KeyMetadata, KeyScope, KeysetWithSecrets, KeyType, TEAM_SCOPE } from '/keyset'
 import * as lockbox from '/lockbox'
@@ -217,20 +218,16 @@ export class Team extends EventEmitter {
    * you do provide a key, it will be stripped of non-alphanumeric characters and lower-cased, so
    * you'll need to take that into account when determining the appropriate key strength.
    * Normalizing the key this way allows us to show it to the user split into blocks
-   * (e.g. `4kgd 5mwq 5z4f mfwq`) and/or make it URL-safe (e.g. `4kgd+5mwq+5z4f+mfwq`).
+   * (e.g. `4kgd 5mwq 5z4f mfwq`) make it URL-safe (e.g. `4kgd+5mwq+5z4f+mfwq`), etc.
    */
-  public invite = (
-    userName: string,
-    roles: string[] = [],
-    secretKey = invitations.newInvitationKey()
-  ) => {
+  public invite = (userName: string, options: { roles?: string[]; secretKey?: string } = {}) => {
+    let { roles = [], secretKey = invitations.newInvitationKey() } = options
+
     // generate invitation
+    secretKey = normalize(secretKey)
     const teamKeys = this.teamKeys()
-    const invitation = invitations.inviteMember({
-      teamKeys,
-      payload: { userName, roles },
-      secretKey,
-    })
+    const invitation = invitations.inviteMember({ teamKeys, userName, roles, secretKey })
+    const { id } = invitation
 
     // post invitation to signature chain
     this.dispatch({
@@ -238,10 +235,7 @@ export class Team extends EventEmitter {
       payload: { invitation },
     })
 
-    return {
-      secretKey,
-      id: invitation.id,
-    }
+    return { secretKey, id }
   }
 
   /** Revoke an invitation. This can be used for member invitations as well as device invitations. */
@@ -291,17 +285,16 @@ export class Team extends EventEmitter {
 
   // Devices
 
-  public inviteDevice = (deviceInfo: DeviceInfo, secretKey = invitations.newInvitationKey()) => {
-    // generate invitation
-    const teamKeys = this.teamKeys()
+  public inviteDevice = (deviceInfo: DeviceInfo, options: { secretKey?: string } = {}) => {
+    let { secretKey = invitations.newInvitationKey() } = options
 
+    // generate invitation
+    secretKey = normalize(secretKey)
+    const teamKeys = this.teamKeys()
     const { userName } = deviceInfo
     const deviceId = getDeviceId(deviceInfo)
-    const invitation = invitations.inviteDevice({
-      teamKeys,
-      payload: { deviceId, userName },
-      secretKey,
-    })
+    const invitation = invitations.inviteDevice({ teamKeys, userName, deviceId, secretKey })
+    const { id } = invitation
 
     // post invitation to signature chain
     this.dispatch({
@@ -311,10 +304,7 @@ export class Team extends EventEmitter {
 
     // if the caller didn't provide the secret key, they'll need that
     // they might also need the invitation id in case they want to revoke it
-    return {
-      secretKey,
-      id: invitation.id,
-    }
+    return { secretKey, id }
   }
 
   // TODO: Abstract common code between admit and admitDevice?

@@ -25,7 +25,12 @@ export const IKEY_LENGTH = 16
  * @param secretKey A randomly generated secret (Step 1a) to be passed to Bob via a side channel
  * @see newSecretKey
  */
-export const create = ({ teamKeys, type, payload, secretKey }: InvitationArgsInternal) => {
+export const create = ({
+  teamKeys,
+  type,
+  payload,
+  secretKey,
+}: InviteArgs & Pick<InvitationBody, 'type' | 'payload'>) => {
   secretKey = normalize(secretKey)
 
   // ## Step 1b, 1c
@@ -57,27 +62,16 @@ export const create = ({ teamKeys, type, payload, secretKey }: InvitationArgsInt
   return invitation
 }
 
-export const inviteMember = ({ teamKeys, payload, secretKey }: MemberInvitationArgs): Invitation =>
-  create({ teamKeys, type: MEMBER, payload, secretKey })
+export const inviteMember = ({ teamKeys, userName, roles, secretKey }: InviteMemberArgs) =>
+  create({ teamKeys, type: MEMBER, payload: { userName, roles }, secretKey })
 
-export const inviteDevice = ({ teamKeys, payload, secretKey }: DeviceInvitationArgs): Invitation =>
-  create({ teamKeys, type: DEVICE, payload, secretKey })
+export const inviteDevice = ({ teamKeys, userName, deviceId, secretKey }: InviteDeviceArgs) =>
+  create({ teamKeys, type: DEVICE, payload: { userName, deviceId }, secretKey })
 
-interface MemberInvitationArgs {
+interface InviteArgs {
   teamKeys: KeysetWithSecrets
-  payload: MemberInvitationPayload
   secretKey: string
 }
 
-interface DeviceInvitationArgs {
-  teamKeys: KeysetWithSecrets
-  payload: DeviceInvitationPayload
-  secretKey: string
-}
-
-interface InvitationArgsInternal {
-  teamKeys: KeysetWithSecrets
-  type: InvitationBody['type']
-  payload: InvitationBody['payload']
-  secretKey: string
-}
+interface InviteMemberArgs extends MemberInvitationPayload, InviteArgs {}
+interface InviteDeviceArgs extends DeviceInvitationPayload, InviteArgs {}

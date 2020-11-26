@@ -1,7 +1,7 @@
 ﻿import { signatures } from '@herbcaudill/crypto'
+import { normalize } from './normalize'
 import { Device } from '/device'
 import { deriveId } from '/invitation/deriveId'
-import { normalize } from '/invitation/normalize'
 import { ProofOfInvitation } from '/invitation/types'
 import { create, EPHEMERAL_SCOPE, KeyType } from '/keyset'
 import { Member } from '/member'
@@ -9,8 +9,6 @@ import { Member } from '/member'
 const { DEVICE, MEMBER } = KeyType
 
 export const acceptMemberInvitation = (secretKey: string, member: Member): ProofOfInvitation => {
-  // don't leak secrets to the signature chain
-
   secretKey = normalize(secretKey)
 
   // ## Step 4
@@ -29,10 +27,6 @@ export const acceptMemberInvitation = (secretKey: string, member: Member): Proof
 }
 
 export const acceptDeviceInvitation = (secretKey: string, device: Device): ProofOfInvitation => {
-  // don't leak secrets to the signature chain
-
-  secretKey = normalize(secretKey)
-
   // ## Step 4
 
   // Bob independently derives the invitation id
