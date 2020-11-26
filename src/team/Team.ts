@@ -3,9 +3,9 @@ import { EventEmitter } from 'events'
 import * as chains from '/chain'
 import { membershipResolver, TeamAction, TeamActionLink, TeamSignatureChain } from '/chain'
 import { LocalUserContext } from '/context'
-import { DeviceInfo, getDeviceId } from '/device'
+import { Device, DeviceInfo, getDeviceId } from '/device'
 import * as invitations from '/invitation'
-import { ProofOfInvitation } from '/invitation'
+import { MemberInvitationPayload, ProofOfInvitation } from '/invitation'
 import { normalize } from '/invitation/normalize'
 import * as keysets from '/keyset'
 import { ADMIN_SCOPE, KeyMetadata, KeyScope, KeysetWithSecrets, KeyType, TEAM_SCOPE } from '/keyset'
@@ -18,7 +18,7 @@ import * as select from '/team/selectors'
 import { EncryptedEnvelope, isNewTeam, SignedEnvelope, TeamOptions, TeamState } from '/team/types'
 import * as users from '/user'
 import { User } from '/user'
-import { Optional, Payload } from '/util'
+import { assert, Base64, Optional, Payload } from '/util'
 
 const { DEVICE, ROLE, MEMBER } = KeyType
 
@@ -251,32 +251,15 @@ export class Team extends EventEmitter {
 
   /** Admit a new member to the team based on proof of invitation */
   public admit = (proof: ProofOfInvitation) => {
-    const typeError = new Error('Team.admit() is only for accepting invitations for members.')
-    // ignore coverage
-    if (proof.type !== MEMBER) throw typeError
+    assert(proof.type === MEMBER, 'Team.admit is only for accepting invitations for members.')
 
-    const { id, payload: member } = proof
-
-    const teamKeys = this.teamKeys()
-
-    // look up the invitation
-    const encryptedInvitation = this.state.invitations[id]
-    if (encryptedInvitation === undefined) throw new Error(`No invitation with id '${id}' found.`)
-    if (encryptedInvitation.revoked) throw new Error(`This invitation has been revoked.`)
-    if (encryptedInvitation.used) throw new Error(`This invitation has already been used.`)
-
-    // open the invitation
-    const invitation = invitations.open(encryptedInvitation, teamKeys)
-    if (invitation.type !== MEMBER) throw typeError
-
-    // validate proof against original invitation
-    const validation = invitations.validate(proof, encryptedInvitation, teamKeys)
-    if (validation.isValid === false) throw validation.error
-
-    // all good, let them in
+    // validate proof of invitation
+    const invitation = this.validateProofOfInvitation(proof)
 
     // post admission to the signature chain
-    const { roles = [] } = invitation.payload
+    const { id } = proof
+    const { roles = [] } = invitation.payload as MemberInvitationPayload
+    const member = proof.payload as Member
     this.dispatch({
       type: 'ADMIT_INVITED_MEMBER',
       payload: { id, member, roles },
@@ -307,39 +290,39 @@ export class Team extends EventEmitter {
     return { secretKey, id }
   }
 
-  // TODO: Abstract common code between admit and admitDevice?
-
   /** Admit a new device based on proof of invitation */
   public admitDevice = (proof: ProofOfInvitation) => {
-    const typeError = new Error('Team.admitDevice() is only for accepting invitations for devices.')
-    // ignore coverage
-    if (proof.type !== DEVICE) throw typeError
+    assert(proof.type === DEVICE, 'Team.admitDevice is only for accepting invitations for devices.')
 
-    const { id, payload: device } = proof
+    // validate proof of invitation
+    this.validateProofOfInvitation(proof)
 
+    // post admission to the signature chain
+    const { id, payload } = proof
+    const device = payload as Device
+    this.dispatch({
+      type: 'ADMIT_INVITED_DEVICE',
+      payload: { id, device },
+    })
+  }
+
+  private validateProofOfInvitation = (proof: ProofOfInvitation) => {
     const teamKeys = this.teamKeys()
+    const { id } = proof
 
-    // look up the invitation
     const encryptedInvitation = this.state.invitations[id]
     if (encryptedInvitation === undefined) throw new Error(`No invitation with id '${id}' found.`)
     if (encryptedInvitation.revoked) throw new Error(`This invitation has been revoked.`)
     if (encryptedInvitation.used) throw new Error(`This invitation has already been used.`)
 
-    // validate proof against original invitation
-    const validation = invitations.validate(proof, encryptedInvitation, teamKeys)
-    if (validation.isValid === false) throw validation.error
-
     // open the invitation
     const invitation = invitations.open(encryptedInvitation, teamKeys)
-    // ignore coverage
-    if (invitation.type !== DEVICE) throw typeError
 
-    // all good, let them in
-    // post admission to the signature chain
-    this.dispatch({
-      type: 'ADMIT_INVITED_DEVICE',
-      payload: { id, device },
-    })
+    // validate proof against original invitation
+    const validation = invitations.validateDecrypted(proof, invitation)
+    if (validation.isValid === false) throw validation.error
+
+    return invitation
   }
 
   public removeDevice = (deviceInfo: DeviceInfo) => {
