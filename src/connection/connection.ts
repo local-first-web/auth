@@ -362,12 +362,9 @@ export class Connection extends EventEmitter {
       const { payload } = event as UpdateMessage | MissingLinksMessage
       const theirHead = payload !== undefined && head in payload ? payload.head : context.theirHead
 
-      this.log(
-        `headsAreEqual ${event.type} ${head === theirHead} (mine: ${trunc(head)}, theirs: ${trunc(
-          theirHead
-        )})`
-      )
-      return head === theirHead
+      const result = head === theirHead
+      this.log(`headsAreEqual ${event.type} ${result} (${trunc(head)}, ${trunc(theirHead)})`)
+      return result
     },
 
     headsAreDifferent: (...args) => !this.guards.headsAreEqual(...args),
