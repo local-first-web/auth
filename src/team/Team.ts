@@ -141,8 +141,7 @@ export class Team extends EventEmitter {
       payload: { member: redactedUser, roles, lockboxes },
     })
 
-    // TODO: implement addDevice
-    //  this.addDevice(member.device)
+    // TODO: this.addDevice(member.device)
   }
 
   /** Remove a member from the team */
@@ -210,7 +209,35 @@ export class Team extends EventEmitter {
     })
   }
 
-  // Invitations
+  // Devices
+
+  public addDevice = (device: Device) => {
+    //     const { userName } = deviceInfo
+    //     const deviceId = getDeviceId(deviceInfo)
+    //     const device: Device = {
+    // }
+    //     // post the removal to the signature chain
+    //     this.dispatch({
+    //       type: 'ADD_DEVICE',
+    //       payload: { device, lockboxes },
+    //     })
+  }
+
+  public removeDevice = (deviceInfo: DeviceInfo) => {
+    const { userName } = deviceInfo
+    const deviceId = getDeviceId(deviceInfo)
+
+    // create new keys & lockboxes for any keys this device had access to
+    const lockboxes = this.rotateKeys({ type: DEVICE, name: deviceId })
+
+    // post the removal to the signature chain
+    this.dispatch({
+      type: 'REMOVE_DEVICE',
+      payload: { userName, deviceId, lockboxes },
+    })
+  }
+
+  // Invitations (members)
 
   /** Invite a new member to the team.
    *
@@ -253,20 +280,15 @@ export class Team extends EventEmitter {
   public admit = (proof: ProofOfInvitation) => {
     assert(proof.type === MEMBER, 'Team.admit is only for accepting invitations for members.')
 
-    // validate proof of invitation
-    const invitation = this.validateProofOfInvitation(proof)
+    const invitation = this.useInvitation(proof)
 
-    // post admission to the signature chain
-    const { id } = proof
+    // add member
     const { roles = [] } = invitation.payload as MemberInvitationPayload
     const member = proof.payload as Member
-    this.dispatch({
-      type: 'ADMIT_INVITED_MEMBER',
-      payload: { id, member, roles },
-    })
+    this.add(member, roles)
   }
 
-  // Devices
+  // Invitations (devices)
 
   public inviteDevice = (deviceInfo: DeviceInfo, options: { secretKey?: string } = {}) => {
     let { secretKey = invitations.newInvitationKey() } = options
@@ -294,53 +316,11 @@ export class Team extends EventEmitter {
   public admitDevice = (proof: ProofOfInvitation) => {
     assert(proof.type === DEVICE, 'Team.admitDevice is only for accepting invitations for devices.')
 
-    // validate proof of invitation
-    this.validateProofOfInvitation(proof)
+    const invitation = this.useInvitation(proof)
 
-    // post admission to the signature chain
-    const { id, payload } = proof
-    const device = payload as Device
-    this.dispatch({
-      type: 'ADMIT_INVITED_DEVICE',
-      payload: { id, device },
-    })
-  }
-
-  private validateProofOfInvitation = (proof: ProofOfInvitation) => {
-    const teamKeys = this.teamKeys()
-    const { id } = proof
-
-    const invitation = this.state.invitations[id]
-    if (invitation === undefined) throw new Error(`No invitation with id '${id}' found.`)
-    if (invitation.revoked) throw new Error(`This invitation has been revoked.`)
-    if (invitation.used) throw new Error(`This invitation has already been used.`)
-
-    // open the invitation
-    const invitationBody = invitations.open(invitation, teamKeys)
-
-    // validate proof against original invitation
-    const validation = invitations.validateInvitationBody(proof, invitationBody)
-    if (validation.isValid === false) throw validation.error
-
-    return invitationBody
-  }
-
-  public removeDevice = (deviceInfo: DeviceInfo) => {
-    const { userName } = deviceInfo
-    const deviceId = getDeviceId(deviceInfo)
-
-    // create new keys & lockboxes for any keys this device had access to
-    const lockboxes = this.rotateKeys({ type: DEVICE, name: deviceId })
-
-    // post the removal to the signature chain
-    this.dispatch({
-      type: 'REMOVE_DEVICE',
-      payload: {
-        userName,
-        deviceId,
-        lockboxes,
-      },
-    })
+    // add device
+    const device = proof.payload as Device
+    this.addDevice(device)
   }
 
   // ## CRYPTO
@@ -430,6 +410,34 @@ export class Team extends EventEmitter {
     })
 
     return newLockboxes
+  }
+
+  // Invitations
+
+  private useInvitation = (proof: ProofOfInvitation) => {
+    // validate proof of invitation
+    const teamKeys = this.teamKeys()
+    const { id } = proof
+
+    const invitation = this.state.invitations[id]
+    if (invitation === undefined) throw new Error(`No invitation with id '${id}' found.`)
+    if (invitation.revoked) throw new Error(`This invitation has been revoked.`)
+    if (invitation.used) throw new Error(`This invitation has already been used.`)
+
+    // open the invitation
+    const invitationBody = invitations.open(invitation, teamKeys)
+
+    // validate proof against original invitation
+    const validation = invitations.validateInvitationBody(proof, invitationBody)
+    if (validation.isValid === false) throw validation.error
+
+    // mark the invitation as used
+    this.dispatch({
+      type: 'USE_INVITATION',
+      payload: { id },
+    })
+
+    return invitationBody
   }
 
   // Team state

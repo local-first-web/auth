@@ -199,20 +199,10 @@ export interface RevokeInvitationAction extends Action {
   }
 }
 
-export interface AdmitInvitedMemberAction extends Action {
-  type: 'ADMIT_INVITED_MEMBER'
+export interface UseInvitationAction extends Action {
+  type: 'USE_INVITATION'
   payload: BasePayload & {
     id: string
-    member: Member
-    roles?: string[]
-  }
-}
-
-export interface AdmitInvitedDeviceAction extends Action {
-  type: 'ADMIT_INVITED_DEVICE'
-  payload: BasePayload & {
-    id: string
-    device: Device
   }
 }
 
@@ -228,8 +218,7 @@ export type TeamAction =
   | RemoveMemberRoleAction
   | PostInvitationAction
   | RevokeInvitationAction
-  | AdmitInvitedMemberAction
-  | AdmitInvitedDeviceAction
+  | UseInvitationAction
 
 export type TeamLinkBody = LinkBody<TeamAction>
 export type TeamLink = Link<TeamAction>
