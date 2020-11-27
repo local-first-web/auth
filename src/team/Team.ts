@@ -375,9 +375,8 @@ export class Team extends EventEmitter {
 
   // Keys
 
-  // These methods all return keysets with secrets, and will throw an error if the local user
-  // does not have access to the requested keys. To get other members' keys, look up the member -
-  // the `keys` property contains their public keys.
+  // These methods all return keysets with secrets, and must be available to the local user. To get
+  // other members' keys, look up the member - the `keys` property contains their public keys.
 
   /** Returns the keyset (if available to the current user) for the given type and name */
   public keys = (scope: Optional<KeyMetadata, 'generation'>): KeysetWithSecrets =>
@@ -396,7 +395,6 @@ export class Team extends EventEmitter {
   /** Given a compromised scope (e.g. a member or a role), find all scopes that are visible from that
    * scope, and generates new keys and lockboxes for each of those. Returns all of the new lockboxes in
    * a single array to be posted to the signature chain. */
-
   private rotateKeys(compromisedScope: KeyScope) {
     // make a list containing this scope plus all scopes that it sees
     const compromisedScopes = select.scopesToRotate(this.state, compromisedScope)
