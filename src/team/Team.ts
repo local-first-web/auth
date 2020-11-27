@@ -124,25 +124,30 @@ export class Team extends EventEmitter {
   // resulting lockboxes, the signed links) are posted on the chain.
 
   /** Add a member to the team */
-  public add = (member: User | Member, roles: string[] = []) => {
+  public add = (user: User | Member, roles: string[] = []) => {
     // don't leak user secrets if we have them
-    const redactedUser = users.redactUser(member)
+    const member = users.redactUser(user)
 
     // make lockboxes for the new member
+    const lockboxes = this.createMemberLockboxes(member, roles)
+
+    // post the member to the signature chain
+    this.dispatch({
+      type: 'ADD_MEMBER',
+      payload: { member, roles, lockboxes },
+    })
+
+    // TODO: implement addDevice
+    //  this.addDevice(member.device)
+  }
+
+  private createMemberLockboxes = (member: Member, roles: string[] = []) => {
     const teamLockbox = lockbox.create(this.teamKeys(), member.keys)
     const roleLockboxes = roles.map(roleName =>
       lockbox.create(this.roleKeys(roleName), member.keys)
     )
     const lockboxes = [teamLockbox, ...roleLockboxes]
-
-    // post the member to the signature chain
-    this.dispatch({
-      type: 'ADD_MEMBER',
-      payload: { member: redactedUser, roles, lockboxes },
-    })
-
-    // TODO: implement addDevice
-    //  this.addDevice(member.device)
+    return lockboxes
   }
 
   /** Remove a member from the team */
