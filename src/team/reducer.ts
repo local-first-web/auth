@@ -118,22 +118,36 @@ const getTransforms = (action: TeamAction): Reducer[] => {
     }
 
     case 'POST_INVITATION': {
+      // Add the invitation to the list of open invitations.
       const { invitation } = action.payload
       return [
-        postInvitation(invitation), // Add the invitation to the list of open invitations.
+        postInvitation(invitation), //
       ]
     }
 
     case 'REVOKE_INVITATION': {
+      // We mark an invitation revoked so it can't be used
       const { id } = action.payload
       return [
-        revokeInvitation(id), // We mark an invitation revoked so it can't be used
+        revokeInvitation(id), //
       ]
     }
 
-    case 'USE_INVITATION': {
-      const { id } = action.payload
+    case 'ADMIT_INVITED_MEMBER': {
+      const { id, member, roles } = action.payload
+
       return [
+        addMember(member), // Add member
+        ...addMemberRoles(member.userName, roles), // Add member to roles
+        useInvitation(id), // Mark invitation as used so it can't be used a second time
+      ]
+    }
+
+    case 'ADMIT_INVITED_DEVICE': {
+      const { id, device } = action.payload
+
+      return [
+        addDevice(device), // Add device
         useInvitation(id), // Mark invitation as used so it can't be used a second time
       ]
     }
