@@ -11,6 +11,8 @@ import {
 } from '/chain/types'
 import { Hash } from '/util'
 
+// TODO: This also needs to deal with members added by invitation
+
 export const membershipResolver: Resolver<TeamAction> = (a, b, chain) => {
   const [_a, _b] = [a, b].sort(arbitraryDeterministicSort()) // ensure predictable order
 
