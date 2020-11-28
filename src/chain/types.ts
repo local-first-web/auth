@@ -1,6 +1,7 @@
 ﻿import { MemberContext } from '/context'
 import { Device } from '/device'
-import { Invitation } from '/invitation/types'
+import { MemberInvitation, DeviceInvitation } from '/invitation'
+import { PublicKeyset } from '/keyset'
 import { Lockbox } from '/lockbox'
 import { Member } from '/member'
 import { PermissionsMap, Role } from '/role'
@@ -185,10 +186,17 @@ export interface RemoveMemberRoleAction extends Action {
   }
 }
 
-export interface PostInvitationAction extends Action {
-  type: 'POST_INVITATION'
+export interface InviteMemberAction extends Action {
+  type: 'INVITE_MEMBER'
   payload: BasePayload & {
-    invitation: Invitation
+    invitation: MemberInvitation
+  }
+}
+
+export interface InviteDeviceAction extends Action {
+  type: 'INVITE_DEVICE'
+  payload: BasePayload & {
+    invitation: DeviceInvitation
   }
 }
 
@@ -216,6 +224,20 @@ export interface AdmitInvitedDeviceAction extends Action {
   }
 }
 
+export interface ChangeMemberKeysAction extends Action {
+  type: 'CHANGE_MEMBER_KEYS'
+  payload: BasePayload & {
+    keys: PublicKeyset
+  }
+}
+
+export interface ChangeDeviceKeysAction extends Action {
+  type: 'CHANGE_DEVICE_KEYS'
+  payload: BasePayload & {
+    keys: PublicKeyset
+  }
+}
+
 export type TeamAction =
   | RootAction
   | AddMemberAction
@@ -226,10 +248,13 @@ export type TeamAction =
   | RemoveDeviceAction
   | RemoveRoleAction
   | RemoveMemberRoleAction
-  | PostInvitationAction
+  | InviteMemberAction
+  | InviteDeviceAction
   | RevokeInvitationAction
   | AdmitInvitedMemberAction
   | AdmitInvitedDeviceAction
+  | ChangeMemberKeysAction
+  | ChangeDeviceKeysAction
 
 export type TeamLinkBody = LinkBody<TeamAction>
 export type TeamLink = Link<TeamAction>

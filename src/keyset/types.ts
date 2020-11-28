@@ -40,6 +40,12 @@ export interface PublicKeyset extends KeyMetadata {
 
 // type guard: PublicKeyset vs KeysetWithSecrets
 export const hasSecrets = (keys: PublicKeyset | KeysetWithSecrets): keys is KeysetWithSecrets =>
-  keys.encryption.hasOwnProperty('secretKey') ||
-  keys.signature.hasOwnProperty('secretKey') ||
+  keys.encryption.hasOwnProperty('secretKey') &&
+  keys.signature.hasOwnProperty('secretKey') &&
   'secretKey' in keys
+
+// type guard: KeysetWithSecrets vs. KeyScope
+export const isKeyset = (k: KeysetWithSecrets | KeyScope): k is KeysetWithSecrets =>
+  'secretKey' in k && //
+  'encryption' in k &&
+  'signature' in k

@@ -242,7 +242,7 @@ describe('connection', () => {
       const aliceAuthenticatingState = () => alice.getState().connecting.authenticating
 
       // 👩🏾 Alice invites 👳‍♂️ Charlie
-      const { secretKey: invitationSecretKey } = alice.team.invite('charlie')
+      const { secretKey: invitationSecretKey } = alice.team.inviteMember('charlie')
 
       // 👩🏾 Alice connects
       alice.connection.start()
@@ -273,7 +273,7 @@ describe('connection', () => {
 
       // 👩🏾 Alice invites 👳‍♂️ Charlie
 
-      const { secretKey: invitationSecretKey } = alice.team.invite('charlie')
+      const { secretKey: invitationSecretKey } = alice.team.inviteMember('charlie')
 
       // 👳‍♂️ Charlie connects
       const charlieContext = {
@@ -295,7 +295,7 @@ describe('connection', () => {
       // 👩🏾 Alice validates charlie's invitation
       const helloMessage = lastMessage() as HelloMessage
       const { proofOfInvitation } = helloMessage.payload
-      alice.team.admit(proofOfInvitation!)
+      alice.team.admitMember(proofOfInvitation!)
       const chain = alice.team.save()
       charlieConnection.deliver({ index: 1, type: 'ACCEPT_INVITATION', payload: { chain } })
 
@@ -331,7 +331,7 @@ describe('connection', () => {
       const { alice } = testUsers
 
       // 👩🏾 Alice invites 👳‍♂️ Charlie
-      const { secretKey: invitationSecretKey } = alice.team.invite('charlie')
+      const { secretKey: invitationSecretKey } = alice.team.inviteMember('charlie')
 
       // 👳‍♂️ Charlie uses the invitation secret key to connect with Alice
       const charlieContext = {
@@ -354,10 +354,10 @@ describe('connection', () => {
       const { alice } = testUsers
 
       // 👩🏾 Alice invites 👨‍🦲 Bob
-      const { secretKey: bobKey } = alice.team.invite('bob')
+      const { secretKey: bobKey } = alice.team.inviteMember('bob')
 
       // 👩🏾 Alice invites 👳‍♂️ Charlie
-      const { secretKey: charlieKey } = alice.team.invite('charlie')
+      const { secretKey: charlieKey } = alice.team.inviteMember('charlie')
 
       // 👨‍🦲 Bob uses his invitation secret key to try to connect
       const bobContext = {
@@ -386,7 +386,7 @@ describe('connection', () => {
 
       // 👩🏾 Alice invites 👳‍♂️ Charlie
 
-      const { secretKey: invitationSecretKey } = alice.team.invite('charlie')
+      const { secretKey: invitationSecretKey } = alice.team.inviteMember('charlie')
       // 🦹‍♀️ Eve is going to impersonate Alice to try to get Charlie to join her team instead
 
       const fakeAlice = users.create('alice')
@@ -394,7 +394,7 @@ describe('connection', () => {
       const eveTeam = teams.create('Spies Я Us', eveContext)
 
       // 🦹‍♀️ Eve creates an bogus invitation for Charlie in her signature chain
-      eveTeam.invite('charlie')
+      eveTeam.inviteMember('charlie')
 
       // 👳‍♂️ Charlie connects
       const charlieContext = {

@@ -146,7 +146,7 @@ export class Connection extends EventEmitter {
       } as AcceptInvitationMessage)
     },
 
-    joinTeam: assign({
+    rehydrateTeam: assign({
       team: (context, event) => this.rehydrateTeam(context, event),
     }),
 
@@ -323,7 +323,7 @@ export class Connection extends EventEmitter {
 
     invitationProofIsValid: context => {
       try {
-        context.team!.admit(context.theirProofOfInvitation!)
+        context.team!.admitMember(context.theirProofOfInvitation!)
       } catch (e) {
         this.context.error = { message: e.toString() }
         return false

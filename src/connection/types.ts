@@ -71,6 +71,7 @@ export interface ConnectionStateSchema {
             initializing: {}
             awaitingInvitationAcceptance: {}
             validatingInvitationProof: {}
+            joining: {}
           }
         }
         authenticating: {

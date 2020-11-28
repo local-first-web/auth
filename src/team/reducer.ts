@@ -5,6 +5,7 @@ import {
   addMember,
   addMemberRoles,
   addRole,
+  changeMemberKeys,
   collectLockboxes,
   compose,
   postInvitation,
@@ -62,9 +63,9 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       const { teamName, rootMember } = action.payload
       return [
         setTeamName(teamName),
-        addRole({ roleName: ADMIN }),
-        addMember(rootMember),
-        ...addMemberRoles(rootMember.userName, [ADMIN]),
+        addRole({ roleName: ADMIN }), // create the admin role
+        addMember(rootMember), // add the founding member
+        ...addMemberRoles(rootMember.userName, [ADMIN]), // make the founding member an admin
       ]
 
     case 'ADD_MEMBER': {
@@ -117,19 +118,18 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       ]
     }
 
-    case 'POST_INVITATION': {
-      // Add the invitation to the list of open invitations.
+    case 'INVITE_MEMBER':
+    case 'INVITE_DEVICE': {
       const { invitation } = action.payload
       return [
-        postInvitation(invitation), //
+        postInvitation(invitation), // Add the invitation to the list of open invitations.
       ]
     }
 
     case 'REVOKE_INVITATION': {
-      // We mark an invitation revoked so it can't be used
       const { id } = action.payload
       return [
-        revokeInvitation(id), //
+        revokeInvitation(id), // We mark an invitation revoked so it can't be used
       ]
     }
 
@@ -152,8 +152,14 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       ]
     }
 
+    case 'CHANGE_MEMBER_KEYS': {
+      const { keys } = action.payload
+      return [
+        changeMemberKeys(keys), // Replace this member's keys with the ones provided
+      ]
+    }
+
     default:
-      // @ts-ignore (should never get here)
       throw new Error(`Unrecognized link type: ${action.type}`)
   }
 }

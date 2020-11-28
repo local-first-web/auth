@@ -30,7 +30,7 @@ describe('Team', () => {
         const { team } = setup()
 
         // 👩🏾 Alice invites 👨‍🦲 Bob
-        const { secretKey } = team.invite('bob')
+        const { secretKey } = team.inviteMember('bob')
         expect(secretKey).toHaveLength(16)
       })
 
@@ -38,13 +38,13 @@ describe('Team', () => {
         const { team: alicesTeam } = setup()
 
         // 👩🏾 Alice invites 👨‍🦲 Bob by sending him a random secret key
-        const { secretKey } = alicesTeam.invite('bob')
+        const { secretKey } = alicesTeam.inviteMember('bob')
 
         // 👨‍🦲 Bob accepts the invitation
         const proofOfInvitation = acceptMemberInvitation(secretKey, redactUser(bob))
 
         // 👨‍🦲 Bob shows 👩🏾 Alice his proof of invitation, and she lets him in
-        alicesTeam.admit(proofOfInvitation)
+        alicesTeam.admitMember(proofOfInvitation)
 
         // ✅ 👨‍🦲 Bob is now on the team. Congratulations, Bob!
         expect(alicesTeam.has('bob')).toBe(true)
@@ -54,13 +54,13 @@ describe('Team', () => {
         const { team: alicesTeam } = setup()
 
         // 👩🏾 Alice invites 👨‍🦲 Bob by sending him a secret key of her choosing
-        const { secretKey } = alicesTeam.invite('bob', { secretKey: 'passw0rd' })
+        const { secretKey } = alicesTeam.inviteMember('bob', { secretKey: 'passw0rd' })
 
         // 👨‍🦲 Bob accepts the invitation
         const proofOfInvitation = acceptMemberInvitation(secretKey, redactUser(bob))
 
         // 👨‍🦲 Bob shows 👩🏾 Alice his proof of invitation, and she lets him in
-        alicesTeam.admit(proofOfInvitation)
+        alicesTeam.admitMember(proofOfInvitation)
 
         // ✅ 👨‍🦲 Bob is now on the team. Congratulations, Bob!
         expect(alicesTeam.has('bob')).toBe(true)
@@ -70,11 +70,11 @@ describe('Team', () => {
         const { team: alicesTeam } = setup()
 
         // 👩🏾 Alice invites 👨‍🦲 Bob
-        alicesTeam.invite('bob', { secretKey: 'abc def ghi' })
+        alicesTeam.inviteMember('bob', { secretKey: 'abc def ghi' })
 
         // 👨‍🦲 Bob accepts the invitation using a url-friendlier version of the key
         const proofOfInvitation = acceptMemberInvitation('abc+def+ghi', redactUser(bob))
-        alicesTeam.admit(proofOfInvitation)
+        alicesTeam.admitMember(proofOfInvitation)
 
         // ✅ Bob is on the team
         expect(alicesTeam.has('bob')).toBe(true)
@@ -84,11 +84,11 @@ describe('Team', () => {
         const { team: alicesTeam } = setup()
 
         // 👩🏾 Alice invites 👨‍🦲 Bob as admin
-        const { secretKey } = alicesTeam.invite('bob', { roles: [ADMIN] })
+        const { secretKey } = alicesTeam.inviteMember('bob', { roles: [ADMIN] })
 
         // 👨‍🦲 Bob accepts the invitation
         const proofOfInvitation = acceptMemberInvitation(secretKey, redactUser(bob))
-        alicesTeam.admit(proofOfInvitation)
+        alicesTeam.admitMember(proofOfInvitation)
 
         // ✅ Bob is on the team as an admin
         expect(alicesTeam.memberIsAdmin('bob')).toBe(true)
@@ -98,7 +98,7 @@ describe('Team', () => {
         const { team: alicesTeam } = setup()
 
         // 👩🏾 Alice invites 👨‍🦲 Bob
-        const { secretKey } = alicesTeam.invite('bob')
+        const { secretKey } = alicesTeam.inviteMember('bob')
 
         // 👨‍🦲 Bob accepts the invitation
         const proofOfInvitation = acceptMemberInvitation(secretKey, redactUser(bob))
@@ -111,7 +111,7 @@ describe('Team', () => {
         }
 
         // 🦹‍♀️ Eve shows 👩🏾 Alice her fake proof of invitation
-        const presentForgedInvitation = () => alicesTeam.admit(forgedProofOfInvitation)
+        const presentForgedInvitation = () => alicesTeam.admitMember(forgedProofOfInvitation)
 
         // ❌ but 👩🏾 Alice is not fooled
         expect(presentForgedInvitation).toThrow(/User names don't match/)
@@ -122,7 +122,7 @@ describe('Team', () => {
         alicesTeam.add(bob)
 
         // 👩🏾 Alice invites 👳‍♂️ Charlie by sending him a secret key
-        const { secretKey } = alicesTeam.invite('charlie')
+        const { secretKey } = alicesTeam.inviteMember('charlie')
 
         // 👳‍♂️ Charlie accepts the invitation
         const proofOfInvitation = acceptMemberInvitation(secretKey, redactUser(charlie))
@@ -135,7 +135,7 @@ describe('Team', () => {
         expect(bobsTeam.memberIsAdmin('bob')).toBe(false)
 
         // 👳‍♂️ Charlie shows 👨‍🦲 Bob his proof of invitation
-        bobsTeam.admit(proofOfInvitation)
+        bobsTeam.admitMember(proofOfInvitation)
 
         // 👳‍♂️ Charlie is now on the team
         expect(bobsTeam.has('charlie')).toBe(true)
@@ -151,7 +151,7 @@ describe('Team', () => {
         alicesTeam.add(bob) // bob is not an admin
 
         // 👩🏾 Alice invites 👳‍♂️ Charlie by sending him a secret key
-        const { secretKey, id } = alicesTeam.invite('charlie')
+        const { secretKey, id } = alicesTeam.inviteMember('charlie')
 
         // 👳‍♂️ Charlie accepts the invitation
         const proofOfInvitation = acceptMemberInvitation(secretKey, redactUser(charlie))
@@ -164,7 +164,7 @@ describe('Team', () => {
         const bobsTeam = load(persistedTeam, bobsContext)
 
         // 👳‍♂️ Charlie shows 👨‍🦲 Bob his proof of invitation
-        const tryToAdmitCharlie = () => bobsTeam.admit(proofOfInvitation)
+        const tryToAdmitCharlie = () => bobsTeam.admitMember(proofOfInvitation)
 
         // ❌ But the invitation is rejected
         expect(tryToAdmitCharlie).toThrowError(/revoked/)

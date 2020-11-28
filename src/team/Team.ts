@@ -1,14 +1,31 @@
 ﻿import { signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
 import * as chains from '/chain'
-import { membershipResolver, TeamAction, TeamActionLink, TeamSignatureChain } from '/chain'
+import {
+  InviteDeviceAction,
+  InviteMemberAction,
+  membershipResolver,
+  TeamAction,
+  TeamActionLink,
+  TeamSignatureChain,
+} from '/chain'
 import { LocalUserContext } from '/context'
 import { Device, DeviceInfo, getDeviceId } from '/device'
 import * as invitations from '/invitation'
 import { MemberInvitationPayload, ProofOfInvitation } from '/invitation'
 import { normalize } from '/invitation/normalize'
 import * as keysets from '/keyset'
-import { ADMIN_SCOPE, KeyMetadata, KeyScope, KeysetWithSecrets, KeyType, TEAM_SCOPE } from '/keyset'
+import {
+  ADMIN_SCOPE,
+  isKeyset,
+  KeyMetadata,
+  KeyScope,
+  KeysetWithSecrets,
+  KeyType,
+  PublicKeyset,
+  TEAM_SCOPE,
+} from '/keyset'
+import { getScope } from '/keyset/getScope'
 import * as lockbox from '/lockbox'
 import { Member } from '/member'
 import { ADMIN, Role } from '/role'
@@ -19,6 +36,9 @@ import { EncryptedEnvelope, isNewTeam, SignedEnvelope, TeamOptions, TeamState } 
 import * as users from '/user'
 import { User } from '/user'
 import { assert, Optional, Payload } from '/util'
+import * as R from 'ramda'
+import { getVisibleScopes } from '/team/selectors'
+import { Lockbox } from '/lockbox'
 
 const { DEVICE, ROLE, MEMBER } = KeyType
 
@@ -134,6 +154,45 @@ export class Team extends EventEmitter {
       : select.member(this.state, userName) // one member
   }
 
+  /* TODO add member with invitation key?
+
+Then the new member could just authenticate like anyone else (completing the signature challenge
+using their ephemeral keys) and change their keys as soon as they're connected.
+
+As is, Team.add seems pretty useless - even if you know some pre-existing keyset for that user, they
+would need a way of getting the team chain. The invitation handling process during connection is the
+only place where we actually send someone the current chain. 
+
+Also what's the device workflow. 
+
+On Bob's laptop, Bob invites Bob's phone. Bob's phone authenticates using the ephemeral keyset.
+(NOTE: we need to support authenticating with device keys)
+
+
+### could all invitations be member invitations?
+
+inviting: 
+  - if the member doesn't exist, we add them with a random keyset 
+  - add all their roles and lockboxes
+  - add a special invitation-acceptance lockbox (contents: member keys, recipient: invitation)
+
+accepting: 
+  - present proof of invitation, same as now
+
+admitting: 
+  - after joining, the invitee opens their member keys using the lockbox
+  - they add their current device
+  - they change their member keys
+
+no signature challenge is necessary on the invitee's side, since that's essentially what the proof
+of invitation does
+
+authentication always uses device keys, not member keys
+
+
+*/
+
+  // TODO: deprecate
   /** Add a member to the team */
   public add = (user: User | Member, roles: string[] = []) => {
     // don't leak user secrets if we have them
@@ -147,15 +206,12 @@ export class Team extends EventEmitter {
       type: 'ADD_MEMBER',
       payload: { member, roles, lockboxes },
     })
-
-    // TODO: implement addDevice
-    //  this.addDevice(member.device)
   }
 
   /** Remove a member from the team */
   public remove = (userName: string) => {
     // create new keys & lockboxes for any keys this person had access to
-    const lockboxes = this.rotateKeys({ type: MEMBER, name: userName })
+    const lockboxes = this.generateNewLockboxes({ type: MEMBER, name: userName })
 
     // post the removal to the signature chain
     this.dispatch({
@@ -243,7 +299,7 @@ export class Team extends EventEmitter {
   /** Remove a role from a member */
   public removeMemberRole = (userName: string, roleName: string) => {
     // create new keys & lockboxes for any keys this person had access to via this role
-    const lockboxes = this.rotateKeys({ type: ROLE, name: roleName })
+    const lockboxes = this.generateNewLockboxes({ type: ROLE, name: roleName })
 
     // post the removal to the signature chain
     this.dispatch({
@@ -259,7 +315,7 @@ export class Team extends EventEmitter {
     const deviceId = getDeviceId(deviceInfo)
 
     // create new keys & lockboxes for any keys this device had access to
-    const lockboxes = this.rotateKeys({ type: DEVICE, name: deviceId })
+    const lockboxes = this.generateNewLockboxes({ type: DEVICE, name: deviceId })
 
     // post the removal to the signature chain
     this.dispatch({
@@ -274,6 +330,7 @@ export class Team extends EventEmitter {
 
   /////////////// INVITATIONS
 
+  // TODO: deprecate
   /** Invite a new member to the team.
    *
    * If you don't provide a `secretKey`, a 16-character base30 string will be randomly generated. If
@@ -282,7 +339,10 @@ export class Team extends EventEmitter {
    * Normalizing the key this way allows us to show it to the user split into blocks
    * (e.g. `4kgd 5mwq 5z4f mfwq`) make it URL-safe (e.g. `4kgd+5mwq+5z4f+mfwq`), etc.
    */
-  public invite = (userName: string, options: { roles?: string[]; secretKey?: string } = {}) => {
+  public inviteMember = (
+    userName: string,
+    options: { roles?: string[]; secretKey?: string } = {}
+  ) => {
     let { roles = [], secretKey = invitations.newInvitationKey() } = options
 
     // generate invitation
@@ -300,13 +360,14 @@ export class Team extends EventEmitter {
 
     // post invitation to signature chain
     this.dispatch({
-      type: 'POST_INVITATION',
+      type: 'INVITE_MEMBER',
       payload: { invitation },
-    })
+    } as InviteMemberAction)
 
     return { secretKey, id: invitation.id }
   }
 
+  // TODO: deprecate
   /** Revoke an invitation. This can be used for member invitations as well as device invitations. */
   public revokeInvitation = (id: string) => {
     this.dispatch({
@@ -318,14 +379,9 @@ export class Team extends EventEmitter {
   /** Returns true if the invitation has ever existed in this team (even if it's been used or revoked) */
   public hasInvitation = (proof: ProofOfInvitation) => proof.id in this.state.invitations
 
-  /*
-  TODO: a member is originally added using the invitation's single-use keyset as their public keys. 
-  Upon joining, they need to be able to replace those keys with their own.
-  Which brings up the fact that we don't have a way for a user to rotate their keys. 
-  */
-
+  // TODO: deprecate
   /** Admit a new member to the team based on proof of invitation */
-  public admit = (proof: ProofOfInvitation) => {
+  public admitMember = (proof: ProofOfInvitation) => {
     assert(proof.type === MEMBER, 'Team.admit is only for accepting invitations for members.')
 
     // validate proof of invitation
@@ -342,6 +398,7 @@ export class Team extends EventEmitter {
     })
   }
 
+  // TODO: deprecate
   public inviteDevice = (deviceInfo: DeviceInfo, options: { secretKey?: string } = {}) => {
     let { secretKey = invitations.newInvitationKey() } = options
 
@@ -355,15 +412,16 @@ export class Team extends EventEmitter {
 
     // post invitation to signature chain
     this.dispatch({
-      type: 'POST_INVITATION',
+      type: 'INVITE_DEVICE',
       payload: { invitation },
-    })
+    } as InviteDeviceAction)
 
     // if the caller didn't provide the secret key, they'll need that
     // they might also need the invitation id in case they want to revoke it
     return { secretKey, id }
   }
 
+  // TODO: deprecate
   /** Admit a new device based on proof of invitation */
   public admitDevice = (proof: ProofOfInvitation) => {
     assert(proof.type === DEVICE, 'Team.admitDevice is only for accepting invitations for devices.')
@@ -429,7 +487,7 @@ export class Team extends EventEmitter {
     signature: signatures.sign(payload, this.context.user.keys.signature.secretKey),
     author: {
       type: MEMBER,
-      name: this.context.user.userName,
+      name: this.userName,
       generation: this.context.user.keys.generation,
     },
   })
@@ -445,7 +503,7 @@ export class Team extends EventEmitter {
   ///////////////  KEYS
 
   // These methods all return keysets with secrets, and must be available to the local user. To get
-  // other members' keys, look up the member - the `keys` property contains their public keys.
+  // other members' public keys, look up the member - the `keys` property contains their public keys.
 
   /** Returns the keyset (if available to the current user) for the given type and name */
   public keys = (scope: Optional<KeyMetadata, 'generation'>): KeysetWithSecrets =>
@@ -461,22 +519,72 @@ export class Team extends EventEmitter {
   /** Returns the admin keyset */
   public adminKeys = (): KeysetWithSecrets => this.roleKeys(ADMIN)
 
-  /** Given a compromised scope (e.g. a member or a role), find all scopes that are visible from that
-   * scope, and generates new keys and lockboxes for each of those. Returns all of the new lockboxes in
-   * a single array to be posted to the signature chain. */
-  private rotateKeys(compromisedScope: KeyScope) {
-    // make a list containing this scope plus all scopes that it sees
-    const compromisedScopes = select.scopesToRotate(this.state, compromisedScope)
+  /** Replaces the current user or device's secret keyset with the one provided */
+  public changeKeys = (newKeyset: PublicKeyset) => {
+    switch (newKeyset.type) {
+      case KeyType.MEMBER: {
+        assert(newKeyset.name === this.userName, `Can't change another user's secret keys`)
+        const oldKeys = this.keys(getScope(newKeyset))
+        const generation = oldKeys.generation + 1
+        this.dispatch({
+          type: 'CHANGE_MEMBER_KEYS',
+          payload: { keys: { ...newKeyset, generation } },
+        })
 
-    // generate new keys and lockboxes for each one
-    const newLockboxes = compromisedScopes.flatMap(scope => {
-      const keys = keysets.create(scope)
+        // TODO: After I update my own keys, I'll still be able to open lockboxes with the previous
+        // keys. Admins should check on every update for this situation - where I have newer keys
+        // than what the lockboxes were made for - and treat my previous generation of keys as
+        // compromised, and regenerate the keys I could see & make new lockboxes for everyone
+        // accordingly
+
+        break
+      }
+      case KeyType.DEVICE: {
+        assert(newKeyset.name === this.deviceId, `Can't change another device's secret keys`)
+        this.dispatch({
+          type: 'CHANGE_DEVICE_KEYS',
+          payload: { keys: newKeyset },
+        })
+        break
+      }
+      default:
+        throw new Error('updateKeys can only be used to update local user or device keys')
+    }
+  }
+
+  private get userName() {
+    return this.context.user.userName
+  }
+  private get deviceId() {
+    return getDeviceId(this.context.user.device)
+  }
+  /**
+   * Given a compromised scope (e.g. a member or a role), find all scopes that are visible from that
+   * scope, and generates new keys and lockboxes for each of those. Returns all of the new lockboxes
+   * in a single array to be posted to the signature chain.
+   *
+   * You can pass it a scope, or a keyset (which includes the scope information). If you pass a
+   * keyset, it will replace the existing keys with these.
+   *
+   * @param compromised If `compromised` is a keyset, that will become the new keyset for the
+   * compromised scope. If it is just a scope, new keys will be randomly generated for that scope.
+   */
+  private generateNewLockboxes = (compromised: KeyScope | KeysetWithSecrets) => {
+    const newKeyset = isKeyset(compromised)
+      ? compromised // we're given a keyset - use it as the new keys
+      : keysets.create(compromised) // we're just given a scope - generate new keys for it
+
+    const visibleScopes = getVisibleScopes(this.state, compromised)
+    const newKeysetsForVisibleScopes = visibleScopes.map(scope => keysets.create(scope))
+
+    // generate new lockboxes for each one
+    const allNewKeysets = [newKeyset, ...newKeysetsForVisibleScopes]
+    return allNewKeysets.flatMap(newKeyset => {
+      const scope = getScope(newKeyset)
       const oldLockboxes = select.lockboxesInScope(this.state, scope)
-      const newLockboxes = oldLockboxes.map(oldLockbox => lockbox.rotate(oldLockbox, keys))
+      const newLockboxes = oldLockboxes.map(oldLockbox => lockbox.rotate(oldLockbox, newKeyset))
       return newLockboxes
     })
-
-    return newLockboxes
   }
 }
 

@@ -5,7 +5,7 @@ export const scopesToRotate = (state: TeamState, compromisedScope: KeyScope) => 
   return [compromisedScope, ...getVisibleScopes(state, compromisedScope)]
 }
 
-const getVisibleScopes = (state: TeamState, { type, name }: KeyScope): KeyScope[] => {
+export const getVisibleScopes = (state: TeamState, { type, name }: KeyScope): KeyScope[] => {
   const scopes = state.lockboxes
     .filter(({ recipient }) => recipient.type === type && recipient.name === name)
     .map(({ contents: { type, name } }) => ({ type, name } as KeyScope))

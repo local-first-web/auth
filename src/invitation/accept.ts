@@ -18,8 +18,8 @@ export const acceptMemberInvitation = (secretKey: string, member: Member): Proof
 
   // Bob uses the one-time signature keys to sign a message consisting of the invitation id,
   // along with public info about him
-  const signatureKeys = create(EPHEMERAL_SCOPE, secretKey).signature
-  const signature = signatures.sign({ id, ...member }, signatureKeys.secretKey)
+  const ephemeralKeys = create({ type: KeyType.MEMBER, name: member.userName }, secretKey)
+  const signature = signatures.sign({ id, ...member }, ephemeralKeys.signature.secretKey)
 
   // The invitation id and the signature will be shown to an existing team member as proof that Bob
   // knows the secret invitation key. His user public keys and device public keys will be added to the signature chain.

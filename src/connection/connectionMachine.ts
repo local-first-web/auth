@@ -80,7 +80,7 @@ export const connectionMachine: MachineConfig<
                   // make sure the team I'm joining is actually the one that invited me
                   {
                     cond: 'joinedTheRightTeam',
-                    actions: 'joinTeam',
+                    actions: 'rehydrateTeam',
                     target: '#authenticating',
                   },
 
@@ -110,6 +110,12 @@ export const connectionMachine: MachineConfig<
                   target: '#failure',
                 },
               ],
+            },
+
+            joining: {
+              always: {
+                target: '#authenticating',
+              },
             },
           },
         },

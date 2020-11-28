@@ -1,7 +1,9 @@
 ﻿import { ActionLink, ROOT } from '/chain'
+import { KeyScope } from '/keyset'
 import * as select from '/team/selectors'
 import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '/team/types'
 import { VALID, ValidationError } from '/util'
+import * as R from 'ramda'
 
 export const validate: TeamStateValidator = (...args: ValidationArgs) => {
   for (const key in validators) {
@@ -18,15 +20,22 @@ const validators: TeamStateValidatorSet = {
     const [prevState, link] = args
 
     const { type, context } = link.body
-    const preMembershipActions = [ROOT] // team doesn't have members when these actions happen
-    const nonAdminActions = ['ADMIT_INVITED_MEMBER'] // any team member can do these things
 
-    if (!preMembershipActions.includes(type)) {
+    // any team member can do these things
+    const nonAdminActions = [
+      'CHANGE_MEMBER_KEYS',
+      'INVITE_DEVICE',
+      'ADMIT_INVITED_MEMBER',
+      'ADMIT_INVITED_DEVICE',
+    ]
+
+    // at root link, team doesn't yet have members
+    if (type !== ROOT) {
       const { userName } = context.member
 
       // make sure member exists
-      const noSuchUser = !select.hasMember(prevState, userName)
-      if (noSuchUser) return fail(`A member named '${userName}' was not found`, ...args)
+      const noSuchMember = !select.hasMember(prevState, userName)
+      if (noSuchMember) return fail(`A member named '${userName}' was not found`, ...args)
 
       if (!nonAdminActions.includes(type)) {
         // make sure member is admin
@@ -57,9 +66,13 @@ const validators: TeamStateValidatorSet = {
     return VALID
   },
 
-  cantAddDeviceForSomeoneElse: (...args) => {
+  canOnlyChangeYourOwnKeys: (...args) => {
     const [prevState, link] = args
-    // TODO finish cantAddDeviceForSomeoneElse
+    if (link.body.type === 'CHANGE_MEMBER_KEYS') {
+      const linkAuthorScope = { type: 'MEMBER', name: link.signed.userName } as KeyScope
+
+      // TODO
+    }
     return VALID
   },
 

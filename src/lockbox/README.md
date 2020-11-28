@@ -55,12 +55,12 @@ We use lockboxes to:
 - share **all role keys** with the **admin role**
 - share **user keys** with the user's **devices**
 
-### The key chain
+### The key graph
 
 Keys provide access to other keys, via lockboxes; so we have an acyclic directed graph where keys are nodes and
 lockboxes are edges.
 
-![](../../docs/img/key-chain.png)
+![](../../docs/img/key-graph.png)
 
 ## API
 

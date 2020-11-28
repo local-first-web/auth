@@ -103,18 +103,14 @@ describe('Team', () => {
       team.add(bob, [ADMIN])
 
       // keys have never been rotated
-      // @ts-ignore
       expect(team.teamKeys().generation).toBe(0)
-      // @ts-ignore
       expect(team.adminKeys().generation).toBe(0)
 
       // remove bob from team
       team.remove('bob')
 
       // team keys & admin keys have now been rotated once
-      // @ts-ignore
       expect(team.teamKeys().generation).toBe(1)
-      // @ts-ignore
       expect(team.adminKeys().generation).toBe(1)
     })
 
