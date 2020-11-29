@@ -3,11 +3,11 @@ import { HashPurpose } from '/util'
 
 const { INVITATION } = HashPurpose
 
-export function deriveId(key: string) {
+export function deriveId(secretKey: string, userName: string) {
   // ## Step 1b
   // The iKey is stretched using `scrypt` to discourage brute-force attacks (docs refer to this as
   // the `siKey`)
-  const stretchedKey = stretch(key)
+  const stretchedKey = stretch(`${secretKey}:${userName}`)
 
   // ## Step 1c
   // The invitation id is derived from the stretched iKey, so Bob can generate it independently.

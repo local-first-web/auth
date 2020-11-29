@@ -14,6 +14,6 @@ export const generateEphemeralKeys = (userName: string, secretKey: string) => {
   // Besides using it to generate his proof, he'll also need it to open the lockboxes included in
   // the invitation.
   const scope = { type: KeyType.MEMBER, name: userName }
-  const ephemeralKeys = keysets.create(scope, secretKey)
+  const ephemeralKeys = keysets.create(scope, `${secretKey}:${userName}`)
   return ephemeralKeys
 }

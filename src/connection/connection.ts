@@ -139,10 +139,11 @@ export class Connection extends EventEmitter {
     }),
 
     acceptInvitation: context => {
+      assert(context.team !== undefined)
       // welcome them by sending the team's signature chain, so they can reconstruct team membership state
       this.sendMessage({
         type: 'ACCEPT_INVITATION',
-        payload: { chain: context.team!.save() },
+        payload: { chain: context.team.save() },
       } as AcceptInvitationMessage)
     },
 
@@ -388,7 +389,8 @@ export class Connection extends EventEmitter {
     })
 
   private myProofOfInvitation = (context: ConnectionContext) => {
-    return invitations.generateProof(context.invitationSecretKey!, redactUser(context.user))
+    assert(context.invitationSecretKey !== undefined)
+    return invitations.generateProof(context.invitationSecretKey, context.user.userName)
   }
 }
 

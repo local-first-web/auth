@@ -303,25 +303,18 @@ export class Team extends EventEmitter {
   authentication always uses device keys, not member keys
   */
 
-  public invite = (
-    userName: string,
-    options: {
-      roles?: string[]
-      secretKey?: string
-    } = {}
-  ) => {
+  public invite = (userName: string, options: { roles?: string[]; secretKey?: string } = {}) => {
     const { roles = [] } = options
     let { secretKey = invitations.InvitationKey() } = options
     secretKey = normalize(secretKey)
 
-    let newUserKeys: KeysetWithSecrets | undefined = undefined
+    let user: User | undefined = undefined
 
     if (!this.has(userName)) {
       // New member - add them
 
       // this creates a new user with random keys; they'll receive those keys in a special lockbox
-      const user = users.create(userName)
-      newUserKeys = user.keys
+      user = users.create(userName)
 
       // make normal lockboxes for the new member
       const member: Member = { ...redactUser(user), roles }
@@ -336,13 +329,8 @@ export class Team extends EventEmitter {
 
     // generate invitation
     const teamKeys = this.teamKeys()
-    const invitation = invitations.invite({
-      teamKeys,
-      userName,
-      newUserKeys,
-      roles,
-      secretKey,
-    })
+    const newUserKeys = user?.keys
+    const invitation = invitations.invite({ teamKeys, userName, newUserKeys, roles, secretKey })
 
     // post invitation to signature chain
     this.dispatch({
@@ -350,50 +338,18 @@ export class Team extends EventEmitter {
       payload: { invitation },
     })
 
-    // return the secret key (to pass on to invitee) and the invitation id (why?)
+    // return the secret key (to pass on to invitee) and the invitation id (if we need to revoke later)
     const { id } = invitation
     return { secretKey, id }
   }
 
-  // // DEPRECATE
-  // /** Invite a new member to the team.
-  //  *
-  //  * If you don't provide a `secretKey`, a 16-character base30 string will be randomly generated. If
-  //  * you do provide a key, it will be stripped of non-alphanumeric characters and lower-cased, so
-  //  * you'll need to take that into account when determining the appropriate key strength.
-  //  * Normalizing the key this way allows us to show it to the user split into blocks
-  //  * (e.g. `4kgd 5mwq 5z4f mfwq`) make it URL-safe (e.g. `4kgd+5mwq+5z4f+mfwq`), etc.
-  //  */
-  // public invite = (
-  //   userName: string,
-  //   options: { roles?: string[]; secretKey?: string } = {}
-  // ) => {
-  //   let { roles = [], secretKey = invitations.InvitationKey() } = options
-
-  //   // generate invitation
-  //   secretKey = normalize(secretKey)
-  //   const teamKeys = this.teamKeys()
-  //   const roleKeys = roles.map(this.roleKeys)
-  //   const keysForLockboxes = [...roleKeys, teamKeys]
-  //   const invitation = invitations.invite({
-  //     teamKeys,
-  //     userName,
-  //     roles,
-  //     keysForLockboxes,
-  //     secretKey,
-  //   })
-
-  //   // post invitation to signature chain
-  //   this.dispatch({
-  //     type: 'INVITE_MEMBER',
-  //     payload: { invitation },
-  //   } as inviteAction)
-
-  //   return { secretKey, id: invitation.id }
-  // }
-
-  /** Revoke an invitation. This can be used for member invitations as well as device invitations. */
+  /** Revoke an invitation.  */
   public revokeInvitation = (id: string) => {
+    const invitation = this.state.invitations[id]
+    if (invitation === undefined) throw new Error(`No invitation with id '${id}' found.`)
+    // TODO: should this also remove the member?
+    // if the invitation is for an existing member's device, we don't want to
+    // otherwise we probably do
     this.dispatch({
       type: 'REVOKE_INVITATION',
       payload: { id },
@@ -407,27 +363,23 @@ export class Team extends EventEmitter {
   public admit = (proof: ProofOfInvitation) => {
     const teamKeys = this.teamKeys()
     const { id } = proof
+
+    // make sure this invitation exists and can be used
     const invitation = this.state.invitations[id]
 
+    if (invitation === undefined) throw new Error(`No invitation with id '${id}' found.`)
+    if (invitation.revoked === true) throw new Error(`This invitation has been revoked.`)
+    if (invitation.used === true) throw new Error(`This invitation has already been used.`)
+
     // validate proof of invitation
-    invitations.open(invitation, proof, teamKeys)
+    const validation = invitations.validate(proof, invitation, teamKeys)
+    if (validation.isValid === false) throw validation.error
 
     // post admission to the signature chain
     this.dispatch({
       type: 'ADMIT',
       payload: { id },
     })
-  }
-
-  private validateProofOfInvitation = (proof: ProofOfInvitation) => {
-    const invitation = this.state.invitations[id]
-    if (invitation === undefined) throw new Error(`No invitation with id '${id}' found.`)
-    if (invitation.revoked) throw new Error(`This invitation has been revoked.`)
-    if (invitation.used) throw new Error(`This invitation has already been used.`)
-
-    // validate proof against original invitation
-    const validation = invitations.validate(proof, invitation, teamKeys)
-    if (validation.isValid === false) throw validation.error
   }
 
   ///////////////  CRYPTO

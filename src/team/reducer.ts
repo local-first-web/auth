@@ -15,7 +15,7 @@ import {
   removeRole,
   revokeInvitation,
   setTeamName,
-  useInvitation
+  useInvitation,
 } from '/team/reducers'
 import { TeamState } from '/team/types'
 import { validate } from '/team/validate'
@@ -131,11 +131,8 @@ const getTransforms = (action: TeamAction): Reducer[] => {
     }
 
     case 'ADMIT': {
-      const { id, member, roles } = action.payload
-
+      const { id } = action.payload
       return [
-        addMember(member), // Add member
-        ...addMemberRoles(member.userName, roles), // Add member to roles
         useInvitation(id), // Mark invitation as used so it can't be used a second time
       ]
     }

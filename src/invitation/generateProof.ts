@@ -8,7 +8,7 @@ export const generateProof = (secretKey: string, userName: string): ProofOfInvit
   secretKey = normalize(secretKey)
 
   // Bob independently derives the invitation id and the ephemeral keys
-  const id = deriveId(secretKey)
+  const id = deriveId(secretKey, userName)
   const ephemeralKeys = generateEphemeralKeys(userName, secretKey)
 
   // Bob uses the ephemeral keys to sign a message consisting of

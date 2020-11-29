@@ -11,6 +11,7 @@ export const validate = (
   // Decrypt and parse invitation
   const decryptedBody = symmetric.decrypt(invitation.encryptedBody, teamKeys.secretKey)
   const invitationBody = JSON.parse(decryptedBody) as InvitationBody
+
   const details = { invitationBody, proof }
 
   // Check that IDs and user names from proof match invitation

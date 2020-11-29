@@ -22,12 +22,7 @@ const validators: TeamStateValidatorSet = {
     const { type, context } = link.body
 
     // any team member can do these things
-    const nonAdminActions = [
-      'CHANGE_MEMBER_KEYS',
-      'INVITE_DEVICE',
-      'ADMIT_INVITED_MEMBER',
-      'ADMIT_INVITED_DEVICE',
-    ]
+    const nonAdminActions = ['CHANGE_MEMBER_KEYS', 'ADMIT']
 
     // at root link, team doesn't yet have members
     if (type !== ROOT) {

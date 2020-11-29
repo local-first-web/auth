@@ -34,10 +34,9 @@ export const invite = ({
   secretKey = normalize(secretKey)!
   const ephemeralKeys = generateEphemeralKeys(userName, secretKey)
 
-  // Using the team-wide keys, encrypt Bob's username and roles so that we don't leak that
-  // information in the public signature chain. We also include the public ephemeral keys, which
-  // will be used to verify Bob's proof of invitation; and a lockbox containing Bob's starter member
-  // keys.
+  // Using the team-wide keys, encrypt Bob's username and roles so that we don't leak that information
+  // in the public signature chain. We also include the public ephemeral keys, which will be used
+  // to verify Bob's proof of invitation; and a lockbox containing Bob's starter member keys.
 
   const lockbox =
     newUserKeys !== undefined ? lockboxes.create(newUserKeys, ephemeralKeys) : undefined
@@ -51,7 +50,7 @@ export const invite = ({
 
   // We put it all together to create the invitation.
   return {
-    id: deriveId(secretKey),
+    id: deriveId(secretKey, userName),
     encryptedBody,
     generation: teamKeys.generation,
     used: false,
