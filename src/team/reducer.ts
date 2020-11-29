@@ -1,7 +1,6 @@
-﻿import { ROOT } from '/chain'
+﻿import { ROOT, TeamAction, TeamActionLink } from '/chain'
 import { ADMIN } from '/role'
 import {
-  addDevice,
   addMember,
   addMemberRoles,
   addRole,
@@ -16,10 +15,9 @@ import {
   removeRole,
   revokeInvitation,
   setTeamName,
-  useInvitation,
+  useInvitation
 } from '/team/reducers'
 import { TeamState } from '/team/types'
-import { TeamAction, TeamActionLink } from '/chain'
 import { validate } from '/team/validate'
 
 /**
@@ -118,8 +116,7 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       ]
     }
 
-    case 'INVITE_MEMBER':
-    case 'INVITE_DEVICE': {
+    case 'INVITE': {
       const { invitation } = action.payload
       return [
         postInvitation(invitation), // Add the invitation to the list of open invitations.
@@ -133,21 +130,12 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       ]
     }
 
-    case 'ADMIT_INVITED_MEMBER': {
+    case 'ADMIT': {
       const { id, member, roles } = action.payload
 
       return [
         addMember(member), // Add member
         ...addMemberRoles(member.userName, roles), // Add member to roles
-        useInvitation(id), // Mark invitation as used so it can't be used a second time
-      ]
-    }
-
-    case 'ADMIT_INVITED_DEVICE': {
-      const { id, device } = action.payload
-
-      return [
-        addDevice(device), // Add device
         useInvitation(id), // Mark invitation as used so it can't be used a second time
       ]
     }

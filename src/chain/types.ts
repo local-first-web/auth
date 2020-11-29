@@ -1,6 +1,6 @@
 ﻿import { MemberContext } from '/context'
 import { Device } from '/device'
-import { MemberInvitation, DeviceInvitation } from '/invitation'
+import { Invitation } from '/invitation'
 import { PublicKeyset } from '/keyset'
 import { Lockbox } from '/lockbox'
 import { Member } from '/member'
@@ -186,41 +186,24 @@ export interface RemoveMemberRoleAction extends Action {
   }
 }
 
-export interface InviteMemberAction extends Action {
-  type: 'INVITE_MEMBER'
+export interface InviteAction extends Action {
+  type: 'INVITE'
   payload: BasePayload & {
-    invitation: MemberInvitation
-  }
-}
-
-export interface InviteDeviceAction extends Action {
-  type: 'INVITE_DEVICE'
-  payload: BasePayload & {
-    invitation: DeviceInvitation
+    invitation: Invitation
   }
 }
 
 export interface RevokeInvitationAction extends Action {
   type: 'REVOKE_INVITATION'
   payload: BasePayload & {
-    id: string
+    id: string // invitation ID
   }
 }
 
-export interface AdmitInvitedMemberAction extends Action {
-  type: 'ADMIT_INVITED_MEMBER'
+export interface AdmitAction extends Action {
+  type: 'ADMIT'
   payload: BasePayload & {
-    id: string
-    member: Member
-    roles?: string[]
-  }
-}
-
-export interface AdmitInvitedDeviceAction extends Action {
-  type: 'ADMIT_INVITED_DEVICE'
-  payload: BasePayload & {
-    id: string
-    device: Device
+    id: string // invitation ID
   }
 }
 
@@ -248,11 +231,9 @@ export type TeamAction =
   | RemoveDeviceAction
   | RemoveRoleAction
   | RemoveMemberRoleAction
-  | InviteMemberAction
-  | InviteDeviceAction
+  | InviteAction
   | RevokeInvitationAction
-  | AdmitInvitedMemberAction
-  | AdmitInvitedDeviceAction
+  | AdmitAction
   | ChangeMemberKeysAction
   | ChangeDeviceKeysAction
 

@@ -323,7 +323,7 @@ export class Connection extends EventEmitter {
 
     invitationProofIsValid: context => {
       try {
-        context.team!.admitMember(context.theirProofOfInvitation!)
+        context.team!.admit(context.theirProofOfInvitation!)
       } catch (e) {
         this.context.error = { message: e.toString() }
         return false
@@ -388,10 +388,7 @@ export class Connection extends EventEmitter {
     })
 
   private myProofOfInvitation = (context: ConnectionContext) => {
-    return invitations.acceptMemberInvitation(
-      context.invitationSecretKey!,
-      redactUser(context.user)
-    )
+    return invitations.generateProof(context.invitationSecretKey!, redactUser(context.user))
   }
 }
 

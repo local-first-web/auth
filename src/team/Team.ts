@@ -1,18 +1,11 @@
 ﻿import { signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
 import * as chains from '/chain'
-import {
-  InviteDeviceAction,
-  InviteMemberAction,
-  membershipResolver,
-  TeamAction,
-  TeamActionLink,
-  TeamSignatureChain,
-} from '/chain'
+import { membershipResolver, TeamAction, TeamActionLink, TeamSignatureChain } from '/chain'
 import { LocalUserContext } from '/context'
-import { Device, DeviceInfo, getDeviceId } from '/device'
+import { DeviceInfo, getDeviceId } from '/device'
 import * as invitations from '/invitation'
-import { MemberInvitationPayload, ProofOfInvitation } from '/invitation'
+import { ProofOfInvitation } from '/invitation'
 import { normalize } from '/invitation/normalize'
 import * as keysets from '/keyset'
 import {
@@ -32,13 +25,11 @@ import { ADMIN, Role } from '/role'
 import { ALL, initialState } from '/team/constants'
 import { reducer } from '/team/reducer'
 import * as select from '/team/selectors'
+import { getVisibleScopes } from '/team/selectors'
 import { EncryptedEnvelope, isNewTeam, SignedEnvelope, TeamOptions, TeamState } from '/team/types'
 import * as users from '/user'
-import { User } from '/user'
+import { redactUser, User } from '/user'
 import { assert, Optional, Payload } from '/util'
-import * as R from 'ramda'
-import { getVisibleScopes } from '/team/selectors'
-import { Lockbox } from '/lockbox'
 
 const { DEVICE, ROLE, MEMBER } = KeyType
 
@@ -154,52 +145,13 @@ export class Team extends EventEmitter {
       : select.member(this.state, userName) // one member
   }
 
-  /* TODO add member with invitation key?
-
-Then the new member could just authenticate like anyone else (completing the signature challenge
-using their ephemeral keys) and change their keys as soon as they're connected.
-
-As is, Team.add seems pretty useless - even if you know some pre-existing keyset for that user, they
-would need a way of getting the team chain. The invitation handling process during connection is the
-only place where we actually send someone the current chain. 
-
-Also what's the device workflow. 
-
-On Bob's laptop, Bob invites Bob's phone. Bob's phone authenticates using the ephemeral keyset.
-(NOTE: we need to support authenticating with device keys)
-
-
-### could all invitations be member invitations?
-
-inviting: 
-  - if the member doesn't exist, we add them with a random keyset 
-  - add all their roles and lockboxes
-  - add a special invitation-acceptance lockbox (contents: member keys, recipient: invitation)
-
-accepting: 
-  - present proof of invitation, same as now
-
-admitting: 
-  - after joining, the invitee opens their member keys using the lockbox
-  - they add their current device
-  - they change their member keys
-
-no signature challenge is necessary on the invitee's side, since that's essentially what the proof
-of invitation does
-
-authentication always uses device keys, not member keys
-
-
-*/
-
-  // TODO: deprecate
+  // DEPRECATE
   /** Add a member to the team */
   public add = (user: User | Member, roles: string[] = []) => {
-    // don't leak user secrets if we have them
-    const member = users.redactUser(user)
+    const member = { ...users.redactUser(user), roles }
 
     // make lockboxes for the new member
-    const lockboxes = this.createMemberLockboxes(member, roles)
+    const lockboxes = this.createMemberLockboxes(member)
 
     // post the member to the signature chain
     this.dispatch({
@@ -223,8 +175,8 @@ authentication always uses device keys, not member keys
     })
   }
 
-  private createMemberLockboxes = (member: Member, roles: string[] = []) => {
-    const roleKeys = roles.map(this.roleKeys)
+  private createMemberLockboxes = (member: Member) => {
+    const roleKeys = member.roles.map(this.roleKeys)
     const teamKeys = this.teamKeys()
     const createLockbox = (keys: KeysetWithSecrets) => lockbox.create(keys, member.keys)
     return [...roleKeys, teamKeys].map(createLockbox)
@@ -330,44 +282,116 @@ authentication always uses device keys, not member keys
 
   /////////////// INVITATIONS
 
-  // TODO: deprecate
-  /** Invite a new member to the team.
-   *
-   * If you don't provide a `secretKey`, a 16-character base30 string will be randomly generated. If
-   * you do provide a key, it will be stripped of non-alphanumeric characters and lower-cased, so
-   * you'll need to take that into account when determining the appropriate key strength.
-   * Normalizing the key this way allows us to show it to the user split into blocks
-   * (e.g. `4kgd 5mwq 5z4f mfwq`) make it URL-safe (e.g. `4kgd+5mwq+5z4f+mfwq`), etc.
-   */
-  public inviteMember = (
+  /* TODO new plan: only one kind of invitation
+
+  inviting: 
+    - [x] if the member doesn't exist, we add them with a random keyset 
+    - [x] add all their roles and lockboxes
+    - [x] add a special invitation-acceptance lockbox (contents: member keys, recipient: invitation)
+
+  accepting: 
+    - [ ] present proof of invitation, same as now
+
+  admitting: 
+    - [ ] after joining, the invitee opens their member keys using the lockbox
+    - [ ] they add their current device
+    - [ ] they change their member keys
+
+  no signature challenge is necessary on the invitee's side, since that's essentially what the proof
+  of invitation does
+
+  authentication always uses device keys, not member keys
+  */
+
+  public invite = (
     userName: string,
-    options: { roles?: string[]; secretKey?: string } = {}
+    options: {
+      roles?: string[]
+      secretKey?: string
+    } = {}
   ) => {
-    let { roles = [], secretKey = invitations.newInvitationKey() } = options
+    const { roles = [] } = options
+    let { secretKey = invitations.InvitationKey() } = options
+    secretKey = normalize(secretKey)
+
+    let newUserKeys: KeysetWithSecrets | undefined = undefined
+
+    if (!this.has(userName)) {
+      // New member - add them
+
+      // this creates a new user with random keys; they'll receive those keys in a special lockbox
+      const user = users.create(userName)
+      newUserKeys = user.keys
+
+      // make normal lockboxes for the new member
+      const member: Member = { ...redactUser(user), roles }
+      const lockboxes = this.createMemberLockboxes(member)
+
+      // post the member & their lockboxes to the signature chain
+      this.dispatch({
+        type: 'ADD_MEMBER',
+        payload: { member, roles, lockboxes },
+      })
+    }
 
     // generate invitation
-    secretKey = normalize(secretKey)
     const teamKeys = this.teamKeys()
-    const roleKeys = roles.map(this.roleKeys)
-    const keysForLockboxes = [...roleKeys, teamKeys]
-    const invitation = invitations.inviteMember({
+    const invitation = invitations.invite({
       teamKeys,
       userName,
+      newUserKeys,
       roles,
-      keysForLockboxes,
       secretKey,
     })
 
     // post invitation to signature chain
     this.dispatch({
-      type: 'INVITE_MEMBER',
+      type: 'INVITE',
       payload: { invitation },
-    } as InviteMemberAction)
+    })
 
-    return { secretKey, id: invitation.id }
+    // return the secret key (to pass on to invitee) and the invitation id (why?)
+    const { id } = invitation
+    return { secretKey, id }
   }
 
-  // TODO: deprecate
+  // // DEPRECATE
+  // /** Invite a new member to the team.
+  //  *
+  //  * If you don't provide a `secretKey`, a 16-character base30 string will be randomly generated. If
+  //  * you do provide a key, it will be stripped of non-alphanumeric characters and lower-cased, so
+  //  * you'll need to take that into account when determining the appropriate key strength.
+  //  * Normalizing the key this way allows us to show it to the user split into blocks
+  //  * (e.g. `4kgd 5mwq 5z4f mfwq`) make it URL-safe (e.g. `4kgd+5mwq+5z4f+mfwq`), etc.
+  //  */
+  // public invite = (
+  //   userName: string,
+  //   options: { roles?: string[]; secretKey?: string } = {}
+  // ) => {
+  //   let { roles = [], secretKey = invitations.InvitationKey() } = options
+
+  //   // generate invitation
+  //   secretKey = normalize(secretKey)
+  //   const teamKeys = this.teamKeys()
+  //   const roleKeys = roles.map(this.roleKeys)
+  //   const keysForLockboxes = [...roleKeys, teamKeys]
+  //   const invitation = invitations.invite({
+  //     teamKeys,
+  //     userName,
+  //     roles,
+  //     keysForLockboxes,
+  //     secretKey,
+  //   })
+
+  //   // post invitation to signature chain
+  //   this.dispatch({
+  //     type: 'INVITE_MEMBER',
+  //     payload: { invitation },
+  //   } as inviteAction)
+
+  //   return { secretKey, id: invitation.id }
+  // }
+
   /** Revoke an invitation. This can be used for member invitations as well as device invitations. */
   public revokeInvitation = (id: string) => {
     this.dispatch({
@@ -379,82 +403,31 @@ authentication always uses device keys, not member keys
   /** Returns true if the invitation has ever existed in this team (even if it's been used or revoked) */
   public hasInvitation = (proof: ProofOfInvitation) => proof.id in this.state.invitations
 
-  // TODO: deprecate
-  /** Admit a new member to the team based on proof of invitation */
-  public admitMember = (proof: ProofOfInvitation) => {
-    assert(proof.type === MEMBER, 'Team.admit is only for accepting invitations for members.')
-
-    // validate proof of invitation
-    const invitation = this.validateProofOfInvitation(proof)
-
-    // post admission to the signature chain
-    const { id } = proof
-    const member = proof.payload as Member
-    const { lockboxes } = invitation
-    const { roles = [] } = invitation.payload as MemberInvitationPayload
-    this.dispatch({
-      type: 'ADMIT_INVITED_MEMBER',
-      payload: { id, member, roles, lockboxes },
-    })
-  }
-
-  // TODO: deprecate
-  public inviteDevice = (deviceInfo: DeviceInfo, options: { secretKey?: string } = {}) => {
-    let { secretKey = invitations.newInvitationKey() } = options
-
-    // generate invitation
-    secretKey = normalize(secretKey)
+  /** Admit a new member/device to the team based on proof of invitation */
+  public admit = (proof: ProofOfInvitation) => {
     const teamKeys = this.teamKeys()
-    const { userName } = deviceInfo
-    const deviceId = getDeviceId(deviceInfo)
-    const invitation = invitations.inviteDevice({ teamKeys, userName, deviceId, secretKey })
-    const { id } = invitation
-
-    // post invitation to signature chain
-    this.dispatch({
-      type: 'INVITE_DEVICE',
-      payload: { invitation },
-    } as InviteDeviceAction)
-
-    // if the caller didn't provide the secret key, they'll need that
-    // they might also need the invitation id in case they want to revoke it
-    return { secretKey, id }
-  }
-
-  // TODO: deprecate
-  /** Admit a new device based on proof of invitation */
-  public admitDevice = (proof: ProofOfInvitation) => {
-    assert(proof.type === DEVICE, 'Team.admitDevice is only for accepting invitations for devices.')
+    const { id } = proof
+    const invitation = this.state.invitations[id]
 
     // validate proof of invitation
-    this.validateProofOfInvitation(proof)
+    invitations.open(invitation, proof, teamKeys)
 
     // post admission to the signature chain
-    const { id, payload } = proof
-    const device = payload as Device
     this.dispatch({
-      type: 'ADMIT_INVITED_DEVICE',
-      payload: { id, device },
+      type: 'ADMIT',
+      payload: { id },
     })
   }
 
   private validateProofOfInvitation = (proof: ProofOfInvitation) => {
-    const teamKeys = this.teamKeys()
-    const { id } = proof
-
     const invitation = this.state.invitations[id]
     if (invitation === undefined) throw new Error(`No invitation with id '${id}' found.`)
     if (invitation.revoked) throw new Error(`This invitation has been revoked.`)
     if (invitation.used) throw new Error(`This invitation has already been used.`)
 
-    // open the invitation
-    const invitationBody = invitations.open(invitation, teamKeys)
-
     // validate proof against original invitation
-    const validation = invitations.validateInvitationBody(proof, invitationBody)
+    const validation = invitations.validate(proof, invitation, teamKeys)
     if (validation.isValid === false) throw validation.error
-
-    return invitationBody
   }
 
   ///////////////  CRYPTO
