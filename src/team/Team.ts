@@ -146,8 +146,12 @@ export class Team extends EventEmitter {
       : select.member(this.state, userName) // one member
   }
 
-  // DEPRECATE
-  /** Add a member to the team */
+  /** Add a member to the team.
+   *
+   * **Note:** In most cases this won't be used other than for unit tests.
+   * In real-world scenarios, you'll need to use the `team.invite` workflow
+   * to add members without relying on some kind of public key infrastructure.
+   */
   public add = (user: User | Member, roles: string[] = []) => {
     const member = { ...users.redactUser(user), roles }
 
@@ -302,17 +306,16 @@ export class Team extends EventEmitter {
 
   ### Inviting an existing member's device: 
 
-  - [x] A member can only invite their own devices.
-  - [ ] A non-admin member can only remove their own device; an admin member can remove a device for
-    anyone
+  On his laptop, Bob generates an invitation using a secret seed. He gets that seed to his phone
+  using a QR code or by typing it in. On his phone, Bob connects to his laptop (or to Alice or
+  Charlie). Bob's phone presents its proof of invitation. Once Bob's laptop or Alice or Charlie
+  verifies Bob's phone's proof, they send it the team chain. Using the chain, the phone instantiates
+  the team, then adds itself as a device.
 
-  - [ ] On his laptop, Bob generates an invitation using a secret seed. He gets that seed to his
-    phone using a QR code or by typing it in.
-  - [ ] On his phone, Bob connects to his laptop (or to Alice or Charlie). Bob's phone presents its
-    proof of invitation.
-  - [ ] Once Bob's laptop or Alice or Charlie verifies Bob's phone's proof, they send it the team
-    chain. 
-  - [ ] Using the chain, the phone instantiates the team, then adds itself as a device.
+  A member can only invite their own devices. A non-admin member can only remove their own device;
+  an admin member can remove a device for anyone
+
+  
 
 
   */
