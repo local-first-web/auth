@@ -91,7 +91,7 @@ describe('Team', () => {
 
       it('allows non-admins to accept an invitation', () => {
         let { team: alicesTeam } = setup()
-        alicesTeam.add(bob)
+        alicesTeam.add(bob) // bob is not an admin
 
         // 👩🏾 Alice invites 👳‍♂️ Charlie by sending him a secret key
         const { seed } = alicesTeam.invite('charlie')
@@ -120,7 +120,7 @@ describe('Team', () => {
 
       it('allows revoking an invitation', () => {
         let { team: alicesTeam } = setup()
-        alicesTeam.add(bob) // bob is not an admin
+        alicesTeam.add(bob)
 
         // 👩🏾 Alice invites 👳‍♂️ Charlie by sending him a secret key
         const { seed, id } = alicesTeam.invite('charlie')
@@ -131,6 +131,7 @@ describe('Team', () => {
         // 👩🏾 Alice changes her mind and revokes the invitation
         alicesTeam.revokeInvitation(id)
         alicesTeam.remove('charlie') // we now have to do this explicitly
+
         // TODO: should revoking implicitly remove the member? See Team.ts:revokeInvitation
 
         // later, 👩🏾 Alice is no longer around, but 👨‍🦲 Bob is online
