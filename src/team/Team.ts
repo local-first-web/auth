@@ -302,18 +302,17 @@ export class Team extends EventEmitter {
 
   ### Inviting an existing member's device: 
 
-  - [ ] A member can only invite their own devices.
+  - [x] A member can only invite their own devices.
   - [ ] A non-admin member can only remove their own device; an admin member can remove a device for
     anyone
 
   - [ ] On his laptop, Bob generates an invitation using a secret seed. He gets that seed to his
     phone using a QR code or by typing it in.
-  - [ ] Meanwhile, on his laptop, Bob 
   - [ ] On his phone, Bob connects to his laptop (or to Alice or Charlie). Bob's phone presents its
     proof of invitation.
   - [ ] Once Bob's laptop or Alice or Charlie verifies Bob's phone's proof, they send it the team
     chain. 
-  - [ ] The phone uses the chain to instantiate the team, then adds itself as a device.
+  - [ ] Using the chain, the phone instantiates the team, then adds itself as a device.
 
 
   */
@@ -323,7 +322,13 @@ export class Team extends EventEmitter {
     let { seed = invitations.randomSeed() } = options
     seed = normalize(seed)
 
-    if (!this.has(userName)) {
+    const currentUser = this.context.user
+    if (this.has(userName)) {
+      // inviting a device for the current member
+      assert(currentUser.userName === userName, `Can't add a device for someone else`)
+    } else {
+      // inviting a new member
+      assert(this.memberIsAdmin(currentUser.userName), `Only admins can add invite new members`)
       // this creates a new user with random keys; they'll replace those keys as soon as they join
       const user = users.create(userName)
 
@@ -353,7 +358,7 @@ export class Team extends EventEmitter {
       payload: { invitation },
     })
 
-    // return the secret key (to pass on to invitee) and the invitation id (if we need to revoke later)
+    // return the secret key (to pass on to invitee) and the invitation id (which they can use to revoke later)
     const { id } = invitation
     return { seed, id }
   }
