@@ -3,7 +3,7 @@ import { EventEmitter } from 'events'
 import * as chains from '/chain'
 import { membershipResolver, TeamAction, TeamActionLink, TeamSignatureChain } from '/chain'
 import { LocalUserContext } from '/context'
-import { Device, DeviceInfo, getDeviceId, redactDevice } from '/device'
+import { DeviceInfo, getDeviceId, redactDevice } from '/device'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
 import { normalize } from '/invitation/normalize'
@@ -40,21 +40,6 @@ const { DEVICE, ROLE, MEMBER } = KeyType
  * individuals, for the team, or for members of specific roles.
  */
 export class Team extends EventEmitter {
-  /*
-  ###  Internals 
-
-  All the logic for reading from team state is in selectors.
-  
-  Most of the logic for modifying team state is in reducers. To mutate team state, we dispatch
-  changes to the signature chain, and then run the chain through the reducer to recalculate team
-  state.
-  
-  Any crypto operations involving the current user's secrets (for example, opening or creating
-  lockboxes, or signing links) are done here. Only the public-facing outputs (for example, the
-  resulting lockboxes, the signed links) are posted on the chain.
-
-   */
-
   public chain: TeamSignatureChain
   private context: LocalUserContext
   private state: TeamState = initialState // derived from chain, only updated by running chain through reducer
@@ -93,7 +78,19 @@ export class Team extends EventEmitter {
     this.updateState()
   }
 
-  ///////////////  TEAM STATE
+  /**************** TEAM STATE
+    
+  All the logic for reading from team state is in selectors.
+  
+  Most of the logic for modifying team state is in reducers. To mutate team state, we dispatch
+  changes to the signature chain, and then run the chain through the reducer to recalculate team
+  state.
+  
+  Any crypto operations involving the current user's secrets (for example, opening or creating
+  lockboxes, or signing links) are done here. Only the public-facing outputs (for example, the
+  resulting lockboxesInScope, the signed links) are posted on the chain.
+  
+  */
 
   public get teamName() {
     return this.state.teamName
@@ -112,8 +109,11 @@ export class Team extends EventEmitter {
     this.chain = chains.append(this.chain, action, this.context)
     // get the newly appended link
     const head = chains.getHead(this.chain) as TeamActionLink
+
     // we don't need to pass the whole chain through the reducer, just the current state + the new head
     this.state = reducer(this.state, head)
+
+    this.emit('updated')
   }
 
   /** Run the reducer on the entire chain to reconstruct the current team state. */
@@ -126,11 +126,14 @@ export class Team extends EventEmitter {
     // Run the chain through the reducer to calculate the current team state
     const resolver = membershipResolver
     const sequence = chains.getSequence({ chain: this.chain, resolver })
-
     this.state = sequence.reduce(reducer, initialState)
+
+    this.emit('updated')
   }
 
-  ///////////////  MEMBERS
+  /**************** MEMBERS
+  
+  */
 
   /** Returns true if the team has a member with the given userName */
   public has = (userName: string) => select.hasMember(this.state, userName)
@@ -187,7 +190,9 @@ export class Team extends EventEmitter {
     return [...roleKeys, teamKeys].map(createLockbox)
   }
 
-  /////////////// ROLES
+  /**************** ROLES
+    
+  */
 
   /** Returns all roles in the team */
   public roles(): Role[]
@@ -265,7 +270,9 @@ export class Team extends EventEmitter {
     })
   }
 
-  /////////////// DEVICES
+  /**************** DEVICES
+    
+  */
 
   public removeDevice = (deviceInfo: DeviceInfo) => {
     const { userName } = deviceInfo
@@ -285,38 +292,37 @@ export class Team extends EventEmitter {
     })
   }
 
-  /////////////// INVITATIONS
+  /**************** INVITATIONS
 
-  /* 
-  ### Inviting a new member: 
+  Inviting a new member: 
 
-  Alice generates an invitation using a secret seed. The seed an be randomly generated, or selected
-  by Alice. Alice sends the invitation to Bob using a trusted channel.
+    Alice generates an invitation using a secret seed. The seed an be randomly generated, or selected
+    by Alice. Alice sends the invitation to Bob using a trusted channel.
 
-  Meanwhile, Alice adds Bob to the signature chain as a new member, with appropriate roles (if any)
-  and any corresponding lockboxes. 
+    Meanwhile, Alice adds Bob to the signature chain as a new member, with appropriate roles (if any)
+    and any corresponding lockboxes. 
 
-  Bob can't authenticate directly as that member, since it has random temporary keys created by
-  Alice. Instead, Bob generates a proof of invitation, and when they try to connect to Alice or
-  Charlie they present that proof instead of authenticating.
+    Bob can't authenticate directly as that member, since it has random temporary keys created by
+    Alice. Instead, Bob generates a proof of invitation, and when they try to connect to Alice or
+    Charlie they present that proof instead of authenticating.
 
-  Once Alice or Charlie verifies Bob's proof, they send him the team chain. Bob uses that to
-  instantiate the team, then he updates the team with his real public keys and adds his current
-  device information. 
+    Once Alice or Charlie verifies Bob's proof, they send him the team chain. Bob uses that to
+    instantiate the team, then he updates the team with his real public keys and adds his current
+      device information. 
 
-  ### Inviting an existing member's device: 
+  Inviting an existing member's device: 
 
-  On his laptop, Bob generates an invitation using a secret seed. He gets that seed to his phone
-  using a QR code or by typing it in. On his phone, Bob connects to his laptop (or to Alice or
-  Charlie). Bob's phone presents its proof of invitation. Once Bob's laptop or Alice or Charlie
-  verifies Bob's phone's proof, they send it the team chain. Using the chain, the phone instantiates
-  the team, then adds itself as a device.
+    On his laptop, Bob generates an invitation using a secret seed. He gets that seed to his phone
+    using a QR code or by typing it in. 
 
-  A member can only invite their own devices. A non-admin member can only remove their own device;
-  an admin member can remove a device for anyone
+    On his phone, Bob connects to his laptop (or to Alice or Charlie). Bob's phone presents its proof
+    of invitation. 
 
-  
+    Once Bob's laptop or Alice or Charlie verifies Bob's phone's proof, they send it the team chain.
+    Using the chain, the phone instantiates the team, then adds itself as a device.
 
+    *Note:* A member can only invite their own devices. A non-admin member can only remove their own device;
+    an admin member can remove a device for anyone.
 
   */
 
@@ -425,7 +431,9 @@ export class Team extends EventEmitter {
     })
   }
 
-  ///////////////  CRYPTO
+  /**************** CRYPTO
+    
+  */
 
   /**
    * Symmetrically encrypt a payload for the given scope using keys available to the current user.
@@ -468,10 +476,12 @@ export class Team extends EventEmitter {
       publicKey: this.members(message.author.name).keys.signature,
     })
 
-  ///////////////  KEYS
+  /**************** KEYS
 
-  // These methods all return keysets with secrets, and must be available to the local user. To get
-  // other members' public keys, look up the member - the `keys` property contains their public keys.
+  These methods all return keysets with secrets, and must be available to the local user. To get
+  other members' public keys, look up the member - the `keys` property contains their public keys.
+
+  */
 
   /** Returns the keyset (if available to the current user) for the given type and name */
   public keys = (scope: Optional<KeyMetadata, 'generation'>): KeysetWithSecrets =>
@@ -523,9 +533,11 @@ export class Team extends EventEmitter {
   private get userName() {
     return this.context.user.userName
   }
+
   private get deviceId() {
     return getDeviceId(this.context.user.device)
   }
+
   /**
    * Given a compromised scope (e.g. a member or a role), find all scopes that are visible from that
    * scope, and generates new keys and lockboxes for each of those. Returns all of the new lockboxes
@@ -542,17 +554,18 @@ export class Team extends EventEmitter {
       ? compromised // we're given a keyset - use it as the new keys
       : keysets.create(compromised) // we're just given a scope - generate new keys for it
 
+    // identify all the keys that are compromised
     const visibleScopes = getVisibleScopes(this.state, compromised)
     const newKeysetsForVisibleScopes = visibleScopes.map(scope => keysets.create(scope))
 
     // generate new lockboxes for each one
     const allNewKeysets = [newKeyset, ...newKeysetsForVisibleScopes]
-    return allNewKeysets.flatMap(newKeyset => {
+    const newLockboxes = allNewKeysets.flatMap(newKeyset => {
       const scope = getScope(newKeyset)
       const oldLockboxes = select.lockboxesInScope(this.state, scope)
-      const newLockboxes = oldLockboxes.map(oldLockbox => lockbox.rotate(oldLockbox, newKeyset))
-      return newLockboxes
+      return oldLockboxes.map(oldLockbox => lockbox.rotate(oldLockbox, newKeyset))
     })
+    return newLockboxes
   }
 }
 

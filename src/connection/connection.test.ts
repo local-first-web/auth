@@ -483,9 +483,11 @@ describe('connection', () => {
   })
 
   describe('more scenarios', () => {
+    // NEXT: updates are sent after connection is established
     // two people try to kick each other out
     // two people try to demote each other
-    // updates are sent after connection is established
+    // charlie is removed while bob is connected to him
+    // multiple connections (alice/bob/charlie)
     // connected peers can encrypt/decrypt to each other using session key
     // eve makes illegal changes to sig chain
     // bob loses a device

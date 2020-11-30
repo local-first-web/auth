@@ -85,6 +85,12 @@ export type MissingLinksMessage = {
   }
 }
 
+// triggered locally when we detect that team has changed
+export type LocalUpdateMessage = {
+  type: 'LOCAL_UPDATE'
+  payload: {}
+}
+
 // Negotiation
 
 export type SeedMessage = {
@@ -103,6 +109,7 @@ export type ConnectionMessage =
   | ErrorMessage
   | DisconnectMessage
   | UpdateMessage
+  | LocalUpdateMessage
   | MissingLinksMessage
   | SeedMessage
 

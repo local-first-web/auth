@@ -196,7 +196,8 @@ export class Connection extends EventEmitter {
     // updating
 
     sendUpdate: context => {
-      const { root, head, links } = context.team!.chain
+      assert(context.team !== undefined, 'sendUpdate: team should be in context')
+      const { root, head, links } = context.team.chain
       const hashes = Object.keys(links)
       this.log(`sendUpdate ${trunc(head)} (${hashes.length})`)
       this.sendMessage({
@@ -290,7 +291,12 @@ export class Connection extends EventEmitter {
       },
     }),
 
-    // TODO: Add change listener to team & send update message any time it fires
+    listenForUpdates: context => {
+      assert(context.team !== undefined, 'listenForUpdates: team should be in context')
+      context.team.addListener('updated', () => {
+        this.machine.send({ type: 'LOCAL_UPDATE', payload: {} }) // send update event to local machine
+      })
+    },
 
     // negotiating
 
@@ -415,19 +421,21 @@ export class Connection extends EventEmitter {
     },
 
     identityProofIsValid: (context, event) => {
+      assert(context.team !== undefined, 'identityProofIsValid: team should be in context')
       const { team, challenge: originalChallenge } = context
       const identityProofMessage = event as ProveIdentityMessage
       const { challenge, proof } = identityProofMessage.payload
 
       if (originalChallenge !== challenge) return false
       const userName = challenge.name
-      const publicKeys = team!.members(userName).keys
+      const publicKeys = team.members(userName).keys
       const validation = identity.verify(challenge, proof, publicKeys)
       return validation.isValid
     },
 
     headsAreEqual: (context, event) => {
-      const { head } = context.team!.chain
+      assert(context.team !== undefined, 'headsAreEqual: team should be in context')
+      const { head } = context.team.chain
       const { payload } = event as UpdateMessage | MissingLinksMessage
       const theirHead = payload !== undefined && head in payload ? payload.head : context.theirHead
 

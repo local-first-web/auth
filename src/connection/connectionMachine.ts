@@ -282,7 +282,7 @@ export const connectionMachine: MachineConfig<
         done: { type: 'final' },
       },
       onDone: {
-        actions: 'generateSeed',
+        actions: ['generateSeed', 'listenForUpdates'],
         target: 'negotiating',
       },
     },
@@ -321,6 +321,14 @@ export const connectionMachine: MachineConfig<
       entry: ['onConnected'],
       on: {
         DISCONNECT: '#disconnected',
+
+        // if something changes locally, sync back up with them
+        LOCAL_UPDATE: {
+          cond: 'headsAreDifferent',
+          target: '#synchronizing',
+        },
+
+        // if they send an update, sync back up with them
         UPDATE: {
           cond: 'headsAreDifferent',
           target: '#synchronizing',
