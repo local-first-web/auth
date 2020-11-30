@@ -1,6 +1,7 @@
 import { asymmetric } from '@herbcaudill/crypto'
 import { InitialContext } from './types'
 import { Connection } from '/connection'
+import * as identity from '/connection/identity'
 import {
   ChallengeIdentityMessage,
   ConnectionMessage,
@@ -9,17 +10,16 @@ import {
 } from '/connection/message'
 import { LocalUserContext } from '/context'
 import { redactDevice } from '/device'
-import * as identity from '/connection/identity'
 import { generateProof } from '/invitation'
 import { KeyType, randomKey, redactKeys } from '/keyset'
 import { ADMIN } from '/role'
 import * as teams from '/team'
 import * as users from '/user'
-import { redactUser, User } from '/user'
+import { User } from '/user'
+import { assert } from '/util'
 import { arrayToMap } from '/util/arrayToMap'
 import { alice, bob, charlie, dwight, joinTestChannel, TestChannel } from '/util/testing'
 import '/util/testing/expect/toBeValid'
-import { assert } from '/util'
 
 describe('connection', () => {
   // used for tests of the connection's timeout - needs to be bigger than
@@ -480,6 +480,15 @@ describe('connection', () => {
       expect(alice.team.hasRole('finance')).toBe(true)
       expect(bob.team.memberHasRole('alice', 'finance')).toBe(true)
     })
+  })
+
+  describe('more scenarios', () => {
+    // two people try to kick each other out
+    // two people try to demote each other
+    // updates are sent after connection is established
+    // connected peers can encrypt/decrypt to each other using session key
+    // eve makes illegal changes to sig chain
+    // bob loses a device
   })
 
   /** Promisified event */
