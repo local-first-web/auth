@@ -7,18 +7,17 @@ import { connectionMachine } from '/connection/connectionMachine'
 import { deriveSharedKey } from '/connection/deriveSharedKey'
 import * as identity from '/connection/identity'
 import {
-  AcceptIdentityMessage,
   AcceptInvitationMessage,
   ChallengeIdentityMessage,
   ConnectionMessage,
   DisconnectMessage,
   ErrorMessage,
   HelloMessage,
-  SeedMessage,
+  MissingLinksMessage,
   NumberedConnectionMessage,
   ProveIdentityMessage,
+  SeedMessage,
   UpdateMessage,
-  MissingLinksMessage,
 } from '/connection/message'
 import { orderedDelivery } from '/connection/orderedDelivery'
 import {
@@ -131,6 +130,8 @@ export class Connection extends EventEmitter {
     },
 
     // authenticating
+
+    // TODO: authentication should always use device keys, not member keys
 
     receiveHello: assign({
       theirIdentityClaim: (_, event) => (event as HelloMessage).payload.identityClaim,
@@ -288,6 +289,8 @@ export class Connection extends EventEmitter {
         return updatedPeer
       },
     }),
+
+    // TODO: Add change listener to team & send update message any time it fires
 
     // negotiating
 
