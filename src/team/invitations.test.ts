@@ -16,10 +16,10 @@ describe('Team', () => {
         const { team: alicesTeam } = setup()
 
         // 👩🏾 Alice invites 👨‍🦲 Bob by sending him a random secret key
-        const { secretKey } = alicesTeam.invite('bob')
+        const { seed } = alicesTeam.invite('bob')
 
         // 👨‍🦲 Bob accepts the invitation
-        const proofOfInvitation = generateProof(secretKey, 'bob')
+        const proofOfInvitation = generateProof(seed, 'bob')
 
         // 👨‍🦲 Bob shows 👩🏾 Alice his proof of invitation, and she lets him in
         alicesTeam.admit(proofOfInvitation)
@@ -32,10 +32,10 @@ describe('Team', () => {
         const { team: alicesTeam } = setup()
 
         // 👩🏾 Alice invites 👨‍🦲 Bob by sending him a secret key of her choosing
-        const secretKey = 'passw0rd'
-        alicesTeam.invite('bob', { secretKey })
+        const seed = 'passw0rd'
+        alicesTeam.invite('bob', { seed })
 
-        const proofOfInvitation = generateProof(secretKey, 'bob')
+        const proofOfInvitation = generateProof(seed, 'bob')
         alicesTeam.admit(proofOfInvitation)
 
         // ✅ Still works
@@ -46,8 +46,8 @@ describe('Team', () => {
         const { team: alicesTeam } = setup()
 
         // 👩🏾 Alice invites 👨‍🦲 Bob
-        const secretKey = 'abc def ghi'
-        alicesTeam.invite('bob', { secretKey })
+        const seed = 'abc def ghi'
+        alicesTeam.invite('bob', { seed })
 
         // 👨‍🦲 Bob accepts the invitation using a url-friendlier version of the key
         const proofOfInvitation = generateProof('abc+def+ghi', 'bob')
@@ -61,10 +61,10 @@ describe('Team', () => {
         const { team: alicesTeam } = setup()
 
         // 👩🏾 Alice invites 👨‍🦲 Bob as admin
-        const { secretKey } = alicesTeam.invite('bob', { roles: [ADMIN] })
+        const { seed } = alicesTeam.invite('bob', { roles: [ADMIN] })
 
         // 👨‍🦲 Bob accepts the invitation
-        const proofOfInvitation = generateProof(secretKey, 'bob')
+        const proofOfInvitation = generateProof(seed, 'bob')
         alicesTeam.admit(proofOfInvitation)
 
         // ✅ Bob is on the team as an admin
@@ -75,10 +75,10 @@ describe('Team', () => {
         const { team: alicesTeam } = setup()
 
         // 👩🏾 Alice invites 👨‍🦲 Bob
-        const { secretKey } = alicesTeam.invite('bob')
+        const { seed } = alicesTeam.invite('bob')
 
         // 👨‍🦲 Bob accepts the invitation
-        const proofOfInvitation = generateProof(secretKey, 'bob')
+        const proofOfInvitation = generateProof(seed, 'bob')
 
         // 🦹‍♀️ Eve intercepts the invitation and tries to use it by swapping out Bob's name for hers
         const forgedProofOfInvitation: ProofOfInvitation = { ...proofOfInvitation, userName: 'eve' }
@@ -95,10 +95,10 @@ describe('Team', () => {
         alicesTeam.add(bob)
 
         // 👩🏾 Alice invites 👳‍♂️ Charlie by sending him a secret key
-        const { secretKey } = alicesTeam.invite('charlie')
+        const { seed } = alicesTeam.invite('charlie')
 
         // 👳‍♂️ Charlie accepts the invitation
-        const proofOfInvitation = generateProof(secretKey, 'charlie')
+        const proofOfInvitation = generateProof(seed, 'charlie')
 
         // later, 👩🏾 Alice is no longer around, but 👨‍🦲 Bob is online
         let persistedTeam = alicesTeam.save()
@@ -124,10 +124,10 @@ describe('Team', () => {
         alicesTeam.add(bob) // bob is not an admin
 
         // 👩🏾 Alice invites 👳‍♂️ Charlie by sending him a secret key
-        const { secretKey, id } = alicesTeam.invite('charlie')
+        const { seed, id } = alicesTeam.invite('charlie')
 
         // 👳‍♂️ Charlie accepts the invitation
-        const proofOfInvitation = generateProof(secretKey, 'charlie')
+        const proofOfInvitation = generateProof(seed, 'charlie')
 
         // 👩🏾 Alice changes her mind and revokes the invitation
         alicesTeam.revokeInvitation(id)
@@ -159,14 +159,14 @@ describe('Team', () => {
 
     //       // 💻 Alice generates an invitation, which is stored on the team's signature chain
     //       const device = { userName: 'alice', name: `alice's phone`, type: DeviceType.mobile }
-    //       const { secretKey } = team.inviteDevice(device)
+    //       const { seed } = team.inviteDevice(device)
 
     //       // 📱 Alice gets the secret invitation key to her phone, perhaps by typing it in or by scanning a
     //       // QR code. Alice's phone uses the secret key to generate proof of invitation
     //       const deviceId = getDeviceId(device)
     //       const deviceKeys = keyset.create({ type: DEVICE, name: deviceId })
     //       const deviceWithSecrets: DeviceWithSecrets = { ...device, keys: deviceKeys }
-    //       const proofOfInvitation = acceptDeviceInvitation(secretKey, redactDevice(deviceWithSecrets))
+    //       const proofOfInvitation = acceptDeviceInvitation(seed, redactDevice(deviceWithSecrets))
 
     //       // 📱 Alice's phone connects with 💻 her laptop and presents the proof
     //       team.admitDevice(proofOfInvitation)
@@ -184,14 +184,14 @@ describe('Team', () => {
 
     //       // 👩🏾💻 Alice generates an invitation, which is stored on the team's signature chain
     //       const device = { userName: 'alice', name: `alice's phone`, type: DeviceType.mobile }
-    //       const { secretKey } = team.inviteDevice(device)
+    //       const { seed } = team.inviteDevice(device)
 
     //       // 👩🏾📱 Alice gets the secret invitation key to her phone, perhaps by typing it in or by scanning a
     //       // QR code. Alice's phone uses the secret key to generate proof of invitation
     //       const deviceId = getDeviceId(device)
     //       const deviceKeys = keyset.create({ type: DEVICE, name: deviceId })
     //       const deviceWithSecrets: DeviceWithSecrets = { ...device, keys: deviceKeys }
-    //       const proofOfInvitation = acceptDeviceInvitation(secretKey, redactDevice(deviceWithSecrets))
+    //       const proofOfInvitation = acceptDeviceInvitation(seed, redactDevice(deviceWithSecrets))
 
     //       // 🦹‍♀️ Oh no!! Eve intercepts the invitation and tries to use it by swapping out Alice's device info for hers
     //       const evesDevice = { userName: 'alice', name: `alice's phone`, type: DeviceType.mobile }

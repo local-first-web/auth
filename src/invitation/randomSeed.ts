@@ -19,4 +19,4 @@ import { base30 } from '/util'
  * 32-character strings using the full ASCII character set (stronger but practically impossible to
  * remember or communicate verbally).
  */
-export const InvitationKey = (length = IKEY_LENGTH) => randomKey(length, base30.encode)
+export const randomSeed = (length = IKEY_LENGTH) => randomKey(length, base30.encode)

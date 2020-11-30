@@ -27,7 +27,7 @@ export type InitialContext = {
   /** If we already belong to the team, we pass the team object we both belong to */
   team?: Team
   /** If we've just been invited, we provide the invitation secret key that we've been given  */
-  invitationSecretKey?: string
+  invitationSeed?: string
 }
 
 /** Parameters needed to instantiate a connection  */
@@ -60,7 +60,7 @@ export type Condition = ConditionPredicate<ConnectionContext, ConnectionMessage>
 
 // State schema
 
-export interface ConnectionStateSchema {
+export interface ConnectionState {
   states: {
     idle: {}
     disconnected: {}
@@ -71,7 +71,6 @@ export interface ConnectionStateSchema {
             initializing: {}
             awaitingInvitationAcceptance: {}
             validatingInvitationProof: {}
-            joining: {}
           }
         }
         authenticating: {
@@ -103,6 +102,22 @@ export interface ConnectionStateSchema {
         receivingMissingLinks: {}
         waiting: {}
         done: {}
+      }
+    }
+    negotiating: {
+      states: {
+        sendingSeed: {
+          states: {
+            sending: {}
+            done: {}
+          }
+        }
+        receivingSeed: {
+          states: {
+            waiting: {}
+            done: {}
+          }
+        }
       }
     }
     connected: {}

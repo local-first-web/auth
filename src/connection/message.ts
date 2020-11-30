@@ -3,6 +3,7 @@ import { TeamLink } from '/chain'
 import { ProofOfInvitation } from '/invitation'
 import { KeyScope } from '/keyset'
 import { Base64, Hash } from '/util'
+import { Lockbox } from '/lockbox'
 
 export type HelloMessage = {
   type: 'HELLO'
@@ -55,9 +56,7 @@ export type ProveIdentityMessage = {
 
 export type AcceptIdentityMessage = {
   type: 'ACCEPT_IDENTITY'
-  payload: {
-    encryptedSeed: Base64
-  }
+  payload: {}
 }
 
 export type RejectIdentityMessage = {
@@ -86,9 +85,13 @@ export type MissingLinksMessage = {
   }
 }
 
-export type ContinueMessage = {
-  type: 'CONTINUE'
-  payload: {}
+// Negotiation
+
+export type SeedMessage = {
+  type: 'SEED'
+  payload: {
+    encryptedSeed: Base64
+  }
 }
 
 export type ConnectionMessage =
@@ -101,7 +104,7 @@ export type ConnectionMessage =
   | DisconnectMessage
   | UpdateMessage
   | MissingLinksMessage
-  | ContinueMessage
+  | SeedMessage
 
 export type NumberedConnectionMessage = ConnectionMessage & {
   index: number

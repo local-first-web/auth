@@ -25,11 +25,9 @@ describe('Team', () => {
 
     it('has lockboxes for Alice containing the admin and team secrets', () => {
       const { team } = setup()
-      // @ts-ignore roleKeys is private
       const adminKeyset = team.roleKeys(ADMIN)
       expect(adminKeyset).toLookLikeKeyset()
 
-      // @ts-ignore teamKeys is private
       const teamKeys = team.teamKeys()
       expect(teamKeys).toLookLikeKeyset()
     })
@@ -51,12 +49,10 @@ describe('Team', () => {
       const bobsTeam = storage.load(bobsContext)
 
       // Bob has team keys
-      // @ts-ignore
       const teamKeys = bobsTeam.teamKeys()
       expect(teamKeys).toLookLikeKeyset()
 
       // Bob is not an admin so he doesn't have admin keys
-      // @ts-ignore
       const bobLooksForAdminKeys = () => bobsTeam.roleKeys(ADMIN)
       expect(bobLooksForAdminKeys).toThrow(/not found/)
     })
@@ -71,7 +67,6 @@ describe('Team', () => {
       const bobsTeam = storage.load(bobsContext)
 
       // Bob is an admin and has admin keys
-      // @ts-ignore roleKeys is private
       const adminKeyset = bobsTeam.roleKeys(ADMIN)
       expect(adminKeyset).toLookLikeKeyset()
     })

@@ -10,7 +10,7 @@ import {
 import { LocalUserContext } from '/context'
 import { redactDevice } from '/device'
 import * as identity from '/connection/identity'
-import { acceptMemberInvitation } from '/invitation'
+import { generateProof } from '/invitation'
 import { KeyType, randomKey, redactKeys } from '/keyset'
 import { ADMIN } from '/role'
 import * as teams from '/team'
@@ -19,6 +19,7 @@ import { redactUser, User } from '/user'
 import { arrayToMap } from '/util/arrayToMap'
 import { alice, bob, charlie, joinTestChannel, TestChannel } from '/util/testing'
 import '/util/testing/expect/toBeValid'
+import { assert } from '/util'
 
 describe('connection', () => {
   // used for tests of the connection's timeout - needs to be bigger than
@@ -237,29 +238,20 @@ describe('connection', () => {
     // Test one side of the verification workflow with Charlie presenting an invitation, using a real
     // connection for Alice and manually simulating Charlie's messages.
     it(`should successfully verify the other peer's invitation`, async () => {
-      const { testUsers, lastMessage } = setup(['alice'], oneWay)
+      const { testUsers } = setup(['alice'], oneWay)
       const { alice } = testUsers
       const aliceAuthenticatingState = () => alice.getState().connecting.authenticating
 
       // 👩🏾 Alice invites 👳‍♂️ Charlie
-      const { secretKey: invitationSecretKey } = alice.team.invite('charlie')
+      const { seed: invitationSeed } = alice.team.invite('charlie')
 
       // 👩🏾 Alice connects
       alice.connection.start()
 
-      // 👳‍♂️ Charlie sends a hello message
+      // 👳‍♂️ Charlie sends a hello message including the proof of invitation
       const identityClaim = { type: KeyType.MEMBER, name: 'charlie' }
-      const proofOfInvitation = acceptMemberInvitation(invitationSecretKey, redactUser(charlie))
+      const proofOfInvitation = generateProof(invitationSeed, 'charlie')
       alice.deliver({ type: 'HELLO', payload: { identityClaim, proofOfInvitation } })
-
-      // 👩🏾 Alice automatically validates the invitation
-      expect(aliceAuthenticatingState().verifyingTheirIdentity).toEqual('awaitingIdentityProof')
-
-      // 👳‍♂️ Charlie generates proof by signing Alice's challenge and sends it back
-      const challengeMessage = lastMessage() as ChallengeIdentityMessage
-      const { challenge } = challengeMessage.payload
-      const proof = identity.prove(challenge, charlie.keys)
-      alice.connection.deliver({ index: 1, type: 'PROVE_IDENTITY', payload: { challenge, proof } })
 
       // ✅ Success! Alice has verified Charlie's identity
       expect(aliceAuthenticatingState().verifyingTheirIdentity).toEqual('done')
@@ -273,13 +265,13 @@ describe('connection', () => {
 
       // 👩🏾 Alice invites 👳‍♂️ Charlie
 
-      const { secretKey: invitationSecretKey } = alice.team.invite('charlie')
+      const { seed: invitationSeed } = alice.team.invite('charlie')
 
       // 👳‍♂️ Charlie connects
       const charlieContext = {
         user: charlie,
         device: redactDevice(charlie.device),
-        invitationSecretKey,
+        invitationSeed,
       } as InitialContext
       const charlieConnection = new Connection({ sendMessage, context: charlieContext })
       charlieConnection.start()
@@ -295,31 +287,13 @@ describe('connection', () => {
       // 👩🏾 Alice validates charlie's invitation
       const helloMessage = lastMessage() as HelloMessage
       const { proofOfInvitation } = helloMessage.payload
-      alice.team.admitMember(proofOfInvitation!)
+      assert(proofOfInvitation !== undefined)
+      alice.team.admit(proofOfInvitation)
       const chain = alice.team.save()
       charlieConnection.deliver({ index: 1, type: 'ACCEPT_INVITATION', payload: { chain } })
 
-      // 👩🏾 Alice challenges charlie's identity claim
-      const challenge = identity.challenge(helloMessage.payload.identityClaim)
-      charlieConnection.deliver({ index: 2, type: 'CHALLENGE_IDENTITY', payload: { challenge } })
-
-      // 👳‍♂️ Charlie automatically responds to the challenge with proof, and awaits acceptance
-      expect(charlieState().authenticating.provingOurIdentity).toEqual('awaitingIdentityAcceptance')
-
-      // 👩🏾 Alice verifies Charlie's proof
-      const proofMessage = lastMessage() as ProveIdentityMessage
-      const peerKeys = redactKeys(charlie.keys)
-      const validation = identity.verify(challenge, proofMessage.payload.proof, peerKeys)
-      expect(validation).toBeValid()
-
       // 👩🏾 Alice generates a acceptance message and sends it to charlie
-      const userKeys = alice.user.keys
-      const encryptedSeed = asymmetric.encrypt({
-        secret: randomKey(),
-        recipientPublicKey: peerKeys.encryption,
-        senderSecretKey: userKeys.encryption.secretKey,
-      })
-      charlieConnection.deliver({ index: 3, type: 'ACCEPT_IDENTITY', payload: { encryptedSeed } })
+      charlieConnection.deliver({ index: 3, type: 'ACCEPT_IDENTITY', payload: {} })
 
       // ✅ Success! Charlie has proved his identity
       expect(charlieState().authenticating.provingOurIdentity).toEqual('done')
@@ -331,13 +305,13 @@ describe('connection', () => {
       const { alice } = testUsers
 
       // 👩🏾 Alice invites 👳‍♂️ Charlie
-      const { secretKey: invitationSecretKey } = alice.team.invite('charlie')
+      const { seed: invitationSeed } = alice.team.invite('charlie')
 
       // 👳‍♂️ Charlie uses the invitation secret key to connect with Alice
       const charlieContext = {
         user: charlie,
         device: redactDevice(charlie.device),
-        invitationSecretKey,
+        invitationSeed,
       }
       const charlieConnection = join(charlieContext)
 
@@ -354,16 +328,16 @@ describe('connection', () => {
       const { alice } = testUsers
 
       // 👩🏾 Alice invites 👨‍🦲 Bob
-      const { secretKey: bobKey } = alice.team.invite('bob')
+      const { seed: bobKey } = alice.team.invite('bob')
 
       // 👩🏾 Alice invites 👳‍♂️ Charlie
-      const { secretKey: charlieKey } = alice.team.invite('charlie')
+      const { seed: charlieKey } = alice.team.invite('charlie')
 
       // 👨‍🦲 Bob uses his invitation secret key to try to connect
       const bobContext = {
         user: bob,
         device: redactDevice(bob.device),
-        invitationSecretKey: bobKey,
+        invitationSeed: bobKey,
       }
       const bobConnection = join(bobContext)
 
@@ -371,7 +345,7 @@ describe('connection', () => {
       const charlieContext = {
         user: charlie,
         device: redactDevice(charlie.device),
-        invitationSecretKey: charlieKey,
+        invitationSeed: charlieKey,
       }
       const charlieConnection = join(charlieContext)
 
@@ -386,7 +360,7 @@ describe('connection', () => {
 
       // 👩🏾 Alice invites 👳‍♂️ Charlie
 
-      const { secretKey: invitationSecretKey } = alice.team.invite('charlie')
+      const { seed: invitationSeed } = alice.team.invite('charlie')
       // 🦹‍♀️ Eve is going to impersonate Alice to try to get Charlie to join her team instead
 
       const fakeAlice = users.create('alice')
@@ -400,7 +374,7 @@ describe('connection', () => {
       const charlieContext = {
         user: charlie,
         device: redactDevice(charlie.device),
-        invitationSecretKey,
+        invitationSeed,
       } as InitialContext
       const charlieConnection = new Connection({ sendMessage, context: charlieContext })
       charlieConnection.start()
@@ -439,7 +413,7 @@ describe('connection', () => {
 
       // 👨‍🦲 Bob hasn't connected, so he doesn't have Alice's changes
       expect(bob.team.has('charlie')).toBe(false)
-      expect(bob.team.hasRole('managersasdf')).toBe(false)
+      expect(bob.team.hasRole('managers')).toBe(false)
 
       // 👩🏾 👨‍🦲 Alice and Bob both join the channel
       alice.connection.start()

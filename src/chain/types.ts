@@ -113,8 +113,11 @@ export type ValidatorSet = {
   [key: string]: Validator
 }
 
-// LINK TYPES
+// TEAM ACTION TYPES
+
 // Every action might include new lockboxes
+// TODO: the content of lockboxes needs to be validated
+// e.g. only an admin can add lockboxes for others
 interface BasePayload {
   lockboxes?: Lockbox[]
 }
@@ -135,16 +138,23 @@ export interface AddMemberAction extends Action {
   }
 }
 
-export interface AddDeviceAction extends Action {
-  type: 'ADD_DEVICE'
+export interface RemoveMemberAction extends Action {
+  type: 'REMOVE_MEMBER'
   payload: BasePayload & {
-    device: Device
+    userName: string
   }
 }
 
 export interface AddRoleAction extends Action {
   type: 'ADD_ROLE'
   payload: BasePayload & Role
+}
+
+export interface RemoveRoleAction extends Action {
+  type: 'REMOVE_ROLE'
+  payload: BasePayload & {
+    roleName: string
+  }
 }
 
 export interface AddMemberRoleAction extends Action {
@@ -156,10 +166,18 @@ export interface AddMemberRoleAction extends Action {
   }
 }
 
-export interface RemoveMemberAction extends Action {
-  type: 'REMOVE_MEMBER'
+export interface RemoveMemberRoleAction extends Action {
+  type: 'REMOVE_MEMBER_ROLE'
   payload: BasePayload & {
     userName: string
+    roleName: string
+  }
+}
+
+export interface AddDeviceAction extends Action {
+  type: 'ADD_DEVICE'
+  payload: BasePayload & {
+    device: Device
   }
 }
 
@@ -168,21 +186,6 @@ export interface RemoveDeviceAction extends Action {
   payload: BasePayload & {
     userName: string
     deviceId: string
-  }
-}
-
-export interface RemoveRoleAction extends Action {
-  type: 'REMOVE_ROLE'
-  payload: BasePayload & {
-    roleName: string
-  }
-}
-
-export interface RemoveMemberRoleAction extends Action {
-  type: 'REMOVE_MEMBER_ROLE'
-  payload: BasePayload & {
-    userName: string
-    roleName: string
   }
 }
 

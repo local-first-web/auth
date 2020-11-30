@@ -3,7 +3,7 @@ import { EventEmitter } from 'events'
 import * as chains from '/chain'
 import { membershipResolver, TeamAction, TeamActionLink, TeamSignatureChain } from '/chain'
 import { LocalUserContext } from '/context'
-import { DeviceInfo, getDeviceId } from '/device'
+import { Device, DeviceInfo, getDeviceId, redactDevice } from '/device'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
 import { normalize } from '/invitation/normalize'
@@ -16,6 +16,7 @@ import {
   KeysetWithSecrets,
   KeyType,
   PublicKeyset,
+  redactKeys,
   TEAM_SCOPE,
 } from '/keyset'
 import { getScope } from '/keyset/getScope'
@@ -290,23 +291,23 @@ export class Team extends EventEmitter {
     - [x] add a special invitation-acceptance lockbox (contents: member keys, recipient: invitation)
 
   accepting: 
-    - [ ] present proof of invitation, same as now
+    - [x] present proof of invitation, same as now
 
   admitting: 
     - [ ] after joining, the invitee opens their member keys using the lockbox
     - [ ] they add their current device
     - [ ] they change their member keys
 
-  no signature challenge is necessary on the invitee's side, since that's essentially what the proof
-  of invitation does
-
-  authentication always uses device keys, not member keys
+  authentication: 
+    - [x] no signature challenge is necessary on the invitee's side, since that's essentially 
+          what the proof of invitation does
+    - [x] authentication always uses device keys, not member keys
   */
 
-  public invite = (userName: string, options: { roles?: string[]; secretKey?: string } = {}) => {
+  public invite = (userName: string, options: { roles?: string[]; seed?: string } = {}) => {
     const { roles = [] } = options
-    let { secretKey = invitations.InvitationKey() } = options
-    secretKey = normalize(secretKey)
+    let { seed = invitations.randomSeed() } = options
+    seed = normalize(seed)
 
     let user: User | undefined = undefined
 
@@ -330,7 +331,13 @@ export class Team extends EventEmitter {
     // generate invitation
     const teamKeys = this.teamKeys()
     const newUserKeys = user?.keys
-    const invitation = invitations.invite({ teamKeys, userName, newUserKeys, roles, secretKey })
+    const invitation = invitations.create({
+      seed,
+      teamKeys,
+      userName,
+      newUserKeys,
+      roles,
+    })
 
     // post invitation to signature chain
     this.dispatch({
@@ -340,7 +347,7 @@ export class Team extends EventEmitter {
 
     // return the secret key (to pass on to invitee) and the invitation id (if we need to revoke later)
     const { id } = invitation
-    return { secretKey, id }
+    return { seed, id }
   }
 
   /** Revoke an invitation.  */
@@ -379,6 +386,25 @@ export class Team extends EventEmitter {
     this.dispatch({
       type: 'ADMIT',
       payload: { id },
+    })
+  }
+
+  public join = (proof: ProofOfInvitation) => {
+    // TODO: after joining I open my member keys using the lockbox in the invitation
+    // (is this even necessary?)
+
+    // I add my current device
+    const device = redactDevice(this.context.user.device)
+    this.dispatch({
+      type: 'ADD_DEVICE',
+      payload: { device },
+    })
+
+    // I change my member keys
+    const keys = redactKeys(this.context.user.keys)
+    this.dispatch({
+      type: 'CHANGE_MEMBER_KEYS',
+      payload: { keys },
     })
   }
 

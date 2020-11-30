@@ -3,7 +3,6 @@ import { KeyScope } from '/keyset'
 import * as select from '/team/selectors'
 import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '/team/types'
 import { VALID, ValidationError } from '/util'
-import * as R from 'ramda'
 
 export const validate: TeamStateValidator = (...args: ValidationArgs) => {
   for (const key in validators) {
@@ -22,7 +21,7 @@ const validators: TeamStateValidatorSet = {
     const { type, context } = link.body
 
     // any team member can do these things
-    const nonAdminActions = ['CHANGE_MEMBER_KEYS', 'ADMIT']
+    const nonAdminActions = ['ADD_DEVICE', 'CHANGE_MEMBER_KEYS', 'ADMIT']
 
     // at root link, team doesn't yet have members
     if (type !== ROOT) {

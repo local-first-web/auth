@@ -1,5 +1,5 @@
 import { MachineConfig } from 'xstate'
-import { ConnectionContext, ConnectionStateSchema } from '/connection/types'
+import { ConnectionContext, ConnectionState } from '/connection/types'
 import { ConnectionMessage } from '/connection/message'
 
 // common timeout settings
@@ -8,7 +8,7 @@ const timeout = { after: { [TIMEOUT_DELAY]: { actions: 'failTimeout', target: '#
 
 export const connectionMachine: MachineConfig<
   ConnectionContext,
-  ConnectionStateSchema,
+  ConnectionState,
   ConnectionMessage
 > = {
   id: 'connection',
@@ -80,7 +80,7 @@ export const connectionMachine: MachineConfig<
                   // make sure the team I'm joining is actually the one that invited me
                   {
                     cond: 'joinedTheRightTeam',
-                    actions: 'rehydrateTeam',
+                    actions: 'joinTeam',
                     target: '#authenticating',
                   },
 
@@ -111,12 +111,6 @@ export const connectionMachine: MachineConfig<
                 },
               ],
             },
-
-            joining: {
-              always: {
-                target: '#authenticating',
-              },
-            },
           },
         },
 
@@ -132,10 +126,15 @@ export const connectionMachine: MachineConfig<
             provingOurIdentity: {
               initial: 'awaitingIdentityChallenge',
               states: {
-                // we claimed our identity already, in our HELLO message; now we wait for a challenge
                 awaitingIdentityChallenge: {
+                  // if we just presented an invitation, we can skip this
+                  always: {
+                    cond: 'iHaveInvitation',
+                    target: 'done',
+                  },
                   on: {
                     CHALLENGE_IDENTITY: {
+                      // we claimed our identity already, in our HELLO message; now we wait for a challenge
                       // when we receive a challenge, respond with proof
                       actions: ['proveIdentity'],
                       target: 'awaitingIdentityAcceptance',
@@ -148,8 +147,6 @@ export const connectionMachine: MachineConfig<
                 awaitingIdentityAcceptance: {
                   on: {
                     ACCEPT_IDENTITY: {
-                      // save the encrypted seed they provide; we'll use it to derive a shared secret
-                      actions: 'storeTheirEncryptedSeed',
                       target: 'done',
                     },
                   },
@@ -164,9 +161,15 @@ export const connectionMachine: MachineConfig<
             verifyingTheirIdentity: {
               initial: 'challengingIdentityClaim',
               states: {
-                // we received their identity claim in their HELLO message; wait for a challenge
                 challengingIdentityClaim: {
                   always: [
+                    // if they just presented an invitation, we can skip this
+                    {
+                      cond: 'theyHaveInvitation',
+                      target: 'done',
+                    },
+
+                    // we received their identity claim in their HELLO message
                     // if we have a member by that name on the team, send a challenge
                     {
                       cond: 'identityIsKnown',
@@ -189,7 +192,7 @@ export const connectionMachine: MachineConfig<
                       // if the proof succeeds, we're done on our side
                       {
                         cond: 'identityProofIsValid',
-                        actions: ['generateSeed', 'acceptIdentity'],
+                        actions: 'acceptIdentity',
                         target: 'done',
                       },
 
@@ -209,7 +212,10 @@ export const connectionMachine: MachineConfig<
           },
 
           // Once BOTH processes complete, we continue
-          onDone: '#connecting.done',
+          onDone: {
+            actions: ['storePeer'],
+            target: '#connecting.done',
+          },
         },
 
         done: { type: 'final' },
@@ -267,16 +273,52 @@ export const connectionMachine: MachineConfig<
             // otherwise we're waiting for them to get missing links from us & confirm
             { target: 'waiting' },
           ],
-          exit: 'sendUpdate', // either way let them know our status
+          exit: [
+            'refreshContext', // we might have received new peer info (e.g. keys)
+            'sendUpdate', // either way let them know our status
+          ],
         },
         waiting: {},
         done: { type: 'final' },
       },
-      onDone: 'connected',
+      onDone: {
+        actions: 'generateSeed',
+        target: 'negotiating',
+      },
+    },
+
+    negotiating: {
+      type: 'parallel',
+      states: {
+        sendingSeed: {
+          initial: 'sending',
+          states: {
+            sending: {
+              entry: 'sendSeed',
+              always: 'done',
+            },
+            done: { type: 'final' },
+          },
+        },
+        receivingSeed: {
+          initial: 'waiting',
+          on: {
+            SEED: {
+              actions: 'receiveSeed',
+              target: 'receivingSeed.done',
+            },
+          },
+          states: {
+            waiting: {},
+            done: { type: 'final' },
+          },
+        },
+      },
+      onDone: { actions: 'deriveSharedKey', target: 'connected' },
     },
 
     connected: {
-      entry: ['deriveSharedKey', 'onConnected'],
+      entry: ['onConnected'],
       on: {
         DISCONNECT: '#disconnected',
         UPDATE: {

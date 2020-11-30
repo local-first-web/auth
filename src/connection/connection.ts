@@ -14,10 +14,11 @@ import {
   DisconnectMessage,
   ErrorMessage,
   HelloMessage,
-  MissingLinksMessage,
+  SeedMessage,
   NumberedConnectionMessage,
   ProveIdentityMessage,
   UpdateMessage,
+  MissingLinksMessage,
 } from '/connection/message'
 import { orderedDelivery } from '/connection/orderedDelivery'
 import {
@@ -25,13 +26,12 @@ import {
   Condition,
   ConnectionContext,
   ConnectionParams,
-  ConnectionStateSchema,
+  ConnectionState,
   SendFunction,
 } from '/connection/types'
 import * as invitations from '/invitation'
 import { KeyType, randomKey } from '/keyset'
 import { Team } from '/team'
-import { redactUser } from '/user'
 import { assert, pause } from '/util'
 import { arrayToMap } from '/util/arrayToMap'
 
@@ -44,7 +44,7 @@ const { MEMBER } = KeyType
 export class Connection extends EventEmitter {
   private sendMessage: SendFunction
 
-  public machine: Interpreter<ConnectionContext, ConnectionStateSchema, ConnectionMessage>
+  public machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
   public context: ConnectionContext
 
   private incomingMessageQueue: Record<number, NumberedConnectionMessage> = {}
@@ -125,12 +125,12 @@ export class Connection extends EventEmitter {
           identityClaim: { type: MEMBER, name: context.user.userName },
           // if we're not a member yet, attach our proof of invitation
           proofOfInvitation:
-            context.invitationSecretKey !== undefined
-              ? this.myProofOfInvitation(context)
-              : undefined,
+            context.invitationSeed !== undefined ? this.myProofOfInvitation(context) : undefined,
         },
       })
     },
+
+    // authenticating
 
     receiveHello: assign({
       theirIdentityClaim: (_, event) => (event as HelloMessage).payload.identityClaim,
@@ -147,8 +147,12 @@ export class Connection extends EventEmitter {
       } as AcceptInvitationMessage)
     },
 
-    rehydrateTeam: assign({
-      team: (context, event) => this.rehydrateTeam(context, event),
+    joinTeam: assign({
+      team: (context, event) => {
+        const team = this.rehydrateTeam(context, event)
+        team.join(this.myProofOfInvitation(context))
+        return team
+      },
     }),
 
     challengeIdentity: context => {
@@ -170,41 +174,25 @@ export class Connection extends EventEmitter {
       } as ProveIdentityMessage)
     },
 
-    generateSeed: assign({
-      seed: _ => randomKey(),
-      peer: context => context.team!.members(context.theirIdentityClaim!.name),
-    }),
-
-    acceptIdentity: context => {
-      this.sendMessage({
-        type: 'ACCEPT_IDENTITY',
-        payload: {
-          encryptedSeed: asymmetric.encrypt({
-            secret: context.seed!,
-            recipientPublicKey: context.peer!.keys.encryption,
-            senderSecretKey: context.user.keys.encryption.secretKey,
-          }),
-        },
-      } as AcceptIdentityMessage)
-    },
-
-    storeTheirEncryptedSeed: assign({
-      theirEncryptedSeed: (_, event) => (event as AcceptIdentityMessage).payload.encryptedSeed,
-    }),
-
-    deriveSharedKey: assign({
-      sessionKey: context => {
-        // we saved our seed in context
-        const ourSeed = context.seed!
-        // their seed is also in context but encrypted
-        const theirSeed = asymmetric.decrypt({
-          cipher: context.theirEncryptedSeed!,
-          senderPublicKey: context.peer!.keys.encryption,
-          recipientSecretKey: context.user.keys.encryption.secretKey,
-        })
-        return deriveSharedKey(ourSeed, theirSeed)
+    storePeer: assign({
+      peer: context => {
+        assert(context.team !== undefined, 'storePeer: team should be in context')
+        assert(
+          context.theirIdentityClaim !== undefined,
+          'in storePeer, theirIdentityClaim should be in context'
+        )
+        return context.team.members(context.theirIdentityClaim.name)
       },
     }),
+
+    acceptIdentity: _ => {
+      this.sendMessage({
+        type: 'ACCEPT_IDENTITY',
+        payload: {},
+      })
+    },
+
+    // updating
 
     sendUpdate: context => {
       const { root, head, links } = context.team!.chain
@@ -217,7 +205,7 @@ export class Connection extends EventEmitter {
     },
 
     recordTheirHead: assign({
-      theirHead: (context, event) => {
+      theirHead: (_, event) => {
         this.log('recordTheirHead')
         const { payload } = event as UpdateMessage | MissingLinksMessage
         return payload.head
@@ -225,7 +213,8 @@ export class Connection extends EventEmitter {
     }),
 
     sendMissingLinks: (context, event) => {
-      const { chain } = context.team!
+      assert(context.team !== undefined, 'sendMissingLinks: team should be in context')
+      const { chain } = context.team
       const { root, head, links } = chain
       const hashes = Object.keys(links)
 
@@ -256,7 +245,9 @@ export class Connection extends EventEmitter {
 
     receiveMissingLinks: assign({
       team: (context, event) => {
-        const { chain } = context.team!
+        assert(context.team !== undefined, 'receiveMissingLinks: team should be in context')
+        const { chain } = context.team
+
         const { root, links } = chain
         const { head: theirHead, links: theirLinks } = (event as MissingLinksMessage).payload
 
@@ -281,15 +272,81 @@ export class Connection extends EventEmitter {
         const theirChain = { root, head: theirHead, links: allLinks }
 
         // and merge with it
-        return context.team!.merge(theirChain)
+        return context.team.merge(theirChain)
       },
     }),
+
+    refreshContext: assign({
+      // Following an update, we may have new information about the peer
+      // (specifically, if they just joined with an invitation, we'll have received
+      // their real public keys). So we need to get that on context now.
+      peer: context => {
+        assert(context.peer !== undefined, 'refreshContext: peer should be in context')
+        assert(context.team !== undefined, 'refreshContext: team should be in context')
+        const userName = context.peer.userName
+        const updatedPeer = context.team.members(userName)
+        return updatedPeer
+      },
+    }),
+
+    // negotiating
+
+    generateSeed: assign({ seed: _ => randomKey() }),
+
+    sendSeed: context => {
+      this.log('sendSeed')
+      assert(context.peer !== undefined, 'sendSeed: peer should be in context')
+      assert(context.seed !== undefined, 'sendSeed: seed should be in context')
+
+      this.sendMessage({
+        type: 'SEED',
+        payload: {
+          encryptedSeed: asymmetric.encrypt({
+            secret: context.seed,
+            recipientPublicKey: context.peer.keys.encryption,
+            senderSecretKey: context.user.keys.encryption.secretKey,
+          }),
+        },
+      })
+    },
+
+    receiveSeed: assign({
+      theirEncryptedSeed: (_, event) => {
+        this.log('receiveSeed')
+        return (event as SeedMessage).payload.encryptedSeed
+      },
+    }),
+
+    deriveSharedKey: assign({
+      sessionKey: (context, event) => {
+        this.log('deriveSharedKey')
+        assert(
+          context.theirEncryptedSeed !== undefined,
+          'deriveSharedKey: theirEncryptedSeed should be in context'
+        )
+        assert(context.seed !== undefined, 'deriveSharedKey: seed should be in context')
+        assert(context.peer !== undefined, 'deriveSharedKey: peer should be in context')
+
+        // we saved our seed in context
+        const ourSeed = context.seed
+
+        // their seed is encrypted and stored in context
+        const theirSeed = asymmetric.decrypt({
+          cipher: context.theirEncryptedSeed,
+          senderPublicKey: context.peer.keys.encryption,
+          recipientSecretKey: context.user.keys.encryption.secretKey,
+        })
+
+        // with the two keys, we derive a shared key
+        return deriveSharedKey(ourSeed, theirSeed)
+      },
+    }),
+
+    // failure
 
     receiveError: assign({
       error: (_, event) => (event as ErrorMessage).payload,
     }),
-
-    // failure modes
 
     rejectIdentity: () => this.fail(`I couldn't verify your identity`),
     failNeitherIsMember: () => this.fail(`We can't connect because neither one of us is a member`),
@@ -308,7 +365,7 @@ export class Connection extends EventEmitter {
   /** These are referred to by name in `connectionMachine` (e.g. `cond: 'iHaveInvitation'`) */
   private readonly guards: Record<string, Condition> = {
     iHaveInvitation: context => {
-      const result = context.invitationSecretKey !== undefined
+      const result = context.invitationSeed !== undefined
       this.log('iHaveInvitation', result)
       return result
     },
@@ -323,10 +380,18 @@ export class Connection extends EventEmitter {
       this.guards.iHaveInvitation(...args) && this.guards.theyHaveInvitation(...args),
 
     invitationProofIsValid: context => {
+      assert(context.team !== undefined, 'invitationProofIsValid: team should be in context')
+      assert(
+        context.theirProofOfInvitation !== undefined,
+        'in invitationProofIsValid, theirProofOfInvitation should be in context'
+      )
+
       try {
-        context.team!.admit(context.theirProofOfInvitation!)
+        context.team.admit(context.theirProofOfInvitation)
+        this.log('invitation proof is valid')
       } catch (e) {
         this.context.error = { message: e.toString() }
+        this.log('invitation proof is not valid')
         return false
       }
       return true
@@ -389,8 +454,8 @@ export class Connection extends EventEmitter {
     })
 
   private myProofOfInvitation = (context: ConnectionContext) => {
-    assert(context.invitationSecretKey !== undefined)
-    return invitations.generateProof(context.invitationSecretKey, context.user.userName)
+    assert(context.invitationSeed !== undefined)
+    return invitations.generateProof(context.invitationSeed, context.user.userName)
   }
 }
 

@@ -1,5 +1,5 @@
 ﻿export * from '/invitation/create'
-export * from '/invitation/invitationKey'
+export * from '/invitation/randomSeed'
 export * from '/invitation/generateProof'
 export * from '/invitation/validate'
 export * from '/invitation/types'

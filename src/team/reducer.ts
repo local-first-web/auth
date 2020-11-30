@@ -1,6 +1,7 @@
 ﻿import { ROOT, TeamAction, TeamActionLink } from '/chain'
 import { ADMIN } from '/role'
 import {
+  addDevice,
   addMember,
   addMemberRoles,
   addRole,
@@ -95,6 +96,15 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       ]
     }
 
+    // TODO: I can only add a device for myself
+    case 'ADD_DEVICE': {
+      const { device } = action.payload
+      return [
+        addDevice(device), //
+      ]
+    }
+
+    // TODO: I can only remove my own device, unless I'm an admin
     case 'REMOVE_DEVICE': {
       const { userName, deviceId } = action.payload
       return [
@@ -137,14 +147,24 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       ]
     }
 
+    // TODO: Can only change my own
     case 'CHANGE_MEMBER_KEYS': {
       const { keys } = action.payload
       return [
-        changeMemberKeys(keys), // Replace this member's keys with the ones provided
+        changeMemberKeys(keys), // Replace this member's public keys with the ones provided
+      ]
+    }
+
+    // TODO: Can only change my own
+    case 'CHANGE_DEVICE_KEYS': {
+      const { keys } = action.payload
+      return [
+        // changeDeviceKeys(keys), // Replace this device's public keys with the ones provided
       ]
     }
 
     default:
+      // @ts-ignore (should never get here)
       throw new Error(`Unrecognized link type: ${action.type}`)
   }
 }

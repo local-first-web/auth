@@ -18,14 +18,14 @@ export const IKEY_LENGTH = 16
  * @param userKeys
  * @param secretKey A randomly generated secret to be passed to Bob via a side channel
  */
-export const invite = ({
-  secretKey,
+export const create = ({
+  seed: secretKey,
   userName,
   newUserKeys,
   roles = [],
   teamKeys,
 }: {
-  secretKey: string
+  seed: string
   userName: string
   newUserKeys?: KeysetWithSecrets
   roles?: string[]
