@@ -1,6 +1,5 @@
-import { load } from './load'
+import { load } from '/team/load'
 import { generateProof, ProofOfInvitation } from '/invitation'
-import { KeyType } from '/keyset'
 import { ADMIN } from '/role'
 import { alicesContext, bob, bobsContext, defaultContext, newTeam } from '/util/testing'
 
@@ -149,70 +148,20 @@ describe('Team', () => {
       })
     })
 
-    //   describe('devices', () => {
-    //     it('creates and accepts an invitation for a device', () => {
-    //       const { team, context } = setup()
-    //       team.add(bob) // added for code coverage purposes
+    describe('devices', () => {
+      it('creates and accepts an invitation for a device', () => {
+        const { team } = setup()
 
-    //       // 💻 Alice is on her laptop
-    //       expect(context.user.device.name).toBe(`alice's device`)
+        // 💻 on her laptop, Alice generates an invitation for herself (so a device invitation)
+        const { seed } = team.invite('alice')
 
-    //       // 💻 Alice generates an invitation, which is stored on the team's signature chain
-    //       const device = { userName: 'alice', name: `alice's phone`, type: DeviceType.mobile }
-    //       const { seed } = team.inviteDevice(device)
+        // 📱 Alice gets the secret invitation key to her phone, perhaps by typing it in or by
+        // scanning a QR code. Alice's phone uses the secret key to generate proof of invitation
+        const proofOfInvitation = generateProof(seed, 'alice')
 
-    //       // 📱 Alice gets the secret invitation key to her phone, perhaps by typing it in or by scanning a
-    //       // QR code. Alice's phone uses the secret key to generate proof of invitation
-    //       const deviceId = getDeviceId(device)
-    //       const deviceKeys = keyset.create({ type: DEVICE, name: deviceId })
-    //       const deviceWithSecrets: DeviceWithSecrets = { ...device, keys: deviceKeys }
-    //       const proofOfInvitation = acceptDeviceInvitation(seed, redactDevice(deviceWithSecrets))
-
-    //       // 📱 Alice's phone connects with 💻 her laptop and presents the proof
-    //       team.admitDevice(proofOfInvitation)
-
-    //       // ✅ 📱 Alice's phone is now listed on the signature chain
-    //       expect(team.members('alice').devices!.map(d => d.deviceId)).toContain(deviceId)
-    //     })
-
-    //     it('rejects device invitation if altered', () => {
-    //       const { team, context } = setup()
-    //       team.add(bob) // added for code coverage purposes
-
-    //       // 👩🏾💻 Alice is on her laptop
-    //       expect(context.user.device.name).toBe(`alice's device`)
-
-    //       // 👩🏾💻 Alice generates an invitation, which is stored on the team's signature chain
-    //       const device = { userName: 'alice', name: `alice's phone`, type: DeviceType.mobile }
-    //       const { seed } = team.inviteDevice(device)
-
-    //       // 👩🏾📱 Alice gets the secret invitation key to her phone, perhaps by typing it in or by scanning a
-    //       // QR code. Alice's phone uses the secret key to generate proof of invitation
-    //       const deviceId = getDeviceId(device)
-    //       const deviceKeys = keyset.create({ type: DEVICE, name: deviceId })
-    //       const deviceWithSecrets: DeviceWithSecrets = { ...device, keys: deviceKeys }
-    //       const proofOfInvitation = acceptDeviceInvitation(seed, redactDevice(deviceWithSecrets))
-
-    //       // 🦹‍♀️ Oh no!! Eve intercepts the invitation and tries to use it by swapping out Alice's device info for hers
-    //       const evesDevice = { userName: 'alice', name: `alice's phone`, type: DeviceType.mobile }
-    //       const evesDeviceId = getDeviceId(evesDevice)
-    //       const evesDeviceKeys = keyset.create({ type: DEVICE, name: evesDeviceId })
-    //       const evesDeviceWithSecrets: DeviceWithSecrets = { ...device, keys: evesDeviceKeys }
-
-    //       const forgedProofOfInvitation: ProofOfInvitation = {
-    //         ...proofOfInvitation,
-    //         type: 'DEVICE',
-    //         payload: redactDevice(evesDeviceWithSecrets),
-    //       }
-
-    //       // 🦹‍♀️📱 Eve tries to gain admission with her fraudulent credentials
-    //       const tryToAdmitEve = () => team.admitDevice(forgedProofOfInvitation)
-
-    //       // ❌ Eve's device is not added
-    //       expect(tryToAdmitEve).toThrow(/Signature provided is not valid/)
-    //       const aliceDevices = team.members('alice').devices || []
-    //       expect(aliceDevices.map(d => d.deviceId)).not.toContain(evesDeviceId)
-    //     })
-    //   })
+        // 📱 Alice's phone connects with 💻 her laptop and presents the proof
+        team.admit(proofOfInvitation)
+      })
+    })
   })
 })
