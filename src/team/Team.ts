@@ -283,25 +283,39 @@ export class Team extends EventEmitter {
 
   /////////////// INVITATIONS
 
-  /* TODO new plan: only one kind of invitation
+  /* 
+  ### Inviting a new member: 
 
-  inviting: 
-    - [x] if the member doesn't exist, we add them with a random keyset 
-    - [x] add all their roles and lockboxes
-    - [x] add a special invitation-acceptance lockbox (contents: member keys, recipient: invitation)
+  Alice generates an invitation using a secret seed. The seed an be randomly generated, or selected
+  by Alice. Alice sends the invitation to Bob using a trusted channel.
 
-  accepting: 
-    - [x] present proof of invitation, same as now
+  Meanwhile, Alice adds Bob to the signature chain as a new member, with appropriate roles (if any)
+  and any corresponding lockboxes. 
 
-  admitting: 
-    - [ ] after joining, the invitee opens their member keys using the lockbox
-    - [ ] they add their current device
-    - [ ] they change their member keys
+  Bob can't authenticate directly as that member, since it has random temporary keys created by
+  Alice. Instead, Bob generates a proof of invitation, and when they try to connect to Alice or
+  Charlie they present that proof instead of authenticating.
 
-  authentication: 
-    - [x] no signature challenge is necessary on the invitee's side, since that's essentially 
-          what the proof of invitation does
-    - [x] authentication always uses device keys, not member keys
+  Once Alice or Charlie verifies Bob's proof, they send him the team chain. Bob uses that to
+  instantiate the team, then he updates the team with his real public keys and adds his current
+  device information. 
+
+  ### Inviting an existing member's device: 
+
+  - [ ] A member can only invite their own devices.
+  - [ ] A non-admin member can only remove their own device; an admin member can remove a device for
+    anyone
+
+  - [ ] On his laptop, Bob generates an invitation using a secret seed. He gets that seed to his
+    phone using a QR code or by typing it in.
+  - [ ] Meanwhile, on his laptop, Bob 
+  - [ ] On his phone, Bob connects to his laptop (or to Alice or Charlie). Bob's phone presents its
+    proof of invitation.
+  - [ ] Once Bob's laptop or Alice or Charlie verifies Bob's phone's proof, they send it the team
+    chain. 
+  - [ ] The phone uses the chain to instantiate the team, then adds itself as a device.
+
+
   */
 
   public invite = (userName: string, options: { roles?: string[]; seed?: string } = {}) => {
@@ -309,13 +323,9 @@ export class Team extends EventEmitter {
     let { seed = invitations.randomSeed() } = options
     seed = normalize(seed)
 
-    let user: User | undefined = undefined
-
     if (!this.has(userName)) {
-      // New member - add them
-
-      // this creates a new user with random keys; they'll receive those keys in a special lockbox
-      user = users.create(userName)
+      // this creates a new user with random keys; they'll replace those keys as soon as they join
+      const user = users.create(userName)
 
       // make normal lockboxes for the new member
       const member: Member = { ...redactUser(user), roles }
@@ -330,12 +340,10 @@ export class Team extends EventEmitter {
 
     // generate invitation
     const teamKeys = this.teamKeys()
-    const newUserKeys = user?.keys
     const invitation = invitations.create({
       seed,
       teamKeys,
       userName,
-      newUserKeys,
       roles,
     })
 
@@ -389,9 +397,10 @@ export class Team extends EventEmitter {
     })
   }
 
+  /** Once the new member has received the chain and can instantiate the team, they call this to add
+   * their device and change their keys */
   public join = (proof: ProofOfInvitation) => {
-    // TODO: after joining I open my member keys using the lockbox in the invitation
-    // (is this even necessary?)
+    assert(this.hasInvitation(proof), `Can't join a team I wasn't invited to`)
 
     // I add my current device
     const device = redactDevice(this.context.user.device)
