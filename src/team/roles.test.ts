@@ -34,13 +34,13 @@ describe('Team', () => {
 
     it('Bob is not admin by default', () => {
       const { team } = setup()
-      team.add(redactUser(bob))
+      team.add(bob)
       expect(team.memberIsAdmin('bob')).toBe(false)
     })
 
     it('adds a role', () => {
       const { team } = setup()
-      team.add(redactUser(bob))
+      team.add(bob)
 
       // only default roles to start out
       expect(team.roles().map(r => r.roleName)).toEqual([ADMIN])
@@ -72,7 +72,7 @@ describe('Team', () => {
 
     it('adds a member to a role', () => {
       const { team: alicesTeam } = setup()
-      alicesTeam.add(redactUser(bob))
+      alicesTeam.add(bob)
 
       // Bob isn't an admin yet
       expect(alicesTeam.memberIsAdmin('bob')).toBe(false)
@@ -97,7 +97,7 @@ describe('Team', () => {
     it('removes a member from a role', () => {
       const { team: alicesTeam } = setup()
       // Alice adds a couple of members
-      alicesTeam.add(redactUser(bob), [ADMIN])
+      alicesTeam.add(bob, [ADMIN])
 
       // Create manager role and add Bob to it
       alicesTeam.addRole(managers)
@@ -166,7 +166,7 @@ describe('Team', () => {
 
     it('lists all members in a role ', () => {
       const { team } = setup()
-      team.add(redactUser(bob), [ADMIN])
+      team.add(bob, [ADMIN])
       expect(team.membersInRole(ADMIN).map(m => m.userName)).toEqual(['alice', 'bob'])
       expect(team.admins().map(m => m.userName)).toEqual(['alice', 'bob'])
     })
@@ -174,12 +174,12 @@ describe('Team', () => {
     it('allows an admin other than Alice to add a member', () => {
       // Alice creates a team and adds Bob as an admin
       const { team: alicesTeam } = setup()
-      alicesTeam.add(redactUser(bob), [ADMIN]) // bob is an admin
+      alicesTeam.add(bob, [ADMIN]) // bob is an admin
       storage.save(alicesTeam)
 
       // Bob loads the team and adds Charlie as a member
       const bobsTeam = storage.load(bobsContext)
-      const addUser = () => bobsTeam.add(redactUser(charlie))
+      const addUser = () => bobsTeam.add(charlie)
 
       // Bob is allowed because he is an admin
       expect(addUser).not.toThrow()
@@ -188,12 +188,12 @@ describe('Team', () => {
     it('does not allow a non-admin to add a member', () => {
       // Alice creates a team and adds Bob with no admin rights
       const { team: alicesTeam } = setup()
-      alicesTeam.add(redactUser(bob), []) // Bob is not an admin
+      alicesTeam.add(bob) // Bob is not an admin
       storage.save(alicesTeam)
 
       // Bob loads the team and tries to add Charlie as a member
       const bobsTeam = storage.load(bobsContext)
-      const addUser = () => bobsTeam.add(redactUser(charlie))
+      const addUser = () => bobsTeam.add(charlie)
 
       // Bob can't because Bob is not an admin
       expect(addUser).toThrow(/not an admin/)
@@ -202,8 +202,8 @@ describe('Team', () => {
     it('does not allow a non-admin to remove a member', () => {
       // Alice creates a team and adds Bob and Charlie
       const { team: alicesTeam } = setup()
-      alicesTeam.add(redactUser(bob), []) // Bob is not an admin
-      alicesTeam.add(redactUser(charlie), [])
+      alicesTeam.add(bob) // Bob is not an admin
+      alicesTeam.add(charlie)
       storage.save(alicesTeam)
 
       // Bob loads the team and tries to remove Charlie
@@ -219,8 +219,8 @@ describe('Team', () => {
 
       const { team: alicesTeam } = setup()
       alicesTeam.addRole({ roleName: COOLKIDS })
-      alicesTeam.add(redactUser(bob), [COOLKIDS])
-      alicesTeam.add(redactUser(charlie), [COOLKIDS])
+      alicesTeam.add(bob, [COOLKIDS])
+      alicesTeam.add(charlie, [COOLKIDS])
       storage.save(alicesTeam)
       let bobsTeam = storage.load(bobsContext)
       let charliesTeam = storage.load(charliesContext)
