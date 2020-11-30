@@ -17,7 +17,7 @@ import * as teams from '/team'
 import * as users from '/user'
 import { redactUser, User } from '/user'
 import { arrayToMap } from '/util/arrayToMap'
-import { alice, bob, charlie, joinTestChannel, TestChannel } from '/util/testing'
+import { alice, bob, charlie, dwight, joinTestChannel, TestChannel } from '/util/testing'
 import '/util/testing/expect/toBeValid'
 import { assert } from '/util'
 
@@ -327,21 +327,13 @@ describe('connection', () => {
       const { testUsers, join } = setup(['alice'], oneWay)
       const { alice } = testUsers
 
-      // 👩🏾 Alice invites 👨‍🦲 Bob
-      const { seed: bobKey } = alice.team.invite('bob')
-
       // 👩🏾 Alice invites 👳‍♂️ Charlie
       const { seed: charlieKey } = alice.team.invite('charlie')
 
-      // 👨‍🦲 Bob uses his invitation secret key to try to connect
-      const bobContext = {
-        user: bob,
-        device: redactDevice(bob.device),
-        invitationSeed: bobKey,
-      }
-      const bobConnection = join(bobContext)
+      // 👩🏾 Alice invites 👴 Dwight
+      const { seed: dwightKey } = alice.team.invite('dwight')
 
-      // 👳‍♂️ Charlie does the same
+      // 👳‍♂️ Charlie uses his invitation secret key to try to connect
       const charlieContext = {
         user: charlie,
         device: redactDevice(charlie.device),
@@ -349,8 +341,16 @@ describe('connection', () => {
       }
       const charlieConnection = join(charlieContext)
 
+      // 👴 Dwight does the same
+      const dwightContext = {
+        user: dwight,
+        device: redactDevice(dwight.device),
+        invitationSeed: dwightKey,
+      }
+      const dwightConnection = join(dwightContext)
+
       // ❌ The connection fails
-      await expectDisconnection([bobConnection, charlieConnection], `neither one`)
+      await expectDisconnection([dwightConnection, charlieConnection], `neither one`)
     })
 
     // In which Eve tries to get Charlie to join her team instead of Alice's
