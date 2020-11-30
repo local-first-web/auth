@@ -13,38 +13,32 @@ export const IKEY_LENGTH = 16
 /**
  * Returns an an invitation to publicly post on the team's signature chain.
  * @param teamKeys The global team keys (Alice obtains these from the appropriate lockbox)
- * @param userName
- * @param roles
- * @param userKeys
+ * @param userName The user to invite
+ * @param roles The roles to add the new user to
  * @param secretKey A randomly generated secret to be passed to Bob via a side channel
  */
 export const create = ({
   seed: secretKey,
   userName,
-  newUserKeys,
   roles = [],
   teamKeys,
 }: {
   seed: string
   userName: string
-  newUserKeys?: KeysetWithSecrets
   roles?: string[]
   teamKeys: KeysetWithSecrets
 }): Invitation => {
   secretKey = normalize(secretKey)!
   const ephemeralKeys = generateEphemeralKeys(userName, secretKey)
 
-  // Using the team-wide keys, encrypt Bob's username and roles so that we don't leak that information
-  // in the public signature chain. We also include the public ephemeral keys, which will be used
-  // to verify Bob's proof of invitation; and a lockbox containing Bob's starter member keys.
+  // Using the team-wide keys, encrypt Bob's username and roles so that we don't leak that
+  // information in the public signature chain. We also include the ephemeral public signature key,
+  // which will be used to verify Bob's proof of invitation.
 
-  const lockbox =
-    newUserKeys !== undefined ? lockboxes.create(newUserKeys, ephemeralKeys) : undefined
   const invitationBody: InvitationBody = {
     userName,
     roles,
     publicKey: ephemeralKeys.signature.publicKey,
-    lockbox,
   }
   const encryptedBody = symmetric.encrypt(invitationBody, teamKeys.secretKey)
 
