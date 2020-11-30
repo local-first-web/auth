@@ -35,7 +35,7 @@ describe('connection', () => {
     }
 
     // Our dummy `sendMessage` just pushes messages onto a queue. We use this for one-sided tests
-    // (where there's only a realy connection on one side)
+    // (where there's only a real connection on one side)
     const messageQueue: ConnectionMessage[] = []
     const sendMessage = (message: ConnectionMessage) => messageQueue.push(message)
     const lastMessage = () => messageQueue[messageQueue.length - 1]
@@ -407,7 +407,7 @@ describe('connection', () => {
       // at this point, Alice and Bob have the same signature chain
 
       // 👩🏾 but now Alice does some stuff
-      alice.team.add(redactUser(charlie))
+      alice.team.invite('charlie')
       alice.team.addRole({ roleName: 'managers' })
       alice.team.addMemberRole('charlie', 'managers')
 
@@ -434,7 +434,7 @@ describe('connection', () => {
       // at this point, Alice and Bob have the same signature chain
 
       // 👨‍🦲 but now Bob does some stuff
-      bob.team.add(redactUser(charlie))
+      bob.team.invite('charlie')
       bob.team.addRole({ roleName: 'managers' })
       bob.team.addMemberRole('charlie', 'managers')
 
@@ -457,7 +457,7 @@ describe('connection', () => {
       // at this point, Alice and Bob have the same signature chain
 
       // 👩🏾 but now Alice does some stuff
-      alice.team.add(redactUser(charlie))
+      alice.team.invite('charlie')
       alice.team.addRole({ roleName: 'managers' })
       alice.team.addMemberRole('charlie', 'managers')
 
