@@ -84,7 +84,7 @@ describe('integration tests', () => {
       expectConnection([alice.connection, bob.connection])
 
       // 👩🏾 Alice creates a new role and adds 👨🏻‍🦲 Bob to it
-      alice.team.addRole({ roleName: 'managers' })
+      alice.team.addRole('managers')
 
       // 👨🏻‍🦲 Bob sees the new role
     })

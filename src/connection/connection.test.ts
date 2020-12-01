@@ -407,7 +407,7 @@ describe('connection', () => {
 
       // 👩🏾 but now Alice does some stuff
       alice.team.invite('charlie')
-      alice.team.addRole({ roleName: 'managers' })
+      alice.team.addRole('managers')
       alice.team.addMemberRole('charlie', 'managers')
 
       // 👨🏻‍🦲 Bob hasn't connected, so he doesn't have Alice's changes
@@ -434,7 +434,7 @@ describe('connection', () => {
 
       // 👨🏻‍🦲 but now Bob does some stuff
       bob.team.invite('charlie')
-      bob.team.addRole({ roleName: 'managers' })
+      bob.team.addRole('managers')
       bob.team.addMemberRole('charlie', 'managers')
 
       // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel
@@ -457,11 +457,11 @@ describe('connection', () => {
 
       // 👩🏾 but now Alice does some stuff
       alice.team.invite('charlie')
-      alice.team.addRole({ roleName: 'managers' })
+      alice.team.addRole('managers')
       alice.team.addMemberRole('charlie', 'managers')
 
       // 👨🏻‍🦲 and Bob does some stuff
-      bob.team.addRole({ roleName: 'finance' })
+      bob.team.addRole('finance')
       bob.team.addMemberRole('alice', 'finance')
 
       // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel

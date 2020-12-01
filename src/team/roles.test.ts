@@ -218,7 +218,7 @@ describe('Team', () => {
       const COOLKIDS = 'coolkids'
 
       const { team: alicesTeam } = setup()
-      alicesTeam.addRole({ roleName: COOLKIDS })
+      alicesTeam.addRole(COOLKIDS)
       alicesTeam.add(bob, [COOLKIDS])
       alicesTeam.add(charlie, [COOLKIDS])
       storage.save(alicesTeam)
