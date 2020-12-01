@@ -222,7 +222,9 @@ export class Team extends EventEmitter {
   public admins = (): Member[] => select.admins(this.state)
 
   /** Add a role to the team */
-  public addRole = (role: Role) => {
+  public addRole = (role: Role | string) => {
+    if (typeof role === 'string') role = { roleName: role }
+
     // we're creating this role so we need to generate new keys
     const roleKeys = keysets.create({ type: ROLE, name: role.roleName })
 
