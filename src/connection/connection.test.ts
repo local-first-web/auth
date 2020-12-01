@@ -95,14 +95,14 @@ describe('connection', () => {
       // 👩🏾 Alice connects
       alice.connection.start()
 
-      // 👨‍🦲 Bob sends a hello message
+      // 👨🏻‍🦲 Bob sends a hello message
       const identityClaim = { type: KeyType.MEMBER, name: 'bob' }
       alice.deliver({ type: 'HELLO', payload: { identityClaim } })
 
       // 👩🏾 Alice automatically sends Bob a challenge & waits for proof
       expect(authenticatingState().verifyingTheirIdentity).toEqual('awaitingIdentityProof')
 
-      // 👨‍🦲 Bob generates proof by signing Alice's challenge and sends it back
+      // 👨🏻‍🦲 Bob generates proof by signing Alice's challenge and sends it back
       const challengeMessage = lastMessage() as ChallengeIdentityMessage
       const { challenge } = challengeMessage.payload
       const proof = identity.prove(challenge, bob.keys)
@@ -118,14 +118,14 @@ describe('connection', () => {
       const { bob } = testUsers
       const bobAuthenticatingState = () => bob.getState().connecting.authenticating
 
-      // 👨‍🦲 Bob connects
+      // 👨🏻‍🦲 Bob connects
       bob.connection.start()
 
       // 👩🏾 Alice sends a hello message
       const identityClaim = { type: KeyType.MEMBER, name: 'alice' }
       bob.deliver({ type: 'HELLO', payload: { identityClaim } })
 
-      // 👨‍🦲 Bob automatically asserts his identity, and awaits a challenge
+      // 👨🏻‍🦲 Bob automatically asserts his identity, and awaits a challenge
       expect(bobAuthenticatingState().provingOurIdentity).toEqual('awaitingIdentityChallenge')
 
       // 👩🏾 Alice challenges Bob's identity claim
@@ -133,7 +133,7 @@ describe('connection', () => {
       const challenge = identity.challenge(helloMessage.payload.identityClaim)
       bob.deliver({ type: 'CHALLENGE_IDENTITY', payload: { challenge } })
 
-      // 👨‍🦲 Bob automatically responds to the challenge with proof, and awaits acceptance
+      // 👨🏻‍🦲 Bob automatically responds to the challenge with proof, and awaits acceptance
       expect(bobAuthenticatingState().provingOurIdentity).toEqual('awaitingIdentityAcceptance')
 
       // 👩🏾 Alice verifies Bob's proof
@@ -159,7 +159,7 @@ describe('connection', () => {
       const { testUsers } = setup(['alice', 'bob'])
       const { alice, bob } = testUsers
 
-      // 👩🏾 👨‍🦲 Alice and Bob both join the channel
+      // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel
       alice.connection.start()
       bob.connection.start()
 
@@ -179,7 +179,7 @@ describe('connection', () => {
       // 👩🏾 Alice removes Bob
       alice.team.remove('bob')
 
-      // 👩🏾 👨‍🦲 Alice and Bob both join the channel
+      // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel
       alice.connection.start()
       bob.connection.start()
 
@@ -210,7 +210,7 @@ describe('connection', () => {
         // 👩🏾 Alice connects
         alice.connection.start()
 
-        // 👨‍🦲 Bob sends a hello message
+        // 👨🏻‍🦲 Bob sends a hello message
         const identityClaim = { type: KeyType.MEMBER, name: 'bob' }
         alice.connection.deliver({
           index: 0,
@@ -223,7 +223,7 @@ describe('connection', () => {
           'awaitingIdentityProof'
         )
 
-        // 👨‍🦲 Bob doesn't respond
+        // 👨🏻‍🦲 Bob doesn't respond
         // ...
         // ...
         // ...
@@ -243,13 +243,13 @@ describe('connection', () => {
       const { alice } = testUsers
       const aliceAuthenticatingState = () => alice.getState().connecting.authenticating
 
-      // 👩🏾 Alice invites 👳‍♂️ Charlie
+      // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
       const { seed: invitationSeed } = alice.team.invite('charlie')
 
       // 👩🏾 Alice connects
       alice.connection.start()
 
-      // 👳‍♂️ Charlie sends a hello message including the proof of invitation
+      // 👳🏽‍♂️ Charlie sends a hello message including the proof of invitation
       const identityClaim = { type: KeyType.MEMBER, name: 'charlie' }
       const proofOfInvitation = generateProof(invitationSeed, 'charlie')
       alice.deliver({ type: 'HELLO', payload: { identityClaim, proofOfInvitation } })
@@ -264,11 +264,11 @@ describe('connection', () => {
       const { testUsers, lastMessage, sendMessage } = setup(['alice'], oneWay)
       const { alice } = testUsers
 
-      // 👩🏾 Alice invites 👳‍♂️ Charlie
+      // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
 
       const { seed: invitationSeed } = alice.team.invite('charlie')
 
-      // 👳‍♂️ Charlie connects
+      // 👳🏽‍♂️ Charlie connects
       const charlieContext = {
         user: charlie,
         device: redactDevice(charlie.device),
@@ -281,7 +281,7 @@ describe('connection', () => {
       const identityClaim = { type: KeyType.MEMBER, name: 'alice' }
       charlieConnection.deliver({ index: 0, type: 'HELLO', payload: { identityClaim } })
 
-      // 👳‍♂️ Charlie awaits acceptance
+      // 👳🏽‍♂️ Charlie awaits acceptance
       const charlieState = () => (charlieConnection.state as any).connecting
       expect(charlieState().maybeHandlingInvitations).toEqual('awaitingInvitationAcceptance')
 
@@ -305,10 +305,10 @@ describe('connection', () => {
       const { testUsers, join } = setup(['alice'])
       const { alice } = testUsers
 
-      // 👩🏾 Alice invites 👳‍♂️ Charlie
+      // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
       const { seed: invitationSeed } = alice.team.invite('charlie')
 
-      // 👳‍♂️ Charlie uses the invitation secret key to connect with Alice
+      // 👳🏽‍♂️ Charlie uses the invitation secret key to connect with Alice
       const charlieContext = {
         user: charlie,
         device: redactDevice(charlie.device),
@@ -320,21 +320,19 @@ describe('connection', () => {
       await expectConnection([charlieConnection, alice.connection])
     })
 
-    it.todo(`What if someone concurrently presents their invitation to two different members?`)
-
     // Two people carrying invitations can't connect to each other - there needs to be at least one
     // current member in a connection in order to let the invitee in.
     it(`shouldn't allow two invitees to connect`, async () => {
       const { testUsers, join } = setup(['alice'], oneWay)
       const { alice } = testUsers
 
-      // 👩🏾 Alice invites 👳‍♂️ Charlie
+      // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
       const { seed: charlieKey } = alice.team.invite('charlie')
 
       // 👩🏾 Alice invites 👴 Dwight
       const { seed: dwightKey } = alice.team.invite('dwight')
 
-      // 👳‍♂️ Charlie uses his invitation secret key to try to connect
+      // 👳🏽‍♂️ Charlie uses his invitation secret key to try to connect
       const charlieContext = {
         user: charlie,
         device: redactDevice(charlie.device),
@@ -359,7 +357,7 @@ describe('connection', () => {
       const { testUsers, sendMessage } = setup(['alice'], oneWay)
       const { alice } = testUsers
 
-      // 👩🏾 Alice invites 👳‍♂️ Charlie
+      // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
 
       const { seed: invitationSeed } = alice.team.invite('charlie')
       // 🦹‍♀️ Eve is going to impersonate Alice to try to get Charlie to join her team instead
@@ -371,7 +369,7 @@ describe('connection', () => {
       // 🦹‍♀️ Eve creates an bogus invitation for Charlie in her signature chain
       eveTeam.invite('charlie')
 
-      // 👳‍♂️ Charlie connects
+      // 👳🏽‍♂️ Charlie connects
       const charlieContext = {
         user: charlie,
         device: redactDevice(charlie.device),
@@ -384,7 +382,7 @@ describe('connection', () => {
       const identityClaim = { type: KeyType.MEMBER, name: 'alice' }
       charlieConnection.deliver({ index: 0, type: 'HELLO', payload: { identityClaim } })
 
-      //  👳‍♂️ Charlie is waiting for fake Alice to accept his invitation
+      //  👳🏽‍♂️ Charlie is waiting for fake Alice to accept his invitation
       const charlieState = () => charlieConnection.state as any
       expect(charlieState().connecting.maybeHandlingInvitations).toEqual(
         'awaitingInvitationAcceptance'
@@ -394,7 +392,7 @@ describe('connection', () => {
       const chain = eveTeam.save()
       charlieConnection.deliver({ index: 1, type: 'ACCEPT_INVITATION', payload: { chain } })
 
-      // 👳‍♂️ Charlie won't see his invitation in Eve's team's sigchain, so he'll bail when he receives the welcome message
+      // 👳🏽‍♂️ Charlie won't see his invitation in Eve's team's sigchain, so he'll bail when he receives the welcome message
       expect(charlieState()).toEqual('disconnected')
       expect(charlieConnection.context.error!.message).toContain('not the team I was invited to')
     })
@@ -412,17 +410,17 @@ describe('connection', () => {
       alice.team.addRole({ roleName: 'managers' })
       alice.team.addMemberRole('charlie', 'managers')
 
-      // 👨‍🦲 Bob hasn't connected, so he doesn't have Alice's changes
+      // 👨🏻‍🦲 Bob hasn't connected, so he doesn't have Alice's changes
       expect(bob.team.has('charlie')).toBe(false)
       expect(bob.team.hasRole('managers')).toBe(false)
 
-      // 👩🏾 👨‍🦲 Alice and Bob both join the channel
+      // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel
       alice.connection.start()
       bob.connection.start()
 
       await expectConnection([alice.connection, bob.connection])
 
-      // ✅ 👨‍🦲 Bob is up to date with Alice's changes
+      // ✅ 👨🏻‍🦲 Bob is up to date with Alice's changes
       expect(bob.team.has('charlie')).toBe(true)
       expect(bob.team.hasRole('managers')).toBe(true)
       expect(bob.team.memberHasRole('charlie', 'managers')).toBe(true)
@@ -434,12 +432,12 @@ describe('connection', () => {
 
       // at this point, Alice and Bob have the same signature chain
 
-      // 👨‍🦲 but now Bob does some stuff
+      // 👨🏻‍🦲 but now Bob does some stuff
       bob.team.invite('charlie')
       bob.team.addRole({ roleName: 'managers' })
       bob.team.addMemberRole('charlie', 'managers')
 
-      // 👩🏾 👨‍🦲 Alice and Bob both join the channel
+      // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel
       alice.connection.start()
       bob.connection.start()
 
@@ -462,17 +460,17 @@ describe('connection', () => {
       alice.team.addRole({ roleName: 'managers' })
       alice.team.addMemberRole('charlie', 'managers')
 
-      // 👨‍🦲 and Bob does some stuff
+      // 👨🏻‍🦲 and Bob does some stuff
       bob.team.addRole({ roleName: 'finance' })
       bob.team.addMemberRole('alice', 'finance')
 
-      // 👩🏾 👨‍🦲 Alice and Bob both join the channel
+      // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel
       alice.connection.start()
       bob.connection.start()
 
       await expectConnection([alice.connection, bob.connection])
 
-      // 👨‍🦲 Bob is up to date with Alice's changes
+      // 👨🏻‍🦲 Bob is up to date with Alice's changes
       expect(bob.team.has('charlie')).toBe(true)
       expect(bob.team.hasRole('managers')).toBe(true)
       expect(bob.team.memberHasRole('charlie', 'managers')).toBe(true)
@@ -483,40 +481,5 @@ describe('connection', () => {
     })
   })
 
-  describe('more scenarios', () => {
-    test.todo('updates are sent after connection is established')
-    test.todo('two people try to kick each other out')
-    test.todo('two people try to demote each other')
-    test.todo('charlie is removed while bob is connected to him')
-    test.todo('multiple connections (alice/bob/charlie)')
-    test.todo('connected peers can encrypt/decrypt to each other using session key')
-    test.todo('eve makes illegal changes to sig chain')
-    test.todo('bob loses a device')
-  })
-
-  /** Promisified event */
-  const connectionEvent = (connections: Connection[], event: string) =>
-    Promise.all(connections.map(c => new Promise(resolve => c.on(event, () => resolve()))))
-
-  const expectConnection = async (connections: Connection[]) => {
-    // ✅ They're both connected
-    await connectionEvent(connections, 'connected')
-
-    const firstKey = connections[0].context.sessionKey
-    connections.forEach(connection => {
-      expect(connection.state).toEqual('connected')
-      // ✅ They've converged on a shared secret key
-      expect(connection.context.sessionKey).toEqual(firstKey)
-    })
-  }
-
-  const expectDisconnection = async (connections: Connection[], message?: string) => {
-    // ✅ They're both disconnected
-    await connectionEvent(connections, 'disconnected')
-    connections.forEach(connection => {
-      expect(connection.state).toEqual('disconnected')
-      // ✅ If we're checking for a message, it matches
-      if (message !== undefined) expect(connection.context.error!.message).toContain(message)
-    })
-  }
+  it('connected peers can encrypt/decrypt to each other using session key', () => {})
 })

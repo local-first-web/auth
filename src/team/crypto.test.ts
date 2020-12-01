@@ -22,7 +22,7 @@ describe('Team', () => {
         const message = 'I need someone to take care of that thing'
         const encrypted = alicesTeam.encrypt(message)
 
-        // 👨‍🦲 ✅ Bob decrypts the message
+        // 👨🏻‍🦲 ✅ Bob decrypts the message
         const bobsTeam = storage.load(bobsContext)
         const decrypted = bobsTeam.decrypt(encrypted)
         expect(decrypted).toEqual(message)
@@ -39,12 +39,12 @@ describe('Team', () => {
         const message = 'You know, the situation, I need that taken care of'
         const encrypted = alicesTeam.encrypt(message, ADMIN)
 
-        // 👨‍🦲 ✅ Bob can decrypt the message because he is an admin
+        // 👨🏻‍🦲 ✅ Bob can decrypt the message because he is an admin
         const bobsTeam = storage.load(bobsContext)
         const decrypted = bobsTeam.decrypt(encrypted)
         expect(decrypted).toEqual(message)
 
-        // 👳‍♂️ ❌ Charlie can't decrypt the message because he is not an admin
+        // 👳🏽‍♂️ ❌ Charlie can't decrypt the message because he is not an admin
         const charliesTeam = storage.load(charliesContext)
         expect(() => charliesTeam.decrypt(encrypted)).toThrow()
       })
@@ -56,7 +56,7 @@ describe('Team', () => {
         alicesTeam.add(bob)
         storage.save(alicesTeam)
 
-        // 👨‍🦲 Bob signs a message
+        // 👨🏻‍🦲 Bob signs a message
         const bobsTeam = storage.load(bobsContext)
         const message = 'That thing, I took care of it, boss'
         const signed = bobsTeam.sign(message)

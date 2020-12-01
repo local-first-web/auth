@@ -11,7 +11,7 @@ describe('chains', () => {
       const aliceChain = create('a', defaultContext)
       const bobChain = clone(aliceChain)
 
-      // 👩🏾👨‍🦲 after a while they sync back up
+      // 👩🏾👨🏻‍🦲 after a while they sync back up
       const aliceMerged = merge(aliceChain, bobChain)
       const bobMerged = merge(bobChain, aliceChain)
 
@@ -29,9 +29,9 @@ describe('chains', () => {
       // 👩🏾 Alice makes edits
       const aliceChain = append(chain, { type: 'FOO', payload: 'doin stuff' }, alicesContext)
 
-      // 👨‍🦲 Bob doesn't make any changes
+      // 👨🏻‍🦲 Bob doesn't make any changes
 
-      // 👩🏾👨‍🦲 They sync back up
+      // 👩🏾👨🏻‍🦲 They sync back up
       const aliceMerged = merge(aliceChain, bobChain)
       const bobMerged = merge(bobChain, aliceChain)
 
@@ -54,10 +54,10 @@ describe('chains', () => {
       const aliceBranch1 = append(aliceChain, { type: 'FOO', payload: 'alice 1' }, alicesContext)
       const aliceBranch2 = append(aliceBranch1, { type: 'FOO', payload: 'alice 2' }, alicesContext)
 
-      // 👨‍🦲 Bob makes changes while disconnected
+      // 👨🏻‍🦲 Bob makes changes while disconnected
       const bobBranch = append(bobChain, { type: 'FOO', payload: 'bob' }, bobsContext)
 
-      // 👩🏾👨‍🦲 They sync back up
+      // 👩🏾👨🏻‍🦲 They sync back up
       const aliceMerged = merge(aliceBranch2, bobBranch)
       const bobMerged = merge(bobBranch, aliceBranch2)
 

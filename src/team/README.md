@@ -1,4 +1,4 @@
-﻿## 👩🏾👨‍🦲👳‍♂️👵 Team
+﻿## 👩🏾👨🏻‍🦲👳🏽‍♂️👵 Team
 
 The `Team` class wraps the signature chain and encapsulates the team's members, devices, and roles.
 
@@ -102,7 +102,7 @@ const proofOfInvitation = acceptInvitation('aj7x d2jr 9c8f zrbs')
 When Bob shows up to join the team, anyone can validate his proof of invitation to admit him to the team - it doesn't have to be an admin.
 
 ```js
-// 👳‍♂️ Charlie
+// 👳🏽‍♂️ Charlie
 team.admit(proofOfInvitation)
 const success = team.has('bob') // TRUE
 ```

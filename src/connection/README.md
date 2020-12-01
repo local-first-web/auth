@@ -97,13 +97,13 @@ Here's a complete example from the test suite, showing how Eve cannot reuse an i
 const bobSecretKeys = bob.keys
 const bobPublicKeys = keyset.redactKeys(bob.keys)
 
-// 👨‍🦲 Bob shows up and says he's Bob
+// 👨🏻‍🦲 Bob shows up and says he's Bob
 const bobsClaim: KeyScope = { type: MEMBER, name: 'bob' }
 
 // 👩🏾 Alice asks maybe-Bob to prove it by sending him a document to sign
 const alicesChallengeToBob = challenge(bobsClaim)
 
-// 👨‍🦲 Bob submits proof
+// 👨🏻‍🦲 Bob submits proof
 const bobsProof = prove(alicesChallengeToBob, bobSecretKeys)
 
 // 👩🏾 Alice checks his proof

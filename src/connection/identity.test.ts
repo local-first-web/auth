@@ -12,13 +12,13 @@ describe('identity', () => {
     const bobSecretKeys = bob.keys
     const bobPublicKeys = keyset.redactKeys(bob.keys)
 
-    // 👨‍🦲 Bob shows up and says he's Bob
+    // 👨🏻‍🦲 Bob shows up and says he's Bob
     const bobsClaim: KeyScope = { type: MEMBER, name: 'bob' }
 
     // 👩🏾 Alice asks maybe-Bob to prove it by sending him a document to sign
     const alicesChallenge = challenge(bobsClaim)
 
-    // 👨‍🦲 Bob submits proof
+    // 👨🏻‍🦲 Bob submits proof
     const bobsProof = prove(alicesChallenge, bobSecretKeys)
 
     // 👩🏾 Alice checks his proof
@@ -52,13 +52,13 @@ describe('identity', () => {
     const bobSecretKeys = bob.keys
     const bobPublicKeys = keyset.redactKeys(bob.keys)
 
-    // 👨‍🦲 Bob shows up and says he's Bob
+    // 👨🏻‍🦲 Bob shows up and says he's Bob
     const bobsClaim: KeyScope = { type: MEMBER, name: 'bob' }
 
     // 👩🏾 Alice asks maybe-Bob to prove it by sending him a document to sign
     const alicesChallengeToBob = challenge(bobsClaim)
 
-    // 👨‍🦲 Bob submits proof
+    // 👨🏻‍🦲 Bob submits proof
     const bobsProof = prove(alicesChallengeToBob, bobSecretKeys)
 
     // 👩🏾 Alice checks his proof
@@ -88,13 +88,13 @@ describe('identity', () => {
   it('validates role membership', () => {
     const adminKeys = keyset.create(ADMIN_SCOPE)
 
-    // 👨‍🦲 Bob shows up and says he's an admin
+    // 👨🏻‍🦲 Bob shows up and says he's an admin
     const bobsClaim = ADMIN_SCOPE
 
     // 👩🏾 Alice asks maybe-Bob to prove it by sending him a document to sign
     const alicesChallenge = challenge(bobsClaim)
 
-    // 👨‍🦲 Bob submits proof
+    // 👨🏻‍🦲 Bob submits proof
     const bobsProof = prove(alicesChallenge, adminKeys)
 
     // 👩🏾 Alice checks his proof
@@ -107,13 +107,13 @@ describe('identity', () => {
   it('validates team membership', () => {
     const teamKeys = keyset.create(TEAM_SCOPE)
 
-    // 👨‍🦲 Bob shows up and says he's a member of the team
+    // 👨🏻‍🦲 Bob shows up and says he's a member of the team
     const bobsClaim = TEAM_SCOPE
 
     // 👩🏾 Alice asks maybe-Bob to prove it by sending him a document to sign
     const alicesChallenge = challenge(bobsClaim)
 
-    // 👨‍🦲 Bob submits proof
+    // 👨🏻‍🦲 Bob submits proof
     const bobsProof = prove(alicesChallenge, teamKeys)
 
     // 👩🏾 Alice checks his proof

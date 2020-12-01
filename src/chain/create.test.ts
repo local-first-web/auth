@@ -12,7 +12,7 @@ describe('chains', () => {
   })
 
   test('persistence', () => {
-    // 👨‍🦲 Bob saves a chain to a file and loads it later
+    // 👨🏻‍🦲 Bob saves a chain to a file and loads it later
     const chain = create({ team: 'Spies Я Us' }, defaultContext)
 
     // serialize

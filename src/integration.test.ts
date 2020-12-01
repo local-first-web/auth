@@ -77,11 +77,16 @@ describe('integration tests', () => {
       const { testUsers } = setup(['alice', 'bob'])
       const { alice, bob } = testUsers
 
+      // 👩🏾 Alice and 👨🏻‍🦲 Bob connect
       alice.connection.start()
       bob.connection.start()
 
-      // once they're connected, Alice creates a new role and adds Bob to it
-      // Bob's team now has the new role
+      expectConnection([alice.connection, bob.connection])
+
+      // 👩🏾 Alice creates a new role and adds 👨🏻‍🦲 Bob to it
+      alice.team.addRole({ roleName: 'managers' })
+
+      // 👨🏻‍🦲 Bob sees the new role
     })
 
     it('should send updates across multiple hops', () => {

@@ -18,18 +18,18 @@ describe('invitations', () => {
   })
 
   test('validate member invitation', () => {
-    // 👩🏾 Alice generates a secret key and sends it to 👨‍🦲 Bob via a trusted side channel.
+    // 👩🏾 Alice generates a secret key and sends it to 👨🏻‍🦲 Bob via a trusted side channel.
     const seed = randomSeed()
 
     // 👩🏾 Alice generates an invitation with this key. Normally the invitation would be stored on the
     // team's signature chain; here we're just keeping it around in a variable.
     const invitation = create({ teamKeys, userName: 'bob', seed: seed })
 
-    // 👨‍🦲 Bob accepts invitation and obtains a credential proving that he was invited.
+    // 👨🏻‍🦲 Bob accepts invitation and obtains a credential proving that he was invited.
     const proofOfInvitation = generateProof(seed, 'bob')
 
-    // 👨‍🦲 Bob shows up to join the team & sees 👳‍♂️ Charlie. Bob shows Charlie his proof of invitation, and
-    // 👳‍♂️ Charlie checks it against the invitation that Alice posted on the signature chain.
+    // 👨🏻‍🦲 Bob shows up to join the team & sees 👳🏽‍♂️ Charlie. Bob shows Charlie his proof of invitation, and
+    // 👳🏽‍♂️ Charlie checks it against the invitation that Alice posted on the signature chain.
     const validationResult = validate(proofOfInvitation, invitation, teamKeys)
 
     // ✅

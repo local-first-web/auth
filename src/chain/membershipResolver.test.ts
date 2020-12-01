@@ -21,10 +21,10 @@ describe('teams', () => {
         { teamName: 'Spies Я Us', rootMember: redactUser(alice) },
         alicesContext
       )
-      // 👩🏾 Alice adds 👨‍🦲 Bob as admin
+      // 👩🏾 Alice adds 👨🏻‍🦲 Bob as admin
       aChain = append(aChain, ADD_BOB_AS_ADMIN, alicesContext)
 
-      // 👩🏾 🡒 👨‍🦲 Alice shares the chain with Bob
+      // 👩🏾 🡒 👨🏻‍🦲 Alice shares the chain with Bob
       let bChain = clone(aChain)
       return { aChain, bChain }
     }
@@ -34,11 +34,11 @@ describe('teams', () => {
       bChain: TeamSignatureChain,
       expected: string[][] | string[]
     ) => {
-      // 👩🏾 ⇄ 👨‍🦲 They synchronize chains
+      // 👩🏾 ⇄ 👨🏻‍🦲 They synchronize chains
       bChain = merge(bChain, aChain)
       aChain = merge(aChain, bChain)
 
-      // 👩🏾 == 👨‍🦲 They should now end up with the same sequence
+      // 👩🏾 == 👨🏻‍🦲 They should now end up with the same sequence
       const aSequence = sequence(aChain)
       const bSequence = sequence(bChain)
       expect(aSequence).toEqual(bSequence)
@@ -51,12 +51,12 @@ describe('teams', () => {
     }
 
     it('should resolve two chains with no conflicting membership changes', () => {
-      // 👩🏾 🡒 👨‍🦲 Alice creates a chain and shares it with Bob
+      // 👩🏾 🡒 👨🏻‍🦲 Alice creates a chain and shares it with Bob
       let { aChain, bChain } = setup()
 
       // 🔌❌ Now Alice and Bob are disconnected
 
-      // 👨‍🦲 Bob makes a change
+      // 👨🏻‍🦲 Bob makes a change
       bChain = append(bChain, ADD_ROLE_MANAGERS, bobsContext)
       expect(sequence(bChain)).toEqual(['ROOT', 'ADD b', 'ADD managers'])
 
@@ -74,12 +74,12 @@ describe('teams', () => {
     })
 
     it('should discard changes made by a member who is concurrently removed', () => {
-      // 👩🏾 🡒 👨‍🦲 Alice creates a chain and shares it with Bob
+      // 👩🏾 🡒 👨🏻‍🦲 Alice creates a chain and shares it with Bob
       let { aChain, bChain } = setup()
 
       // 🔌❌ Now Alice and Bob are disconnected
 
-      // 👨‍🦲 Bob adds Charlie to the group
+      // 👨🏻‍🦲 Bob adds Charlie to the group
       bChain = append(bChain, ADD_CHARLIE, bobsContext)
       expect(sequence(bChain)).toEqual(['ROOT', 'ADD b', 'ADD c'])
 
@@ -94,12 +94,12 @@ describe('teams', () => {
     })
 
     it('should discard changes made by a member who is concurrently demoted', () => {
-      // 👩🏾 🡒 👨‍🦲 Alice creates a chain and shares it with Bob
+      // 👩🏾 🡒 👨🏻‍🦲 Alice creates a chain and shares it with Bob
       let { aChain, bChain } = setup()
 
       // 🔌❌ Now Alice and Bob are disconnected
 
-      // 👨‍🦲 Bob adds Charlie to the group
+      // 👨🏻‍🦲 Bob adds Charlie to the group
       bChain = append(bChain, ADD_CHARLIE, bobsContext)
       expect(sequence(bChain)).toEqual(['ROOT', 'ADD b', 'ADD c'])
 
@@ -114,12 +114,12 @@ describe('teams', () => {
     })
 
     it('should discard duplicate changes', () => {
-      // 👩🏾 🡒 👨‍🦲 Alice creates a chain and shares it with Bob
+      // 👩🏾 🡒 👨🏻‍🦲 Alice creates a chain and shares it with Bob
       let { aChain, bChain } = setup()
 
       // 🔌❌ Now Alice and Bob are disconnected
 
-      // 👨‍🦲 Bob adds Charlie
+      // 👨🏻‍🦲 Bob adds Charlie
       bChain = append(bChain, ADD_CHARLIE, bobsContext)
       expect(sequence(bChain)).toEqual(['ROOT', 'ADD b', 'ADD c'])
 
@@ -138,7 +138,7 @@ describe('teams', () => {
       let { aChain } = setup()
       aChain = append(aChain, ADD_CHARLIE, alicesContext)
 
-      // 👩🏾 🡒 👨‍🦲 Alice shares the chain with Bob
+      // 👩🏾 🡒 👨🏻‍🦲 Alice shares the chain with Bob
       let bChain = clone(aChain)
 
       // 🔌❌ Now Alice and Bob are disconnected
@@ -147,7 +147,7 @@ describe('teams', () => {
       aChain = append(aChain, REMOVE_CHARLIE, alicesContext)
       expect(sequence(aChain)).toEqual(['ROOT', 'ADD b', 'ADD c', 'REMOVE c'])
 
-      // 👨‍🦲 Bob removes Charlie then adds him back
+      // 👨🏻‍🦲 Bob removes Charlie then adds him back
       bChain = append(bChain, REMOVE_CHARLIE, bobsContext)
       bChain = append(bChain, ADD_CHARLIE, bobsContext)
       expect(sequence(bChain)).toEqual(['ROOT', 'ADD b', 'ADD c', 'REMOVE c', 'ADD c'])
@@ -159,12 +159,12 @@ describe('teams', () => {
     })
 
     it('should resolve mutual concurrent removals in favor of the team founder', () => {
-      // 👩🏾 🡒 👨‍🦲 Alice creates a chain and shares it with Bob
+      // 👩🏾 🡒 👨🏻‍🦲 Alice creates a chain and shares it with Bob
       let { aChain, bChain } = setup()
 
       // 🔌❌ Now Alice and Bob are disconnected
 
-      // 👨‍🦲 Bob removes Alice
+      // 👨🏻‍🦲 Bob removes Alice
       bChain = append(bChain, REMOVE_ALICE, bobsContext)
 
       // 👩🏾 Alice removes Bob
@@ -181,16 +181,16 @@ describe('teams', () => {
       let { aChain } = setup()
       aChain = append(aChain, ADD_CHARLIE_AS_ADMIN, alicesContext)
 
-      // 👩🏾 🡒 👨‍🦲 👳‍♂️ Alice shares the chain with Bob and Charlie
+      // 👩🏾 🡒 👨🏻‍🦲 👳🏽‍♂️ Alice shares the chain with Bob and Charlie
       let bChain = clone(aChain)
       let cChain = clone(aChain)
 
       // 🔌❌ Now Bob and Charlie are disconnected
 
-      // 👨‍🦲 Bob removes Charlie
+      // 👨🏻‍🦲 Bob removes Charlie
       bChain = append(bChain, REMOVE_CHARLIE, bobsContext)
 
-      // 👳‍♂️ Charlie removes Bob
+      // 👳🏽‍♂️ Charlie removes Bob
       cChain = append(cChain, REMOVE_BOB, charliesContext)
 
       // 🔌✔ Bob and Charlie reconnect and synchronize chains

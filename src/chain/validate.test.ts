@@ -13,7 +13,7 @@ describe('chains', () => {
       // 👩🏾 Alice
       const chain = create({ team: 'Spies Я Us' }, defaultContext)
 
-      // 👨‍🦲 Bob
+      // 👨🏻‍🦲 Bob
       expect(validate(chain)).toBeValid()
     })
 
@@ -23,7 +23,7 @@ describe('chains', () => {
       const newLink = { type: 'add-user', payload: { name: 'charlie' } }
       const newChain = append(chain, newLink, defaultContext)
 
-      // 👨‍🦲 Bob
+      // 👨🏻‍🦲 Bob
       expect(validate(newChain)).toBeValid()
     })
 
@@ -35,7 +35,7 @@ describe('chains', () => {
       const payload = getRoot(chain).body.payload as any
       payload.team = payload.team.replace('Spies', 'Dorks')
 
-      // 👨‍🦲 Bob
+      // 👨🏻‍🦲 Bob
       expect(validate(chain)).not.toBeValid()
     })
 
@@ -60,7 +60,7 @@ describe('chains', () => {
         },
       }
 
-      // 👨‍🦲 Bob
+      // 👨🏻‍🦲 Bob
       expect(validate(chain)).not.toBeValid()
     })
 
