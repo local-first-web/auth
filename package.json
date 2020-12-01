@@ -21,7 +21,7 @@
     "start": "tsdx watch",
     "build": "tsdx build && tscpaths -p tsconfig.json -s ./src -o ./dist --silent",
     "test": "tsdx test",
-    "test:log": "cross-env DEBUG='taco*' DEBUG_COLORS=1 yarn test",
+    "test:log": "cross-env DEBUG='taco*' DEBUG_COLORS=0 yarn test",
     "lint": "tsdx lint src",
     "prepare": "yarn build",
     "purge": "scripts/purge.bat"
@@ -38,6 +38,7 @@
   "devDependencies": {
     "@herbcaudill/tscpaths": "0",
     "@types/msgpack-lite": "0",
+    "@types/node": "*",
     "@types/ramda": "0",
     "@types/debug": "4",
     "cross-env": "6",
