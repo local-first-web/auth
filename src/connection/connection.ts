@@ -177,7 +177,7 @@ export class Connection extends EventEmitter {
 
     storePeer: assign({
       peer: context => {
-        assert(context.team !== undefined, 'storePeer: team should be in context')
+        assert(context.team)
         assert(
           context.theirIdentityClaim !== undefined,
           'in storePeer, theirIdentityClaim should be in context'
@@ -196,7 +196,7 @@ export class Connection extends EventEmitter {
     // updating
 
     sendUpdate: context => {
-      assert(context.team !== undefined, 'sendUpdate: team should be in context')
+      assert(context.team)
       const { root, head, links } = context.team.chain
       const hashes = Object.keys(links)
       this.log(`sendUpdate ${trunc(head)} (${hashes.length})`)
@@ -215,7 +215,7 @@ export class Connection extends EventEmitter {
     }),
 
     sendMissingLinks: (context, event) => {
-      assert(context.team !== undefined, 'sendMissingLinks: team should be in context')
+      assert(context.team)
       const { chain } = context.team
       const { root, head, links } = chain
       const hashes = Object.keys(links)
@@ -247,7 +247,7 @@ export class Connection extends EventEmitter {
 
     receiveMissingLinks: assign({
       team: (context, event) => {
-        assert(context.team !== undefined, 'receiveMissingLinks: team should be in context')
+        assert(context.team)
         const { chain } = context.team
 
         const { root, links } = chain
@@ -283,8 +283,8 @@ export class Connection extends EventEmitter {
       // (specifically, if they just joined with an invitation, we'll have received
       // their real public keys). So we need to get that on context now.
       peer: context => {
-        assert(context.peer !== undefined, 'refreshContext: peer should be in context')
-        assert(context.team !== undefined, 'refreshContext: team should be in context')
+        assert(context.peer)
+        assert(context.team)
         const userName = context.peer.userName
         const updatedPeer = context.team.members(userName)
         return updatedPeer
@@ -292,7 +292,7 @@ export class Connection extends EventEmitter {
     }),
 
     listenForUpdates: context => {
-      assert(context.team !== undefined, 'listenForUpdates: team should be in context')
+      assert(context.team)
       context.team.addListener('updated', () => {
         this.machine.send({ type: 'LOCAL_UPDATE', payload: {} }) // send update event to local machine
       })
@@ -304,8 +304,8 @@ export class Connection extends EventEmitter {
 
     sendSeed: context => {
       this.log('sendSeed')
-      assert(context.peer !== undefined, 'sendSeed: peer should be in context')
-      assert(context.seed !== undefined, 'sendSeed: seed should be in context')
+      assert(context.peer)
+      assert(context.seed)
 
       this.sendMessage({
         type: 'SEED',
@@ -333,8 +333,8 @@ export class Connection extends EventEmitter {
           context.theirEncryptedSeed !== undefined,
           'deriveSharedKey: theirEncryptedSeed should be in context'
         )
-        assert(context.seed !== undefined, 'deriveSharedKey: seed should be in context')
-        assert(context.peer !== undefined, 'deriveSharedKey: peer should be in context')
+        assert(context.seed)
+        assert(context.peer)
 
         // we saved our seed in context
         const ourSeed = context.seed
@@ -389,7 +389,7 @@ export class Connection extends EventEmitter {
       this.guards.iHaveInvitation(...args) && this.guards.theyHaveInvitation(...args),
 
     invitationProofIsValid: context => {
-      assert(context.team !== undefined, 'invitationProofIsValid: team should be in context')
+      assert(context.team)
       assert(
         context.theirProofOfInvitation !== undefined,
         'in invitationProofIsValid, theirProofOfInvitation should be in context'
@@ -421,7 +421,7 @@ export class Connection extends EventEmitter {
     },
 
     identityProofIsValid: (context, event) => {
-      assert(context.team !== undefined, 'identityProofIsValid: team should be in context')
+      assert(context.team)
       const { team, challenge: originalChallenge } = context
       const identityProofMessage = event as ProveIdentityMessage
       const { challenge, proof } = identityProofMessage.payload
@@ -434,7 +434,7 @@ export class Connection extends EventEmitter {
     },
 
     headsAreEqual: (context, event) => {
-      assert(context.team !== undefined, 'headsAreEqual: team should be in context')
+      assert(context.team)
       const { head } = context.team.chain
       const { payload } = event as UpdateMessage | MissingLinksMessage
       const theirHead = payload !== undefined && head in payload ? payload.head : context.theirHead
