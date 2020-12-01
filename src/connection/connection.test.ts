@@ -483,14 +483,14 @@ describe('connection', () => {
   })
 
   describe('more scenarios', () => {
-    // NEXT: updates are sent after connection is established
-    // two people try to kick each other out
-    // two people try to demote each other
-    // charlie is removed while bob is connected to him
-    // multiple connections (alice/bob/charlie)
-    // connected peers can encrypt/decrypt to each other using session key
-    // eve makes illegal changes to sig chain
-    // bob loses a device
+    test.todo('updates are sent after connection is established')
+    test.todo('two people try to kick each other out')
+    test.todo('two people try to demote each other')
+    test.todo('charlie is removed while bob is connected to him')
+    test.todo('multiple connections (alice/bob/charlie)')
+    test.todo('connected peers can encrypt/decrypt to each other using session key')
+    test.todo('eve makes illegal changes to sig chain')
+    test.todo('bob loses a device')
   })
 
   /** Promisified event */
