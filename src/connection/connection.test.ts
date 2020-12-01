@@ -20,6 +20,7 @@ import { assert } from '/util'
 import { arrayToMap } from '/util/arrayToMap'
 import { alice, bob, charlie, dwight, joinTestChannel, TestChannel } from '/util/testing'
 import '/util/testing/expect/toBeValid'
+import { expectConnection, expectDisconnection } from '/util/testing/expectConnection'
 
 describe('connection', () => {
   // used for tests of the connection's timeout - needs to be bigger than
