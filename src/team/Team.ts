@@ -113,7 +113,7 @@ export class Team extends EventEmitter {
     // we don't need to pass the whole chain through the reducer, just the current state + the new head
     this.state = reducer(this.state, head)
 
-    this.emit('updated')
+    this.emit('updated', { head: this.chain.head })
   }
 
   /** Run the reducer on the entire chain to reconstruct the current team state. */
@@ -128,7 +128,7 @@ export class Team extends EventEmitter {
     const sequence = chains.getSequence({ chain: this.chain, resolver })
     this.state = sequence.reduce(reducer, initialState)
 
-    this.emit('updated')
+    this.emit('updated', { head: this.chain.head })
   }
 
   /**************** MEMBERS

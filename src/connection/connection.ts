@@ -1,5 +1,5 @@
 ﻿import { asymmetric } from '@herbcaudill/crypto'
-import debug from 'debug'
+import debug from '/util/debug'
 import { EventEmitter } from 'events'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
 import { getParentHashes, TeamLinkMap } from '/chain'
@@ -13,6 +13,7 @@ import {
   DisconnectMessage,
   ErrorMessage,
   HelloMessage,
+  LocalUpdateMessage,
   MissingLinksMessage,
   NumberedConnectionMessage,
   ProveIdentityMessage,
@@ -199,7 +200,7 @@ export class Connection extends EventEmitter {
       assert(context.team)
       const { root, head, links } = context.team.chain
       const hashes = Object.keys(links)
-      this.log(`sendUpdate ${trunc(head)} (${hashes.length})`)
+      this.log(`sendUpdate ${head} (${hashes.length})`)
       this.sendMessage({
         type: 'UPDATE',
         payload: { root, head, hashes },
@@ -236,7 +237,7 @@ export class Connection extends EventEmitter {
         .filter(hash => theirHashes.includes(hash) === false)
         .map(hash => links[hash])
 
-      this.log(`sendMissingLinks ${trunc(head)} (${missingLinks.length})`)
+      this.log(`sendMissingLinks ${head} (${missingLinks.length})`)
       if (missingLinks.length > 0) {
         this.sendMessage({
           type: 'MISSING_LINKS',
@@ -253,7 +254,7 @@ export class Connection extends EventEmitter {
         const { root, links } = chain
         const { head: theirHead, links: theirLinks } = (event as MissingLinksMessage).payload
 
-        this.log(`receiveMissingLinks ${trunc(theirHead)} (${theirLinks.length})`)
+        this.log(`receiveMissingLinks ${theirHead} (${theirLinks.length})`)
 
         const allLinks = {
           // all our links
@@ -293,8 +294,9 @@ export class Connection extends EventEmitter {
 
     listenForUpdates: context => {
       assert(context.team)
-      context.team.addListener('updated', () => {
-        this.machine.send({ type: 'LOCAL_UPDATE', payload: {} }) // send update event to local machine
+      context.team.addListener('updated', ({ head }) => {
+        this.log(`team updated (LOCAL_UPDATE) ${head}`)
+        this.machine.send({ type: 'LOCAL_UPDATE', payload: { head } }) // send update event to local machine
       })
     },
 
@@ -436,15 +438,19 @@ export class Connection extends EventEmitter {
     headsAreEqual: (context, event) => {
       assert(context.team)
       const { head } = context.team.chain
-      const { payload } = event as UpdateMessage | MissingLinksMessage
-      const theirHead = payload !== undefined && head in payload ? payload.head : context.theirHead
-
+      const { type, payload } = event as UpdateMessage | MissingLinksMessage | LocalUpdateMessage
+      const theirHead =
+        type === 'UPDATE' || type === 'MISSING_LINKS'
+          ? payload.head // take from message
+          : context.theirHead // use what we already have in context
       const result = head === theirHead
-      this.log(`headsAreEqual ${event.type} ${result} (${trunc(head)}, ${trunc(theirHead)})`)
+      this.log(`headsAreEqual ${event.type} ${result} (${head}, ${theirHead})`)
       return result
     },
 
     headsAreDifferent: (...args) => !this.guards.headsAreEqual(...args),
+
+    dontHaveSessionkey: context => context.sessionKey === undefined,
   }
 
   // helpers
@@ -470,8 +476,6 @@ export class Connection extends EventEmitter {
   }
 }
 
-const trunc = (s?: string) => s?.slice(0, 5)
-
 // for debugging
 const getHead = (message: ConnectionMessage) =>
-  message.payload && 'head' in message.payload ? trunc(message.payload.head) : ''
+  message.payload && 'head' in message.payload ? message.payload.head : ''

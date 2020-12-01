@@ -281,10 +281,21 @@ export const connectionMachine: MachineConfig<
         waiting: {},
         done: { type: 'final' },
       },
-      onDone: {
-        actions: ['generateSeed', 'listenForUpdates'],
-        target: 'negotiating',
-      },
+      onDone: [
+        // after our first synchronization, we still need to negotiate a session key
+        {
+          cond: 'dontHaveSessionkey',
+          actions: [
+            'listenForUpdates', // add listener to team, so we trigger this process again if needed
+            'generateSeed',
+          ],
+          target: 'negotiating',
+        },
+        // on following updates, once we're done syncing we just go back to being connected
+        {
+          target: 'connected',
+        },
+      ],
     },
 
     negotiating: {

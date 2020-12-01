@@ -43,6 +43,7 @@ export type ConnectionContext = InitialContext & {
   theirProofOfInvitation?: ProofOfInvitation
   challenge?: Challenge
   peer?: Member
+  theirHead?: Hash
   seed?: Base64
   theirEncryptedSeed?: Base64
   sessionKey?: Base64
@@ -50,7 +51,6 @@ export type ConnectionContext = InitialContext & {
     message: string
     details?: any
   }
-  theirHead?: Hash
 }
 
 export type Action =

@@ -88,7 +88,9 @@ export type MissingLinksMessage = {
 // triggered locally when we detect that team has changed
 export type LocalUpdateMessage = {
   type: 'LOCAL_UPDATE'
-  payload: {}
+  payload: {
+    head: Hash
+  }
 }
 
 // Negotiation
