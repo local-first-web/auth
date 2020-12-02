@@ -91,7 +91,7 @@ describe('integration', () => {
     expect(alice.team.hasRole('MANAGERS')).toBe(true)
 
     // ✅ 👨🏻‍🦲 Bob sees the new role
-    await pause(100)
+    await expectConnection([alice.connection, bob.connection])
     expect(bob.team.hasRole('MANAGERS')).toBe(true)
     expect(alice.getState()).toEqual('connected')
     expect(bob.getState()).toEqual('connected')
@@ -101,7 +101,7 @@ describe('integration', () => {
     expect(alice.team.hasRole('FINANCIAL')).toBe(true)
 
     // ✅ 👨🏻‍🦲 Bob sees the new role
-    await pause(500)
+    await expectConnection([alice.connection, bob.connection])
     expect(bob.team.hasRole('FINANCIAL')).toBe(true)
     expect(alice.getState()).toEqual('connected')
     expect(bob.getState()).toEqual('connected')

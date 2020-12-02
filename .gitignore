@@ -1,5 +1,7 @@
 *.log
 log.txt
+temp.txt
+
 .DS_Store
 node_modules
 dist

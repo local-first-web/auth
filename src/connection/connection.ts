@@ -117,6 +117,7 @@ export class Connection extends EventEmitter {
 
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendHello'`) */
   private readonly actions: Record<string, Action> = {
+    // TODO: why are we always sending hello twice
     sendHello: context => {
       this.sendMessage({
         type: 'HELLO',
@@ -367,7 +368,12 @@ export class Connection extends EventEmitter {
 
     // events for external listeners
 
+    // TODO: this will fire multiple times (following each update) we like that for testing
+    // purposes, but it will probably be annoying in actual usage maybe have a separate event -
+    // onUpdated? - for use of integration tests where we want to know each time it finishes
+    // updating
     onConnected: () => this.emit('connected'),
+
     onDisconnected: (_, event) => this.emit('disconnected', event),
   }
 
