@@ -44,7 +44,6 @@ const getDuplicates = (sequence: TeamActionLink[]) => {
   return sequence.filter(link => {
     const { hash } = link
     const fingerprint = getFingerprint(link)
-
     if (!(fingerprint in distinctActions)) {
       distinctActions[fingerprint] = hash
       return false
@@ -92,9 +91,11 @@ const addedNotIn = (excludeList: string[]) => (link: TeamActionLink): boolean =>
 }
 
 const getFingerprint = (link: TeamActionLink) => {
-  const { body } = link
-  const { type, payload } = body
-  return JSON.stringify({ type, payload })
+  const { type, payload } = link.body
+
+  // omit lockboxes from payload
+  const { lockboxes, ...rest } = payload
+  return JSON.stringify({ type, payload: rest })
 }
 
 // members removing each other
