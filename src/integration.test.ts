@@ -12,11 +12,6 @@ import { alice, bob, charlie, joinTestChannel, TestChannel } from '/util/testing
 import '/util/testing/expect/toBeValid'
 
 describe('integration tests', () => {
-  // used for tests of the connection's timeout - needs to be bigger than
-  // the TIMEOUT_DELAY constant in connectionMachine, plus some slack
-  const LONG_TIMEOUT = 10000
-
-  const oneWay = true
   const setup = (userNames: string[] = [], isOneWay = false) => {
     const allTestUsers: Record<string, User> = { alice, bob, charlie }
     const getUserContext = (userName: string): LocalUserContext => {
@@ -84,43 +79,39 @@ describe('integration tests', () => {
       await expectConnection([alice.connection, bob.connection])
 
       // 👩🏾 Alice creates a new role
-      alice.team.addRole('ROLE_1')
-      expect(alice.team.hasRole('ROLE_1')).toBe(true)
+      alice.team.addRole('MANAGERS')
+      expect(alice.team.hasRole('MANAGERS')).toBe(true)
 
       // ✅ 👨🏻‍🦲 Bob sees the new role
       await pause(100)
-      expect(bob.team.hasRole('ROLE_1')).toBe(true)
+      expect(bob.team.hasRole('MANAGERS')).toBe(true)
       expect(alice.getState()).toEqual('connected')
       expect(bob.getState()).toEqual('connected')
 
       // 👩🏾 Alice creates another new role
-      alice.team.addRole('ROLE_2')
-      expect(alice.team.hasRole('ROLE_2')).toBe(true)
+      alice.team.addRole('FINANCIAL')
+      expect(alice.team.hasRole('FINANCIAL')).toBe(true)
 
       // ✅ 👨🏻‍🦲 Bob sees the new role
       await pause(100)
-      expect(bob.team.hasRole('ROLE_2')).toBe(true)
+      expect(bob.team.hasRole('FINANCIAL')).toBe(true)
       expect(alice.getState()).toEqual('connected')
       expect(bob.getState()).toEqual('connected')
     })
 
-    // it('should send updates across multiple hops', () => {
-    //   // Alice and Bob connect
-    //   // Bob and Charlie connect
-    //   // Alice creates a new role and adds Bob to it
-    //   // Bob's team now has the new role
-    //   // Charlie's team now has the new role
-    // })
+    it('should resolve concurrent non-conflicting changes when updating', () => {
+      const { testUsers } = setup(['alice', 'bob'])
+      const { alice, bob } = testUsers
 
-    // it('should resolve concurrent non-conflicting changes when updating', () => {
-    //   // Alice creates a new role and adds Bob to it
-    //   // concurrently, Bob invites Charlie
-    //   // Bob doesn't have the new role
-    //   // Alice doesn't have Bob's invitation for Charlie
-    //   // Alice and Bob connect
-    //   // now Bob does have the new role
-    //   // and Alice does have the invitation
-    // })
+      // Alice creates a new role
+
+      // concurrently, Bob invites Charlie
+      // Bob doesn't have the new role
+      // Alice doesn't have Bob's invitation for Charlie
+      // Alice and Bob connect
+      // now Bob does have the new role
+      // and Alice does have the invitation
+    })
 
     // it('should resolve concurrent duplicate changes when updating', () => {
     //   // Alice creates a 'managers' role
@@ -200,6 +191,14 @@ describe('integration tests', () => {
     //   // Alice removes Bob
     //   // Alice connects with Charlie
     //   // Charlie's connection with Bob is ended
+    // })
+
+    // it('should send updates across multiple hops', () => {
+    //   // Alice and Bob connect
+    //   // Bob and Charlie connect
+    //   // Alice creates a new role and adds Bob to it
+    //   // Bob's team now has the new role
+    //   // Charlie's team now has the new role
     // })
 
     // it('handles three-way connections', () => {
