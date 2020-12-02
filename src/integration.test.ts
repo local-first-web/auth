@@ -134,12 +134,27 @@ describe('integration', () => {
     expect(alice.team.hasInvitation(id)).toBe(true)
   })
 
-  // it('should resolve concurrent duplicate changes when updating', () => {
-  //   // Alice creates a 'managers' role
-  //   // concurrently, Bob creates a 'managers' role
-  //   // Alice and Bob connect
-  //   // the 'managers' role exists
-  // })
+  it('should resolve concurrent duplicate changes when updating', async () => {
+    const { testUsers } = setup(['alice', 'bob'])
+    const { alice, bob } = testUsers
+
+    // 👩🏾 Alice creates a new role
+    alice.team.addRole('MANAGERS')
+    expect(alice.team.hasRole('MANAGERS')).toBe(true)
+
+    // concurrently, Bob adds the same role
+    bob.team.addRole('MANAGERS')
+    expect(bob.team.hasRole('MANAGERS')).toBe(true)
+
+    // 👩🏾 👨🏻‍🦲 Alice and Bob connect
+    alice.connection.start()
+    bob.connection.start()
+    await expectConnection([alice.connection, bob.connection])
+
+    // nothing bad happened, and they both have the role
+    expect(alice.team.hasRole('MANAGERS')).toBe(true)
+    expect(bob.team.hasRole('MANAGERS')).toBe(true)
+  })
 
   // it('should resolve concurrent duplicate invitations when updating', () => {
   //   // Alice invites Charlie and Dwight
