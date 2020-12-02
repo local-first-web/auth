@@ -155,7 +155,7 @@ describe('integration', () => {
     alice.team.addRole('MANAGERS')
     expect(alice.team.hasRole('MANAGERS')).toBe(true)
 
-    // concurrently, Bob adds the same role
+    // 👨🏻‍🦲 concurrently, Bob adds the same role
     bob.team.addRole('MANAGERS')
     expect(bob.team.hasRole('MANAGERS')).toBe(true)
 
@@ -167,7 +167,7 @@ describe('integration', () => {
     expect(bob.team.hasRole('MANAGERS')).toBe(true)
   })
 
-  // it('should resolve concurrent duplicate invitations when updating', () => {
+  // it('resolves concurrent duplicate invitations when updating', () => {
   //   // Alice invites Charlie and Dwight
   //   // concurrently, Bob invites Charlie and Dwight
   //   // Alice and Bob connect
@@ -175,23 +175,23 @@ describe('integration', () => {
   //   // Dwight connects to Bob and is able to join
   // })
 
-  it('should resolve concurrent duplicate removals when updating', async () => {
+  it('resolves concurrent duplicate removals ', async () => {
     const { alice, bob } = setup(['alice', 'bob', 'charlie'])
 
-    // Charlie is a member
+    // 👳🏽‍♂️ Charlie is a member
     expect(alice.team.has('charlie')).toBe(true)
     expect(bob.team.has('charlie')).toBe(true)
 
-    // Bob removes Charlie
+    // 👨🏻‍🦲 Bob removes 👳🏽‍♂️ Charlie
     bob.team.remove('charlie')
 
-    // concurrently, Alice also removes Charlie
+    // 👩🏾 concurrently, Alice also removes 👳🏽‍♂️ Charlie
     alice.team.remove('charlie')
 
-    // Alice and Bob connect
+    // 👩🏾 👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
 
-    // nothing blew up, and Charlie has been removed on both sides
+    // ✅ nothing blew up, and 👳🏽‍♂️ Charlie has been removed on both sides
     expect(alice.team.has('charlie')).toBe(false)
     expect(bob.team.has('charlie')).toBe(false)
   })
@@ -199,16 +199,16 @@ describe('integration', () => {
   it('a member can remove the founder', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
-    // Alice and Bob connect
+    // 👩🏾 👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
 
-    // Bob removes Alice
+    // 👨🏻‍🦲 Bob removes Alice
     bob.team.remove('alice')
 
-    // They are disconnected because Alice is no longer a member
+    // They are disconnected because 👩🏾 Alice is no longer a member
     await disconnection(alice, bob)
 
-    // Alice is no longer on the team
+    // 👩🏾 Alice is no longer on the team
     expect(bob.team.has('alice')).toBe(false)
     expect(alice.team.has('alice')).toBe(false)
   })
@@ -224,39 +224,67 @@ describe('integration', () => {
   it('resolves mutual removals in favor of the senior member', async () => {
     const { alice, bob, charlie, dwight } = setup(['alice', 'bob', 'charlie', 'dwight'])
 
-    // Bob removes Alice
+    // 👨🏻‍🦲 Bob removes 👩🏾 Alice
     bob.team.remove('alice')
 
-    // concurrently, Alice removes Bob
+    // 👩🏾 Alice concurrently removes 👨🏻‍🦲 Bob
     alice.team.remove('bob')
 
-    // Charlie and Bob connect
+    // 👳🏽‍♂️ 👨🏻‍🦲 Charlie and Bob connect
     await connect(bob, charlie)
 
-    // Charlie now knows that Bob has removed Alice
+    // 👳🏽‍♂️ Charlie now knows that Bob has removed Alice
     expect(charlie.team.has('alice')).toBe(false)
 
-    // Dwight and Alice connect
+    // 👴 👩🏾 Dwight and Alice connect
     await connect(alice, dwight)
 
-    // Dwight now knows that Alice has removed Bob
+    // 👴 Dwight now knows that Alice has removed Bob
     expect(dwight.team.has('bob')).toBe(false)
 
-    // Dwight and Charlie connect
+    // 👴 👳🏽‍♂️ Dwight and Charlie connect
     await connect(dwight, charlie)
-    // Both now know about the mutual conflicting removals. They each discard Bob's removal of Alice
-    // (because they were done concurrently and Alice is senior so she wins)
 
-    // Both kept Alice
+    // 👴 👳🏽‍♂️ Both Dwight and Charlie now know about the mutual conflicting removals. They each
+    // discard Bob's removal of Alice (because they were done concurrently and Alice is senior so
+    // she wins)
+
+    // ✅ Both kept 👩🏾 Alice
     expect(dwight.team.has('alice')).toBe(true)
     expect(charlie.team.has('alice')).toBe(true)
 
-    // Both removed Bob
+    // ✅ Both removed 👨🏻‍🦲 Bob
     expect(dwight.team.has('bob')).toBe(false)
     expect(charlie.team.has('bob')).toBe(false)
 
-    // Charlie is disconnected from Bob because Bob is no longer a member
+    // ✅ 👳🏽‍♂️ Charlie is disconnected from 👨🏻‍🦲 Bob because Bob is no longer a member
     await disconnection(bob, charlie)
+  })
+
+  it('resolves mutual demotions in favor of the senior member', async () => {
+    const { alice, bob } = setup(['alice', 'bob'])
+
+    // 👨🏻‍🦲 Bob removes 👩🏾 Alice from admin role
+    bob.team.removeMemberRole('alice', ADMIN)
+
+    // 👩🏾 Alice concurrently removes 👨🏻‍🦲 Bob from admin role
+    alice.team.removeMemberRole('bob', ADMIN)
+
+    // 👩🏾 👨🏻‍🦲 Alice and Bob connect. Bob's demotion of Alice is discarded (because they were
+    // done concurrently and Alice is senior so she wins)
+    await connect(alice, bob)
+
+    // ✅ 👨🏻‍🦲 Bob is no longer an admin
+    expect(alice.team.memberHasRole('bob', ADMIN)).toBe(false)
+    expect(bob.team.memberHasRole('bob', ADMIN)).toBe(false)
+
+    // ✅ 👩🏾 Alice is still an admin
+    expect(alice.team.memberHasRole('alice', ADMIN)).toBe(true)
+    expect(bob.team.memberHasRole('alice', ADMIN)).toBe(true)
+
+    // ✅ They are still connected
+    expect(alice.getState('bob')).toEqual('connected')
+    expect(bob.getState('alice')).toEqual('connected')
   })
 
   // it(`when a member is demoted and makes concurrent changes, discards those changes`, () => {
@@ -280,15 +308,6 @@ describe('integration', () => {
   //   // Bob and Charlie connect
   //   // Alice and Bob connect
   //   // Charlie's invitation is gone
-  // })
-
-  // it('resolves mutual demotions in favor of the senior member', () => {
-  //   // Bob removes Alice from admin role
-  //   // concurrently, Alice removes Bob from admin role
-  //   // Alice and Bob connect
-  //   // Bob is no longer an admin
-  //   // Alice is still an admin
-  //   // They are still connected
   // })
 
   // it('ends a connection when one participant is removed from the team', () => {
