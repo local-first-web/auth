@@ -30,7 +30,7 @@ import { getVisibleScopes } from '/team/selectors'
 import { EncryptedEnvelope, isNewTeam, SignedEnvelope, TeamOptions, TeamState } from '/team/types'
 import * as users from '/user'
 import { redactUser, User } from '/user'
-import { assert, Optional, Payload } from '/util'
+import { assert, Hash, Optional, Payload } from '/util'
 
 const { DEVICE, ROLE, MEMBER } = KeyType
 
@@ -388,7 +388,12 @@ export class Team extends EventEmitter {
   }
 
   /** Returns true if the invitation has ever existed in this team (even if it's been used or revoked) */
-  public hasInvitation = (proof: ProofOfInvitation) => proof.id in this.state.invitations
+  public hasInvitation(id: Hash): boolean
+  public hasInvitation(proof: ProofOfInvitation): boolean
+  public hasInvitation(proofOrId: Hash | ProofOfInvitation): boolean {
+    const id = typeof proofOrId === 'string' ? proofOrId : proofOrId.id
+    return id in this.state.invitations
+  }
 
   /** Admit a new member/device to the team based on proof of invitation */
   public admit = (proof: ProofOfInvitation) => {
