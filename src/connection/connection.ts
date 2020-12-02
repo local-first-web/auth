@@ -288,8 +288,13 @@ export class Connection extends EventEmitter {
         assert(context.peer)
         assert(context.team)
         const userName = context.peer.userName
-        const updatedPeer = context.team.members(userName)
-        return updatedPeer
+        if (context.team.has(userName)) {
+          // peer still on the team
+          return context.team.members(userName)
+        } else {
+          // peer was removed from team
+          return undefined
+        }
       },
     }),
 
@@ -364,6 +369,7 @@ export class Connection extends EventEmitter {
     failNeitherIsMember: () => this.fail(`We can't connect because neither one of us is a member`),
     rejectInvitation: () => this.fail(`Your invitation isn't valid - it may have been revoked`),
     rejectTeam: () => this.fail(`This is not the team I was invited to`),
+    failPeerWasRemoved: () => this.fail(`You were removed from the team`),
     failTimeout: () => this.fail('Connection timed out'),
 
     // events for external listeners
@@ -383,13 +389,11 @@ export class Connection extends EventEmitter {
   private readonly guards: Record<string, Condition> = {
     iHaveInvitation: context => {
       const result = context.invitationSeed !== undefined
-      this.log('iHaveInvitation', result)
       return result
     },
 
     theyHaveInvitation: context => {
       const result = context.theirProofOfInvitation !== undefined
-      this.log('theyHaveInvitation', result)
       return result
     },
 
@@ -457,6 +461,15 @@ export class Connection extends EventEmitter {
     headsAreDifferent: (...args) => !this.guards.headsAreEqual(...args),
 
     dontHaveSessionkey: context => context.sessionKey === undefined,
+
+    peerWasRemoved: context => {
+      this.log('PEERWASREMOVED')
+      assert(context.team)
+      assert(context.peer)
+      const result = context.team.has(context.peer.userName) === false
+      this.log(`peerWasRemoved? ${context.peer.userName} (${result})`)
+      return result
+    },
   }
 
   // helpers

@@ -1,17 +1,27 @@
-﻿import { expectConnection } from './util/testing/expectConnection'
-import { Connection } from '/connection'
+﻿import { Connection, ConnectionState, InitialContext } from '/connection'
 import { LocalUserContext } from '/context'
-import { redactDevice } from '/device'
+import { Device, redactDevice } from '/device'
 import { ADMIN } from '/role'
 import * as teams from '/team'
 import { Team } from '/team'
 import { User } from '/user'
 import { arrayToMap } from '/util/arrayToMap'
 import debug from '/util/debug'
-import { alice, bob, charlie, joinTestChannel, TestChannel } from '/util/testing'
+import { alice, bob, charlie, dwight, joinTestChannel, TestChannel } from '/util/testing'
 import '/util/testing/expect/toBeValid'
 
 const log = debug(`taco`)
+
+interface UserStuff {
+  userName: string
+  user: User
+  context: LocalUserContext
+  device: Device
+  team: Team
+  connectionContext: InitialContext
+  connection: Record<string, Connection>
+  getState: (u: string) => any
+}
 
 beforeAll(() => {
   log.clear()
@@ -21,7 +31,7 @@ describe('integration', () => {
   beforeEach(() => log.header(testName()))
 
   const setup = (userNames: string[] = []) => {
-    const allTestUsers: Record<string, User> = { alice, bob, charlie }
+    const allTestUsers: Record<string, User> = { alice, bob, charlie, dwight }
     const getUserContext = (userName: string): LocalUserContext => {
       const user = allTestUsers[userName]
       return { user }
@@ -33,9 +43,12 @@ describe('integration', () => {
     //  Always add Bob as an admin
     sourceTeam.add(bob, [ADMIN])
 
-    // Create one channel per pair of users
+    for (const userName of userNames)
+      if (!sourceTeam.has(userName)) sourceTeam.add(allTestUsers[userName])
+
     const pairKey = (a: string, b: string) => [a, b].sort().join(':')
 
+    // Create one channel per pair of users
     const channels = {} as Record<string, TestChannel>
     for (const a of userNames) {
       for (const b of userNames) {
@@ -49,12 +62,11 @@ describe('integration', () => {
       }
     }
 
-    type UserStuff = ReturnType<typeof makeUserStuff>
     const makeUserStuff = (userName: string) => {
       const user = allTestUsers[userName]
       const context = getUserContext(userName)
       const device = redactDevice(user.device)
-      const team = teams.load(sourceTeam.chain, context)
+      const team = teams.load(JSON.stringify(sourceTeam.chain), context)
       const connectionContext = { team, user, device }
       const userStuff = {
         userName,
@@ -86,24 +98,21 @@ describe('integration', () => {
       .map(addConnectionToEachOtherUser)
       .reduce(arrayToMap('userName'), {})
 
-    return { testUsers }
+    return testUsers
   }
 
   it('should send updates after connection is established', async () => {
-    const { testUsers } = setup(['alice', 'bob'])
-    const { alice, bob } = testUsers
+    const { alice, bob } = setup(['alice', 'bob'])
 
     // 👩🏾 👨🏻‍🦲 Alice and Bob connect
-    alice.connection['bob'].start()
-    bob.connection['alice'].start()
-    await expectConnection([alice.connection['bob'], bob.connection['alice']])
+    await connect(alice, bob)
 
     // 👩🏾 Alice creates a new role
     alice.team.addRole('MANAGERS')
     expect(alice.team.hasRole('MANAGERS')).toBe(true)
 
     // ✅ 👨🏻‍🦲 Bob sees the new role
-    await expectConnection([alice.connection['bob'], bob.connection['alice']])
+    await connection(alice, bob)
     expect(bob.team.hasRole('MANAGERS')).toBe(true)
 
     // 👩🏾 Alice creates another new role
@@ -111,13 +120,12 @@ describe('integration', () => {
     expect(alice.team.hasRole('FINANCIAL')).toBe(true)
 
     // ✅ 👨🏻‍🦲 Bob sees the new role
-    await expectConnection([alice.connection['bob'], bob.connection['alice']])
+    await connection(alice, bob)
     expect(bob.team.hasRole('FINANCIAL')).toBe(true)
   })
 
   it('should resolve concurrent non-conflicting changes when updating', async () => {
-    const { testUsers } = setup(['alice', 'bob'])
-    const { alice, bob } = testUsers
+    const { alice, bob } = setup(['alice', 'bob'])
 
     // 👩🏾 Alice creates a new role
     alice.team.addRole('MANAGERS')
@@ -132,9 +140,7 @@ describe('integration', () => {
     expect(alice.team.hasInvitation(id)).toBe(false)
 
     // 👩🏾 👨🏻‍🦲 Alice and Bob connect
-    alice.connection['bob'].start()
-    bob.connection['alice'].start()
-    await expectConnection([alice.connection['bob'], bob.connection['alice']])
+    await connect(alice, bob)
 
     // now Bob does have the new role
     expect(bob.team.hasRole('MANAGERS')).toBe(true)
@@ -143,8 +149,7 @@ describe('integration', () => {
   })
 
   it('should resolve concurrent duplicate changes when updating', async () => {
-    const { testUsers } = setup(['alice', 'bob'])
-    const { alice, bob } = testUsers
+    const { alice, bob } = setup(['alice', 'bob'])
 
     // 👩🏾 Alice creates a new role
     alice.team.addRole('MANAGERS')
@@ -155,11 +160,9 @@ describe('integration', () => {
     expect(bob.team.hasRole('MANAGERS')).toBe(true)
 
     // 👩🏾 👨🏻‍🦲 Alice and Bob connect
-    alice.connection['bob'].start()
-    bob.connection['alice'].start()
-    await expectConnection([alice.connection['bob'], bob.connection['alice']])
+    await connect(alice, bob)
 
-    // nothing bad happened, and they both have the role
+    // nothing blew up, and they both have the role
     expect(alice.team.hasRole('MANAGERS')).toBe(true)
     expect(bob.team.hasRole('MANAGERS')).toBe(true)
   })
@@ -173,12 +176,7 @@ describe('integration', () => {
   // })
 
   it('should resolve concurrent duplicate removals when updating', async () => {
-    const { testUsers } = setup(['alice', 'bob', 'charlie'])
-    const { alice, bob, charlie } = testUsers
-
-    // add Charlie and sync Alice & Bob up manually
-    alice.team.add(charlie.user)
-    bob.team = new Team({ source: alice.team.save(), context: bob.context })
+    const { alice, bob } = setup(['alice', 'bob', 'charlie'])
 
     // Charlie is a member
     expect(alice.team.has('charlie')).toBe(true)
@@ -187,17 +185,32 @@ describe('integration', () => {
     // Bob removes Charlie
     bob.team.remove('charlie')
 
-    // concurrently, Alice removes Charlie
+    // concurrently, Alice also removes Charlie
     alice.team.remove('charlie')
 
     // Alice and Bob connect
-    alice.connection['bob'].start()
-    bob.connection['alice'].start()
-    await expectConnection([alice.connection['bob'], bob.connection['alice']])
+    await connect(alice, bob)
 
-    // nothing bad happened, and Charlie has been removed on both sides
+    // nothing blew up, and Charlie has been removed on both sides
     expect(alice.team.has('charlie')).toBe(false)
     expect(bob.team.has('charlie')).toBe(false)
+  })
+
+  it('a member can remove the founder', async () => {
+    const { alice, bob } = setup(['alice', 'bob'])
+
+    // Alice and Bob connect
+    await connect(alice, bob)
+
+    // Bob removes Alice
+    bob.team.remove('alice')
+
+    // They are disconnected because Alice is no longer a member
+    await disconnection(alice, bob)
+
+    // Alice is no longer on the team
+    expect(bob.team.has('alice')).toBe(false)
+    expect(alice.team.has('alice')).toBe(false)
   })
 
   // it(`should handle concurrent admittance of the same invitation`, () => {
@@ -208,14 +221,43 @@ describe('integration', () => {
   //   // ?? it all works out?
   // })
 
-  // it('resolves mutual removes in favor of the senior member', () => {
-  //   // Bob removes Alice
-  //   // concurrently, Alice removes Bob
-  //   // Alice and Bob connect
-  //   // Bob is no longer a member
-  //   // Alice is still a member
-  //   // Their connection is ended
-  // })
+  it('resolves mutual removals in favor of the senior member', async () => {
+    const { alice, bob, charlie, dwight } = setup(['alice', 'bob', 'charlie', 'dwight'])
+
+    // Bob removes Alice
+    bob.team.remove('alice')
+
+    // concurrently, Alice removes Bob
+    alice.team.remove('bob')
+
+    // Charlie and Bob connect
+    await connect(bob, charlie)
+
+    // Charlie now knows that Bob has removed Alice
+    expect(charlie.team.has('alice')).toBe(false)
+
+    // Dwight and Alice connect
+    await connect(alice, dwight)
+
+    // Dwight now knows that Alice has removed Bob
+    expect(dwight.team.has('bob')).toBe(false)
+
+    // Dwight and Charlie connect
+    await connect(dwight, charlie)
+    // Both now know about the mutual conflicting removals. They each discard Bob's removal of Alice
+    // (because they were done concurrently and Alice is senior so she wins)
+
+    // Both kept Alice
+    expect(dwight.team.has('alice')).toBe(true)
+    expect(charlie.team.has('alice')).toBe(true)
+
+    // Both removed Bob
+    expect(dwight.team.has('bob')).toBe(false)
+    expect(charlie.team.has('bob')).toBe(false)
+
+    // Charlie is disconnected from Bob because Bob is no longer a member
+    await disconnection(bob, charlie)
+  })
 
   // it(`when a member is demoted and makes concurrent changes, discards those changes`, () => {
   //   // Alice removes Bob from admins
@@ -314,3 +356,46 @@ describe('integration', () => {
 })
 
 const testName = () => expect.getState().currentTestName
+
+const connect = async (a: UserStuff, b: UserStuff) => {
+  a.connection[b.userName].start()
+  b.connection[a.userName].start()
+  await connection(a, b)
+}
+
+const connection = async (a: UserStuff, b: UserStuff) => {
+  const connections = [a.connection[b.userName], b.connection[a.userName]]
+
+  connections.forEach(c =>
+    c.on('disconnected', () => {
+      throw new Error(c.context.error?.message || 'Diconnected')
+    })
+  )
+
+  // ✅ They're both connected
+  await all(connections, 'connected')
+
+  connections.forEach(c => c.removeAllListeners())
+
+  const sharedKey = connections[0].context.sessionKey
+  connections.forEach(connection => {
+    expect(connection.state).toEqual('connected')
+    // ✅ They've converged on a shared secret key
+    expect(connection.context.sessionKey).toEqual(sharedKey)
+  })
+}
+
+const disconnection = async (a: UserStuff, b: UserStuff, message?: string) => {
+  const connections = [a.connection[b.userName], b.connection[a.userName]]
+  // ✅ They're both disconnected
+  await all(connections, 'disconnected')
+  connections.forEach(connection => {
+    expect(connection.state).toEqual('disconnected')
+    // ✅ If we're checking for a message, it matches
+    if (message !== undefined) expect(connection.context.error!.message).toContain(message)
+  })
+}
+
+/** Promisified event */
+const all = (connections: Connection[], event: string) =>
+  Promise.all(connections.map(c => new Promise(resolve => c.on(event, () => resolve()))))

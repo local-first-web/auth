@@ -9,7 +9,7 @@ export const joinTestChannel = (channel: TestChannel) => (context: ConnectionCon
   const sendMessage: SendFunction = msg => channel.write(id, msg)
 
   // Instantiate the connection service
-  const connection = new Connection({ sendMessage, context }).start()
+  const connection = new Connection({ sendMessage, context })
 
   // hook up receive
   channel.addListener('data', async (senderId, msg) => {

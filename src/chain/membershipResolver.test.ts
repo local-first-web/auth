@@ -133,6 +133,30 @@ describe('teams', () => {
       expectMergedResult(aChain, bChain, ['ROOT', 'ADD b', 'ADD c'])
     })
 
+    it('should discard duplicate removals', () => {
+      // 👩🏾 Alice creates a chain and adds Charlie
+      let { aChain } = setup()
+      aChain = append(aChain, ADD_CHARLIE, alicesContext)
+
+      // 👩🏾 🡒 👨🏻‍🦲 Alice shares the chain with Bob
+      let bChain = clone(aChain)
+
+      // 🔌❌ Now Alice and Bob are disconnected
+
+      // 👨🏻‍🦲 Bob removes Charlie
+      bChain = append(bChain, REMOVE_CHARLIE, bobsContext)
+      expect(sequence(bChain)).toEqual(['ROOT', 'ADD b', 'ADD c', 'REMOVE c'])
+
+      // 👩🏾 concurrently, Alice also removes Charlie
+      aChain = append(aChain, REMOVE_CHARLIE, alicesContext)
+      expect(sequence(aChain)).toEqual(['ROOT', 'ADD b', 'ADD c', 'REMOVE c'])
+
+      // 🔌✔ Alice and Bob reconnect and synchronize chains
+
+      // ✅ Only one of the add actions is kept (we don't care which)
+      expectMergedResult(aChain, bChain, ['ROOT', 'ADD b', 'ADD c', 'REMOVE c'])
+    })
+
     it(`shouldn't allow a member who is removed to be concurrently added back`, () => {
       // 👩🏾 Alice creates a chain and adds Charlie
       let { aChain } = setup()

@@ -291,6 +291,14 @@ export const connectionMachine: MachineConfig<
           ],
           target: 'negotiating',
         },
+
+        // if the peer is no longer on the team, disconnect
+        {
+          cond: 'peerWasRemoved',
+          actions: 'failPeerWasRemoved',
+          target: 'disconnected',
+        },
+
         // on following updates, once we're done syncing we just go back to being connected
         {
           target: 'connected',
