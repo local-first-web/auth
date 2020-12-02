@@ -11,6 +11,7 @@ import { arrayToMap } from '/util/arrayToMap'
 import { alice, bob, charlie, joinTestChannel, TestChannel } from '/util/testing'
 import '/util/testing/expect/toBeValid'
 import debug from '/util/debug'
+import { Team } from '/team'
 
 const log = debug(`taco`)
 
@@ -164,13 +165,33 @@ describe('integration', () => {
   //   // Dwight connects to Bob and is able to join
   // })
 
-  // it('should resolve concurrent duplicate removals when updating', () => {
-  //   // Charlie is a member
-  //   // Bob removes Charlie
-  //   // concurrently, Alice removes Charlie
-  //   // Alice and Bob connect
-  //   // Charlie is not a member
-  // })
+  it('should resolve concurrent duplicate removals when updating', async () => {
+    const { testUsers } = setup(['alice', 'bob', 'charlie'])
+    const { alice, bob, charlie } = testUsers
+
+    // add Charlie and sync Alice & Bob up manually
+    alice.team.add(charlie.user)
+    bob.team = new Team({ source: alice.team.save(), context: bob.context })
+
+    // Charlie is a member
+    expect(alice.team.has('charlie')).toBe(true)
+    expect(bob.team.has('charlie')).toBe(true)
+
+    // Bob removes Charlie
+    bob.team.remove('charlie')
+
+    // concurrently, Alice removes Charlie
+    alice.team.remove('charlie')
+
+    // Alice and Bob connect
+    alice.connection.start()
+    bob.connection.start()
+    await expectConnection([alice.connection, bob.connection])
+
+    // nothing bad happened, and Charlie has been removed on both sides
+    expect(alice.team.has('charlie')).toBe(false)
+    expect(bob.team.has('charlie')).toBe(false)
+  })
 
   // it(`should handle concurrent admittance of the same invitation`, () => {
   //   // Alice invites Charlie
