@@ -1,17 +1,15 @@
-﻿import { pause } from './util'
-import { expectConnection } from './util/testing/expectConnection'
+﻿import { expectConnection } from './util/testing/expectConnection'
 import { Connection } from '/connection'
-import { ConnectionMessage } from '/connection/message'
 import { LocalUserContext } from '/context'
 import { redactDevice } from '/device'
 import { ADMIN } from '/role'
 import * as teams from '/team'
+import { Team } from '/team'
 import { User } from '/user'
 import { arrayToMap } from '/util/arrayToMap'
+import debug from '/util/debug'
 import { alice, bob, charlie, joinTestChannel, TestChannel } from '/util/testing'
 import '/util/testing/expect/toBeValid'
-import debug from '/util/debug'
-import { Team } from '/team'
 
 const log = debug(`taco`)
 
@@ -22,21 +20,12 @@ beforeAll(() => {
 describe('integration', () => {
   beforeEach(() => log.header(testName()))
 
-  const setup = (userNames: string[] = [], isOneWay = false) => {
+  const setup = (userNames: string[] = []) => {
     const allTestUsers: Record<string, User> = { alice, bob, charlie }
     const getUserContext = (userName: string): LocalUserContext => {
       const user = allTestUsers[userName]
       return { user }
     }
-
-    // Our dummy `sendMessage` just pushes messages onto a queue. We use this for one-sided tests
-    // (where there's only a real connection on one side)
-    const messageQueue: ConnectionMessage[] = []
-    const sendMessage = (message: ConnectionMessage) => messageQueue.push(message)
-    const lastMessage = () => messageQueue[messageQueue.length - 1]
-
-    // For real two-way connections, we use this
-    const join = joinTestChannel(new TestChannel())
 
     // Create a new team
     const sourceTeam = teams.create('Spies Я Us', getUserContext('alice'))
@@ -44,38 +33,60 @@ describe('integration', () => {
     //  Always add Bob as an admin
     sourceTeam.add(bob, [ADMIN])
 
+    // Create one channel per pair of users
+    const pairKey = (a: string, b: string) => [a, b].sort().join(':')
+
+    const channels = {} as Record<string, TestChannel>
+    for (const a of userNames) {
+      for (const b of userNames) {
+        if (a !== b) {
+          const pair = pairKey(a, b)
+          if (!(pair in channels)) {
+            log(`creating test channel ${a} ${b}`)
+            channels[pair] = new TestChannel()
+          }
+        }
+      }
+    }
+
+    type UserStuff = ReturnType<typeof makeUserStuff>
     const makeUserStuff = (userName: string) => {
       const user = allTestUsers[userName]
       const context = getUserContext(userName)
       const device = redactDevice(user.device)
       const team = teams.load(sourceTeam.chain, context)
       const connectionContext = { team, user, device }
-      const connection = isOneWay
-        ? new Connection({ sendMessage, context: connectionContext })
-        : join(connectionContext)
-      const getState = () => connection.state as any
-
-      let index = 0
-      const deliver = (msg: ConnectionMessage) => connection.deliver({ index: index++, ...msg })
-
-      return {
+      const userStuff = {
         userName,
         user,
         context,
         device,
         team,
         connectionContext,
-        connection,
-        getState,
-        deliver,
+        connection: {} as Record<string, Connection>,
+        getState: (u: string) => userStuff.connection[u].state,
       }
+      return userStuff
     }
 
-    const testUsers: Record<string, ReturnType<typeof makeUserStuff>> = userNames
+    const addConnectionToEachOtherUser = (A: UserStuff) => {
+      const a = A.userName
+      for (const b of userNames) {
+        if (a !== b) {
+          const pair = pairKey(a, b)
+          const channel = channels[pair]!
+          A.connection[b] = joinTestChannel(channel)(A.connectionContext)
+        }
+      }
+      return A
+    }
+
+    const testUsers: Record<string, UserStuff> = userNames
       .map(makeUserStuff)
+      .map(addConnectionToEachOtherUser)
       .reduce(arrayToMap('userName'), {})
 
-    return { sendMessage, join, lastMessage, testUsers }
+    return { testUsers }
   }
 
   it('should send updates after connection is established', async () => {
@@ -83,29 +94,25 @@ describe('integration', () => {
     const { alice, bob } = testUsers
 
     // 👩🏾 👨🏻‍🦲 Alice and Bob connect
-    alice.connection.start()
-    bob.connection.start()
-    await expectConnection([alice.connection, bob.connection])
+    alice.connection['bob'].start()
+    bob.connection['alice'].start()
+    await expectConnection([alice.connection['bob'], bob.connection['alice']])
 
     // 👩🏾 Alice creates a new role
     alice.team.addRole('MANAGERS')
     expect(alice.team.hasRole('MANAGERS')).toBe(true)
 
     // ✅ 👨🏻‍🦲 Bob sees the new role
-    await expectConnection([alice.connection, bob.connection])
+    await expectConnection([alice.connection['bob'], bob.connection['alice']])
     expect(bob.team.hasRole('MANAGERS')).toBe(true)
-    expect(alice.getState()).toEqual('connected')
-    expect(bob.getState()).toEqual('connected')
 
     // 👩🏾 Alice creates another new role
     alice.team.addRole('FINANCIAL')
     expect(alice.team.hasRole('FINANCIAL')).toBe(true)
 
     // ✅ 👨🏻‍🦲 Bob sees the new role
-    await expectConnection([alice.connection, bob.connection])
+    await expectConnection([alice.connection['bob'], bob.connection['alice']])
     expect(bob.team.hasRole('FINANCIAL')).toBe(true)
-    expect(alice.getState()).toEqual('connected')
-    expect(bob.getState()).toEqual('connected')
   })
 
   it('should resolve concurrent non-conflicting changes when updating', async () => {
@@ -125,9 +132,9 @@ describe('integration', () => {
     expect(alice.team.hasInvitation(id)).toBe(false)
 
     // 👩🏾 👨🏻‍🦲 Alice and Bob connect
-    alice.connection.start()
-    bob.connection.start()
-    await expectConnection([alice.connection, bob.connection])
+    alice.connection['bob'].start()
+    bob.connection['alice'].start()
+    await expectConnection([alice.connection['bob'], bob.connection['alice']])
 
     // now Bob does have the new role
     expect(bob.team.hasRole('MANAGERS')).toBe(true)
@@ -148,9 +155,9 @@ describe('integration', () => {
     expect(bob.team.hasRole('MANAGERS')).toBe(true)
 
     // 👩🏾 👨🏻‍🦲 Alice and Bob connect
-    alice.connection.start()
-    bob.connection.start()
-    await expectConnection([alice.connection, bob.connection])
+    alice.connection['bob'].start()
+    bob.connection['alice'].start()
+    await expectConnection([alice.connection['bob'], bob.connection['alice']])
 
     // nothing bad happened, and they both have the role
     expect(alice.team.hasRole('MANAGERS')).toBe(true)
@@ -184,9 +191,9 @@ describe('integration', () => {
     alice.team.remove('charlie')
 
     // Alice and Bob connect
-    alice.connection.start()
-    bob.connection.start()
-    await expectConnection([alice.connection, bob.connection])
+    alice.connection['bob'].start()
+    bob.connection['alice'].start()
+    await expectConnection([alice.connection['bob'], bob.connection['alice']])
 
     // nothing bad happened, and Charlie has been removed on both sides
     expect(alice.team.has('charlie')).toBe(false)
