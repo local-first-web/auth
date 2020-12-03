@@ -19,6 +19,7 @@ interface UserStuff {
   device: Device
   team: Team
   connectionContext: InitialContext
+  channel: Record<string, TestChannel>
   connection: Record<string, Connection>
   getState: (u: string) => any
 }
@@ -30,7 +31,11 @@ beforeAll(() => {
 describe('integration', () => {
   beforeEach(() => log.header(testName()))
 
-  type TestUserSettings = { user: string; admin?: boolean; member?: boolean }
+  type TestUserSettings = {
+    user: string
+    admin?: boolean
+    member?: boolean
+  }
 
   const setup = (_setupUserSettings: (TestUserSettings | string)[] = []) => {
     const allTestUsers: Record<string, User> = { alice, bob, charlie, dwight }
@@ -40,27 +45,25 @@ describe('integration', () => {
       return { user }
     }
 
-    const toSettings = (user: string | TestUserSettings): TestUserSettings =>
+    // Coerce input into expanded format
+    const setupUserSettings = _setupUserSettings.map(user =>
       typeof user === 'string' ? { user } : user
+    )
 
-    const withDefaults = (user: TestUserSettings): TestUserSettings =>
-      ({ member: true, admin: true, ...user } as TestUserSettings)
-
-    // Coerce input into
-    const setupUserSettings: TestUserSettings[] = _setupUserSettings
-      .map(toSettings)
-      .map(withDefaults)
     const userNames = setupUserSettings.map(user => user.user)
 
     // Create a new team
     const sourceTeam = teams.create('Spies Я Us', getUserContext('alice'))
 
-    for (const { user: name, admin: admin, member: member } of setupUserSettings)
-      if (member && !sourceTeam.has(name)) sourceTeam.add(allTestUsers[name], admin ? [ADMIN] : [])
-
-    const pairKey = (a: string, b: string) => [a, b].sort().join(':')
+    // Add members
+    for (const { user: userName, admin = true, member = true } of setupUserSettings) {
+      if (member && !sourceTeam.has(userName)) {
+        sourceTeam.add(allTestUsers[userName], admin ? [ADMIN] : [])
+      }
+    }
 
     // Create one channel per pair of users
+    const pairKey = (a: string, b: string) => [a, b].sort().join(':')
     const channels = {} as Record<string, TestChannel>
     for (const a of userNames) {
       for (const b of userNames) {
@@ -74,12 +77,12 @@ describe('integration', () => {
       }
     }
 
-    const makeUserStuff = (userName: string) => {
+    const makeUserStuff = ({ user: userName, member = true }: TestUserSettings) => {
       const user = allTestUsers[userName]
       const context = getUserContext(userName)
       const device = redactDevice(user.device)
       const team = teams.load(JSON.stringify(sourceTeam.chain), context)
-      const connectionContext = { team, user, device }
+      const connectionContext = member ? { team, user, device } : { user, device }
       const userStuff = {
         userName,
         user,
@@ -87,6 +90,7 @@ describe('integration', () => {
         device,
         team,
         connectionContext,
+        channel: {} as Record<string, TestChannel>,
         connection: {} as Record<string, Connection>,
         getState: (u: string) => userStuff.connection[u].state,
       }
@@ -94,18 +98,25 @@ describe('integration', () => {
     }
 
     const addConnectionToEachOtherUser = (A: UserStuff) => {
-      const a = A.userName
-      for (const b of userNames) {
-        if (a !== b) {
-          const pair = pairKey(a, b)
-          const channel = channels[pair]!
-          A.connection[b] = joinTestChannel(channel)(A.connectionContext)
+      // only make connections if A is a member
+      if ('team' in A.connectionContext) {
+        const a = A.userName
+        for (const { user: b, member = true } of setupUserSettings) {
+          // don't connect to ourselves
+          if (a !== b) {
+            const pair = pairKey(a, b)
+            const channel = channels[pair]!
+            const join = joinTestChannel(channel)
+            A.channel[b] = channel
+            // only make connection if B is a member
+            if (member) A.connection[b] = join(A.connectionContext)
+          }
         }
       }
       return A
     }
 
-    const testUsers: Record<string, UserStuff> = userNames
+    const testUsers: Record<string, UserStuff> = setupUserSettings
       .map(makeUserStuff)
       .map(addConnectionToEachOtherUser)
       .reduce(arrayToMap('userName'), {})
@@ -223,15 +234,24 @@ describe('integration', () => {
     expect(alice.team.has('alice')).toBe(false)
   })
 
-  it('resolves concurrent duplicate invitations when updating', () => {
-    // TODO: Anything involving invitations will require tweaking the setup so that you get Charlie
-    // and Dwight as users without adding them to the group
-    //
-    // Alice invites Charlie and Dwight
-    // concurrently, Bob invites Charlie and Dwight
-    // Alice and Bob connect
-    // Charlie connects to Alice and is able to join
-    // Dwight connects to Bob and is able to join
+  it('resolves concurrent duplicate invitations when updating', async () => {
+    const { alice, bob, charlie, dwight } = setup([
+      'alice',
+      'bob',
+      { user: 'charlie', member: false },
+      { user: 'dwight', member: false },
+    ])
+    // // Alice invites Charlie and Dwight
+    // const aliceInvitesCharlie = alice.team.invite('charlie')
+    // const aliceInvitesDwight = alice.team.invite('dwight')
+    // // concurrently, Bob invites Charlie and Dwight
+    // const bobInvitesCharlie = bob.team.invite('charlie')
+    // const bobInvitesDwight = bob.team.invite('dwight')
+
+    // // Alice and Bob connect
+    // await connect(alice, bob)
+    // // Charlie connects to Alice and is able to join
+    // // Dwight connects to Bob and is able to join
   })
 
   // it(`should handle concurrent admittance of the same invitation`, () => {
@@ -500,6 +520,5 @@ const disconnection = async (a: UserStuff, b: UserStuff, message?: string) => {
   })
 }
 
-/** Promisified event */
 const all = (connections: Connection[], event: string) =>
   Promise.all(connections.map(c => new Promise(resolve => c.on(event, () => resolve()))))
