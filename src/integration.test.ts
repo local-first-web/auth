@@ -1,5 +1,4 @@
-﻿import { pause } from './util'
-import { Connection, ConnectionState, InitialContext } from '/connection'
+﻿import { Connection, ConnectionState, InitialContext } from '/connection'
 import { LocalUserContext } from '/context'
 import { Device, redactDevice } from '/device'
 import { ADMIN } from '/role'
@@ -31,21 +30,33 @@ beforeAll(() => {
 describe('integration', () => {
   beforeEach(() => log.header(testName()))
 
-  const setup = (userNames: string[] = []) => {
+  type TestUserSettings = { user: string; admin?: boolean; member?: boolean }
+
+  const setup = (_setupUserSettings: (TestUserSettings | string)[] = []) => {
     const allTestUsers: Record<string, User> = { alice, bob, charlie, dwight }
+
     const getUserContext = (userName: string): LocalUserContext => {
       const user = allTestUsers[userName]
       return { user }
     }
 
+    const toSettings = (user: string | TestUserSettings): TestUserSettings =>
+      typeof user === 'string' ? { user } : user
+
+    const withDefaults = (user: TestUserSettings): TestUserSettings =>
+      ({ member: true, admin: true, ...user } as TestUserSettings)
+
+    // Coerce input into
+    const setupUserSettings: TestUserSettings[] = _setupUserSettings
+      .map(toSettings)
+      .map(withDefaults)
+    const userNames = setupUserSettings.map(user => user.user)
+
     // Create a new team
     const sourceTeam = teams.create('Spies Я Us', getUserContext('alice'))
 
-    //  Always add Bob as an admin
-    sourceTeam.add(bob, [ADMIN])
-
-    for (const userName of userNames)
-      if (!sourceTeam.has(userName)) sourceTeam.add(allTestUsers[userName])
+    for (const { user: name, admin: admin, member: member } of setupUserSettings)
+      if (member && !sourceTeam.has(name)) sourceTeam.add(allTestUsers[name], admin ? [ADMIN] : [])
 
     const pairKey = (a: string, b: string) => [a, b].sort().join(':')
 
@@ -297,7 +308,7 @@ describe('integration', () => {
   })
 
   it(`when a member is demoted and makes concurrent changes, discards those changes`, async () => {
-    const { alice, bob } = setup(['alice', 'bob', 'charlie'])
+    const { alice, bob } = setup(['alice', 'bob', { user: 'charlie', admin: false }])
 
     // 👩🏾 Alice removes 👨🏻‍🦲 Bob from admin role
     alice.team.removeMemberRole('bob', ADMIN)
@@ -347,9 +358,10 @@ describe('integration', () => {
     expect(charlie.team.hasRole('MANAGERS')).toEqual(true)
   })
 
-  it.only('handles three-way connections', async () => {
+  it('handles three-way connections', async () => {
     const allUpdated = () =>
       Promise.all([updated(alice, bob), updated(bob, charlie), updated(alice, charlie)])
+
     const { alice, bob, charlie } = setup(['alice', 'bob', 'charlie'])
     alice.team.addMemberRole('charlie', ADMIN) // Charlie needs to be an admin to do stuff
 
@@ -357,6 +369,8 @@ describe('integration', () => {
     await connect(alice, bob)
     await connect(bob, charlie)
     await connect(alice, charlie)
+
+    // <-> while connected...
 
     // 👩🏾 Alice adds a new role
     alice.team.addRole('ALICES_FRIENDS')
@@ -379,16 +393,34 @@ describe('integration', () => {
     expect(charlie.team.hasRole('BOBS_FRIENDS')).toBe(true)
   })
 
-  // it('resolves concurrent non-conflicting changes in three-way connections', () => {
-  //   // Bob and Charlie are admins
-  //   // Alice and Bob connect
-  //   // Alice and Charlie connect
-  //   // Bob and Charlie connect
-  //   // Alice adds a new role
-  //   // Bob adds a new role
-  //   // Charlie adds a new role
-  //   // All three get the three new roles
-  // })
+  it('resolves concurrent non-conflicting changes in three-way connections', async () => {
+    const { alice, bob, charlie } = setup(['alice', 'bob', 'charlie'])
+
+    // 🔌 while disconnected...
+
+    // 👩🏾 Alice adds a new role
+    alice.team.addRole('ALICES_FRIENDS')
+
+    // 👨🏻‍🦲 Bob adds a new role
+    bob.team.addRole('BOBS_FRIENDS')
+
+    // 👳🏽‍♂️ Charlie adds a new role
+    charlie.team.addRole('CHARLIES_FRIENDS')
+
+    // 👩🏾<->👨🏻‍🦲<->👳🏽‍♂️ Alice, Bob, and Charlie all connect to each other
+
+    await connect(alice, bob)
+    await connect(bob, charlie)
+    await connect(alice, charlie)
+
+    // ✅ All three get the three new roles
+    expect(bob.team.hasRole('ALICES_FRIENDS')).toBe(true)
+    expect(charlie.team.hasRole('ALICES_FRIENDS')).toBe(true)
+    expect(alice.team.hasRole('CHARLIES_FRIENDS')).toBe(true)
+    expect(bob.team.hasRole('CHARLIES_FRIENDS')).toBe(true)
+    expect(alice.team.hasRole('BOBS_FRIENDS')).toBe(true)
+    expect(charlie.team.hasRole('BOBS_FRIENDS')).toBe(true)
+  })
 
   // it('resolves concurrent conflicting changes in three-way connections', () => {
   //   // Bob and Charlie are admins
@@ -422,6 +454,12 @@ const connect = async (a: UserStuff, b: UserStuff) => {
   a.connection[b.userName].start()
   b.connection[a.userName].start()
   await connection(a, b)
+}
+
+const disconnect = async (a: UserStuff, b: UserStuff) => {
+  a.connection[b.userName].stop()
+  b.connection[a.userName].stop()
+  await disconnection(a, b)
 }
 
 const connection = async (a: UserStuff, b: UserStuff) => {
