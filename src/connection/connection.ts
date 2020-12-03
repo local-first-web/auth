@@ -459,12 +459,9 @@ export class Connection extends EventEmitter {
     dontHaveSessionkey: context => context.sessionKey === undefined,
 
     peerWasRemoved: context => {
-      this.log('PEERWASREMOVED')
       assert(context.team)
       assert(context.peer)
-      const result = context.team.has(context.peer.userName) === false
-      this.log(`peerWasRemoved? ${context.peer.userName} (${result})`)
-      return result
+      return context.team.has(context.peer.userName) === false
     },
   }
 
