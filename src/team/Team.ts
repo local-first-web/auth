@@ -398,7 +398,7 @@ export class Team extends EventEmitter {
   /** Admit a new member/device to the team based on proof of invitation */
   public admit = (proof: ProofOfInvitation) => {
     const teamKeys = this.teamKeys()
-    const { id } = proof
+    const { id, userName } = proof
 
     // make sure this invitation exists and can be used
     const invitation = this.state.invitations[id]
@@ -414,7 +414,7 @@ export class Team extends EventEmitter {
     // post admission to the signature chain
     this.dispatch({
       type: 'ADMIT',
-      payload: { id },
+      payload: { id, userName },
     })
   }
 
