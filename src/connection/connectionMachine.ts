@@ -301,6 +301,7 @@ export const connectionMachine: MachineConfig<
 
         // on following updates, once we're done syncing we just go back to being connected
         {
+          actions: 'onUpdated',
           target: 'connected',
         },
       ],
@@ -333,11 +334,10 @@ export const connectionMachine: MachineConfig<
           },
         },
       },
-      onDone: { actions: 'deriveSharedKey', target: 'connected' },
+      onDone: { actions: ['deriveSharedKey', 'onConnected'], target: 'connected' },
     },
 
     connected: {
-      entry: ['onConnected'],
       on: {
         DISCONNECT: '#disconnected',
 
