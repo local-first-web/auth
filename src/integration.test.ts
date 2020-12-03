@@ -262,19 +262,16 @@ describe('integration', () => {
 
     // 👳🏽‍♂️ 👨🏻‍🦲 Charlie and Bob connect
     await connect(bob, charlie)
-
     // 👳🏽‍♂️ Charlie now knows that Bob has removed Alice
     expect(charlie.team.has('alice')).toBe(false)
 
     // 👴 👩🏾 Dwight and Alice connect
     await connect(alice, dwight)
-
     // 👴 Dwight now knows that Alice has removed Bob
     expect(dwight.team.has('bob')).toBe(false)
 
     // 👴 👳🏽‍♂️ Dwight and Charlie connect
     await connect(dwight, charlie)
-
     // 👴 👳🏽‍♂️ Both Dwight and Charlie now know about the mutual conflicting removals. They each
     // discard Bob's removal of Alice (because they were done concurrently and Alice is senior so
     // she wins)
@@ -325,7 +322,7 @@ describe('integration', () => {
   //   // Charlie's invitation is gone
   // })
 
-  it('should send updates across multiple hops', async () => {
+  it.only('should send updates across multiple hops', async () => {
     const { alice, bob, charlie } = setup(['alice', 'bob', 'charlie'])
 
     // Alice and Bob connect
@@ -334,24 +331,13 @@ describe('integration', () => {
     // Bob and Charlie connect
     await connect(bob, charlie)
 
-    // // Alice creates a new role
-    // alice.team.addRole('MANAGERS')
+    // Alice creates a new role
+    alice.team.addRole('MANAGERS')
 
-    // await all(
-    //   [
-    //     alice.connection['bob'],
-    //     bob.connection['alice'],
-    //     charlie.connection['bob'],
-    //     bob.connection['charlie'],
-    //   ],
-    //   'updated'
-    // )
+    await Promise.all([updated(alice, bob), updated(bob, charlie)])
 
-    // // Bob's team now has the new role
-    // expect(bob.team.hasRole('MANAGERS')).toEqual(true)
-
-    // // Charlie's team now has the new role
-    // expect(charlie.team.hasRole('MANAGERS')).toEqual(true)
+    // Although Charlie isn't connected directly to Alice, he sees the new role
+    expect(charlie.team.hasRole('MANAGERS')).toEqual(true)
   })
 
   // it('handles three-way connections', () => {
