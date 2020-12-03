@@ -207,6 +207,7 @@ export interface AdmitAction extends Action {
   type: 'ADMIT'
   payload: BasePayload & {
     id: string // invitation ID
+    userName: string
   }
 }
 
