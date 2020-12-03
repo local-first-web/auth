@@ -105,47 +105,53 @@ describe('integration', () => {
   it('should send updates after connection is established', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
-    // 👩🏾 👨🏻‍🦲 Alice and Bob connect
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
 
     // 👩🏾 Alice creates a new role
+    expect(alice.team.hasRole('MANAGERS')).toBe(false)
+    expect(bob.team.hasRole('MANAGERS')).toBe(false)
     alice.team.addRole('MANAGERS')
-    expect(alice.team.hasRole('MANAGERS')).toBe(true)
 
-    // ✅ 👨🏻‍🦲 Bob sees the new role
+    // ✅ Bob sees the new role 👨🏻‍🦲💭
     await updated(alice, bob)
     expect(bob.team.hasRole('MANAGERS')).toBe(true)
 
-    // 👩🏾 Alice creates another new role
-    alice.team.addRole('FINANCIAL')
-    expect(alice.team.hasRole('FINANCIAL')).toBe(true)
+    // 👩🏾 Alice adds Bob to the new role
+    expect(alice.team.memberHasRole('bob', 'MANAGERS')).toBe(false)
+    expect(bob.team.memberHasRole('bob', 'MANAGERS')).toBe(false)
+    alice.team.addMemberRole('bob', 'MANAGERS')
 
-    // ✅ 👨🏻‍🦲 Bob sees the new role
+    // ✅ 👨🏻‍🦲 Bob sees the change 👨🏻‍🦲💭
     await updated(alice, bob)
-    expect(bob.team.hasRole('FINANCIAL')).toBe(true)
+    expect(bob.team.memberHasRole('bob', 'MANAGERS')).toBe(true)
   })
 
   it('should resolve concurrent non-conflicting changes when updating', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
     // 👩🏾 Alice creates a new role
+    expect(alice.team.hasRole('MANAGERS')).toBe(false)
     alice.team.addRole('MANAGERS')
     expect(alice.team.hasRole('MANAGERS')).toBe(true)
 
-    // concurrently, Bob invites Charlie
+    // 👨🏻‍🦲 concurrently, Bob invites Charlie
     const { id } = bob.team.invite('charlie')
+    expect(bob.team.hasInvitation(id)).toBe(true)
 
-    // Bob doesn't have the new role
+    // Bob doesn't see the new role
     expect(bob.team.hasRole('MANAGERS')).toBe(false)
-    // Alice doesn't have Bob's invitation for Charlie
+
+    // Alice doesn't see Bob's invitation for Charlie
     expect(alice.team.hasInvitation(id)).toBe(false)
 
-    // 👩🏾 👨🏻‍🦲 Alice and Bob connect
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
 
-    // now Bob does have the new role
+    // ✅ now Bob does see the new role 👨🏻‍🦲💭
     expect(bob.team.hasRole('MANAGERS')).toBe(true)
-    // and Alice does have the invitation
+
+    // ✅ and Alice does see the invitation 👩🏾💭
     expect(alice.team.hasInvitation(id)).toBe(true)
   })
 
@@ -160,10 +166,10 @@ describe('integration', () => {
     bob.team.addRole('MANAGERS')
     expect(bob.team.hasRole('MANAGERS')).toBe(true)
 
-    // 👩🏾 👨🏻‍🦲 Alice and Bob connect
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
 
-    // nothing blew up, and they both have the role
+    // ✅ nothing blew up, and they both have the role
     expect(alice.team.hasRole('MANAGERS')).toBe(true)
     expect(bob.team.hasRole('MANAGERS')).toBe(true)
   })
@@ -181,10 +187,10 @@ describe('integration', () => {
     // 👩🏾 concurrently, Alice also removes 👳🏽‍♂️ Charlie
     alice.team.remove('charlie')
 
-    // 👩🏾 👨🏻‍🦲 Alice and Bob connect
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
 
-    // ✅ nothing blew up, and 👳🏽‍♂️ Charlie has been removed on both sides
+    // ✅ nothing blew up, and Charlie has been removed on both sides 👳🏽‍♂️👎
     expect(alice.team.has('charlie')).toBe(false)
     expect(bob.team.has('charlie')).toBe(false)
   })
@@ -192,16 +198,16 @@ describe('integration', () => {
   it('a member can remove the founder', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
-    // 👩🏾 👨🏻‍🦲 Alice and Bob connect
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
 
     // 👨🏻‍🦲 Bob removes Alice
     bob.team.remove('alice')
 
-    // They are disconnected because 👩🏾 Alice is no longer a member
+    // 👩🏾🔌👨🏻‍🦲 Alice is no longer a member, so they're disconnected
     await disconnection(alice, bob)
 
-    // 👩🏾 Alice is no longer on the team
+    // ✅ Alice is no longer on the team 👩🏾👎
     expect(bob.team.has('alice')).toBe(false)
     expect(alice.team.has('alice')).toBe(false)
   })
@@ -234,19 +240,19 @@ describe('integration', () => {
     // 👩🏾 Alice concurrently removes 👨🏻‍🦲 Bob from admin role
     alice.team.removeMemberRole('bob', ADMIN)
 
-    // 👩🏾 👨🏻‍🦲 Alice and Bob connect. Bob's demotion of Alice is discarded (because they were
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect. Bob's demotion of Alice is discarded (because they were
     // done concurrently and Alice is senior so she wins)
     await connect(alice, bob)
 
-    // ✅ 👨🏻‍🦲 Bob is no longer an admin
-    expect(alice.team.memberHasRole('bob', ADMIN)).toBe(false)
-    expect(bob.team.memberHasRole('bob', ADMIN)).toBe(false)
-
-    // ✅ 👩🏾 Alice is still an admin
+    // ✅ Alice is still an admin 👩🏾👍
     expect(alice.team.memberHasRole('alice', ADMIN)).toBe(true)
     expect(bob.team.memberHasRole('alice', ADMIN)).toBe(true)
 
-    // ✅ They are still connected
+    // ✅ Bob is no longer an admin 👨🏻‍🦲👎
+    expect(alice.team.memberHasRole('bob', ADMIN)).toBe(false)
+    expect(bob.team.memberHasRole('bob', ADMIN)).toBe(false)
+
+    // ✅ They are still connected 👩🏾<->👨🏻‍🦲
     expect(alice.getState('bob')).toEqual('connected')
     expect(bob.getState('alice')).toEqual('connected')
   })
@@ -260,31 +266,33 @@ describe('integration', () => {
     // 👩🏾 Alice concurrently removes 👨🏻‍🦲 Bob
     alice.team.remove('bob')
 
-    // 👳🏽‍♂️ 👨🏻‍🦲 Charlie and Bob connect
+    // 👳🏽‍♂️<->👨🏻‍🦲 Charlie and Bob connect
     await connect(bob, charlie)
-    // 👳🏽‍♂️ Charlie now knows that Bob has removed Alice
+    // 👳🏽‍♂️💭 Charlie now knows that Bob has removed Alice
     expect(charlie.team.has('alice')).toBe(false)
 
-    // 👴 👩🏾 Dwight and Alice connect
+    // 👴<->👩🏾 Dwight and Alice connect
     await connect(alice, dwight)
-    // 👴 Dwight now knows that Alice has removed Bob
+
+    // 👴💭 Dwight now knows that Alice has removed Bob
     expect(dwight.team.has('bob')).toBe(false)
 
-    // 👴 👳🏽‍♂️ Dwight and Charlie connect
+    // 👴<->👳🏽‍♂️ Dwight and Charlie connect
     await connect(dwight, charlie)
-    // 👴 👳🏽‍♂️ Both Dwight and Charlie now know about the mutual conflicting removals. They each
+
+    // 👴💭 👳🏽‍♂️💭 Both Dwight and Charlie now know about the mutual conflicting removals. They each
     // discard Bob's removal of Alice (because they were done concurrently and Alice is senior so
     // she wins)
 
-    // ✅ Both kept 👩🏾 Alice
+    // ✅ Both kept Alice 👩🏾👍
     expect(dwight.team.has('alice')).toBe(true)
     expect(charlie.team.has('alice')).toBe(true)
 
-    // ✅ Both removed 👨🏻‍🦲 Bob
+    // ✅ Both removed Bob 👨🏻‍🦲👎
     expect(dwight.team.has('bob')).toBe(false)
     expect(charlie.team.has('bob')).toBe(false)
 
-    // ✅ 👳🏽‍♂️ Charlie is disconnected from 👨🏻‍🦲 Bob because Bob is no longer a member
+    // ✅ Charlie is disconnected from Bob because Bob is no longer a member 👳🏽‍♂️🔌👨🏻‍🦲
     await disconnection(bob, charlie)
   })
 
@@ -294,14 +302,14 @@ describe('integration', () => {
     // 👩🏾 Alice removes 👨🏻‍🦲 Bob from admin role
     alice.team.removeMemberRole('bob', ADMIN)
 
-    // 👨🏻‍🦲 concurrently, Bob makes Charlie an admin
+    // 👨🏻‍🦲 concurrently, Bob makes 👳🏽‍♂️ Charlie an admin
     bob.team.addMemberRole('charlie', ADMIN)
     expect(bob.team.memberHasRole('charlie', ADMIN)).toBe(true)
 
-    // 👩🏾 👨🏻‍🦲 Alice and Bob connect.
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect.
     await connect(alice, bob)
 
-    // Bob's promotion of Charlie is discarded.
+    // ✅ Bob's promotion of Charlie is discarded, because Bob concurrently lost admin privileges. 👨🏻‍🦲👳🏽‍♂️👎
     expect(alice.team.memberHasRole('charlie', ADMIN)).toBe(false)
     expect(bob.team.memberHasRole('charlie', ADMIN)).toBe(false)
   })
@@ -322,34 +330,45 @@ describe('integration', () => {
   //   // Charlie's invitation is gone
   // })
 
-  it.only('should send updates across multiple hops', async () => {
+  it('sends updates across multiple hops', async () => {
     const { alice, bob, charlie } = setup(['alice', 'bob', 'charlie'])
 
-    // Alice and Bob connect
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
-
-    // Bob and Charlie connect
+    // 👨🏻‍🦲<->👳🏽‍♂️ Bob and Charlie connect
     await connect(bob, charlie)
 
-    // Alice creates a new role
+    // 👩🏾 Alice creates a new role
     alice.team.addRole('MANAGERS')
 
     await Promise.all([updated(alice, bob), updated(bob, charlie)])
 
-    // Although Charlie isn't connected directly to Alice, he sees the new role
+    // ✅ Charlie sees the new role, even though he's not connected directly to Alice 👳🏽‍♂️💭
     expect(charlie.team.hasRole('MANAGERS')).toEqual(true)
   })
 
-  // it('handles three-way connections', () => {
-  //   // Bob and Charlie are admins
-  //   // Alice and Bob connect
-  //   // Alice and Charlie connect
-  //   // Bob and Charlie connect
-  //   // Alice adds a new role
-  //   // Bob adds a new role
-  //   // Charlie adds a new role
-  //   // All three get the three new roles
-  // })
+  it('handles three-way connections', async () => {
+    const { alice, bob, charlie } = setup(['alice', 'bob', 'charlie'])
+    alice.team.addMemberRole('charlie', ADMIN)
+
+    // (note that Bob and Charlie are both admins)
+    expect(alice.team.memberHasRole('bob', ADMIN)).toBe(true)
+    expect(alice.team.memberHasRole('charlie', ADMIN)).toBe(true)
+
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
+    await connect(alice, bob)
+    // 👨🏻‍🦲<->👳🏽‍♂️ Bob and Charlie connect
+    await connect(bob, charlie)
+    // 👩🏾<->👳🏽‍♂️ Alice and Charlie connect
+    await connect(alice, charlie)
+
+    // Alice and Charlie connect
+    // Bob and Charlie connect
+    // Alice adds a new role
+    // Bob adds a new role
+    // Charlie adds a new role
+    // All three get the three new roles
+  })
 
   // it('resolves concurrent non-conflicting changes in three-way connections', () => {
   //   // Bob and Charlie are admins
