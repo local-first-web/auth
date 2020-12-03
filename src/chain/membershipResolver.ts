@@ -1,5 +1,13 @@
-﻿import { arbitraryDeterministicSort } from '/chain/arbitraryDeterministicSort'
-import { isMergeLink, LinkBody, NonRootLinkBody, Resolver, RootLink } from '/chain/types'
+﻿import { actionFingerprint } from './actionFingerprint'
+import { arbitraryDeterministicSort } from '/chain/arbitraryDeterministicSort'
+import {
+  AdmitAction,
+  isMergeLink,
+  LinkBody,
+  NonRootLinkBody,
+  Resolver,
+  RootLink,
+} from '/chain/types'
 import {
   AddMemberAction,
   AddMemberRoleAction,
@@ -9,6 +17,7 @@ import {
   TeamActionLink,
   TeamSignatureChain,
 } from '/chain/types'
+import { member } from '/team/selectors'
 import { Hash } from '/util'
 
 // TODO: This also needs to deal with members added by invitation
@@ -43,7 +52,7 @@ const getDuplicates = (sequence: TeamActionLink[]) => {
   const distinctActions = {} as Record<string, Hash>
   return sequence.filter(link => {
     const { hash } = link
-    const fingerprint = getFingerprint(link)
+    const fingerprint = actionFingerprint(link)
     if (!(fingerprint in distinctActions)) {
       distinctActions[fingerprint] = hash
       return false
@@ -90,14 +99,6 @@ const addedNotIn = (excludeList: string[]) => (link: TeamActionLink): boolean =>
   return !excludeList.includes(added)
 }
 
-const getFingerprint = (link: TeamActionLink) => {
-  const { type, payload } = link.body
-
-  // omit lockboxes from payload
-  const { lockboxes, ...rest } = payload
-  return JSON.stringify({ type, payload: rest })
-}
-
 // members removing each other
 const resolveMutualDeletions = (sequence: TeamActionLink[], chain: TeamSignatureChain) => {
   const removals = sequence.filter(isRemovalAction)
@@ -122,6 +123,7 @@ const bySeniority = (chain: TeamSignatureChain) => (userNameA: string, userNameB
 
   // otherwise go by timestamp
   // TODO: would be better to do this by causal order if possible, but we can't naively rely on getSequence because it uses this resolver
+  // however we could use the trivial resolver for just this purpose
   const findLinkThatAddedMember = (userName: string) =>
     Object.values(chain.links).find(
       link =>
@@ -130,10 +132,10 @@ const bySeniority = (chain: TeamSignatureChain) => (userNameA: string, userNameB
         link.body.payload.member.userName === userName
     )
 
-  const memberAdditionTimestamp = (userName: string) => {
+  const addTimestamp = (userName: string) => {
     const addLink = findLinkThatAddedMember(userName)!.body as NonRootLinkBody<AddMemberAction>
     return addLink.timestamp
   }
 
-  return memberAdditionTimestamp(userNameA) - memberAdditionTimestamp(userNameB)
+  return addTimestamp(userNameA) - addTimestamp(userNameB)
 }
