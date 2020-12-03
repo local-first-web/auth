@@ -347,27 +347,36 @@ describe('integration', () => {
     expect(charlie.team.hasRole('MANAGERS')).toEqual(true)
   })
 
-  it('handles three-way connections', async () => {
+  it.only('handles three-way connections', async () => {
+    const allUpdated = () =>
+      Promise.all([updated(alice, bob), updated(bob, charlie), updated(alice, charlie)])
     const { alice, bob, charlie } = setup(['alice', 'bob', 'charlie'])
-    alice.team.addMemberRole('charlie', ADMIN)
+    alice.team.addMemberRole('charlie', ADMIN) // Charlie needs to be an admin to do stuff
 
-    // (note that Bob and Charlie are both admins)
-    expect(alice.team.memberHasRole('bob', ADMIN)).toBe(true)
-    expect(alice.team.memberHasRole('charlie', ADMIN)).toBe(true)
-
-    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
+    // 👩🏾<->👨🏻‍🦲<->👳🏽‍♂️ Alice, Bob, and Charlie all connect to each other
     await connect(alice, bob)
-    // 👨🏻‍🦲<->👳🏽‍♂️ Bob and Charlie connect
     await connect(bob, charlie)
-    // 👩🏾<->👳🏽‍♂️ Alice and Charlie connect
     await connect(alice, charlie)
 
-    // Alice and Charlie connect
-    // Bob and Charlie connect
-    // Alice adds a new role
-    // Bob adds a new role
-    // Charlie adds a new role
-    // All three get the three new roles
+    // 👩🏾 Alice adds a new role
+    alice.team.addRole('ALICES_FRIENDS')
+    await allUpdated()
+
+    // 👨🏻‍🦲 Bob adds a new role
+    bob.team.addRole('BOBS_FRIENDS')
+    await allUpdated()
+
+    // 👳🏽‍♂️ Charlie adds a new role
+    charlie.team.addRole('CHARLIES_FRIENDS')
+    await allUpdated()
+
+    // ✅ All three get the three new roles
+    expect(bob.team.hasRole('ALICES_FRIENDS')).toBe(true)
+    expect(charlie.team.hasRole('ALICES_FRIENDS')).toBe(true)
+    expect(alice.team.hasRole('CHARLIES_FRIENDS')).toBe(true)
+    expect(bob.team.hasRole('CHARLIES_FRIENDS')).toBe(true)
+    expect(alice.team.hasRole('BOBS_FRIENDS')).toBe(true)
+    expect(charlie.team.hasRole('BOBS_FRIENDS')).toBe(true)
   })
 
   // it('resolves concurrent non-conflicting changes in three-way connections', () => {
