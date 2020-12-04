@@ -10,7 +10,7 @@ import debug from '/util/debug'
 import { alice, bob, charlie, dwight, joinTestChannel, TestChannel } from '/util/testing'
 import '/util/testing/expect/toBeValid'
 
-const log = debug(`taco`)
+const log = debug(`taco:test`)
 
 interface UserStuff {
   userName: string
@@ -29,7 +29,7 @@ beforeAll(() => {
 })
 
 describe('integration', () => {
-  beforeEach(() => log.header(testName()))
+  beforeEach(() => log.header('TEST: ' + testName()))
 
   type TestUserSettings = {
     user: string
@@ -81,7 +81,10 @@ describe('integration', () => {
       const user = allTestUsers[userName]
       const context = getUserContext(userName)
       const device = redactDevice(user.device)
-      const team = teams.load(JSON.stringify(sourceTeam.chain), context)
+      const team = member
+        ? teams.load(JSON.stringify(sourceTeam.chain), context) // members get a copy of the source team
+        : teams.create(userName, context) // non-members get a dummy empty placeholder team
+
       const connectionContext = member ? { team, user, device } : { user, device }
       const userStuff = {
         userName,
@@ -123,6 +126,20 @@ describe('integration', () => {
 
     return testUsers
   }
+
+  it(`can reconnect after disconnecting`, async () => {
+    const { alice, bob } = setup(['alice', 'bob'])
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
+    await connect(alice, bob)
+
+    // 👩🏾🔌👨🏻‍🦲 Alice and Bob disconnect
+    await disconnect(alice, bob)
+
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob reconnect
+    await connect(alice, bob)
+
+    // ✅
+  })
 
   it('should send updates after connection is established', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
@@ -234,6 +251,41 @@ describe('integration', () => {
     expect(alice.team.has('alice')).toBe(false)
   })
 
+  it('eventually updates disconnected members when someone uses an invitation to join', async () => {
+    const { alice, bob, charlie } = setup(['alice', 'bob', { user: 'charlie', member: false }])
+
+    // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie
+    const { seed } = alice.team.invite('charlie')
+
+    // 👳🏽‍♂️📧<->👩🏾 Charlie connects to Alice and uses his invitation to join
+    await connectWithInvitation(alice, charlie, seed)
+
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
+    await connect(alice, bob)
+
+    // ✅
+    expectEveryoneToKnowEveryone(alice, charlie, bob)
+  })
+
+  it('updates connected members when someone uses an invitation to join', async () => {
+    const { alice, bob, charlie } = setup(['alice', 'bob', { user: 'charlie', member: false }])
+
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
+    await connect(alice, bob)
+
+    // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie
+    const { seed } = alice.team.invite('charlie')
+
+    // 👳🏽‍♂️📧<->👩🏾 Charlie connects to Alice and uses his invitation to join
+    await connectWithInvitation(alice, charlie, seed)
+
+    // Wait for Alice & Bob to sync up
+    await updated(alice, bob)
+
+    // ✅
+    expectEveryoneToKnowEveryone(alice, charlie, bob)
+  })
+
   it('resolves concurrent duplicate invitations when updating', async () => {
     const { alice, bob, charlie, dwight } = setup([
       'alice',
@@ -241,26 +293,58 @@ describe('integration', () => {
       { user: 'charlie', member: false },
       { user: 'dwight', member: false },
     ])
-    // // Alice invites Charlie and Dwight
-    // const aliceInvitesCharlie = alice.team.invite('charlie')
-    // const aliceInvitesDwight = alice.team.invite('dwight')
-    // // concurrently, Bob invites Charlie and Dwight
-    // const bobInvitesCharlie = bob.team.invite('charlie')
-    // const bobInvitesDwight = bob.team.invite('dwight')
 
-    // // Alice and Bob connect
-    // await connect(alice, bob)
-    // // Charlie connects to Alice and is able to join
-    // // Dwight connects to Bob and is able to join
+    // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie and Dwight
+    const aliceInvitesCharlie = alice.team.invite('charlie')
+    const _aliceInvitesDwight = alice.team.invite('dwight') // invitation unused, but that's OK
+
+    // 👨🏻‍🦲📧👳🏽‍♂️👴 concurrently, Bob invites Charlie and Dwight
+    const _bobInvitesCharlie = bob.team.invite('charlie') // invitation unused, but that's OK
+    const bobInvitesDwight = bob.team.invite('dwight')
+
+    // 👳🏽‍♂️📧<->👩🏾 Charlie connects to Alice and uses his invitation to join
+    await connectWithInvitation(alice, charlie, aliceInvitesCharlie.seed)
+
+    // 👴📧<->👨🏻‍🦲 Dwight connects to Bob and uses his invitation to join
+    await connectWithInvitation(bob, dwight, bobInvitesDwight.seed)
+
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
+    connect(alice, bob)
+
+    // let everyone catch up
+    await Promise.all([
+      updated(dwight, bob), //
+      updated(charlie, alice),
+    ])
+
+    // ✅
+    expectEveryoneToKnowEveryone(alice, charlie, bob, dwight)
   })
 
-  // it(`should handle concurrent admittance of the same invitation`, () => {
-  //   // Alice invites Charlie
-  //   // Charlie connects with Alice with his invitation proof
-  //   // Concurrently, Charlie connects with Bob with his invitation proof
-  //   // Alice connects with Bob
-  //   // ?? it all works out?
-  // })
+  it(`handles concurrent admittance of the same invitation`, async () => {
+    const { alice, bob, charlie } = setup(['alice', 'bob', { user: 'charlie', member: false }])
+
+    // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie
+    const { seed } = alice.team.invite('charlie')
+
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect, so Bob knows about the invitation
+    await connect(alice, bob)
+    await disconnect(alice, bob)
+
+    // await Promise.all([
+    //   // 👳🏽‍♂️📧<->👩🏾 Charlie presents his invitation to Alice
+    //   connectWithInvitation(alice, charlie, seed),
+
+    //   // 👳🏽‍♂️📧<-> 👨🏻‍🦲 concurrently Charlie presents his invitation to Bob
+    //   connectWithInvitation(bob, charlie, seed),
+    // ])
+
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
+    await connect(alice, bob)
+
+    // ✅
+    // expectToBeOnTheTeamAndCaughtUp(alice, charlie, bob)
+  })
 
   it('resolves mutual demotions in favor of the senior member', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
@@ -311,9 +395,10 @@ describe('integration', () => {
     // 👴<->👳🏽‍♂️ Dwight and Charlie connect
     await connect(dwight, charlie)
 
-    // 👴💭 👳🏽‍♂️💭 Both Dwight and Charlie now know about the mutual conflicting removals. They each
-    // discard Bob's removal of Alice (because they were done concurrently and Alice is senior so
-    // she wins)
+    // 👴💭 👳🏽‍♂️💭 Both Dwight and Charlie now know about the mutual conflicting removals.
+
+    // They each discard Bob's removal of Alice (because they were done concurrently and
+    // Alice is senior so she wins)
 
     // ✅ Both kept Alice 👩🏾👍
     expect(dwight.team.has('alice')).toBe(true)
@@ -476,31 +561,46 @@ const connect = async (a: UserStuff, b: UserStuff) => {
   await connection(a, b)
 }
 
-const disconnect = async (a: UserStuff, b: UserStuff) => {
-  a.connection[b.userName].stop()
-  b.connection[a.userName].stop()
-  await disconnection(a, b)
+/** Makes a connection where `a` has invited `b` with the given `seed`. */
+const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: string) => {
+  const join = joinTestChannel(a.channel[b.userName])
+  b.connectionContext.invitationSeed = seed
+  a.connection[b.userName] = join(a.connectionContext).start()
+  b.connection[a.userName] = join(b.connectionContext).start()
+  return connection(a, b).then(() => {
+    // The connection now has the team object, so let's update our user stuff
+    b.team = b.connection[a.userName].team!
+  })
+}
+
+/** Passes if each of the given members is on the team, and knows every other member on the team */
+const expectEveryoneToKnowEveryone = (...members: UserStuff[]) => {
+  for (const a of members)
+    for (const b of members) //
+      expect(a.team.has(b.userName)).toBe(true)
 }
 
 const connection = async (a: UserStuff, b: UserStuff) => {
   const connections = [a.connection[b.userName], b.connection[a.userName]]
 
+  // We're listening for a connection; if we're disconnected, throw an error
   connections.forEach(c =>
     c.on('disconnected', () => {
-      throw new Error(c.context.error?.message || 'Diconnected')
+      throw new Error(c.error?.message || 'Diconnected')
     })
   )
 
   // ✅ They're both connected
   await all(connections, 'connected')
 
+  // Remove the disconnect listeners so we don't throw errors later on
   connections.forEach(c => c.removeAllListeners())
 
-  const sharedKey = connections[0].context.sessionKey
+  const sharedKey = connections[0].sessionKey
   connections.forEach(connection => {
     expect(connection.state).toEqual('connected')
     // ✅ They've converged on a shared secret key
-    expect(connection.context.sessionKey).toEqual(sharedKey)
+    expect(connection.sessionKey).toEqual(sharedKey)
   })
 }
 
@@ -509,16 +609,31 @@ const updated = (a: UserStuff, b: UserStuff) => {
   return all(connections, 'updated')
 }
 
+const disconnect = async (a: UserStuff, b: UserStuff) =>
+  Promise.all([
+    disconnection(a, b),
+    a.connection[b.userName].stop(),
+    b.connection[a.userName].stop(),
+  ])
+
 const disconnection = async (a: UserStuff, b: UserStuff, message?: string) => {
   const connections = [a.connection[b.userName], b.connection[a.userName]]
+
   // ✅ They're both disconnected
   await all(connections, 'disconnected')
+
   connections.forEach(connection => {
     expect(connection.state).toEqual('disconnected')
     // ✅ If we're checking for a message, it matches
-    if (message !== undefined) expect(connection.context.error!.message).toContain(message)
+    if (message !== undefined) expect(connection.error!.message).toContain(message)
   })
 }
 
 const all = (connections: Connection[], event: string) =>
-  Promise.all(connections.map(c => new Promise(resolve => c.on(event, () => resolve()))))
+  Promise.all(
+    connections.map(connection => {
+      if (event === 'disconnect' && connection.state === 'disconnected') return true
+      if (event === 'connected' && connection.state === 'connected') return true
+      else return new Promise(resolve => connection.on(event, () => resolve()))
+    })
+  )
