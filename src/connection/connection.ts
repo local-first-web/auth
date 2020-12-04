@@ -142,7 +142,7 @@ export class Connection extends EventEmitter {
     }),
 
     acceptInvitation: context => {
-      assert(context.team !== undefined)
+      assert(context.team)
       // welcome them by sending the team's signature chain, so they can reconstruct team membership state
       this.sendMessage({
         type: 'ACCEPT_INVITATION',
@@ -154,6 +154,7 @@ export class Connection extends EventEmitter {
       team: (context, event) => {
         const team = this.rehydrateTeam(context, event)
         team.join(this.myProofOfInvitation(context))
+        this.log('joinTeam %o', team?.teamName)
         return team
       },
     }),
@@ -180,10 +181,7 @@ export class Connection extends EventEmitter {
     storePeer: assign({
       peer: context => {
         assert(context.team)
-        assert(
-          context.theirIdentityClaim !== undefined,
-          'in storePeer, theirIdentityClaim should be in context'
-        )
+        assert(context.theirIdentityClaim)
         return context.team.members(context.theirIdentityClaim.name)
       },
     }),
@@ -337,10 +335,7 @@ export class Connection extends EventEmitter {
     deriveSharedKey: assign({
       sessionKey: (context, event) => {
         this.log('deriveSharedKey')
-        assert(
-          context.theirEncryptedSeed !== undefined,
-          'deriveSharedKey: theirEncryptedSeed should be in context'
-        )
+        assert(context.theirEncryptedSeed)
         assert(context.seed)
         assert(context.peer)
 
@@ -374,8 +369,15 @@ export class Connection extends EventEmitter {
 
     // events for external listeners
 
+    onConnected: () => {
+      this.log('**** connected')
+      this.emit('connected')
+    },
+    onJoined: () => {
+      this.log('**** joined')
+      this.emit('joined')
+    },
     onUpdated: () => this.emit('updated'),
-    onConnected: () => this.emit('connected'),
     onDisconnected: (_, event) => this.emit('disconnected', event),
   }
 
@@ -398,10 +400,7 @@ export class Connection extends EventEmitter {
 
     invitationProofIsValid: context => {
       assert(context.team)
-      assert(
-        context.theirProofOfInvitation !== undefined,
-        'in invitationProofIsValid, theirProofOfInvitation should be in context'
-      )
+      assert(context.theirProofOfInvitation)
 
       try {
         context.team.admit(context.theirProofOfInvitation)
@@ -418,6 +417,7 @@ export class Connection extends EventEmitter {
       // Make sure my invitation exists on the signature chain of the team I'm about to join.
       // This check prevents an attack in which a fake team pretends to accept my invitation.
       const team = this.rehydrateTeam(context, event)
+      this.log('joinedTheRightTeam')
       return team.hasInvitation(this.myProofOfInvitation(context))
     },
 
@@ -483,7 +483,7 @@ export class Connection extends EventEmitter {
     })
 
   private myProofOfInvitation = (context: ConnectionContext) => {
-    assert(context.invitationSeed !== undefined)
+    assert(context.invitationSeed)
     return invitations.generateProof(context.invitationSeed, context.user.userName)
   }
 }
