@@ -234,7 +234,7 @@ describe('integration', () => {
     expect(bob.team.has('charlie')).toBe(false)
   })
 
-  it('a member can remove the founder', async () => {
+  it('lets a member remove the founder', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
