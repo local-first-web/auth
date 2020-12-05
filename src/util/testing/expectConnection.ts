@@ -4,11 +4,11 @@ export const expectConnection = async (connections: Connection[]) => {
   // ✅ They're both connected
   await connectionEvent(connections, 'connected')
 
-  const firstKey = connections[0].context.sessionKey
+  const firstKey = connections[0].sessionKey
   connections.forEach(connection => {
     expect(connection.state).toEqual('connected')
     // ✅ They've converged on a shared secret key
-    expect(connection.context.sessionKey).toEqual(firstKey)
+    expect(connection.sessionKey).toEqual(firstKey)
   })
 }
 export const expectDisconnection = async (connections: Connection[], message?: string) => {
@@ -17,7 +17,7 @@ export const expectDisconnection = async (connections: Connection[], message?: s
   connections.forEach(connection => {
     expect(connection.state).toEqual('disconnected')
     // ✅ If we're checking for a message, it matches
-    if (message !== undefined) expect(connection.context.error!.message).toContain(message)
+    if (message !== undefined) expect(connection.error!.message).toContain(message)
   })
 }
 /** Promisified event */
