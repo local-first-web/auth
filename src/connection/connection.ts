@@ -52,7 +52,7 @@ export class Connection extends EventEmitter {
   constructor({ sendMessage, context }: ConnectionParams) {
     super()
     this.sendMessage = (message: ConnectionMessage) => {
-      const recipient = this.peerName || '?'
+      const recipient = this.peerName ?? '?'
       this.log(`-> ${recipient} ${message.type} (m${this.outgoingMessageIndex})`)
       const index = this.outgoingMessageIndex++
       sendMessage({ ...message, index })
@@ -126,11 +126,9 @@ export class Connection extends EventEmitter {
   /** Passes an incoming message from the peer on to this connection machine, guaranteeing that
    *  messages will be delivered in the intended order (according to the `index` field on the message) */
   public async deliver(incomingMessage: NumberedConnectionMessage) {
-    this.log(
-      `<- ${this.peerName} ${incomingMessage.type} m${incomingMessage.index} ${getHead(
-        incomingMessage
-      )}`
-    )
+    const recipient = this.peerName ?? '?'
+    const { type, index } = incomingMessage
+    this.log(`<- ${recipient} ${type} m${index} ${getHead(incomingMessage)}`)
 
     const { queue, nextMessages } = orderedDelivery(this.incomingMessageQueue, incomingMessage)
 
