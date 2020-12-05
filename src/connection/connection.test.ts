@@ -155,7 +155,7 @@ describe('connection', () => {
     })
 
     // Let both processes play out automatically
-    it.only('should automatically connect two members', async () => {
+    it('should automatically connect two members', async () => {
       const { testUsers } = setup(['alice', 'bob'])
       const { alice, bob } = testUsers
 
