@@ -34,7 +34,8 @@ export const connectionMachine: MachineConfig<
 
     disconnected: {
       id: 'disconnected',
-      entry: 'onDisconnected',
+      entry: ['onDisconnected'],
+      type: 'final',
     },
 
     connecting: {
@@ -80,7 +81,7 @@ export const connectionMachine: MachineConfig<
                   // make sure the team I'm joining is actually the one that invited me
                   {
                     cond: 'joinedTheRightTeam',
-                    actions: 'joinTeam',
+                    actions: ['joinTeam', 'onJoined'],
                     target: '#authenticating',
                   },
 
