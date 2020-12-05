@@ -1,5 +1,4 @@
 ﻿import { asymmetric } from '@herbcaudill/crypto'
-import debug from '/util/debug'
 import { EventEmitter } from 'events'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
 import { getParentHashes, TeamLinkMap } from '/chain'
@@ -34,6 +33,7 @@ import { KeyType, randomKey } from '/keyset'
 import { Team } from '/team'
 import { assert, pause } from '/util'
 import { arrayToMap } from '/util/arrayToMap'
+import debug from '/util/debug'
 
 const { MEMBER } = KeyType
 
@@ -44,8 +44,7 @@ const { MEMBER } = KeyType
 export class Connection extends EventEmitter {
   private sendMessage: SendFunction
 
-  public machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
-  public context: ConnectionContext
+  private machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
 
   private incomingMessageQueue: Record<number, NumberedConnectionMessage> = {}
   private outgoingMessageIndex: number = 0
@@ -53,32 +52,28 @@ export class Connection extends EventEmitter {
   constructor({ sendMessage, context }: ConnectionParams) {
     super()
     this.sendMessage = (message: ConnectionMessage) => {
-      this.log(`-> ${message.type} (m${this.outgoingMessageIndex})`)
-      sendMessage({
-        ...message,
-        index: this.outgoingMessageIndex,
-      })
-      this.outgoingMessageIndex += 1
+      const recipient = this.peerName || '?'
+      this.log(`-> ${recipient} ${message.type} (m${this.outgoingMessageIndex})`)
+      const index = this.outgoingMessageIndex++
+      sendMessage({ ...message, index })
     }
-    this.context = context
-  }
-
-  private get log() {
-    return debug(`taco:connection:${this.context.user.userName}`)
-  }
-
-  /** Starts the connection machine. Returns this Connection object. */
-  public start = () => {
     // define state machine
     const machine = createMachine(connectionMachine, {
       actions: this.actions,
       guards: this.guards,
-    }).withContext(this.context)
+    }).withContext(context)
 
     // instantiate the machine and start the instance
-    this.machine = interpret(machine)
-      .onTransition(state => this.log(`state: %o`, state.value))
-      .start()
+    this.machine = interpret(machine).onTransition(state => this.log(`state: %o`, state.value))
+  }
+
+  private get log() {
+    return debug(`taco:connection:${this.machine.state.context.user.userName}`)
+  }
+
+  /** Starts the connection machine. Returns this Connection object. */
+  public start = () => {
+    this.machine.start()
     return this
   }
 
@@ -94,26 +89,80 @@ export class Connection extends EventEmitter {
     return this.machine.state.value
   }
 
+  get user() {
+    return this.machine.state.context.user
+  }
+
+  /** Returns the last error encountered by the connection machine.
+   * If no error has occurred, returns undefined.
+   */
+  get error() {
+    return this.machine.state.context.error
+  }
+
+  /** Returns the team that the connection's user is a member of.
+   * If the user has not yet joined a team, returns undefined.
+   */
+  get team() {
+    return this.machine.state.context.team
+  }
+
+  /** Returns the connection's session key when we are in a connected state.
+   * Otherwise, returns `undefined`.
+   */
+  get sessionKey() {
+    return this.machine.state.context.sessionKey
+  }
+
+  get peerName() {
+    const { context } = this.machine.state
+    return (
+      context.peer?.userName ||
+      context.theirIdentityClaim?.name ||
+      context.theirProofOfInvitation?.userName
+    )
+  }
+
   /** Passes an incoming message from the peer on to this connection machine, guaranteeing that
    *  messages will be delivered in the intended order (according to the `index` field on the message) */
   public async deliver(incomingMessage: NumberedConnectionMessage) {
-    this.log(`<- ${incomingMessage.type} m${incomingMessage.index} ${getHead(incomingMessage)}`)
+    this.log(
+      `<- ${this.peerName} ${incomingMessage.type} m${incomingMessage.index} ${getHead(
+        incomingMessage
+      )}`
+    )
 
     const { queue, nextMessages } = orderedDelivery(this.incomingMessageQueue, incomingMessage)
+
+    // TODO: detect hang when we've got message N+1 and message N doesn't come in for a while?
 
     // update queue
     this.incomingMessageQueue = queue
 
     // send any messages that are ready to go out
     for (const m of nextMessages) {
-      this.log(`(delivering m${m.index}) `)
+      if (!this.machine.state.done) {
+        this.machine.send(m)
+      } else {
+        this.log(`stopped, not sending m${incomingMessage.index}`)
+      }
 
-      this.machine.send(m)
       await pause(1) // yield so that state machine has a chance to update
     }
   }
 
   // ACTIONS
+
+  private fail = (message: string, details?: any) =>
+    assign({
+      error: (context, event) => {
+        const errorPayload = { message, details }
+        const errorMessage: ErrorMessage = { type: 'ERROR', payload: errorPayload }
+        this.machine.send(errorMessage) // force error state locally
+        this.sendMessage(errorMessage) // send error to peer
+        return errorPayload
+      },
+    })
 
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendHello'`) */
   private readonly actions: Record<string, Action> = {
@@ -154,7 +203,7 @@ export class Connection extends EventEmitter {
       team: (context, event) => {
         const team = this.rehydrateTeam(context, event)
         team.join(this.myProofOfInvitation(context))
-        this.log('joinTeam %o', team?.teamName)
+        this.log(`joinTeam: ${team.teamName}`)
         return team
       },
     }),
@@ -360,23 +409,17 @@ export class Connection extends EventEmitter {
       error: (_, event) => (event as ErrorMessage).payload,
     }),
 
-    rejectIdentity: () => this.fail(`I couldn't verify your identity`),
-    failNeitherIsMember: () => this.fail(`We can't connect because neither one of us is a member`),
-    rejectInvitation: () => this.fail(`Your invitation isn't valid - it may have been revoked`),
-    rejectTeam: () => this.fail(`This is not the team I was invited to`),
-    failPeerWasRemoved: () => this.fail(`You were removed from the team`),
-    failTimeout: () => this.fail('Connection timed out'),
+    rejectIdentity: this.fail(`I couldn't verify your identity`),
+    failNeitherIsMember: this.fail(`We can't connect because neither one of us is a member`),
+    rejectInvitation: this.fail(`Your invitation isn't valid - it may have been revoked`),
+    rejectTeam: this.fail(`This is not the team I was invited to`),
+    failPeerWasRemoved: this.fail(`You were removed from the team`),
+    failTimeout: this.fail('Connection timed out'),
 
     // events for external listeners
 
-    onConnected: () => {
-      this.log('**** connected')
-      this.emit('connected')
-    },
-    onJoined: () => {
-      this.log('**** joined')
-      this.emit('joined')
-    },
+    onConnected: () => this.emit('connected'),
+    onJoined: () => this.emit('joined'),
     onUpdated: () => this.emit('updated'),
     onDisconnected: (_, event) => this.emit('disconnected', event),
   }
@@ -404,10 +447,7 @@ export class Connection extends EventEmitter {
 
       try {
         context.team.admit(context.theirProofOfInvitation)
-        this.log('invitation proof is valid')
       } catch (e) {
-        this.context.error = { message: e.toString() }
-        this.log('invitation proof is not valid')
         return false
       }
       return true
@@ -466,15 +506,6 @@ export class Connection extends EventEmitter {
   }
 
   // helpers
-
-  private fail = (message: string, details?: any) => {
-    const errorPayload = { message, details }
-    this.log(errorPayload)
-    this.context.error = errorPayload // store error for external access
-    const errorMessage: ErrorMessage = { type: 'ERROR', payload: errorPayload }
-    this.machine.send(errorMessage) // force error state locally
-    this.sendMessage(errorMessage) // send error to peer
-  }
 
   private rehydrateTeam = (context: ConnectionContext, event: ConnectionMessage) =>
     new Team({
