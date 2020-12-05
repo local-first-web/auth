@@ -1,4 +1,4 @@
-﻿import { Connection, ConnectionState, InitialContext } from '/connection'
+﻿import { Connection, InitialContext } from '/connection'
 import { LocalUserContext } from '/context'
 import { Device, redactDevice } from '/device'
 import { ADMIN } from '/role'
@@ -11,18 +11,6 @@ import { alice, bob, charlie, dwight, joinTestChannel, TestChannel } from '/util
 import '/util/testing/expect/toBeValid'
 
 const log = debug(`taco:test`)
-
-interface UserStuff {
-  userName: string
-  user: User
-  context: LocalUserContext
-  device: Device
-  team: Team
-  connectionContext: InitialContext
-  channel: Record<string, TestChannel>
-  connection: Record<string, Connection>
-  getState: (u: string) => any
-}
 
 beforeAll(() => log.clear())
 
@@ -456,12 +444,6 @@ describe('integration', () => {
 
   // HELPERS
 
-  type TestUserSettings = {
-    user: string
-    admin?: boolean
-    member?: boolean
-  }
-
   const setup = (_setupUserSettings: (TestUserSettings | string)[] = []) => {
     const allTestUsers: Record<string, User> = { alice, bob, charlie, dwight }
 
@@ -553,13 +535,14 @@ describe('integration', () => {
 
   const testName = () => expect.getState().currentTestName
 
+  /** Connects the two members and waits for them to be connected */
   const connect = async (a: UserStuff, b: UserStuff) => {
     a.connection[b.userName].start()
     b.connection[a.userName].start()
     await connection(a, b)
   }
 
-  /** Makes a connection where `a` has invited `b` with the given `seed`. */
+  /** Connects a (a member) with b (invited using the given seed). */
   const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: string) => {
     const join = joinTestChannel(a.channel[b.userName])
     b.connectionContext.invitationSeed = seed
@@ -577,6 +560,16 @@ describe('integration', () => {
       for (const b of members) //
         expect(a.team.has(b.userName)).toBe(true)
   }
+
+  /** Disconnects the two members and waits for them to be disconnected */
+  const disconnect = async (a: UserStuff, b: UserStuff) =>
+    Promise.all([
+      disconnection(a, b),
+      a.connection[b.userName].stop(),
+      b.connection[a.userName].stop(),
+    ])
+
+  // Promisified events
 
   const connection = async (a: UserStuff, b: UserStuff) => {
     const connections = [a.connection[b.userName], b.connection[a.userName]]
@@ -607,13 +600,6 @@ describe('integration', () => {
     return all(connections, 'updated')
   }
 
-  const disconnect = async (a: UserStuff, b: UserStuff) =>
-    Promise.all([
-      disconnection(a, b),
-      a.connection[b.userName].stop(),
-      b.connection[a.userName].stop(),
-    ])
-
   const disconnection = async (a: UserStuff, b: UserStuff, message?: string) => {
     const connections = [a.connection[b.userName], b.connection[a.userName]]
 
@@ -636,3 +622,23 @@ describe('integration', () => {
       })
     )
 })
+
+// TYPES
+
+type TestUserSettings = {
+  user: string
+  admin?: boolean
+  member?: boolean
+}
+
+interface UserStuff {
+  userName: string
+  user: User
+  context: LocalUserContext
+  device: Device
+  team: Team
+  connectionContext: InitialContext
+  channel: Record<string, TestChannel>
+  connection: Record<string, Connection>
+  getState: (u: string) => any
+}

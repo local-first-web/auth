@@ -319,7 +319,7 @@ export class Connection extends EventEmitter {
           ...theirLinks.reduce(arrayToMap('hash'), {}),
         } as TeamLinkMap
 
-        // make sure we're not missing any links that are referenced by these new links
+        // make sure we're not missing any links that are referenced by these new links (shouldn't happen)
         const parentHashes = theirLinks.flatMap(link => getParentHashes(chain, link))
         const missingParents = parentHashes.filter(hash => !(hash in allLinks))
         assert(
