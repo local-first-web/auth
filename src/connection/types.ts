@@ -66,26 +66,26 @@ export interface ConnectionState {
     disconnected: {}
     connecting: {
       states: {
-        maybeHandlingInvitations: {
+        invitation: {
           states: {
             initializing: {}
-            awaitingInvitationAcceptance: {}
-            validatingInvitationProof: {}
+            waiting: {}
+            validating: {}
           }
         }
         authenticating: {
           states: {
-            provingOurIdentity: {
+            proving: {
               states: {
-                awaitingIdentityChallenge: {}
-                awaitingIdentityAcceptance: {}
+                awaitingChallenge: {}
+                awaitingAcceptance: {}
                 done: {}
               }
             }
-            verifyingTheirIdentity: {
+            verifying: {
               states: {
-                challengingIdentityClaim: {}
-                awaitingIdentityProof: {}
+                challenging: {}
+                waiting: {}
                 done: {}
               }
             }

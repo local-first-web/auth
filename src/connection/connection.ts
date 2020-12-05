@@ -52,9 +52,8 @@ export class Connection extends EventEmitter {
   constructor({ sendMessage, context }: ConnectionParams) {
     super()
     this.sendMessage = (message: ConnectionMessage) => {
-      const recipient = this.peerName ?? '?'
-      this.log(`-> ${recipient} ${message.type} (m${this.outgoingMessageIndex})`)
       const index = this.outgoingMessageIndex++
+      this.logMessage('out', message, index)
       sendMessage({ ...message, index })
     }
     // define state machine
@@ -63,12 +62,32 @@ export class Connection extends EventEmitter {
       guards: this.guards,
     }).withContext(context)
 
-    // instantiate the machine and start the instance
-    this.machine = interpret(machine).onTransition(state => this.log(`state: %o`, state.value))
+    // instantiate the machine
+    this.machine = interpret(machine).onTransition(this.logState)
   }
 
-  private get log() {
-    return debug(`taco:connection:${this.machine.state.context.user.userName}`)
+  private logState = (state: any) => {
+    const stateSummary = (state: any): string => {
+      const s = isString(state)
+        ? state
+        : Object.keys(state)
+            .map(key => {
+              const substate = state[key]
+              return substate === 'done' ? '' : `${key}:${stateSummary(substate)}`
+            })
+            .filter(s => s.length)
+            .join(',')
+      return s //
+        .replace(/disconnected/g, '❌')
+        .replace(/connected/g, '✅')
+    }
+
+    return this.log(`⏩ ${stateSummary(state.value)}`)
+  }
+
+  private logMessage = (direction: 'in' | 'out', message: ConnectionMessage, index: number) => {
+    const arrow = direction === 'in' ? '<-' : '->'
+    this.log(`${arrow} ${this.peerName} ${message.type} #${index} ${getHead(message)}`)
   }
 
   /** Starts the connection machine. Returns this Connection object. */
@@ -82,6 +101,10 @@ export class Connection extends EventEmitter {
     const disconnectMessage = { type: 'DISCONNECT' } as DisconnectMessage
     this.machine.send(disconnectMessage) // send disconnect event to local machine
     this.sendMessage(disconnectMessage) // send disconnect message to peer
+  }
+
+  private get log() {
+    return debug(`taco:connection:${this.machine.state.context.user.userName}`)
   }
 
   /** Returns the current state of the connection machine. */
@@ -117,19 +140,17 @@ export class Connection extends EventEmitter {
   get peerName() {
     const { context } = this.machine.state
     return (
-      context.peer?.userName ||
-      context.theirIdentityClaim?.name ||
-      context.theirProofOfInvitation?.userName
+      context.peer?.userName ??
+      context.theirIdentityClaim?.name ??
+      context.theirProofOfInvitation?.userName ??
+      '?'
     )
   }
 
   /** Passes an incoming message from the peer on to this connection machine, guaranteeing that
    *  messages will be delivered in the intended order (according to the `index` field on the message) */
   public async deliver(incomingMessage: NumberedConnectionMessage) {
-    const recipient = this.peerName ?? '?'
-    const { type, index } = incomingMessage
-    this.log(`<- ${recipient} ${type} m${index} ${getHead(incomingMessage)}`)
-
+    this.logMessage('in', incomingMessage, incomingMessage.index)
     const { queue, nextMessages } = orderedDelivery(this.incomingMessageQueue, incomingMessage)
 
     // TODO: detect hang when we've got message N+1 and message N doesn't come in for a while?
@@ -139,13 +160,8 @@ export class Connection extends EventEmitter {
 
     // send any messages that are ready to go out
     for (const m of nextMessages) {
-      if (!this.machine.state.done) {
-        this.machine.send(m)
-      } else {
-        this.log(`stopped, not sending m${incomingMessage.index}`)
-      }
-
-      await pause(1) // yield so that state machine has a chance to update
+      if (!this.machine.state.done) this.machine.send(m)
+      else this.log(`stopped, not sending #${incomingMessage.index}`)
     }
   }
 
@@ -201,7 +217,6 @@ export class Connection extends EventEmitter {
       team: (context, event) => {
         const team = this.rehydrateTeam(context, event)
         team.join(this.myProofOfInvitation(context))
-        this.log(`joinTeam: ${team.teamName}`)
         return team
       },
     }),
@@ -246,7 +261,6 @@ export class Connection extends EventEmitter {
       assert(context.team)
       const { root, head, links } = context.team.chain
       const hashes = Object.keys(links)
-      this.log(`sendUpdate ${head} (${hashes.length})`)
       this.sendMessage({
         type: 'UPDATE',
         payload: { root, head, hashes },
@@ -255,7 +269,6 @@ export class Connection extends EventEmitter {
 
     recordTheirHead: assign({
       theirHead: (_, event) => {
-        this.log('recordTheirHead')
         const { payload } = event as UpdateMessage | MissingLinksMessage
         return payload.head
       },
@@ -283,7 +296,6 @@ export class Connection extends EventEmitter {
         .filter(hash => theirHashes.includes(hash) === false)
         .map(hash => links[hash])
 
-      this.log(`sendMissingLinks ${head} (${missingLinks.length})`)
       if (missingLinks.length > 0) {
         this.sendMessage({
           type: 'MISSING_LINKS',
@@ -299,8 +311,6 @@ export class Connection extends EventEmitter {
 
         const { root, links } = chain
         const { head: theirHead, links: theirLinks } = (event as MissingLinksMessage).payload
-
-        this.log(`receiveMissingLinks ${theirHead} (${theirLinks.length})`)
 
         const allLinks = {
           // all our links
@@ -346,7 +356,7 @@ export class Connection extends EventEmitter {
     listenForUpdates: context => {
       assert(context.team)
       context.team.addListener('updated', ({ head }) => {
-        this.log(`team updated (LOCAL_UPDATE) ${head}`)
+        this.log(`LOCAL_UPDATE ${head}`)
         this.machine.send({ type: 'LOCAL_UPDATE', payload: { head } }) // send update event to local machine
       })
     },
@@ -356,7 +366,6 @@ export class Connection extends EventEmitter {
     generateSeed: assign({ seed: _ => randomKey() }),
 
     sendSeed: context => {
-      this.log('sendSeed')
       assert(context.peer)
       assert(context.seed)
 
@@ -374,14 +383,12 @@ export class Connection extends EventEmitter {
 
     receiveSeed: assign({
       theirEncryptedSeed: (_, event) => {
-        this.log('receiveSeed')
         return (event as SeedMessage).payload.encryptedSeed
       },
     }),
 
     deriveSharedKey: assign({
       sessionKey: (context, event) => {
-        this.log('deriveSharedKey')
         assert(context.theirEncryptedSeed)
         assert(context.seed)
         assert(context.peer)
@@ -455,7 +462,6 @@ export class Connection extends EventEmitter {
       // Make sure my invitation exists on the signature chain of the team I'm about to join.
       // This check prevents an attack in which a fake team pretends to accept my invitation.
       const team = this.rehydrateTeam(context, event)
-      this.log('joinedTheRightTeam')
       return team.hasInvitation(this.myProofOfInvitation(context))
     },
 
@@ -488,7 +494,6 @@ export class Connection extends EventEmitter {
           ? payload.head // take from message
           : context.theirHead // use what we already have in context
       const result = head === theirHead
-      this.log(`headsAreEqual ${event.type} ${result} (${head}, ${theirHead})`)
       return result
     },
 
@@ -518,5 +523,8 @@ export class Connection extends EventEmitter {
 }
 
 // for debugging
+
 const getHead = (message: ConnectionMessage) =>
   message.payload && 'head' in message.payload ? message.payload.head : ''
+
+const isString = (state: any) => typeof state === 'string'

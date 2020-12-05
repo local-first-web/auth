@@ -40,10 +40,10 @@ export const connectionMachine: MachineConfig<
 
     connecting: {
       id: 'connecting',
-      initial: 'maybeHandlingInvitations',
+      initial: 'invitation',
 
       states: {
-        maybeHandlingInvitations: {
+        invitation: {
           initial: 'initializing',
           states: {
             initializing: {
@@ -58,13 +58,13 @@ export const connectionMachine: MachineConfig<
                 // if I have an invitation, wait for acceptance
                 {
                   cond: 'iHaveInvitation',
-                  target: 'awaitingInvitationAcceptance',
+                  target: 'waiting',
                 },
 
                 // if they have an invitation, validate it
                 {
                   cond: 'theyHaveInvitation',
-                  target: 'validatingInvitationProof',
+                  target: 'validating',
                 },
 
                 // otherwise, we can proceed directly to authentication
@@ -74,7 +74,7 @@ export const connectionMachine: MachineConfig<
               ],
             },
 
-            awaitingInvitationAcceptance: {
+            waiting: {
               // wait for them to validate the invitation we've shown
               on: {
                 ACCEPT_INVITATION: [
@@ -95,7 +95,7 @@ export const connectionMachine: MachineConfig<
               ...timeout,
             },
 
-            validatingInvitationProof: {
+            validating: {
               always: [
                 // if the proof succeeds, add them to the team and send a welcome message,
                 // then proceed to the standard identity claim & challenge process
@@ -124,10 +124,10 @@ export const connectionMachine: MachineConfig<
           type: 'parallel',
           states: {
             // 1.
-            provingOurIdentity: {
-              initial: 'awaitingIdentityChallenge',
+            proving: {
+              initial: 'awaitingChallenge',
               states: {
-                awaitingIdentityChallenge: {
+                awaitingChallenge: {
                   // if we just presented an invitation, we can skip this
                   always: {
                     cond: 'iHaveInvitation',
@@ -138,14 +138,14 @@ export const connectionMachine: MachineConfig<
                       // we claimed our identity already, in our HELLO message; now we wait for a challenge
                       // when we receive a challenge, respond with proof
                       actions: ['proveIdentity'],
-                      target: 'awaitingIdentityAcceptance',
+                      target: 'awaitingAcceptance',
                     },
                   },
                   ...timeout,
                 },
 
                 // wait for a message confirming that they've validated our proof of identity
-                awaitingIdentityAcceptance: {
+                awaitingAcceptance: {
                   on: {
                     ACCEPT_IDENTITY: {
                       target: 'done',
@@ -159,10 +159,10 @@ export const connectionMachine: MachineConfig<
             },
 
             // 2.
-            verifyingTheirIdentity: {
-              initial: 'challengingIdentityClaim',
+            verifying: {
+              initial: 'challenging',
               states: {
-                challengingIdentityClaim: {
+                challenging: {
                   always: [
                     // if they just presented an invitation, we can skip this
                     {
@@ -175,7 +175,7 @@ export const connectionMachine: MachineConfig<
                     {
                       cond: 'identityIsKnown',
                       actions: 'challengeIdentity',
-                      target: 'awaitingIdentityProof',
+                      target: 'waiting',
                     },
 
                     // if we don't have anybody by that name in the team, disconnect with error
@@ -187,7 +187,7 @@ export const connectionMachine: MachineConfig<
                 },
 
                 // then wait for them to respond to the challenge with proof
-                awaitingIdentityProof: {
+                waiting: {
                   on: {
                     PROVE_IDENTITY: [
                       // if the proof succeeds, we're done on our side
@@ -224,8 +224,6 @@ export const connectionMachine: MachineConfig<
 
       // Before connecting, we make sure sure we have the signature chain on both sides
       onDone: {
-        // send our head & hashes to tell them what we know
-        actions: 'sendUpdate',
         target: '#synchronizing',
       },
     },
