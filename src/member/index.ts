@@ -1,1 +1,1 @@
-﻿export * from '/member/member'
+﻿export * from './types'

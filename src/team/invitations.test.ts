@@ -1,7 +1,12 @@
-import { load } from '/team/load'
+import * as teams from '/team'
+import * as keyset from '/keyset'
 import { generateProof, ProofOfInvitation } from '/invitation'
 import { ADMIN } from '/role'
-import { alicesContext, bob, bobsContext, defaultContext, newTeam } from '/util/testing'
+import { alice, alicesContext, bob, bobsContext, defaultContext, newTeam } from '/util/testing'
+import { clone } from '/chain'
+import { PublicDevice, DeviceInfo, DeviceType, DeviceWithSecrets, getDeviceId } from '/device'
+import * as devices from '/device'
+import { LocalUserContext } from '/context'
 
 describe('Team', () => {
   const setup = () => ({
@@ -66,7 +71,7 @@ describe('Team', () => {
         const proofOfInvitation = generateProof(seed, 'bob')
         alicesTeam.admit(proofOfInvitation)
 
-        // ✅ Bob is on the team as an admin
+        // ✅ Bob is on the team as an admin 👍
         expect(alicesTeam.memberIsAdmin('bob')).toBe(true)
       })
 
@@ -85,7 +90,7 @@ describe('Team', () => {
         // 🦹‍♀️ Eve shows 👩🏾 Alice her fake proof of invitation
         const presentForgedInvitation = () => alicesTeam.admit(forgedProofOfInvitation)
 
-        // ❌ but 👩🏾 Alice is not fooled
+        // ✅ but 👩🏾 Alice is not fooled 👎
         expect(presentForgedInvitation).toThrow(/User names don't match/)
       })
 
@@ -101,7 +106,7 @@ describe('Team', () => {
 
         // later, 👩🏾 Alice is no longer around, but 👨🏻‍🦲 Bob is online
         let persistedTeam = alicesTeam.save()
-        const bobsTeam = load(persistedTeam, bobsContext)
+        const bobsTeam = teams.load(persistedTeam, bobsContext)
 
         // just to confirm: 👨🏻‍🦲 Bob isn't an admin
         expect(bobsTeam.memberIsAdmin('bob')).toBe(false)
@@ -109,12 +114,12 @@ describe('Team', () => {
         // 👳🏽‍♂️ Charlie shows 👨🏻‍🦲 Bob his proof of invitation
         bobsTeam.admit(proofOfInvitation)
 
-        // 👳🏽‍♂️ Charlie is now on the team
+        // 👍👳🏽‍♂️ Charlie is now on the team
         expect(bobsTeam.has('charlie')).toBe(true)
 
         // ✅ 👩🏾 Alice can now see that 👳🏽‍♂️ Charlie is on the team. Congratulations, Charlie!
         persistedTeam = bobsTeam.save()
-        alicesTeam = load(persistedTeam, alicesContext)
+        alicesTeam = teams.load(persistedTeam, alicesContext)
         expect(alicesTeam.has('charlie')).toBe(true)
       })
 
@@ -136,32 +141,47 @@ describe('Team', () => {
 
         // later, 👩🏾 Alice is no longer around, but 👨🏻‍🦲 Bob is online
         const persistedTeam = alicesTeam.save()
-        const bobsTeam = load(persistedTeam, bobsContext)
+        const bobsTeam = teams.load(persistedTeam, bobsContext)
 
         // 👳🏽‍♂️ Charlie shows 👨🏻‍🦲 Bob his proof of invitation
         const tryToAdmitCharlie = () => bobsTeam.admit(proofOfInvitation)
 
-        // ❌ But the invitation is rejected
+        // 👎 But the invitation is rejected
         expect(tryToAdmitCharlie).toThrowError(/revoked/)
 
-        // 👳🏽‍♂️ Charlie is not on the team
+        // ✅ 👳🏽‍♂️ Charlie is not on the team
         expect(bobsTeam.has('charlie')).toBe(false)
       })
     })
 
     describe('devices', () => {
       it('creates and accepts an invitation for a device', () => {
-        const { team } = setup()
+        const { team: laptopTeam } = setup()
+
+        const phone = devices.create({ userName: 'alice', name: 'phone', type: DeviceType.mobile })
+        const phoneContext: LocalUserContext = { user: { ...alice, device: phone } }
+
+        // 👩🏾 Alice only has 💻 one device on the signature chain
+        expect(laptopTeam.members('alice').devices).toHaveLength(1)
 
         // 💻 on her laptop, Alice generates an invitation for herself (so a device invitation)
-        const { seed } = team.invite('alice')
+        const { seed } = laptopTeam.invite('alice')
 
-        // 📱 Alice gets the secret invitation key to her phone, perhaps by typing it in or by
-        // scanning a QR code. Alice's phone uses the secret key to generate proof of invitation
+        // 📱 Alice gets the seed to her phone, perhaps by typing it in or by scanning a QR code.
+        // Alice's phone uses the seed to generate proof of invitation
         const proofOfInvitation = generateProof(seed, 'alice')
 
         // 📱 Alice's phone connects with 💻 her laptop and presents the proof
-        team.admit(proofOfInvitation)
+        laptopTeam.admit(proofOfInvitation)
+
+        // 👍 The proof was good, so the laptop sends the phone the team's signature chain
+        const phoneTeam = teams.load(clone(laptopTeam.chain), phoneContext)
+
+        // 📱 Alice's phone "joins" the team (adds itself to the signature chain)
+        phoneTeam.join(proofOfInvitation)
+
+        // ✅ Now Alice has 💻📱 two devices on the signature chain
+        expect(phoneTeam.members('alice').devices).toHaveLength(2)
       })
     })
   })

@@ -1,7 +1,7 @@
 ﻿import { Reducer } from '/team/reducers/index'
-import { Device } from '/device'
+import { PublicDevice } from '/device'
 
-export const addDevice = (device: Device): Reducer => state => {
+export const addDevice = (device: PublicDevice): Reducer => state => {
   const { userName } = device
   return {
     ...state,

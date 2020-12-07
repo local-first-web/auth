@@ -1,4 +1,5 @@
 ﻿import { signatures, symmetric } from '@herbcaudill/crypto'
+import { Debugger } from 'debug'
 import { EventEmitter } from 'events'
 import * as chains from '/chain'
 import { membershipResolver, TeamAction, TeamActionLink, TeamSignatureChain } from '/chain'
@@ -29,8 +30,8 @@ import * as select from '/team/selectors'
 import { getVisibleScopes } from '/team/selectors'
 import { EncryptedEnvelope, isNewTeam, SignedEnvelope, TeamOptions, TeamState } from '/team/types'
 import * as users from '/user'
-import { redactUser, User } from '/user'
-import { assert, Hash, Optional, Payload } from '/util'
+import { User } from '/user'
+import { assert, debug, Hash, Optional, Payload } from '/util'
 
 const { DEVICE, ROLE, MEMBER } = KeyType
 
@@ -43,6 +44,7 @@ export class Team extends EventEmitter {
   public chain: TeamSignatureChain
   private context: LocalUserContext
   private state: TeamState = initialState // derived from chain, only updated by running chain through reducer
+  private log: ReturnType<typeof debug>
 
   /**
    * We can make a team instance either by creating a brand-new team, or restoring one from a stored
@@ -55,6 +57,8 @@ export class Team extends EventEmitter {
   constructor(options: TeamOptions) {
     super()
     this.context = options.context
+
+    this.log = debug(`taco:team:${this.context.user.userName}`)
 
     if (isNewTeam(options)) {
       // Create a new team with the current user as founding member
@@ -72,9 +76,10 @@ export class Team extends EventEmitter {
         lockboxes: [teamLockbox, adminLockbox],
       }
       this.chain = chains.create<TeamAction>(payload, this.context)
+    } else {
+      // Load a team from an existing chain
+      this.chain = maybeDeserialize(options.source)
     }
-    // Load a team from an existing chain
-    else this.chain = maybeDeserialize(options.source)
     this.updateState()
   }
 
@@ -155,7 +160,7 @@ export class Team extends EventEmitter {
    * In real-world scenarios, you'll need to use the `team.invite` workflow
    * to add members without relying on some kind of public key infrastructure.
    */
-  public add = (user: User | Member, roles: string[] = []) => {
+  public add = (user: User, roles: string[] = []) => {
     const member = { ...users.redactUser(user), roles }
 
     // make lockboxes for the new member
@@ -298,11 +303,11 @@ export class Team extends EventEmitter {
 
   Inviting a new member: 
 
-    Alice generates an invitation using a secret seed. The seed an be randomly generated, or selected
-    by Alice. Alice sends the invitation to Bob using a trusted channel.
+    Alice generates an invitation using a secret seed. The seed an be randomly generated, or
+    selected by Alice. Alice sends the invitation to Bob using a trusted channel.
 
-    Meanwhile, Alice adds Bob to the signature chain as a new member, with appropriate roles (if any)
-    and any corresponding lockboxes. 
+    Meanwhile, Alice adds Bob to the signature chain as a new member, with appropriate roles (if
+    any) and any corresponding lockboxes. 
 
     Bob can't authenticate directly as that member, since it has random temporary keys created by
     Alice. Instead, Bob generates a proof of invitation, and when they try to connect to Alice or
@@ -310,21 +315,21 @@ export class Team extends EventEmitter {
 
     Once Alice or Charlie verifies Bob's proof, they send him the team chain. Bob uses that to
     instantiate the team, then he updates the team with his real public keys and adds his current
-      device information. 
+    device information. 
 
   Inviting an existing member's device: 
 
     On his laptop, Bob generates an invitation using a secret seed. He gets that seed to his phone
     using a QR code or by typing it in. 
 
-    On his phone, Bob connects to his laptop (or to Alice or Charlie). Bob's phone presents its proof
-    of invitation. 
+    On his phone, Bob connects to his laptop (or to Alice or Charlie). Bob's phone presents its
+    proof of invitation. 
 
     Once Bob's laptop or Alice or Charlie verifies Bob's phone's proof, they send it the team chain.
     Using the chain, the phone instantiates the team, then adds itself as a device.
 
-    *Note:* A member can only invite their own devices. A non-admin member can only remove their own device;
-    an admin member can remove a device for anyone.
+    *Note:* A member can only invite their own devices. A non-admin member can only remove their own
+    device; an admin member can remove a device for anyone.
 
   */
 
@@ -340,11 +345,12 @@ export class Team extends EventEmitter {
     } else {
       // inviting a new member
       assert(this.memberIsAdmin(currentUser.userName), `Only admins can add invite new members`)
-      // this creates a new user with random keys; they'll replace those keys as soon as they join
-      const user = users.create(userName)
+
+      // create a new member with random keys; they'll replace those keys as soon as they join
+      const temporaryKeys = keysets.create({ type: keysets.KeyType.MEMBER, name: userName })
+      const member: Member = { userName, keys: keysets.redactKeys(temporaryKeys), roles }
 
       // make normal lockboxes for the new member
-      const member: Member = { ...redactUser(user), roles }
       const lockboxes = this.createMemberLockboxes(member)
 
       // post the member & their lockboxes to the signature chain
@@ -423,18 +429,24 @@ export class Team extends EventEmitter {
   public join = (proof: ProofOfInvitation) => {
     assert(this.hasInvitation(proof), `Can't join a team I wasn't invited to`)
 
-    // I add my current device
+    // q: Am I a new member, or an existing member adding a new device?
+    // a: If I don't have any devices registered on the chain, I'm a new member
+    const deviceCount = this.members(proof.userName).devices?.length ?? 0
+    if (deviceCount === 0) {
+      // New member: The signature chain already contains a member entry for me, but it has
+      // temporary placeholder keys. Let's update that with my real keys.
+      const keys = redactKeys(this.context.user.keys)
+      this.dispatch({
+        type: 'CHANGE_MEMBER_KEYS',
+        payload: { keys },
+      })
+    }
+
+    // Either way, I add this device
     const device = redactDevice(this.context.user.device)
     this.dispatch({
       type: 'ADD_DEVICE',
       payload: { device },
-    })
-
-    // I change my member keys
-    const keys = redactKeys(this.context.user.keys)
-    this.dispatch({
-      type: 'CHANGE_MEMBER_KEYS',
-      payload: { keys },
     })
   }
 

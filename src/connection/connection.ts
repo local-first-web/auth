@@ -31,9 +31,8 @@ import {
 import * as invitations from '/invitation'
 import { KeyType, randomKey } from '/keyset'
 import { Team } from '/team'
-import { assert, pause } from '/util'
-import { arrayToMap } from '/util/arrayToMap'
-import debug from '/util/debug'
+import { arrayToMap, assert, debug } from '/util'
+import { chainSummary } from '/util/chainSummary'
 
 const { MEMBER } = KeyType
 
@@ -310,17 +309,18 @@ export class Connection extends EventEmitter {
         const { chain } = context.team
 
         const { root, links } = chain
-        const { head: theirHead, links: theirLinks } = (event as MissingLinksMessage).payload
+        const { head: theirHead, links: theirLinksArray } = (event as MissingLinksMessage).payload
+        const theirLinks = theirLinksArray.reduce(arrayToMap('hash'), {})
 
         const allLinks = {
           // all our links
           ...links,
           // all their new links, converted from an array to a hashmap
-          ...theirLinks.reduce(arrayToMap('hash'), {}),
+          ...theirLinks,
         } as TeamLinkMap
 
         // make sure we're not missing any links that are referenced by these new links (shouldn't happen)
-        const parentHashes = theirLinks.flatMap(link => getParentHashes(chain, link))
+        const parentHashes = theirLinksArray.flatMap(link => getParentHashes(chain, link))
         const missingParents = parentHashes.filter(hash => !(hash in allLinks))
         assert(
           missingParents.length === 0,
@@ -356,8 +356,10 @@ export class Connection extends EventEmitter {
     listenForUpdates: context => {
       assert(context.team)
       context.team.addListener('updated', ({ head }) => {
-        this.log(`LOCAL_UPDATE ${head}`)
-        this.machine.send({ type: 'LOCAL_UPDATE', payload: { head } }) // send update event to local machine
+        if (!this.machine.state.done) {
+          this.log(`LOCAL_UPDATE ${head}`)
+          this.machine.send({ type: 'LOCAL_UPDATE', payload: { head } }) // send update event to local machine
+        }
       })
     },
 

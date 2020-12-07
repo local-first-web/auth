@@ -1,4 +1,4 @@
-﻿import { clone } from '/chain/clone'
+﻿import { clone } from '/util'
 import { hashLink } from '/chain/hashLink'
 import { isPredecessor } from '/chain/predecessors'
 import { Action, MergeLink, SignatureChain } from '/chain/types'

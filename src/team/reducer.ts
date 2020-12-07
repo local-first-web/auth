@@ -1,4 +1,5 @@
-﻿import { ROOT, TeamAction, TeamActionLink } from '/chain'
+﻿import { clone, debug } from '/util'
+import { ROOT, TeamAction, TeamActionLink } from '/chain'
 import { ADMIN } from '/role'
 import {
   addDevice,
@@ -21,6 +22,7 @@ import {
 import { TeamState } from '/team/types'
 import { validate } from '/team/validate'
 
+const log = debug('taco:reducer')
 /**
  * Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `teamState`
  * from `teamChain`, by applying a Redux-style reducer to the array of links. The reducer runs on
@@ -35,6 +37,8 @@ import { validate } from '/team/validate'
  * @param link The current link being processed.
  */
 export const reducer = (state: TeamState, link: TeamActionLink) => {
+  state = clone(state)
+
   // make sure this link can be applied to the previous state & doesn't put us in an invalid state
   const validation = validate(state, link)
   if (!validation.isValid) throw validation.error

@@ -1,6 +1,6 @@
 import { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
 import { ConnectionMessage } from '/connection/message'
-import { Device } from '/device'
+import { PublicDevice } from '/device'
 import { ProofOfInvitation } from '/invitation'
 import { KeyScope } from '/keyset'
 import { Member } from '/member'
@@ -23,7 +23,7 @@ export type InitialContext = {
   /** The local user, including their secret keys */
   user: User
   /** The local device, including secret keys */
-  device: Device
+  device: PublicDevice
   /** If we already belong to the team, we pass the team object we both belong to */
   team?: Team
   /** If we've just been invited, we provide the invitation secret key that we've been given  */

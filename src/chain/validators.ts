@@ -9,7 +9,9 @@ import {
   RootLinkBody,
   ValidatorSet,
 } from '/chain/types'
-import { ValidationError } from '/util'
+import { ValidationError, ValidationResult, debug } from '/util'
+
+const log = debug('taco:validators')
 
 export const validators: ValidatorSet = {
   /** Does this link contain a hash of the previous link?  */
@@ -19,15 +21,13 @@ export const validators: ValidatorSet = {
     for (const hash of prevHashes) {
       const prevLink = chain.links[hash]!
       const expected = hashLink(prevLink.body)
-      const actual = hash
-      if (expected !== actual) {
-        console.log({ link, prevLink, expected, actual })
+      if (hash !== expected) {
         return {
           isValid: false,
           error: new ValidationError('Hash does not match previous link', {
             link,
+            hash,
             expected,
-            actual,
           }),
         }
       }
@@ -44,7 +44,7 @@ export const validators: ValidatorSet = {
     if (hasNoPreviousLink === isDesignatedAsRoot && isDesignatedAsRoot === hasRootType)
       return { isValid: true }
     else {
-      // TODO sort out all these possibilities?
+      // TODO there are more possibilities - sort them all out?
       const message = hasNoPreviousLink
         ? // has type ROOT but isn't first
           'The root link must be the first link in the signature chain.'

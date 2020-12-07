@@ -1,6 +1,6 @@
 ﻿export * from '/chain/append'
 export * from '/chain/create'
-export * from '/chain/clone'
+export * from '/util'
 export * from '/chain/deserialize'
 export * from '/chain/getHead'
 export * from '/chain/getRoot'

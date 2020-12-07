@@ -22,7 +22,7 @@ export interface DeviceWithSecrets extends DeviceInfo {
 }
 
 /** We don't leak the device's name or type (or secret keys!) on the signature chain. */
-export interface Device {
+export interface PublicDevice {
   userName: string
   deviceId: Base64
   keys: PublicKeyset

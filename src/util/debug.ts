@@ -12,15 +12,15 @@ const process = (s: string) =>
     .replace(isoDateRx, '') // eliminate dates
     .replace(hashRx, s => s.slice(0, 5)) // truncate hashes
 
-    .replace(/taco:pause/, '⌚')
-    .replace(/TEST:/, '🧪')
-    .replace(/taco:test/, '🧪 ')
-    .replace(/taco:connection:/, '')
+    .replace(/taco:pause/g, '⌚')
+    .replace(/TEST:/g, '🧪')
+    .replace(/taco:test/g, '🧪 ')
+    .replace(/taco:connection:/g, '')
 
-    .replace(/alice/, '👩🏾')
-    .replace(/bob/, '👨🏻‍🦲')
-    .replace(/charlie/, '👳🏽‍♂️')
-    .replace(/dwight/, '👴')
+    .replace(/alice/g, '👩🏾')
+    .replace(/bob/g, '👨🏻‍🦲')
+    .replace(/charlie/g, '👳🏽‍♂️')
+    .replace(/dwight/g, '👴')
 
     .replace(/↩/g, EOL)
     .replace(/\\n/g, EOL)
@@ -28,7 +28,7 @@ const process = (s: string) =>
 const clear = () => fs.writeFileSync(logFile, '')
 const append = (s: string) => fs.appendFileSync(logFile, process(s))
 
-const debug = (prefix: string) => {
+export const debug = (prefix: string) => {
   const logger = _debug(prefix) as ExtendedDebug
 
   logger.clear = clear
@@ -36,8 +36,6 @@ const debug = (prefix: string) => {
   logger.log = s => append(`  ${s}↩`)
   return logger
 }
-
-export default debug
 
 type ExtendedDebug = ReturnType<typeof _debug> & {
   clear: () => void

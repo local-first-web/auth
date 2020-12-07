@@ -4,11 +4,11 @@ import * as team from '/team'
 import * as user from '/user'
 // test assets
 
-export const alice = user.create('alice')
-export const bob = user.create('bob')
-export const charlie = user.create('charlie')
-export const dwight = user.create('dwight')
-export const eve = user.create('eve')
+export const alice = user.create('alice', 'laptop')
+export const bob = user.create('bob', 'laptop')
+export const charlie = user.create('charlie', 'laptop')
+export const dwight = user.create('dwight', 'laptop')
+export const eve = user.create('eve', 'laptop')
 
 export const alicesLaptop = alice.device
 export const bobsLaptop = bob.device

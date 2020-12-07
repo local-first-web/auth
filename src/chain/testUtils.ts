@@ -1,5 +1,5 @@
 import { append } from '/chain/append'
-import { clone } from '/chain/clone'
+import { clone } from '/util'
 import { create } from '/chain/create'
 import { merge } from '/chain/merge'
 import { Link, isMergeLink, LinkBody, SignatureChain, SignedLink, Action } from '/chain/types'

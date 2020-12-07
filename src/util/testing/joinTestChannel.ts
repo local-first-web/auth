@@ -3,7 +3,7 @@ import { ConnectionContext, Connection, SendFunction } from '/connection'
 import { pause } from '/util/pause'
 
 export const joinTestChannel = (channel: TestChannel) => (context: ConnectionContext) => {
-  const id = context.user.userName
+  const id = context.device.deviceId
 
   // hook up send
   const sendMessage: SendFunction = msg => channel.write(id, msg)

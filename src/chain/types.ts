@@ -1,5 +1,5 @@
 ﻿import { MemberContext } from '/context'
-import { Device } from '/device'
+import { PublicDevice } from '/device'
 import { Invitation } from '/invitation'
 import { PublicKeyset } from '/keyset'
 import { Lockbox } from '/lockbox'
@@ -177,7 +177,7 @@ export interface RemoveMemberRoleAction extends Action {
 export interface AddDeviceAction extends Action {
   type: 'ADD_DEVICE'
   payload: BasePayload & {
-    device: Device
+    device: PublicDevice
   }
 }
 

@@ -1,12 +1,15 @@
-﻿import { Connection, InitialContext } from '/connection'
+﻿import { getSequence, merge, TeamSignatureChain } from './chain'
+import { actionFingerprint } from './chain/actionFingerprint'
+import { KeyType } from './keyset'
+import { Connection, InitialContext } from '/connection'
 import { LocalUserContext } from '/context'
-import { Device, redactDevice } from '/device'
+import { DeviceType, DeviceWithSecrets, getDeviceId, PublicDevice, redactDevice } from '/device'
+import * as keysets from '/keyset'
 import { ADMIN } from '/role'
 import * as teams from '/team'
 import { Team } from '/team'
 import { User } from '/user'
-import { arrayToMap } from '/util/arrayToMap'
-import debug from '/util/debug'
+import { arrayToMap, debug } from '/util'
 import { alice, bob, charlie, dwight, joinTestChannel, TestChannel } from '/util/testing'
 import '/util/testing/expect/toBeValid'
 
@@ -15,7 +18,7 @@ const log = debug(`taco:test`)
 beforeAll(() => log.clear())
 
 describe('integration', () => {
-  it(`can reconnect after disconnecting`, async () => {
+  test(`can reconnect after disconnecting`, async () => {
     const { alice, bob } = setup(['alice', 'bob'])
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
@@ -29,7 +32,7 @@ describe('integration', () => {
     // ✅
   })
 
-  it('should send updates after connection is established', async () => {
+  test('sends updates after connection is established', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
@@ -54,7 +57,7 @@ describe('integration', () => {
     expect(bob.team.memberHasRole('bob', 'MANAGERS')).toBe(true)
   })
 
-  it('should resolve concurrent non-conflicting changes when updating', async () => {
+  test('resolves concurrent non-conflicting changes when updating', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
     // 👩🏾 Alice creates a new role
@@ -82,7 +85,7 @@ describe('integration', () => {
     expect(alice.team.hasInvitation(id)).toBe(true)
   })
 
-  it('should resolve concurrent duplicate changes when updating', async () => {
+  test('resolves concurrent duplicate changes when updating', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
     // 👩🏾 Alice creates a new role
@@ -101,7 +104,7 @@ describe('integration', () => {
     expect(bob.team.hasRole('MANAGERS')).toBe(true)
   })
 
-  it('resolves concurrent duplicate removals', async () => {
+  test('resolves concurrent duplicate removals', async () => {
     const { alice, bob } = setup(['alice', 'bob', 'charlie'])
 
     // 👳🏽‍♂️ Charlie is a member
@@ -122,7 +125,7 @@ describe('integration', () => {
     expect(bob.team.has('charlie')).toBe(false)
   })
 
-  it('lets a member remove the founder', async () => {
+  test('lets a member remove the founder', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
@@ -139,7 +142,7 @@ describe('integration', () => {
     expect(alice.team.has('alice')).toBe(false)
   })
 
-  it('eventually updates disconnected members when someone uses an invitation to join', async () => {
+  test('eventually updates disconnected members when someone uses an invitation to join', async () => {
     const { alice, bob, charlie } = setup(['alice', 'bob', { user: 'charlie', member: false }])
 
     // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie
@@ -155,7 +158,7 @@ describe('integration', () => {
     expectEveryoneToKnowEveryone(alice, charlie, bob)
   })
 
-  it('updates connected members when someone uses an invitation to join', async () => {
+  test('updates connected members when someone uses an invitation to join', async () => {
     const { alice, bob, charlie } = setup(['alice', 'bob', { user: 'charlie', member: false }])
 
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
@@ -174,7 +177,7 @@ describe('integration', () => {
     expectEveryoneToKnowEveryone(alice, charlie, bob)
   })
 
-  it('resolves concurrent duplicate invitations when updating', async () => {
+  test('resolves concurrent duplicate invitations when updating', async () => {
     const { alice, bob, charlie, dwight } = setup([
       'alice',
       'bob',
@@ -200,16 +203,13 @@ describe('integration', () => {
     connect(alice, bob)
 
     // let everyone catch up
-    await Promise.all([
-      updated(dwight, bob), //
-      updated(charlie, alice),
-    ])
+    await Promise.all([updated(dwight, bob), updated(charlie, alice)])
 
-    // ✅
+    // ✅ No problemo
     expectEveryoneToKnowEveryone(alice, charlie, bob, dwight)
   })
 
-  it(`handles concurrent admittance of the same invitation`, async () => {
+  test(`handles concurrent admittance of the same invitation`, async () => {
     const { alice, bob, charlie } = setup(['alice', 'bob', { user: 'charlie', member: false }])
 
     // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie
@@ -219,22 +219,22 @@ describe('integration', () => {
     await connect(alice, bob)
     await disconnect(alice, bob)
 
-    // await Promise.all([
-    //   // 👳🏽‍♂️📧<->👩🏾 Charlie presents his invitation to Alice
-    //   connectWithInvitation(alice, charlie, seed),
+    await Promise.all([
+      // 👳🏽‍♂️📧<->👩🏾 Charlie presents his invitation to Alice
+      connectWithInvitation(alice, charlie, seed),
 
-    //   // 👳🏽‍♂️📧<-> 👨🏻‍🦲 concurrently Charlie presents his invitation to Bob
-    //   connectWithInvitation(bob, charlie, seed),
-    // ])
+      // 👳🏽‍♂️📧<-> 👨🏻‍🦲 concurrently Charlie presents his invitation to Bob
+      connectWithInvitation(bob, charlie, seed),
+    ])
 
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
 
-    // ✅
-    // expectToBeOnTheTeamAndCaughtUp(alice, charlie, bob)
+    // ✅ It all works out
+    expectEveryoneToKnowEveryone(alice, bob, charlie)
   })
 
-  it('resolves mutual demotions in favor of the senior member', async () => {
+  test('resolves mutual demotions in favor of the senior member', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
     // 👨🏻‍🦲 Bob removes 👩🏾 Alice from admin role
@@ -243,7 +243,7 @@ describe('integration', () => {
     // 👩🏾 Alice concurrently removes 👨🏻‍🦲 Bob from admin role
     alice.team.removeMemberRole('bob', ADMIN)
 
-    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect. Bob's demotion of Alice is discarded (because they were
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect. Bob's demotion of Alice is discarded (because they wer
     // done concurrently and Alice is senior so she wins)
     await connect(alice, bob)
 
@@ -260,7 +260,7 @@ describe('integration', () => {
     expect(bob.getState('alice')).toEqual('connected')
   })
 
-  it('resolves mutual removals in favor of the senior member', async () => {
+  test('resolves mutual removals in favor of the senior member', async () => {
     const { alice, bob, charlie, dwight } = setup(['alice', 'bob', 'charlie', 'dwight'])
 
     // 👨🏻‍🦲 Bob removes 👩🏾 Alice
@@ -300,7 +300,7 @@ describe('integration', () => {
     await disconnection(bob, charlie)
   })
 
-  it(`when a member is demoted and makes concurrent changes, discards those changes`, async () => {
+  test(`when a member is demoted and makes concurrent changes, discards those changes`, async () => {
     const { alice, bob } = setup(['alice', 'bob', { user: 'charlie', admin: false }])
 
     // 👩🏾 Alice removes 👨🏻‍🦲 Bob from admin role
@@ -310,7 +310,7 @@ describe('integration', () => {
     bob.team.addMemberRole('charlie', ADMIN)
     expect(bob.team.memberHasRole('charlie', ADMIN)).toBe(true)
 
-    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect.
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
 
     // ✅ Bob's promotion of Charlie is discarded, because Bob concurrently lost admin privileges. 👨🏻‍🦲👳🏽‍♂️👎
@@ -318,15 +318,54 @@ describe('integration', () => {
     expect(bob.team.memberHasRole('charlie', ADMIN)).toBe(false)
   })
 
-  // it(`when a member is demoted and concurrently adds a device, the new device is kept`, async () => {
-  //   // Alice removes Bob from admins
-  //   // concurrently, Bob invites his phone
-  //   // Bob's phone and laptop connect and the phone joins
-  //   // Alice and Bob connect
-  //   // Bob's phone is still in his devices
-  // })
+  test('lets a member use an invitation to add a device', async () => {
+    const { alice, bob } = setup(['alice', 'bob'])
 
-  // it(`when a member is demoted and concurrently invites a member and the member joins, the new member is removed`, async () => {
+    // 👨🏻‍🦲💻📧->📱 on his laptop, Bob creates an invitation and somehow gets it to his phone
+    const { seed } = bob.team.invite('bob')
+
+    // 💻<->📱📧 Bob's phone and laptop connect and the phone joins
+    await connectPhoneWithInvitation(bob, seed)
+
+    // 👨🏻‍🦲👍📱 Bob's phone is added to his list of devices
+    expect(bob.team.members('bob').devices).toHaveLength(2)
+
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
+    await connect(alice, bob)
+
+    // ✅ 👩🏾👍📱 Alice knows about Bob's phone
+    expect(alice.team.members('bob').devices).toHaveLength(2)
+  })
+
+  test(`when a member is demoted and concurrently adds a device, the new device is kept`, async () => {
+    const { alice, bob } = setup(['alice', 'bob'])
+
+    // 👩🏾 Alice removes 👨🏻‍🦲 Bob from admin role
+    alice.team.removeMemberRole('bob', ADMIN)
+
+    // 👨🏻‍🦲💻📧📱 concurrently, on his laptop, Bob invites his phone
+    const { seed } = bob.team.invite('bob')
+
+    // 💻<->📱 Bob's phone and laptop connect and the phone joins
+    await connectPhoneWithInvitation(bob, seed)
+
+    // 👨🏻‍🦲👍📱 Bob's phone is added to his list of devices
+    expect(bob.team.members('bob').devices).toHaveLength(2)
+
+    // 👩🏾 Alice doesn't know about the new device
+    expect(alice.team.members('alice').devices).toHaveLength(1)
+
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
+    await connect(alice, bob)
+
+    // ✅ Bob's phone is still in his devices
+    // expect(bob.team.members('bob').devices).toHaveLength(2)
+
+    // ✅ Alice knows about the new device
+    // expect(alice.team.members('bob').devices).toHaveLength(2)
+  })
+
+  // test(`when a member is demoted and concurrently invites a member and the member joins, the new member is removed`, async () => {
   //   // Alice removes Bob from admins
   //   // concurrently, Bob invites Charlie
   //   // Bob and Charlie connect
@@ -334,7 +373,7 @@ describe('integration', () => {
   //   // Charlie's invitation is gone
   // })
 
-  it('sends updates across multiple hops', async () => {
+  test('sends updates across multiple hops', async () => {
     const { alice, bob, charlie } = setup(['alice', 'bob', 'charlie'])
 
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
@@ -351,7 +390,7 @@ describe('integration', () => {
     expect(charlie.team.hasRole('MANAGERS')).toEqual(true)
   })
 
-  it('handles three-way connections', async () => {
+  test('handles three-way connections', async () => {
     const allUpdated = () =>
       Promise.all([updated(alice, bob), updated(bob, charlie), updated(alice, charlie)])
 
@@ -386,36 +425,39 @@ describe('integration', () => {
     expect(charlie.team.hasRole('BOBS_FRIENDS')).toBe(true)
   })
 
-  it('resolves concurrent non-conflicting changes in three-way connections', async () => {
-    const { alice, bob, charlie } = setup(['alice', 'bob', 'charlie'])
+  // test('rotates keys after a member is removed', async () => {
+  // test('rotates keys after a device is removed', async () => {
 
-    // 🔌 while disconnected...
+  // test('resolves concurrent non-conflicting changes in three-way connections', async () => {
+  //   const { alice, bob, charlie } = setup(['alice', 'bob', 'charlie'])
 
-    // 👩🏾 Alice adds a new role
-    alice.team.addRole('ALICES_FRIENDS')
+  //   // 🔌 while disconnected...
 
-    // 👨🏻‍🦲 Bob adds a new role
-    bob.team.addRole('BOBS_FRIENDS')
+  //   // 👩🏾 Alice adds a new role
+  //   alice.team.addRole('ALICES_FRIENDS')
 
-    // 👳🏽‍♂️ Charlie adds a new role
-    charlie.team.addRole('CHARLIES_FRIENDS')
+  //   // 👨🏻‍🦲 Bob adds a new role
+  //   bob.team.addRole('BOBS_FRIENDS')
 
-    // 👩🏾<->👨🏻‍🦲<->👳🏽‍♂️ Alice, Bob, and Charlie all connect to each other
+  //   // 👳🏽‍♂️ Charlie adds a new role
+  //   charlie.team.addRole('CHARLIES_FRIENDS')
 
-    await connect(alice, bob)
-    await connect(bob, charlie)
-    await connect(alice, charlie)
+  //   // 👩🏾<->👨🏻‍🦲<->👳🏽‍♂️ Alice, Bob, and Charlie all connect to each other
 
-    // ✅ All three get the three new roles
-    expect(bob.team.hasRole('ALICES_FRIENDS')).toBe(true)
-    expect(charlie.team.hasRole('ALICES_FRIENDS')).toBe(true)
-    expect(alice.team.hasRole('CHARLIES_FRIENDS')).toBe(true)
-    expect(bob.team.hasRole('CHARLIES_FRIENDS')).toBe(true)
-    expect(alice.team.hasRole('BOBS_FRIENDS')).toBe(true)
-    expect(charlie.team.hasRole('BOBS_FRIENDS')).toBe(true)
-  })
+  //   await connect(alice, bob)
+  //   await connect(bob, charlie)
+  //   await connect(alice, charlie)
 
-  // it('resolves concurrent conflicting changes in three-way connections', async () => {
+  //   // ✅ All three get the three new roles
+  //   expect(bob.team.hasRole('ALICES_FRIENDS')).toBe(true)
+  //   expect(charlie.team.hasRole('ALICES_FRIENDS')).toBe(true)
+  //   expect(alice.team.hasRole('CHARLIES_FRIENDS')).toBe(true)
+  //   expect(bob.team.hasRole('CHARLIES_FRIENDS')).toBe(true)
+  //   expect(alice.team.hasRole('BOBS_FRIENDS')).toBe(true)
+  //   expect(charlie.team.hasRole('BOBS_FRIENDS')).toBe(true)
+  // })
+
+  // test('resolves concurrent conflicting changes in three-way connections', async () => {
   //   // Bob and Charlie are admins
   //   // Alice and Bob connect
   //   // Alice and Charlie connect
@@ -426,40 +468,37 @@ describe('integration', () => {
   //   // All three get the three new roles
   // })
 
-  // it(`Eve steals Charlie's only device; Alice heals the team`, async () => {
+  // test(`Eve steals Charlie's only device; Alice heals the team`, async () => {
   //   // Eve steals Charlie's laptop
   //   // Alice removes the laptop from the team
   //   // Eve uses Charlie's laptop to try to connect to Bob, but she can't
   //   // Alice sends Charlie a new invitation; he's able to use it to connect from his phone
   // })
 
-  // it(`Eve steals one of Charlie's devices; Charlie heals the team`, async () => {
+  // test(`Eve steals one of Charlie's devices; Charlie heals the team`, async () => {
   //   // Charlie invites his phone and it joins
   //   // Eve steals Charlie's phone
   //   // From his laptop, Charlie removes the phone from the team
   //   // Eve uses Charlie's phone to try to connect to Bob, but she can't
   // })
 
-  beforeEach(() => log.header('TEST: ' + testName()))
-
-  // HELPERS
+  // SETUP
 
   const setup = (_setupUserSettings: (TestUserSettings | string)[] = []) => {
-    const allTestUsers: Record<string, User> = { alice, bob, charlie, dwight }
-
-    const getUserContext = (userName: string): LocalUserContext => {
-      const user = allTestUsers[userName]
-      return { user }
-    }
-
     // Coerce input into expanded format
     const setupUserSettings = _setupUserSettings.map(user =>
       typeof user === 'string' ? { user } : user
     )
 
+    // Get a list of just user names
     const userNames = setupUserSettings.map(user => user.user)
 
     // Create a new team
+    const allTestUsers: Record<string, User> = { alice, bob, charlie, dwight }
+    const getUserContext = (userName: string): LocalUserContext => {
+      const user = allTestUsers[userName]
+      return { user }
+    }
     const sourceTeam = teams.create('Spies Я Us', getUserContext('alice'))
 
     // Add members
@@ -472,37 +511,51 @@ describe('integration', () => {
     // Create one channel per pair of users
     const pairKey = (a: string, b: string) => [a, b].sort().join(':')
     const channels = {} as Record<string, TestChannel>
-    for (const a of userNames) {
-      for (const b of userNames) {
+    for (const a of userNames)
+      for (const b of userNames)
         if (a !== b) {
+          // Don't connect to ourselves
           const pair = pairKey(a, b)
-          if (!(pair in channels)) {
-            channels[pair] = new TestChannel()
-          }
+          // Only one channel per pair
+          if (!(pair in channels)) channels[pair] = new TestChannel()
         }
-      }
-    }
 
     const makeUserStuff = ({ user: userName, member = true }: TestUserSettings) => {
       const user = allTestUsers[userName]
       const context = getUserContext(userName)
-      const device = redactDevice(user.device)
+      const laptop = redactDevice(user.device)
       const team = member
         ? teams.load(JSON.stringify(sourceTeam.chain), context) // members get a copy of the source team
         : teams.create(userName, context) // non-members get a dummy empty placeholder team
 
-      const connectionContext = member ? { team, user, device } : { user, device }
+      const connectionContext = member ? { team, user, device: laptop } : { user, device: laptop }
+
+      const phone = (() => {
+        const name = `${userName}'s phone`
+        const deviceInfo = { type: DeviceType.mobile, name: name, userName }
+        const deviceKeys = keysets.create({ type: KeyType.DEVICE, name: getDeviceId(deviceInfo) })
+        const device: DeviceWithSecrets = { ...deviceInfo, keys: deviceKeys }
+        const publicDevice = redactDevice(device)
+        const connectionContext = {
+          user: { ...user, device },
+          // TODO: it's probably redundant to include the device on the connection context, since the user has it
+          device: publicDevice,
+        }
+        return { device, connectionContext }
+      })()
+
       const userStuff = {
         userName,
         user,
         context,
-        device,
+        laptop,
+        phone,
         team,
         connectionContext,
         channel: {} as Record<string, TestChannel>,
         connection: {} as Record<string, Connection>,
         getState: (u: string) => userStuff.connection[u].state,
-      }
+      } as UserStuff
       return userStuff
     }
 
@@ -533,7 +586,7 @@ describe('integration', () => {
     return testUsers
   }
 
-  const testName = () => expect.getState().currentTestName
+  // HELPERS
 
   /** Connects the two members and waits for them to be connected */
   const connect = async (a: UserStuff, b: UserStuff) => {
@@ -552,6 +605,15 @@ describe('integration', () => {
       // The connection now has the team object, so let's update our user stuff
       b.team = b.connection[a.userName].team!
     })
+  }
+
+  const connectPhoneWithInvitation = async (a: UserStuff, seed: string) => {
+    const join = joinTestChannel(new TestChannel())
+    a.phone.connectionContext.invitationSeed = seed
+
+    const laptop = join(a.connectionContext).start()
+    const phone = join(a.phone.connectionContext).start()
+    await all([laptop, phone], 'connected')
   }
 
   /** Passes if each of the given members is on the team, and knows every other member on the team */
@@ -599,7 +661,6 @@ describe('integration', () => {
     const connections = [a.connection[b.userName], b.connection[a.userName]]
     return all(connections, 'updated')
   }
-
   const disconnection = async (a: UserStuff, b: UserStuff, message?: string) => {
     const connections = [a.connection[b.userName], b.connection[a.userName]]
 
@@ -621,6 +682,11 @@ describe('integration', () => {
         else return new Promise(resolve => connection.on(event, () => resolve()))
       })
     )
+
+  // Logging
+
+  const testName = () => expect.getState().currentTestName
+  beforeEach(() => log.header('TEST: ' + testName()))
 })
 
 // TYPES
@@ -635,7 +701,11 @@ interface UserStuff {
   userName: string
   user: User
   context: LocalUserContext
-  device: Device
+  laptop: PublicDevice
+  phone: {
+    device: DeviceWithSecrets
+    connectionContext: InitialContext
+  }
   team: Team
   connectionContext: InitialContext
   channel: Record<string, TestChannel>
