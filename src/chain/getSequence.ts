@@ -26,11 +26,16 @@ import { assert } from '/util'
  * ```
  *
  * The logic for merging these branches is encapsulated in a `Resolver` function provided in the
- * options. In the example above, the two concurrent branches `[c,d]` and `[e]` are merged into `[e,
- * c, d]`. A different resolver might return the links in a different order, and/or omit some links.
- * These two branches might also be resolved as:
+ * options. In the example above, the two concurrent branches `[c, d]` and `[e]` are resolved as
+ * `[e, c, d]`. A different resolver might return the links in a different order, and/or omit some
+ * links; so these concurrent branches might also be resolved as:
  * ```
- * [c, d, e] [c, e, d] [c, d] [e, d] [e] ... etc.
+ * [c, d, e]
+ * [c, e, d]
+ * [c, d]
+ * [e, d]
+ * [e]
+ * ... etc.
  * ```
  *
  * If no resolver is provided, a trivial default one will be used. The default resolver simply
