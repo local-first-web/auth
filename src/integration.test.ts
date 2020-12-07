@@ -234,7 +234,7 @@ describe('integration', () => {
     expectEveryoneToKnowEveryone(alice, bob, charlie)
   })
 
-  test('resolves mutual demotions in favor of the senior member', async () => {
+  test.only('resolves mutual demotions in favor of the senior member', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
     // 👨🏻‍🦲 Bob removes 👩🏾 Alice from admin role
@@ -248,12 +248,12 @@ describe('integration', () => {
     await connect(alice, bob)
 
     // ✅ Alice is still an admin 👩🏾👍
-    expect(alice.team.memberHasRole('alice', ADMIN)).toBe(true)
-    expect(bob.team.memberHasRole('alice', ADMIN)).toBe(true)
+    expect(alice.team.memberIsAdmin('alice')).toBe(true)
+    expect(bob.team.memberIsAdmin('alice')).toBe(true)
 
     // ✅ Bob is no longer an admin 👨🏻‍🦲👎
-    expect(alice.team.memberHasRole('bob', ADMIN)).toBe(false)
-    expect(bob.team.memberHasRole('bob', ADMIN)).toBe(false)
+    expect(alice.team.memberIsAdmin('bob')).toBe(false)
+    expect(bob.team.memberIsAdmin('bob')).toBe(false)
 
     // ✅ They are still connected 👩🏾<->👨🏻‍🦲
     expect(alice.getState('bob')).toEqual('connected')
@@ -425,48 +425,102 @@ describe('integration', () => {
     expect(charlie.team.hasRole('BOBS_FRIENDS')).toBe(true)
   })
 
-  // test('rotates keys after a member is removed', async () => {
-  // test('rotates keys after a device is removed', async () => {
+  test('resolves concurrent non-conflicting changes in three-way connections', async () => {
+    const { alice, bob, charlie } = setup(['alice', 'bob', 'charlie'])
 
-  // test('resolves concurrent non-conflicting changes in three-way connections', async () => {
-  //   const { alice, bob, charlie } = setup(['alice', 'bob', 'charlie'])
+    // 🔌 while disconnected...
 
-  //   // 🔌 while disconnected...
+    // 👩🏾 Alice adds a new role
+    alice.team.addRole('ALICES_FRIENDS')
 
-  //   // 👩🏾 Alice adds a new role
-  //   alice.team.addRole('ALICES_FRIENDS')
+    // 👨🏻‍🦲 Bob adds a new role
+    bob.team.addRole('BOBS_FRIENDS')
 
-  //   // 👨🏻‍🦲 Bob adds a new role
-  //   bob.team.addRole('BOBS_FRIENDS')
+    // 👳🏽‍♂️ Charlie adds a new role
+    charlie.team.addRole('CHARLIES_FRIENDS')
 
-  //   // 👳🏽‍♂️ Charlie adds a new role
-  //   charlie.team.addRole('CHARLIES_FRIENDS')
+    // 👩🏾<->👨🏻‍🦲<->👳🏽‍♂️ Alice, Bob, and Charlie all connect to each other
+    await connect(alice, bob)
+    await connect(bob, charlie)
+    await connect(alice, charlie)
 
-  //   // 👩🏾<->👨🏻‍🦲<->👳🏽‍♂️ Alice, Bob, and Charlie all connect to each other
-
-  //   await connect(alice, bob)
-  //   await connect(bob, charlie)
-  //   await connect(alice, charlie)
-
-  //   // ✅ All three get the three new roles
-  //   expect(bob.team.hasRole('ALICES_FRIENDS')).toBe(true)
-  //   expect(charlie.team.hasRole('ALICES_FRIENDS')).toBe(true)
-  //   expect(alice.team.hasRole('CHARLIES_FRIENDS')).toBe(true)
-  //   expect(bob.team.hasRole('CHARLIES_FRIENDS')).toBe(true)
-  //   expect(alice.team.hasRole('BOBS_FRIENDS')).toBe(true)
-  //   expect(charlie.team.hasRole('BOBS_FRIENDS')).toBe(true)
-  // })
+    // ✅ All three get the three new roles
+    expect(bob.team.hasRole('ALICES_FRIENDS')).toBe(true)
+    expect(charlie.team.hasRole('ALICES_FRIENDS')).toBe(true)
+    expect(alice.team.hasRole('CHARLIES_FRIENDS')).toBe(true)
+    expect(bob.team.hasRole('CHARLIES_FRIENDS')).toBe(true)
+    expect(alice.team.hasRole('BOBS_FRIENDS')).toBe(true)
+    expect(charlie.team.hasRole('BOBS_FRIENDS')).toBe(true)
+  })
 
   // test('resolves concurrent conflicting changes in three-way connections', async () => {
-  //   // Bob and Charlie are admins
+  //   // Alice, Bob and Charlie are admins
+  //
   //   // Alice and Bob connect
   //   // Alice and Charlie connect
   //   // Bob and Charlie connect
-  //   // Alice adds a new role
-  //   // Bob adds a new role
-  //   // Charlie adds a new role
-  //   // All three get the three new roles
   // })
+
+  test.only('resolves circular concurrent demotions ', async () => {
+    const { alice, bob, charlie, dwight } = setup(['alice', 'bob', 'charlie', 'dwight'])
+
+    // Bob demotes Charlie
+    bob.team.removeMemberRole('charlie', ADMIN)
+
+    // Charlie demotes Alice
+    charlie.team.removeMemberRole('alice', ADMIN)
+
+    // Alice demotes Bob
+    alice.team.removeMemberRole('bob', ADMIN)
+
+    // Dwight connects to all three
+    await connect(dwight, alice)
+    await connect(dwight, bob)
+    await connect(dwight, charlie)
+
+    const isAdmin = dwight.team.memberIsAdmin
+
+    // Bob is no longer an admin
+    expect(isAdmin('bob')).toBe(false)
+
+    // Alice is still an admin (because seniority)
+    expect(isAdmin('alice')).toBe(true)
+
+    // Charlie is still an admin (because Bob demoted him while being demoted)
+    expect(isAdmin('charlie')).toBe(true)
+  })
+
+  // test.only('resolves circular concurrent removals ', async () => {
+  //   const { alice, bob, charlie, dwight } = setup(['alice', 'bob', 'charlie', 'dwight'])
+
+  //   // Bob removes Charlie
+  //   bob.team.remove('charlie')
+
+  //   // Charlie removes Alice
+  //   charlie.team.remove('alice')
+
+  //   // Alice removes Bob
+  //   alice.team.remove('bob')
+
+  //   // Dwight connects to all three
+  //   await Promise.all([
+  //     connect(dwight, alice), //
+  //     connect(dwight, bob),
+  //     connect(dwight, charlie),
+  //   ])
+
+  //   // Bob is off the team
+  //   expect(dwight.team.has('bob')).toBe(false)
+
+  //   // Alice is on the team
+  //   expect(dwight.team.has('alice')).toBe(true)
+
+  //   // Charlie?? not sure
+  //   expect(dwight.team.has('charlie')).toBe(true)
+  // })
+
+  // test('rotates keys after a member is removed', async () => {
+  // test('rotates keys after a device is removed', async () => {
 
   // test(`Eve steals Charlie's only device; Alice heals the team`, async () => {
   //   // Eve steals Charlie's laptop

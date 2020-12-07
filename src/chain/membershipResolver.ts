@@ -1,25 +1,22 @@
 ﻿import { actionFingerprint } from './actionFingerprint'
 import { arbitraryDeterministicSort } from '/chain/arbitraryDeterministicSort'
 import {
-  AdmitAction,
+  AddMemberAction,
+  AddMemberRoleAction,
   isMergeLink,
   LinkBody,
   NonRootLinkBody,
-  Resolver,
-  RootLink,
-} from '/chain/types'
-import {
-  AddMemberAction,
-  AddMemberRoleAction,
   RemoveMemberAction,
   RemoveMemberRoleAction,
+  Resolver,
+  RootLink,
   TeamAction,
   TeamActionLink,
   TeamSignatureChain,
 } from '/chain/types'
-import { member } from '/team/selectors'
-import { Hash } from '/util'
+import { Hash, debug } from '/util'
 
+const log = debug('taco:membershipResolver')
 // TODO: This also needs to deal with members added by invitation
 
 export const membershipResolver: Resolver<TeamAction> = (a, b, chain) => {
@@ -47,7 +44,8 @@ const arraysAreEqual = (a: string[], b: string[]) => {
 }
 
 const getDuplicates = (sequence: TeamActionLink[]) => {
-  // TODO: an add/remove/add sequence on one side will result in add/remove
+  // TODO: an add->remove->add sequence on one side will result in add->remove, because the two adds
+  // are treated as duplicates
 
   const distinctActions = {} as Record<string, Hash>
   return sequence.filter(link => {
@@ -104,10 +102,13 @@ const resolveMutualDeletions = (sequence: TeamActionLink[], chain: TeamSignature
   const removals = sequence.filter(isRemovalAction)
   const removedMembers = removals.map(removedUserName)
   const memberRemovers = removals.map(linkAuthor)
+
+  console.log({ removedMembers, memberRemovers })
   if (removedMembers.length > 1 && arraysAreEqual(removedMembers, memberRemovers)) {
     // figure out which member has been around for the shortest amount of time
     const removedMembersBySeniority = removedMembers.sort(bySeniority(chain))
     const mostRecentMember = removedMembersBySeniority.pop()!
+    console.log({ mostRecentMember })
     return sequence.filter(authorNotIn([mostRecentMember]))
   } else {
     return sequence
@@ -121,9 +122,6 @@ const bySeniority = (chain: TeamSignatureChain) => (userNameA: string, userNameB
   if (rootLink.signed.userName === userNameA) return -1
   if (rootLink.signed.userName === userNameB) return 1
 
-  // otherwise go by timestamp
-  // TODO: would be better to do this by causal order if possible, but we can't naively rely on getSequence because it uses this resolver
-  // however we could use the trivial resolver for just this purpose
   const findLinkThatAddedMember = (userName: string) =>
     Object.values(chain.links).find(
       link =>
@@ -132,10 +130,16 @@ const bySeniority = (chain: TeamSignatureChain) => (userNameA: string, userNameB
         link.body.payload.member.userName === userName
     )
 
-  const addTimestamp = (userName: string) => {
+  const getTimestamp = (userName: string) => {
     const addLink = findLinkThatAddedMember(userName)!.body as NonRootLinkBody<AddMemberAction>
     return addLink.timestamp
   }
 
-  return addTimestamp(userNameA) - addTimestamp(userNameB)
+  // otherwise go by timestamp
+
+  // TODO: would be better to do this by causal order if possible, but we can't naively rely on
+  // getSequence because it uses this resolver so that would be circular. But we could use
+  // getSequence with the trivial resolver, which will give us the causal sequence without
+
+  return getTimestamp(userNameA) - getTimestamp(userNameB)
 }

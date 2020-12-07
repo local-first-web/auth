@@ -16,25 +16,28 @@ import { assert } from '/util'
 /**
  * Takes a `SignatureChain` and returns an array of links by performing a topographical sort and
  * filter. For example, this chain
- *```
- *           ┌─→ c ─→ d ─┐
- * a ─→ b ─→ ┴─→ e ───── * ─→ f
- *```
+ * ```
+ *            ┌─→ c ─→ d ─┐
+ *  a ─→ b ─→ ┴─→ e ───── * ─→ f
+ * ```
+ *  might be transformed to this sequence
+ * ```
+ *  [a, b, e, c, d, f]
+ * ```
  *
- * might be transformed to this sequence
- *```
- * [a, b, e, c, d, f]
- *```
  * The logic for merging these branches is encapsulated in a `Resolver` function provided in the
  * options. In the example above, the two concurrent branches `[c,d]` and `[e]` are merged into `[e,
  * c, d]`. A different resolver might return the links in a different order, and/or omit some links.
  * These two branches might also be resolved as:
- *```
+ * ```
  * [c, d, e] [c, e, d] [c, d] [e, d] [e] ... etc.
- *```
+ * ```
  *
  * If no resolver is provided, a trivial default one will be used. The default resolver simply
  * concatenates the concurrent branches in an arbitrary but deterministic order.
+ *
+ * You can also get the sequence of a fragment of a chain, by passing a `root` and/or a `head`; this
+ * will resolve the subchain starting at `root` and ending at `head`.
  *
  * @param chain The SignatureChain containing the links to be sequenced
  * @param options.resolver A function that takes two sequences and returns a single sequence
@@ -57,13 +60,13 @@ export const getSequence = <A extends Action>(options: {
   } = options
 
   // omit merge links from result
-  const filter = <A extends Action>(seq: Link<A>[]) =>
+  const onlyActionLinks = <A extends Action>(seq: Link<A>[]) =>
     seq.filter(n => !isMergeLink(n)) as ActionLink<A>[]
 
   // 0 parents (root link)
   if (head === root) {
     // just return that one node
-    return filter([head])
+    return onlyActionLinks([head])
   }
 
   // 1 parent (normal action link)
@@ -73,7 +76,7 @@ export const getSequence = <A extends Action>(options: {
     // work our way backwards
     const parent = chain.links[head.body.prev]
     const predecessors = getSequence({ chain, resolver, root, head: parent })
-    return filter([...predecessors, head])
+    return onlyActionLinks([...predecessors, head])
   }
 
   // 2 parents (merge link)
@@ -81,18 +84,28 @@ export const getSequence = <A extends Action>(options: {
     // need to resolve the two branches it merges, going back to the first common predecessor,
     // then continue from there
 
-    // these are the links merged by the merge link
+    // the two links merged by the merge link
     const branchHeads = head.body.map(hash => chain.links[hash]!)
 
-    // this is their most recent common ancestor
+    // their most recent common predecessor
     const commonPredecessor = getCommonPredecessor(chain, branchHeads)
 
-    // if the common predecessor precedes the root we've been given, that means the root lives on
-    // one of these two branches
     if (isPredecessor(chain, commonPredecessor, root)) {
-      // in this case we're only interested in the branch that the root is on;
-      // we can ignore the other one
-      const ourBranchHead = branchHeads.find(h => root === h || isPredecessor(chain, root, h))!
+      /** If common predecessor *precedes* the *root* we've been given, the root lives *on* one of
+       *  these two branches. In this case we're only interested in the branch that the root is on; we
+       *  can ignore the other one.
+       *  ```
+       *    a ─→ b(COMMON) ─┬─→ c ─→ d ─→ e ──────── * ──→ j(HEAD)
+       *                    └─→ f → g(ROOT) → h → i ─┘
+       *  ```
+       *  For example, in the above scenario we're resolving the branches that end in `e` and `i`,
+       *  respectively. But we see that common predecessor comes before the root, which tells us that
+       *  the root is on one of those two branches, and we're only interested in the one with the root
+       *  on it, starting with the root: in this case the branch `g → h → i`. And we don't need to resolve
+       *  that against `c → d → e`.
+       */
+      const isOurBranchHead = (h: Link<A>) => root === h || isPredecessor(chain, root, h)
+      const ourBranchHead = branchHeads.find(isOurBranchHead)!
       return getSequence({ chain, root, head: ourBranchHead, resolver })
     }
 
@@ -116,7 +129,7 @@ export const getSequence = <A extends Action>(options: {
       // now we can resume working our way back from the common predecessor towards the root
       const predecessors = getSequence({ chain, resolver, root, head: commonPredecessor })
 
-      return filter([...predecessors, ...resolvedBranches, head])
+      return onlyActionLinks([...predecessors, ...resolvedBranches, head])
     }
   }
 }

@@ -2,13 +2,21 @@ import { append } from '/chain/append'
 import { clone } from '/util'
 import { create } from '/chain/create'
 import { merge } from '/chain/merge'
-import { Link, isMergeLink, LinkBody, SignatureChain, SignedLink, Action } from '/chain/types'
+import {
+  Link,
+  isMergeLink,
+  LinkBody,
+  SignatureChain,
+  SignedLink,
+  Action,
+  ActionLink,
+} from '/chain/types'
 import { defaultContext } from '/util/testing'
 
-export const getPayloads = (sequence: Link<Action>[]) =>
+export const getPayloads = (sequence: Link<any>[]) =>
   sequence.filter(n => !isMergeLink(n)).map(n => (n.body as LinkBody<Action>).payload)
 
-export const findByPayload = (chain: SignatureChain<Action>, payload: Action) => {
+export const findByPayload = (chain: SignatureChain<Action>, payload: Action['payload']) => {
   const links = Object.values(chain.links)
   return links.find(n => !isMergeLink(n) && n.body.payload === payload) as SignedLink<
     LinkBody<Action>,

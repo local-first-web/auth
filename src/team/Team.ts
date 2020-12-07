@@ -267,6 +267,8 @@ export class Team extends EventEmitter {
 
   /** Remove a role from a member */
   public removeMemberRole = (userName: string, roleName: string) => {
+    // TODO: don't allow removing the last admin
+
     // create new keys & lockboxes for any keys this person had access to via this role
     const lockboxes = this.generateNewLockboxes({ type: ROLE, name: roleName })
 
