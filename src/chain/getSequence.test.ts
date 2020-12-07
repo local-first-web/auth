@@ -1,28 +1,28 @@
 import { buildChain, findByPayload, getPayloads } from '/chain/testUtils'
-import { append, create, getSequence, Resolver, SignedLink } from '/chain'
+import { Action, append, create, getSequence, Resolver, SignedLink } from '/chain'
 import { defaultContext } from '/util/testing'
 import { arbitraryDeterministicSort } from './arbitraryDeterministicSort'
 import { randomKey } from '@herbcaudill/crypto'
 
-const chaosMonkeyResolver: Resolver<any> = (a, b) => {
+const randomResolver: Resolver<any> = (a, b) => {
   // change the hash key on each run, to ensure our tests aren't bound to one arbitrary sort
   const hashKey = randomKey()
   const [_a, _b] = [a, b].sort(arbitraryDeterministicSort(hashKey))
   return _a.concat(_b)
 }
 
-const resolver = chaosMonkeyResolver
+const resolver = randomResolver
 
 describe('chains', () => {
   describe('getSequence', () => {
     test('upon creation', () => {
-      var chain = create('a', defaultContext)
-      const sequence = getSequence({ chain, resolver })
+      var chain = create<any>('a', defaultContext)
+      const sequence = getSequence<any>({ chain, resolver })
       expect(getPayloads(sequence)).toEqual(['a'])
     })
 
     test('no branches', () => {
-      var chain = create('a', defaultContext)
+      var chain = create<any>('a', defaultContext)
       chain = append(chain, { type: 'FOO', payload: 'b' }, defaultContext)
       chain = append(chain, { type: 'FOO', payload: 'c' }, defaultContext)
       const sequence = getSequence({ chain, resolver })
@@ -43,6 +43,7 @@ describe('chains', () => {
       test('full sequence', () => {
         const sequence = getSequence({ chain, resolver })
 
+        // the resolved sequence will be one of these
         const expected = [
           'a b   j k l   c d f e g   h i   o n',
           'a b   j k l   c d e g f   h i   o n',
