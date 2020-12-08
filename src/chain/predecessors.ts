@@ -11,6 +11,9 @@ export const getPredecessors = <T extends Action>(
   return R.uniq(parents.concat(predecessors))
 }
 
+// TODO make these signatures consistent -
+// chain, [a,b]
+
 /** Returns true if `a` is a predecessor of `b` */
 export const isPredecessor = <T extends Action>(
   chain: SignatureChain<T>,
@@ -18,7 +21,9 @@ export const isPredecessor = <T extends Action>(
   b: Link<T>
 ): boolean => getPredecessors(chain, b).includes(a)
 
-export const getCommonPredecessor = <T extends Action>(
+// TODO: probably want to memoize this
+
+export const getCommonPredecessor = <T extends Action = Action>(
   chain: SignatureChain<T>,
   [a, b]: Link<T>[]
 ): Link<T> => {
