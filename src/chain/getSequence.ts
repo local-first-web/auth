@@ -124,9 +124,9 @@ export const getSequence = <A extends Action>(options: {
     // The common predecessor is after the root, so we have two branches to merge, going back to
     // the most recent common predecessor.
     else {
-      // TODO: maybe refactor this
+      //* TODO: maybe refactor this
 
-      // {
+      //* {
 
       // First let's recursively resolve each branch into a sequence.
       const getBranchSequence = (branchHead: Link<A>): ActionLink<A>[] => {
@@ -144,14 +144,14 @@ export const getSequence = <A extends Action>(options: {
       // Now we can apply the resolver to these two sequences to come up with a single sequence.
       const resolvedBranches = resolver(branchA, branchB, chain)
 
-      //}
+      //* }
 
-      // into something like
-      // const resolvedBranches = resolver(a, b, chain)
-      // where a and b are the two branch heads?
+      //* into something like
+      //* const resolvedBranches = resolver(a, b, chain)
+      //* where a and b are the two branch heads?
 
-      // what needs to change is that the resolver needs access to all the nodes being resolved, not
-      // just the ones that won an earlier resolution
+      //* what needs to change is that the resolver needs access to all the nodes being resolved, not
+      //* just the ones that won an earlier resolution
 
       // and we can resume recursing our way back from the common predecessor towards the root
       const predecessors = getSequence({
