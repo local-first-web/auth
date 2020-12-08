@@ -234,7 +234,7 @@ describe('integration', () => {
     expectEveryoneToKnowEveryone(alice, bob, charlie)
   })
 
-  test.only('resolves mutual demotions in favor of the senior member', async () => {
+  test('resolves mutual demotions in favor of the senior member', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
     // 👨🏻‍🦲 Bob removes 👩🏾 Alice from admin role
@@ -461,7 +461,7 @@ describe('integration', () => {
   //   // Bob and Charlie connect
   // })
 
-  test.only('resolves circular concurrent demotions ', async () => {
+  test('resolves circular concurrent demotions ', async () => {
     const { alice, bob, charlie, dwight } = setup(['alice', 'bob', 'charlie', 'dwight'])
 
     // Bob demotes Charlie
@@ -490,7 +490,7 @@ describe('integration', () => {
     expect(isAdmin('charlie')).toBe(true)
   })
 
-  // test.only('resolves circular concurrent removals ', async () => {
+  // test('resolves circular concurrent removals ', async () => {
   //   const { alice, bob, charlie, dwight } = setup(['alice', 'bob', 'charlie', 'dwight'])
 
   //   // Bob removes Charlie

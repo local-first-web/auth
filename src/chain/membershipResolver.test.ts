@@ -228,22 +228,16 @@ describe('chains', () => {
       aChain = append(aChain, DEMOTE_BOB, alicesContext)
 
       // 🔌✔ All reconnect and synchronize chains
-      const mergedChain = merge(aChain, merge(cChain, bChain)) // this passes
-      // const mergedChain = merge(bChain, merge(cChain, aChain)) // this doesn't pass
-      // const mergedChain = merge(cChain, merge(aChain, bChain)) // this doesn't pass
-
-      // TODO: This isn't working right, it's strongly dependent on order. In theory you can have
-      // three people doing things concurrently. In practice, we only resolve conflicts pairwise. So
-      // a b c do stuff concurrently, but we either resolve a-b and then b-c, or b-c then a-b;
-      // depending on who merges with who first, different actions will be treated as conflicting,
-      // while others are treated as non-concurrent.
-      //
-      // Maybe rather than have `membershipResolver` compare two resolved sequences, it could take
-      // the entire unresolved branch? Because for deletions/demotions, we need to see all of them,
-      // not just the unresolved ones, in case we would resolve them differently
+      // This could happen three different ways - make sure the result is the same in all cases
+      const mergedChains = [
+        merge(aChain, merge(cChain, bChain)),
+        merge(bChain, merge(cChain, aChain)),
+        merge(cChain, merge(aChain, bChain)),
+      ]
 
       // ✅ Alice created the team; Bob's change is discarded, Alice is still an admin
-      expect(sequence(mergedChain)).toBe('ROOT, ADD:bob, ADD:charlie, REMOVE:admin:bob')
+      const expected = 'ROOT, ADD:bob, ADD:charlie, REMOVE:admin:bob'
+      for (const chain of mergedChains) expect(sequence(chain)).toBe(expected)
     })
 
     const setup = () => {

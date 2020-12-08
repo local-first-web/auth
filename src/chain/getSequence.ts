@@ -1,24 +1,20 @@
-﻿import { getHead } from '/chain/getHead'
-import { getCommonPredecessor, isPredecessor } from '/chain/predecessors'
-import { arbitraryDeterministicSequencer } from './arbitraryDeterministicSequencer'
+﻿import { arbitraryDeterministicSequencer } from '/chain/arbitraryDeterministicSequencer'
+import { baseResolver } from '/chain/baseResolver'
+import { getHead } from '/chain/getHead'
 import { getRoot } from '/chain/getRoot'
+import { getCommonPredecessor, isPredecessor } from '/chain/predecessors'
 import {
   Action,
   ActionLink,
   isMergeLink,
   isRootLink,
   Link,
-  LinkBody,
   Resolver,
   Sequence,
   Sequencer,
   SignatureChain,
-  SignedLink,
 } from '/chain/types'
 import { assert } from '/util'
-import { arbitraryDeterministicSort } from './arbitraryDeterministicSort'
-import { membershipResolver } from './membershipResolver'
-import { trivialResolver } from './trivialResolver'
 
 /**
  * Takes a `SignatureChain` and returns an array of links by recursively performing a topographical
@@ -45,31 +41,27 @@ import { trivialResolver } from './trivialResolver'
  * ```
  * ... etc.
  *
- * If no resolver is provided, a default one will be used. The default resolver simply
- * concatenates the concurrent branches in an arbitrary but deterministic order.
+ * If no resolver is provided, a default one will be used. The default resolver simply concatenates
+ * the concurrent branches in an arbitrary but deterministic order.
  *
  * You can also get the sequence of a fragment of a chain, by passing a `root` and/or a `head`; this
  * will resolve the subchain starting at `root` and ending at `head`.
  *
  * @param chain The SignatureChain containing the links to be sequenced
- * @param options.resolver A function that takes two sequences and returns a single sequence
- * combining the two while applying any necessary business logic regarding which links take
- * precedence, which are omitted, etc.
  * @param options.root The link to use as the chain's root (used to process a subchain)
  * @param options.head The link to use as the chain's head (used to process a subchain)
+ * @param options.resolver A function that takes two sequences and returns a single sequence,
+ * applying any logic regarding which links are omitted
+ * @param options.sequencer A function that takes two sequences and returns a single sequence,
+ * applying any logic regarding which links are omitted
  */
-export const getSequence = <A extends Action>(options: {
-  chain: SignatureChain<A>
-  root?: Link<A>
-  head?: Link<A>
-  resolver?: Resolver
-  sequencer?: Sequencer
-}): ActionLink<A>[] => {
+
+export const getSequence = <A extends Action>(options: SequenceOptions<A>): ActionLink<A>[] => {
   const {
     chain,
     root = getRoot(chain),
     head = getHead(chain),
-    resolver = trivialResolver,
+    resolver = baseResolver,
     sequencer = arbitraryDeterministicSequencer,
   } = options
   let result: Link<A>[]
@@ -99,20 +91,21 @@ export const getSequence = <A extends Action>(options: {
     // then continue from there
 
     // the two links merged by the merge link
-    const branchHeads = head.body.map(hash => chain.links[hash]!) as [Link<A>, Link<A>]
+    let branchHeads = head.body.map(hash => chain.links[hash]!) as [Link<A>, Link<A>]
 
     // their most recent common predecessor
     const commonPredecessor = getCommonPredecessor(chain, branchHeads)
 
     // The common predecessor *precedes* the *root* we've been given, so the root lives *on* one
     // of these two branches.
+    // ```
+    //   a ─→ b(COMMON) ─┬─→ c ─→ d ─→ e ──────── * ──→ j(HEAD)
+    //                   └─→ f → g(ROOT) → h → i ─┘
+    // ```
     if (isPredecessor(chain, commonPredecessor, root)) {
       // In this case we're only interested in the branch that the root is on; we can ignore the
       // other one.
-      // ```
-      //   a ─→ b(COMMON) ─┬─→ c ─→ d ─→ e ──────── * ──→ j(HEAD)
-      //                   └─→ f → g(ROOT) → h → i ─┘
-      // ```
+
       // For example, in the above scenario we're resolving the branches that end in `e` and `i`,
       // respectively. But we see that common predecessor comes before the root, which tells us that
       // the root is on one of those two branches, and we're only interested in the one with the
@@ -137,7 +130,7 @@ export const getSequence = <A extends Action>(options: {
       // Sequence the two branches relative to each other
       const sequencedBranches = sequencer(branchA, branchB)
 
-      // and we can resume recursing our way back from the common predecessor towards the root
+      // Now we can resume recursing our way back from the common predecessor towards the root
       const predecessors = getSequence({
         ...options,
         head: commonPredecessor,
@@ -149,4 +142,12 @@ export const getSequence = <A extends Action>(options: {
 
   // omit merge links before returning result
   return result.filter(n => !isMergeLink(n)) as ActionLink<A>[]
+}
+
+type SequenceOptions<A extends Action> = {
+  chain: SignatureChain<A>
+  root?: Link<A>
+  head?: Link<A>
+  resolver?: Resolver
+  sequencer?: Sequencer
 }

@@ -102,7 +102,7 @@ export type Sequence<A extends Action> = ActionLink<A>[]
  * two while applying any logic regarding which links to discard in case of conflict.
  */
 export type Resolver<A extends Action = Action> = (
-  [a, b]: [Link<A>, Link<A>],
+  branches: [Link<A>, Link<A>],
   chain: SignatureChain<A>
 ) => [Sequence<A>, Sequence<A>]
 
