@@ -1,5 +1,7 @@
-﻿import { actionFingerprint } from './actionFingerprint'
-import { arbitraryDeterministicSort } from '/chain/arbitraryDeterministicSort'
+﻿import { trivialResolver } from './trivialResolver'
+import { actionFingerprint } from '/chain/actionFingerprint'
+import { getAllNodes } from '/chain/getAllNodes'
+import { getCommonPredecessor } from '/chain/predecessors'
 import {
   AddMemberAction,
   AddMemberRoleAction,
@@ -10,30 +12,34 @@ import {
   RemoveMemberRoleAction,
   Resolver,
   RootLink,
+  Sequence,
   TeamAction,
   TeamActionLink,
+  TeamLink,
   TeamSignatureChain,
 } from '/chain/types'
-import { Hash, debug } from '/util'
+import { debug, Hash } from '/util'
 
-const log = debug('taco:membershipResolver')
 // TODO: This also needs to deal with members added by invitation
 
-export const membershipResolver: Resolver<TeamAction> = (a, b, chain) => {
-  const [_a, _b] = [a, b].sort(arbitraryDeterministicSort()) // ensure predictable order
+const log = debug('taco:membershipResolver')
 
-  let sequence = _a.concat(_b)
+export const membershipResolver: Resolver<TeamAction> = ([a, b], chain) => {
+  const baseResolver = trivialResolver as Resolver<TeamAction>
+  const [branchA, branchB] = baseResolver([a, b], chain)
 
-  // handle special case: members deleting each other concurrently
-  sequence = resolveMutualDeletions(sequence, chain)
+  // // handle special case: members deleting each other concurrently
+  // sequence = resolveMutualDeletions(sequence, chain)
 
-  // removed members can't concurrently do other things, nor can they be added back concurrently
-  const removedMembers = sequence.filter(isRemovalAction).map(removedUserName)
+  // // removed members can't concurrently do other things, nor can they be added back concurrently
+  // const removedMembers = sequence.filter(isRemovalAction).map(removedUserName)
 
-  return sequence
-    .filter(linkNotIn(getDuplicates(sequence))) // when actions are duplicated in a sequence, only the first is kept
-    .filter(authorNotIn(removedMembers)) // removed members can't concurrently make membership changes
-    .filter(addedNotIn(removedMembers)) // removed members can't be concurrently added back
+  // return sequence
+  //   .filter(linkNotIn(getDuplicates(sequence))) // when actions are duplicated in a sequence, only the first is kept
+  //   .filter(authorNotIn(removedMembers)) // removed members can't concurrently make membership changes
+  //   .filter(addedNotIn(removedMembers)) // removed members can't be concurrently added back
+
+  return [branchA, branchB]
 }
 
 // helpers
