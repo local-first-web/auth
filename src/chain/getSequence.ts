@@ -1,6 +1,6 @@
 ﻿import { getHead } from '/chain/getHead'
 import { getCommonPredecessor, isPredecessor } from '/chain/predecessors'
-import { arbitraryDeterministicResolver } from './arbitraryDeterministicResolver'
+import { arbitraryDeterministicSequencer } from './arbitraryDeterministicSequencer'
 import { getRoot } from '/chain/getRoot'
 import {
   Action,
@@ -10,21 +10,26 @@ import {
   Link,
   LinkBody,
   Resolver,
+  Sequence,
+  Sequencer,
   SignatureChain,
   SignedLink,
 } from '/chain/types'
 import { assert } from '/util'
+import { arbitraryDeterministicSort } from './arbitraryDeterministicSort'
+import { membershipResolver } from './membershipResolver'
+import { trivialResolver } from './trivialResolver'
 
 /**
  * Takes a `SignatureChain` and returns an array of links by recursively performing a topographical
  * sort and filter. For example, this chain
  * ```
- *            ┌─→ c ─→ d ─┐
- *  a ─→ b ─→ ┴─→ e ───── * ─→ f
+ *              ┌─→ c ─→ d ─┐
+ *    a ─→ b ─→ ┴─→ e ───── * ─→ f
  * ```
  *  might be transformed to this sequence
  * ```
- *  [a, b, e, c, d, f]
+ *    [a, b, e, c, d, f]
  * ```
  *
  * The logic for merging these branches is encapsulated in a `Resolver` function provided in the
@@ -32,15 +37,15 @@ import { assert } from '/util'
  * `[e, c, d]`. A different resolver might return the links in a different order, and/or omit some
  * links; so these concurrent branches might also be resolved as:
  * ```
- * [c, d, e]
- * [c, e, d]
- * [c, d]
- * [e, d]
- * [e]
- * ... etc.
+ *   [c, d, e]
+ *   [c, e, d]
+ *   [c, d]
+ *   [e, d]
+ *   [e]
  * ```
+ * ... etc.
  *
- * If no resolver is provided, a trivial default one will be used. The default resolver simply
+ * If no resolver is provided, a default one will be used. The default resolver simply
  * concatenates the concurrent branches in an arbitrary but deterministic order.
  *
  * You can also get the sequence of a fragment of a chain, by passing a `root` and/or a `head`; this
@@ -57,13 +62,15 @@ export const getSequence = <A extends Action>(options: {
   chain: SignatureChain<A>
   root?: Link<A>
   head?: Link<A>
-  resolver?: Resolver<A>
+  resolver?: Resolver
+  sequencer?: Sequencer
 }): ActionLink<A>[] => {
   const {
     chain,
     root = getRoot(chain),
     head = getHead(chain),
-    resolver = arbitraryDeterministicResolver,
+    resolver = trivialResolver,
+    sequencer = arbitraryDeterministicSequencer,
   } = options
   let result: Link<A>[]
 
@@ -92,7 +99,7 @@ export const getSequence = <A extends Action>(options: {
     // then continue from there
 
     // the two links merged by the merge link
-    const branchHeads = head.body.map(hash => chain.links[hash]!)
+    const branchHeads = head.body.map(hash => chain.links[hash]!) as [Link<A>, Link<A>]
 
     // their most recent common predecessor
     const commonPredecessor = getCommonPredecessor(chain, branchHeads)
@@ -124,34 +131,11 @@ export const getSequence = <A extends Action>(options: {
     // The common predecessor is after the root, so we have two branches to merge, going back to
     // the most recent common predecessor.
     else {
-      //* TODO: maybe refactor this
+      // Resolve each branch (conflicting actions can be omitted by the resolver)
+      const [branchA, branchB] = resolver(branchHeads, chain)
 
-      //* {
-
-      // First let's recursively resolve each branch into a sequence.
-      const getBranchSequence = (branchHead: Link<A>): ActionLink<A>[] => {
-        // each branch is the sequence from the common predecessor to the branch head
-        const branch = getSequence({
-          ...options,
-          root: commonPredecessor,
-          head: branchHead,
-        })
-        // omit the common predecessor itself from the branch
-        return branch.filter(n => n !== commonPredecessor)
-      }
-      const [branchA, branchB] = branchHeads.map(getBranchSequence)
-
-      // Now we can apply the resolver to these two sequences to come up with a single sequence.
-      const resolvedBranches = resolver(branchA, branchB, chain)
-
-      //* }
-
-      //* into something like
-      //* const resolvedBranches = resolver(a, b, chain)
-      //* where a and b are the two branch heads?
-
-      //* what needs to change is that the resolver needs access to all the nodes being resolved, not
-      //* just the ones that won an earlier resolution
+      // Sequence the two branches relative to each other
+      const sequencedBranches = sequencer(branchA, branchB)
 
       // and we can resume recursing our way back from the common predecessor towards the root
       const predecessors = getSequence({
@@ -159,7 +143,7 @@ export const getSequence = <A extends Action>(options: {
         head: commonPredecessor,
       })
 
-      result = [...predecessors, ...resolvedBranches, head]
+      result = [...predecessors, ...sequencedBranches, head] as Sequence<A>
     }
   }
 
