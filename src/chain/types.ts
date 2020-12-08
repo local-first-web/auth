@@ -95,14 +95,22 @@ export const isRootLink = <A extends Action>(o: Link<A>): o is RootLink<A> => {
   return !isMergeLink(o) && o.body.prev === null
 }
 
-/// A resolver takes two sequences, and returns a single sequence combining the two
-/// while applying any necessary business logic regarding which links take precedence, which
-/// will be discarded, etc.
+export type Sequence<A extends Action> = ActionLink<A>[]
+
+/**
+ * A resolver takes two heads and the chain they're in, and returns a single sequence combining the
+ * two while applying any logic regarding which links to discard in case of conflict.
+ */
 export type Resolver<A extends Action = Action> = (
-  a: ActionLink<A>[],
-  b: ActionLink<A>[],
+  [a, b]: [Link<A>, Link<A>],
   chain: SignatureChain<A>
-) => ActionLink<A>[]
+) => [Sequence<A>, Sequence<A>]
+
+/**
+ * A sequencer takes two sequences, and returns a single sequence combining the two
+ * while applying any logic regarding which links take precedence.
+ */
+export type Sequencer = <A extends Action>(a: Sequence<A>, b: Sequence<A>) => Sequence<A>
 
 export type Validator = <A extends Action>(
   currentLink: Link<A>,
@@ -115,10 +123,11 @@ export type ValidatorSet = {
 
 // TEAM ACTION TYPES
 
-// Every action might include new lockboxes
 // TODO: the content of lockboxes needs to be validated
 // e.g. only an admin can add lockboxes for others
+
 interface BasePayload {
+  // Every action might include new lockboxes
   lockboxes?: Lockbox[]
 }
 
