@@ -5,7 +5,11 @@ import { DeviceInfo, getDeviceId, DeviceType } from '/device'
 
 const { DEVICE, MEMBER } = keyset.KeyType
 
-export const create = (userName: string, deviceName: string, deviceType = DeviceType.other) => {
+export const create = (
+  userName: string,
+  deviceName: string = `${userName}'s laptop`,
+  deviceType = DeviceType.laptop
+) => {
   const device: DeviceInfo = { userName, name: deviceName, type: deviceType }
   const deviceId = getDeviceId(device)
 
