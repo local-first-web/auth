@@ -1,16 +1,15 @@
-﻿import { getSequence, merge, TeamSignatureChain } from './chain'
-import { actionFingerprint } from './chain/actionFingerprint'
-import { KeyType } from './keyset'
-import { Connection, InitialContext } from '/connection'
-import { LocalUserContext } from '/context'
-import { DeviceType, DeviceWithSecrets, getDeviceId, PublicDevice, redactDevice } from '/device'
-import * as keysets from '/keyset'
-import { ADMIN } from '/role'
-import * as teams from '/team'
-import { Team } from '/team'
-import { User } from '/user'
-import { arrayToMap, debug } from '/util'
-import { alice, bob, charlie, dwight, joinTestChannel, TestChannel } from '/util/testing'
+﻿import { ADMIN } from '/role'
+import { debug } from '/util'
+import {
+  connect,
+  connectPhoneWithInvitation,
+  connectWithInvitation,
+  disconnect,
+  disconnection,
+  expectEveryoneToKnowEveryone,
+  setup,
+  updated,
+} from '/util/testing'
 import '/util/testing/expect/toBeValid'
 
 const log = debug(`taco:test`)
@@ -18,7 +17,7 @@ const log = debug(`taco:test`)
 beforeAll(() => log.clear())
 
 describe('integration', () => {
-  test(`can reconnect after disconnecting`, async () => {
+  test.only(`can reconnect after disconnecting`, async () => {
     const { alice, bob } = setup(['alice', 'bob'])
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
@@ -29,10 +28,10 @@ describe('integration', () => {
     // 👩🏾<->👨🏻‍🦲 Alice and Bob reconnect
     await connect(alice, bob)
 
-    // ✅
+    // ✅ all good
   })
 
-  test('sends updates after connection is established', async () => {
+  test.only('sends updates after connection is established', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
@@ -365,14 +364,6 @@ describe('integration', () => {
     // expect(alice.team.members('bob').devices).toHaveLength(2)
   })
 
-  // test(`when a member is demoted and concurrently invites a member and the member joins, the new member is removed`, async () => {
-  //   // Alice removes Bob from admins
-  //   // concurrently, Bob invites Charlie
-  //   // Bob and Charlie connect
-  //   // Alice and Bob connect
-  //   // Charlie's invitation is gone
-  // })
-
   test('sends updates across multiple hops', async () => {
     const { alice, bob, charlie } = setup(['alice', 'bob', 'charlie'])
 
@@ -453,13 +444,30 @@ describe('integration', () => {
     expect(charlie.team.hasRole('BOBS_FRIENDS')).toBe(true)
   })
 
-  // test('resolves concurrent conflicting changes in three-way connections', async () => {
-  //   // Alice, Bob and Charlie are admins
-  //
-  //   // Alice and Bob connect
-  //   // Alice and Charlie connect
-  //   // Bob and Charlie connect
-  // })
+  test('resolves concurrent duplicate changes in three-way connections', async () => {
+    const { alice, bob, charlie } = setup(['alice', 'bob', 'charlie'])
+
+    // 🔌 while disconnected...
+
+    // 👩🏾 Alice adds a new role
+    alice.team.addRole('MANAGERS')
+
+    // 👨🏻‍🦲 Bob adds the same role
+    bob.team.addRole('MANAGERS')
+
+    // 👳🏽‍♂️ Charlie adds the same role!! WHAT??!!
+    charlie.team.addRole('MANAGERS')
+
+    // 👩🏾<->👨🏻‍🦲<->👳🏽‍♂️ Alice, Bob, and Charlie all connect to each other
+    await connect(alice, bob)
+    await connect(bob, charlie)
+    await connect(alice, charlie)
+
+    // ✅ All three get the three new roles, and nothing bad happened
+    expect(alice.team.hasRole('MANAGERS')).toBe(true)
+    expect(bob.team.hasRole('MANAGERS')).toBe(true)
+    expect(charlie.team.hasRole('MANAGERS')).toBe(true)
+  })
 
   test('resolves circular concurrent demotions ', async () => {
     const { alice, bob, charlie, dwight } = setup(['alice', 'bob', 'charlie', 'dwight'])
@@ -490,279 +498,32 @@ describe('integration', () => {
     expect(isAdmin('charlie')).toBe(true)
   })
 
-  // test('resolves circular concurrent removals ', async () => {
-  //   const { alice, bob, charlie, dwight } = setup(['alice', 'bob', 'charlie', 'dwight'])
+  test('rotates keys after a member is removed', async () => {
+    // Bob is removed from the team
+    // Bob's admin keys no longer work
+  })
 
-  //   // Bob removes Charlie
-  //   bob.team.remove('charlie')
+  test('rotates keys after a device is removed', async () => {
+    // Bob removes his phone from the team
+    // The admin keys that his phone would have no longer work
+  })
 
-  //   // Charlie removes Alice
-  //   charlie.team.remove('alice')
+  test(`Eve steals Charlie's only device; Alice heals the team`, async () => {
+    // Eve steals Charlie's laptop
+    // Alice removes the laptop from the team
+    // Eve uses Charlie's laptop to try to connect to Bob, but she can't
+    // Alice sends Charlie a new invitation; he's able to use it to connect from his phone
+  })
 
-  //   // Alice removes Bob
-  //   alice.team.remove('bob')
-
-  //   // Dwight connects to all three
-  //   await Promise.all([
-  //     connect(dwight, alice), //
-  //     connect(dwight, bob),
-  //     connect(dwight, charlie),
-  //   ])
-
-  //   // Bob is off the team
-  //   expect(dwight.team.has('bob')).toBe(false)
-
-  //   // Alice is on the team
-  //   expect(dwight.team.has('alice')).toBe(true)
-
-  //   // Charlie?? not sure
-  //   expect(dwight.team.has('charlie')).toBe(true)
-  // })
-
-  // test('rotates keys after a member is removed', async () => {
-  // test('rotates keys after a device is removed', async () => {
-
-  // test(`Eve steals Charlie's only device; Alice heals the team`, async () => {
-  //   // Eve steals Charlie's laptop
-  //   // Alice removes the laptop from the team
-  //   // Eve uses Charlie's laptop to try to connect to Bob, but she can't
-  //   // Alice sends Charlie a new invitation; he's able to use it to connect from his phone
-  // })
-
-  // test(`Eve steals one of Charlie's devices; Charlie heals the team`, async () => {
-  //   // Charlie invites his phone and it joins
-  //   // Eve steals Charlie's phone
-  //   // From his laptop, Charlie removes the phone from the team
-  //   // Eve uses Charlie's phone to try to connect to Bob, but she can't
-  // })
-
-  // SETUP
-
-  const setup = (_setupUserSettings: (TestUserSettings | string)[] = []) => {
-    // Coerce input into expanded format
-    const setupUserSettings = _setupUserSettings.map(user =>
-      typeof user === 'string' ? { user } : user
-    )
-
-    // Get a list of just user names
-    const userNames = setupUserSettings.map(user => user.user)
-
-    // Create a new team
-    const allTestUsers: Record<string, User> = { alice, bob, charlie, dwight }
-    const getUserContext = (userName: string): LocalUserContext => {
-      const user = allTestUsers[userName]
-      return { user }
-    }
-    const sourceTeam = teams.create('Spies Я Us', getUserContext('alice'))
-
-    // Add members
-    for (const { user: userName, admin = true, member = true } of setupUserSettings) {
-      if (member && !sourceTeam.has(userName)) {
-        sourceTeam.add(allTestUsers[userName], admin ? [ADMIN] : [])
-      }
-    }
-
-    // Create one channel per pair of users
-    const pairKey = (a: string, b: string) => [a, b].sort().join(':')
-    const channels = {} as Record<string, TestChannel>
-    for (const a of userNames)
-      for (const b of userNames)
-        if (a !== b) {
-          // Don't connect to ourselves
-          const pair = pairKey(a, b)
-          // Only one channel per pair
-          if (!(pair in channels)) channels[pair] = new TestChannel()
-        }
-
-    const makeUserStuff = ({ user: userName, member = true }: TestUserSettings) => {
-      const user = allTestUsers[userName]
-      const context = getUserContext(userName)
-      const laptop = redactDevice(user.device)
-      const team = member
-        ? teams.load(JSON.stringify(sourceTeam.chain), context) // members get a copy of the source team
-        : teams.create(userName, context) // non-members get a dummy empty placeholder team
-
-      const connectionContext = member ? { team, user, device: laptop } : { user, device: laptop }
-
-      const phone = (() => {
-        const name = `${userName}'s phone`
-        const deviceInfo = { type: DeviceType.mobile, name: name, userName }
-        const deviceKeys = keysets.create({ type: KeyType.DEVICE, name: getDeviceId(deviceInfo) })
-        const device: DeviceWithSecrets = { ...deviceInfo, keys: deviceKeys }
-        const publicDevice = redactDevice(device)
-        const connectionContext = {
-          user: { ...user, device },
-          // TODO: it's probably redundant to include the device on the connection context, since the user has it
-          device: publicDevice,
-        }
-        return { device, connectionContext }
-      })()
-
-      const userStuff = {
-        userName,
-        user,
-        context,
-        laptop,
-        phone,
-        team,
-        connectionContext,
-        channel: {} as Record<string, TestChannel>,
-        connection: {} as Record<string, Connection>,
-        getState: (u: string) => userStuff.connection[u].state,
-      } as UserStuff
-      return userStuff
-    }
-
-    const addConnectionToEachOtherUser = (A: UserStuff) => {
-      // only make connections if A is a member
-      if ('team' in A.connectionContext) {
-        const a = A.userName
-        for (const { user: b, member = true } of setupUserSettings) {
-          // don't connect to ourselves
-          if (a !== b) {
-            const pair = pairKey(a, b)
-            const channel = channels[pair]!
-            const join = joinTestChannel(channel)
-            A.channel[b] = channel
-            // only make connection if B is a member
-            if (member) A.connection[b] = join(A.connectionContext)
-          }
-        }
-      }
-      return A
-    }
-
-    const testUsers: Record<string, UserStuff> = setupUserSettings
-      .map(makeUserStuff)
-      .map(addConnectionToEachOtherUser)
-      .reduce(arrayToMap('userName'), {})
-
-    return testUsers
-  }
-
-  // HELPERS
-
-  /** Connects the two members and waits for them to be connected */
-  const connect = async (a: UserStuff, b: UserStuff) => {
-    a.connection[b.userName].start()
-    b.connection[a.userName].start()
-    await connection(a, b)
-  }
-
-  /** Connects a (a member) with b (invited using the given seed). */
-  const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: string) => {
-    const join = joinTestChannel(a.channel[b.userName])
-    b.connectionContext.invitationSeed = seed
-    a.connection[b.userName] = join(a.connectionContext).start()
-    b.connection[a.userName] = join(b.connectionContext).start()
-    return connection(a, b).then(() => {
-      // The connection now has the team object, so let's update our user stuff
-      b.team = b.connection[a.userName].team!
-    })
-  }
-
-  const connectPhoneWithInvitation = async (a: UserStuff, seed: string) => {
-    const join = joinTestChannel(new TestChannel())
-    a.phone.connectionContext.invitationSeed = seed
-
-    const laptop = join(a.connectionContext).start()
-    const phone = join(a.phone.connectionContext).start()
-    await all([laptop, phone], 'connected')
-  }
-
-  /** Passes if each of the given members is on the team, and knows every other member on the team */
-  const expectEveryoneToKnowEveryone = (...members: UserStuff[]) => {
-    for (const a of members)
-      for (const b of members) //
-        expect(a.team.has(b.userName)).toBe(true)
-  }
-
-  /** Disconnects the two members and waits for them to be disconnected */
-  const disconnect = async (a: UserStuff, b: UserStuff) =>
-    Promise.all([
-      disconnection(a, b),
-      a.connection[b.userName].stop(),
-      b.connection[a.userName].stop(),
-    ])
-
-  // Promisified events
-
-  const connection = async (a: UserStuff, b: UserStuff) => {
-    const connections = [a.connection[b.userName], b.connection[a.userName]]
-
-    // We're listening for a connection; if we're disconnected, throw an error
-    connections.forEach(c =>
-      c.on('disconnected', () => {
-        throw new Error(c.error?.message || 'Diconnected')
-      })
-    )
-
-    // ✅ They're both connected
-    await all(connections, 'connected')
-
-    // Remove the disconnect listeners so we don't throw errors later on
-    connections.forEach(c => c.removeAllListeners())
-
-    const sharedKey = connections[0].sessionKey
-    connections.forEach(connection => {
-      expect(connection.state).toEqual('connected')
-      // ✅ They've converged on a shared secret key
-      expect(connection.sessionKey).toEqual(sharedKey)
-    })
-  }
-
-  const updated = (a: UserStuff, b: UserStuff) => {
-    const connections = [a.connection[b.userName], b.connection[a.userName]]
-    return all(connections, 'updated')
-  }
-  const disconnection = async (a: UserStuff, b: UserStuff, message?: string) => {
-    const connections = [a.connection[b.userName], b.connection[a.userName]]
-
-    // ✅ They're both disconnected
-    await all(connections, 'disconnected')
-
-    connections.forEach(connection => {
-      expect(connection.state).toEqual('disconnected')
-      // ✅ If we're checking for a message, it matches
-      if (message !== undefined) expect(connection.error!.message).toContain(message)
-    })
-  }
-
-  const all = (connections: Connection[], event: string) =>
-    Promise.all(
-      connections.map(connection => {
-        if (event === 'disconnect' && connection.state === 'disconnected') return true
-        if (event === 'connected' && connection.state === 'connected') return true
-        else return new Promise(resolve => connection.on(event, () => resolve()))
-      })
-    )
+  test(`Eve steals one of Charlie's devices; Charlie heals the team`, async () => {
+    // Charlie invites his phone and it joins
+    // Eve steals Charlie's phone
+    // From his laptop, Charlie removes the phone from the team
+    // Eve uses Charlie's phone to try to connect to Bob, but she can't
+  })
 
   // Logging
 
   const testName = () => expect.getState().currentTestName
   beforeEach(() => log.header('TEST: ' + testName()))
 })
-
-// TYPES
-
-type TestUserSettings = {
-  user: string
-  admin?: boolean
-  member?: boolean
-}
-
-interface UserStuff {
-  userName: string
-  user: User
-  context: LocalUserContext
-  laptop: PublicDevice
-  phone: {
-    device: DeviceWithSecrets
-    connectionContext: InitialContext
-  }
-  team: Team
-  connectionContext: InitialContext
-  channel: Record<string, TestChannel>
-  connection: Record<string, Connection>
-  getState: (u: string) => any
-}
