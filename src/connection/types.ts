@@ -19,6 +19,8 @@ export type Challenge = KeyScope & {
 
 export type SendFunction = <T extends ConnectionMessage>(message: T) => void
 
+// TODO: it's probably redundant to include the device on the connection context, since the user has it
+
 export type InitialContext = {
   /** The local user, including their secret keys */
   user: User
