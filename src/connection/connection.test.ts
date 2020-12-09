@@ -23,67 +23,6 @@ import '/util/testing/expect/toBeValid'
 import { expectConnection, expectDisconnection } from '/util/testing/expectConnection'
 
 describe('connection', () => {
-  // used for tests of the connection's timeout - needs to be bigger than
-  // the TIMEOUT_DELAY constant in connectionMachine, plus some slack
-  const LONG_TIMEOUT = 10000
-
-  const oneWay = true
-  const setup = (userNames: string[] = [], isOneWay = false) => {
-    const allTestUsers: Record<string, User> = { alice, bob, charlie }
-    const getUserContext = (userName: string): LocalUserContext => {
-      const user = allTestUsers[userName]
-      return { user }
-    }
-
-    // Our dummy `sendMessage` just pushes messages onto a queue. We use this for one-sided tests
-    // (where there's only a real connection on one side)
-    const messageQueue: ConnectionMessage[] = []
-    const sendMessage = (message: ConnectionMessage) => messageQueue.push(message)
-    const lastMessage = () => messageQueue[messageQueue.length - 1]
-
-    // For real two-way connections, we use this
-    const join = joinTestChannel(new TestChannel())
-
-    // Create a new team
-    const team = teams.create('Spies Я Us', getUserContext('alice'))
-
-    //  Always add Bob as an admin
-    team.add(bob, [ADMIN])
-
-    const makeUserStuff = (userName: string) => {
-      const user = allTestUsers[userName]
-      const context = getUserContext(userName)
-      const device = redactDevice(user.device)
-      const userTeam = teams.load(team.chain, context)
-      const connectionContext = { team: userTeam, user, device }
-      const connection = isOneWay
-        ? new Connection({ sendMessage, context: connectionContext })
-        : join(connectionContext)
-      const getState = () => connection.state as any
-
-      let index = 0
-      const deliver = (msg: ConnectionMessage) => connection.deliver({ index: index++, ...msg })
-
-      return {
-        userName,
-        user,
-        context,
-        device,
-        team: userTeam,
-        connectionContext,
-        connection,
-        getState,
-        deliver,
-      }
-    }
-
-    const testUsers: Record<string, ReturnType<typeof makeUserStuff>> = userNames
-      .map(makeUserStuff)
-      .reduce(arrayToMap('userName'), {})
-
-    return { sendMessage, join, lastMessage, testUsers }
-  }
-
   describe('between members', () => {
     // Test one side of the verification workflow, using a real connection for Alice and manually simulating Bob's messages.
     it(`should successfully verify the other peer's identity`, async () => {
@@ -100,7 +39,7 @@ describe('connection', () => {
       alice.deliver({ type: 'HELLO', payload: { identityClaim } })
 
       // 👩🏾 Alice automatically sends Bob a challenge & waits for proof
-      expect(authenticatingState().verifyingTheirIdentity).toEqual('awaitingIdentityProof')
+      expect(authenticatingState().verifying).toEqual('waiting')
 
       // 👨🏻‍🦲 Bob generates proof by signing Alice's challenge and sends it back
       const challengeMessage = lastMessage() as ChallengeIdentityMessage
@@ -109,7 +48,7 @@ describe('connection', () => {
       alice.deliver({ type: 'PROVE_IDENTITY', payload: { challenge, proof } })
 
       // ✅ Success! Alice has verified Bob's identity
-      expect(authenticatingState().verifyingTheirIdentity).toEqual('done')
+      expect(authenticatingState().verifying).toEqual('done')
     })
 
     // Test the other side, using a real connection for Bob and manually simulating Alice's messages.
@@ -126,7 +65,7 @@ describe('connection', () => {
       bob.deliver({ type: 'HELLO', payload: { identityClaim } })
 
       // 👨🏻‍🦲 Bob automatically asserts his identity, and awaits a challenge
-      expect(bobAuthenticatingState().provingOurIdentity).toEqual('awaitingIdentityChallenge')
+      expect(bobAuthenticatingState().proving).toEqual('awaitingChallenge')
 
       // 👩🏾 Alice challenges Bob's identity claim
       const helloMessage = lastMessage() as HelloMessage
@@ -134,7 +73,7 @@ describe('connection', () => {
       bob.deliver({ type: 'CHALLENGE_IDENTITY', payload: { challenge } })
 
       // 👨🏻‍🦲 Bob automatically responds to the challenge with proof, and awaits acceptance
-      expect(bobAuthenticatingState().provingOurIdentity).toEqual('awaitingIdentityAcceptance')
+      expect(bobAuthenticatingState().proving).toEqual('awaitingAcceptance')
 
       // 👩🏾 Alice verifies Bob's proof
       const proofMessage = lastMessage() as ProveIdentityMessage
@@ -151,7 +90,7 @@ describe('connection', () => {
       bob.deliver({ type: 'ACCEPT_IDENTITY', payload: { encryptedSeed } })
 
       // ✅ Success! Bob has proved his identity
-      expect(bobAuthenticatingState().provingOurIdentity).toEqual('done')
+      expect(bobAuthenticatingState().proving).toEqual('done')
     })
 
     // Let both processes play out automatically
@@ -219,9 +158,7 @@ describe('connection', () => {
         })
 
         // 👩🏾 Alice automatically sends Bob a challenge & waits for proof
-        expect(alice.getState().connecting.authenticating.verifyingTheirIdentity).toEqual(
-          'awaitingIdentityProof'
-        )
+        expect(alice.getState().connecting.authenticating.verifying).toEqual('waiting')
 
         // 👨🏻‍🦲 Bob doesn't respond
         // ...
@@ -255,7 +192,7 @@ describe('connection', () => {
       alice.deliver({ type: 'HELLO', payload: { identityClaim, proofOfInvitation } })
 
       // ✅ Success! Alice has verified Charlie's identity
-      expect(aliceAuthenticatingState().verifyingTheirIdentity).toEqual('done')
+      expect(aliceAuthenticatingState().verifying).toEqual('done')
     })
 
     // Test the other side with Charlie presenting an invitation, using a real connection for Bob
@@ -283,7 +220,7 @@ describe('connection', () => {
 
       // 👳🏽‍♂️ Charlie awaits acceptance
       const charlieState = () => (charlieConnection.state as any).connecting
-      expect(charlieState().maybeHandlingInvitations).toEqual('awaitingInvitationAcceptance')
+      expect(charlieState().invitation).toEqual('waiting')
 
       // 👩🏾 Alice validates charlie's invitation
       const helloMessage = lastMessage() as HelloMessage
@@ -297,7 +234,7 @@ describe('connection', () => {
       charlieConnection.deliver({ index: 3, type: 'ACCEPT_IDENTITY', payload: {} })
 
       // ✅ Success! Charlie has proved his identity
-      expect(charlieState().authenticating.provingOurIdentity).toEqual('done')
+      expect(charlieState().authenticating.proving).toEqual('done')
     })
 
     // Create real connections with a member on one side and an invitee on the other
@@ -314,6 +251,10 @@ describe('connection', () => {
         device: redactDevice(charlie.device),
         invitationSeed,
       }
+      console.log(charlieContext)
+
+      // NEXT: the problem is here
+
       const charlieConnection = join(charlieContext)
 
       // ✅ Success
@@ -384,9 +325,7 @@ describe('connection', () => {
 
       //  👳🏽‍♂️ Charlie is waiting for fake Alice to accept his invitation
       const charlieState = () => charlieConnection.state as any
-      expect(charlieState().connecting.maybeHandlingInvitations).toEqual(
-        'awaitingInvitationAcceptance'
-      )
+      expect(charlieState().connecting.invitation).toEqual('waiting')
 
       // 🦹‍♀️ Eve pretends to validate Charlie's invitation
       const chain = eveTeam.save()
@@ -394,7 +333,7 @@ describe('connection', () => {
 
       // 👳🏽‍♂️ Charlie won't see his invitation in Eve's team's sigchain, so he'll bail when he receives the welcome message
       expect(charlieState()).toEqual('disconnected')
-      expect(charlieConnection.context.error!.message).toContain('not the team I was invited to')
+      expect(charlieConnection.error!.message).toContain('not the team I was invited to')
     })
   })
 
@@ -482,4 +421,65 @@ describe('connection', () => {
   })
 
   it('connected peers can encrypt/decrypt to each other using session key', () => {})
+
+  // used for tests of the connection's timeout - needs to be bigger than
+  // the TIMEOUT_DELAY constant in connectionMachine, plus some slack
+  const LONG_TIMEOUT = 10000
+
+  const oneWay = true
+  const setup = (userNames: string[] = [], isOneWay = false) => {
+    const allTestUsers: Record<string, User> = { alice, bob, charlie }
+    const getUserContext = (userName: string): LocalUserContext => {
+      const user = allTestUsers[userName]
+      return { user }
+    }
+
+    // Our dummy `sendMessage` just pushes messages onto a queue. We use this for one-sided tests
+    // (where there's only a real connection on one side)
+    const messageQueue: ConnectionMessage[] = []
+    const sendMessage = (message: ConnectionMessage) => messageQueue.push(message)
+    const lastMessage = () => messageQueue[messageQueue.length - 1]
+
+    // For real two-way connections, we use this
+    const join = joinTestChannel(new TestChannel())
+
+    // Create a new team
+    const team = teams.create('Spies Я Us', getUserContext('alice'))
+
+    //  Always add Bob as an admin
+    team.add(bob, [ADMIN])
+
+    const makeUserStuff = (userName: string) => {
+      const user = allTestUsers[userName]
+      const context = getUserContext(userName)
+      const device = redactDevice(user.device)
+      const userTeam = teams.load(team.chain, context)
+      const connectionContext = { team: userTeam, user, device }
+      const connection = isOneWay
+        ? new Connection({ sendMessage, context: connectionContext })
+        : join(connectionContext)
+      const getState = () => connection.state as any
+
+      let index = 0
+      const deliver = (msg: ConnectionMessage) => connection.deliver({ index: index++, ...msg })
+
+      return {
+        userName,
+        user,
+        context,
+        device,
+        team: userTeam,
+        connectionContext,
+        connection,
+        getState,
+        deliver,
+      }
+    }
+
+    const testUsers: Record<string, ReturnType<typeof makeUserStuff>> = userNames
+      .map(makeUserStuff)
+      .reduce(arrayToMap('userName'), {})
+
+    return { sendMessage, join, lastMessage, testUsers }
+  }
 })
