@@ -19,7 +19,9 @@ export interface ExistingTeamOptions {
   context: LocalUserContext
 }
 
-export type TeamOptions = NewTeamOptions | ExistingTeamOptions
+export type TeamOptions = (NewTeamOptions | ExistingTeamOptions) & {
+  seed?: string
+}
 
 // type guard for NewTeamOptions vs ExistingTeamOptions
 export function isNewTeam(options: TeamOptions): options is NewTeamOptions {
