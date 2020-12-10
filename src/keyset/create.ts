@@ -17,11 +17,11 @@ const { SIGNATURE, ENCRYPTION, SYMMETRIC } = HashPurpose
  * @returns A keyset consisting of a keypair for signing, a keypair for asymmetric encryption, and
  * a key for symmetric encryption.
  */
-export const create = (
+export function create(
   { type, name = type }: Optional<KeyScope, 'name'>,
   seed: string = randomKey()
-): KeysetWithSecrets => {
-  const stretchedSeed = stretch(seed)
+): KeysetWithSecrets {
+  const stretchedSeed = stretch(`${name}:${type}:${seed}`)
   return {
     type,
     name,
