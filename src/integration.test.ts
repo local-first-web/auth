@@ -1,4 +1,5 @@
-﻿import { ADMIN } from '/role'
+﻿import { profile } from './util/profile'
+import { ADMIN } from '/role'
 import { debug } from '/util'
 import {
   connect,
@@ -14,10 +15,12 @@ import '/util/testing/expect/toBeValid'
 
 const log = debug(`taco:test`)
 
-beforeAll(() => log.clear())
+beforeAll(() => {
+  log.clear()
+})
 
 describe('integration', () => {
-  test.only(`can reconnect after disconnecting`, async () => {
+  test(`can reconnect after disconnecting`, async () => {
     const { alice, bob } = setup(['alice', 'bob'])
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
@@ -31,7 +34,7 @@ describe('integration', () => {
     // ✅ all good
   })
 
-  test.only('sends updates after connection is established', async () => {
+  test('sends updates after connection is established', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
@@ -145,7 +148,7 @@ describe('integration', () => {
     const { alice, bob, charlie } = setup(['alice', 'bob', { user: 'charlie', member: false }])
 
     // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie
-    const { seed } = alice.team.invite('charlie')
+    const { invitationSeed: seed } = alice.team.invite('charlie')
 
     // 👳🏽‍♂️📧<->👩🏾 Charlie connects to Alice and uses his invitation to join
     await connectWithInvitation(alice, charlie, seed)
@@ -164,7 +167,7 @@ describe('integration', () => {
     await connect(alice, bob)
 
     // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie
-    const { seed } = alice.team.invite('charlie')
+    const { invitationSeed: seed } = alice.team.invite('charlie')
 
     // 👳🏽‍♂️📧<->👩🏾 Charlie connects to Alice and uses his invitation to join
     await connectWithInvitation(alice, charlie, seed)
@@ -193,10 +196,10 @@ describe('integration', () => {
     const bobInvitesDwight = bob.team.invite('dwight')
 
     // 👳🏽‍♂️📧<->👩🏾 Charlie connects to Alice and uses his invitation to join
-    await connectWithInvitation(alice, charlie, aliceInvitesCharlie.seed)
+    await connectWithInvitation(alice, charlie, aliceInvitesCharlie.invitationSeed)
 
     // 👴📧<->👨🏻‍🦲 Dwight connects to Bob and uses his invitation to join
-    await connectWithInvitation(bob, dwight, bobInvitesDwight.seed)
+    await connectWithInvitation(bob, dwight, bobInvitesDwight.invitationSeed)
 
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
     connect(alice, bob)
@@ -209,28 +212,31 @@ describe('integration', () => {
   })
 
   test(`handles concurrent admittance of the same invitation`, async () => {
-    const { alice, bob, charlie } = setup(['alice', 'bob', { user: 'charlie', member: false }])
+    const SAME_INVITATION = async () => {
+      const { alice, bob, charlie } = setup(['alice', 'bob', { user: 'charlie', member: false }])
 
-    // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie
-    const { seed } = alice.team.invite('charlie')
+      // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie
+      const { invitationSeed: seed } = alice.team.invite('charlie')
 
-    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect, so Bob knows about the invitation
-    await connect(alice, bob)
-    await disconnect(alice, bob)
+      // 👩🏾<->👨🏻‍🦲 Alice and Bob connect, so Bob knows about the invitation
+      await connect(alice, bob)
+      await disconnect(alice, bob)
 
-    await Promise.all([
-      // 👳🏽‍♂️📧<->👩🏾 Charlie presents his invitation to Alice
-      connectWithInvitation(alice, charlie, seed),
+      await Promise.all([
+        // 👳🏽‍♂️📧<->👩🏾 Charlie presents his invitation to Alice
+        connectWithInvitation(alice, charlie, seed),
 
-      // 👳🏽‍♂️📧<-> 👨🏻‍🦲 concurrently Charlie presents his invitation to Bob
-      connectWithInvitation(bob, charlie, seed),
-    ])
+        // 👳🏽‍♂️📧<-> 👨🏻‍🦲 concurrently Charlie presents his invitation to Bob
+        connectWithInvitation(bob, charlie, seed),
+      ])
 
-    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
-    await connect(alice, bob)
+      // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
+      await connect(alice, bob)
 
-    // ✅ It all works out
-    expectEveryoneToKnowEveryone(alice, bob, charlie)
+      // ✅ It all works out
+      expectEveryoneToKnowEveryone(alice, bob, charlie)
+    }
+    await profile(SAME_INVITATION)
   })
 
   test('resolves mutual demotions in favor of the senior member', async () => {
@@ -242,7 +248,7 @@ describe('integration', () => {
     // 👩🏾 Alice concurrently removes 👨🏻‍🦲 Bob from admin role
     alice.team.removeMemberRole('bob', ADMIN)
 
-    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect. Bob's demotion of Alice is discarded (because they wer
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect. Bob's demotion of Alice is discarded (because they were
     // done concurrently and Alice is senior so she wins)
     await connect(alice, bob)
 
@@ -321,7 +327,7 @@ describe('integration', () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
     // 👨🏻‍🦲💻📧->📱 on his laptop, Bob creates an invitation and somehow gets it to his phone
-    const { seed } = bob.team.invite('bob')
+    const { invitationSeed: seed } = bob.team.invite('bob')
 
     // 💻<->📱📧 Bob's phone and laptop connect and the phone joins
     await connectPhoneWithInvitation(bob, seed)
@@ -343,7 +349,7 @@ describe('integration', () => {
     alice.team.removeMemberRole('bob', ADMIN)
 
     // 👨🏻‍🦲💻📧📱 concurrently, on his laptop, Bob invites his phone
-    const { seed } = bob.team.invite('bob')
+    const { invitationSeed: seed } = bob.team.invite('bob')
 
     // 💻<->📱 Bob's phone and laptop connect and the phone joins
     await connectPhoneWithInvitation(bob, seed)

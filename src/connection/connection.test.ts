@@ -9,7 +9,7 @@ import {
   ProveIdentityMessage,
 } from '/connection/message'
 import { LocalUserContext } from '/context'
-import { redactDevice } from '/device'
+import { DeviceType, redactDevice } from '/device'
 import { generateProof } from '/invitation'
 import { KeyType, randomKey, redactKeys } from '/keyset'
 import { ADMIN } from '/role'
@@ -22,11 +22,16 @@ import { alice, bob, charlie, dwight, joinTestChannel, TestChannel } from '/util
 import '/util/testing/expect/toBeValid'
 import { expectConnection, expectDisconnection } from '/util/testing/expectConnection'
 
+// used for tests of the connection's timeout - needs to be bigger than
+// the TIMEOUT_DELAY constant in connectionMachine, plus some slack
+const LONG_TIMEOUT = 10000
+const ONE_WAY = true
+
 describe('connection', () => {
   describe('between members', () => {
     // Test one side of the verification workflow, using a real connection for Alice and manually simulating Bob's messages.
     it(`should successfully verify the other peer's identity`, async () => {
-      const { testUsers, lastMessage } = setup(['alice'], oneWay)
+      const { testUsers, lastMessage } = setup(['alice'], ONE_WAY)
       const { alice } = testUsers
 
       const authenticatingState = () => alice.getState().connecting.authenticating
@@ -53,7 +58,7 @@ describe('connection', () => {
 
     // Test the other side, using a real connection for Bob and manually simulating Alice's messages.
     it(`should successfully prove our identity to the other peer`, async () => {
-      const { testUsers, lastMessage } = setup(['alice', 'bob'], oneWay)
+      const { testUsers, lastMessage } = setup(['alice', 'bob'], ONE_WAY)
       const { bob } = testUsers
       const bobAuthenticatingState = () => bob.getState().connecting.authenticating
 
@@ -143,7 +148,7 @@ describe('connection', () => {
     it(
       'disconnects if the peer stops responding',
       async () => {
-        const { testUsers } = setup(['alice', 'bob'], oneWay)
+        const { testUsers } = setup(['alice', 'bob'], ONE_WAY)
         const { alice } = testUsers
 
         // 👩🏾 Alice connects
@@ -176,12 +181,12 @@ describe('connection', () => {
     // Test one side of the verification workflow with Charlie presenting an invitation, using a real
     // connection for Alice and manually simulating Charlie's messages.
     it(`should successfully verify the other peer's invitation`, async () => {
-      const { testUsers } = setup(['alice'], oneWay)
+      const { testUsers } = setup(['alice'], ONE_WAY)
       const { alice } = testUsers
       const aliceAuthenticatingState = () => alice.getState().connecting.authenticating
 
       // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
-      const { seed: invitationSeed } = alice.team.invite('charlie')
+      const { invitationSeed } = alice.team.invite('charlie')
 
       // 👩🏾 Alice connects
       alice.connection.start()
@@ -198,12 +203,12 @@ describe('connection', () => {
     // Test the other side with Charlie presenting an invitation, using a real connection for Bob
     // and manually simulating Alice's messages.
     it(`should successfully present an invitation to the other peer`, async () => {
-      const { testUsers, lastMessage, sendMessage } = setup(['alice'], oneWay)
+      const { testUsers, lastMessage, sendMessage } = setup(['alice'], ONE_WAY)
       const { alice } = testUsers
 
       // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
 
-      const { seed: invitationSeed } = alice.team.invite('charlie')
+      const { invitationSeed } = alice.team.invite('charlie')
 
       // 👳🏽‍♂️ Charlie connects
       const charlieContext = {
@@ -243,7 +248,7 @@ describe('connection', () => {
       const { alice } = testUsers
 
       // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
-      const { seed: invitationSeed } = alice.team.invite('charlie')
+      const { invitationSeed } = alice.team.invite('charlie')
 
       // 👳🏽‍♂️ Charlie uses the invitation secret key to connect with Alice
       const charlieContext = {
@@ -264,14 +269,14 @@ describe('connection', () => {
     // Two people carrying invitations can't connect to each other - there needs to be at least one
     // current member in a connection in order to let the invitee in.
     it(`shouldn't allow two invitees to connect`, async () => {
-      const { testUsers, join } = setup(['alice'], oneWay)
+      const { testUsers, join } = setup(['alice'], ONE_WAY)
       const { alice } = testUsers
 
       // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
-      const { seed: charlieKey } = alice.team.invite('charlie')
+      const { invitationSeed: charlieKey } = alice.team.invite('charlie')
 
       // 👩🏾 Alice invites 👴 Dwight
-      const { seed: dwightKey } = alice.team.invite('dwight')
+      const { invitationSeed: dwightKey } = alice.team.invite('dwight')
 
       // 👳🏽‍♂️ Charlie uses his invitation secret key to try to connect
       const charlieContext = {
@@ -295,15 +300,19 @@ describe('connection', () => {
 
     // In which Eve tries to get Charlie to join her team instead of Alice's
     it(`shouldn't be fooled into joining the wrong team`, async () => {
-      const { testUsers, sendMessage } = setup(['alice'], oneWay)
+      const { testUsers, sendMessage } = setup(['alice'], ONE_WAY)
       const { alice } = testUsers
 
       // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
 
-      const { seed: invitationSeed } = alice.team.invite('charlie')
+      const { invitationSeed } = alice.team.invite('charlie')
       // 🦹‍♀️ Eve is going to impersonate Alice to try to get Charlie to join her team instead
 
-      const fakeAlice = users.create('alice')
+      const fakeAlice = users.create({
+        userName: 'alice',
+        deviceName: 'laptop',
+        deviceType: DeviceType.laptop,
+      })
       const eveContext = { user: fakeAlice, device: alice.device }
       const eveTeam = teams.create('Spies Я Us', eveContext)
 
@@ -422,11 +431,6 @@ describe('connection', () => {
 
   it('connected peers can encrypt/decrypt to each other using session key', () => {})
 
-  // used for tests of the connection's timeout - needs to be bigger than
-  // the TIMEOUT_DELAY constant in connectionMachine, plus some slack
-  const LONG_TIMEOUT = 10000
-
-  const oneWay = true
   const setup = (userNames: string[] = [], isOneWay = false) => {
     const allTestUsers: Record<string, User> = { alice, bob, charlie }
     const getUserContext = (userName: string): LocalUserContext => {

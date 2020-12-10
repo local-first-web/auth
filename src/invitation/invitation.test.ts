@@ -8,7 +8,7 @@ describe('invitations', () => {
 
   test('create invitation', () => {
     const secretKey = randomSeed()
-    const invitation = create({ teamKeys, userName: 'bob', seed: secretKey })
+    const invitation = create({ teamKeys, userName: 'bob', invitationSeed: secretKey })
 
     // looks like an invitation
     expect(secretKey).toHaveLength(16)
@@ -23,7 +23,7 @@ describe('invitations', () => {
 
     // 👩🏾 Alice generates an invitation with this key. Normally the invitation would be stored on the
     // team's signature chain; here we're just keeping it around in a variable.
-    const invitation = create({ teamKeys, userName: 'bob', seed: seed })
+    const invitation = create({ teamKeys, userName: 'bob', invitationSeed: seed })
 
     // 👨🏻‍🦲 Bob accepts invitation and obtains a credential proving that he was invited.
     const proofOfInvitation = generateProof(seed, 'bob')
@@ -40,7 +40,7 @@ describe('invitations', () => {
     // 👩🏾 Alice uses a secret key to create an invitation; she sends it to Bob via a trusted side channel
     const secretKey = 'passw0rd'
     // and uses it to create an invitation for him
-    const invitation = create({ teamKeys, userName: 'bob', seed: secretKey })
+    const invitation = create({ teamKeys, userName: 'bob', invitationSeed: secretKey })
 
     // 🦹‍♀️ Eve tries to accept the invitation in Bob's place, but she doesn't have the correct invitation key
     const proofOfInvitation = generateProof('horsebatterycorrectstaple', 'bob')
@@ -53,7 +53,7 @@ describe('invitations', () => {
   test(`even if you know the key, you can't accept someone else's invitation under your own name`, () => {
     // 👩🏾 Alice generates a secret key and sends it to Bob via a trusted side channel.
     const secretKey = randomSeed()
-    const invitation = create({ teamKeys, userName: 'bob', seed: secretKey })
+    const invitation = create({ teamKeys, userName: 'bob', invitationSeed: secretKey })
 
     // 🦹‍♀️ Eve has the secret key, so she tries to use it to get herself accepted into the group
     const proofOfInvitation = generateProof(secretKey, 'eve')
