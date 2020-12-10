@@ -87,4 +87,4 @@ const memoizeFunctionMap = <T extends FunctionMap>(m: T): T => {
   return result as T
 }
 
-export const validators = _validators // memoizeFunctionMap(_validators)
+export const validators = memoizeFunctionMap(_validators)
