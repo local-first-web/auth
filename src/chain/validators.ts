@@ -1,4 +1,5 @@
-﻿import { signatures } from '@herbcaudill/crypto'
+﻿import memoize from 'fast-memoize'
+import { signatures } from '@herbcaudill/crypto'
 import { getRoot } from '/chain/getRoot'
 import { hashLink } from '/chain/hashLink'
 import {
@@ -9,11 +10,11 @@ import {
   RootLinkBody,
   ValidatorSet,
 } from '/chain/types'
-import { ValidationError, ValidationResult, debug } from '/util'
+import { debug, ValidationError } from '/util'
 
 const log = debug('taco:validators')
 
-export const validators: ValidatorSet = {
+const _validators: ValidatorSet = {
   /** Does this link contain a hash of the previous link?  */
   validateHash: (link, chain) => {
     if (isRootLink(link)) return { isValid: true } // nothing to validate on first link
@@ -74,3 +75,16 @@ export const validators: ValidatorSet = {
         }
   },
 }
+type Func = (...args: any[]) => any
+type FunctionMap = Record<string, Func>
+
+const memoizeFunctionMap = <T extends FunctionMap>(m: T): T => {
+  const result = {} as any
+  for (const key in m) {
+    const fn = m[key] as Func
+    result[key] = memoize(fn) as Func
+  }
+  return result as T
+}
+
+export const validators = _validators // memoizeFunctionMap(_validators)
