@@ -1,5 +1,4 @@
-﻿import { signatures, symmetric } from '@herbcaudill/crypto'
-import { Debugger } from 'debug'
+﻿import { randomKey, signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
 import * as chains from '/chain'
 import { membershipResolver, TeamAction, TeamActionLink, TeamSignatureChain } from '/chain'
@@ -44,7 +43,8 @@ export class Team extends EventEmitter {
   public chain: TeamSignatureChain
   private context: LocalUserContext
   private state: TeamState = initialState // derived from chain, only updated by running chain through reducer
-  private log: ReturnType<typeof debug>
+  private log: (o: any) => void
+  private seed: string
 
   /**
    * We can make a team instance either by creating a brand-new team, or restoring one from a stored
@@ -53,12 +53,16 @@ export class Team extends EventEmitter {
    * @param options.source (only when rehydrating from a chain) The `TeamSignatureChain`
    * representing the team's state. Can be serialized or not.
    * @param options.teamName (only when creating a new team) The team's human-facing name.
+   * @param options.seed A seed for generating keys. This is typically only used for testing, to ensure predictable data.
    */
   constructor(options: TeamOptions) {
     super()
+    this.seed = options.seed ?? randomKey()
     this.context = options.context
-
-    this.log = debug(`taco:team:${this.context.user.userName}`)
+    this.log = (o: any) =>
+      debug(`taco:team:${this.context.user.userName}`)(
+        typeof o !== 'string' ? JSON.stringify(o, null, 2) : o
+      )
 
     if (isNewTeam(options)) {
       // Create a new team with the current user as founding member
@@ -66,8 +70,8 @@ export class Team extends EventEmitter {
 
       // Team & role secrets are never stored in plaintext, only encrypted into individual lockboxes.
       // Here we create new lockboxes with the team & admin keys for the founding member
-      const teamLockbox = lockbox.create(keysets.create(TEAM_SCOPE), localUser.keys)
-      const adminLockbox = lockbox.create(keysets.create(ADMIN_SCOPE), localUser.keys)
+      const teamLockbox = lockbox.create(keysets.create(TEAM_SCOPE, this.seed), localUser.keys)
+      const adminLockbox = lockbox.create(keysets.create(ADMIN_SCOPE, this.seed), localUser.keys)
 
       // Post root link to signature chain
       const payload = {
@@ -131,6 +135,7 @@ export class Team extends EventEmitter {
     // Run the chain through the reducer to calculate the current team state
     const resolver = membershipResolver
 
+    // TODO: why ts-ignore here
     //@ts-ignore
     const sequence = chains.getSequence({ chain: this.chain, resolver })
     this.state = sequence.reduce(reducer, initialState)
@@ -233,7 +238,7 @@ export class Team extends EventEmitter {
     if (typeof role === 'string') role = { roleName: role }
 
     // we're creating this role so we need to generate new keys
-    const roleKeys = keysets.create({ type: ROLE, name: role.roleName })
+    const roleKeys = keysets.create({ type: ROLE, name: role.roleName }, this.seed)
 
     // make a lockbox for the admin role, so that all admins can access this role's keys
     const lockboxForAdmin = lockbox.create(roleKeys, this.adminKeys())
@@ -334,13 +339,15 @@ export class Team extends EventEmitter {
 
     *Note:* A member can only invite their own devices. A non-admin member can only remove their own
     device; an admin member can remove a device for anyone.
-
   */
 
-  public invite = (userName: string, options: { roles?: string[]; seed?: string } = {}) => {
+  public invite = (
+    userName: string,
+    options: { roles?: string[]; invitationSeed?: string } = {}
+  ) => {
     const { roles = [] } = options
-    let { seed = invitations.randomSeed() } = options
-    seed = normalize(seed)
+    let { invitationSeed = invitations.randomSeed() } = options
+    invitationSeed = normalize(invitationSeed)
 
     const currentUser = this.context.user
     if (this.has(userName)) {
@@ -351,8 +358,8 @@ export class Team extends EventEmitter {
       assert(this.memberIsAdmin(currentUser.userName), `Only admins can add invite new members`)
 
       // create a new member with random keys; they'll replace those keys as soon as they join
-      const temporaryKeys = keysets.create({ type: keysets.KeyType.MEMBER, name: userName })
-      const member: Member = { userName, keys: keysets.redactKeys(temporaryKeys), roles }
+      const tempKeys = keysets.create({ type: keysets.KeyType.MEMBER, name: userName }, this.seed)
+      const member: Member = { userName, keys: keysets.redactKeys(tempKeys), roles }
 
       // make normal lockboxes for the new member
       const lockboxes = this.createMemberLockboxes(member)
@@ -367,7 +374,7 @@ export class Team extends EventEmitter {
     // generate invitation
     const teamKeys = this.teamKeys()
     const invitation = invitations.create({
-      seed,
+      invitationSeed,
       teamKeys,
       userName,
       roles,
@@ -381,7 +388,7 @@ export class Team extends EventEmitter {
 
     // return the secret key (to pass on to invitee) and the invitation id (which they can use to revoke later)
     const { id } = invitation
-    return { seed, id }
+    return { invitationSeed, id }
   }
 
   /** Revoke an invitation.  */
@@ -503,24 +510,26 @@ export class Team extends EventEmitter {
 
   These methods all return keysets with secrets, and must be available to the local user. To get
   other members' public keys, look up the member - the `keys` property contains their public keys.
-
   */
 
-  /** Returns the keyset (if available to the current user) for the given type and name */
+  /**
+   * Returns the secret keyset (if available to the current user) for the given type and name. To
+   * get other members' public keys, look up the member - the `keys` property contains their public
+   * keys.  */
   public keys = (scope: Optional<KeyMetadata, 'generation'>): KeysetWithSecrets =>
     select.keys(this.state, this.context.user, scope)
 
-  /** Returns the team keyset */
+  /** Returns the team keyset. */
   public teamKeys = (): KeysetWithSecrets => this.keys(TEAM_SCOPE)
 
-  /** Returns the keys for the given role */
+  /** Returns the keys for the given role. */
   public roleKeys = (roleName: string): KeysetWithSecrets =>
     this.keys({ type: ROLE, name: roleName })
 
-  /** Returns the admin keyset */
+  /** Returns the admin keyset. */
   public adminKeys = (): KeysetWithSecrets => this.roleKeys(ADMIN)
 
-  /** Replaces the current user or device's secret keyset with the one provided */
+  /** Replaces the current user or device's secret keyset with the one provided. */
   public changeKeys = (newKeyset: PublicKeyset) => {
     switch (newKeyset.type) {
       case KeyType.MEMBER: {
@@ -577,7 +586,7 @@ export class Team extends EventEmitter {
       ? compromised // we're given a keyset - use it as the new keys
       : keysets.create(compromised) // we're just given a scope - generate new keys for it
 
-    // identify all the keys that are compromised
+    // identify all the keys that are indirectly compromised
     const visibleScopes = getVisibleScopes(this.state, compromised)
     const newKeysetsForVisibleScopes = visibleScopes.map(scope => keysets.create(scope))
 
@@ -588,6 +597,7 @@ export class Team extends EventEmitter {
       const oldLockboxes = select.lockboxesInScope(this.state, scope)
       return oldLockboxes.map(oldLockbox => lockbox.rotate(oldLockbox, newKeyset))
     })
+
     return newLockboxes
   }
 }
