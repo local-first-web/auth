@@ -1,20 +1,19 @@
 ﻿import memoize from 'fast-memoize'
-import * as teams from '/team'
-import * as users from '/user'
-import * as keysets from '/keyset'
-import { bob, TestChannel, joinTestChannel } from '/util/testing'
-import { arrayToMap, clone } from '/util/'
-import { User } from '/user'
-import { LocalUserContext } from '/context'
+import fs from 'fs'
+import path from 'path'
 import { Connection, InitialContext } from '/connection'
-import { redactDevice, DeviceType, getDeviceId, DeviceWithSecrets, PublicDevice } from '/device'
+import { LocalUserContext } from '/context'
+import { DeviceInfo, DeviceType, DeviceWithSecrets, getDeviceId, redactDevice } from '/device'
+import { createTeam, loadTeam } from '/index'
+import * as keysets from '/keyset'
 import { KeyType } from '/keyset'
 import { ADMIN } from '/role'
+import * as teams from '/team'
 import { Team } from '/team'
-import { assert } from 'console'
-
-type setupResult = Record<string, UserStuff>
-const setupCache = {} as Record<string, setupResult>
+import * as users from '/user'
+import { User } from '/user'
+import { arrayToMap, assert } from '/util'
+import { joinTestChannel, TestChannel } from '/util/testing'
 
 /*
 USAGE: 
@@ -30,84 +29,92 @@ alice.team.add('bob')
 export const setup = (_config: (TestUserSettings | string)[] = []) => {
   assert(_config.length > 0, `Can't do setup without any users`)
 
-  const key = JSON.stringify(_config)
-  // if (false) {
-  if (key in setupCache) {
-    return clone(setupCache[key])
-  } else {
-    // Coerce string userNames into TestUserSettings objects
-    const config = _config.map(u => (typeof u === 'string' ? { user: u } : u))
+  // Coerce string userNames into TestUserSettings objects
+  const config = _config.map(u => (typeof u === 'string' ? { user: u } : u))
 
-    // Get a list of just user names
-    const userNames = config.map(user => user.user)
+  // Get a list of just user names
+  const userNames = config.map(user => user.user)
 
-    // Create users
-    const testUsers: Record<string, User> = userNames
-      .map(userName => users.create(userName))
-      .reduce(arrayToMap('userName'), {})
+  // Create users
+  const testUsers: Record<string, User> = userNames
+    .map((userName: string) =>
+      retrieveAsset(userName, () =>
+        users.create({
+          userName,
+          deviceName: `laptop`,
+          deviceType: DeviceType.laptop,
+          seed: userName,
+        })
+      )
+    )
+    .reduce(arrayToMap('userName'), {})
 
-    // Create team
+  // Create team
+  const chainKey = fileSystemSafe(JSON.stringify(config))
+  const chain = retrieveAsset(chainKey, () => {
     const founder = testUsers[userNames[0]] // e.g. Alice
     const founderContext = { user: founder } as LocalUserContext
-    const sourceTeam = teams.create('Spies Я Us', founderContext)
-
+    const teamSeed = 'seed123'
+    const team = createTeam('Spies Я Us', founderContext, teamSeed)
     // Add members
     for (const { user: userName, admin = true, member = true } of config) {
-      if (member && !sourceTeam.has(userName)) {
-        sourceTeam.add(testUsers[userName], admin ? [ADMIN] : [])
+      if (member && !team.has(userName)) {
+        team.add(testUsers[userName], admin ? [ADMIN] : [])
       }
     }
+    return team.chain
+  })
 
-    const makeUserStuff = ({ user: userName, member = true }: TestUserSettings) => {
-      const user = testUsers[userName]
-      const context = { user }
-      const laptop = redactDevice(user.device)
-      const team = member
-        ? teams.load(JSON.stringify(sourceTeam.chain), context) // members get a copy of the source team
-        : teams.create(userName, context) // non-members get a dummy empty placeholder team
+  const makeUserStuff = ({ user: userName, member = true }: TestUserSettings) => {
+    const user = testUsers[userName]
+    const context = { user }
+    const laptop = redactDevice(user.device)
+    const team = member
+      ? teams.load(chain, context) // members get a copy of the source team
+      : teams.create(userName, context) // non-members get a dummy empty placeholder team
 
-      const makeDeviceStuff = (deviceName: string, type: DeviceType) => {
-        const name = `${userName}'s ${deviceName}`
-        const deviceInfo = { type, name: name, userName }
+    const makeDeviceStuff = (deviceName: string, type: DeviceType) => {
+      const device = retrieveAsset(`${userName}-${deviceName}`, () => {
+        const deviceInfo = { type, deviceName, userName } as DeviceInfo
         const deviceKeys = keysets.create({ type: KeyType.DEVICE, name: getDeviceId(deviceInfo) })
-        const device: DeviceWithSecrets = { ...deviceInfo, keys: deviceKeys }
-        const publicDevice = redactDevice(device)
-        const connectionContext = {
-          user: { ...user, device },
-          device: publicDevice,
-        }
-        return { device, connectionContext }
+        return { ...deviceInfo, keys: deviceKeys } as DeviceWithSecrets
+      })
+
+      const publicDevice = redactDevice(device)
+      const connectionContext = {
+        user: { ...user, device },
+        device: publicDevice,
       }
-
-      const userStuff = {
-        userName,
-        user,
-        context,
-        team,
-        phone: makeDeviceStuff('phone', DeviceType.mobile),
-        connectionContext: member ? { team, user, device: laptop } : { user, device: laptop },
-        channel: {} as Record<string, TestChannel>,
-        connection: {} as Record<string, Connection>,
-      } as UserStuff
-
-      return userStuff
+      return { device, connectionContext }
     }
 
-    const testUserStuff: Record<string, UserStuff> = config
-      .map(makeUserStuff)
-      .reduce(arrayToMap('userName'), {})
+    const userStuff = {
+      userName,
+      user,
+      context,
+      team,
+      phone: makeDeviceStuff('phone', DeviceType.mobile),
+      connectionContext: member ? { team, user, device: laptop } : { user, device: laptop },
+      channel: {} as Record<string, TestChannel>,
+      connection: {} as Record<string, Connection>,
+      getState: (peer: string) => userStuff.connection[peer].state,
+    } as UserStuff
 
-    setupCache[key] = clone(testUserStuff)
-    return testUserStuff
+    return userStuff
   }
+
+  const testUserStuff: Record<string, UserStuff> = config
+    .map(makeUserStuff)
+    .reduce(arrayToMap('userName'), {})
+
+  return testUserStuff
 }
 
 // HELPERS
 
 /** Connects the two members and waits for them to be connected */
 export const connect = async (a: UserStuff, b: UserStuff) => {
-  const channel = new TestChannel()
-  const join = joinTestChannel(channel)
+  const join = joinTestChannel(new TestChannel())
 
   a.connection[b.userName] = join(a.connectionContext).start()
   b.connection[a.userName] = join(b.connectionContext).start()
@@ -117,7 +124,7 @@ export const connect = async (a: UserStuff, b: UserStuff) => {
 
 /** Connects a (a member) with b (invited using the given seed). */
 export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: string) => {
-  const join = joinTestChannel(a.channel[b.userName])
+  const join = joinTestChannel(new TestChannel())
   b.connectionContext.invitationSeed = seed
   a.connection[b.userName] = join(a.connectionContext).start()
   b.connection[a.userName] = join(b.connectionContext).start()
@@ -222,4 +229,25 @@ interface UserStuff {
   connectionContext: InitialContext
   channel: Record<string, TestChannel>
   connection: Record<string, Connection>
+  getState: (peer: string) => any
 }
+
+const parseAssetFile = memoize((fileName: string) =>
+  JSON.parse(fs.readFileSync(fileName).toString())
+)
+
+const retrieveAsset = <T>(fileName: string, fn: () => T): T => {
+  const filePath = path.join(__dirname, `assets/${fileName}.json`)
+  if (fs.existsSync(filePath)) return parseAssetFile(filePath) as T
+  const result: any = fn()
+  fs.writeFileSync(filePath, JSON.stringify(result))
+  return result as T
+}
+
+const fileSystemSafe = (s: string) =>
+  s
+    .replace(/user/gi, '')
+    .replace(/[^a-z0-9]+/gi, '-')
+    .replace(/^-/i, '')
+    .replace(/-$/i, '')
+    .toLowerCase()
