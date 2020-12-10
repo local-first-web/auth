@@ -1,14 +1,18 @@
 import { Client, LocalUserContext } from '/context'
+import { DeviceType } from '/device'
 import { Role } from '/role'
 import * as team from '/team'
 import * as user from '/user'
 // test assets
 
-export const alice = user.create('alice', 'laptop')
-export const bob = user.create('bob', 'laptop')
-export const charlie = user.create('charlie', 'laptop')
-export const dwight = user.create('dwight', 'laptop')
-export const eve = user.create('eve', 'laptop')
+const createUser = (userName: string) =>
+  user.create({ userName, deviceName: 'laptop', deviceType: DeviceType.laptop })
+
+export const alice = createUser('alice')
+export const bob = createUser('bob')
+export const charlie = createUser('charlie')
+export const dwight = createUser('dwight')
+export const eve = createUser('eve')
 
 export const alicesLaptop = alice.device
 export const bobsLaptop = bob.device
