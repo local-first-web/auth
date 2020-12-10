@@ -1,10 +1,11 @@
-﻿import { base64, signatures } from '@herbcaudill/crypto'
+﻿import { signatures } from '@herbcaudill/crypto'
+import memoize from 'fast-memoize'
 import { generateEphemeralKeys } from './generateEphemeralKeys'
 import { normalize } from './normalize'
 import { deriveId } from '/invitation/deriveId'
 import { ProofOfInvitation } from '/invitation/types'
 
-export const generateProof = (secretKey: string, userName: string): ProofOfInvitation => {
+export const generateProof = (secretKey: string, userName: string): ProofOfInvitation => { //memoize(
   secretKey = normalize(secretKey)
 
   // Bob independently derives the invitation id and the ephemeral keys
@@ -21,3 +22,4 @@ export const generateProof = (secretKey: string, userName: string): ProofOfInvit
   const proof = { id, userName, signature } as ProofOfInvitation
   return proof
 }
+//)
