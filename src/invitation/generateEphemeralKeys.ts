@@ -1,5 +1,4 @@
 import * as keysets from '/keyset'
-import { KeyType, redactKeys } from '/keyset'
 
 export const generateEphemeralKeys = (userName: string, secretKey: string) => {
   // Generate an ephemeral keyset. This will be Bob's first-use keyset; as soon as he's admitted,
@@ -13,7 +12,7 @@ export const generateEphemeralKeys = (userName: string, secretKey: string) => {
   // Since this keyset is derived from the secret invitation key, Bob can generate it independently.
   // Besides using it to generate his proof, he'll also need it to open the lockboxes included in
   // the invitation.
-  const scope = { type: KeyType.MEMBER, name: userName }
+  const scope = { type: keysets.KeyType.MEMBER, name: userName }
   const ephemeralKeys = keysets.create(scope, `${secretKey}:${userName}`)
   return ephemeralKeys
 }
