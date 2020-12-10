@@ -14,7 +14,7 @@ export const keys = (
 
   const keysFromLockboxes = getKeyMap(state, currentUser)
   const keys = keysFromLockboxes[type] && keysFromLockboxes[type][name]
-  if (!keys) throw new Error(`Keys not found for ${type.toLowerCase()} '${name}`)
+  if (!keys) throw new Error(`Keys not found for ${type.toLowerCase()} ${name}`)
 
   const generation = maybeGeneration === undefined ? keys.length - 1 : maybeGeneration // use latest generation by default
   return keys[generation]
