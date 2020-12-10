@@ -33,7 +33,10 @@ export const debug = (prefix: string) => {
 
   logger.clear = clear
   logger.header = s => append(`↩${s}↩↩`)
-  logger.log = s => append(`  ${s}↩`)
+  logger.log = s => {
+    if (typeof s !== 'string') s = JSON.stringify(s, null, 2)
+    return append(`  ${s}↩`)
+  }
   return logger
 }
 
