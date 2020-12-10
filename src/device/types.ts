@@ -13,7 +13,7 @@ export enum DeviceType {
 
 export interface DeviceInfo {
   userName: string
-  name: string
+  deviceName: string
   type: DeviceType
 }
 
