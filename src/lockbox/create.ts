@@ -19,8 +19,7 @@ export const create = (
   const redactedContents = keyset.redactKeys(contents)
 
   // Generate a new single-use keypair to encrypt the lockbox with
-  const encryptionKeys = keyset.create(EPHEMERAL_SCOPE).encryption
-
+  const encryptionKeys = asymmetric.keyPair()
   const recipientPublicKey = isKeyManifest(redactedRecipientKeys)
     ? redactedRecipientKeys.publicKey
     : redactedRecipientKeys.encryption
