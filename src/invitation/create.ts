@@ -18,18 +18,18 @@ export const IKEY_LENGTH = 16
  * @param secretKey A randomly generated secret to be passed to Bob via a side channel
  */
 export const create = ({
-  seed: secretKey,
+  invitationSeed,
   userName,
   roles = [],
   teamKeys,
 }: {
-  seed: string
+  invitationSeed: string
   userName: string
   roles?: string[]
   teamKeys: KeysetWithSecrets
 }): Invitation => {
-  secretKey = normalize(secretKey)!
-  const ephemeralKeys = generateEphemeralKeys(userName, secretKey)
+  invitationSeed = normalize(invitationSeed)!
+  const ephemeralKeys = generateEphemeralKeys(userName, invitationSeed)
 
   // Using the team-wide keys, encrypt Bob's username and roles so that we don't leak that
   // information in the public signature chain. We also include the ephemeral public signature key,
@@ -44,7 +44,7 @@ export const create = ({
 
   // We put it all together to create the invitation.
   return {
-    id: deriveId(secretKey, userName),
+    id: deriveId(invitationSeed, userName),
     encryptedBody,
     generation: teamKeys.generation,
     used: false,
