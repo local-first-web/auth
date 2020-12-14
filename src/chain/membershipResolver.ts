@@ -1,7 +1,7 @@
-﻿import { baseResolver } from '/chain/baseResolver'
-import { bySeniority } from '/chain/bySeniority'
-import { actionFingerprint } from '/chain/actionFingerprint'
+﻿import { actionFingerprint } from '/chain/actionFingerprint'
 import { arbitraryDeterministicSort } from '/chain/arbitraryDeterministicSort'
+import { baseResolver } from '/chain/baseResolver'
+import { bySeniority } from '/chain/bySeniority'
 import {
   AddMemberAction,
   AddMemberRoleAction,
@@ -14,7 +14,9 @@ import {
   TeamActionLink,
   TeamSignatureChain,
 } from '/chain/types'
-import { arraysAreEqual } from '/util'
+import { arraysAreEqual, debug } from '/util'
+
+const log = debug('taco:membershipResolver')
 
 // TODO: This also needs to deal with members added by invitation
 
@@ -76,6 +78,7 @@ const filterFactories: Record<string, ActionFilterFactory> = {
     const [a, b] = branches.sort(arbitraryDeterministicSort())
     // only keep the first copy we see of any duplicate actions
     const duplicates = getDuplicates(a.concat(b))
+    // log([a, b, duplicates].map(b => b.map(actionFingerprint)))
     return linkNotIn(duplicates)
   },
 }

@@ -32,7 +32,6 @@ import * as invitations from '/invitation'
 import { KeyType, randomKey } from '/keyset'
 import { Team } from '/team'
 import { arrayToMap, assert, debug } from '/util'
-import { chainSummary } from '/util/chainSummary'
 
 const { MEMBER } = KeyType
 
@@ -179,7 +178,6 @@ export class Connection extends EventEmitter {
 
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendHello'`) */
   private readonly actions: Record<string, Action> = {
-    // TODO: why are we always sending hello twice
     sendHello: context => {
       this.sendMessage({
         type: 'HELLO',

@@ -2,7 +2,9 @@
 import { KeyScope } from '/keyset'
 import * as select from '/team/selectors'
 import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '/team/types'
-import { VALID, ValidationError } from '/util'
+import { debug, VALID, ValidationError } from '/util'
+
+const log = debug('taco:team:validate')
 
 export const validate: TeamStateValidator = (...args: ValidationArgs) => {
   for (const key in validators) {
@@ -29,7 +31,9 @@ const validators: TeamStateValidatorSet = {
 
       // make sure member exists
       const noSuchMember = !select.hasMember(prevState, userName)
-      if (noSuchMember) return fail(`A member named '${userName}' was not found`, ...args)
+      if (noSuchMember) {
+        return fail(`A member named '${userName}' was not found`, ...args)
+      }
 
       if (!nonAdminActions.includes(type)) {
         // make sure member is admin
@@ -85,6 +89,7 @@ const validators: TeamStateValidatorSet = {
 }
 
 const fail = (message: string, prevState: TeamState, link: ActionLink<any>) => {
+  log({ message, prevState, link })
   return {
     isValid: false,
     error: new ValidationError(message, { prevState, link }),

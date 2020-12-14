@@ -31,6 +31,7 @@ import { EncryptedEnvelope, isNewTeam, SignedEnvelope, TeamOptions, TeamState } 
 import * as users from '/user'
 import { User } from '/user'
 import { assert, debug, Hash, Optional, Payload } from '/util'
+import { chainSummary } from '/util/chainSummary'
 
 const { DEVICE, ROLE, MEMBER } = KeyType
 
@@ -120,6 +121,7 @@ export class Team extends EventEmitter {
     const head = chains.getHead(this.chain) as TeamActionLink
 
     // we don't need to pass the whole chain through the reducer, just the current state + the new head
+    this.log(chainSummary(this.chain))
     this.state = reducer(this.state, head)
 
     this.emit('updated', { head: this.chain.head })
@@ -138,6 +140,7 @@ export class Team extends EventEmitter {
     // TODO: why ts-ignore here
     //@ts-ignore
     const sequence = chains.getSequence({ chain: this.chain, resolver })
+    this.log(chainSummary(this.chain))
     this.state = sequence.reduce(reducer, initialState)
 
     this.emit('updated', { head: this.chain.head })

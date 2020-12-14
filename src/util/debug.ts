@@ -30,14 +30,16 @@ const append = (s: string) => fs.appendFileSync(logFile, process(s))
 
 export const debug = (prefix: string) => {
   const logger = _debug(prefix) as ExtendedDebug
+  logger.log = s => append(`  ${s}↩`)
 
-  logger.clear = clear
-  logger.header = s => append(`↩${s}↩↩`)
-  logger.log = s => {
-    if (typeof s !== 'string') s = JSON.stringify(s, null, 2)
-    return append(`  ${s}↩`)
+  let myLogger: any = (o: any) => {
+    if (typeof o !== 'string') o = JSON.stringify(o, null, 2)
+    logger(o)
   }
-  return logger
+
+  myLogger.clear = clear
+  myLogger.header = (s: any) => append(`↩${s}↩↩`)
+  return myLogger as ExtendedDebug
 }
 
 type ExtendedDebug = ReturnType<typeof _debug> & {

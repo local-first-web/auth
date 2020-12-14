@@ -180,6 +180,11 @@ describe('integration', () => {
   })
 
   test('resolves concurrent duplicate invitations when updating', async () => {
+    // TODO This test, along with some others, is brittle. The problem seems to be in the way
+    // duplicates are eliminated, which maybe varies depending on the arbitrary order in which
+    // things are resolved. In this case, since Charlie and Dwight are invited twice, they are added
+    // twice. These duplicate ADDs shouldn't be a problem, but sometimes both of them are removed.
+
     const { alice, bob, charlie, dwight } = setup([
       'alice',
       'bob',
@@ -196,18 +201,23 @@ describe('integration', () => {
     const bobInvitesDwight = bob.team.invite('dwight')
 
     // 👳🏽‍♂️📧<->👩🏾 Charlie connects to Alice and uses his invitation to join
+    log('Charlie connects to Alice and uses his invitation to join')
     await connectWithInvitation(alice, charlie, aliceInvitesCharlie.invitationSeed)
 
     // 👴📧<->👨🏻‍🦲 Dwight connects to Bob and uses his invitation to join
+    log('Dwight connects to Bob and uses his invitation to join')
     await connectWithInvitation(bob, dwight, bobInvitesDwight.invitationSeed)
 
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
-    connect(alice, bob)
+    log('Alice and Bob connect')
+    await connect(alice, bob)
 
     // let everyone catch up
+    log('let everyone catch up')
     await Promise.all([updated(dwight, bob), updated(charlie, alice)])
 
     // ✅ No problemo
+    log('No problemo')
     expectEveryoneToKnowEveryone(alice, charlie, bob, dwight)
   })
 

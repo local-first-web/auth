@@ -148,6 +148,6 @@ type SequenceOptions<A extends Action> = {
   chain: SignatureChain<A>
   root?: Link<A>
   head?: Link<A>
-  resolver?: Resolver
+  resolver?: Resolver<A>
   sequencer?: Sequencer
 }

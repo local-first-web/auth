@@ -1,7 +1,7 @@
-﻿import { TeamSignatureChain, getSequence, membershipResolver } from '/chain'
+﻿import { TeamSignatureChain, getSequence, membershipResolver, TeamAction } from '/chain'
 import { actionFingerprint } from '/chain/actionFingerprint'
 
 export const chainSummary = (chain: TeamSignatureChain) =>
-  getSequence({ chain, resolver: membershipResolver })
+  getSequence<TeamAction>({ chain, resolver: membershipResolver })
     .map(l => actionFingerprint(l))
     .join(', ')

@@ -18,12 +18,13 @@ import { joinTestChannel, TestChannel } from '/util/testing'
 /*
 USAGE: 
 
-```ts
-const {alice, bob} = setup('alice', 'bob')
-const {alice, bob, charlie} = setup('alice', 'bob', {name: 'charlie', member: false})
-const {alice, bob, charlie, dwight} = setup('alice', 'bob', 'charlie', {name: 'dwight', admin: false})
-```
-alice.team.add('bob')
+  ```ts
+  const {alice, bob} = setup('alice', 'bob')
+  const {alice, bob, charlie} = setup('alice', 'bob', {name: 'charlie', member: false})
+  const {alice, bob, charlie, dwight} = setup('alice', 'bob', 'charlie', {name: 'dwight', admin: false})
+
+  alice.team.add('bob')
+  ```
 
 */
 export const setup = (_config: (TestUserSettings | string)[] = []) => {
@@ -50,8 +51,8 @@ export const setup = (_config: (TestUserSettings | string)[] = []) => {
     .reduce(arrayToMap('userName'), {})
 
   // Create team
-  const chainKey = fileSystemSafe(JSON.stringify(config))
-  const chain = retrieveAsset(chainKey, () => {
+  const teamCacheKey = fileSystemSafe(JSON.stringify(config))
+  const chain = retrieveAsset(teamCacheKey, () => {
     const founder = testUsers[userNames[0]] // e.g. Alice
     const founderContext = { user: founder } as LocalUserContext
     const teamSeed = 'seed123'
@@ -158,7 +159,7 @@ export const disconnect = (a: UserStuff, b: UserStuff) =>
     b.connection[a.userName].stop(),
   ])
 
-// Promisified events
+// PROMISIFIED EVENTS
 
 export const connection = async (a: UserStuff, b: UserStuff) => {
   const connections = [a.connection[b.userName], b.connection[a.userName]]
@@ -211,26 +212,7 @@ export const all = (connections: Connection[], event: string) =>
     })
   )
 
-type TestUserSettings = {
-  user: string
-  admin?: boolean
-  member?: boolean
-}
-
-interface UserStuff {
-  userName: string
-  user: User
-  context: LocalUserContext
-  phone: {
-    device: DeviceWithSecrets
-    connectionContext: InitialContext
-  }
-  team: Team
-  connectionContext: InitialContext
-  channel: Record<string, TestChannel>
-  connection: Record<string, Connection>
-  getState: (peer: string) => any
-}
+// TEST ASSETS
 
 const parseAssetFile = memoize((fileName: string) =>
   JSON.parse(fs.readFileSync(fileName).toString())
@@ -251,3 +233,26 @@ const fileSystemSafe = (s: string) =>
     .replace(/^-/i, '')
     .replace(/-$/i, '')
     .toLowerCase()
+
+// TYPES
+
+type TestUserSettings = {
+  user: string
+  admin?: boolean
+  member?: boolean
+}
+
+interface UserStuff {
+  userName: string
+  user: User
+  context: LocalUserContext
+  phone: {
+    device: DeviceWithSecrets
+    connectionContext: InitialContext
+  }
+  team: Team
+  connectionContext: InitialContext
+  channel: Record<string, TestChannel>
+  connection: Record<string, Connection>
+  getState: (peer: string) => any
+}
