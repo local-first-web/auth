@@ -1,11 +1,11 @@
 {
   "name": "taco-js",
+  "version": "0.2.1",
   "author": {
     "name": "Herb Caudill",
     "email": "herb@devresults.com"
   },
   "description": "Decentralized authentication and authorization for team collaboration",
-  "version": "0.2.0",
   "license": "MIT",
   "module": "dist/taco.esm.js",
   "main": "dist/index.js",
@@ -37,10 +37,10 @@
   },
   "devDependencies": {
     "@herbcaudill/tscpaths": "0",
+    "@types/debug": "4",
     "@types/msgpack-lite": "0",
     "@types/node": "*",
     "@types/ramda": "0",
-    "@types/debug": "4",
     "cross-env": "6",
     "husky": "4",
     "prettier": "2",
