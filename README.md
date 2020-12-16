@@ -1,4 +1,4 @@
-# 🌮 taco-js
+<img src="https://raw.githubusercontent.com/HerbCaudill/pics/master/auth-localfirst-icon-name.svg" height="100" alt="Local First AUTH" />
 
 **Decentralized authentication and authorization** for team collaboration, using a secure chain of
 cryptographic signatures.
