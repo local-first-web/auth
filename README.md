@@ -1,9 +1,11 @@
-<img src="https://raw.githubusercontent.com/HerbCaudill/pics/master/auth-localfirst-icon-name.svg" height="100" alt="Local First AUTH" />
+<img src="https://raw.githubusercontent.com/local-first-web/branding/main/svg/auth-localfirst-icon-name-box.svg" height="100" alt="Local First AUTH" />
 
-**Decentralized authentication and authorization** for team collaboration, using a secure chain of
+`@localfirst/auth` provides **decentralized authentication and authorization** for team collaboration, using a secure chain of
 cryptographic signatures.
 
-## Why
+> 🚧 **This is a work in progress**
+
+## Why?
 
 📱🤝 You're building a [local-first](http://inkandswitch.com/local-first.html) app to enable distributed collaboration [without a central server](http://medium.com/all-the-things/a-web-application-with-no-web-server-61000a6aed8f).
 
@@ -15,9 +17,9 @@ cryptographic signatures.
 
 👨🏾‍💻🤪 You **don't** want to expose any of the underlying cryptographic complexity.
 
-## How
+## How?
 
-Taco solves the following problems without requiring a server or any other central source of truth:
+This library solves the following problems without requiring a server or any other central source of truth:
 
 - **Authorization**, using a signature chain
 - **Authentication**, using signature challenges
@@ -40,7 +42,7 @@ associated data **re-encrypted**.
 
 👉 Learn more: [Internals](./docs/internals.md)
 
-## What
+## What?
 
 Taco exposes a `Team` class, which wraps the signature chain and encapsulates the team's members,
 devices, and roles. With this object, you can **invite new members** and **manage their
