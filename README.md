@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/local-first-web/branding/main/svg/auth-localfirst-icon-name-box.svg" height="100" alt="Local First AUTH" />
+<img src="https://raw.githubusercontent.com/local-first-web/branding/main/svg/auth-v.svg" width="250" alt="@localfirst/auth logo" />
 
 `@localfirst/auth` provides **decentralized authentication and authorization** for team collaboration, using a secure chain of
 cryptographic signatures.
@@ -44,7 +44,7 @@ associated data **re-encrypted**.
 
 ## What?
 
-Taco exposes a `Team` class, which wraps the signature chain and encapsulates the team's members,
+This library provides a `Team` class, which wraps the signature chain and encapsulates the team's members,
 devices, and roles. With this object, you can **invite new members** and **manage their
 permissions.**
 
@@ -53,21 +53,21 @@ secret keys, to provide **encryption** and **signature verification** within the
 
 #### Not included
 
-- **Storage** Taco uses the secure storage provided by the device to store the user's keys. Taco
-  does **not** provide storage for the signature chain.
-- **Networking** Taco can communicate with other instances to synchronize everyone's signature
-  chains, but you need to provide a working socket connecting us to a peer.
+- **Storage** This library does **not** provide storage for user information (including keys) or the
+  signature chain.
+- **Networking** This library includes a protocol for synchronizing the team's signature chains, but
+  you need to provide a working socket connecting us to a peer.
 
 ### Examples
 
 ```bash
-yarn add taco-js
+yarn add @localfirst/auth
 ```
 
 #### Alice creates a new team
 
 ```js
-import { user, team } from 'taco'
+import { user, team } from '@localfirst/auth'
 
 // 👩🏾 Alice
 const alice = user.create('alice')
