@@ -5,19 +5,19 @@ cryptographic signatures.
 
 > 🚧 **This is a work in progress**
 
-## Why?
+## Why
 
-📱🤝 You're building a [local-first](http://inkandswitch.com/local-first.html) app to enable distributed collaboration [without a central server](http://medium.com/all-the-things/a-web-application-with-no-web-server-61000a6aed8f).
+🤝 You're building a [local-first](http://inkandswitch.com/local-first.html) app to enable distributed collaboration [without a central server](http://medium.com/all-the-things/a-web-application-with-no-web-server-61000a6aed8f).
 
-👩🏾🔑 You want to **authenticate** users and manage their **permissions**.
+🔑 You want to **authenticate** users and manage their **permissions**.
 
-🚫☁ You **don't** want to depend on a centralized authentication server or a key management service.
+🚫 You **don't** want to depend on a centralized authentication server or a key management service.
 
-👌💙 You want to provide a **easy and seamless experience** to users creating and joining teams
+💙 You want to provide a **easy and seamless experience** to users creating and joining teams
 
-👨🏾‍💻🤪 You **don't** want to expose any of the underlying cryptographic complexity.
+🤔 You **don't** want to expose any of the underlying cryptographic complexity.
 
-## How?
+## How
 
 This library solves the following problems without requiring a server or any other central source of truth:
 
@@ -42,7 +42,7 @@ associated data **re-encrypted**.
 
 👉 Learn more: [Internals](./docs/internals.md)
 
-## What?
+## What
 
 This library provides a `Team` class, which wraps the signature chain and encapsulates the team's members,
 devices, and roles. With this object, you can **invite new members** and **manage their
