@@ -151,4 +151,4 @@ const decrypted = team.decrypt(encrypted) // 'the condor flies at midnight'
 is based on their [Seitan token exchange specification](https://keybase.io/docs/teams/seitan_v2),
 proposed as a more secure alternative to TOFU, or _**T**rust **O**n **F**irst **U**se_.
 
-TACO stands for _**T**rust **A**fter **C**onfirmation **O**f invitation_.
+🌮 This library was originally called `taco-js`. TACO stands for _**T**rust **A**fter **C**onfirmation **O**f invitation_.
