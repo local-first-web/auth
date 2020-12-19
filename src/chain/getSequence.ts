@@ -1,5 +1,4 @@
 ﻿import { arbitraryDeterministicSequencer } from '/chain/arbitraryDeterministicSequencer'
-import { baseResolver } from '/chain/baseResolver'
 import { getHead } from '/chain/getHead'
 import { getRoot } from '/chain/getRoot'
 import { getCommonPredecessor, isPredecessor } from '/chain/predecessors'
@@ -150,4 +149,13 @@ type SequenceOptions<A extends Action> = {
   head?: Link<A>
   resolver?: Resolver<A>
   sequencer?: Sequencer
+}
+
+// This resolver just collapses each branch to a single sequence of actions
+export const baseResolver: Resolver = ([a, b], chain) => {
+  const root = getCommonPredecessor(chain, [a, b])
+  const [branchA, branchB] = [a, b]
+    .map(head => getSequence({ chain, root, head })) // get the branch corresponding to each head
+    .map(branch => branch.slice(1)) // omit the common predecessor itself
+  return [branchA, branchB]
 }

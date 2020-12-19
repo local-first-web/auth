@@ -1,6 +1,6 @@
 ﻿import { actionFingerprint } from '/chain/actionFingerprint'
 import { arbitraryDeterministicSort } from '/chain/arbitraryDeterministicSort'
-import { baseResolver } from '/chain/baseResolver'
+import { baseResolver } from '/chain/getSequence'
 import { bySeniority } from '/chain/bySeniority'
 import {
   AddMemberAction,
