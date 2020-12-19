@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/local-first-web/branding/main/svg/auth-v.svg" width="250" alt="@localfirst/auth logo" />
+<img src="https://raw.githubusercontent.com/local-first-web/branding/main/svg/auth-h.svg" width="600" alt="@localfirst/auth logo" />
 
 `@localfirst/auth` provides **decentralized authentication and authorization** for team collaboration, using a secure chain of
 cryptographic signatures.
