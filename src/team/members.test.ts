@@ -144,7 +144,7 @@ describe('Team', () => {
     })
   })
 })
-const log = debug(`taco:test`)
+const log = debug(`lf:auth:test`)
 const testName = () => expect.getState().currentTestName
 beforeAll(log.clear)
 beforeEach(() => log.header('TEST: ' + testName()))

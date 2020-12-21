@@ -13,7 +13,7 @@ import {
 } from '/util/testing'
 import '/util/testing/expect/toBeValid'
 
-const log = debug(`taco:test`)
+const log = debug(`lf:auth:test`)
 
 beforeAll(() => {
   log.clear()

@@ -16,7 +16,7 @@ import {
 } from '/chain/types'
 import { arraysAreEqual, debug } from '/util'
 
-const log = debug('taco:membershipResolver')
+const log = debug('lf:auth:membershipResolver')
 
 // TODO: This also needs to deal with members added by invitation
 

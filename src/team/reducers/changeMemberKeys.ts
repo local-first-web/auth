@@ -2,7 +2,7 @@
 import { PublicKeyset } from '/keyset'
 import { debug } from '/util'
 
-const log = debug('taco:reducer')
+const log = debug('lf:auth:reducer')
 
 export const changeMemberKeys = (keys: PublicKeyset): Reducer => state => {
   log('changeMemberKeys %o', keys)

@@ -61,7 +61,7 @@ export class Team extends EventEmitter {
     this.seed = options.seed ?? randomKey()
     this.context = options.context
     this.log = (o: any) =>
-      debug(`taco:team:${this.context.user.userName}`)(
+      debug(`lf:auth:team:${this.context.user.userName}`)(
         typeof o !== 'string' ? JSON.stringify(o, null, 2) : o
       )
 

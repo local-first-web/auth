@@ -12,7 +12,7 @@ import {
 } from '/chain/types'
 import { debug, ValidationError } from '/util'
 
-const log = debug('taco:validators')
+const log = debug('lf:auth:validators')
 
 const _validators: ValidatorSet = {
   /** Does this link contain a hash of the previous link?  */

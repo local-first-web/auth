@@ -22,7 +22,7 @@ import {
 import { TeamState } from '/team/types'
 import { validate } from '/team/validate'
 
-const log = debug('taco:reducer')
+const log = debug('lf:auth:reducer')
 /**
  * Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `teamState`
  * from `teamChain`, by applying a Redux-style reducer to the array of links. The reducer runs on

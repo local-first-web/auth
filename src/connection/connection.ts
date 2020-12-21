@@ -102,7 +102,7 @@ export class Connection extends EventEmitter {
   }
 
   private get log() {
-    return debug(`taco:connection:${this.machine.state.context.user.userName}`)
+    return debug(`lf:auth:connection:${this.machine.state.context.user.userName}`)
   }
 
   /** Returns the current state of the connection machine. */

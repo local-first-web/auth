@@ -1,5 +1,5 @@
 {
-  "name": "taco-js",
+  "name": "@localfirst/auth",
   "version": "0.2.1",
   "author": {
     "name": "Herb Caudill",
@@ -21,7 +21,7 @@
     "start": "tsdx watch",
     "build": "tsdx build && tscpaths -p tsconfig.json -s ./src -o ./dist --silent",
     "test": "tsdx test",
-    "test:log": "cross-env DEBUG='taco*' DEBUG_COLORS=0 yarn test",
+    "test:log": "cross-env DEBUG='lf*' DEBUG_COLORS=0 yarn test",
     "lint": "tsdx lint src",
     "prepare": "yarn build",
     "purge": "scripts/purge.bat"

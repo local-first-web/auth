@@ -4,7 +4,7 @@ import * as select from '/team/selectors'
 import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '/team/types'
 import { debug, VALID, ValidationError } from '/util'
 
-const log = debug('taco:team:validate')
+const log = debug('lf:auth:team:validate')
 
 export const validate: TeamStateValidator = (...args: ValidationArgs) => {
   for (const key in validators) {
