@@ -22,6 +22,8 @@ import { alice, bob, charlie, dwight, joinTestChannel, TestChannel } from '/util
 import '/util/testing/expect/toBeValid'
 import { expectConnection, expectDisconnection } from '/util/testing/expectConnection'
 
+// TODO: use common setup
+
 // used for tests of the connection's timeout - needs to be bigger than
 // the TIMEOUT_DELAY constant in connectionMachine, plus some slack
 const LONG_TIMEOUT = 10000
