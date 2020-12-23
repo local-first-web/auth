@@ -18,10 +18,7 @@ export const getPayloads = (sequence: Link<any>[]) =>
 
 export const findByPayload = (chain: SignatureChain<Action>, payload: Action['payload']) => {
   const links = Object.values(chain.links)
-  return links.find(n => !isMergeLink(n) && n.body.payload === payload) as SignedLink<
-    LinkBody<Action>,
-    Action
-  >
+  return links.find(n => !isMergeLink(n) && n.body.payload === payload) as ActionLink<Action>
 }
 
 /**
