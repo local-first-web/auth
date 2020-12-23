@@ -1,5 +1,4 @@
-﻿import { profile } from './util/profile'
-import { ADMIN } from '/role'
+﻿import { ADMIN } from '/role'
 import { debug } from '/util'
 import {
   connect,
@@ -122,7 +121,7 @@ describe('integration', () => {
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
 
-    // ✅ nothing blew up, and Charlie has been removed on both sides 👳🏽‍♂️👎
+    // ✅ nothing blew up, and Charlie has been removed on both sides 🚫👳🏽‍♂️
     expect(alice.team.has('charlie')).toBe(false)
     expect(bob.team.has('charlie')).toBe(false)
   })
@@ -147,7 +146,7 @@ describe('integration', () => {
   test('eventually updates disconnected members when someone uses an invitation to join', async () => {
     const { alice, bob, charlie } = setup(['alice', 'bob', { user: 'charlie', member: false }])
 
-    // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie
+    // 👩🏾📧👳🏽‍♂️ Alice invites Charlie
     const { invitationSeed: seed } = alice.team.invite('charlie')
 
     // 👳🏽‍♂️📧<->👩🏾 Charlie connects to Alice and uses his invitation to join
@@ -222,31 +221,28 @@ describe('integration', () => {
   })
 
   test(`handles concurrent admittance of the same invitation`, async () => {
-    const SAME_INVITATION = async () => {
-      const { alice, bob, charlie } = setup(['alice', 'bob', { user: 'charlie', member: false }])
+    const { alice, bob, charlie } = setup(['alice', 'bob', { user: 'charlie', member: false }])
 
-      // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie
-      const { invitationSeed: seed } = alice.team.invite('charlie')
+    // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie
+    const { invitationSeed: seed } = alice.team.invite('charlie')
 
-      // 👩🏾<->👨🏻‍🦲 Alice and Bob connect, so Bob knows about the invitation
-      await connect(alice, bob)
-      await disconnect(alice, bob)
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect, so Bob knows about the invitation
+    await connect(alice, bob)
+    await disconnect(alice, bob)
 
-      await Promise.all([
-        // 👳🏽‍♂️📧<->👩🏾 Charlie presents his invitation to Alice
-        connectWithInvitation(alice, charlie, seed),
+    await Promise.all([
+      // 👳🏽‍♂️📧<->👩🏾 Charlie presents his invitation to Alice
+      connectWithInvitation(alice, charlie, seed),
 
-        // 👳🏽‍♂️📧<-> 👨🏻‍🦲 concurrently Charlie presents his invitation to Bob
-        connectWithInvitation(bob, charlie, seed),
-      ])
+      // 👳🏽‍♂️📧<-> 👨🏻‍🦲 concurrently Charlie presents his invitation to Bob
+      connectWithInvitation(bob, charlie, seed),
+    ])
 
-      // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
-      await connect(alice, bob)
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
+    await connect(alice, bob)
 
-      // ✅ It all works out
-      expectEveryoneToKnowEveryone(alice, bob, charlie)
-    }
-    await profile(SAME_INVITATION)
+    // ✅ It all works out
+    expectEveryoneToKnowEveryone(alice, bob, charlie)
   })
 
   test('resolves mutual demotions in favor of the senior member', async () => {
@@ -328,7 +324,7 @@ describe('integration', () => {
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
 
-    // ✅ Bob's promotion of Charlie is discarded, because Bob concurrently lost admin privileges. 👨🏻‍🦲👳🏽‍♂️👎
+    // ✅ Bob's promotion of Charlie is discarded, because Bob concurrently lost admin privileges. 🚫👨🏻‍🦲👳🏽‍♂️
     expect(alice.team.memberHasRole('charlie', ADMIN)).toBe(false)
     expect(bob.team.memberHasRole('charlie', ADMIN)).toBe(false)
   })
