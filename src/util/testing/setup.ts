@@ -4,7 +4,6 @@ import path from 'path'
 import { Connection, InitialContext } from '/connection'
 import { LocalUserContext } from '/context'
 import { DeviceInfo, DeviceType, DeviceWithSecrets, getDeviceId, redactDevice } from '/device'
-import { createTeam, loadTeam } from '/index'
 import * as keysets from '/keyset'
 import { KeyType } from '/keyset'
 import { ADMIN } from '/role'
@@ -56,7 +55,7 @@ export const setup = (_config: (TestUserSettings | string)[] = []) => {
     const founder = testUsers[userNames[0]] // e.g. Alice
     const founderContext = { user: founder } as LocalUserContext
     const teamSeed = 'seed123'
-    const team = createTeam('Spies Я Us', founderContext, teamSeed)
+    const team = teams.create('Spies Я Us', founderContext, teamSeed)
     // Add members
     for (const { user: userName, admin = true, member = true } of config) {
       if (member && !team.has(userName)) {
@@ -95,7 +94,7 @@ export const setup = (_config: (TestUserSettings | string)[] = []) => {
       context,
       team,
       phone: makeDeviceStuff('phone', DeviceType.mobile),
-      connectionContext: member ? { team, user, device: laptop } : { user, device: laptop },
+      connectionContext: member ? { team, user } : { user },
       channel: {} as Record<string, TestChannel>,
       connection: {} as Record<string, Connection>,
       getState: (peer: string) => userStuff.connection[peer].state,
@@ -208,7 +207,7 @@ export const all = (connections: Connection[], event: string) =>
     connections.map(connection => {
       if (event === 'disconnect' && connection.state === 'disconnected') return true
       if (event === 'connected' && connection.state === 'connected') return true
-      else return new Promise(resolve => connection.on(event, () => resolve()))
+      else return new Promise(resolve => connection.on(event, () => resolve(true)))
     })
   )
 

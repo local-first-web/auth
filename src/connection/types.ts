@@ -24,8 +24,6 @@ export type SendFunction = <T extends ConnectionMessage>(message: T) => void
 export type InitialContext = {
   /** The local user, including their secret keys */
   user: User
-  /** The local device, including secret keys */
-  device: PublicDevice
   /** If we already belong to the team, we pass the team object we both belong to */
   team?: Team
   /** If we've just been invited, we provide the invitation secret key that we've been given  */

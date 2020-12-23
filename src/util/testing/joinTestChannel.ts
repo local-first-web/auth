@@ -1,9 +1,12 @@
 import { TestChannel } from '/util/testing/TestChannel'
 import { ConnectionContext, Connection, SendFunction } from '/connection'
 import { pause } from '/util/pause'
+import { getDeviceId } from '/device'
 
 export const joinTestChannel = (channel: TestChannel) => (context: ConnectionContext) => {
-  const id = context.device.deviceId
+  const { userName, device } = context.user
+  const { deviceName } = device
+  const id = getDeviceId({ userName, deviceName })
 
   // hook up send
   const sendMessage: SendFunction = msg => channel.write(id, msg)
