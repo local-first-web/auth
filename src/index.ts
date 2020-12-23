@@ -2,3 +2,4 @@
 export { create as createTeam, load as loadTeam, Team } from '/team'
 export { LocalUserContext } from '/context'
 export { generateProof } from '/invitation'
+export * from '/connection'
