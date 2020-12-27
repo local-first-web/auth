@@ -67,7 +67,7 @@ export type MergeLink = {
   hash: Hash
 
   /** Hashes of the two concurrent heads being merged */
-  body: [Hash, Hash]
+  body: Hash[]
 }
 
 export type RootLink<A extends Action> = SignedLink<RootLinkBody<A>, A>
