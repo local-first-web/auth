@@ -30,10 +30,10 @@ export const setup = (_config: (TestUserSettings | string)[] = []) => {
   assert(_config.length > 0, `Can't do setup without any users`)
 
   // Coerce string userNames into TestUserSettings objects
-  const config = _config.map(u => (typeof u === 'string' ? { user: u } : u))
+  const config = _config.map((u) => (typeof u === 'string' ? { user: u } : u))
 
   // Get a list of just user names
-  const userNames = config.map(user => user.user)
+  const userNames = config.map((user) => user.user)
 
   // Create users
   const testUsers: Record<string, User> = userNames
@@ -119,7 +119,7 @@ export const connect = async (a: UserStuff, b: UserStuff) => {
   a.connection[b.userName] = join(a.connectionContext).start()
   b.connection[a.userName] = join(b.connectionContext).start()
 
-  await connection(a, b)
+  return await connection(a, b)
 }
 
 /** Connects a (a member) with b (invited using the given seed). */
@@ -163,21 +163,11 @@ export const disconnect = (a: UserStuff, b: UserStuff) =>
 export const connection = async (a: UserStuff, b: UserStuff) => {
   const connections = [a.connection[b.userName], b.connection[a.userName]]
 
-  // We're listening for a connection; if we're disconnected, throw an error
-  connections.forEach(c =>
-    c.on('disconnected', () => {
-      throw new Error(c.error?.message || 'Diconnected')
-    })
-  )
-
   // ✅ They're both connected
   await all(connections, 'connected')
 
-  // Remove the disconnect listeners so we don't throw errors later on
-  connections.forEach(c => c.removeAllListeners())
-
   const sharedKey = connections[0].sessionKey
-  connections.forEach(connection => {
+  connections.forEach((connection) => {
     expect(connection.state).toEqual('connected')
     // ✅ They've converged on a shared secret key
     expect(connection.sessionKey).toEqual(sharedKey)
@@ -195,7 +185,7 @@ export const disconnection = async (a: UserStuff, b: UserStuff, message?: string
   // ✅ They're both disconnected
   await all(connections, 'disconnected')
 
-  connections.forEach(connection => {
+  connections.forEach((connection) => {
     expect(connection.state).toEqual('disconnected')
     // ✅ If we're checking for a message, it matches
     if (message !== undefined) expect(connection.error!.message).toContain(message)
@@ -204,10 +194,10 @@ export const disconnection = async (a: UserStuff, b: UserStuff, message?: string
 
 export const all = (connections: Connection[], event: string) =>
   Promise.all(
-    connections.map(connection => {
+    connections.map((connection) => {
       if (event === 'disconnect' && connection.state === 'disconnected') return true
       if (event === 'connected' && connection.state === 'connected') return true
-      else return new Promise(resolve => connection.on(event, () => resolve(true)))
+      else return new Promise((resolve) => connection.on(event, () => resolve(true)))
     })
   )
 
