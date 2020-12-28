@@ -39,6 +39,7 @@ import { expectConnection, expectDisconnection } from '/util/testing/expectConne
 // used for tests of the connection's timeout - needs to be bigger than
 // the TIMEOUT_DELAY constant in connectionMachine, plus some slack
 const LONG_TIMEOUT = 10000
+
 const ONE_WAY = true
 
 describe('connection', () => {
@@ -119,23 +120,19 @@ describe('connection', () => {
       // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel
       await connect(alice, bob)
 
-      // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel
+      // 👩🏾 👨🏻‍🦲 Alice and Bob both leave the channel
       await disconnect(alice, bob)
     })
 
-    it(`shouldn't connect with a member who has been removed`, async () => {
-      const { testUsers } = oldSetup(['alice', 'bob'])
-      const { alice, bob } = testUsers
+    it.only(`shouldn't connect with a member who has been removed`, async () => {
+      const { alice, bob } = setup(['alice', 'bob'])
 
       // 👩🏾 Alice removes Bob
       alice.team.remove('bob')
 
-      // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel
-      alice.connection.start()
-      bob.connection.start()
-
-      // ❌ The connection fails
-      await expectDisconnection([alice.connection, bob.connection])
+      // ❌ They can't connect
+      connect(alice, bob)
+      await disconnection(alice, bob)
     })
 
     it(`shouldn't connect with someone who doesn't belong to the team`, async () => {
