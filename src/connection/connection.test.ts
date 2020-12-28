@@ -18,35 +18,22 @@ import * as users from '/user'
 import { User } from '/user'
 import { assert } from '/util'
 import { arrayToMap } from '/util/arrayToMap'
-import {
-  alice,
-  bob,
-  charlie,
-  connect,
-  connectWithInvitation,
-  disconnect,
-  disconnection,
-  expectEveryoneToKnowEveryone,
-  joinTestChannel,
-  setup,
-  TestChannel,
-} from '/util/testing'
+import { alice, bob, charlie, joinTestChannel, TestChannel } from '/util/testing'
 import '/util/testing/expect/toBeValid'
-import { expectConnection, expectDisconnection } from '/util/testing/expectConnection'
-
-// TODO: finish getting rid of `oldSetup`
+import { expectDisconnection } from '/util/testing/expectConnection'
 
 // used for tests of the connection's timeout - needs to be bigger than
 // the TIMEOUT_DELAY constant in connectionMachine, plus some slack
 const LONG_TIMEOUT = 10000
 
-const ONE_WAY = true
+// NOTE: These tests are all one-sided: We drive one side of the workflow mannually against a `Connection`
+// on the other side. Any tests involving real `Connection` instances on *both* sides are in `integration.test.ts`.
 
 describe('connection', () => {
   describe('between members', () => {
     // Test one side of the verification workflow, using a real connection for Alice and manually simulating Bob's messages.
     it(`should successfully verify the other peer's identity`, async () => {
-      const { testUsers, lastMessage } = oldSetup(['alice'], ONE_WAY)
+      const { testUsers, lastMessage } = setup(['alice'])
       const { alice } = testUsers
 
       const authenticatingState = () => alice.getState().connecting.authenticating
@@ -73,7 +60,7 @@ describe('connection', () => {
 
     // Test the other side, using a real connection for Bob and manually simulating Alice's messages.
     it(`should successfully prove our identity to the other peer`, async () => {
-      const { testUsers, lastMessage } = oldSetup(['alice', 'bob'], ONE_WAY)
+      const { testUsers, lastMessage } = setup(['alice', 'bob'])
       const { bob } = testUsers
       const bobAuthenticatingState = () => bob.getState().connecting.authenticating
 
@@ -113,46 +100,10 @@ describe('connection', () => {
       expect(bobAuthenticatingState().proving).toEqual('done')
     })
 
-    // Let both processes play out automatically
-    it('should automatically connect two members', async () => {
-      const { alice, bob } = setup(['alice', 'bob'])
-
-      // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel
-      await connect(alice, bob)
-
-      // 👩🏾 👨🏻‍🦲 Alice and Bob both leave the channel
-      await disconnect(alice, bob)
-    })
-
-    it.only(`shouldn't connect with a member who has been removed`, async () => {
-      const { alice, bob } = setup(['alice', 'bob'])
-
-      // 👩🏾 Alice removes Bob
-      alice.team.remove('bob')
-
-      // ❌ They can't connect
-      connect(alice, bob)
-      await disconnection(alice, bob)
-    })
-
-    it(`shouldn't connect with someone who doesn't belong to the team`, async () => {
-      const { testUsers } = oldSetup(['alice', 'charlie'])
-      const { alice, charlie } = testUsers
-
-      // Alice connects
-      alice.connection.start()
-
-      // Charlie tries to connect
-      charlie.connection.start()
-
-      // ❌ The connection fails
-      await expectDisconnection([alice.connection, charlie.connection])
-    })
-
     it(
       'disconnects if the peer stops responding',
       async () => {
-        const { testUsers } = oldSetup(['alice', 'bob'], ONE_WAY)
+        const { testUsers } = setup(['alice', 'bob'])
         const { alice } = testUsers
 
         // 👩🏾 Alice connects
@@ -185,7 +136,7 @@ describe('connection', () => {
     // Test one side of the verification workflow with Charlie presenting an invitation, using a real
     // connection for Alice and manually simulating Charlie's messages.
     it(`should successfully verify the other peer's invitation`, async () => {
-      const { testUsers } = oldSetup(['alice'], ONE_WAY)
+      const { testUsers } = setup(['alice'])
       const { alice } = testUsers
       const aliceAuthenticatingState = () => alice.getState().connecting.authenticating
 
@@ -207,7 +158,7 @@ describe('connection', () => {
     // Test the other side with Charlie presenting an invitation, using a real connection for Bob
     // and manually simulating Alice's messages.
     it(`should successfully present an invitation to the other peer`, async () => {
-      const { testUsers, lastMessage, sendMessage } = oldSetup(['alice'], ONE_WAY)
+      const { testUsers, lastMessage, sendMessage } = setup(['alice'])
       const { alice } = testUsers
 
       // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
@@ -246,49 +197,9 @@ describe('connection', () => {
       expect(charlieState().authenticating.proving).toEqual('done')
     })
 
-    // Create real connections with a member on one side and an invitee on the other
-    it('should automatically connect an invitee with a member', async () => {
-      const { alice, bob } = setup(['alice', { user: 'bob', member: false }])
-
-      // 👩🏾📧👴 Alice invites Bob
-      const { invitationSeed: seed } = alice.team.invite('bob')
-
-      // 👴📧<->👩🏾 Bob connects to Alice and uses his invitation to join
-      await connectWithInvitation(alice, bob, seed)
-
-      // ✅
-      expectEveryoneToKnowEveryone(alice, bob)
-    })
-
-    // Two people carrying invitations can't connect to each other - there needs to be at least one
-    // current member in a connection in order to let the invitee in.
-    it(`shouldn't allow two invitees to connect`, async () => {
-      const { alice, charlie, dwight } = setup([
-        'alice',
-        { user: 'charlie', member: false },
-        { user: 'dwight', member: false },
-      ])
-
-      // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
-      const { invitationSeed: charlieSeed } = alice.team.invite('charlie')
-      charlie.connectionContext.invitationSeed = charlieSeed
-
-      // 👩🏾 Alice invites 👴 Dwight
-      const { invitationSeed: dwightSeed } = alice.team.invite('dwight')
-      dwight.connectionContext.invitationSeed = dwightSeed
-
-      // 👳🏽‍♂️<->👴 Charlie and Dwight try to connect to each other
-      const join = joinTestChannel(new TestChannel())
-      charlie.connection[dwight.userName] = join(charlie.connectionContext).start()
-      dwight.connection[charlie.userName] = join(dwight.connectionContext).start()
-
-      // ✅ ❌ They're unable to connect because at least one needs to be a member
-      await disconnection(charlie, dwight, 'neither one of us is a member')
-    })
-
     // In which Eve tries to get Charlie to join her team instead of Alice's
     it(`shouldn't be fooled into joining the wrong team`, async () => {
-      const { testUsers, sendMessage } = oldSetup(['alice'], ONE_WAY)
+      const { testUsers, sendMessage } = setup(['alice'])
       const { alice } = testUsers
 
       // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
@@ -334,106 +245,17 @@ describe('connection', () => {
     })
   })
 
-  describe('update', () => {
-    it('if they are behind, they will be caught up when they connect', async () => {
-      const { testUsers } = oldSetup(['alice', 'bob'])
-      const { alice, bob } = testUsers
-
-      // at this point, Alice and Bob have the same signature chain
-
-      // 👩🏾 but now Alice does some stuff
-      alice.team.invite('charlie')
-      alice.team.addRole('managers')
-      alice.team.addMemberRole('charlie', 'managers')
-
-      // 👨🏻‍🦲 Bob hasn't connected, so he doesn't have Alice's changes
-      expect(bob.team.has('charlie')).toBe(false)
-      expect(bob.team.hasRole('managers')).toBe(false)
-
-      // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel
-      alice.connection.start()
-      bob.connection.start()
-
-      await expectConnection([alice.connection, bob.connection])
-
-      // ✅ 👨🏻‍🦲 Bob is up to date with Alice's changes
-      expect(bob.team.has('charlie')).toBe(true)
-      expect(bob.team.hasRole('managers')).toBe(true)
-      expect(bob.team.memberHasRole('charlie', 'managers')).toBe(true)
-    })
-
-    it('if we are behind, we will be caught up when we connect', async () => {
-      const { testUsers } = oldSetup(['alice', 'bob'])
-      const { alice, bob } = testUsers
-
-      // at this point, Alice and Bob have the same signature chain
-
-      // 👨🏻‍🦲 but now Bob does some stuff
-      bob.team.invite('charlie')
-      bob.team.addRole('managers')
-      bob.team.addMemberRole('charlie', 'managers')
-
-      // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel
-      alice.connection.start()
-      bob.connection.start()
-
-      await expectConnection([alice.connection, bob.connection])
-
-      // ✅ 👩🏾 Alice is up to date with Bob's changes
-      expect(alice.team.has('charlie')).toBe(true)
-      expect(alice.team.hasRole('managers')).toBe(true)
-      expect(alice.team.memberHasRole('charlie', 'managers')).toBe(true)
-    })
-
-    it(`if we've diverged, we will be caught up when we connect`, async () => {
-      const { testUsers } = oldSetup(['alice', 'bob'])
-      const { alice, bob } = testUsers
-
-      // at this point, Alice and Bob have the same signature chain
-
-      // 👩🏾 but now Alice does some stuff
-      alice.team.invite('charlie')
-      alice.team.addRole('managers')
-      alice.team.addMemberRole('charlie', 'managers')
-
-      // 👨🏻‍🦲 and Bob does some stuff
-      bob.team.addRole('finance')
-      bob.team.addMemberRole('alice', 'finance')
-
-      // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel
-      alice.connection.start()
-      bob.connection.start()
-
-      await expectConnection([alice.connection, bob.connection])
-
-      // 👨🏻‍🦲 Bob is up to date with Alice's changes
-      expect(bob.team.has('charlie')).toBe(true)
-      expect(bob.team.hasRole('managers')).toBe(true)
-      expect(bob.team.memberHasRole('charlie', 'managers')).toBe(true)
-
-      // ✅ 👩🏾 and Alice is up to date with Bob's changes
-      expect(alice.team.hasRole('finance')).toBe(true)
-      expect(bob.team.memberHasRole('alice', 'finance')).toBe(true)
-    })
-  })
-
-  it('connected peers can encrypt/decrypt to each other using session key', () => {})
-
-  const oldSetup = (userNames: string[] = [], isOneWay = false) => {
+  const setup = (userNames: string[] = []) => {
     const allTestUsers: Record<string, User> = { alice, bob, charlie }
     const getUserContext = (userName: string): LocalUserContext => {
       const user = allTestUsers[userName]
       return { user }
     }
 
-    // Our dummy `sendMessage` just pushes messages onto a queue. We use this for one-sided tests
-    // (where there's only a real connection on one side)
+    // Our dummy `sendMessage` just pushes messages onto a queue.
     const messageQueue: ConnectionMessage[] = []
     const sendMessage = (message: ConnectionMessage) => messageQueue.push(message)
     const lastMessage = () => messageQueue[messageQueue.length - 1]
-
-    // For real two-way connections, we use this
-    const join = joinTestChannel(new TestChannel())
 
     // Create a new team
     const team = teams.create('Spies Я Us', getUserContext('alice'))
@@ -447,9 +269,7 @@ describe('connection', () => {
       const device = redactDevice(user.device)
       const userTeam = teams.load(team.chain, context)
       const connectionContext = { team: userTeam, user, device }
-      const connection = isOneWay
-        ? new Connection({ sendMessage, context: connectionContext })
-        : join(connectionContext)
+      const connection = new Connection({ sendMessage, context: connectionContext })
       const getState = () => connection.state as any
 
       let index = 0
@@ -458,10 +278,8 @@ describe('connection', () => {
       return {
         userName,
         user,
-        context,
         device,
         team: userTeam,
-        connectionContext,
         connection,
         getState,
         deliver,
@@ -472,6 +290,6 @@ describe('connection', () => {
       .map(makeUserStuff)
       .reduce(arrayToMap('userName'), {})
 
-    return { sendMessage, join, lastMessage, testUsers }
+    return { sendMessage, lastMessage, testUsers }
   }
 })
