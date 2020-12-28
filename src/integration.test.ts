@@ -14,11 +14,38 @@ import '/util/testing/expect/toBeValid'
 
 const log = debug(`lf:auth:test`)
 
-beforeAll(() => {
-  log.clear()
-})
+beforeAll(() => {})
 
 describe('integration', () => {
+  it('connects two members', async () => {
+    const { alice, bob } = setup(['alice', 'bob'])
+
+    // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel
+    await connect(alice, bob)
+
+    // 👩🏾 👨🏻‍🦲 Alice and Bob both leave the channel
+    await disconnect(alice, bob)
+  })
+
+  it(`doesn't connect with a member who has been removed`, async () => {
+    const { alice, bob } = setup(['alice', 'bob'])
+
+    // 👩🏾 Alice removes Bob
+    alice.team.remove('bob')
+
+    // ❌ They can't connect because Bob was removed
+    connect(alice, bob)
+    await disconnection(alice, bob)
+  })
+
+  it(`doesn't connect with someone who doesn't belong to the team`, async () => {
+    const { alice, charlie } = setup(['alice', 'bob', { user: 'charlie', member: false }])
+
+    // ❌ Alice and Charlie can't connect because Charlie was never on the team
+    connect(alice, charlie)
+    await disconnection(alice, charlie)
+  })
+
   test(`can reconnect after disconnecting`, async () => {
     const { alice, bob } = setup(['alice', 'bob'])
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
@@ -33,29 +60,46 @@ describe('integration', () => {
     // ✅ all good
   })
 
-  test('sends updates after connection is established', async () => {
+  it('updates remote user after connecting', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
-    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
+    // at this point, Alice and Bob have the same signature chain
+
+    // 👩🏾 but now Alice does some stuff
+    alice.team.invite('charlie')
+    alice.team.addRole('managers')
+    alice.team.addMemberRole('charlie', 'managers')
+
+    // 👨🏻‍🦲 Bob hasn't connected, so he doesn't have Alice's changes
+    expect(bob.team.has('charlie')).toBe(false)
+    expect(bob.team.hasRole('managers')).toBe(false)
+
+    // 👩🏾 👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
 
-    // 👩🏾 Alice creates a new role
-    expect(alice.team.hasRole('MANAGERS')).toBe(false)
-    expect(bob.team.hasRole('MANAGERS')).toBe(false)
-    alice.team.addRole('MANAGERS')
+    // ✅ 👨🏻‍🦲 Bob is up to date with Alice's changes
+    expect(bob.team.has('charlie')).toBe(true)
+    expect(bob.team.hasRole('managers')).toBe(true)
+    expect(bob.team.memberHasRole('charlie', 'managers')).toBe(true)
+  })
 
-    // ✅ Bob sees the new role 👨🏻‍🦲💭
-    await updated(alice, bob)
-    expect(bob.team.hasRole('MANAGERS')).toBe(true)
+  it('updates local user after connecting', async () => {
+    const { alice, bob } = setup(['alice', 'bob'])
 
-    // 👩🏾 Alice adds Bob to the new role
-    expect(alice.team.memberHasRole('bob', 'MANAGERS')).toBe(false)
-    expect(bob.team.memberHasRole('bob', 'MANAGERS')).toBe(false)
-    alice.team.addMemberRole('bob', 'MANAGERS')
+    // at this point, Alice and Bob have the same signature chain
 
-    // ✅ 👨🏻‍🦲 Bob sees the change 👨🏻‍🦲💭
-    await updated(alice, bob)
-    expect(bob.team.memberHasRole('bob', 'MANAGERS')).toBe(true)
+    // 👨🏻‍🦲 but now Bob does some stuff
+    bob.team.invite('charlie')
+    bob.team.addRole('managers')
+    bob.team.addMemberRole('charlie', 'managers')
+
+    // 👩🏾 👨🏻‍🦲 Alice and Bob connect
+    await connect(alice, bob)
+
+    // ✅ 👩🏾 Alice is up to date with Bob's changes
+    expect(alice.team.has('charlie')).toBe(true)
+    expect(alice.team.hasRole('managers')).toBe(true)
+    expect(alice.team.memberHasRole('charlie', 'managers')).toBe(true)
   })
 
   test('resolves concurrent non-conflicting changes when updating', async () => {
@@ -141,6 +185,41 @@ describe('integration', () => {
     // ✅ Alice is no longer on the team 👩🏾👎
     expect(bob.team.has('alice')).toBe(false)
     expect(alice.team.has('alice')).toBe(false)
+  })
+
+  it('connects an invitee with a member', async () => {
+    const { alice, bob } = setup(['alice', { user: 'bob', member: false }])
+
+    // 👩🏾📧👴 Alice invites Bob
+    const { invitationSeed: seed } = alice.team.invite('bob')
+
+    // 👴📧<->👩🏾 Bob connects to Alice and uses his invitation to join
+    await connectWithInvitation(alice, bob, seed)
+
+    // ✅
+    expectEveryoneToKnowEveryone(alice, bob)
+  })
+
+  it(`shouldn't allow two invitees to connect`, async () => {
+    const { alice, charlie, dwight } = setup([
+      'alice',
+      { user: 'charlie', member: false },
+      { user: 'dwight', member: false },
+    ])
+
+    // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
+    const { invitationSeed: charlieSeed } = alice.team.invite('charlie')
+    charlie.connectionContext.invitationSeed = charlieSeed
+
+    // 👩🏾 Alice invites 👴 Dwight
+    const { invitationSeed: dwightSeed } = alice.team.invite('dwight')
+    dwight.connectionContext.invitationSeed = dwightSeed
+
+    // 👳🏽‍♂️<->👴 Charlie and Dwight try to connect to each other
+    connect(charlie, dwight)
+
+    // ✅ ❌ They're unable to connect because at least one needs to be a member
+    await disconnection(charlie, dwight, 'neither one of us is a member')
   })
 
   test('eventually updates disconnected members when someone uses an invitation to join', async () => {
@@ -533,9 +612,4 @@ describe('integration', () => {
     // From his laptop, Charlie removes the phone from the team
     // Eve uses Charlie's phone to try to connect to Bob, but she can't
   })
-
-  // Logging
-
-  const testName = () => expect.getState().currentTestName
-  beforeEach(() => log.header('TEST: ' + testName()))
 })
