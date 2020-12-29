@@ -1,5 +1,6 @@
 ﻿import { asymmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
+import * as R from 'ramda'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
 import { getParentHashes, TeamLinkMap } from '/chain'
 import { connectionMachine } from '/connection/connectionMachine'
@@ -41,14 +42,21 @@ const { MEMBER } = KeyType
  */
 export class Connection extends EventEmitter {
   private sendMessage: SendFunction
-
   private machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
-
   private incomingMessageQueue: Record<number, NumberedConnectionMessage> = {}
   private outgoingMessageIndex: number = 0
+  private log: debug.Debugger
+
+  private userName: string
+  private started: boolean = false
 
   constructor({ sendMessage, context }: ConnectionParams) {
     super()
+
+    this.userName = context.user.userName
+    this.log = debug(`lf:auth:connection:${this.userName}`)
+    this.log('new connection')
+
     this.sendMessage = (message: ConnectionMessage) => {
       const index = this.outgoingMessageIndex++
       this.logMessage('out', message, index)
@@ -69,11 +77,11 @@ export class Connection extends EventEmitter {
       const s = isString(state)
         ? state
         : Object.keys(state)
-            .map(key => {
+            .map((key) => {
               const substate = state[key]
               return substate === 'done' ? '' : `${key}:${stateSummary(substate)}`
             })
-            .filter(s => s.length)
+            .filter((s) => s.length)
             .join(',')
       return s //
         .replace(/disconnected/g, '❌')
@@ -90,6 +98,8 @@ export class Connection extends EventEmitter {
 
   /** Starts the connection machine. Returns this Connection object. */
   public start = () => {
+    this.log('starting')
+    this.started = true
     this.machine.start()
     return this
   }
@@ -97,50 +107,55 @@ export class Connection extends EventEmitter {
   /** Stops the connection machine and sends a disconnect message to the peer. */
   public stop = () => {
     const disconnectMessage = { type: 'DISCONNECT' } as DisconnectMessage
-    this.machine.send(disconnectMessage) // send disconnect event to local machine
     this.sendMessage(disconnectMessage) // send disconnect message to peer
-  }
-
-  private get log() {
-    return debug(`lf:auth:connection:${this.machine.state.context.user.userName}`)
+    if (this.started && !this.machine.state.done) {
+      this.started = false
+      this.machine.send(disconnectMessage) // send disconnect event to local machine
+    }
   }
 
   /** Returns the current state of the connection machine. */
   get state() {
-    return this.machine.state.value
+    if (!this.started) return 'disconnected'
+    else return this.machine.state.value
+  }
+
+  get context() {
+    if (!this.started) throw new Error(`Can't get context; machine not started`)
+    return this.machine.state.context
   }
 
   get user() {
-    return this.machine.state.context.user
+    return this.context.user
   }
 
   /** Returns the last error encountered by the connection machine.
    * If no error has occurred, returns undefined.
    */
   get error() {
-    return this.machine.state.context.error
+    return this.context.error
   }
 
   /** Returns the team that the connection's user is a member of.
    * If the user has not yet joined a team, returns undefined.
    */
   get team() {
-    return this.machine.state.context.team
+    return this.context.team
   }
 
   /** Returns the connection's session key when we are in a connected state.
    * Otherwise, returns `undefined`.
    */
   get sessionKey() {
-    return this.machine.state.context.sessionKey
+    return this.context.sessionKey
   }
 
   get peerName() {
-    const { context } = this.machine.state
+    if (!this.started) return '? (not started)'
     return (
-      context.peer?.userName ??
-      context.theirIdentityClaim?.name ??
-      context.theirProofOfInvitation?.userName ??
+      this.context.peer?.userName ??
+      this.context.theirIdentityClaim?.name ??
+      this.context.theirProofOfInvitation?.userName ??
       '?'
     )
   }
@@ -158,7 +173,7 @@ export class Connection extends EventEmitter {
 
     // send any messages that are ready to go out
     for (const m of nextMessages) {
-      if (!this.machine.state.done) this.machine.send(m)
+      if (this.started && !this.machine.state.done) this.machine.send(m)
       else this.log(`stopped, not sending #${incomingMessage.index}`)
     }
   }
@@ -168,6 +183,7 @@ export class Connection extends EventEmitter {
   private fail = (message: string, details?: any) =>
     assign({
       error: (context, event) => {
+        // console.error(message)
         const errorPayload = { message, details }
         const errorMessage: ErrorMessage = { type: 'ERROR', payload: errorPayload }
         this.machine.send(errorMessage) // force error state locally
@@ -178,7 +194,13 @@ export class Connection extends EventEmitter {
 
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendHello'`) */
   private readonly actions: Record<string, Action> = {
-    sendHello: context => {
+    sendReady: () => {
+      // We send a READY message without any content just to make sure there's someone at the other
+      // end before we identify ourselves etc.
+      this.sendMessage({ type: 'READY', payload: {} })
+    },
+
+    sendHello: (context) => {
       this.sendMessage({
         type: 'HELLO',
         payload: {
@@ -201,7 +223,7 @@ export class Connection extends EventEmitter {
       theirProofOfInvitation: (_, event) => (event as HelloMessage).payload.proofOfInvitation,
     }),
 
-    acceptInvitation: context => {
+    acceptInvitation: (context) => {
       assert(context.team)
       // welcome them by sending the team's signature chain, so they can reconstruct team membership state
       this.sendMessage({
@@ -218,7 +240,7 @@ export class Connection extends EventEmitter {
       },
     }),
 
-    challengeIdentity: context => {
+    challengeIdentity: (context) => {
       const identityClaim = context.theirIdentityClaim!
       const challenge = identity.challenge(identityClaim)
       context.challenge = challenge
@@ -238,14 +260,14 @@ export class Connection extends EventEmitter {
     },
 
     storePeer: assign({
-      peer: context => {
+      peer: (context) => {
         assert(context.team)
         assert(context.theirIdentityClaim)
         return context.team.members(context.theirIdentityClaim.name)
       },
     }),
 
-    acceptIdentity: _ => {
+    acceptIdentity: (_) => {
       this.sendMessage({
         type: 'ACCEPT_IDENTITY',
         payload: {},
@@ -254,7 +276,7 @@ export class Connection extends EventEmitter {
 
     // updating
 
-    sendUpdate: context => {
+    sendUpdate: (context) => {
       assert(context.team)
       const { root, head, links } = context.team.chain
       const hashes = Object.keys(links)
@@ -290,8 +312,8 @@ export class Connection extends EventEmitter {
 
       // send them every link that we have that they don't have
       const missingLinks = hashes
-        .filter(hash => theirHashes.includes(hash) === false)
-        .map(hash => links[hash])
+        .filter((hash) => theirHashes.includes(hash) === false)
+        .map((hash) => links[hash])
 
       if (missingLinks.length > 0) {
         this.sendMessage({
@@ -318,8 +340,8 @@ export class Connection extends EventEmitter {
         } as TeamLinkMap
 
         // make sure we're not missing any links that are referenced by these new links (shouldn't happen)
-        const parentHashes = theirLinksArray.flatMap(link => getParentHashes(chain, link))
-        const missingParents = parentHashes.filter(hash => !(hash in allLinks))
+        const parentHashes = theirLinksArray.flatMap((link) => getParentHashes(chain, link))
+        const missingParents = parentHashes.filter((hash) => !(hash in allLinks))
         assert(
           missingParents.length === 0,
           `Can't update; missing parent links: \n${missingParents.join('\n')}`
@@ -337,7 +359,7 @@ export class Connection extends EventEmitter {
       // Following an update, we may have new information about the peer
       // (specifically, if they just joined with an invitation, we'll have received
       // their real public keys). So we need to get that on context now.
-      peer: context => {
+      peer: (context) => {
         assert(context.peer)
         assert(context.team)
         const userName = context.peer.userName
@@ -351,7 +373,7 @@ export class Connection extends EventEmitter {
       },
     }),
 
-    listenForUpdates: context => {
+    listenForUpdates: (context) => {
       assert(context.team)
       context.team.addListener('updated', ({ head }) => {
         if (!this.machine.state.done) {
@@ -363,9 +385,9 @@ export class Connection extends EventEmitter {
 
     // negotiating
 
-    generateSeed: assign({ seed: _ => randomKey() }),
+    generateSeed: assign({ seed: (_) => randomKey() }),
 
-    sendSeed: context => {
+    sendSeed: (context) => {
       assert(context.peer)
       assert(context.seed)
 
@@ -429,16 +451,22 @@ export class Connection extends EventEmitter {
     onDisconnected: (_, event) => this.emit('disconnected', event),
   }
 
+  emit(event: string | symbol, ...args: any[]) {
+    this.log('emitting %o', event)
+    super.emit(event, ...args)
+    return true
+  }
+
   // GUARDS
 
   /** These are referred to by name in `connectionMachine` (e.g. `cond: 'iHaveInvitation'`) */
   private readonly guards: Record<string, Condition> = {
-    iHaveInvitation: context => {
+    iHaveInvitation: (context) => {
       const result = context.invitationSeed !== undefined
       return result
     },
 
-    theyHaveInvitation: context => {
+    theyHaveInvitation: (context) => {
       const result = context.theirProofOfInvitation !== undefined
       return result
     },
@@ -446,7 +474,7 @@ export class Connection extends EventEmitter {
     bothHaveInvitation: (...args) =>
       this.guards.iHaveInvitation(...args) && this.guards.theyHaveInvitation(...args),
 
-    invitationProofIsValid: context => {
+    invitationProofIsValid: (context) => {
       assert(context.team)
       assert(context.theirProofOfInvitation)
 
@@ -465,7 +493,7 @@ export class Connection extends EventEmitter {
       return team.hasInvitation(this.myProofOfInvitation(context))
     },
 
-    identityIsKnown: context => {
+    identityIsKnown: (context) => {
       if (context.team === undefined) return true
       const identityClaim = context.theirIdentityClaim!
       const userName = identityClaim.name
@@ -478,7 +506,7 @@ export class Connection extends EventEmitter {
       const identityProofMessage = event as ProveIdentityMessage
       const { challenge, proof } = identityProofMessage.payload
 
-      if (originalChallenge !== challenge) return false
+      if (!R.equals(originalChallenge, challenge)) return false
       const userName = challenge.name
       const publicKeys = team.members(userName).keys
       const validation = identity.verify(challenge, proof, publicKeys)
@@ -499,9 +527,9 @@ export class Connection extends EventEmitter {
 
     headsAreDifferent: (...args) => !this.guards.headsAreEqual(...args),
 
-    dontHaveSessionkey: context => context.sessionKey === undefined,
+    dontHaveSessionkey: (context) => context.sessionKey === undefined,
 
-    peerWasRemoved: context => {
+    peerWasRemoved: (context) => {
       assert(context.team)
       assert(context.peer)
       return context.team.has(context.peer.userName) === false

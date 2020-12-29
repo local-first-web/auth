@@ -18,10 +18,11 @@
     "node": ">=10"
   },
   "scripts": {
-    "start": "tsdx watch",
-    "build": "tsdx build && tscpaths -p tsconfig.json -s ./src -o ./dist --silent",
+    "watch": "tsdx watch --noClean --onSuccess \"yarn postbuild\"",
+    "build": "tsdx build",
+    "postbuild": "tscpaths -p tsconfig.json -s ./src -o ./dist --silent",
     "test": "tsdx test",
-    "test:log": "cross-env DEBUG='lf*' DEBUG_COLORS=0 yarn test",
+    "test:log": "cross-env DEBUG='lf*' DEBUG_COLORS=1 yarn test",
     "lint": "tsdx lint src",
     "prepare": "yarn build",
     "purge": "scripts/purge.bat"
@@ -55,7 +56,7 @@
     "semi": false,
     "singleQuote": true,
     "trailingComma": "es5",
-    "arrowParens": "avoid"
+    "arrowParens": "always"
   },
   "eslintConfig": {
     "rules": {

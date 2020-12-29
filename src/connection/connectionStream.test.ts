@@ -1,22 +1,25 @@
-﻿import { ADMIN } from '/role'
-import { debug } from '/util'
-import {
-  connect,
-  connectPhoneWithInvitation,
-  connectWithInvitation,
-  disconnect,
-  disconnection,
-  expectEveryoneToKnowEveryone,
-  setup,
-  updated,
-} from '/util/testing'
-import '/util/testing/expect/toBeValid'
+﻿import memoize from 'fast-memoize'
+import fs from 'fs'
+import path from 'path'
+import { ConnectionStream } from './ConnectionStream'
+import { InitialContext } from '/connection'
+import { LocalUserContext } from '/context'
+import { DeviceInfo, DeviceType, DeviceWithSecrets, getDeviceId, redactDevice } from '/device'
+import * as keysets from '/keyset'
+import { KeyType } from '/keyset'
+import { ADMIN } from '/role'
+import * as teams from '/team'
+import { Team } from '/team'
+import * as users from '/user'
+import { User } from '/user'
+import { arrayToMap, assert, debug } from '/util'
+import { TestChannel } from '/util/testing'
 
-const log = debug(`lf:auth:test`)
+const log = debug('lf:auth:test')
 
 beforeAll(() => {})
 
-describe('integration', () => {
+describe('connectionStream', () => {
   it('connects two members', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
@@ -200,7 +203,7 @@ describe('integration', () => {
     expectEveryoneToKnowEveryone(alice, bob)
   })
 
-  it(`shouldn't allow two invitees to connect`, async () => {
+  it(`doesn't allow two invitees to connect`, async () => {
     const { alice, charlie, dwight } = setup([
       'alice',
       { user: 'charlie', member: false },
@@ -286,10 +289,6 @@ describe('integration', () => {
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
     log('Alice and Bob connect')
     await connect(alice, bob)
-
-    // let everyone catch up
-    log('let everyone catch up')
-    await Promise.all([updated(dwight, bob), updated(charlie, alice)])
 
     // ✅ No problemo
     log('No problemo')
@@ -463,8 +462,6 @@ describe('integration', () => {
     // 👩🏾 Alice creates a new role
     alice.team.addRole('MANAGERS')
 
-    await Promise.all([updated(alice, bob), updated(bob, charlie)])
-
     // ✅ Charlie sees the new role, even though he's not connected directly to Alice 👳🏽‍♂️💭
     expect(charlie.team.hasRole('MANAGERS')).toEqual(true)
   })
@@ -485,15 +482,12 @@ describe('integration', () => {
 
     // 👩🏾 Alice adds a new role
     alice.team.addRole('ALICES_FRIENDS')
-    await allUpdated()
 
     // 👨🏻‍🦲 Bob adds a new role
     bob.team.addRole('BOBS_FRIENDS')
-    await allUpdated()
 
     // 👳🏽‍♂️ Charlie adds a new role
     charlie.team.addRole('CHARLIES_FRIENDS')
-    await allUpdated()
 
     // ✅ All three get the three new roles
     expect(bob.team.hasRole('ALICES_FRIENDS')).toBe(true)
@@ -585,28 +579,225 @@ describe('integration', () => {
     // Charlie is still an admin (because Bob demoted him while being demoted)
     expect(isAdmin('charlie')).toBe(true)
   })
-
-  test.skip('rotates keys after a member is removed', async () => {
-    // Bob is removed from the team
-    // Bob's admin keys no longer work
-  })
-
-  test.skip('rotates keys after a device is removed', async () => {
-    // Bob removes his phone from the team
-    // The admin keys that his phone would have no longer work
-  })
-
-  test.skip(`Eve steals Charlie's only device; Alice heals the team`, async () => {
-    // Eve steals Charlie's laptop
-    // Alice removes the laptop from the team
-    // Eve uses Charlie's laptop to try to connect to Bob, but she can't
-    // Alice sends Charlie a new invitation; he's able to use it to connect from his phone
-  })
-
-  test.skip(`Eve steals one of Charlie's devices; Charlie heals the team`, async () => {
-    // Charlie invites his phone and it joins
-    // Eve steals Charlie's phone
-    // From his laptop, Charlie removes the phone from the team
-    // Eve uses Charlie's phone to try to connect to Bob, but she can't
-  })
 })
+
+const setup = (_config: (TestUserSettings | string)[] = []) => {
+  assert(_config.length > 0, `Can't do setup without any users`)
+
+  // Coerce string userNames into TestUserSettings objects
+  const config = _config.map((u) => (typeof u === 'string' ? { user: u } : u))
+
+  // Get a list of just user names
+  const userNames = config.map((user) => user.user)
+
+  // Create users
+  const testUsers: Record<string, User> = userNames
+    .map((userName: string) =>
+      retrieveAsset(userName, () =>
+        users.create({
+          userName,
+          deviceName: `laptop`,
+          deviceType: DeviceType.laptop,
+          seed: userName,
+        })
+      )
+    )
+    .reduce(arrayToMap('userName'), {})
+
+  // Create team
+  const teamCacheKey = fileSystemSafe(JSON.stringify(config))
+  const chain = retrieveAsset(teamCacheKey, () => {
+    const founder = testUsers[userNames[0]] // e.g. Alice
+    const founderContext = { user: founder } as LocalUserContext
+    const teamSeed = 'seed123'
+    const team = teams.create('Spies Я Us', founderContext, teamSeed)
+    // Add members
+    for (const { user: userName, admin = true, member = true } of config) {
+      if (member && !team.has(userName)) {
+        team.add(testUsers[userName], admin ? [ADMIN] : [])
+      }
+    }
+    return team.chain
+  })
+
+  const makeUserStuff = ({ user: userName, member = true }: TestUserSettings) => {
+    const user = testUsers[userName]
+    const context = { user }
+    const team = member
+      ? teams.load(chain, context) // members get a copy of the source team
+      : teams.create(userName, context) // non-members get a dummy empty placeholder team
+
+    const makeDeviceStuff = (deviceName: string, type: DeviceType) => {
+      const device = retrieveAsset(`${userName}-${deviceName}`, () => {
+        const deviceInfo = { type, deviceName, userName } as DeviceInfo
+        const deviceKeys = keysets.create({ type: KeyType.DEVICE, name: getDeviceId(deviceInfo) })
+        return { ...deviceInfo, keys: deviceKeys } as DeviceWithSecrets
+      })
+
+      const connectionContext = { user: { ...user, device } }
+      return { device, connectionContext }
+    }
+
+    const userStuff = {
+      userName,
+      user,
+      context,
+      team,
+      phone: makeDeviceStuff('phone', DeviceType.mobile),
+      connectionContext: member ? { team, user } : { user },
+      channel: {} as Record<string, TestChannel>,
+      connectionStream: {} as Record<string, ConnectionStream>,
+      getState: (peer: string) => userStuff.connectionStream[peer].state,
+    } as UserStuff
+
+    return userStuff
+  }
+
+  const testUserStuff: Record<string, UserStuff> = config
+    .map(makeUserStuff)
+    .reduce(arrayToMap('userName'), {})
+
+  return testUserStuff
+}
+
+// HELPERS
+
+/** Connects the two members and waits for them to be connected */
+const connect = async (a: UserStuff, b: UserStuff) => {
+  const aStream = new ConnectionStream(a.connectionContext)
+  const bStream = new ConnectionStream(b.connectionContext)
+
+  aStream.pipe(bStream).pipe(aStream)
+
+  aStream.start()
+  bStream.start()
+
+  a.connectionStream[b.userName] = aStream
+  b.connectionStream[a.userName] = bStream
+
+  return connection(a, b)
+}
+
+/** Connects a (a member) with b (invited using the given seed). */
+const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: string) => {
+  b.connectionContext.invitationSeed = seed
+  return connect(a, b).then(() => {
+    // The connection now has the team object, so let's update our user stuff
+    b.team = b.connectionStream[a.userName].team!
+  })
+}
+
+const connectPhoneWithInvitation = async (a: UserStuff, seed: string) => {
+  a.phone.connectionContext.invitationSeed = seed
+
+  const laptop = new ConnectionStream(a.connectionContext).start()
+  const phone = new ConnectionStream(a.phone.connectionContext).start()
+
+  laptop.pipe(phone).pipe(laptop)
+
+  await all([laptop, phone], 'connected')
+}
+
+/** Passes if each of the given members is on the team, and knows every other member on the team */
+const expectEveryoneToKnowEveryone = (...members: UserStuff[]) => {
+  for (const a of members)
+    for (const b of members) //
+      expect(a.team.has(b.userName)).toBe(true)
+}
+
+/** Disconnects the two members and waits for them to be disconnected */
+const disconnect = (a: UserStuff, b: UserStuff) =>
+  Promise.all([
+    disconnection(a, b),
+    a.connectionStream[b.userName].stop(),
+    b.connectionStream[a.userName].stop(),
+  ])
+
+// PROMISIFIED EVENTS
+
+const connection = async (a: UserStuff, b: UserStuff) => {
+  const connections = [a.connectionStream[b.userName], b.connectionStream[a.userName]]
+
+  // ✅ They're both connected
+  await all(connections, 'connected')
+
+  const sharedKey = connections[0].sessionKey
+  connections.forEach((connection) => {
+    expect(connection.state).toEqual('connected')
+    // ✅ They've converged on a shared secret key
+    expect(connection.sessionKey).toEqual(sharedKey)
+  })
+}
+
+const updated = (a: UserStuff, b: UserStuff) => {
+  const connections = [a.connectionStream[b.userName], b.connectionStream[a.userName]]
+  return all(connections, 'updated')
+}
+
+const disconnection = async (a: UserStuff, b: UserStuff, message?: string) => {
+  const connections = [a.connectionStream[b.userName], b.connectionStream[a.userName]]
+  const activeConnections = connections.filter((c) => c.state !== 'disconnected')
+
+  // ✅ They're both disconnected
+  await all(activeConnections, 'disconnected')
+
+  activeConnections.forEach((connection) => {
+    expect(connection.state).toEqual('disconnected')
+    // ✅ If we're checking for a message, it matches
+    if (message !== undefined) expect(connection.error!.message).toContain(message)
+  })
+}
+
+const all = (connections: ConnectionStream[], event: string) =>
+  Promise.all(
+    connections.map((connection) => {
+      if (event === 'disconnect' && connection.state === 'disconnected') return true
+      if (event === 'connected' && connection.state === 'connected') return true
+      else return new Promise((resolve) => connection.on(event, () => resolve(true)))
+    })
+  )
+
+// TEST ASSETS
+
+const parseAssetFile = memoize((fileName: string) =>
+  JSON.parse(fs.readFileSync(fileName).toString())
+)
+
+const retrieveAsset = <T>(fileName: string, fn: () => T): T => {
+  const filePath = path.join(__dirname, `../util/testing/assets/${fileName}.json`)
+  if (fs.existsSync(filePath)) return parseAssetFile(filePath) as T
+  const result: any = fn()
+  fs.writeFileSync(filePath, JSON.stringify(result))
+  return result as T
+}
+
+const fileSystemSafe = (s: string) =>
+  s
+    .replace(/user/gi, '')
+    .replace(/[^a-z0-9]+/gi, '-')
+    .replace(/^-/i, '')
+    .replace(/-$/i, '')
+    .toLowerCase()
+
+// TYPES
+
+type TestUserSettings = {
+  user: string
+  admin?: boolean
+  member?: boolean
+}
+
+interface UserStuff {
+  userName: string
+  user: User
+  context: LocalUserContext
+  phone: {
+    device: DeviceWithSecrets
+    connectionContext: InitialContext
+  }
+  team: Team
+  connectionContext: InitialContext
+  channel: Record<string, TestChannel>
+  connectionStream: Record<string, ConnectionStream>
+  getState: (peer: string) => any
+}

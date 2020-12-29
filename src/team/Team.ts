@@ -137,8 +137,6 @@ export class Team extends EventEmitter {
     // Run the chain through the reducer to calculate the current team state
     const resolver = membershipResolver
 
-    // TODO: why ts-ignore here
-    //@ts-ignore
     const sequence = chains.getSequence({ chain: this.chain, resolver })
     this.log(chainSummary(this.chain))
     this.state = sequence.reduce(reducer, initialState)

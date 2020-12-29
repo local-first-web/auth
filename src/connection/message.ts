@@ -3,8 +3,11 @@ import { TeamLink } from '/chain'
 import { ProofOfInvitation } from '/invitation'
 import { KeyScope } from '/keyset'
 import { Base64, Hash } from '/util'
-import { Lockbox } from '/lockbox'
 
+export type ReadyMessage = {
+  type: 'READY'
+  payload: {}
+}
 export type HelloMessage = {
   type: 'HELLO'
   payload: {
@@ -103,6 +106,7 @@ export type SeedMessage = {
 }
 
 export type ConnectionMessage =
+  | ReadyMessage
   | HelloMessage
   | AcceptInvitationMessage
   | ChallengeIdentityMessage

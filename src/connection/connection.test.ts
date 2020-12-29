@@ -171,8 +171,7 @@ describe('connection', () => {
         device: redactDevice(charlie.device),
         invitationSeed,
       } as InitialContext
-      const charlieConnection = new Connection({ sendMessage, context: charlieContext })
-      charlieConnection.start()
+      const charlieConnection = new Connection({ sendMessage, context: charlieContext }).start()
 
       // 👩🏾 Alice sends a hello message
       const identityClaim = { type: KeyType.MEMBER, name: 'alice' }
@@ -182,15 +181,18 @@ describe('connection', () => {
       const charlieState = () => (charlieConnection.state as any).connecting
       expect(charlieState().invitation).toEqual('waiting')
 
-      // 👩🏾 Alice validates charlie's invitation
+      // 👩🏾 Alice validates Charlie's invitation
       const helloMessage = lastMessage() as HelloMessage
       const { proofOfInvitation } = helloMessage.payload
+
+      console.log(helloMessage)
       assert(proofOfInvitation !== undefined)
+
       alice.team.admit(proofOfInvitation)
       const chain = alice.team.save()
       charlieConnection.deliver({ index: 1, type: 'ACCEPT_INVITATION', payload: { chain } })
 
-      // 👩🏾 Alice generates a acceptance message and sends it to charlie
+      // 👩🏾 Alice generates an acceptance message and sends it to charlie
       charlieConnection.deliver({ index: 3, type: 'ACCEPT_IDENTITY', payload: {} })
 
       // ✅ Success! Charlie has proved his identity
@@ -203,10 +205,9 @@ describe('connection', () => {
       const { alice } = testUsers
 
       // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
-
       const { invitationSeed } = alice.team.invite('charlie')
-      // 🦹‍♀️ Eve is going to impersonate Alice to try to get Charlie to join her team instead
 
+      // 🦹‍♀️ Eve is going to impersonate Alice to try to get Charlie to join her team instead
       const fakeAlice = users.create({
         userName: 'alice',
         deviceName: 'laptop',

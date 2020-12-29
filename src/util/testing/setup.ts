@@ -68,7 +68,6 @@ export const setup = (_config: (TestUserSettings | string)[] = []) => {
   const makeUserStuff = ({ user: userName, member = true }: TestUserSettings) => {
     const user = testUsers[userName]
     const context = { user }
-    const laptop = redactDevice(user.device)
     const team = member
       ? teams.load(chain, context) // members get a copy of the source team
       : teams.create(userName, context) // non-members get a dummy empty placeholder team
@@ -147,7 +146,7 @@ export const connectPhoneWithInvitation = async (a: UserStuff, seed: string) => 
 export const expectEveryoneToKnowEveryone = (...members: UserStuff[]) => {
   for (const a of members)
     for (const b of members) //
-      expect(a.team.has(b.userName)).toBe(true)
+      if (!a.team.has(b.userName)) throw new Error(`${a.userName} doesn't know ${b.userName}`)
 }
 
 /** Disconnects the two members and waits for them to be disconnected */

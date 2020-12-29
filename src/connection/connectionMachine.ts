@@ -13,7 +13,7 @@ export const connectionMachine: MachineConfig<
 > = {
   id: 'connection',
   initial: 'idle',
-  entry: ['sendHello'],
+  entry: ['sendReady'],
 
   on: {
     ERROR: {
@@ -25,8 +25,12 @@ export const connectionMachine: MachineConfig<
   states: {
     idle: {
       on: {
+        READY: {
+          actions: 'sendHello',
+          target: 'idle',
+        },
         HELLO: {
-          actions: 'receiveHello',
+          actions: ['sendHello', 'receiveHello'],
           target: 'connecting',
         },
       },
@@ -248,11 +252,13 @@ export const connectionMachine: MachineConfig<
           target: 'synchronizing.receivingMissingLinks',
         },
       },
+
       states: {
         sendingUpdate: {
           entry: 'sendUpdate',
           always: 'waiting',
         },
+
         receivingUpdate: {
           always: [
             // if our heads are equal, we're done
@@ -261,10 +267,12 @@ export const connectionMachine: MachineConfig<
             { target: 'sendingMissingLinks' },
           ],
         },
+
         sendingMissingLinks: {
           entry: 'sendMissingLinks',
           always: 'waiting',
         },
+
         receivingMissingLinks: {
           always: [
             // if our heads are now equal, we're done
@@ -277,9 +285,12 @@ export const connectionMachine: MachineConfig<
             'sendUpdate', // either way let them know our status
           ],
         },
+
         waiting: {},
+
         done: { type: 'final' },
       },
+
       onDone: [
         // after our first synchronization, we still need to negotiate a session key
         {
