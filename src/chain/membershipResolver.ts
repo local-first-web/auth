@@ -18,11 +18,11 @@ import { arraysAreEqual, debug } from '/util'
 
 const log = debug('lf:auth:membershipResolver')
 
-// TODO: This also needs to deal with members added by invitation
-
-// TODO: an add->remove->add sequence on one side will result in add->remove, because the two adds
-// are treated as duplicates
-
+/**
+ * This is a custom resolver, used to flatten a graph of team membership operations into a strictly
+ * ordered sequence. It mostly applies "strong-remove" rules to resolve tricky situations that can
+ * arise with concurrency: mutual removals, duplicate actions, etc.
+ */
 export const membershipResolver: Resolver<TeamAction> = (heads, chain) => {
   let branches = baseResolver(heads, chain) as TwoBranches
 
@@ -60,20 +60,23 @@ const filterFactories: Record<string, ActionFilterFactory> = {
   },
 
   // If A is removing C, B can't overcome this by concurrently removing C then adding C back
-  cantAddBackRemovedMember: branches => {
+  cantAddBackRemovedMember: (branches) => {
     const removedMembers = getRemovedUsers(branches)
     return addedNotIn(removedMembers)
   },
 
   // If B is removed, anything they do concurrently is omitted
-  cantDoAnythingWhenRemoved: branches => {
+  cantDoAnythingWhenRemoved: (branches) => {
     const removedMembers = getRemovedUsers(branches)
     return authorNotIn(removedMembers)
   },
 
+  // TODO: an add->remove->add sequence on one side will result in add->remove, because the two adds
+  // are treated as duplicates
+
   // If A and B do the same thing (e.g. concurrently add the same member), we only keep one of the
   // actions (but always the same one)
-  omitDuplicates: branches => {
+  omitDuplicates: (branches) => {
     // ensure that everyone will do this the same order, but no one can game it
     const [a, b] = branches.sort(arbitraryDeterministicSort())
     // only keep the first copy we see of any duplicate actions
@@ -90,7 +93,7 @@ const leastSenior = (chain: TeamSignatureChain, userNames: string[]) =>
 
 const getDuplicates = (b: Sequence<TeamAction>): Sequence<TeamAction> => {
   const seen = {} as Record<string, boolean>
-  return b.filter(link => {
+  return b.filter((link) => {
     const fingerprint = actionFingerprint(link) // string summarizing the link, e.g. `ADD:bob`
     if (seen[fingerprint]) return true
     seen[fingerprint] = true
@@ -101,7 +104,7 @@ const getDuplicates = (b: Sequence<TeamAction>): Sequence<TeamAction> => {
 const getRemovals = (branches: TwoBranches) => {
   const isRemovalAction = (link: TeamActionLink): boolean =>
     link.body.type === 'REMOVE_MEMBER' || link.body.type === 'REMOVE_MEMBER_ROLE'
-  return branches.flatMap(branch => branch.filter(isRemovalAction))
+  return branches.flatMap((branch) => branch.filter(isRemovalAction))
 }
 
 const getRemovedUsers = (branches: TwoBranches) => getRemovals(branches).map(removedUserName)
