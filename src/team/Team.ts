@@ -361,7 +361,7 @@ export class Team extends EventEmitter {
       assert(this.memberIsAdmin(currentUser.userName), `Only admins can add invite new members`)
 
       // create a new member with random keys; they'll replace those keys as soon as they join
-      const tempKeys = keysets.create({ type: keysets.KeyType.MEMBER, name: userName }, this.seed)
+      const tempKeys = keysets.create({ type: keysets.KeyType.MEMBER, name: userName }, invitationSeed)
       const member: Member = { userName, keys: keysets.redactKeys(tempKeys), roles }
 
       // make normal lockboxes for the new member

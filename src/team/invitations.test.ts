@@ -5,6 +5,7 @@ import { DeviceType } from '/device'
 import { generateProof, ProofOfInvitation } from '/invitation'
 import { ADMIN } from '/role'
 import * as teams from '/team'
+import * as user from '/user'
 import { alice, alicesContext, bob, bobsContext, defaultContext, newTeam } from '/util/testing'
 
 describe('Team', () => {
@@ -120,6 +121,37 @@ describe('Team', () => {
         persistedTeam = bobsTeam.save()
         alicesTeam = teams.load(persistedTeam, alicesContext)
         expect(alicesTeam.has('charlie')).toBe(true)
+      })
+
+      it('allows the invitee to encrypt a message so they can update their keys', () => {
+        const { team: alicesTeam } = setup()
+
+        // 👩🏾 Alice invites 👨🏻‍🦲 Bob by sending him a secret key of her choosing
+        const invitationSeed = 'passw0rd'
+        alicesTeam.invite('bob', { invitationSeed })
+
+        const proofOfInvitation = generateProof(invitationSeed, 'bob')
+        alicesTeam.admit(proofOfInvitation)
+
+        // 👨🏻‍🦲 Bob uses the seed from 👩🏾 Alice to instantiate the team using his temporary key.
+        // The team chain contains lockboxes that were encrypted using this key.
+        const bob = user.create({
+          userName: 'bob', 
+          seed: invitationSeed,
+          deviceName: 'laptop',
+          deviceType: DeviceType.laptop
+        })
+        const bobsTeam = new teams.Team({
+          source: alicesTeam.chain,
+          context: {user: bob}
+        })
+
+        // 👨🏻‍🦲 Bob tries to encrypt a message using his temporary keys
+        // so he can append to the chain with his new set of keys.
+        const tryToEncryptMessage = () => bobsTeam.encrypt('Hello! Here are my real keys')
+
+        // ✅ The message is encrypted so that it can be sent
+        expect(tryToEncryptMessage).not.toThrowError()
       })
 
       it('allows revoking an invitation', () => {
