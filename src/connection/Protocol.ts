@@ -63,7 +63,7 @@ export class Protocol extends EventEmitter {
       sendMessage({ ...message, index })
     }
     // define state machine
-    const machine = createMachine(machine, {
+    const machine = createMachine(protocolMachine, {
       actions: this.actions,
       guards: this.guards,
     }).withContext(context)

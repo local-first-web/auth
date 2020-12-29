@@ -467,9 +467,6 @@ describe('connectionStream', () => {
   })
 
   it('handles three-way connections', async () => {
-    const allUpdated = () =>
-      Promise.all([updated(alice, bob), updated(bob, charlie), updated(alice, charlie)])
-
     const { alice, bob, charlie } = setup(['alice', 'bob', 'charlie'])
     alice.team.addMemberRole('charlie', ADMIN) // Charlie needs to be an admin to do stuff
 

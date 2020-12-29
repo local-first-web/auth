@@ -26,8 +26,8 @@ import { expectDisconnection } from '/util/testing/expectConnection'
 // the TIMEOUT_DELAY constant in connectionMachine, plus some slack
 const LONG_TIMEOUT = 10000
 
-// NOTE: These tests are all one-sided: We drive one side of the workflow mannually against a `Connection`
-// on the other side. Any tests involving real `Connection` instances on *both* sides are in `integration.test.ts`.
+// NOTE: These tests are all one-sided: We drive one side of the workflow mannually against a `Protocol` instance
+// on the other side. Any tests involving `Connection` streams on *both* sides are in `connection.test.ts`.
 
 describe('connection', () => {
   describe('between members', () => {
