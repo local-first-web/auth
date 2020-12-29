@@ -1,5 +1,5 @@
 import { TestChannel } from '/util/testing/TestChannel'
-import { ConnectionContext, Connection, SendFunction } from '/connection'
+import { ConnectionContext, Protocol, SendFunction } from '/connection'
 import { pause } from '/util/pause'
 import { getDeviceId } from '/device'
 
@@ -12,7 +12,7 @@ export const joinTestChannel = (channel: TestChannel) => (context: ConnectionCon
   const sendMessage: SendFunction = (msg) => channel.write(id, msg)
 
   // Instantiate the connection service
-  const connection = new Connection({ sendMessage, context })
+  const connection = new Protocol({ sendMessage, context })
 
   // hook up receive
   channel.addListener('data', async (senderId, msg) => {

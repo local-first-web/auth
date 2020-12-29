@@ -1,7 +1,7 @@
 ﻿import memoize from 'fast-memoize'
 import fs from 'fs'
 import path from 'path'
-import { Connection, InitialContext } from '/connection'
+import { Protocol, InitialContext } from '/connection'
 import { LocalUserContext } from '/context'
 import { DeviceInfo, DeviceType, DeviceWithSecrets, getDeviceId, redactDevice } from '/device'
 import * as keysets from '/keyset'
@@ -95,7 +95,7 @@ export const setup = (_config: (TestUserSettings | string)[] = []) => {
       phone: makeDeviceStuff('phone', DeviceType.mobile),
       connectionContext: member ? { team, user } : { user },
       channel: {} as Record<string, TestChannel>,
-      connection: {} as Record<string, Connection>,
+      connection: {} as Record<string, Protocol>,
       getState: (peer: string) => userStuff.connection[peer].state,
     } as UserStuff
 
@@ -191,7 +191,7 @@ export const disconnection = async (a: UserStuff, b: UserStuff, message?: string
   })
 }
 
-export const all = (connections: Connection[], event: string) =>
+export const all = (connections: Protocol[], event: string) =>
   Promise.all(
     connections.map((connection) => {
       if (event === 'disconnect' && connection.state === 'disconnected') return true
@@ -241,6 +241,6 @@ interface UserStuff {
   team: Team
   connectionContext: InitialContext
   channel: Record<string, TestChannel>
-  connection: Record<string, Connection>
+  connection: Record<string, Protocol>
   getState: (peer: string) => any
 }

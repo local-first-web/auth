@@ -6,7 +6,7 @@ import { ConnectionMessage } from '/connection/message'
 const TIMEOUT_DELAY = 7000
 const timeout = { after: { [TIMEOUT_DELAY]: { actions: 'failTimeout', target: '#failure' } } }
 
-export const connectionMachine: MachineConfig<
+export const protocolMachine: MachineConfig<
   ConnectionContext,
   ConnectionState,
   ConnectionMessage
