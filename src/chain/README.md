@@ -37,7 +37,7 @@ In many cases, we can accept all the concurrent changes in some arbitrary order,
 
 (The questions are the same whether you read “remove” as “remove from the group” or “remove from the admin role”.)
 
-In all of these cases, we adopt a “strong-remove” policy for group and role membership: We **err on the side of removal**, reasoning that we can always add someone back if they shouldn’t have been removed, but you can’t reverse the leak of information that might take place if someone who you thought was removed was in fact still around. So in case (1), we remove both Alice and Bob; in case (2), we don’t allow Bob’s addition of Debbie; and in case (3), Bob stays removed. <a id='link-note-1' href='#note-1'>[1]</a>
+In most of these cases, we adopt a “strong-remove” policy for group and role membership: We **err on the side of removal**, reasoning that we can always add someone back if they shouldn’t have been removed, but you can’t reverse the leak of information that might take place if someone who you thought was removed was in fact still around. So in case (2), we don’t allow Bob’s addition of Debbie; and in case (3), Bob stays removed. In case (1), we use seniority as a tiebreaker: Whoever has been on the team longest wins. (This the only deviation from a strict "strong-remove" policy, which would resolve this case by removing them both.)<a id='link-note-1' href='#note-1'>[1]</a>
 
 We implement this policy using a custom **resolver**. A resolver is a function that takes two concurrent sequences of links and turns them into a single sequence. This is done deterministically, so that every member processing the same signature chain independently converges on the same group membership state.
 
