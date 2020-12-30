@@ -26,7 +26,7 @@ const process = (s: string) =>
     .replace(/\\n/g, EOL)
 
 const clear = () => fs.writeFileSync(logFile, '')
-const append = (s: string) => fs.appendFileSync(logFile, process(s))
+const append = (s: string) => fs.appendFileSync ? fs.appendFileSync(logFile, process(s)) : console.log(process(s))
 
 export const debug = (prefix: string) => {
   const logger = _debug(prefix) as ExtendedDebug
