@@ -2,8 +2,8 @@
 import { EventEmitter } from 'events'
 import * as R from 'ramda'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
-import { getParentHashes, TeamLinkMap } from '/chain'
 import { protocolMachine } from './protocolMachine'
+import { getParentHashes, TeamLinkMap } from '/chain'
 import { deriveSharedKey } from '/connection/deriveSharedKey'
 import * as identity from '/connection/identity'
 import {
@@ -96,7 +96,7 @@ export class Protocol extends EventEmitter {
     this.log(`${arrow} ${this.peerName} ${message.type} #${index} ${getHead(message)}`)
   }
 
-  /** Starts the connection machine. Returns this Connection object. */
+  /** Starts the protocol machine. Returns this Protocol object. */
   public start = () => {
     this.log('starting')
     this.started = true
@@ -104,7 +104,7 @@ export class Protocol extends EventEmitter {
     return this
   }
 
-  /** Stops the connection machine and sends a disconnect message to the peer. */
+  /** Stops the protocol machine and sends a disconnect message to the peer. */
   public stop = () => {
     const disconnectMessage = { type: 'DISCONNECT' } as DisconnectMessage
     this.sendMessage(disconnectMessage) // send disconnect message to peer
@@ -114,7 +114,7 @@ export class Protocol extends EventEmitter {
     }
   }
 
-  /** Returns the current state of the connection machine. */
+  /** Returns the current state of the protocol machine. */
   get state() {
     if (!this.started) return 'disconnected'
     else return this.machine.state.value
@@ -129,7 +129,7 @@ export class Protocol extends EventEmitter {
     return this.context.user
   }
 
-  /** Returns the last error encountered by the connection machine.
+  /** Returns the last error encountered by the protocol machine.
    * If no error has occurred, returns undefined.
    */
   get error() {
@@ -160,7 +160,9 @@ export class Protocol extends EventEmitter {
     )
   }
 
-  /** Passes an incoming message from the peer on to this connection machine, guaranteeing that
+  // TODO: This probably should be implemented as a separate duplex stream in the pipeline
+
+  /** Passes an incoming message from the peer on to this protocol machine, guaranteeing that
    *  messages will be delivered in the intended order (according to the `index` field on the message) */
   public async deliver(incomingMessage: NumberedConnectionMessage) {
     this.logMessage('in', incomingMessage, incomingMessage.index)

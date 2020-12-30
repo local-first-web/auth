@@ -2,6 +2,7 @@
 import { EventEmitter } from 'events'
 import * as chains from '/chain'
 import { membershipResolver, TeamAction, TeamActionLink, TeamSignatureChain } from '/chain'
+import { membershipSequencer } from '/chain/membershipSequencer'
 import { LocalUserContext } from '/context'
 import { DeviceInfo, getDeviceId, redactDevice } from '/device'
 import * as invitations from '/invitation'
@@ -136,8 +137,9 @@ export class Team extends EventEmitter {
 
     // Run the chain through the reducer to calculate the current team state
     const resolver = membershipResolver
+    const sequencer = membershipSequencer
+    const sequence = chains.getSequence({ chain: this.chain, resolver, sequencer })
 
-    const sequence = chains.getSequence({ chain: this.chain, resolver })
     this.log(chainSummary(this.chain))
     this.state = sequence.reduce(reducer, initialState)
 
@@ -589,14 +591,14 @@ export class Team extends EventEmitter {
 
     // identify all the keys that are indirectly compromised
     const visibleScopes = getVisibleScopes(this.state, compromised)
-    const newKeysetsForVisibleScopes = visibleScopes.map(scope => keysets.create(scope))
+    const newKeysetsForVisibleScopes = visibleScopes.map((scope) => keysets.create(scope))
 
     // generate new lockboxes for each one
     const allNewKeysets = [newKeyset, ...newKeysetsForVisibleScopes]
-    const newLockboxes = allNewKeysets.flatMap(newKeyset => {
+    const newLockboxes = allNewKeysets.flatMap((newKeyset) => {
       const scope = getScope(newKeyset)
       const oldLockboxes = select.lockboxesInScope(this.state, scope)
-      return oldLockboxes.map(oldLockbox => lockbox.rotate(oldLockbox, newKeyset))
+      return oldLockboxes.map((oldLockbox) => lockbox.rotate(oldLockbox, newKeyset))
     })
 
     return newLockboxes

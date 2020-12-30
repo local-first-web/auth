@@ -1,18 +1,20 @@
 ﻿import { actionFingerprint } from '/chain/actionFingerprint'
-import { arbitraryDeterministicSort } from '/chain/arbitraryDeterministicSort'
-import { baseResolver } from '/chain/getSequence'
 import { bySeniority } from '/chain/bySeniority'
+import { baseResolver } from '/chain/getSequence'
 import {
+  ActionFilter,
+  ActionFilterFactory,
   AddMemberAction,
   AddMemberRoleAction,
+  Branch,
   LinkBody,
   RemoveMemberAction,
   RemoveMemberRoleAction,
   Resolver,
-  Sequence,
   TeamAction,
   TeamActionLink,
   TeamSignatureChain,
+  TwoBranches,
 } from '/chain/types'
 import { arraysAreEqual, debug } from '/util'
 
@@ -70,36 +72,12 @@ const filterFactories: Record<string, ActionFilterFactory> = {
     const removedMembers = getRemovedUsers(branches)
     return authorNotIn(removedMembers)
   },
-
-  // TODO: an add->remove->add sequence on one side will result in add->remove, because the two adds
-  // are treated as duplicates
-
-  // If A and B do the same thing (e.g. concurrently add the same member), we only keep one of the
-  // actions (but always the same one)
-  omitDuplicates: (branches) => {
-    // ensure that everyone will do this the same order, but no one can game it
-    const [a, b] = branches.sort(arbitraryDeterministicSort())
-    // only keep the first copy we see of any duplicate actions
-    const duplicates = getDuplicates(a.concat(b))
-    // log([a, b, duplicates].map(b => b.map(actionFingerprint)))
-    return linkNotIn(duplicates)
-  },
 }
 
 // Helpers
 
 const leastSenior = (chain: TeamSignatureChain, userNames: string[]) =>
   userNames.sort(bySeniority(chain)).pop()!
-
-const getDuplicates = (b: Sequence<TeamAction>): Sequence<TeamAction> => {
-  const seen = {} as Record<string, boolean>
-  return b.filter((link) => {
-    const fingerprint = actionFingerprint(link) // string summarizing the link, e.g. `ADD:bob`
-    if (seen[fingerprint]) return true
-    seen[fingerprint] = true
-    return false
-  })
-}
 
 const getRemovals = (branches: TwoBranches) => {
   const isRemovalAction = (link: TeamActionLink): boolean =>
@@ -142,12 +120,4 @@ const addedNotIn = (excludeList: string[]) => (link: TeamActionLink): boolean =>
   return !excludeList.includes(added)
 }
 
-const linkNotIn = (excludeList: TeamActionLink[]) => (link: TeamActionLink): boolean =>
-  !excludeList.includes(link)
-
 const noFilter: ActionFilter = (_: any) => true
-
-type Branch = Sequence<TeamAction>
-type TwoBranches = [Branch, Branch]
-type ActionFilter = (link: TeamActionLink) => boolean
-type ActionFilterFactory = (branches: TwoBranches, chain: TeamSignatureChain) => ActionFilter

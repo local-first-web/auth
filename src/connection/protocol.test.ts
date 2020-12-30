@@ -1,6 +1,5 @@
 import { asymmetric } from '@herbcaudill/crypto'
 import { InitialContext } from './types'
-import { Protocol } from '/connection'
 import * as identity from '/connection/identity'
 import {
   ChallengeIdentityMessage,
@@ -8,6 +7,7 @@ import {
   HelloMessage,
   ProveIdentityMessage,
 } from '/connection/message'
+import { Protocol } from '/connection/Protocol'
 import { LocalUserContext } from '/context'
 import { DeviceType, redactDevice } from '/device'
 import { generateProof } from '/invitation'
@@ -18,9 +18,8 @@ import * as users from '/user'
 import { User } from '/user'
 import { assert } from '/util'
 import { arrayToMap } from '/util/arrayToMap'
-import { alice, bob, charlie, joinTestChannel, TestChannel } from '/util/testing'
+import { alice, bob, charlie } from '/util/testing'
 import '/util/testing/expect/toBeValid'
-import { expectDisconnection } from '/util/testing/expectConnection'
 
 // used for tests of the connection's timeout - needs to be bigger than
 // the TIMEOUT_DELAY constant in connectionMachine, plus some slack
@@ -29,7 +28,7 @@ const LONG_TIMEOUT = 10000
 // NOTE: These tests are all one-sided: We drive one side of the workflow mannually against a `Protocol` instance
 // on the other side. Any tests involving `Connection` streams on *both* sides are in `connection.test.ts`.
 
-describe('connection', () => {
+describe('connection protocol', () => {
   describe('between members', () => {
     // Test one side of the verification workflow, using a real connection for Alice and manually simulating Bob's messages.
     it(`should successfully verify the other peer's identity`, async () => {
@@ -188,7 +187,6 @@ describe('connection', () => {
       const helloMessage = lastMessage() as HelloMessage
       const { proofOfInvitation } = helloMessage.payload
 
-      console.log(helloMessage)
       assert(proofOfInvitation !== undefined)
 
       alice.team.admit(proofOfInvitation)
@@ -297,3 +295,33 @@ describe('connection', () => {
     return { sendMessage, lastMessage, testUsers }
   }
 })
+
+export const expectConnection = async (connections: Protocol[]) => {
+  // ✅ They're both connected
+  await connectionEvent(connections, 'connected')
+
+  const firstKey = connections[0].sessionKey
+  connections.forEach((connection) => {
+    expect(connection.state).toEqual('connected')
+    // ✅ They've converged on a shared secret key
+    expect(connection.sessionKey).toEqual(firstKey)
+  })
+}
+
+export const expectDisconnection = async (connections: Protocol[], message?: string) => {
+  // ✅ They're both disconnected
+  await connectionEvent(connections, 'disconnected')
+  connections.forEach((connection) => {
+    expect(connection.state).toEqual('disconnected')
+    // ✅ If we're checking for a message, it matches
+    if (message !== undefined) expect(connection.error!.message).toContain(message)
+  })
+}
+
+/** Promisified event */
+const connectionEvent = (connections: Protocol[], event: string) =>
+  Promise.all(
+    connections.map(
+      (c) => new Promise<void>((resolve) => c.on(event, resolve))
+    )
+  )

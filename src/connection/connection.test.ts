@@ -253,49 +253,6 @@ describe('connectionStream', () => {
   })
 
   it.only('resolves concurrent duplicate invitations when updating', async () => {
-    // TODO This test, along with some others, is brittle. The problem seems to be in the way
-    // duplicates are eliminated, which maybe varies depending on the arbitrary order in which
-    // things are resolved. In this case, since Charlie and Dwight are invited twice, they are added
-    // twice. These duplicate ADDs shouldn't be a problem, but sometimes both of them are removed.
-
-    // 20201229 OK. What's happening here is that sometimes (50% of the time?) when we eliminate duplicate
-    // ADD_MEMBERs, we're eliminating one that would have needed to have come BEFORE something else,
-    // in this case the CHANGE_MEMBER_KEYs action that happens after that person is admitted.
-
-    // Here's an example of a bad chain that you can end up with that way:
-    //    👩🏾 ROOT
-    //    ADD_MEMBER:👨‍🦲
-    //                                                              <== ADD_MEMBER:👳🏽‍♂️ was removed from here
-    //    INVITE:kPFx4gwGpuWplwa
-    //    INVITE:tiKXBLLdMbDndJE
-    //    ADMIT:👳🏽‍♂️
-    //    CHANGE_MEMBER_KEYS:{"type":"MEMBER","name":"👳🏽‍♂️", ...}    <== we can't do this because 👳🏽‍♂️ hasn't been added yet
-    //    ADD_DEVICE:👳🏽‍♂️:laptop
-    //    ADD_MEMBER:👳🏽‍♂️
-    //    INVITE:dQRE52A+7UGr8X9
-    //    ADD_MEMBER:👴
-    //    INVITE:j6cC8ZyjyhuojZw
-    //    ADMIT:👴
-    //    CHANGE_MEMBER_KEYS:{"type":"MEMBER","name":"👴", ...}
-    //    ADD_DEVICE:👴:laptop
-
-    // Here's how that chain should have been resolved:
-    //    👩🏾 ROOT
-    //    ADD_MEMBER:👨‍🦲
-    //    ADD_MEMBER:👳🏽‍♂️                                             <== in the bad chain, this ADD_MEMBER was discarded as a duplicate
-    //    INVITE:fNpSg0uBcW1vYvf
-    //    ADD_MEMBER:👴
-    //    INVITE:PkD7SISvUt/3YlJ
-    //    ADMIT:👳🏽‍♂️
-    //    CHANGE_MEMBER_KEYS:{"type":"MEMBER","name":"👳🏽‍♂️", ...}
-    //    ADD_DEVICE:👳🏽‍♂️:laptop
-    //                                                              <== ADD_MEMBER:👳🏽‍♂️ was removed from here
-    //    INVITE:Pu6NaY6HfbITAf6
-    //    INVITE:7vVS0NXz+u15Mx2
-    //    ADMIT:👴
-    //    CHANGE_MEMBER_KEYS:{"type":"MEMBER","name":"👴", ...}
-    //    ADD_DEVICE:👴:laptop
-
     const { alice, bob, charlie, dwight } = setup([
       'alice',
       'bob',

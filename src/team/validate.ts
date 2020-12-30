@@ -2,9 +2,7 @@
 import { KeyScope } from '/keyset'
 import * as select from '/team/selectors'
 import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '/team/types'
-import { debug, VALID, ValidationError } from '/util'
-
-const log = debug('lf:auth:team:validate')
+import { VALID, ValidationError } from '/util'
 
 export const validate: TeamStateValidator = (...args: ValidationArgs) => {
   for (const key in validators) {
@@ -32,6 +30,11 @@ const validators: TeamStateValidatorSet = {
       // make sure member exists
       const noSuchMember = !select.hasMember(prevState, userName)
       if (noSuchMember) {
+        console.error(
+          'member not found',
+          prevState.members.map((m) => m.userName),
+          link
+        )
         return fail(`A member named '${userName}' was not found`, ...args)
       }
 
@@ -81,7 +84,7 @@ const validators: TeamStateValidatorSet = {
       const { deviceId, userName } = device
       const member = select.member(prevState, userName)
       const { devices = [] } = member
-      if (devices.find(d => d.deviceId === deviceId))
+      if (devices.find((d) => d.deviceId === deviceId))
         return fail(`The member ${userName} already has a device with id '${deviceId}'`, ...args)
     }
     return VALID
@@ -89,7 +92,6 @@ const validators: TeamStateValidatorSet = {
 }
 
 const fail = (message: string, prevState: TeamState, link: ActionLink<any>) => {
-  log({ message, prevState, link })
   return {
     isValid: false,
     error: new ValidationError(message, { prevState, link }),

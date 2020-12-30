@@ -2,70 +2,74 @@ import { EventEmitter } from 'events'
 import { Transform } from 'stream'
 import { Protocol } from './Protocol'
 import { InitialContext } from '/connection/types'
-import { debug } from '/util'
+
+// This is a thin wrapper around a Protocol instance that gives it a transform (duplex) stream API.
+// Beyond that, the only work it does is to serialize the message on the way out, and deserialize it
+// on the way in.
 
 export class Connection extends Transform {
-  private connection: Protocol
+  private protocol: Protocol
   userName: string
 
   constructor(context: InitialContext) {
     super()
-    this.userName = context.user.userName
-    this.log('new connectionStream')
-    this.connection = new Protocol({
-      context,
-      sendMessage: (message) => this.push(JSON.stringify(message)),
-    })
-    pipeEvents(this.connection, this, ['connected', 'joined', 'updated', 'disconnected'])
-    // this.on('data', (data) => this.log('outgoing: %o', data.toString()))
+
+    // outgoing messages are stringified and pushed into the stream
+    const sendMessage = (message: any) => this.push(JSON.stringify(message))
+
+    this.protocol = new Protocol({ context, sendMessage })
+
+    // pass events from protocol
+    pipeEvents(this.protocol, this, ['connected', 'joined', 'updated', 'disconnected'])
   }
 
-  private get log() {
-    return debug(`lf:auth:connection:${this.userName}`)
+  // Transform stream implementation
+  public _transform(chunk: any, _?: BufferEncoding | Callback, next?: Callback) {
+    if (typeof _ === 'function') next = _
+
+    try {
+      // incoming messages are parsed and delivered to the protocol
+      const message = JSON.parse(chunk.toString())
+      this.protocol.deliver(message)
+    } catch (err) {
+      // callback with error
+      if (next) next(err)
+    }
+
+    // callback with no error
+    if (next) next(null)
   }
+
+  // ------- passthrough to protocol
 
   public start() {
-    this.log('stream: starting')
-    this.connection.start()
+    this.protocol.start()
     return this
   }
 
   public stop() {
-    this.connection.stop()
+    this.protocol.stop()
     return this
   }
 
-  // incoming messages
-  public _transform(chunk: any, encoding?: BufferEncoding | Callback, next?: Callback): boolean {
-    const message = JSON.parse(chunk.toString())
-    // this.log('incoming: %o', message)
-    try {
-      this.connection.deliver(message)
-    } catch (err) {
-      if (next) next(err)
-      return false
-    }
-    if (next) next(null)
-    return true
-  }
-
   public get state() {
-    return this.connection.state
+    return this.protocol.state
   }
 
   public get team() {
-    return this.connection.team
+    return this.protocol.team
   }
 
   public get sessionKey() {
-    return this.connection.sessionKey
+    return this.protocol.sessionKey
   }
+
   public get error() {
-    return this.connection.error
+    return this.protocol.error
   }
 }
 
 const pipeEvents = (source: EventEmitter, target: EventEmitter, events: string[]) =>
   events.forEach((event) => source.on(event, (payload) => target.emit(event, payload)))
 
-export type Callback = (error: Error | null | undefined) => void
+type Callback = (error: Error | null | undefined) => void

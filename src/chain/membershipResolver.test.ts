@@ -1,21 +1,11 @@
-import {
-  append,
-  clone,
-  create,
-  getSequence,
-  membershipResolver,
-  merge,
-  TeamAction,
-  TeamActionLink,
-  TeamSignatureChain,
-} from '/chain'
+import { append, clone, create, merge, TeamAction, TeamSignatureChain } from '/chain'
 import { ADMIN } from '/role'
 import { redactUser } from '/user'
 import { chainSummary } from '/util/chainSummary'
 import { alice, alicesContext, bob, bobsContext, charlie, charliesContext } from '/util/testing'
 
 describe('chains', () => {
-  describe('strongRemoveResolver', () => {
+  describe('membershipResolver', () => {
     it('resolves two chains with no conflicting membership changes', () => {
       // 👩🏾 🡒 👨🏻‍🦲 Alice creates a chain and shares it with Bob
       let { aChain, bChain } = setup()
@@ -77,50 +67,6 @@ describe('chains', () => {
 
       // ✅ Bob's change is discarded
       expectMergedResult(aChain, bChain, 'ROOT, ADD:bob, REMOVE:admin:bob')
-    })
-
-    it('discards duplicate changes', () => {
-      // 👩🏾 🡒 👨🏻‍🦲 Alice creates a chain and shares it with Bob
-      let { aChain, bChain } = setup()
-
-      // 🔌❌ Now Alice and Bob are disconnected
-
-      // 👨🏻‍🦲 Bob adds Charlie
-      bChain = append(bChain, ADD_CHARLIE, bobsContext)
-      expect(sequence(bChain)).toEqual('ROOT, ADD:bob, ADD:charlie')
-
-      // 👩🏾 concurrently, Alice also adds Charlie
-      aChain = append(aChain, ADD_CHARLIE, alicesContext)
-      expect(sequence(aChain)).toEqual('ROOT, ADD:bob, ADD:charlie')
-
-      // 🔌✔ Alice and Bob reconnect and synchronize chains
-
-      // ✅ Only one of the add actions is kept (we don't care which)
-      expectMergedResult(aChain, bChain, 'ROOT, ADD:bob, ADD:charlie')
-    })
-
-    it('discards duplicate removals', () => {
-      // 👩🏾 Alice creates a chain and adds Charlie
-      let { aChain } = setup()
-      aChain = append(aChain, ADD_CHARLIE, alicesContext)
-
-      // 👩🏾 🡒 👨🏻‍🦲 Alice shares the chain with Bob
-      let bChain = clone(aChain)
-
-      // 🔌❌ Now Alice and Bob are disconnected
-
-      // 👨🏻‍🦲 Bob removes Charlie
-      bChain = append(bChain, REMOVE_CHARLIE, bobsContext)
-      expect(sequence(bChain)).toEqual('ROOT, ADD:bob, ADD:charlie, REMOVE:charlie')
-
-      // 👩🏾 concurrently, Alice also removes Charlie
-      aChain = append(aChain, REMOVE_CHARLIE, alicesContext)
-      expect(sequence(aChain)).toEqual('ROOT, ADD:bob, ADD:charlie, REMOVE:charlie')
-
-      // 🔌✔ Alice and Bob reconnect and synchronize chains
-
-      // ✅ Only one of the add actions is kept (we don't care which)
-      expectMergedResult(aChain, bChain, 'ROOT, ADD:bob, ADD:charlie, REMOVE:charlie')
     })
 
     it(`doesn't allow a member who is removed to be concurrently added back`, () => {
@@ -268,7 +214,6 @@ describe('chains', () => {
       expect(expected).toContain(sequence(mergedChain))
     }
 
-    // and represent it as an array of strings
     const sequence = (chain: TeamSignatureChain) =>
       chainSummary(chain)
         .replace(/_MEMBER/g, '')

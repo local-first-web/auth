@@ -1,4 +1,6 @@
-﻿### Initial handshake
+﻿TODO this is out of date
+
+### Initial handshake
 
 #### Both are existing members in good standing
 

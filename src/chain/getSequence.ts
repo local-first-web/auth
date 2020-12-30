@@ -90,7 +90,7 @@ export const getSequence = <A extends Action>(options: SequenceOptions<A>): Acti
     // then continue from there
 
     // the two links merged by the merge link
-    let branchHeads = head.body.map(hash => chain.links[hash]!) as [Link<A>, Link<A>]
+    let branchHeads = head.body.map((hash) => chain.links[hash]!) as [Link<A>, Link<A>]
 
     // their most recent common predecessor
     const commonPredecessor = getCommonPredecessor(chain, branchHeads)
@@ -140,7 +140,7 @@ export const getSequence = <A extends Action>(options: SequenceOptions<A>): Acti
   }
 
   // omit merge links before returning result
-  return result.filter(n => !isMergeLink(n)) as ActionLink<A>[]
+  return result.filter((n) => !isMergeLink(n)) as ActionLink<A>[]
 }
 
 type SequenceOptions<A extends Action> = {
@@ -148,14 +148,14 @@ type SequenceOptions<A extends Action> = {
   root?: Link<A>
   head?: Link<A>
   resolver?: Resolver<A>
-  sequencer?: Sequencer
+  sequencer?: Sequencer<any>
 }
 
 // This resolver just collapses each branch to a single sequence of actions
 export const baseResolver: Resolver = ([a, b], chain) => {
   const root = getCommonPredecessor(chain, [a, b])
   const [branchA, branchB] = [a, b]
-    .map(head => getSequence({ chain, root, head })) // get the branch corresponding to each head
-    .map(branch => branch.slice(1)) // omit the common predecessor itself
+    .map((head) => getSequence({ chain, root, head })) // get the branch corresponding to each head
+    .map((branch) => branch.slice(1)) // omit the common predecessor itself
   return [branchA, branchB]
 }

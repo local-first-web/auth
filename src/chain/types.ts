@@ -110,7 +110,7 @@ export type Resolver<A extends Action = Action> = (
  * A sequencer takes two sequences, and returns a single sequence combining the two
  * while applying any logic regarding which links take precedence.
  */
-export type Sequencer = <A extends Action>(a: Sequence<A>, b: Sequence<A>) => Sequence<A>
+export type Sequencer<A extends Action = Action> = (a: Sequence<A>, b: Sequence<A>) => Sequence<A>
 
 export type Validator = <A extends Action>(
   currentLink: Link<A>,
@@ -256,3 +256,7 @@ export type TeamNonRootLink = NonRootLink<TeamAction>
 export type TeamActionLink = ActionLink<TeamAction>
 export type TeamLinkMap = LinkMap<TeamAction>
 export type TeamSignatureChain = SignatureChain<TeamAction>
+export type Branch = Sequence<TeamAction>
+export type TwoBranches = [Branch, Branch]
+export type ActionFilter = (link: TeamActionLink) => boolean
+export type ActionFilterFactory = (branches: TwoBranches, chain: TeamSignatureChain) => ActionFilter
