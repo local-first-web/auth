@@ -13,7 +13,6 @@ export const protocolMachine: MachineConfig<
 > = {
   id: 'connection',
   initial: 'idle',
-  entry: ['sendReady'],
 
   on: {
     ERROR: {
@@ -30,7 +29,7 @@ export const protocolMachine: MachineConfig<
           target: 'idle',
         },
         HELLO: {
-          actions: ['sendHello', 'receiveHello'],
+          actions: ['receiveHello'],
           target: 'connecting',
         },
       },
@@ -39,7 +38,20 @@ export const protocolMachine: MachineConfig<
     disconnected: {
       id: 'disconnected',
       entry: ['onDisconnected'],
-      type: 'final',
+      on: {
+        READY: {
+          actions: 'sendHello',
+          target: 'idle',
+        },
+        HELLO: {
+          actions: ['receiveHello'],
+          target: 'connecting',
+        },
+        RECONNECT: {
+          actions: ['sendHello'],
+          target: 'connecting',
+        },
+      },
     },
 
     connecting: {

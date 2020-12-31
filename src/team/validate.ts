@@ -29,17 +29,10 @@ const validators: TeamStateValidatorSet = {
 
       // make sure member exists
       const noSuchMember = !select.hasMember(prevState, userName)
-      if (noSuchMember) {
-        console.error(
-          'member not found',
-          prevState.members.map((m) => m.userName),
-          link
-        )
-        return fail(`A member named '${userName}' was not found`, ...args)
-      }
+      if (noSuchMember) return fail(`A member named '${userName}' was not found`, ...args)
 
+      // make sure member is admin
       if (!nonAdminActions.includes(type)) {
-        // make sure member is admin
         const isntAdmin = !select.memberIsAdmin(prevState, userName)
         if (isntAdmin) return fail(`Member '${userName}' is not an admin`, ...args)
       }

@@ -1,20 +1,23 @@
-﻿import { ADMIN } from '/role'
+﻿import { Connection } from './Connection'
+import { ADMIN } from '/role'
 import { debug } from '/util'
 import {
   connect,
+  connection,
   connectPhoneWithInvitation,
   connectWithInvitation,
   disconnect,
   disconnection,
   expectEveryoneToKnowEveryone,
   setup,
+  tryToConnect,
 } from '/util/testing/setup'
 
 const log = debug('lf:auth:test')
 
 beforeAll(() => {})
 
-describe('connectionStream', () => {
+describe('connection', () => {
   it('connects two members', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
@@ -40,8 +43,8 @@ describe('connectionStream', () => {
     const { alice, charlie } = setup(['alice', 'bob', { user: 'charlie', member: false }])
 
     // ❌ Alice and Charlie can't connect because Charlie was never on the team
-    connect(alice, charlie)
-    await disconnection(alice, charlie)
+    tryToConnect(alice, charlie)
+    // await disconnection(alice, charlie)
   })
 
   it(`can reconnect after disconnecting`, async () => {
@@ -49,11 +52,13 @@ describe('connectionStream', () => {
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
 
-    // 👩🏾🔌👨🏻‍🦲 Alice and Bob disconnect
-    await disconnect(alice, bob)
+    // // 👩🏾🔌👨🏻‍🦲 Alice disconnects
+    alice.connection.bob.stop()
+    await disconnection(alice, bob)
 
-    // 👩🏾<->👨🏻‍🦲 Alice and Bob reconnect
-    await connect(alice, bob)
+    // // 👩🏾<->👨🏻‍🦲 Alice reconnects
+    alice.connection.bob.start()
+    await connection(alice, bob)
 
     // ✅ all good
   })
@@ -188,13 +193,55 @@ describe('connectionStream', () => {
   it('connects an invitee with a member', async () => {
     const { alice, bob } = setup(['alice', { user: 'bob', member: false }])
 
-    // 👩🏾📧👴 Alice invites Bob
+    // 👩🏾📧👨🏻‍🦲 Alice invites Bob
     const { invitationSeed: seed } = alice.team.invite('bob')
 
-    // 👴📧<->👩🏾 Bob connects to Alice and uses his invitation to join
+    // 👨🏻‍🦲📧<->👩🏾 Bob connects to Alice and uses his invitation to join
     await connectWithInvitation(alice, bob, seed)
 
     // ✅
+    expectEveryoneToKnowEveryone(alice, bob)
+  })
+
+  it('connects an invitee after one failed attempt', async () => {
+    const { alice, bob } = setup(['alice', { user: 'bob', member: false }])
+
+    // 👩🏾📧👨🏻‍🦲 Alice invites Bob
+    const invitationSeed = 'passw0rd'
+    alice.team.invite('bob', { invitationSeed })
+
+    // 👨🏻‍🦲📧<->👩🏾 Bob tries to connect, but mistypes his code
+    bob.context.invitationSeed = 'password'
+    alice.connection.bob = new Connection(alice.context).start()
+    bob.connection.alice = new Connection(bob.context).start()
+    bob.connection.alice.pipe(alice.connection.bob).pipe(bob.connection.alice)
+
+    // ❌ The connection fails
+    await disconnection(alice, bob)
+
+    // 👨🏻‍🦲📧<->👩🏾 Bob tries again with the right code this time
+    bob.context.invitationSeed = 'passw0rd'
+
+    //
+    //
+    //
+    //
+    // TODO: we can make this work by uncommenting the following lines, which start Alice and Bob
+    // out with shiny new connections. However we want Bob to be able to try again with the same
+    // connection. Maybe the answer is to separate out presenting an invitation from the HELLO message?
+    //
+    //
+    //
+    //
+
+    // bob.connection.alice = new Connection(bob.context).start()
+    // alice.connection.bob = new Connection(alice.context).start()
+    alice.connection.bob.pipe(bob.connection.alice).pipe(alice.connection.bob)
+
+    // ✅ that works
+    await connection(bob, alice)
+    bob.team = bob.connection.alice.team!
+
     expectEveryoneToKnowEveryone(alice, bob)
   })
 
@@ -207,11 +254,11 @@ describe('connectionStream', () => {
 
     // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
     const { invitationSeed: charlieSeed } = alice.team.invite('charlie')
-    charlie.connectionContext.invitationSeed = charlieSeed
+    charlie.context.invitationSeed = charlieSeed
 
     // 👩🏾 Alice invites 👴 Dwight
     const { invitationSeed: dwightSeed } = alice.team.invite('dwight')
-    dwight.connectionContext.invitationSeed = dwightSeed
+    dwight.context.invitationSeed = dwightSeed
 
     // 👳🏽‍♂️<->👴 Charlie and Dwight try to connect to each other
     connect(charlie, dwight)
@@ -252,7 +299,7 @@ describe('connectionStream', () => {
     expectEveryoneToKnowEveryone(alice, charlie, bob)
   })
 
-  it.only('resolves concurrent duplicate invitations when updating', async () => {
+  it('resolves concurrent duplicate invitations when updating', async () => {
     const { alice, bob, charlie, dwight } = setup([
       'alice',
       'bob',
@@ -565,5 +612,29 @@ describe('connectionStream', () => {
 
     // Charlie is still an admin (because Bob demoted him while being demoted)
     expect(isAdmin('charlie')).toBe(true)
+  })
+
+  it.skip('rotates keys after a member is removed', async () => {
+    // Bob is removed from the team
+    // Bob's admin keys no longer work
+  })
+
+  it.skip('rotates keys after a device is removed', async () => {
+    // Bob removes his phone from the team
+    // The admin keys that his phone would have no longer work
+  })
+
+  it.skip(`Eve steals Charlie's only device; Alice heals the team`, async () => {
+    // Eve steals Charlie's laptop
+    // Alice removes the laptop from the team
+    // Eve uses Charlie's laptop to try to connect to Bob, but she can't
+    // Alice sends Charlie a new invitation; he's able to use it to connect from his phone
+  })
+
+  it.skip(`Eve steals one of Charlie's devices; Charlie heals the team`, async () => {
+    // Charlie invites his phone and it joins
+    // Eve steals Charlie's phone
+    // From his laptop, Charlie removes the phone from the team
+    // Eve uses Charlie's phone to try to connect to Bob, but she can't
   })
 })

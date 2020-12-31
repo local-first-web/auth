@@ -27,6 +27,7 @@ import {
   ConnectionContext,
   ConnectionParams,
   ConnectionState,
+  InitialContext,
   SendFunction,
 } from '/connection/types'
 import * as invitations from '/invitation'
@@ -48,7 +49,7 @@ export class Protocol extends EventEmitter {
   private log: debug.Debugger
 
   private userName: string
-  private started: boolean = false
+  private isRunning: boolean = false
 
   constructor({ sendMessage, context }: ConnectionParams) {
     super()
@@ -72,56 +73,36 @@ export class Protocol extends EventEmitter {
     this.machine = interpret(machine).onTransition(this.logState)
   }
 
-  private logState = (state: any) => {
-    const stateSummary = (state: any): string => {
-      const s = isString(state)
-        ? state
-        : Object.keys(state)
-            .map((key) => {
-              const substate = state[key]
-              return substate === 'done' ? '' : `${key}:${stateSummary(substate)}`
-            })
-            .filter((s) => s.length)
-            .join(',')
-      return s //
-        .replace(/disconnected/g, '❌')
-        .replace(/connected/g, '✅')
-    }
-
-    return this.log(`⏩ ${stateSummary(state.value)}`)
-  }
-
-  private logMessage = (direction: 'in' | 'out', message: ConnectionMessage, index: number) => {
-    const arrow = direction === 'in' ? '<-' : '->'
-    this.log(`${arrow} ${this.peerName} ${message.type} #${index} ${getHead(message)}`)
-  }
-
-  /** Starts the protocol machine. Returns this Protocol object. */
-  public start = () => {
+  /** Starts (or restarts) the protocol machine. Returns this Protocol object. */
+  public start = (context?: Partial<InitialContext>) => {
     this.log('starting')
-    this.started = true
-    this.machine.start()
+    if (!this.isRunning) {
+      this.machine.start()
+      this.isRunning = true
+      this.sendMessage({ type: 'READY' })
+    } else {
+      this.machine.send({ type: 'RECONNECT' })
+    }
     return this
   }
 
-  /** Stops the protocol machine and sends a disconnect message to the peer. */
+  /** Sends a disconnect message to the peer (doesn't stop the machine; we can still listen for reconnection). */
   public stop = () => {
     const disconnectMessage = { type: 'DISCONNECT' } as DisconnectMessage
     this.sendMessage(disconnectMessage) // send disconnect message to peer
-    if (this.started && !this.machine.state.done) {
-      this.started = false
+    if (this.isRunning && !this.machine.state.done) {
       this.machine.send(disconnectMessage) // send disconnect event to local machine
     }
   }
 
   /** Returns the current state of the protocol machine. */
   get state() {
-    if (!this.started) return 'disconnected'
+    if (!this.isRunning) return 'disconnected'
     else return this.machine.state.value
   }
 
   get context() {
-    if (!this.started) throw new Error(`Can't get context; machine not started`)
+    if (!this.isRunning) throw new Error(`Can't get context; machine not started`)
     return this.machine.state.context
   }
 
@@ -151,7 +132,7 @@ export class Protocol extends EventEmitter {
   }
 
   get peerName() {
-    if (!this.started) return '? (not started)'
+    if (!this.isRunning) return '? (not started)'
     return (
       this.context.peer?.userName ??
       this.context.theirIdentityClaim?.name ??
@@ -175,7 +156,7 @@ export class Protocol extends EventEmitter {
 
     // send any messages that are ready to go out
     for (const m of nextMessages) {
-      if (this.started && !this.machine.state.done) this.machine.send(m)
+      if (this.isRunning && !this.machine.state.done) this.machine.send(m)
       else this.log(`stopped, not sending #${incomingMessage.index}`)
     }
   }
@@ -185,7 +166,6 @@ export class Protocol extends EventEmitter {
   private fail = (message: string, details?: any) =>
     assign({
       error: (context, event) => {
-        // console.error(message)
         const errorPayload = { message, details }
         const errorMessage: ErrorMessage = { type: 'ERROR', payload: errorPayload }
         this.machine.send(errorMessage) // force error state locally
@@ -196,13 +176,7 @@ export class Protocol extends EventEmitter {
 
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendHello'`) */
   private readonly actions: Record<string, Action> = {
-    sendReady: () => {
-      // We send a READY message without any content just to make sure there's someone at the other
-      // end before we identify ourselves etc.
-      this.sendMessage({ type: 'READY', payload: {} })
-    },
-
-    sendHello: (context) => {
+    sendHello: async (context) => {
       this.sendMessage({
         type: 'HELLO',
         payload: {
@@ -438,12 +412,12 @@ export class Protocol extends EventEmitter {
       error: (_, event) => (event as ErrorMessage).payload,
     }),
 
-    rejectIdentity: this.fail(`I couldn't verify your identity`),
-    failNeitherIsMember: this.fail(`We can't connect because neither one of us is a member`),
-    rejectInvitation: this.fail(`Your invitation isn't valid - it may have been revoked`),
-    rejectTeam: this.fail(`This is not the team I was invited to`),
-    failPeerWasRemoved: this.fail(`You were removed from the team`),
-    failTimeout: this.fail('Connection timed out'),
+    rejectIdentity: this.fail(`I couldn't verify your identity.`),
+    failNeitherIsMember: this.fail(`We can't connect because neither one of us is a member.`),
+    rejectInvitation: this.fail(`Your invitation didn't work - maybe the code was mistyped?`),
+    rejectTeam: this.fail(`This is not the team I was invited to.`),
+    failPeerWasRemoved: this.fail(`You were removed from the team.`),
+    failTimeout: this.fail('Connection timed out.'),
 
     // events for external listeners
 
@@ -540,6 +514,27 @@ export class Protocol extends EventEmitter {
 
   // helpers
 
+  private logState = (state: any) => {
+    const stateSummary = (state: any): string => {
+      const s = isString(state)
+        ? state
+        : Object.keys(state)
+            .map((key) => {
+              const substate = state[key]
+              return substate === 'done' ? '' : `${key}:${stateSummary(substate)}`
+            })
+            .filter((s) => s.length)
+            .join(',')
+    }
+
+    return this.log(`⏩ ${stateSummary(state.value)}`)
+  }
+
+  private logMessage = (direction: 'in' | 'out', message: ConnectionMessage, index: number) => {
+    const arrow = direction === 'in' ? '<-' : '->'
+    this.log(`${arrow} ${this.peerName} #${index} ${message.type} ${getSummary(message)}`)
+  }
+
   private rehydrateTeam = (context: ConnectionContext, event: ConnectionMessage) =>
     new Team({
       source: (event as AcceptInvitationMessage).payload.chain,
@@ -554,7 +549,9 @@ export class Protocol extends EventEmitter {
 
 // for debugging
 
-const getHead = (message: ConnectionMessage) =>
-  message.payload && 'head' in message.payload ? message.payload.head : ''
+const getSummary = (message: ConnectionMessage) => {
+  // @ts-ignore
+  return message.payload?.head || message.payload?.message || ''
+}
 
 const isString = (state: any) => typeof state === 'string'

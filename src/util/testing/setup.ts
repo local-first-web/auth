@@ -13,7 +13,6 @@ import { Team } from '/team'
 import * as users from '/user'
 import { User } from '/user'
 import { arrayToMap, assert } from '/util'
-import { TestChannel } from '/util/testing'
 
 /*
 USAGE: 
@@ -68,10 +67,9 @@ export const setup = (_config: (TestUserSettings | string)[] = []) => {
 
   const makeUserStuff = ({ user: userName, member = true }: TestUserSettings) => {
     const user = testUsers[userName]
-    const context = { user }
     const team = member
-      ? teams.load(chain, context) // members get a copy of the source team
-      : teams.create(userName, context) // non-members get a dummy empty placeholder team
+      ? teams.load(chain, { user }) // members get a copy of the source team
+      : teams.create(userName, { user }) // non-members get a dummy empty placeholder team
 
     const makeDeviceStuff = (deviceName: string, type: DeviceType) => {
       const device = retrieveAsset(`${userName}-${deviceName}`, () => {
@@ -80,19 +78,18 @@ export const setup = (_config: (TestUserSettings | string)[] = []) => {
         return { ...deviceInfo, keys: deviceKeys } as DeviceWithSecrets
       })
 
-      const connectionContext = { user: { ...user, device } }
-      return { device, connectionContext }
+      const context = { user: { ...user, device } }
+      return { device, context }
     }
 
     const userStuff = {
       userName,
       user,
-      context,
       team,
       phone: makeDeviceStuff('phone', DeviceType.mobile),
-      connectionContext: member ? { team, user } : { user },
-      connectionStream: {} as Record<string, Connection>,
-      getState: (peer: string) => userStuff.connectionStream[peer].state,
+      context: member ? { team, user } : { user },
+      connection: {} as Record<string, Connection>,
+      getState: (peer: string) => userStuff.connection[peer].state,
     } as UserStuff
 
     return userStuff
@@ -107,67 +104,58 @@ export const setup = (_config: (TestUserSettings | string)[] = []) => {
 
 // HELPERS
 
-/** Connects the two members and waits for them to be connected */ export const connect = async (
-  a: UserStuff,
-  b: UserStuff
-) => {
-  const aStream = new Connection(a.connectionContext)
-  const bStream = new Connection(b.connectionContext)
+export const tryToConnect = async (a: UserStuff, b: UserStuff) => {
+  const aConnection = (a.connection[b.userName] = new Connection(a.context).start())
+  const bConnection = (b.connection[a.userName] = new Connection(b.context).start())
 
-  aStream.pipe(bStream).pipe(aStream)
+  aConnection.pipe(bConnection).pipe(aConnection)
+}
 
-  aStream.start()
-  bStream.start()
-
-  a.connectionStream[b.userName] = aStream
-  b.connectionStream[a.userName] = bStream
-
+/** Connects the two members and waits for them to be connected */
+export const connect = async (a: UserStuff, b: UserStuff) => {
+  tryToConnect(a, b)
   return connection(a, b)
 }
 
-/** Connects a (a member) with b (invited using the given seed). */ export const connectWithInvitation = async (
-  a: UserStuff,
-  b: UserStuff,
-  seed: string
-) => {
-  b.connectionContext.invitationSeed = seed
+/** Connects a (a member) with b (invited using the given seed). */
+export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: string) => {
+  b.context.invitationSeed = seed
   return connect(a, b).then(() => {
     // The connection now has the team object, so let's update our user stuff
-    b.team = b.connectionStream[a.userName].team!
+    b.team = b.connection[a.userName].team!
   })
 }
-export const connectPhoneWithInvitation = async (a: UserStuff, seed: string) => {
-  a.phone.connectionContext.invitationSeed = seed
 
-  const laptop = new Connection(a.connectionContext).start()
-  const phone = new Connection(a.phone.connectionContext).start()
+export const connectPhoneWithInvitation = async (a: UserStuff, seed: string) => {
+  a.phone.context.invitationSeed = seed
+
+  const laptop = new Connection(a.context).start()
+  const phone = new Connection(a.phone.context).start()
 
   laptop.pipe(phone).pipe(laptop)
 
   await all([laptop, phone], 'connected')
 }
 
-/** Passes if each of the given members is on the team, and knows every other member on the team */ export const expectEveryoneToKnowEveryone = (
-  ...members: UserStuff[]
-) => {
+/** Passes if each of the given members is on the team, and knows every other member on the team */
+export const expectEveryoneToKnowEveryone = (...members: UserStuff[]) => {
   for (const a of members)
     for (const b of members) //
       expect(a.team.has(b.userName)).toBe(true)
 }
 
-/** Disconnects the two members and waits for them to be disconnected */ export const disconnect = (
-  a: UserStuff,
-  b: UserStuff
-) =>
+/** Disconnects the two members and waits for them to be disconnected */
+export const disconnect = (a: UserStuff, b: UserStuff) =>
   Promise.all([
     disconnection(a, b),
-    a.connectionStream[b.userName].stop(),
-    b.connectionStream[a.userName].stop(),
+    a.connection[b.userName].stop(),
+    b.connection[a.userName].stop(),
   ])
 
 // PROMISIFIED EVENTS
+
 export const connection = async (a: UserStuff, b: UserStuff) => {
-  const connections = [a.connectionStream[b.userName], b.connectionStream[a.userName]]
+  const connections = [a.connection[b.userName], b.connection[a.userName]]
 
   // ✅ They're both connected
   await all(connections, 'connected')
@@ -179,12 +167,14 @@ export const connection = async (a: UserStuff, b: UserStuff) => {
     expect(connection.sessionKey).toEqual(sharedKey)
   })
 }
+
 export const updated = (a: UserStuff, b: UserStuff) => {
-  const connections = [a.connectionStream[b.userName], b.connectionStream[a.userName]]
+  const connections = [a.connection[b.userName], b.connection[a.userName]]
   return all(connections, 'updated')
 }
+
 export const disconnection = async (a: UserStuff, b: UserStuff, message?: string) => {
-  const connections = [a.connectionStream[b.userName], b.connectionStream[a.userName]]
+  const connections = [a.connection[b.userName], b.connection[a.userName]]
   const activeConnections = connections.filter((c) => c.state !== 'disconnected')
 
   // ✅ They're both disconnected
@@ -196,6 +186,7 @@ export const disconnection = async (a: UserStuff, b: UserStuff, message?: string
     if (message !== undefined) expect(connection.error!.message).toContain(message)
   })
 }
+
 export const all = (connections: Connection[], event: string) =>
   Promise.all(
     connections.map((connection) => {
@@ -206,9 +197,11 @@ export const all = (connections: Connection[], event: string) =>
   )
 
 // TEST ASSETS
+
 const parseAssetFile = memoize((fileName: string) =>
   JSON.parse(fs.readFileSync(fileName).toString())
 )
+
 const retrieveAsset = <T>(fileName: string, fn: () => T): T => {
   const filePath = path.join(__dirname, `./assets/${fileName}.json`)
   if (fs.existsSync(filePath)) return parseAssetFile(filePath) as T
@@ -216,6 +209,7 @@ const retrieveAsset = <T>(fileName: string, fn: () => T): T => {
   fs.writeFileSync(filePath, JSON.stringify(result))
   return result as T
 }
+
 const fileSystemSafe = (s: string) =>
   s
     .replace(/user/gi, '')
@@ -235,14 +229,12 @@ type TestUserSettings = {
 interface UserStuff {
   userName: string
   user: User
-  context: LocalUserContext
   phone: {
     device: DeviceWithSecrets
-    connectionContext: InitialContext
+    context: InitialContext
   }
   team: Team
-  connectionContext: InitialContext
-  channel: Record<string, TestChannel>
-  connectionStream: Record<string, Connection>
+  context: InitialContext
+  connection: Record<string, Connection>
   getState: (peer: string) => any
 }

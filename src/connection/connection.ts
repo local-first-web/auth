@@ -52,6 +52,8 @@ export class Connection extends Transform {
     return this
   }
 
+  // ------- passthrough from protocol
+
   public get state() {
     return this.protocol.state
   }
