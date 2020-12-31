@@ -1,4 +1,4 @@
-import { load } from '/Team'
+import { load } from '/team'
 import { defaultContext, newTeam } from '/util/testing'
 import { storage } from '/util/testing'
 
