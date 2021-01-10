@@ -165,23 +165,22 @@ describe('connection protocol', () => {
       const { invitationSeed } = alice.team.invite('charlie')
 
       // 👳🏽‍♂️ Charlie connects
-      const charlieContext = {
-        user: charlie,
-        device: redactDevice(charlie.device),
-        invitationSeed,
-      } as InitialContext
-      const charlieConnection = new Protocol({
-        sendMessage,
-        context: charlieContext,
-      }).start()
+      const context = { user: charlie, invitationSeed }
+      const charlieConnection = new Protocol({ sendMessage, context }).start()
+      const charlieState = () => charlieConnection.state as any
 
-      // 👩🏾 Alice sends a hello message
+      // 👩🏾 Alice sends ready message
+      charlieConnection.deliver({ index: 0, type: 'READY' })
+
+      // 👳🏽‍♂️ Charlie awaits a hello message
+      expect(charlieState()).toEqual('idle')
+
+      // 👩🏾 Alice sends hello message
       const identityClaim = { type: KeyType.MEMBER, name: 'alice' }
-      charlieConnection.deliver({ index: 0, type: 'HELLO', payload: { identityClaim } })
+      charlieConnection.deliver({ index: 1, type: 'HELLO', payload: { identityClaim } })
 
       // 👳🏽‍♂️ Charlie awaits acceptance
-      const charlieState = () => (charlieConnection.state as any).connecting
-      expect(charlieState().invitation).toEqual('waiting')
+      expect(charlieState().connecting.invitation).toEqual('waiting')
 
       // 👩🏾 Alice validates Charlie's invitation
       const helloMessage = lastMessage() as HelloMessage
@@ -191,13 +190,13 @@ describe('connection protocol', () => {
 
       alice.team.admit(proofOfInvitation)
       const chain = alice.team.save()
-      charlieConnection.deliver({ index: 1, type: 'ACCEPT_INVITATION', payload: { chain } })
+      charlieConnection.deliver({ index: 2, type: 'ACCEPT_INVITATION', payload: { chain } })
 
-      // 👩🏾 Alice generates an acceptance message and sends it to charlie
+      // 👩🏾 Alice generates an acceptance message and sends it to Charlie
       charlieConnection.deliver({ index: 3, type: 'ACCEPT_IDENTITY', payload: {} })
 
       // ✅ Success! Charlie has proved his identity
-      expect(charlieState().authenticating.proving).toEqual('done')
+      expect(charlieState().connecting.authenticating.proving).toEqual('done')
     })
 
     // In which Eve tries to get Charlie to join her team instead of Alice's
