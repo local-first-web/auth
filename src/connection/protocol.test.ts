@@ -154,7 +154,7 @@ describe('connection protocol', () => {
       expect(aliceAuthenticatingState().verifying).toEqual('done')
     })
 
-    // Test the other side with Charlie presenting an invitation, using a real connection for Bob
+    // Test the other side with Charlie presenting an invitation, using a real connection for Charlie
     // and manually simulating Alice's messages.
     it(`should successfully present an invitation to the other peer`, async () => {
       const { testUsers, lastMessage, sendMessage } = setup(['alice'])
