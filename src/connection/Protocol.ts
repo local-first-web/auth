@@ -22,7 +22,7 @@ import {
 } from '/connection/message'
 import { orderedDelivery } from '/connection/orderedDelivery'
 import {
-  Action,
+  StateMachineAction,
   Condition,
   ConnectionContext,
   ConnectionParams,
@@ -56,7 +56,8 @@ export class Protocol extends EventEmitter {
 
     this.userName = context.user.userName
     this.log = debug(`lf:auth:connection:${this.userName}`)
-    this.log('new connection')
+
+    this.log('------------------ new connection')
 
     this.sendMessage = (message: ConnectionMessage) => {
       const index = this.outgoingMessageIndex++
@@ -175,7 +176,7 @@ export class Protocol extends EventEmitter {
     })
 
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendHello'`) */
-  private readonly actions: Record<string, Action> = {
+  private readonly actions: Record<string, StateMachineAction> = {
     sendHello: async (context) => {
       this.sendMessage({
         type: 'HELLO',
@@ -427,12 +428,6 @@ export class Protocol extends EventEmitter {
     onDisconnected: (_, event) => this.emit('disconnected', event),
   }
 
-  emit(event: string | symbol, ...args: any[]) {
-    this.log('emitting %o', event)
-    super.emit(event, ...args)
-    return true
-  }
-
   // GUARDS
 
   /** These are referred to by name in `connectionMachine` (e.g. `cond: 'iHaveInvitation'`) */
@@ -515,17 +510,13 @@ export class Protocol extends EventEmitter {
   // helpers
 
   private logState = (state: any) => {
-    const stateSummary = (state: any): string => {
-      const s = isString(state)
+    const stateSummary = (state: any): string =>
+      isString(state)
         ? state
         : Object.keys(state)
-            .map((key) => {
-              const substate = state[key]
-              return substate === 'done' ? '' : `${key}:${stateSummary(substate)}`
-            })
+            .map((key) => (state[key] === 'done' ? '' : `${key}:${stateSummary(state[key])}`))
             .filter((s) => s.length)
             .join(',')
-    }
 
     return this.log(`⏩ ${stateSummary(state.value)}`)
   }
