@@ -53,7 +53,7 @@ export type ConnectionContext = InitialContext & {
   }
 }
 
-export type Action =
+export type StateMachineAction =
   | ActionFunction<ConnectionContext, ConnectionMessage>
   | AssignAction<ConnectionContext, ConnectionMessage>
 export type Condition = ConditionPredicate<ConnectionContext, ConnectionMessage>
