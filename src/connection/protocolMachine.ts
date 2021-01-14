@@ -251,7 +251,6 @@ export const protocolMachine: MachineConfig<
       on: {
         // when they send us their head & hashes,
         UPDATE: [
-          // if we have the same head, then we're caught up
           {
             actions: 'recordTheirHead',
             target: 'synchronizing.receivingUpdate',
