@@ -5,3 +5,4 @@ export { generateProof } from '/invitation'
 export { ADMIN } from '/role'
 
 export * from '/connection'
+export * from '/chain/types'
