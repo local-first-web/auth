@@ -5,7 +5,7 @@ import { InitialContext } from '/connection/types'
 
 // This is a thin wrapper around a Protocol instance that gives it a transform (duplex) stream API.
 // Beyond that, the only work it does is to serialize the message on the way out, and deserialize it
-// on the way in.xx
+// on the way in.
 
 export class Connection extends Transform {
   private protocol: Protocol
