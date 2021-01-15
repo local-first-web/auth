@@ -7,6 +7,9 @@ import { InitialContext } from '/connection/types'
 // Beyond that, the only work it does is to serialize the message on the way out, and deserialize it
 // on the way in.
 
+// An application using this will pipe it between the application and its web socket
+// application <-> Connection <-> socket
+
 export class Connection extends Transform {
   private protocol: Protocol
   userName: string
@@ -33,6 +36,7 @@ export class Connection extends Transform {
       this.protocol.deliver(message)
     } catch (err) {
       console.error(err)
+
       // callback with error
       if (next) next(err)
     }
