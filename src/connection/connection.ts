@@ -14,7 +14,7 @@ export class Connection extends Transform {
   constructor(context: InitialContext) {
     super()
 
-    // outgoing messages are stringified and pushed into the stream
+    // outgoing messages from the protocol are stringified and pushed into the stream
     const sendMessage = (message: any) => this.push(JSON.stringify(message))
 
     this.protocol = new Protocol({ context, sendMessage })
@@ -28,10 +28,11 @@ export class Connection extends Transform {
     if (typeof _ === 'function') next = _
 
     try {
-      // incoming messages are parsed and delivered to the protocol
+      // incoming messages from the stream are deserialized and delivered to the protocol
       const message = JSON.parse(chunk.toString())
       this.protocol.deliver(message)
     } catch (err) {
+      console.error(err)
       // callback with error
       if (next) next(err)
     }
