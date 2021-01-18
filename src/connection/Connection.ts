@@ -2,28 +2,35 @@ import { EventEmitter } from 'events'
 import { Transform } from 'stream'
 import { Protocol } from './Protocol'
 import { InitialContext } from '/connection/types'
+import debug from 'debug'
 
 // This is a thin wrapper around a Protocol instance that gives it a transform (duplex) stream API.
 // Beyond that, the only work it does is to serialize the message on the way out, and deserialize it
 // on the way in.
 
-// An application using this will pipe it between the application and its web socket
-// application <-> Connection <-> socket
+// An application using this will pipe it between the application and its web socket:
+// application ⇆ Connection ⇆ socket
 
 export class Connection extends Transform {
   private protocol: Protocol
   userName: string
+  log: debug.Debugger
 
   constructor(context: InitialContext) {
     super()
+    this.userName = context.user.userName
+    this.log = debug(`lf:auth:connection:${this.userName}`)
 
     // outgoing messages from the protocol are stringified and pushed into the stream
-    const sendMessage = (message: any) => this.push(JSON.stringify(message))
+    const sendMessage = (message: any) => {
+      const serializedMessage = JSON.stringify(message)
+      this.push(serializedMessage)
+    }
 
     this.protocol = new Protocol({ context, sendMessage })
 
     // pass events from protocol
-    pipeEvents(this.protocol, this, ['connected', 'joined', 'updated', 'disconnected'])
+    pipeEvents(this.protocol, this, ['change', 'connected', 'joined', 'updated', 'disconnected'])
   }
 
   // Transform stream implementation
@@ -33,6 +40,7 @@ export class Connection extends Transform {
     try {
       // incoming messages from the stream are deserialized and delivered to the protocol
       const message = JSON.parse(chunk.toString())
+      this.log('received', message)
       this.protocol.deliver(message)
     } catch (err) {
       console.error(err)
