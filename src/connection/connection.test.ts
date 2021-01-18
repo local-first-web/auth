@@ -223,7 +223,7 @@ describe('connection', () => {
     expectEveryoneToKnowEveryone(alice, bob)
   })
 
-  it.only('connects an invitee while simultaneously making other changes', async () => {
+  it.skip('connects an invitee while simultaneously making other changes', async () => {
     const { alice, bob } = setup(['alice', { user: 'bob', member: false }])
 
     // 👩🏾📧👨🏻‍🦲 Alice invites Bob
