@@ -55,7 +55,7 @@ export class Protocol extends EventEmitter {
     super()
 
     this.userName = context.user.userName
-    this.log = debug(`lf:auth:connection:${this.userName}`)
+    this.log = debug(`lf:auth:protocol:${this.userName}`)
 
     this.log('------------------ new connection')
 
@@ -71,7 +71,10 @@ export class Protocol extends EventEmitter {
     }).withContext(context)
 
     // instantiate the machine
-    this.machine = interpret(machine).onTransition(this.logState)
+    this.machine = interpret(machine).onTransition((state) => {
+      this.emit('change', state)
+      this.logState(state)
+    })
   }
 
   /** Starts (or restarts) the protocol machine. Returns this Protocol object. */
@@ -125,7 +128,7 @@ export class Protocol extends EventEmitter {
     return this.context.team
   }
 
-  /** Returns the connection's session key when we are in a connected state.
+  /** Returns the connection's session key Jwhen we are in a connected state.
    * Otherwise, returns `undefined`.
    */
   get sessionKey() {
