@@ -90,13 +90,15 @@ export class Protocol extends EventEmitter {
     return this
   }
 
-  /** Sends a disconnect message to the peer (doesn't stop the machine; we can still listen for reconnection). */
+  /** Sends a disconnect message to the peer. */
   public stop = () => {
     const disconnectMessage = { type: 'DISCONNECT' } as DisconnectMessage
     this.sendMessage(disconnectMessage) // send disconnect message to peer
     if (this.isRunning && !this.machine.state.done) {
       this.machine.send(disconnectMessage) // send disconnect event to local machine
     }
+    this.removeAllListeners()
+    return this
   }
 
   /** Returns the current state of the protocol machine. */

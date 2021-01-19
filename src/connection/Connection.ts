@@ -62,6 +62,7 @@ export class Connection extends Transform {
 
   public stop() {
     this.protocol.stop()
+    this.removeAllListeners()
     return this
   }
 
