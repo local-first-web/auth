@@ -72,7 +72,7 @@ export class Protocol extends EventEmitter {
 
     // instantiate the machine
     this.machine = interpret(machine).onTransition((state) => {
-      this.emit('change', state)
+      this.emit('change', stateSummary(state))
       this.logState(state)
     })
   }
@@ -515,20 +515,12 @@ export class Protocol extends EventEmitter {
   // helpers
 
   private logState = (state: any) => {
-    const stateSummary = (state: any): string =>
-      isString(state)
-        ? state
-        : Object.keys(state)
-            .map((key) => (state[key] === 'done' ? '' : `${key}:${stateSummary(state[key])}`))
-            .filter((s) => s.length)
-            .join(',')
-
     return this.log(`⏩ ${stateSummary(state.value)}`)
   }
 
   private logMessage = (direction: 'in' | 'out', message: ConnectionMessage, index: number) => {
     const arrow = direction === 'in' ? '<-' : '->'
-    this.log(`${arrow} ${this.peerName} #${index} ${message.type} ${getSummary(message)}`)
+    this.log(`${arrow} ${this.peerName} #${index} ${message.type} ${messageSummary(message)}`)
   }
 
   private rehydrateTeam = (context: ConnectionContext, event: ConnectionMessage) =>
@@ -545,9 +537,14 @@ export class Protocol extends EventEmitter {
 
 // for debugging
 
-const getSummary = (message: ConnectionMessage) => {
+const messageSummary = (message: ConnectionMessage) =>
   // @ts-ignore
-  return message.payload?.head || message.payload?.message || ''
-}
+  message.payload?.head || message.payload?.message || ''
 
-const isString = (state: any) => typeof state === 'string'
+const stateSummary = (state: any = 'disconnected'): string =>
+  typeof state === 'string'
+    ? state
+    : Object.keys(state)
+        .map((key) => (state[key] === 'done' ? '' : `${key}:${stateSummary(state[key])}`))
+        .filter((s) => s.length)
+        .join(',')
