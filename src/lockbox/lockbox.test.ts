@@ -15,6 +15,7 @@ describe('lockbox', () => {
     const keys = open(lockbox, bob.keys)
     expect(keys).toEqual(adminKeys)
   })
+
   it(`can't be opened by anyone else`, () => {
     const adminKeys = keyset.create({ type: KeyType.ROLE, name: ADMIN })
 
