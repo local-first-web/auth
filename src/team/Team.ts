@@ -1,4 +1,4 @@
-﻿import { randomKey, signatures, symmetric } from '@herbcaudill/crypto'
+import { randomKey, signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
 import * as chains from '/chain'
 import { membershipResolver, TeamAction, TeamActionLink, TeamSignatureChain } from '/chain'
@@ -45,7 +45,7 @@ export class Team extends EventEmitter {
   public chain: TeamSignatureChain
   private context: LocalUserContext
   private state: TeamState = initialState // derived from chain, only updated by running chain through reducer
-  private log: (o: any) => void
+  private log: (o: any, ...args: any[]) => void
   private seed: string
 
   /**
@@ -61,9 +61,10 @@ export class Team extends EventEmitter {
     super()
     this.seed = options.seed ?? randomKey()
     this.context = options.context
-    this.log = (o: any) =>
+    this.log = (o: any, ...args: any[]) =>
       debug(`lf:auth:team:${this.context.user.userName}`)(
-        typeof o !== 'string' ? JSON.stringify(o, null, 2) : o
+        typeof o !== 'string' ? JSON.stringify(o, null, 2) : o,
+        ...args
       )
 
     if (isNewTeam(options)) {
@@ -90,17 +91,17 @@ export class Team extends EventEmitter {
   }
 
   /**************** TEAM STATE
-    
+
   All the logic for reading from team state is in selectors.
-  
+
   Most of the logic for modifying team state is in reducers. To mutate team state, we dispatch
   changes to the signature chain, and then run the chain through the reducer to recalculate team
   state.
-  
+
   Any crypto operations involving the current user's secrets (for example, opening or creating
-  lockboxes, or signing links) are done here. Only the public-facing outputs (for example, the
-  resulting lockboxesInScope, the signed links) are posted on the chain.
-  
+  lockboxes, or signing links) are done here, not in the selectors or reducers. Only the
+  public-facing outputs (for example, the resulting lockboxesInScope, the signed links) are posted
+  on the chain.
   */
 
   public get teamName() {
@@ -443,17 +444,14 @@ export class Team extends EventEmitter {
   public join = (proof: ProofOfInvitation) => {
     assert(this.hasInvitation(proof), `Can't join a team I wasn't invited to`)
 
-    // q: Am I a new member, or an existing member adding a new device?
-    // a: If I don't have any devices registered on the chain, I'm a new member
+    // If I don't have any devices registered on the chain, I'm a new member
     const deviceCount = this.members(proof.userName).devices?.length ?? 0
-    if (deviceCount === 0) {
-      // New member: The signature chain already contains a member entry for me, but it has
+    const isNewMember = deviceCount === 0
+    if (isNewMember) {
+      // The signature chain already contains a member entry for me, but it has
       // temporary placeholder keys. Let's update that with my real keys.
       const keys = redactKeys(this.context.user.keys)
-      this.dispatch({
-        type: 'CHANGE_MEMBER_KEYS',
-        payload: { keys },
-      })
+      this.changeKeys(keys)
     }
 
     // Either way, I add this device
@@ -511,7 +509,7 @@ export class Team extends EventEmitter {
 
   /**************** KEYS
 
-  These methods all return keysets with secrets, and must be available to the local user. To get
+  These methods all return keysets *with secrets* that are available to the local user. To get
   other members' public keys, look up the member - the `keys` property contains their public keys.
   */
 
@@ -554,14 +552,13 @@ export class Team extends EventEmitter {
       }
       case KeyType.DEVICE: {
         assert(newKeyset.name === this.deviceId, `Can't change another device's secret keys`)
+
         this.dispatch({
           type: 'CHANGE_DEVICE_KEYS',
           payload: { keys: newKeyset },
         })
-        break
+        return
       }
-      default:
-        throw new Error('updateKeys can only be used to update local user or device keys')
     }
   }
 
