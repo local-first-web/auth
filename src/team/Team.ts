@@ -1,4 +1,4 @@
-import { randomKey, signatures, symmetric } from '@herbcaudill/crypto'
+﻿import { randomKey, signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
 import * as chains from '/chain'
 import { membershipResolver, TeamAction, TeamActionLink, TeamSignatureChain } from '/chain'
@@ -381,7 +381,6 @@ export class Team extends EventEmitter {
       invitationSeed,
       teamKeys,
       userName,
-      roles,
     })
 
     // post invitation to signature chain
