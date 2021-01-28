@@ -42,12 +42,12 @@ const { MEMBER } = KeyType
  * implements the connection protocol. The XState configuration is in `machineConfig`.
  */
 export class Protocol extends EventEmitter {
+  private log: debug.Debugger
+
   private sendMessage: SendFunction
   private machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
   private incomingMessageQueue: Record<number, NumberedConnectionMessage> = {}
   private outgoingMessageIndex: number = 0
-  private log: debug.Debugger
-
   private userName: string
   private isRunning: boolean = false
 
@@ -72,8 +72,9 @@ export class Protocol extends EventEmitter {
 
     // instantiate the machine
     this.machine = interpret(machine).onTransition((state) => {
-      this.emit('change', stateSummary(state))
-      this.logState(state)
+      const summary = stateSummary(state.value)
+      this.emit('change', summary)
+      this.log(`⏩ ${summary}`)
     })
   }
 
@@ -216,8 +217,14 @@ export class Protocol extends EventEmitter {
 
     joinTeam: assign({
       team: (context, event) => {
+        this.log('******* joinTeam')
+        // we've just received the team's signature chain; reconstruct team
         const team = this.rehydrateTeam(context, event)
+
+        // join the team
         team.join(this.myProofOfInvitation(context))
+
+        // put the team in our context
         return team
       },
     }),
@@ -450,6 +457,7 @@ export class Protocol extends EventEmitter {
     bothHaveInvitation: (...args) =>
       this.guards.iHaveInvitation(...args) && this.guards.theyHaveInvitation(...args),
 
+    // TODO smells bad that this guard has the side effect of admitting the person
     invitationProofIsValid: (context) => {
       assert(context.team)
       assert(context.theirProofOfInvitation)
@@ -514,10 +522,6 @@ export class Protocol extends EventEmitter {
 
   // helpers
 
-  private logState = (state: any) => {
-    return this.log(`⏩ ${stateSummary(state.value)}`)
-  }
-
   private logMessage = (direction: 'in' | 'out', message: ConnectionMessage, index: number) => {
     const arrow = direction === 'in' ? '<-' : '->'
     this.log(`${arrow} ${this.peerName} #${index} ${message.type} ${messageSummary(message)}`)
@@ -541,10 +545,14 @@ const messageSummary = (message: ConnectionMessage) =>
   // @ts-ignore
   message.payload?.head || message.payload?.message || ''
 
+const isString = (state: any) => typeof state === 'string'
+
 const stateSummary = (state: any = 'disconnected'): string =>
-  typeof state === 'string'
-    ? state
+  isString(state)
+    ? state === 'done'
+      ? ''
+      : state
     : Object.keys(state)
-        .map((key) => (state[key] === 'done' ? '' : `${key}:${stateSummary(state[key])}`))
+        .map((key) => `${key}:${stateSummary(state[key])}`)
         .filter((s) => s.length)
         .join(',')
