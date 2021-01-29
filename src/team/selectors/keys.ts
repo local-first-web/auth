@@ -35,17 +35,20 @@ export const keys = (
 const getKeyMap = memoize(
   (state: TeamState, currentUser: User): KeyMap => {
     const usersOwnKeys = currentUser.keyHistory || [currentUser.keys] // if there's no history, just use the keys we have
-    const allVisibleKeys = usersOwnKeys.flatMap(keys => getDerivedKeys(state, keys))
+    const allVisibleKeys = usersOwnKeys.flatMap((keys) => getDerivedKeys(state, keys))
     return allVisibleKeys.reduce(organizeKeysIntoMap, {})
   }
 )
+
+// TODO 'derived' is the wrong word here - it's one thing for keys to be derived from a seed,
+// it's another thing for one key to provide access to another by unlocking the lockbox it's in
 
 const getDerivedKeys = (state: TeamState, keyset: KeysetWithSecrets): KeysetWithSecrets[] => {
   const { lockboxes } = state
   const publicKey = keyset.encryption.publicKey
   const lockboxesICanUnlock = lockboxes.filter(({ recipient }) => recipient.publicKey === publicKey)
-  const keysets = lockboxesICanUnlock.map(lockbox => open(lockbox, keyset))
-  const derivedKeysets = keysets.flatMap(keyset => getDerivedKeys(state, keyset))
+  const keysets = lockboxesICanUnlock.map((lockbox) => open(lockbox, keyset))
+  const derivedKeysets = keysets.flatMap((keyset) => getDerivedKeys(state, keyset))
   return [...keysets, ...derivedKeysets]
 }
 
