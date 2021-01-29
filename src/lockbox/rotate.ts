@@ -1,9 +1,8 @@
-﻿import { KeysetWithSecrets } from '/keyset'
-import { Lockbox } from '/lockbox/types'
-import { create } from '/lockbox/create'
-import assert from 'assert'
+﻿import assert from 'assert'
+import { KeyScope, KeysetWithSecrets, PublicKeyset } from '/keyset'
 import { getScope } from '/keyset/getScope'
-import * as R from 'ramda'
+import { create } from '/lockbox/create'
+import { KeyManifest, Lockbox } from '/lockbox/types'
 /**
  * "Rotating" a lockbox means replacing the keys it contains with new ones.
  *
@@ -17,15 +16,25 @@ import * as R from 'ramda'
  * ```
  */
 export const rotate = (oldLockbox: Lockbox, newContents: KeysetWithSecrets): Lockbox => {
-  assert(
-    R.equals(getScope(newContents), getScope(oldLockbox.contents)),
-    'The scope (type and name) of the new keys must match those of the old lockbox'
-  )
+  assertScopesMatch(newContents, oldLockbox.contents)
 
-  // increment the keys' generation index
+  // the new keys have the next generation index
   newContents.generation = oldLockbox.contents.generation + 1
 
-  // make a new lockbox and return that
+  // make a new lockbox for the same recipient, but containing the new keys
   const newLockbox = create(newContents, oldLockbox.recipient)
   return newLockbox
 }
+
+function assertScopesMatch(a: HasScope, b: HasScope) {
+  const newScope = JSON.stringify(getScope(a))
+  const oldScope = JSON.stringify(getScope(b))
+  assert(
+    oldScope === newScope,
+    `The scope of the new keys must match those of the old lockbox. 
+     New scope: ${newScope} 
+     Old scope: ${oldScope}`
+  )
+}
+
+type HasScope = KeyScope | KeysetWithSecrets | PublicKeyset
