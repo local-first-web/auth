@@ -2,7 +2,7 @@
 import { KeyScope, KeysetWithSecrets, PublicKeyset } from '/keyset'
 import { getScope } from '/keyset/getScope'
 import { create } from '/lockbox/create'
-import { KeyManifest, Lockbox } from '/lockbox/types'
+import { Lockbox } from '/lockbox/types'
 /**
  * "Rotating" a lockbox means replacing the keys it contains with new ones.
  *
