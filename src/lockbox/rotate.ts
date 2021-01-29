@@ -22,8 +22,7 @@ export const rotate = (oldLockbox: Lockbox, newContents: KeysetWithSecrets): Loc
   newContents.generation = oldLockbox.contents.generation + 1
 
   // make a new lockbox for the same recipient, but containing the new keys
-  const newLockbox = create(newContents, oldLockbox.recipient)
-  return newLockbox
+  return create(newContents, oldLockbox.recipient)
 }
 
 function assertScopesMatch(a: HasScope, b: HasScope) {
