@@ -1,4 +1,5 @@
 ﻿import { Connection } from './Connection'
+import { generateEphemeralKeys } from '/invitation/generateEphemeralKeys'
 import { KeyType } from '/keyset'
 import { ADMIN } from '/role'
 import { debug } from '/util'
@@ -230,6 +231,8 @@ describe('connection', () => {
 
     // 👩🏾📧👨🏻‍🦲 Alice invites Bob
     const { invitationSeed: seed } = alice.team.invite('bob')
+
+    bob.user.keys = generateEphemeralKeys('bob', seed)
 
     // 👨🏻‍🦲📧<->👩🏾 Bob connects to Alice and uses his invitation to join
     await connectWithInvitation(alice, bob, seed)
