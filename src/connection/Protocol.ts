@@ -31,7 +31,7 @@ import {
   SendFunction,
 } from '/connection/types'
 import * as invitations from '/invitation'
-import { KeyType, randomKey } from '/keyset'
+import { create, KeyType, randomKey, redactKeys } from '/keyset'
 import { Team } from '/team'
 import { arrayToMap, assert, debug } from '/util'
 
@@ -217,12 +217,15 @@ export class Protocol extends EventEmitter {
 
     joinTeam: assign({
       team: (context, event) => {
-        this.log('******* joinTeam')
         // we've just received the team's signature chain; reconstruct team
         const team = this.rehydrateTeam(context, event)
 
+        // create new keys for ourselves to replace the ephemeral ones from the invitation
+        context.user.keys = create({ type: KeyType.MEMBER, name: context.user.userName })
+
         // join the team
-        team.join(this.myProofOfInvitation(context))
+        const proof = this.myProofOfInvitation(context)
+        team.join(proof, context.user.keys)
 
         // put the team in our context
         return team
