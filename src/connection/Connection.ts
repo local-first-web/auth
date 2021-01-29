@@ -42,7 +42,8 @@ export class Connection extends Transform {
     try {
       // incoming messages from the stream are deserialized and delivered to the protocol
       const message = JSON.parse(chunk.toString())
-      this.log('received', message)
+      this.log('received', chunk.toString()
+      )
       this.protocol.deliver(message)
     } catch (err) {
       console.error(err)
