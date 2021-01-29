@@ -1,7 +1,14 @@
 ﻿import { randomKey, signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
+import { lockboxSummary } from '../util/lockboxSummary'
 import * as chains from '/chain'
-import { membershipResolver, TeamAction, TeamActionLink, TeamSignatureChain } from '/chain'
+import {
+  chainSummary,
+  membershipResolver,
+  TeamAction,
+  TeamActionLink,
+  TeamSignatureChain,
+} from '/chain'
 import { membershipSequencer } from '/chain/membershipSequencer'
 import { LocalUserContext } from '/context'
 import { DeviceInfo, getDeviceId, redactDevice } from '/device'
@@ -15,7 +22,6 @@ import {
   isKeyset,
   KeyMetadata,
   KeyScope,
-  Keyset,
   KeysetWithSecrets,
   KeyType,
   PublicKeyset,
@@ -24,7 +30,6 @@ import {
 } from '/keyset'
 import { getScope } from '/keyset/getScope'
 import * as lockbox from '/lockbox'
-import { Lockbox } from '/lockbox'
 import { Member } from '/member'
 import { ADMIN, Role } from '/role'
 import { ALL, initialState } from '/team/constants'
@@ -35,7 +40,6 @@ import { EncryptedEnvelope, isNewTeam, SignedEnvelope, TeamOptions, TeamState } 
 import * as users from '/user'
 import { User } from '/user'
 import { assert, debug, Hash, Optional, Payload } from '/util'
-import { chainSummary } from '/util/chainSummary'
 
 const { DEVICE, ROLE, MEMBER } = KeyType
 
@@ -537,8 +541,6 @@ export class Team extends EventEmitter {
         const scope = { type: KeyType.MEMBER, name: this.userName }
         const lockboxes = this.generateNewLockboxes(scope)
 
-        const lockboxSummary = (l: Lockbox) =>
-          `${l.recipient.name}: ${l.contents.name} (G${l.contents.generation})`
         this.log('******** old lockboxes: %o', this.state.lockboxes.map(lockboxSummary))
         this.log('******** new lockboxes: %o', lockboxes.map(lockboxSummary))
 

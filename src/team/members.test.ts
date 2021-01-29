@@ -1,5 +1,4 @@
 import { ADMIN } from '/role'
-import { debug } from '/util'
 import { bob, bobsContext, charlie, defaultContext, newTeam, storage } from '/util/testing'
 import '/util/testing/expect/toLookLikeKeyset'
 
@@ -135,12 +134,12 @@ describe('Team', () => {
       const { team } = setup()
 
       expect(team.members()).toHaveLength(1)
-      expect(team.members().map(m => m.userName)).toEqual(['alice'])
+      expect(team.members().map((m) => m.userName)).toEqual(['alice'])
 
       team.add(bob)
       team.add(charlie)
       expect(team.members()).toHaveLength(3)
-      expect(team.members().map(m => m.userName)).toEqual(['alice', 'bob', 'charlie'])
+      expect(team.members().map((m) => m.userName)).toEqual(['alice', 'bob', 'charlie'])
     })
   })
 })

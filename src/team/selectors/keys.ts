@@ -4,6 +4,11 @@ import { open } from '/lockbox'
 import { TeamState } from '/team/types'
 import { User } from '/user'
 import { Optional } from '/util'
+import { lockboxSummary } from '/util/lockboxSummary'
+
+import debug from 'debug'
+
+const log = debug('lf:auth:select:keys')
 
 export const keys = (
   state: TeamState,
@@ -47,6 +52,9 @@ const getDerivedKeys = (state: TeamState, keyset: KeysetWithSecrets): KeysetWith
   const { lockboxes } = state
   const publicKey = keyset.encryption.publicKey
   const lockboxesICanUnlock = lockboxes.filter(({ recipient }) => recipient.publicKey === publicKey)
+
+  log(`${keyset.name} can unlock [${lockboxesICanUnlock.map(lockboxSummary)}]`)
+
   const keysets = lockboxesICanUnlock.map((lockbox) => open(lockbox, keyset))
   const derivedKeysets = keysets.flatMap((keyset) => getDerivedKeys(state, keyset))
   return [...keysets, ...derivedKeysets]
