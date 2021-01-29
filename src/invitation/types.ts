@@ -5,7 +5,6 @@ import { Base64, Encrypted } from '/util'
 
 export interface InvitationBody {
   userName: string
-  roles: string[]
   publicKey: Base64 // public half of the ephemeral signature key
 }
 
