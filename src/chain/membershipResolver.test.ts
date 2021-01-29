@@ -1,7 +1,7 @@
 import { append, clone, create, merge, TeamAction, TeamSignatureChain } from '/chain'
 import { ADMIN } from '/role'
 import { redactUser } from '/user'
-import { chainSummary } from '/util/chainSummary'
+import { chainSummary } from '/util'
 import { alice, alicesContext, bob, bobsContext, charlie, charliesContext } from '/util/testing'
 
 describe('chains', () => {

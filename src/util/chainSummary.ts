@@ -1,7 +1,11 @@
-﻿import { TeamSignatureChain, getSequence, TeamAction } from '/chain'
-import { actionFingerprint } from '/chain/actionFingerprint'
-import { membershipResolver as resolver } from '/chain/membershipResolver'
-import { membershipSequencer as sequencer } from '/chain/membershipSequencer'
+﻿import {
+  actionFingerprint,
+  getSequence,
+  membershipResolver as resolver,
+  membershipSequencer as sequencer,
+  TeamAction,
+  TeamSignatureChain,
+} from '/chain'
 
 export const chainSummary = (chain: TeamSignatureChain) =>
   getSequence<TeamAction>({ chain, sequencer, resolver })
