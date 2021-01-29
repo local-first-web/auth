@@ -1,5 +1,4 @@
-﻿import { actionFingerprint } from '/chain/actionFingerprint'
-import { bySeniority } from '/chain/bySeniority'
+﻿import { bySeniority } from '/chain/bySeniority'
 import { baseResolver } from '/chain/getSequence'
 import {
   ActionFilter,

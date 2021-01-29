@@ -1,5 +1,4 @@
-import { isRootLink } from '/chain/types'
-import { TeamAction, TeamActionLink } from '/chain/types'
+import { isRootLink, TeamAction, TeamActionLink } from '/chain/types'
 
 /** Identifies a unique action for the purpose of detecting duplicates;
  * e.g. ADD_MEMBER:bob
