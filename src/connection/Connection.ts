@@ -11,6 +11,8 @@ import debug from 'debug'
 // An application using this will pipe it between the application and its web socket:
 // application ⇆ Connection ⇆ socket
 
+// TODO: Reimplement this with the stream as a property of Protocol, so there's just one class instead of two?
+
 export class Connection extends Transform {
   private protocol: Protocol
   userName: string
