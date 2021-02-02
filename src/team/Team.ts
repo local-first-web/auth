@@ -1,25 +1,11 @@
 ﻿import { randomKey, signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
-import { lockboxSummary } from '../util/lockboxSummary'
 import { keysetSummary } from '../util/keysetSummary'
 import * as chains from '/chain'
-import {
-  chainSummary,
-  membershipResolver,
-  TeamAction,
-  TeamActionLink,
-  TeamSignatureChain,
-} from '/chain'
+import { membershipResolver, TeamAction, TeamActionLink, TeamSignatureChain } from '/chain'
 import { membershipSequencer } from '/chain/membershipSequencer'
 import { LocalUserContext } from '/context'
-import {
-  DeviceInfo,
-  DeviceType,
-  DeviceWithSecrets,
-  getDeviceId,
-  PublicDevice,
-  redactDevice,
-} from '/device'
+import { DeviceInfo, getDeviceId, PublicDevice, redactDevice } from '/device'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
 import { generateEphemeralKeys } from '/invitation/generateEphemeralKeys'
