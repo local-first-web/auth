@@ -82,14 +82,16 @@ describe('Team', () => {
       // Bob has team keys
       const teamKeys = bobsTeam.teamKeys()
       expect(teamKeys).toLookLikeKeyset()
+      expect(teamKeys.generation).toBe(0)
 
       // Bob changes his user keys
       const newKeys = keysets.create({ type: keysets.KeyType.MEMBER, name: 'bob' })
       bobsTeam.changeKeys(newKeys)
 
-      // Bob still has team keys
-      const teamKeys_again = bobsTeam.teamKeys()
-      expect(teamKeys_again).toLookLikeKeyset()
+      // Bob still has access to team keys
+      const teamKeys2 = bobsTeam.teamKeys()
+      expect(teamKeys2).toLookLikeKeyset()
+      expect(teamKeys2.generation).toBe(1) // the team keys were rotated, so these are new
     })
   })
 })
