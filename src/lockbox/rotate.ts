@@ -1,8 +1,8 @@
-﻿import assert from 'assert'
-import { KeyScope, KeysetWithSecrets, PublicKeyset } from '/keyset'
-import { getScope } from '/keyset/getScope'
+﻿import { assertScopesMatch } from '../keyset/scopesMatch'
+import { KeysetWithSecrets, PublicKeyset } from '/keyset'
 import { create } from '/lockbox/create'
 import { Lockbox } from '/lockbox/types'
+
 /**
  * "Rotating" a lockbox means replacing the keys it contains with new ones.
  *
@@ -15,25 +15,28 @@ import { Lockbox } from '/lockbox/types'
  * const newAdminLockboxForAlice = lockbox.rotate(adminLockboxForAlice, newAdminKeys)
  * ```
  */
-export const rotate = (oldLockbox: Lockbox, newContents: KeysetWithSecrets): Lockbox => {
+export const rotate = ({
+  oldLockbox,
+  newContents,
+  updatedRecipientKeys,
+}: rotateParams): Lockbox => {
+  // Make sure the new keys have the same scope as the old ones
   assertScopesMatch(newContents, oldLockbox.contents)
+  // If we're given a new public key for the recipient
+  if (updatedRecipientKeys) assertScopesMatch(oldLockbox.recipient, updatedRecipientKeys)
 
   // the new keys have the next generation index
   newContents.generation = oldLockbox.contents.generation + 1
 
+  // if we have updated keys for the recipient, use them; otherwise the recipient manifest is the same as before
+  const recipientManifest = updatedRecipientKeys ?? oldLockbox.recipient
+
   // make a new lockbox for the same recipient, but containing the new keys
-  return create(newContents, oldLockbox.recipient)
+  return create(newContents, recipientManifest)
 }
 
-function assertScopesMatch(a: HasScope, b: HasScope) {
-  const newScope = JSON.stringify(getScope(a))
-  const oldScope = JSON.stringify(getScope(b))
-  assert(
-    oldScope === newScope,
-    `The scope of the new keys must match those of the old lockbox. 
-     New scope: ${newScope} 
-     Old scope: ${oldScope}`
-  )
+type rotateParams = {
+  oldLockbox: Lockbox
+  newContents: KeysetWithSecrets
+  updatedRecipientKeys?: PublicKeyset
 }
-
-type HasScope = KeyScope | KeysetWithSecrets | PublicKeyset
