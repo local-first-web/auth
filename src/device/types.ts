@@ -9,6 +9,7 @@ export enum DeviceType {
   bot,
   server,
   other,
+  unknown,
 }
 
 export interface DeviceInfo {
