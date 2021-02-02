@@ -3,10 +3,8 @@ import { KeyMetadata, KeysetWithSecrets } from '/keyset'
 import { open } from '/lockbox'
 import { TeamState } from '/team/types'
 import { User } from '/user'
-import { Optional } from '/util'
+import { debug, Optional } from '/util'
 import { lockboxSummary } from '/util/lockboxSummary'
-
-import debug from 'debug'
 
 const log = debug('lf:auth:select:keys')
 
@@ -19,7 +17,11 @@ export const keys = (
 
   const keysFromLockboxes = getKeyMap(state, currentUser)
   const keys = keysFromLockboxes[type] && keysFromLockboxes[type][name]
-  if (!keys) throw new Error(`Keys not found for ${type.toLowerCase()} ${name}`)
+  if (!keys)
+    throw new Error(
+      `Keys not found for ${type.toLowerCase()} ${name}.
+       Available lockboxes: ${state.lockboxes.map(lockboxSummary)} `
+    )
 
   const generation = maybeGeneration === undefined ? keys.length - 1 : maybeGeneration // use latest generation by default
   return keys[generation]
@@ -37,27 +39,36 @@ export const keys = (
  * }
  * ```
  */
-const getKeyMap = memoize(
-  (state: TeamState, currentUser: User): KeyMap => {
-    const usersOwnKeys = currentUser.keyHistory || [currentUser.keys] // if there's no history, just use the keys we have
-    const allVisibleKeys = usersOwnKeys.flatMap((keys) => getDerivedKeys(state, keys))
-    return allVisibleKeys.reduce(organizeKeysIntoMap, {})
-  }
-)
+const getKeyMap = (state: TeamState, currentUser: User): KeyMap => {
+  // get all the keys the user has ever had
+  const usersOwnKeys = currentUser.keyHistory || [currentUser.keys] // if there's no history, just use the current keys
 
-// TODO 'derived' is the wrong word here - it's one thing for keys to be derived from a seed,
-// it's another thing for one key to provide access to another by unlocking the lockbox it's in
+  // get all the keys those keys can access
+  const allVisibleKeys = usersOwnKeys.flatMap((keys) => getVisibleKeys(state, keys))
 
-const getDerivedKeys = (state: TeamState, keyset: KeysetWithSecrets): KeysetWithSecrets[] => {
+  // structure these keys as described above
+  return allVisibleKeys.reduce(organizeKeysIntoMap, {})
+}
+
+/**
+ * Returns all keys that can be accessed directly or indirectly (via lockboxes) by the given keyset
+ * @param state
+ * @param keyset
+ */
+const getVisibleKeys = (state: TeamState, keyset: KeysetWithSecrets): KeysetWithSecrets[] => {
   const { lockboxes } = state
   const publicKey = keyset.encryption.publicKey
-  const lockboxesICanUnlock = lockboxes.filter(({ recipient }) => recipient.publicKey === publicKey)
 
-  log(`${keyset.name} can unlock [${lockboxesICanUnlock.map(lockboxSummary)}]`)
+  // what lockboxes can I open with these keys?
+  const lockboxesICanOpen = lockboxes.filter(({ recipient }) => recipient.publicKey === publicKey)
 
-  const keysets = lockboxesICanUnlock.map((lockbox) => open(lockbox, keyset))
-  const derivedKeysets = keysets.flatMap((keyset) => getDerivedKeys(state, keyset))
-  return [...keysets, ...derivedKeysets]
+  // collect all the keys from those lockboxes
+  const keysets = lockboxesICanOpen.map((lockbox) => open(lockbox, keyset))
+
+  // recursively get all the keys *those* keys can access
+  const visibileKeys = keysets.flatMap((keyset) => getVisibleKeys(state, keyset))
+
+  return [...keysets, ...visibileKeys]
 }
 
 const organizeKeysIntoMap = (result: KeyMap, keys: KeysetWithSecrets) => {
