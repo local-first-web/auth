@@ -255,11 +255,11 @@ describe('connection', () => {
 
     // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
     const { seed: charlieSeed } = alice.team.invite({ userName: 'charlie' })
-    charlie.context.seed = charlieSeed
+    charlie.context.invitationSeed = charlieSeed
 
     // 👩🏾 Alice invites 👴 Dwight
     const { seed: dwightSeed } = alice.team.invite({ userName: 'dwight' })
-    dwight.context.seed = dwightSeed
+    dwight.context.invitationSeed = dwightSeed
 
     // 👳🏽‍♂️<->👴 Charlie and Dwight try to connect to each other
     connect(charlie, dwight)
@@ -445,8 +445,6 @@ describe('connection', () => {
   it.only('lets a member use an invitation to add a device', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
-    // NEXT: sort out the connection story with devices
-
     // 👨🏻‍🦲💻📧->📱 on his laptop, Bob creates an invitation and somehow gets it to his phone
     const { seed } = bob.team.invite({ deviceName: bob.phone.device.deviceName })
 
@@ -625,7 +623,7 @@ describe('connection', () => {
     const { seed } = alice.team.invite({ userName: 'bob' })
 
     // 👨🏻‍🦲📧<->👩🏾 Bob connects to Alice and uses his invitation to join
-    bob.context.seed = seed
+    bob.context.invitationSeed = seed
     const a = (alice.connection.bob = new Connection(alice.context).start())
     const b = (bob.connection.alice = new Connection(bob.context).start())
     a.pipe(b).pipe(a)
@@ -648,7 +646,7 @@ describe('connection', () => {
     alice.team.invite({ userName: 'bob', seed })
 
     // 👨🏻‍🦲📧<->👩🏾 Bob tries to connect, but mistypes his code
-    bob.context.seed = 'password'
+    bob.context.invitationSeed = 'password'
     alice.connection.bob = new Connection(alice.context).start()
     bob.connection.alice = new Connection(bob.context).start()
     bob.connection.alice.pipe(alice.connection.bob).pipe(bob.connection.alice)
@@ -657,7 +655,7 @@ describe('connection', () => {
     await disconnection(alice, bob)
 
     // 👨🏻‍🦲📧<->👩🏾 Bob tries again with the right code this time
-    bob.context.seed = 'passw0rd'
+    bob.context.invitationSeed = 'passw0rd'
 
     //
     //
