@@ -1,4 +1,4 @@
-import { clone } from '/chain'
+import { clone } from '/util'
 import { LocalUserContext } from '/context'
 import * as devices from '/device'
 import { DeviceType } from '/device'
