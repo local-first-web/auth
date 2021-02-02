@@ -223,7 +223,7 @@ describe('connection protocol', () => {
       const charlieContext = {
         user: charlie,
         device: redactDevice(charlie.device),
-        seed,
+        invitationSeed: seed,
       } as InitialContext
       const charlieConnection = new Protocol({ sendMessage, context: charlieContext })
       charlieConnection.start()
