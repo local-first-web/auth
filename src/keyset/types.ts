@@ -49,3 +49,5 @@ export const isKeyset = (k: KeysetWithSecrets | KeyScope): k is KeysetWithSecret
   'secretKey' in k && //
   'encryption' in k &&
   'signature' in k
+
+export type HasScope = KeyScope | KeysetWithSecrets | PublicKeyset
