@@ -2,7 +2,7 @@ import { EventEmitter } from 'events'
 import { Transform } from 'stream'
 import { Protocol } from './Protocol'
 import { InitialContext } from '/connection/types'
-import debug from 'debug'
+import { debug } from '/util'
 
 // This is a thin wrapper around a Protocol instance that gives it a transform (duplex) stream API.
 // Beyond that, the only work it does is to serialize the message on the way out, and deserialize it
@@ -42,8 +42,7 @@ export class Connection extends Transform {
     try {
       // incoming messages from the stream are deserialized and delivered to the protocol
       const message = JSON.parse(chunk.toString())
-      this.log('received', chunk.toString()
-      )
+      this.log('received', chunk.toString())
       this.protocol.deliver(message)
     } catch (err) {
       console.error(err)
