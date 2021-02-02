@@ -226,7 +226,7 @@ describe('connection', () => {
     expectEveryoneToKnowEveryone(alice, bob)
   })
 
-  it.only('after being admitted, invitee has team keys', async () => {
+  it('after being admitted, invitee has team keys', async () => {
     const { alice, bob } = setup(['alice', { user: 'bob', member: false }])
 
     // 👩🏾📧👨🏻‍🦲 Alice invites Bob
@@ -238,75 +238,11 @@ describe('connection', () => {
     await connectWithInvitation(alice, bob, seed)
 
     // update the team from the connection, which should have the new keys
-    bob.team = bob.connection.alice.team!
+    const connection = bob.connection.alice
+    bob.team = connection.team!
 
     // 👨🏻‍🦲 Bob has the team keys
-    expect(() => bob.team.keys({ type: KeyType.TEAM, name: KeyType.TEAM })).not.toThrow()
-  })
-
-  // TODO
-  it.skip('connects an invitee while simultaneously making other changes', async () => {
-    const { alice, bob } = setup(['alice', { user: 'bob', member: false }])
-
-    // 👩🏾📧👨🏻‍🦲 Alice invites Bob
-    const { invitationSeed: seed } = alice.team.invite('bob')
-
-    // 👨🏻‍🦲📧<->👩🏾 Bob connects to Alice and uses his invitation to join
-    bob.context.invitationSeed = seed
-    const a = (alice.connection.bob = new Connection(alice.context).start())
-    const b = (bob.connection.alice = new Connection(bob.context).start())
-    a.pipe(b).pipe(a)
-
-    await all([a, b], 'connected')
-    alice.team = a.team!
-    bob.team = b.team!
-
-    // ✅
-    expect(alice.team.has('bob')).toBe(true)
-    expect(bob.team.has('alice')).toBe(true)
-  })
-
-  // TODO
-  it.skip('connects an invitee after one failed attempt', async () => {
-    const { alice, bob } = setup(['alice', { user: 'bob', member: false }])
-
-    // 👩🏾📧👨🏻‍🦲 Alice invites Bob
-    const invitationSeed = 'passw0rd'
-    alice.team.invite('bob', { invitationSeed })
-
-    // 👨🏻‍🦲📧<->👩🏾 Bob tries to connect, but mistypes his code
-    bob.context.invitationSeed = 'password'
-    alice.connection.bob = new Connection(alice.context).start()
-    bob.connection.alice = new Connection(bob.context).start()
-    bob.connection.alice.pipe(alice.connection.bob).pipe(bob.connection.alice)
-
-    // ❌ The connection fails
-    await disconnection(alice, bob)
-
-    // 👨🏻‍🦲📧<->👩🏾 Bob tries again with the right code this time
-    bob.context.invitationSeed = 'passw0rd'
-
-    //
-    //
-    //
-    //
-    // TODO: we can make this work by uncommenting the following lines, which start Alice and Bob
-    // out with shiny new connections. However we want Bob to be able to try again with the same
-    // connection. Maybe the answer is to separate out presenting an invitation from the HELLO message?
-    //
-    // It almost works if we don't restart Alice's connection, but she can't handle Bob's hello message coming in as #0.
-    //
-    //
-
-    // bob.connection.alice = new Connection(bob.context).start()
-    // alice.connection.bob = new Connection(alice.context).start()
-    alice.connection.bob.pipe(bob.connection.alice).pipe(alice.connection.bob)
-
-    // ✅ that works
-    await connection(bob, alice)
-    bob.team = bob.connection.alice.team!
-
-    expectEveryoneToKnowEveryone(alice, bob)
+    expect(() => bob.team.teamKeys()).not.toThrow()
   })
 
   it(`doesn't allow two invitees to connect`, async () => {
@@ -505,7 +441,7 @@ describe('connection', () => {
     expect(bob.team.memberHasRole('charlie', ADMIN)).toBe(false)
   })
 
-  it('lets a member use an invitation to add a device', async () => {
+  it.only('lets a member use an invitation to add a device', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
     // 👨🏻‍🦲💻📧->📱 on his laptop, Bob creates an invitation and somehow gets it to his phone
@@ -676,6 +612,71 @@ describe('connection', () => {
 
     // Charlie is still an admin (because Bob demoted him while being demoted)
     expect(isAdmin('charlie')).toBe(true)
+  })
+
+  // TODO
+  it.skip('connects an invitee while simultaneously making other changes', async () => {
+    const { alice, bob } = setup(['alice', { user: 'bob', member: false }])
+
+    // 👩🏾📧👨🏻‍🦲 Alice invites Bob
+    const { invitationSeed: seed } = alice.team.invite('bob')
+
+    // 👨🏻‍🦲📧<->👩🏾 Bob connects to Alice and uses his invitation to join
+    bob.context.invitationSeed = seed
+    const a = (alice.connection.bob = new Connection(alice.context).start())
+    const b = (bob.connection.alice = new Connection(bob.context).start())
+    a.pipe(b).pipe(a)
+
+    await all([a, b], 'connected')
+    alice.team = a.team!
+    bob.team = b.team!
+
+    // ✅
+    expect(alice.team.has('bob')).toBe(true)
+    expect(bob.team.has('alice')).toBe(true)
+  })
+
+  // TODO
+  it.skip('connects an invitee after one failed attempt', async () => {
+    const { alice, bob } = setup(['alice', { user: 'bob', member: false }])
+
+    // 👩🏾📧👨🏻‍🦲 Alice invites Bob
+    const invitationSeed = 'passw0rd'
+    alice.team.invite('bob', { invitationSeed })
+
+    // 👨🏻‍🦲📧<->👩🏾 Bob tries to connect, but mistypes his code
+    bob.context.invitationSeed = 'password'
+    alice.connection.bob = new Connection(alice.context).start()
+    bob.connection.alice = new Connection(bob.context).start()
+    bob.connection.alice.pipe(alice.connection.bob).pipe(bob.connection.alice)
+
+    // ❌ The connection fails
+    await disconnection(alice, bob)
+
+    // 👨🏻‍🦲📧<->👩🏾 Bob tries again with the right code this time
+    bob.context.invitationSeed = 'passw0rd'
+
+    //
+    //
+    //
+    //
+    // TODO: we can make this work by uncommenting the following lines, which start Alice and Bob
+    // out with shiny new connections. However we want Bob to be able to try again with the same
+    // connection. Maybe the answer is to separate out presenting an invitation from the HELLO message?
+    //
+    // It almost works if we don't restart Alice's connection, but she can't handle Bob's hello message coming in as #0.
+    //
+    //
+
+    // bob.connection.alice = new Connection(bob.context).start()
+    // alice.connection.bob = new Connection(alice.context).start()
+    alice.connection.bob.pipe(bob.connection.alice).pipe(alice.connection.bob)
+
+    // ✅ that works
+    await connection(bob, alice)
+    bob.team = bob.connection.alice.team!
+
+    expectEveryoneToKnowEveryone(alice, bob)
   })
 
   it.skip('rotates keys after a member is removed', async () => {
