@@ -119,7 +119,7 @@ export const connect = async (a: UserStuff, b: UserStuff) => {
 
 /** Connects a (a member) with b (invited using the given seed). */
 export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: string) => {
-  b.context.invitationSeed = seed
+  b.context.seed = seed
   return connect(a, b).then(() => {
     // The connection now has the team object, so let's update our user stuff
     b.team = b.connection[a.userName].team!
@@ -127,7 +127,7 @@ export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: st
 }
 
 export const connectPhoneWithInvitation = async (a: UserStuff, seed: string) => {
-  a.phone.context.invitationSeed = seed
+  a.phone.context.seed = seed
 
   const laptop = new Connection(a.context).start()
   const phone = new Connection(a.phone.context).start()

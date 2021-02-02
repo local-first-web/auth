@@ -32,6 +32,7 @@ import {
 } from '/connection/types'
 import { DeviceType } from '/device'
 import * as invitations from '/invitation'
+import { Invitee } from '/invitation'
 import { create, KeyType, randomKey, redactKeys } from '/keyset'
 import { Team } from '/team'
 import { arrayToMap, assert, debug } from '/util'
@@ -144,7 +145,7 @@ export class Protocol extends EventEmitter {
     return (
       this.context.peer?.userName ??
       this.context.theirIdentityClaim?.name ??
-      this.context.theirProofOfInvitation?.userName ??
+      this.context.theirProofOfInvitation?.invitee.name ??
       '?'
     )
   }
@@ -192,7 +193,7 @@ export class Protocol extends EventEmitter {
           identityClaim: { type: MEMBER, name: context.user.userName },
           // if we're not a member yet, attach our proof of invitation
           proofOfInvitation:
-            context.invitationSeed !== undefined ? this.myProofOfInvitation(context) : undefined,
+            context.seed !== undefined ? this.myProofOfInvitation(context) : undefined,
         },
       })
     },
@@ -459,7 +460,7 @@ export class Protocol extends EventEmitter {
   /** These are referred to by name in `connectionMachine` (e.g. `cond: 'iHaveInvitation'`) */
   private readonly guards: Record<string, Condition> = {
     iHaveInvitation: (context) => {
-      const result = context.invitationSeed !== undefined
+      const result = context.seed !== undefined
       return result
     },
 
@@ -548,8 +549,9 @@ export class Protocol extends EventEmitter {
     })
 
   private myProofOfInvitation = (context: ConnectionContext) => {
-    assert(context.invitationSeed)
-    return invitations.generateProof(context.invitationSeed, context.user.userName)
+    assert(context.seed)
+    const invitee = { type: KeyType.MEMBER, name: context.user.userName } as Invitee
+    return invitations.generateProof(context.seed, invitee)
   }
 }
 

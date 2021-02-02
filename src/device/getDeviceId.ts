@@ -9,6 +9,6 @@ export const getDeviceId = ({ deviceName, userName }: Omit<DeviceInfo, 'type'>):
   const isTestEnvironment = process.env.NODE_ENV === 'test'
 
   return isTestEnvironment
-    ? `${userName}:${deviceName}` // keep it human-readable when testing
+    ? `deviceId::${userName}::${deviceName}` // keep it human-readable when testing
     : base64.encode(hash(HashPurpose.DEVICE_ID, { deviceName, userName }))
 }

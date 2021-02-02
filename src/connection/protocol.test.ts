@@ -140,14 +140,14 @@ describe('connection protocol', () => {
       const aliceAuthenticatingState = () => alice.getState().connecting.authenticating
 
       // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
-      const { invitationSeed } = alice.team.invite('charlie')
+      const { seed } = alice.team.invite('charlie')
 
       // 👩🏾 Alice connects
       alice.connection.start()
 
       // 👳🏽‍♂️ Charlie sends a hello message including the proof of invitation
       const identityClaim = { type: KeyType.MEMBER, name: 'charlie' }
-      const proofOfInvitation = generateProof(invitationSeed, 'charlie')
+      const proofOfInvitation = generateProof(seed, 'charlie')
       alice.deliver({ type: 'HELLO', payload: { identityClaim, proofOfInvitation } })
 
       // ✅ Success! Alice has verified Charlie's identity
@@ -162,10 +162,10 @@ describe('connection protocol', () => {
 
       // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
 
-      const { invitationSeed } = alice.team.invite('charlie')
+      const { seed } = alice.team.invite('charlie')
 
       // 👳🏽‍♂️ Charlie connects
-      const context = { user: charlie, invitationSeed }
+      const context = { user: charlie, seed }
       const charlieConnection = new Protocol({ sendMessage, context }).start()
       const charlieState = () => charlieConnection.state as any
 
@@ -205,7 +205,7 @@ describe('connection protocol', () => {
       const { alice } = testUsers
 
       // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
-      const { invitationSeed } = alice.team.invite('charlie')
+      const { seed } = alice.team.invite('charlie')
 
       // 🦹‍♀️ Eve is going to impersonate Alice to try to get Charlie to join her team instead
       const fakeAlice = users.create({
@@ -223,7 +223,7 @@ describe('connection protocol', () => {
       const charlieContext = {
         user: charlie,
         device: redactDevice(charlie.device),
-        invitationSeed,
+        seed,
       } as InitialContext
       const charlieConnection = new Protocol({ sendMessage, context: charlieContext })
       charlieConnection.start()

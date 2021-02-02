@@ -1,11 +1,12 @@
 import { clone } from '/util'
 import { LocalUserContext } from '/context'
 import * as devices from '/device'
-import { DeviceType } from '/device'
+import { DeviceType, getDeviceId } from '/device'
 import { generateProof, ProofOfInvitation } from '/invitation'
 import { ADMIN } from '/role'
 import * as teams from '/team'
 import { alice, alicesContext, bob, bobsContext, defaultContext, newTeam } from '/util/testing'
+import { KeyType } from '/keyset'
 
 describe('Team', () => {
   const setup = () => ({
@@ -19,10 +20,10 @@ describe('Team', () => {
         const { team: alicesTeam } = setup()
 
         // 👩🏾 Alice invites 👨🏻‍🦲 Bob by sending him a random secret key
-        const { invitationSeed } = alicesTeam.invite('bob')
+        const { seed } = alicesTeam.invite({ userName: 'bob' })
 
         // 👨🏻‍🦲 Bob accepts the invitation
-        const proofOfInvitation = generateProof(invitationSeed, 'bob')
+        const proofOfInvitation = generateProof(seed, 'bob')
 
         // 👨🏻‍🦲 Bob shows 👩🏾 Alice his proof of invitation, and she lets him in
         alicesTeam.admit(proofOfInvitation)
@@ -35,10 +36,10 @@ describe('Team', () => {
         const { team: alicesTeam } = setup()
 
         // 👩🏾 Alice invites 👨🏻‍🦲 Bob by sending him a secret key of her choosing
-        const invitationSeed = 'passw0rd'
-        alicesTeam.invite('bob', { invitationSeed })
+        const seed = 'passw0rd'
+        alicesTeam.invite({ userName: 'bob', seed })
 
-        const proofOfInvitation = generateProof(invitationSeed, 'bob')
+        const proofOfInvitation = generateProof(seed, 'bob')
         alicesTeam.admit(proofOfInvitation)
 
         // ✅ Still works
@@ -49,8 +50,8 @@ describe('Team', () => {
         const { team: alicesTeam } = setup()
 
         // 👩🏾 Alice invites 👨🏻‍🦲 Bob
-        const invitationSeed = 'abc def ghi'
-        alicesTeam.invite('bob', { invitationSeed })
+        const seed = 'abc def ghi'
+        alicesTeam.invite({ userName: 'bob', seed })
 
         // 👨🏻‍🦲 Bob accepts the invitation using a url-friendlier version of the key
         const proofOfInvitation = generateProof('abc+def+ghi', 'bob')
@@ -64,10 +65,10 @@ describe('Team', () => {
         const { team: alicesTeam } = setup()
 
         // 👩🏾 Alice invites 👨🏻‍🦲 Bob as admin
-        const { invitationSeed } = alicesTeam.invite('bob', { roles: [ADMIN] })
+        const { seed } = alicesTeam.invite({ userName: 'bob', roles: [ADMIN] })
 
         // 👨🏻‍🦲 Bob accepts the invitation
-        const proofOfInvitation = generateProof(invitationSeed, 'bob')
+        const proofOfInvitation = generateProof(seed, 'bob')
         alicesTeam.admit(proofOfInvitation)
 
         // ✅ Bob is on the team as an admin 👍
@@ -78,13 +79,16 @@ describe('Team', () => {
         const { team: alicesTeam } = setup()
 
         // 👩🏾 Alice invites 👨🏻‍🦲 Bob
-        const { invitationSeed } = alicesTeam.invite('bob')
+        const { seed } = alicesTeam.invite({ userName: 'bob' })
 
         // 👨🏻‍🦲 Bob accepts the invitation
-        const proofOfInvitation = generateProof(invitationSeed, 'bob')
+        const proofOfInvitation = generateProof(seed, 'bob')
 
         // 🦹‍♀️ Eve intercepts the invitation and tries to use it by swapping out Bob's name for hers
-        const forgedProofOfInvitation: ProofOfInvitation = { ...proofOfInvitation, userName: 'eve' }
+        const forgedProofOfInvitation: ProofOfInvitation = {
+          ...proofOfInvitation,
+          invitee: { type: KeyType.MEMBER, name: 'eve' },
+        }
 
         // 🦹‍♀️ Eve shows 👩🏾 Alice her fake proof of invitation
         const presentForgedInvitation = () => alicesTeam.admit(forgedProofOfInvitation)
@@ -98,10 +102,10 @@ describe('Team', () => {
         alicesTeam.add(bob) // bob is not an admin
 
         // 👩🏾 Alice invites 👳🏽‍♂️ Charlie by sending him a secret key
-        const { invitationSeed } = alicesTeam.invite('charlie')
+        const { seed } = alicesTeam.invite({ userName: 'charlie' })
 
         // 👳🏽‍♂️ Charlie accepts the invitation
-        const proofOfInvitation = generateProof(invitationSeed, 'charlie')
+        const proofOfInvitation = generateProof(seed, 'charlie')
 
         // later, 👩🏾 Alice is no longer around, but 👨🏻‍🦲 Bob is online
         let persistedTeam = alicesTeam.save()
@@ -127,10 +131,10 @@ describe('Team', () => {
         alicesTeam.add(bob)
 
         // 👩🏾 Alice invites 👳🏽‍♂️ Charlie by sending him a secret key
-        const { invitationSeed, id } = alicesTeam.invite('charlie')
+        const { seed, id } = alicesTeam.invite({ userName: 'charlie' })
 
         // 👳🏽‍♂️ Charlie accepts the invitation
-        const proofOfInvitation = generateProof(invitationSeed, 'charlie')
+        const proofOfInvitation = generateProof(seed, 'charlie')
 
         // 👩🏾 Alice changes her mind and revokes the invitation
         alicesTeam.revokeInvitation(id)
@@ -159,20 +163,24 @@ describe('Team', () => {
 
         const phone = devices.create({
           userName: 'alice',
-          deviceName: 'phone',
+          deviceName: 'alicez phone',
           type: DeviceType.mobile,
         })
+
+        const { deviceName } = phone
+        const deviceId = getDeviceId(phone)
+
         const phoneContext: LocalUserContext = { user: { ...alice, device: phone } }
 
         // 👩🏾 Alice only has 💻 one device on the signature chain
         expect(laptopTeam.members('alice').devices).toHaveLength(1)
 
-        // 💻 on her laptop, Alice generates an invitation for herself (so a device invitation)
-        const { invitationSeed } = laptopTeam.invite('alice')
+        // 💻 on her laptop, Alice generates an invitation for her phone
+        const { id, seed } = laptopTeam.invite({ deviceName })
 
-        // 📱 Alice gets the invitationSeed to her phone, perhaps by typing it in or by scanning a QR code.
-        // Alice's phone uses the invitationSeed to generate proof of invitation
-        const proofOfInvitation = generateProof(invitationSeed, 'alice')
+        // 📱 Alice gets the seed to her phone, perhaps by typing it in or by scanning a QR code.
+        // Alice's phone uses the seed to generate proof of invitation
+        const proofOfInvitation = generateProof(seed, { type: KeyType.DEVICE, name: deviceId })
 
         // 📱 Alice's phone connects with 💻 her laptop and presents the proof
         laptopTeam.admit(proofOfInvitation)

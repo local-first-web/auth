@@ -1,10 +1,11 @@
-import { Lockbox } from '/lockbox'
+import { KeyScope, KeyType } from '/keyset'
 import { Base64, Encrypted } from '/util'
 
 // INVITATION
 
 export interface InvitationBody {
-  userName: string
+  /** The user or device to invite (e.g. `{type: MEMBER, name: userName}` or `{type: DEVICE, name: deviceId}` */
+  invitee: Invitee
   publicKey: Base64 // public half of the ephemeral signature key
 }
 
@@ -31,9 +32,14 @@ export interface ProofOfInvitation {
   /** Public, unique identifier for the invitation */
   id: Base64
 
-  /** The invitee's user name*/
-  userName: string
+  /** The user or device that was invited */
+  invitee: Invitee
 
   /** Signature of userName and id, using the signing keys derived from the secret invitation key */
   signature: Base64
+}
+
+export interface Invitee extends KeyScope {
+  type: typeof KeyType.MEMBER | typeof KeyType.DEVICE
+  name: string
 }

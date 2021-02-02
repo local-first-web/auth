@@ -27,7 +27,7 @@ export type InitialContext = {
   /** If we already belong to the team, we pass the team object we both belong to */
   team?: Team
   /** If we've just been invited, we provide the invitation secret key that we've been given  */
-  invitationSeed?: string
+  seed?: string
 }
 
 /** Parameters needed to instantiate a connection  */

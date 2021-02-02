@@ -1,6 +1,6 @@
 ﻿import { MemberContext } from '/context'
 import { PublicDevice } from '/device'
-import { Invitation } from '/invitation'
+import { Invitation, Invitee } from '/invitation'
 import { PublicKeyset } from '/keyset'
 import { Lockbox } from '/lockbox'
 import { Member } from '/member'
@@ -216,7 +216,7 @@ export interface AdmitAction extends Action {
   type: 'ADMIT'
   payload: BasePayload & {
     id: string // invitation ID
-    userName: string
+    invitee: Invitee
   }
 }
 

@@ -7,8 +7,8 @@ import { membershipSequencer } from '/chain/membershipSequencer'
 import { LocalUserContext } from '/context'
 import { DeviceInfo, getDeviceId, PublicDevice, redactDevice } from '/device'
 import * as invitations from '/invitation'
-import { ProofOfInvitation } from '/invitation'
-import { generateEphemeralKeys } from '/invitation/generateEphemeralKeys'
+import { Invitee, ProofOfInvitation } from '/invitation'
+import { generateStarterKeys } from '../invitation/generateStarterKeys'
 import { normalize } from '/invitation/normalize'
 import * as keysets from '/keyset'
 import {
@@ -341,46 +341,52 @@ export class Team extends EventEmitter {
 
     *Note:* A member can only invite their own devices. A non-admin member can only remove their own
     device; an admin member can remove a device for anyone.
-  */
+  
+    */
 
-  public invite = (
-    userName: string,
-    options: { roles?: string[]; invitationSeed?: string } = {}
-  ) => {
-    const { roles = [] } = options
-    let { invitationSeed = invitations.randomSeed() } = options
-    invitationSeed = normalize(invitationSeed)
+  /** Invite a member */
+  public invite(params: string): inviteResult // Overload: Member invitation
+  public invite(params: { userName: string; roles?: string[]; seed?: string }): inviteResult // Overload: Member invitation
+  /** Invite a device */
+  public invite(params: { deviceName: string; seed?: string }): inviteResult // Overload: Device invitation
+  //
+  public invite(
+    params: string | { deviceName?: string; userName?: string; roles?: string[]; seed?: string }
+  ): inviteResult {
+    if (typeof params === 'string') params = { userName: params }
 
-    const tempKeys = generateEphemeralKeys(userName, invitationSeed)
+    let currentUser = this.context.user
+    const { deviceName, userName = currentUser.userName, roles = [] } = params
 
-    const currentUser = this.context.user
-    const inviteeIsAlreadyMember = this.has(userName)
-    if (inviteeIsAlreadyMember) {
-      // inviting a device for the current member
-      assert(currentUser.userName === userName, `Can't add a device for someone else`)
+    // use their seed if provided, otherwise generate a random one
+    let { seed = invitations.randomSeed() } = params
+    // either way, normalize it (all lower case, strip spaces & punctuation)
+    seed = normalize(seed)
 
-      const device: PublicDevice = {
-        userName,
-        deviceId: 'unknown', // TODO: do we require device name etc. from the start?
-        keys: redactKeys(tempKeys),
-      }
+    const deviceId = deviceName ? getDeviceId({ deviceName, userName }) : ''
+    const invitee: Invitee = deviceName
+      ? { type: KeyType.DEVICE, name: deviceId }
+      : { type: KeyType.MEMBER, name: userName }
 
-      const lockboxes = [lockbox.create(currentUser.keys, tempKeys)]
+    const starterKeys = generateStarterKeys(invitee, seed)
+
+    if (invitee.type === KeyType.DEVICE) {
+      // create new device with starter keys and add it to chain
+
+      const device: PublicDevice = { userName, deviceId, keys: redactKeys(starterKeys) }
+      const lockboxes = [lockbox.create(currentUser.keys, starterKeys)]
       this.dispatch({
         type: 'ADD_DEVICE',
         payload: { device, lockboxes },
       })
     } else {
-      // inviting a new member
+      // create new member with starter keys and add it to chain
+
+      // confirm that we're an admin (courtesy check - actually enforced at reducer level)
       assert(this.memberIsAdmin(currentUser.userName), `Only admins can add invite new members`)
 
-      // create a new member with keys derived from the seed
-      const member: Member = { userName, keys: keysets.redactKeys(tempKeys), roles }
-
-      // make normal lockboxes for the new member
+      const member: Member = { userName, roles, keys: redactKeys(starterKeys) }
       const lockboxes = this.createMemberLockboxes(member)
-
-      // post the member & their lockboxes to the signature chain
       this.dispatch({
         type: 'ADD_MEMBER',
         payload: { member, roles, lockboxes },
@@ -389,7 +395,7 @@ export class Team extends EventEmitter {
 
     // generate invitation
     const teamKeys = this.teamKeys()
-    const invitation = invitations.create({ invitationSeed, teamKeys, userName })
+    const invitation = invitations.create({ seed, invitee, teamKeys })
 
     // post invitation to signature chain
     this.dispatch({
@@ -397,18 +403,14 @@ export class Team extends EventEmitter {
       payload: { invitation },
     })
 
-    // return the secret key (to pass on to invitee) and the invitation id (which they can use to revoke later)
-    const { id } = invitation
-    return { invitationSeed, id }
+    // return the secret invitation seed (to pass on to invitee) and the invitation id (which could be used to revoke later)
+    return { seed, id: invitation.id }
   }
 
-  /** Revoke an invitation.  */
+  /** Revoke an invitation. */
   public revokeInvitation = (id: string) => {
-    const invitation = this.state.invitations[id]
-    if (invitation === undefined) throw new Error(`No invitation with id '${id}' found.`)
-    // TODO: should this also remove the member?
-    // if the invitation is for an existing member's device, we don't want to
-    // otherwise we probably do
+    // TODO: we should also remove the device or member that was added
+    // for that, we need to open the invitation
     this.dispatch({
       type: 'REVOKE_INVITATION',
       payload: { id },
@@ -423,18 +425,25 @@ export class Team extends EventEmitter {
     return id in this.state.invitations
   }
 
+  public getInvitation = (id: string) => {
+    // make sure the invitation exists
+    assert(this.hasInvitation(id), `No invitation with id '${id}' found.`)
+
+    const invitation = this.state.invitations[id]
+
+    // make sure the invitation can be used
+    assert(!invitation.revoked, `This invitation has been revoked.`)
+    assert(!invitation.used, `This invitation has already been used.`)
+
+    return invitation
+  }
+
   /** Admit a new member/device to the team based on proof of invitation */
   public admit = (proof: ProofOfInvitation) => {
     const teamKeys = this.teamKeys()
-    const { id, userName } = proof
+    const { id, invitee } = proof
 
-    // make sure the invitation exists
-    assert(this.hasInvitation(proof), `No invitation with id '${id}' found.`)
-
-    // make sure the invitation can be used
-    const invitation = this.state.invitations[id]
-    if (invitation.revoked) throw new Error(`This invitation has been revoked.`)
-    if (invitation.used) throw new Error(`This invitation has already been used.`)
+    const invitation = this.getInvitation(id)
 
     // validate proof of invitation
     const validation = invitations.validate(proof, invitation, teamKeys)
@@ -443,7 +452,7 @@ export class Team extends EventEmitter {
     // post admission to the signature chain
     this.dispatch({
       type: 'ADMIT',
-      payload: { id, userName },
+      payload: { id, invitee },
     })
   }
 
@@ -455,14 +464,17 @@ export class Team extends EventEmitter {
 
     // We'll only be given a new keyset if this is a member joining.
     // It's a device (belonging to an existing member) there's not a new keyset
-    if (newKeyset) this.changeKeys(newKeyset)
+    // TODO this is no longer true
+    if (newKeyset) {
+      this.changeKeys(newKeyset)
 
-    // Add our device
-    const device = redactDevice(this.context.user.device)
-    this.dispatch({
-      type: 'ADD_DEVICE',
-      payload: { device },
-    })
+      // Add our device
+      const device = redactDevice(this.context.user.device)
+      this.dispatch({
+        type: 'ADD_DEVICE',
+        payload: { device },
+      })
+    }
   }
 
   /**************** CRYPTO
@@ -637,3 +649,5 @@ export class Team extends EventEmitter {
 
 const maybeDeserialize = (source: string | TeamSignatureChain): TeamSignatureChain =>
   typeof source === 'string' ? chains.deserialize(source) : source
+
+type inviteResult = { id: string; seed: string }

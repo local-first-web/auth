@@ -1,14 +1,13 @@
 import assert from 'assert'
-import { HasScope } from '/keyset'
-import { getScope } from '/keyset/getScope'
+import { KeyScope, getScope } from '/keyset'
 
-export const scopesMatch = (a: HasScope, b: HasScope) => {
+export const scopesMatch = (a: KeyScope, b: KeyScope) => {
   const scopeA = getScope(a)
   const scopeB = getScope(b)
   return scopeA.type === scopeB.type && scopeA.name === scopeB.name
 }
 
-export const assertScopesMatch = (a: HasScope, b: HasScope) => {
+export const assertScopesMatch = (a: KeyScope, b: KeyScope) => {
   assert(
     scopesMatch(a, b),
     `The scope of the new keys must match those of the old lockbox. 
