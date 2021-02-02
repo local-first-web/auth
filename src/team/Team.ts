@@ -1,6 +1,7 @@
 ﻿import { randomKey, signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
 import { lockboxSummary } from '../util/lockboxSummary'
+import { keysetSummary } from '../util/keysetSummary'
 import * as chains from '/chain'
 import {
   chainSummary,
@@ -11,7 +12,14 @@ import {
 } from '/chain'
 import { membershipSequencer } from '/chain/membershipSequencer'
 import { LocalUserContext } from '/context'
-import { DeviceInfo, getDeviceId, redactDevice } from '/device'
+import {
+  DeviceInfo,
+  DeviceType,
+  DeviceWithSecrets,
+  getDeviceId,
+  PublicDevice,
+  redactDevice,
+} from '/device'
 import * as invitations from '/invitation'
 import { ProofOfInvitation } from '/invitation'
 import { generateEphemeralKeys } from '/invitation/generateEphemeralKeys'
@@ -29,6 +37,7 @@ import {
   TEAM_SCOPE,
 } from '/keyset'
 import { getScope } from '/keyset/getScope'
+import { scopesMatch } from '/keyset/scopesMatch'
 import * as lockbox from '/lockbox'
 import { Member } from '/member'
 import { ADMIN, Role } from '/role'
@@ -68,11 +77,7 @@ export class Team extends EventEmitter {
     super()
     this.seed = options.seed ?? randomKey()
     this.context = options.context
-    this.log = (o: any, ...args: any[]) =>
-      debug(`lf:auth:team:${this.context.user.userName}`)(
-        typeof o !== 'string' ? JSON.stringify(o, null, 2) : o,
-        ...args
-      )
+    this.log = debug(`lf:auth:team:${this.context.user.userName}`)
 
     if (isNewTeam(options)) {
       // Create a new team with the current user as founding member
@@ -83,11 +88,13 @@ export class Team extends EventEmitter {
       const teamLockbox = lockbox.create(keysets.create(TEAM_SCOPE, this.seed), localUser.keys)
       const adminLockbox = lockbox.create(keysets.create(ADMIN_SCOPE, this.seed), localUser.keys)
 
+      const deviceLockbox = lockbox.create(localUser.keys, localUser.device.keys)
+
       // Post root link to signature chain
       const payload = {
         teamName: options.teamName,
         rootMember: users.redactUser(localUser),
-        lockboxes: [teamLockbox, adminLockbox],
+        lockboxes: [teamLockbox, adminLockbox, deviceLockbox],
       }
       this.chain = chains.create<TeamAction>(payload, this.context)
     } else {
@@ -130,7 +137,6 @@ export class Team extends EventEmitter {
     const head = chains.getHead(this.chain) as TeamActionLink
 
     // we don't need to pass the whole chain through the reducer, just the current state + the new head
-    this.log(chainSummary(this.chain))
     this.state = reducer(this.state, head)
 
     this.emit('updated', { head: this.chain.head })
@@ -148,7 +154,6 @@ export class Team extends EventEmitter {
     const sequencer = membershipSequencer
     const sequence = chains.getSequence({ chain: this.chain, resolver, sequencer })
 
-    this.log(chainSummary(this.chain))
     this.state = sequence.reduce(reducer, initialState)
 
     this.emit('updated', { head: this.chain.head })
@@ -360,16 +365,30 @@ export class Team extends EventEmitter {
     let { invitationSeed = invitations.randomSeed() } = options
     invitationSeed = normalize(invitationSeed)
 
+    const tempKeys = generateEphemeralKeys(userName, invitationSeed)
+
     const currentUser = this.context.user
-    if (this.has(userName)) {
+    const inviteeIsAlreadyMember = this.has(userName)
+    if (inviteeIsAlreadyMember) {
       // inviting a device for the current member
       assert(currentUser.userName === userName, `Can't add a device for someone else`)
+
+      const device: PublicDevice = {
+        userName,
+        deviceId: 'unknown', // TODO: do we require device name etc. from the start?
+        keys: redactKeys(tempKeys),
+      }
+
+      const lockboxes = [lockbox.create(currentUser.keys, tempKeys)]
+      this.dispatch({
+        type: 'ADD_DEVICE',
+        payload: { device, lockboxes },
+      })
     } else {
       // inviting a new member
       assert(this.memberIsAdmin(currentUser.userName), `Only admins can add invite new members`)
 
       // create a new member with keys derived from the seed
-      const tempKeys = generateEphemeralKeys(userName, invitationSeed)
       const member: Member = { userName, keys: keysets.redactKeys(tempKeys), roles }
 
       // make normal lockboxes for the new member
@@ -448,7 +467,8 @@ export class Team extends EventEmitter {
     // This is an important check - make sure that we've not been spoofed into joining the wrong team
     assert(this.hasInvitation(proof), `Can't join a team I wasn't invited to`)
 
-    // (If this is a device accepting an invitation from an existing member, it won't provide a new keyset)
+    // We'll only be given a new keyset if this is a member joining.
+    // It's a device (belonging to an existing member) there's not a new keyset
     if (newKeyset) this.changeKeys(newKeyset)
 
     // Add our device
@@ -531,23 +551,25 @@ export class Team extends EventEmitter {
   public changeKeys = (newKeyset: KeysetWithSecrets) => {
     switch (newKeyset.type) {
       case KeyType.MEMBER: {
-        this.log('changing keys: %o', newKeyset)
+        this.log(`change member keys ${keysetSummary(newKeyset)}`)
         assert(newKeyset.name === this.userName, `Can't change another user's secret keys`)
 
         const oldKeys = this.context.user.keys
 
-        const generation = oldKeys.generation + 1
-        const keys = { ...redactKeys(newKeyset), generation } as PublicKeyset
-        const scope = { type: KeyType.MEMBER, name: this.userName }
-        const lockboxes = this.generateNewLockboxes(scope)
+        newKeyset.generation = oldKeys.generation + 1
 
-        this.log('******** old lockboxes: %o', this.state.lockboxes.map(lockboxSummary))
-        this.log('******** new lockboxes: %o', lockboxes.map(lockboxSummary))
+        // treat the old keys as compromised, and rotate any lockboxes they could open
+        const keys = redactKeys(newKeyset)
+        const lockboxes = this.generateNewLockboxes(newKeyset)
 
+        // post our new public keys to the signature chain
         this.dispatch({
           type: 'CHANGE_MEMBER_KEYS',
           payload: { keys, lockboxes },
         })
+
+        // update our keys in context
+        this.context.user.keys = newKeyset
 
         // TODO: After I update my own keys, I'll still be able to open lockboxes with the previous
         // keys. Admins should check on every update for this situation - where I have newer keys
@@ -558,6 +580,7 @@ export class Team extends EventEmitter {
         break
       }
       case KeyType.DEVICE: {
+        this.log(`change device keys ${keysetSummary(newKeyset)}`)
         assert(newKeyset.name === this.deviceId, `Can't change another device's secret keys`)
 
         const oldKeys = this.context.user.device.keys
@@ -600,14 +623,26 @@ export class Team extends EventEmitter {
 
     // identify all the keys that are indirectly compromised
     const visibleScopes = getVisibleScopes(this.state, compromised)
-    const newKeysetsForVisibleScopes = visibleScopes.map((scope) => keysets.create(scope))
+    const otherNewKeysets = visibleScopes.map((scope) => keysets.create(scope))
 
-    // generate new lockboxes for each one
-    const allNewKeysets = [newKeyset, ...newKeysetsForVisibleScopes]
-    const newLockboxes = allNewKeysets.flatMap((newKeyset) => {
+    // generate new keys for each one
+    const newKeysets = [newKeyset, ...otherNewKeysets]
+
+    // create new lockboxes for each of these
+    const newLockboxes = newKeysets.flatMap((newKeyset) => {
       const scope = getScope(newKeyset)
       const oldLockboxes = select.lockboxesInScope(this.state, scope)
-      return oldLockboxes.map((oldLockbox) => lockbox.rotate(oldLockbox, newKeyset))
+
+      return oldLockboxes.map((oldLockbox) => {
+        // check whether we have new keys for the recipient of this lockbox
+        const updatedKeyset = newKeysets.find((k) => scopesMatch(k, oldLockbox.recipient))
+        return lockbox.rotate({
+          oldLockbox,
+          newContents: newKeyset,
+          // if we did, address the new lockbox to those keys
+          updatedRecipientKeys: updatedKeyset ? redactKeys(updatedKeyset) : undefined,
+        })
+      })
     })
 
     return newLockboxes
