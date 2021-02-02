@@ -2,8 +2,8 @@
 import { DeviceInfo } from '/device/types'
 import { HashPurpose } from '/util'
 
-/** The deviceId is a hash of the name and username; we use it to identify the device uniquely in
- *  public situations where we want to avoid leaking more info than necessary
+/** The deviceId is a hash of the device name and username; we use it to identify the device
+ *  uniquely in public situations where we want to avoid leaking more info than necessary
  */
 export const getDeviceId = ({ deviceName, userName }: Omit<DeviceInfo, 'type'>): Base64 => {
   const isTestEnvironment = process.env.NODE_ENV === 'test'
