@@ -30,6 +30,7 @@ import {
   InitialContext,
   SendFunction,
 } from '/connection/types'
+import { DeviceType } from '/device'
 import * as invitations from '/invitation'
 import { create, KeyType, randomKey, redactKeys } from '/keyset'
 import { Team } from '/team'
@@ -55,7 +56,7 @@ export class Protocol extends EventEmitter {
     super()
 
     this.userName = context.user.userName
-    this.log = debug(`lf:auth:protocol:${this.userName}`)
+    this.log = debug(`lf:auth:protocol:${this.userName}:${DeviceType[context.user.device.type]}`)
 
     this.log('------------------ new connection')
 
@@ -220,8 +221,18 @@ export class Protocol extends EventEmitter {
         // we've just received the team's signature chain; reconstruct team
         const team = this.rehydrateTeam(context, event)
 
+        // Q: are we joining with a device invitation?
+        // TODO: not sure how to know that from here
+        // if so, we shouldn't make & send new keys, we should update our keys with the user's keys on the team
+        // BUT we're currently not making user->device lockboxes
+        // so we need to put that in place first
+
         // create new keys for ourselves to replace the ephemeral ones from the invitation
         context.user.keys = create({ type: KeyType.MEMBER, name: context.user.userName })
+
+        // also
+        // when I invite a device, I'm not entering anything about it - I'm not giving it a name
+        // or type or anything. that information should come from the device itself
 
         // join the team
         const proof = this.myProofOfInvitation(context)
