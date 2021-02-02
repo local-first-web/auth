@@ -1,16 +1,14 @@
 import { generateProof, randomSeed, create, validate } from '/invitation'
 import * as keyset from '/keyset'
-import { KeyType } from '/keyset'
 
 const { TEAM_SCOPE } = keyset
 
 describe('invitations', () => {
   const teamKeys = keyset.create(TEAM_SCOPE)
-  const newMemberKeys = keyset.create({ type: KeyType.MEMBER, name: 'bob' })
 
   test('create invitation', () => {
     const invitationSeed = randomSeed()
-    const invitation = create({ teamKeys, userName: 'bob', newMemberKeys, invitationSeed })
+    const invitation = create({ teamKeys, userName: 'bob', invitationSeed })
 
     // looks like an invitation
     expect(invitationSeed).toHaveLength(16)
@@ -25,7 +23,7 @@ describe('invitations', () => {
 
     // 👩🏾 Alice generates an invitation with this key. Normally the invitation would be stored on the
     // team's signature chain; here we're just keeping it around in a variable.
-    const invitation = create({ teamKeys, userName: 'bob', newMemberKeys, invitationSeed: seed })
+    const invitation = create({ teamKeys, userName: 'bob', invitationSeed: seed })
 
     // 👨🏻‍🦲 Bob accepts invitation and obtains a credential proving that he was invited.
     const proofOfInvitation = generateProof(seed, 'bob')
@@ -42,7 +40,7 @@ describe('invitations', () => {
     // 👩🏾 Alice uses a secret key to create an invitation; she sends it to Bob via a trusted side channel
     const invitationSeed = 'passw0rd'
     // and uses it to create an invitation for him
-    const invitation = create({ teamKeys, userName: 'bob', newMemberKeys, invitationSeed })
+    const invitation = create({ teamKeys, userName: 'bob', invitationSeed })
 
     // 🦹‍♀️ Eve tries to accept the invitation in Bob's place, but she doesn't have the correct invitation key
     const proofOfInvitation = generateProof('horsebatterycorrectstaple', 'bob')
@@ -55,7 +53,7 @@ describe('invitations', () => {
   test(`even if you know the key, you can't accept someone else's invitation under your own name`, () => {
     // 👩🏾 Alice generates a secret key and sends it to Bob via a trusted side channel.
     const invitationSeed = randomSeed()
-    const invitation = create({ teamKeys, userName: 'bob', newMemberKeys, invitationSeed })
+    const invitation = create({ teamKeys, userName: 'bob', invitationSeed })
 
     // 🦹‍♀️ Eve has the secret key, so she tries to use it to get herself accepted into the group
     const proofOfInvitation = generateProof(invitationSeed, 'eve')
