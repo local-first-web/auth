@@ -3,15 +3,6 @@ import { create } from '/user/create'
 import '/util/testing/expect/toLookLikeKeyset'
 
 describe('user', () => {
-  beforeEach(() => {
-    localStorage.clear()
-  })
-
-  it('returns undefined if no user exists', () => {
-    const user = load()
-    expect(user).toBeUndefined()
-  })
-
   it('creates a new user', () => {
     const bob = create('bob')
     expect(bob.userName).toBe('bob')
