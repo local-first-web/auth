@@ -3,15 +3,13 @@ import { Member } from '/member'
 import { User } from '/user'
 import { SemVer } from '/util'
 
-interface Context {
+export interface LocalUserContext {
   client?: Client
-}
-
-export interface LocalUserContext extends Context {
   user: User
 }
 
-export interface MemberContext extends Context {
+export interface MemberContext {
+  client?: Client
   member: Member
   device: PublicDevice
 }
