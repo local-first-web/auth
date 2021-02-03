@@ -22,22 +22,24 @@ import {
 } from '/connection/message'
 import { orderedDelivery } from '/connection/orderedDelivery'
 import {
-  StateMachineAction,
   Condition,
   ConnectionContext,
   ConnectionParams,
   ConnectionState,
   InitialContext,
+  isInvitee,
   SendFunction,
+  StateMachineAction,
 } from '/connection/types'
-import { DeviceType } from '/device'
 import * as invitations from '/invitation'
 import { Invitee } from '/invitation'
-import { create, KeyType, randomKey, redactKeys } from '/keyset'
+import { create, KeyType, randomKey } from '/keyset'
 import { Team } from '/team'
 import { arrayToMap, assert, debug } from '/util'
 
 const { MEMBER } = KeyType
+
+// NEXT: InitialContext needs to have two possible states - member or non-member
 
 /**
  * Wraps a state machine (using [XState](https://xstate.js.org/docs/)) that
@@ -50,16 +52,13 @@ export class Protocol extends EventEmitter {
   private machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
   private incomingMessageQueue: Record<number, NumberedConnectionMessage> = {}
   private outgoingMessageIndex: number = 0
-  private userName: string
   private isRunning: boolean = false
 
   constructor({ sendMessage, context }: ConnectionParams) {
     super()
 
-    this.userName = context.user.userName
-    this.log = debug(`lf:auth:protocol:${this.userName}:${DeviceType[context.user.device.type]}`)
-
-    this.log('------------------ new connection')
+    const debugLabel = isInvitee(context) ? context.invitee.name : context.user.userName
+    this.log = debug(`lf:auth:protocol:${debugLabel}`)
 
     this.sendMessage = (message: ConnectionMessage) => {
       const index = this.outgoingMessageIndex++
@@ -104,13 +103,18 @@ export class Protocol extends EventEmitter {
     return this
   }
 
+  get userName() {
+    if (!this.isRunning) return ''
+    return isInvitee(this.context) ? this.context.invitee.name : this.context.user!.userName
+  }
+
   /** Returns the current state of the protocol machine. */
   get state() {
     if (!this.isRunning) return 'disconnected'
     else return this.machine.state.value
   }
 
-  get context() {
+  get context(): ConnectionContext {
     if (!this.isRunning) throw new Error(`Can't get context; machine not started`)
     return this.machine.state.context
   }
@@ -186,15 +190,12 @@ export class Protocol extends EventEmitter {
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendHello'`) */
   private readonly actions: Record<string, StateMachineAction> = {
     sendHello: async (context) => {
+      const payload = isInvitee(context)
+        ? { proofOfInvitation: this.myProofOfInvitation(context) }
+        : { identityClaim: { type: MEMBER, name: context.user!.userName } }
       this.sendMessage({
         type: 'HELLO',
-        payload: {
-          // claim our identity
-          identityClaim: { type: MEMBER, name: context.user.userName },
-          // if we're not a member yet, attach our proof of invitation
-          proofOfInvitation:
-            context.seed !== undefined ? this.myProofOfInvitation(context) : undefined,
-        },
+        payload,
       })
     },
 
@@ -203,9 +204,20 @@ export class Protocol extends EventEmitter {
     // TODO: authentication should always use device keys, not member keys
 
     receiveHello: assign({
-      theirIdentityClaim: (_, event) => (event as HelloMessage).payload.identityClaim,
-      theyHaveInvitation: (_, event) => !!(event as HelloMessage).payload.proofOfInvitation,
-      theirProofOfInvitation: (_, event) => (event as HelloMessage).payload.proofOfInvitation,
+      theirIdentityClaim: (_, event) => {
+        event = event as HelloMessage
+        return 'identityClaim' in event.payload ? event.payload.identityClaim : undefined
+      },
+
+      theyHaveInvitation: (_, event) => {
+        event = event as HelloMessage
+        return 'proofOfInvitation' in event.payload
+      },
+
+      theirProofOfInvitation: (_, event) => {
+        event = event as HelloMessage
+        return 'proofOfInvitation' in event.payload ? event.payload.proofOfInvitation : undefined
+      },
     }),
 
     acceptInvitation: (context) => {
@@ -222,22 +234,31 @@ export class Protocol extends EventEmitter {
         // we've just received the team's signature chain; reconstruct team
         const team = this.rehydrateTeam(context, event)
 
-        // Q: are we joining with a device invitation?
-        // TODO: not sure how to know that from here
-        // if so, we shouldn't make & send new keys, we should update our keys with the user's keys on the team
-        // BUT we're currently not making user->device lockboxes
-        // so we need to put that in place first
+        // TODO:
+        // This assumes we have `context.user` but if we're a device with an invitation, we don't know what user we are.
+        // Basically we'd want to do the same thing as we do here, but with device keys. Then once we've joined we can populate
+        // `context.user` from information on the team.
 
-        // create new keys for ourselves to replace the ephemeral ones from the invitation
-        context.user.keys = create({ type: KeyType.MEMBER, name: context.user.userName })
+        // BUT we're currently not making user->device lockboxes so we need to put that in place
 
-        // also
-        // when I invite a device, I'm not entering anything about it - I'm not giving it a name
-        // or type or anything. that information should come from the device itself
+        // ALSO if we don't have a user then we can't rehydrate the team because that has to be in
+        // context.
+        // - maybe Team shouldn't require a User in context, but only a Device, because with the
+        //   device we can access the user's stuff
+        //
 
-        // join the team
-        const proof = this.myProofOfInvitation(context)
-        team.join(proof, context.user.keys)
+        if (context.user) {
+          // first create new keys for ourselves to replace the ephemeral ones from the invitation
+          context.user.keys = create({ type: KeyType.MEMBER, name: context.user.userName })
+
+          // also
+          // when I invite a device, I'm not entering anything about it - I'm not giving it a name
+          // or type or anything. that information should come from the device itself
+
+          // join the team
+          const proof = this.myProofOfInvitation(context)
+          team.join(proof, context.user.keys)
+        }
 
         // put the team in our context
         return team
@@ -255,6 +276,7 @@ export class Protocol extends EventEmitter {
     },
 
     proveIdentity: (context, event) => {
+      assert(context.user)
       const { challenge } = (event as ChallengeIdentityMessage).payload
       const proof = identity.prove(challenge, context.user.keys)
       this.sendMessage({
@@ -392,6 +414,7 @@ export class Protocol extends EventEmitter {
     generateSeed: assign({ seed: (_) => randomKey() }),
 
     sendSeed: (context) => {
+      assert(context.user)
       assert(context.peer)
       assert(context.seed)
 
@@ -415,6 +438,7 @@ export class Protocol extends EventEmitter {
 
     deriveSharedKey: assign({
       sessionKey: (context, event) => {
+        assert(context.user)
         assert(context.theirEncryptedSeed)
         assert(context.seed)
         assert(context.peer)
@@ -460,7 +484,7 @@ export class Protocol extends EventEmitter {
   /** These are referred to by name in `connectionMachine` (e.g. `cond: 'iHaveInvitation'`) */
   private readonly guards: Record<string, Condition> = {
     iHaveInvitation: (context) => {
-      const result = context.seed !== undefined
+      const result = context.invitee !== undefined
       return result
     },
 
@@ -545,13 +569,13 @@ export class Protocol extends EventEmitter {
   private rehydrateTeam = (context: ConnectionContext, event: ConnectionMessage) =>
     new Team({
       source: (event as AcceptInvitationMessage).payload.chain,
-      context: { user: context.user },
+      context: { user: context.user! },
     })
 
   private myProofOfInvitation = (context: ConnectionContext) => {
-    assert(context.seed)
-    const invitee = { type: KeyType.MEMBER, name: context.user.userName } as Invitee
-    return invitations.generateProof(context.seed, invitee)
+    assert(context.invitationSeed)
+    assert(context.invitee)
+    return invitations.generateProof(context.invitationSeed, context.invitee)
   }
 }
 
