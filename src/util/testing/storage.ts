@@ -1,4 +1,4 @@
-import { LocalUserContext } from '/context'
+import { LocalDeviceContext, LocalUserContext } from '/context'
 import * as teams from '/team'
 import { Team } from '/team'
 
@@ -8,7 +8,7 @@ export const storage = {
   save: (team: Team) => {
     storage.contents = team.save()
   },
-  load: (context: LocalUserContext) => {
+  load: (context: LocalDeviceContext) => {
     // ignore coverage
     if (storage.contents === undefined) throw new Error('need to save before you can load')
     return teams.load(storage.contents, context)

@@ -5,13 +5,13 @@ import { InitialContext } from '/connection'
 import { Connection } from '/connection/Connection'
 import { LocalUserContext } from '/context'
 import { DeviceInfo, DeviceType, DeviceWithSecrets, getDeviceId } from '/device'
-import { Invitee } from '/invitation'
 import * as keysets from '/keyset'
 import { KeyType } from '/keyset'
 import { ADMIN } from '/role'
 import * as teams from '/team'
 import { Team } from '/team'
 import * as users from '/user'
+import * as devices from '/device'
 import { User } from '/user'
 import { arrayToMap, assert } from '/util'
 
@@ -28,7 +28,7 @@ USAGE:
 
 */
 export const setup = (_config: (TestUserSettings | string)[] = []) => {
-  assert(_config.length > 0, `Can't do setup without any users`)
+  assert(_config.length > 0)
 
   // Coerce string userNames into TestUserSettings objects
   const config = _config.map((u) => (typeof u === 'string' ? { user: u } : u))
@@ -39,22 +39,29 @@ export const setup = (_config: (TestUserSettings | string)[] = []) => {
   // Create users
   const testUsers: Record<string, User> = userNames
     .map((userName: string) =>
-      retrieveAsset(userName, () =>
-        users.create({
-          userName,
-          deviceName: `laptop`,
-          deviceType: DeviceType.laptop,
-          seed: userName,
-        })
-      )
+      retrieveAsset(userName, () => {
+        const seed = userName // make these predictable
+        return users.create(userName, seed)
+      })
+    )
+    .reduce(arrayToMap('userName'), {})
+
+  const testLaptops: Record<string, DeviceWithSecrets> = userNames
+    .map((userName: string) =>
+      retrieveAsset(`${userName}-laptop`, () => {
+        const deviceName = `${userName}'s laptop`
+        const seed = deviceName
+        const deviceInfo: DeviceInfo = { userName, deviceName, type: DeviceType.laptop }
+        return devices.create(deviceInfo, seed)
+      })
     )
     .reduce(arrayToMap('userName'), {})
 
   // Create team
-  const teamCacheKey = fileSystemSafe(JSON.stringify(config))
+  const teamCacheKey = fileSystemSafe('team-' + JSON.stringify(config))
   const chain = retrieveAsset(teamCacheKey, () => {
-    const founder = testUsers[userNames[0]] // e.g. Alice
-    const founderContext = { user: founder } as LocalUserContext
+    const founder = userNames[0] // e.g. alice
+    const founderContext = { user: testUsers[founder], device: testLaptops[founder] }
     const teamSeed = 'seed123'
     const team = teams.create('Spies Я Us', founderContext, teamSeed)
     // Add members
@@ -68,27 +75,32 @@ export const setup = (_config: (TestUserSettings | string)[] = []) => {
 
   const makeUserStuff = ({ user: userName, member = true }: TestUserSettings) => {
     const user = testUsers[userName]
+    const device = testLaptops[userName]
+    const localContext = { user, device }
     const team = member
-      ? teams.load(chain, { user }) // members get a copy of the source team
-      : teams.create(userName, { user }) // non-members get a dummy empty placeholder team
+      ? teams.load(chain, localContext) // members get a copy of the source team
+      : teams.create(userName, localContext) // non-members get a dummy empty placeholder team
 
-    const makeDeviceStuff = (deviceName: string, type: DeviceType) => {
+    const makeDevice = (deviceName: string, type: DeviceType) => {
       const device = retrieveAsset(`${userName}-${deviceName}`, () => {
         const deviceInfo = { type, deviceName, userName } as DeviceInfo
         const deviceKeys = keysets.create({ type: KeyType.DEVICE, name: getDeviceId(deviceInfo) })
         return { ...deviceInfo, keys: deviceKeys } as DeviceWithSecrets
       })
 
-      const context = { user: { ...user, device } }
-      return { device, context }
+      return device
     }
 
     const userStuff = {
       userName,
       user,
       team,
-      phone: makeDeviceStuff('phone', DeviceType.mobile),
-      context: member ? { team, user } : { user },
+      device,
+      localContext,
+      phone: makeDevice('phone', DeviceType.mobile),
+      connectionContext: member
+        ? { team, user, device }
+        : { invitee: { type: KeyType.MEMBER, name: userName }, invitationSeed: '', device },
       connection: {} as Record<string, Connection>,
       getState: (peer: string) => userStuff.connection[peer].state,
     } as UserStuff
@@ -106,8 +118,8 @@ export const setup = (_config: (TestUserSettings | string)[] = []) => {
 // HELPERS
 
 export const tryToConnect = async (a: UserStuff, b: UserStuff) => {
-  const aConnection = (a.connection[b.userName] = new Connection(a.context).start())
-  const bConnection = (b.connection[a.userName] = new Connection(b.context).start())
+  const aConnection = (a.connection[b.userName] = new Connection(a.connectionContext).start())
+  const bConnection = (b.connection[a.userName] = new Connection(b.connectionContext).start())
 
   aConnection.pipe(bConnection).pipe(aConnection)
 }
@@ -120,7 +132,11 @@ export const connect = async (a: UserStuff, b: UserStuff) => {
 
 /** Connects a (a member) with b (invited using the given seed). */
 export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: string) => {
-  b.context = { invitee: { type: KeyType.MEMBER, name: b.userName }, invitationSeed: seed }
+  b.connectionContext = {
+    device: b.device,
+    invitee: { type: KeyType.MEMBER, name: b.userName },
+    invitationSeed: seed,
+  }
   return connect(a, b).then(() => {
     // The connection now has the team object, so let's update our user stuff
     b.team = b.connection[a.userName].team!
@@ -128,13 +144,13 @@ export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: st
 }
 
 export const connectPhoneWithInvitation = async (a: UserStuff, seed: string) => {
-  a.phone.context = {
-    invitee: { type: KeyType.DEVICE, name: getDeviceId(a.phone.device) },
+  const phoneContext = {
+    invitee: { type: KeyType.DEVICE, name: getDeviceId(a.phone) },
     invitationSeed: seed,
-  }
+  } as InitialContext
 
-  const laptop = new Connection(a.context).start()
-  const phone = new Connection(a.phone.context).start()
+  const laptop = new Connection(a.connectionContext).start()
+  const phone = new Connection(phoneContext).start()
 
   laptop.pipe(phone).pipe(laptop)
 
@@ -233,12 +249,11 @@ type TestUserSettings = {
 interface UserStuff {
   userName: string
   user: User
-  phone: {
-    device: DeviceWithSecrets
-    context: InitialContext
-  }
   team: Team
-  context: InitialContext
+  device: DeviceWithSecrets
+  phone: DeviceWithSecrets
+  localContext: LocalUserContext
+  connectionContext: InitialContext
   connection: Record<string, Connection>
   getState: (peer: string) => any
 }

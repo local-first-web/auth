@@ -4,7 +4,7 @@ import { keysetSummary } from '../util/keysetSummary'
 import * as chains from '/chain'
 import { membershipResolver, TeamAction, TeamActionLink, TeamSignatureChain } from '/chain'
 import { membershipSequencer } from '/chain/membershipSequencer'
-import { LocalUserContext } from '/context'
+import { LocalDeviceContext, LocalUserContext } from '/context'
 import { DeviceInfo, getDeviceId, PublicDevice, redactDevice } from '/device'
 import * as invitations from '/invitation'
 import { Invitee, ProofOfInvitation } from '/invitation'
@@ -38,6 +38,18 @@ import { assert, debug, Hash, Optional, Payload } from '/util'
 
 const { DEVICE, ROLE, MEMBER } = KeyType
 
+/*
+
+WIP: Straighten out devices vs users
+
+These things we hold to be true:
+- A device that's been invited and is in the process of joining doesn't know its user's secret keys
+- That device will eventually get the user's credentials etc. from lockboxes, but to do that we need
+  to be able to instantiate a team without a user
+- A user, on the other hand, will always have a device. so we can make the device required
+
+*/
+
 /**
  * The `Team` class wraps a `TeamSignatureChain` and exposes methods for adding and removing
  * members, assigning roles, creating and using invitations, and encrypting messages for
@@ -45,7 +57,7 @@ const { DEVICE, ROLE, MEMBER } = KeyType
  */
 export class Team extends EventEmitter {
   public chain: TeamSignatureChain
-  private context: LocalUserContext
+  private context: LocalDeviceContext
   private state: TeamState = initialState // derived from chain, only updated by running chain through reducer
   private log: (o: any, ...args: any[]) => void
   private seed: string
@@ -53,36 +65,32 @@ export class Team extends EventEmitter {
   /**
    * We can make a team instance either by creating a brand-new team, or restoring one from a stored
    * signature chain.
-   * @param options.context The context of the local user (userName, keys, device, client).
-   * @param options.source (only when rehydrating from a chain) The `TeamSignatureChain`
-   * representing the team's state. Can be serialized or not.
-   * @param options.teamName (only when creating a new team) The team's human-facing name.
-   * @param options.seed A seed for generating keys. This is typically only used for testing, to ensure predictable data.
    */
   constructor(options: TeamOptions) {
     super()
     this.seed = options.seed ?? randomKey()
     this.context = options.context
-    this.log = debug(`lf:auth:team:${this.context.user.userName}`)
+
+    this.log = debug(`lf:auth:team:${this.userName}`)
 
     if (isNewTeam(options)) {
       // Create a new team with the current user as founding member
-      const localUser = this.context.user
+      const localUser = options.context.user
 
       // Team & role secrets are never stored in plaintext, only encrypted into individual lockboxes.
       // Here we create new lockboxes with the team & admin keys for the founding member
       const teamLockbox = lockbox.create(keysets.create(TEAM_SCOPE, this.seed), localUser.keys)
       const adminLockbox = lockbox.create(keysets.create(ADMIN_SCOPE, this.seed), localUser.keys)
 
-      const deviceLockbox = lockbox.create(localUser.keys, localUser.device.keys)
+      const deviceLockbox = lockbox.create(localUser.keys, this.context.device.keys)
 
       // Post root link to signature chain
-      const payload = {
+      const rootPayload = {
         teamName: options.teamName,
         rootMember: users.redactUser(localUser),
         lockboxes: [teamLockbox, adminLockbox, deviceLockbox],
       }
-      this.chain = chains.create<TeamAction>(payload, this.context)
+      this.chain = chains.create<TeamAction>(rootPayload, options.context)
     } else {
       // Load a team from an existing chain
       this.chain = maybeDeserialize(options.source)
@@ -118,7 +126,7 @@ export class Team extends EventEmitter {
 
   /** Add a link to the chain, then recompute team state from the new chain */
   public dispatch(action: TeamAction) {
-    this.chain = chains.append(this.chain, action, this.context)
+    this.chain = chains.append(this.chain, action, this.context as LocalUserContext)
     // get the newly appended link
     const head = chains.getHead(this.chain) as TeamActionLink
 
@@ -355,7 +363,7 @@ export class Team extends EventEmitter {
   ): inviteResult {
     if (typeof params === 'string') params = { userName: params }
 
-    let currentUser = this.context.user
+    let currentUser = this.context.user!
     const { deviceName, userName = currentUser.userName, roles = [] } = params
 
     // use their seed if provided, otherwise generate a random one
@@ -469,7 +477,7 @@ export class Team extends EventEmitter {
       this.changeKeys(newKeyset)
 
       // Add our device
-      const device = redactDevice(this.context.user.device)
+      const device = redactDevice(this.context.device)
       this.dispatch({
         type: 'ADD_DEVICE',
         payload: { device },
@@ -504,15 +512,18 @@ export class Team extends EventEmitter {
   }
 
   /** Sign a message using the current user's keys. */
-  public sign = (payload: Payload): SignedEnvelope => ({
-    contents: payload,
-    signature: signatures.sign(payload, this.context.user.keys.signature.secretKey),
-    author: {
-      type: MEMBER,
-      name: this.userName,
-      generation: this.context.user.keys.generation,
-    },
-  })
+  public sign = (payload: Payload): SignedEnvelope => {
+    assert(this.context.user)
+    return {
+      contents: payload,
+      signature: signatures.sign(payload, this.context.user.keys.signature.secretKey),
+      author: {
+        type: MEMBER,
+        name: this.userName,
+        generation: this.context.user.keys.generation,
+      },
+    }
+  }
 
   /** Verify a signed message against the author's public key */
   public verify = (message: SignedEnvelope): boolean =>
@@ -532,8 +543,10 @@ export class Team extends EventEmitter {
    * Returns the secret keyset (if available to the current user) for the given type and name. To
    * get other members' public keys, look up the member - the `keys` property contains their public
    * keys.  */
-  public keys = (scope: Optional<KeyMetadata, 'generation'>): KeysetWithSecrets =>
-    select.keys(this.state, this.context.user, scope)
+  public keys = (scope: Optional<KeyMetadata, 'generation'>): KeysetWithSecrets => {
+    assert(this.context.user)
+    return select.keys(this.state, this.context.user, scope)
+  }
 
   /** Returns the team keyset. */
   public teamKeys = (): KeysetWithSecrets => this.keys(TEAM_SCOPE)
@@ -550,6 +563,7 @@ export class Team extends EventEmitter {
     switch (newKeyset.type) {
       case KeyType.MEMBER: {
         this.log(`change member keys ${keysetSummary(newKeyset)}`)
+        assert(this.context.user)
         assert(newKeyset.name === this.userName, `Can't change another user's secret keys`)
 
         const oldKeys = this.context.user.keys
@@ -581,7 +595,7 @@ export class Team extends EventEmitter {
         this.log(`change device keys ${keysetSummary(newKeyset)}`)
         assert(newKeyset.name === this.deviceId, `Can't change another device's secret keys`)
 
-        const oldKeys = this.context.user.device.keys
+        const oldKeys = this.context.device.keys
         const generation = oldKeys.generation + 1
         const keys = { ...redactKeys(newKeyset), generation } as PublicKeyset
         const lockboxes = this.generateNewLockboxes({ type: KeyType.DEVICE, name: newKeyset.name })
@@ -596,11 +610,12 @@ export class Team extends EventEmitter {
   }
 
   private get userName() {
-    return this.context.user.userName
+    if (this.context.user) return this.context.user.userName
+    else return 'unknown'
   }
 
   private get deviceId() {
-    return getDeviceId(this.context.user.device)
+    return getDeviceId(this.context.device)
   }
 
   /**

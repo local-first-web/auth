@@ -1,5 +1,5 @@
 import { ADMIN } from '/role'
-import { bob, bobsContext, defaultContext, newTeam, storage } from '/util/testing'
+import { setup, storage } from '/util/testing'
 import '/util/testing/expect/toLookLikeKeyset'
 import * as keysets from '/keyset'
 
@@ -9,29 +9,24 @@ describe('Team', () => {
     storage.contents = undefined
   })
 
-  const setup = () => ({
-    team: newTeam(),
-    context: defaultContext,
-  })
-
   describe('keys', () => {
     it('Alice has admin keys and team keys', () => {
-      const { team } = setup()
-      const adminKeys = team.roleKeys(ADMIN)
+      const { alice } = setup(['alice'])
+      const adminKeys = alice.team.roleKeys(ADMIN)
       expect(adminKeys).toLookLikeKeyset()
 
-      const teamKeys = team.teamKeys()
+      const teamKeys = alice.team.teamKeys()
       expect(teamKeys).toLookLikeKeyset()
     })
 
     it('Bob has team keys', () => {
       // Alice creates a team, adds Bob, and persists it
-      const { team } = setup()
-      team.add(bob)
-      storage.save(team)
+      const { alice, bob } = setup(['alice', { user: 'bob', member: false }])
+      alice.team.add(bob.user)
+      storage.save(alice.team)
 
       // Bob loads the team
-      const bobsTeam = storage.load(bobsContext)
+      const bobsTeam = storage.load(bob.localContext)
 
       // Bob has team keys
       const teamKeys = bobsTeam.teamKeys()
@@ -44,12 +39,12 @@ describe('Team', () => {
 
     it(`if Bob isn't admin he doesn't have admin keys`, () => {
       // Alice creates a team, adds Bob, and persists it
-      const { team } = setup()
-      team.add(bob)
-      storage.save(team)
+      const { alice, bob } = setup(['alice', { user: 'bob', member: false }])
+      alice.team.add(bob.user)
+      storage.save(alice.team)
 
       // Bob loads the team
-      const bobsTeam = storage.load(bobsContext)
+      const bobsTeam = storage.load(bob.localContext)
 
       // Bob is not an admin so he doesn't have admin keys
       const bobLooksForAdminKeys = () => bobsTeam.roleKeys(ADMIN)
@@ -58,12 +53,12 @@ describe('Team', () => {
 
     it('if Bob is an admin he has admin keys', () => {
       // Alice creates a team, adds Bob as an admin, and persists it
-      const { team } = setup()
-      team.add(bob, [ADMIN])
-      storage.save(team)
+      const { alice, bob } = setup(['alice', { user: 'bob', member: false }])
+      alice.team.add(bob.user, [ADMIN])
+      storage.save(alice.team)
 
       // Bob loads the team
-      const bobsTeam = storage.load(bobsContext)
+      const bobsTeam = storage.load(bob.localContext)
 
       // Bob has admin keys
       const adminKeys = bobsTeam.roleKeys(ADMIN)
@@ -72,12 +67,12 @@ describe('Team', () => {
 
     it('after changing his keys, Bob still has team keys', () => {
       // Alice creates a team, adds Bob, and persists it
-      const { team } = setup()
-      team.add(bob)
-      storage.save(team)
+      const { alice, bob } = setup(['alice', { user: 'bob', member: false }])
+      alice.team.add(bob.user)
+      storage.save(alice.team)
 
       // Bob loads the team
-      const bobsTeam = storage.load(bobsContext)
+      const bobsTeam = storage.load(bob.localContext)
 
       // Bob has team keys
       const teamKeys = bobsTeam.teamKeys()

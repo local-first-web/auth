@@ -27,7 +27,7 @@ import {
   ConnectionParams,
   ConnectionState,
   InitialContext,
-  isInvitee,
+  hasInvitee,
   SendFunction,
   StateMachineAction,
 } from '/connection/types'
@@ -57,7 +57,7 @@ export class Protocol extends EventEmitter {
   constructor({ sendMessage, context }: ConnectionParams) {
     super()
 
-    const debugLabel = isInvitee(context) ? context.invitee.name : context.user.userName
+    const debugLabel = hasInvitee(context) ? context.invitee.name : context.user.userName
     this.log = debug(`lf:auth:protocol:${debugLabel}`)
 
     this.sendMessage = (message: ConnectionMessage) => {
@@ -105,7 +105,7 @@ export class Protocol extends EventEmitter {
 
   get userName() {
     if (!this.isRunning) return ''
-    return isInvitee(this.context) ? this.context.invitee.name : this.context.user!.userName
+    return hasInvitee(this.context) ? this.context.invitee.name : this.context.user!.userName
   }
 
   /** Returns the current state of the protocol machine. */
@@ -190,7 +190,7 @@ export class Protocol extends EventEmitter {
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendHello'`) */
   private readonly actions: Record<string, StateMachineAction> = {
     sendHello: async (context) => {
-      const payload = isInvitee(context)
+      const payload = hasInvitee(context)
         ? { proofOfInvitation: this.myProofOfInvitation(context) }
         : { identityClaim: { type: MEMBER, name: context.user!.userName } }
       this.sendMessage({
@@ -566,11 +566,12 @@ export class Protocol extends EventEmitter {
     this.log(`${arrow} ${this.peerName} #${index} ${message.type} ${messageSummary(message)}`)
   }
 
-  private rehydrateTeam = (context: ConnectionContext, event: ConnectionMessage) =>
-    new Team({
+  private rehydrateTeam = (context: ConnectionContext, event: ConnectionMessage) => {
+    return new Team({
       source: (event as AcceptInvitationMessage).payload.chain,
-      context: { user: context.user! },
+      context: { user: context.user!, device: context.device },
     })
+  }
 
   private myProofOfInvitation = (context: ConnectionContext) => {
     assert(context.invitationSeed)

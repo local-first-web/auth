@@ -1,6 +1,6 @@
-﻿import { LocalUserContext } from '/context'
+﻿import { TeamSignatureChain } from '/chain'
+import { LocalDeviceContext } from '/context'
 import { Team } from '/team/Team'
-import { TeamSignatureChain } from '/chain'
 
-export const load = (source: string | TeamSignatureChain, context: LocalUserContext) =>
+export const load = (source: string | TeamSignatureChain, context: LocalDeviceContext) =>
   new Team({ source, context })

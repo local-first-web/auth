@@ -1,5 +1,6 @@
 import { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
 import { ConnectionMessage } from '/connection/message'
+import { DeviceWithSecrets } from '/device'
 import { Invitee, ProofOfInvitation } from '/invitation'
 import { KeyScope } from '/keyset'
 import { Member } from '/member'
@@ -20,7 +21,10 @@ export type SendFunction = <T extends ConnectionMessage>(message: T) => void
 
 /** The type of the initial context depends on whether we are already a member, or we've just been
  * invited and are connecting to the team for the first time. */
-export type InitialContext = MemberInitialContext | InviteeInitialContext
+export type InitialContext = (MemberInitialContext | InviteeInitialContext) & {
+  /** Information about the local device, including secret keys */
+  device: DeviceWithSecrets
+}
 
 export type MemberInitialContext = {
   /** The local user, including their secret keys */
@@ -40,8 +44,9 @@ export type InviteeInitialContext = {
 }
 
 // type guard: MemberInitialContext vs InviteeInitialContext
-export const isInvitee = (c: InitialContext | ConnectionContext): c is InviteeInitialContext =>
-  'invitee' in c
+export const hasInvitee = (
+  c: MemberInitialContext | InviteeInitialContext | ConnectionContext
+): c is InviteeInitialContext => 'invitee' in c
 
 export interface ConnectionParams {
   /** A function to send messages to our peer (this is how you hook this up to your network stack) */
@@ -63,6 +68,7 @@ export type ConnectionContext = {
     message: string
     details?: any
   }
+  device: DeviceWithSecrets
 } & Partial<MemberInitialContext> &
   Partial<InviteeInitialContext>
 

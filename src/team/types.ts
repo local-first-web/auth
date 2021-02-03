@@ -1,5 +1,5 @@
 import { TeamActionLink, TeamSignatureChain } from '/chain'
-import { LocalUserContext, MemberContext } from '/context'
+import { LocalDeviceContext, LocalUserContext, MemberContext } from '/context'
 import { Invitation } from '/invitation/types'
 import { KeyMetadata } from '/keyset'
 import { Lockbox } from '/lockbox'
@@ -9,24 +9,33 @@ import { Base64, Payload, ValidationResult } from '/util'
 
 // TEAM CONSTRUCTOR
 
+// only when creating a new team
 export interface NewTeamOptions {
+  /** The team's human-facing name */
   teamName: string
+
+  /** The context of the local user */
   context: LocalUserContext
 }
 
+// only when rehydrating from a chain
 export interface ExistingTeamOptions {
+  /** The `TeamSignatureChain` representing the team's state. Can be serialized or not. */
   source: string | TeamSignatureChain
-  context: LocalUserContext
+
+  /** The context of the local user */
+  context: LocalDeviceContext
 }
 
 export type TeamOptions = (NewTeamOptions | ExistingTeamOptions) & {
+  /** A seed for generating keys. This is typically only used for testing, to ensure predictable data. */
   seed?: string
 }
 
-// type guard for NewTeamOptions vs ExistingTeamOptions
-export function isNewTeam(options: TeamOptions): options is NewTeamOptions {
-  return (options as ExistingTeamOptions).source === undefined
-}
+/** type guard for NewTeamOptions vs ExistingTeamOptions  */
+export const isNewTeam = (
+  options: NewTeamOptions | ExistingTeamOptions
+): options is NewTeamOptions => 'teamName' in options
 
 // TEAM STATE
 
