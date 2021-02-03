@@ -1,11 +1,24 @@
 import { append, chainSummary, create, merge, TeamAction, TeamSignatureChain } from '/chain'
-
 import { ADMIN } from '/role'
 import { redactUser } from '/user'
 import { clone } from '/util'
-import { alice, alicesContext, bob, bobsContext, charlie, charliesContext } from '/util/testing'
+import { setup as userSetup } from '/util/testing'
 
 describe('chains', () => {
+  const setup = () => {
+    // 👩🏾 Alice creates a chain
+    let aChain = create<TeamAction>(
+      { teamName: 'Spies Я Us', rootMember: redactUser(alice.user) },
+      alice.localContext
+    )
+    // 👩🏾 Alice adds 👨🏻‍🦲 Bob as admin
+    aChain = append(aChain, ADD_BOB_AS_ADMIN, alice.localContext)
+
+    // 👩🏾 🡒 👨🏻‍🦲 Alice shares the chain with Bob
+    let bChain = clone(aChain)
+    return { aChain, bChain }
+  }
+
   describe('membershipResolver', () => {
     it('resolves two chains with no conflicting membership changes', () => {
       // 👩🏾 🡒 👨🏻‍🦲 Alice creates a chain and shares it with Bob
@@ -14,11 +27,11 @@ describe('chains', () => {
       // 🔌❌ Now Alice and Bob are disconnected
 
       // 👨🏻‍🦲 Bob makes a change
-      bChain = append(bChain, ADD_ROLE_MANAGERS, bobsContext)
+      bChain = append(bChain, ADD_ROLE_MANAGERS, bob.localContext)
       expect(sequence(bChain)).toEqual('ROOT, ADD:bob, ADD:managers')
 
       // 👩🏾 Concurrently, Alice makes a change
-      aChain = append(aChain, ADD_CHARLIE, alicesContext)
+      aChain = append(aChain, ADD_CHARLIE, alice.localContext)
       expect(sequence(aChain)).toEqual('ROOT, ADD:bob, ADD:charlie')
 
       // 🔌✔ Alice and Bob reconnect and synchronize chains
@@ -37,11 +50,11 @@ describe('chains', () => {
       // 🔌❌ Now Alice and Bob are disconnected
 
       // 👨🏻‍🦲 Bob adds Charlie to the group
-      bChain = append(bChain, ADD_CHARLIE, bobsContext)
+      bChain = append(bChain, ADD_CHARLIE, bob.localContext)
       expect(sequence(bChain)).toEqual('ROOT, ADD:bob, ADD:charlie')
 
       // 👩🏾 but concurrently, Alice removes Bob from the group
-      aChain = append(aChain, REMOVE_BOB, alicesContext)
+      aChain = append(aChain, REMOVE_BOB, alice.localContext)
       expect(sequence(aChain)).toEqual('ROOT, ADD:bob, REMOVE:bob')
 
       // 🔌✔ Alice and Bob reconnect and synchronize chains
@@ -57,11 +70,11 @@ describe('chains', () => {
       // 🔌❌ Now Alice and Bob are disconnected
 
       // 👨🏻‍🦲 Bob adds Charlie to the group
-      bChain = append(bChain, ADD_CHARLIE, bobsContext)
+      bChain = append(bChain, ADD_CHARLIE, bob.localContext)
       expect(sequence(bChain)).toEqual('ROOT, ADD:bob, ADD:charlie')
 
       // 👩🏾 but concurrently, Alice removes Bob from the admin role
-      aChain = append(aChain, DEMOTE_BOB, alicesContext)
+      aChain = append(aChain, DEMOTE_BOB, alice.localContext)
       expect(sequence(aChain)).toEqual('ROOT, ADD:bob, REMOVE:admin:bob')
 
       // 🔌✔ Alice and Bob reconnect and synchronize chains
@@ -73,7 +86,7 @@ describe('chains', () => {
     it(`doesn't allow a member who is removed to be concurrently added back`, () => {
       // 👩🏾 Alice creates a chain and adds Charlie
       let { aChain } = setup()
-      aChain = append(aChain, ADD_CHARLIE, alicesContext)
+      aChain = append(aChain, ADD_CHARLIE, alice.localContext)
 
       // 👩🏾 🡒 👨🏻‍🦲 Alice shares the chain with Bob
       let bChain = clone(aChain)
@@ -81,12 +94,12 @@ describe('chains', () => {
       // 🔌❌ Now Alice and Bob are disconnected
 
       // 👩🏾 Alice removes Charlie
-      aChain = append(aChain, REMOVE_CHARLIE, alicesContext)
+      aChain = append(aChain, REMOVE_CHARLIE, alice.localContext)
       expect(sequence(aChain)).toEqual('ROOT, ADD:bob, ADD:charlie, REMOVE:charlie')
 
       // 👨🏻‍🦲 Bob removes Charlie then adds him back
-      bChain = append(bChain, REMOVE_CHARLIE, bobsContext)
-      bChain = append(bChain, ADD_CHARLIE, bobsContext)
+      bChain = append(bChain, REMOVE_CHARLIE, bob.localContext)
+      bChain = append(bChain, ADD_CHARLIE, bob.localContext)
       expect(sequence(bChain)).toEqual('ROOT, ADD:bob, ADD:charlie, REMOVE:charlie, ADD:charlie')
 
       // 🔌✔ Alice and Bob reconnect and synchronize chains
@@ -102,10 +115,10 @@ describe('chains', () => {
       // 🔌❌ Now Alice and Bob are disconnected
 
       // 👨🏻‍🦲 Bob removes Alice
-      bChain = append(bChain, REMOVE_ALICE, bobsContext)
+      bChain = append(bChain, REMOVE_ALICE, bob.localContext)
 
       // 👩🏾 Alice removes Bob
-      aChain = append(aChain, REMOVE_BOB, alicesContext)
+      aChain = append(aChain, REMOVE_BOB, alice.localContext)
 
       // 🔌✔ Alice and Bob reconnect and synchronize chains
 
@@ -116,7 +129,7 @@ describe('chains', () => {
     it('resolves mutual concurrent removals in favor of the senior member', () => {
       // 👩🏾 Alice creates a chain and adds Charlie
       let { aChain } = setup()
-      aChain = append(aChain, ADD_CHARLIE_AS_ADMIN, alicesContext)
+      aChain = append(aChain, ADD_CHARLIE_AS_ADMIN, alice.localContext)
 
       // 👩🏾 🡒 👨🏻‍🦲 👳🏽‍♂️ Alice shares the chain with Bob and Charlie
       let bChain = clone(aChain)
@@ -125,10 +138,10 @@ describe('chains', () => {
       // 🔌❌ Now Bob and Charlie are disconnected
 
       // 👨🏻‍🦲 Bob removes Charlie
-      bChain = append(bChain, REMOVE_CHARLIE, bobsContext)
+      bChain = append(bChain, REMOVE_CHARLIE, bob.localContext)
 
       // 👳🏽‍♂️ Charlie removes Bob
-      cChain = append(cChain, REMOVE_BOB, charliesContext)
+      cChain = append(cChain, REMOVE_BOB, charlie.localContext)
 
       // 🔌✔ Bob and Charlie reconnect and synchronize chains
 
@@ -143,10 +156,10 @@ describe('chains', () => {
       // 🔌❌ Now Alice and Bob are disconnected
 
       // 👨🏻‍🦲 Bob demotes Alice
-      bChain = append(bChain, DEMOTE_ALICE, bobsContext)
+      bChain = append(bChain, DEMOTE_ALICE, bob.localContext)
 
       // 👩🏾 Alice demotes Bob
-      aChain = append(aChain, DEMOTE_BOB, alicesContext)
+      aChain = append(aChain, DEMOTE_BOB, alice.localContext)
 
       // 🔌✔ Alice and Bob reconnect and synchronize chains
 
@@ -157,7 +170,7 @@ describe('chains', () => {
     it('resolves circular mutual concurrent demotions in favor of the team founder', () => {
       // 👩🏾 🡒 👨🏻‍🦲 Alice creates a chain and adds Charlie as admin
       let { aChain } = setup()
-      aChain = append(aChain, ADD_CHARLIE_AS_ADMIN, alicesContext)
+      aChain = append(aChain, ADD_CHARLIE_AS_ADMIN, alice.localContext)
 
       // 👩🏾 🡒 👨🏻‍🦲 Alice shares the chain with Bob and Charlie
       let bChain = clone(aChain)
@@ -166,13 +179,13 @@ describe('chains', () => {
       // 🔌❌ Now Alice and Bob are disconnected
 
       // 👨🏻‍🦲 Bob demotes Charlie
-      bChain = append(bChain, DEMOTE_CHARLIE, bobsContext)
+      bChain = append(bChain, DEMOTE_CHARLIE, bob.localContext)
 
       // 👳🏽‍♂️ Charlie demotes Alice
-      cChain = append(cChain, DEMOTE_ALICE, charliesContext)
+      cChain = append(cChain, DEMOTE_ALICE, charlie.localContext)
 
       // 👩🏾 Alice demotes Bob
-      aChain = append(aChain, DEMOTE_BOB, alicesContext)
+      aChain = append(aChain, DEMOTE_BOB, alice.localContext)
 
       // 🔌✔ All reconnect and synchronize chains
       // This could happen three different ways - make sure the result is the same in all cases
@@ -186,90 +199,78 @@ describe('chains', () => {
       const expected = 'ROOT, ADD:bob, ADD:charlie, REMOVE:admin:bob'
       for (const chain of mergedChains) expect(sequence(chain)).toBe(expected)
     })
-
-    const setup = () => {
-      // 👩🏾 Alice creates a chain
-      let aChain = create<TeamAction>(
-        { teamName: 'Spies Я Us', rootMember: redactUser(alice) },
-        alicesContext
-      )
-      // 👩🏾 Alice adds 👨🏻‍🦲 Bob as admin
-      aChain = append(aChain, ADD_BOB_AS_ADMIN, alicesContext)
-
-      // 👩🏾 🡒 👨🏻‍🦲 Alice shares the chain with Bob
-      let bChain = clone(aChain)
-      return { aChain, bChain }
-    }
-
-    const expectMergedResult = (
-      aChain: TeamSignatureChain,
-      bChain: TeamSignatureChain,
-      expected: string[] | string
-    ) => {
-      if (!Array.isArray(expected)) expected = [expected] as string[] // coerce to array
-
-      // 👩🏾 ⇄ 👨🏻‍🦲 They synchronize chains
-      const mergedChain = merge(aChain, bChain)
-
-      // The resolved sequence should match one of the provided options
-      expect(expected).toContain(sequence(mergedChain))
-    }
-
-    const sequence = (chain: TeamSignatureChain) =>
-      chainSummary(chain)
-        .replace(/_MEMBER/g, '')
-        .replace(/_ROLE/g, '')
-
-    // constant actions
-
-    const REMOVE_ALICE = {
-      type: 'REMOVE_MEMBER',
-      payload: { userName: 'alice' },
-    } as TeamAction
-
-    const DEMOTE_ALICE = {
-      type: 'REMOVE_MEMBER_ROLE',
-      payload: { userName: 'alice', roleName: ADMIN },
-    } as TeamAction
-
-    const ADD_BOB_AS_ADMIN = {
-      type: 'ADD_MEMBER',
-      payload: { member: redactUser(bob), roles: [ADMIN] },
-    } as TeamAction
-
-    const REMOVE_BOB = {
-      type: 'REMOVE_MEMBER',
-      payload: { userName: 'bob' },
-    } as TeamAction
-
-    const DEMOTE_BOB = {
-      type: 'REMOVE_MEMBER_ROLE',
-      payload: { userName: 'bob', roleName: ADMIN },
-    } as TeamAction
-
-    const ADD_CHARLIE = {
-      type: 'ADD_MEMBER',
-      payload: { member: redactUser(charlie) },
-    } as TeamAction
-
-    const ADD_CHARLIE_AS_ADMIN = {
-      type: 'ADD_MEMBER',
-      payload: { member: redactUser(charlie), roles: [ADMIN] },
-    } as TeamAction
-
-    const REMOVE_CHARLIE = {
-      type: 'REMOVE_MEMBER',
-      payload: { userName: 'charlie' },
-    } as TeamAction
-
-    const DEMOTE_CHARLIE = {
-      type: 'REMOVE_MEMBER_ROLE',
-      payload: { userName: 'charlie', roleName: ADMIN },
-    } as TeamAction
-
-    const ADD_ROLE_MANAGERS = {
-      type: 'ADD_ROLE',
-      payload: { roleName: 'managers' },
-    } as TeamAction
   })
 })
+
+const expectMergedResult = (
+  aChain: TeamSignatureChain,
+  bChain: TeamSignatureChain,
+  expected: string[] | string
+) => {
+  if (!Array.isArray(expected)) expected = [expected] as string[] // coerce to array
+
+  // 👩🏾 ⇄ 👨🏻‍🦲 They synchronize chains
+  const mergedChain = merge(aChain, bChain)
+
+  // The resolved sequence should match one of the provided options
+  expect(expected).toContain(sequence(mergedChain))
+}
+
+const sequence = (chain: TeamSignatureChain) =>
+  chainSummary(chain)
+    .replace(/_MEMBER/g, '')
+    .replace(/_ROLE/g, '')
+
+const { alice, bob, charlie } = userSetup(['alice', 'bob', 'charlie'])
+
+// constant actions
+
+const REMOVE_ALICE = {
+  type: 'REMOVE_MEMBER',
+  payload: { userName: 'alice' },
+} as TeamAction
+
+const DEMOTE_ALICE = {
+  type: 'REMOVE_MEMBER_ROLE',
+  payload: { userName: 'alice', roleName: ADMIN },
+} as TeamAction
+
+const ADD_BOB_AS_ADMIN = {
+  type: 'ADD_MEMBER',
+  payload: { member: redactUser(bob.user), roles: [ADMIN] },
+} as TeamAction
+
+const REMOVE_BOB = {
+  type: 'REMOVE_MEMBER',
+  payload: { userName: 'bob' },
+} as TeamAction
+
+const DEMOTE_BOB = {
+  type: 'REMOVE_MEMBER_ROLE',
+  payload: { userName: 'bob', roleName: ADMIN },
+} as TeamAction
+
+const ADD_CHARLIE = {
+  type: 'ADD_MEMBER',
+  payload: { member: redactUser(charlie.user) },
+} as TeamAction
+
+const ADD_CHARLIE_AS_ADMIN = {
+  type: 'ADD_MEMBER',
+  payload: { member: redactUser(charlie.user), roles: [ADMIN] },
+} as TeamAction
+
+const REMOVE_CHARLIE = {
+  type: 'REMOVE_MEMBER',
+  payload: { userName: 'charlie' },
+} as TeamAction
+
+const DEMOTE_CHARLIE = {
+  type: 'REMOVE_MEMBER_ROLE',
+  payload: { userName: 'charlie', roleName: ADMIN },
+} as TeamAction
+
+const ADD_ROLE_MANAGERS = {
+  type: 'ADD_ROLE',
+  payload: { roleName: 'managers' },
+} as TeamAction
