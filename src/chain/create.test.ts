@@ -1,5 +1,9 @@
 import { create, deserialize, getHead, getRoot, serialize, validate } from '/chain'
-import { defaultContext } from '/util/testing'
+import { setup } from '/util/testing'
+
+const { alice } = setup(['alice'])
+const defaultContext = alice.localContext
+
 import '/util/testing/expect/toBeValid'
 
 const __ = expect.objectContaining
