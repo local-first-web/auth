@@ -5,6 +5,7 @@ import { InitialContext } from '/connection'
 import { Connection } from '/connection/Connection'
 import { LocalUserContext } from '/context'
 import { DeviceInfo, DeviceType, DeviceWithSecrets, getDeviceId } from '/device'
+import { Invitee } from '/invitation'
 import * as keysets from '/keyset'
 import { KeyType } from '/keyset'
 import { ADMIN } from '/role'
@@ -119,7 +120,7 @@ export const connect = async (a: UserStuff, b: UserStuff) => {
 
 /** Connects a (a member) with b (invited using the given seed). */
 export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: string) => {
-  b.context.seed = seed
+  b.context = { invitee: { type: KeyType.MEMBER, name: b.userName }, invitationSeed: seed }
   return connect(a, b).then(() => {
     // The connection now has the team object, so let's update our user stuff
     b.team = b.connection[a.userName].team!
@@ -127,7 +128,10 @@ export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: st
 }
 
 export const connectPhoneWithInvitation = async (a: UserStuff, seed: string) => {
-  a.phone.context.seed = seed
+  a.phone.context = {
+    invitee: { type: KeyType.DEVICE, name: getDeviceId(a.phone.device) },
+    invitationSeed: seed,
+  }
 
   const laptop = new Connection(a.context).start()
   const phone = new Connection(a.phone.context).start()
