@@ -20,7 +20,7 @@ export class Connection extends Transform {
 
   constructor(context: InitialContext) {
     super()
-    this.userName = context.user.userName
+    this.userName = 'user' in context ? context.user.userName : context.invitee.name
     this.log = debug(`lf:auth:connection:${this.userName}`)
 
     // outgoing messages from the protocol are stringified and pushed into the stream
