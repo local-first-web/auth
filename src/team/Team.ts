@@ -300,10 +300,8 @@ export class Team extends EventEmitter {
     
   */
 
-  public removeDevice = (deviceInfo: DeviceInfo) => {
-    const { userName } = deviceInfo
-    const deviceId = getDeviceId(deviceInfo)
-
+  // TODO: I think the whole deviceId thing isn't buying us much - just use deviceName?
+  public removeDevice = ({ userName, deviceId }: { userName: string; deviceId: string }) => {
     // create new keys & lockboxes for any keys this device had access to
     const lockboxes = this.generateNewLockboxes({ type: DEVICE, name: deviceId })
 
