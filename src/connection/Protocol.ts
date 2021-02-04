@@ -514,9 +514,15 @@ export class Protocol extends EventEmitter {
 
     identityIsKnown: (context) => {
       if (context.team === undefined) return true
-      const identityClaim = context.theirIdentityClaim!
-      const userName = identityClaim.name
-      return context.team.has(userName)
+      const deviceId = context.theirIdentityClaim!.name
+      const { userName, deviceName } = parseDeviceId(deviceId)
+      return (
+        context.team.has(userName) &&
+        context.team
+          .members(userName)
+          .devices!.map((d) => d.deviceName)
+          .includes(deviceName)
+      )
     },
 
     identityProofIsValid: (context, event) => {
@@ -525,9 +531,15 @@ export class Protocol extends EventEmitter {
       const identityProofMessage = event as ProveIdentityMessage
       const { challenge, proof } = identityProofMessage.payload
 
+      this.log(`checking identity proof ${JSON.stringify({ challenge, proof })}`)
+
       if (!R.equals(originalChallenge, challenge)) return false
-      const userName = challenge.name
-      const publicKeys = team.members(userName).keys
+      const deviceId = challenge.name
+      const { userName, deviceName } = parseDeviceId(deviceId)
+
+      const device = team.getDevice(userName, deviceName)
+
+      const publicKeys = device.keys
       const validation = identity.verify(challenge, proof, publicKeys)
       return validation.isValid
     },

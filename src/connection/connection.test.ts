@@ -22,7 +22,7 @@ const { DEVICE, MEMBER } = KeyType
 beforeAll(() => {})
 
 describe('connection', () => {
-  it('connects two members', async () => {
+  it.only('connects two members', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
     // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel
