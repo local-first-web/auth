@@ -27,7 +27,7 @@ export type InitialContext = (MemberInitialContext | InviteeInitialContext) & {
 }
 
 export type MemberInitialContext = {
-  /** The local user, including their secret keys */
+  /** The local user, including their secret keys  */
   user: User
 
   /** The team object we both belong to */
@@ -35,6 +35,9 @@ export type MemberInitialContext = {
 }
 
 export type InviteeInitialContext = {
+  /** The local user, including their secret keys (not available if this is a device joining) */
+  user?: User
+
   /** The type and name associated with the invitation
    * (e.g. `{type: MEMBER, name: userName}` or `{type: DEVICE, name: deviceID}`) */
   invitee: Invitee

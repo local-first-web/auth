@@ -3,7 +3,13 @@ import { EventEmitter } from 'events'
 import { generateStarterKeys } from '../invitation/generateStarterKeys'
 import { keysetSummary } from '../util/keysetSummary'
 import * as chains from '/chain'
-import { membershipResolver, TeamAction, TeamActionLink, TeamSignatureChain } from '/chain'
+import {
+  chainSummary,
+  membershipResolver,
+  TeamAction,
+  TeamActionLink,
+  TeamSignatureChain,
+} from '/chain'
 import { membershipSequencer } from '/chain/membershipSequencer'
 import { LocalDeviceContext, LocalUserContext } from '/context'
 import * as devices from '/device'
@@ -140,6 +146,8 @@ export class Team extends EventEmitter {
 
   /** Run the reducer on the entire chain to reconstruct the current team state. */
   private updateState = () => {
+    this.log(`updating state ${chainSummary(this.chain)}`)
+
     // Validate the chain's integrity. (This does not enforce team rules - that is done in the
     // reducer as it progresses through each link.)
     const validation = chains.validate(this.chain)
@@ -482,23 +490,45 @@ export class Team extends EventEmitter {
 
   /** Once the new member has received the chain and can instantiate the team, they call this to add
    * their device and change their keys */
-  public join = (proof: ProofOfInvitation, newKeyset?: KeysetWithSecrets) => {
+  public join = (proof: ProofOfInvitation) => {
     // This is an important check - make sure that we've not been spoofed into joining the wrong team
     assert(this.hasInvitation(proof), `Can't join a team I wasn't invited to`)
 
-    // We'll only be given a new keyset if this is a member joining.
-    // It's a device (belonging to an existing member) there's not a new keyset
-    // TODO this is no longer true
-    if (newKeyset) {
-      this.changeKeys(newKeyset)
+    if (this.context.user === undefined) {
+      // If we don't have a `user` defined, it's because we're a device that just joined with an invitation.
+      // Now that we've been sent the team's signature chain, we should be able to find a lockbox with our user's
+      // keys in it that we can open with our device keys.
+      const { userName } = this.context.device
+      const userKeys = this.keys({ type: MEMBER, name: userName })
+      this.context.user = { userName, keys: userKeys }
 
-      // Add our device
+      // create new device keys for ourselves to replace the ephemeral ones from the invitation
+      const deviceId = getDeviceId(this.context.device)
+      this.context.device.keys = keysets.create({ type: DEVICE, name: deviceId })
+      this.changeKeys(this.context.device.keys)
+    } else {
+      // if we did already have a `user` defined, we're joining as a new user.
+
+      // we need to create new user keys to replace the ephemeral ones from the invitation
+      const { userName } = this.context.user
+      this.context.user.keys = keysets.create({ type: MEMBER, name: userName })
+      this.changeKeys(this.context.user.keys)
+
+      // we need to add our device to the signature chain, as well as a lockbox for that device containing our user keys
+      const deviceLockbox = lockbox.create(this.context.user.keys, this.context.device.keys)
       const device = redactDevice(this.context.device)
       this.dispatch({
         type: 'ADD_DEVICE',
-        payload: { device },
+        payload: {
+          device,
+          lockboxes: [deviceLockbox],
+        },
       })
     }
+
+    // return the updated user and device
+    const { user, device } = this.context
+    return { user, device }
   }
 
   /**************** CRYPTO
@@ -556,23 +586,19 @@ export class Team extends EventEmitter {
   */
 
   /**
-   * Returns the secret keyset (if available to the current user) for the given type and name. To
+   * Returns the secret keyset (if available to the current device) for the given type and name. To
    * get other members' public keys, look up the member - the `keys` property contains their public
    * keys.  */
-  public keys = (scope: Optional<KeyMetadata, 'generation'>): KeysetWithSecrets => {
-    assert(this.context.user)
-    return select.keys(this.state, this.context.user, scope)
-  }
+  public keys = (scope: KeyScope) => select.keys(this.state, this.context.device, scope)
 
   /** Returns the team keyset. */
-  public teamKeys = (): KeysetWithSecrets => this.keys(TEAM_SCOPE)
+  public teamKeys = () => this.keys(TEAM_SCOPE)
 
   /** Returns the keys for the given role. */
-  public roleKeys = (roleName: string): KeysetWithSecrets =>
-    this.keys({ type: ROLE, name: roleName })
+  public roleKeys = (roleName: string) => this.keys({ type: ROLE, name: roleName })
 
   /** Returns the admin keyset. */
-  public adminKeys = (): KeysetWithSecrets => this.roleKeys(ADMIN)
+  public adminKeys = () => this.roleKeys(ADMIN)
 
   /** Replaces the current user or device's secret keyset with the one provided. */
   public changeKeys = (newKeyset: KeysetWithSecrets) => {

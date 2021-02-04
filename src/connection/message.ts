@@ -10,9 +10,10 @@ export type ReadyMessage = {
 
 export type HelloMessage = {
   type: 'HELLO'
-  payload:
-    | { identityClaim: KeyScope } // already a member
-    | { proofOfInvitation?: ProofOfInvitation } // not a member yet
+  payload: {
+    identityClaim: KeyScope
+    proofOfInvitation?: ProofOfInvitation
+  }
 }
 
 export type ErrorMessage = {

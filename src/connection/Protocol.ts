@@ -190,12 +190,15 @@ export class Protocol extends EventEmitter {
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendHello'`) */
   private readonly actions: Record<string, StateMachineAction> = {
     sendHello: async (context) => {
-      const payload = hasInvitee(context)
-        ? { proofOfInvitation: this.myProofOfInvitation(context) }
-        : { identityClaim: { type: DEVICE, name: getDeviceId(context.device) } }
       this.sendMessage({
         type: 'HELLO',
-        payload,
+        payload: {
+          identityClaim: {
+            type: DEVICE,
+            name: getDeviceId(context.device),
+          },
+          proofOfInvitation: hasInvitee(context) ? this.myProofOfInvitation(context) : undefined,
+        },
       } as HelloMessage)
     },
 
@@ -234,31 +237,13 @@ export class Protocol extends EventEmitter {
         // we've just received the team's signature chain; reconstruct team
         const team = this.rehydrateTeam(context, event)
 
-        // TODO:
-        // This assumes we have `context.user` but if we're a device with an invitation, we don't know what user we are.
-        // Basically we'd want to do the same thing as we do here, but with device keys. Then once we've joined we can populate
-        // `context.user` from information on the team.
+        // join the team
+        const proof = this.myProofOfInvitation(context)
+        const { user, device } = team.join(proof)
 
-        // BUT we're currently not making user->device lockboxes so we need to put that in place
-
-        // ALSO if we don't have a user then we can't rehydrate the team because that has to be in
-        // context.
-        // - maybe Team shouldn't require a User in context, but only a Device, because with the
-        //   device we can access the user's stuff
-        //
-
-        if (context.user) {
-          // first create new keys for ourselves to replace the ephemeral ones from the invitation
-          context.user.keys = create({ type: KeyType.MEMBER, name: context.user.userName })
-
-          // also
-          // when I invite a device, I'm not entering anything about it - I'm not giving it a name
-          // or type or anything. that information should come from the device itself
-
-          // join the team
-          const proof = this.myProofOfInvitation(context)
-          team.join(proof, context.user.keys)
-        }
+        // put the updated user and device on our context
+        this.context.user = user
+        this.context.device = device
 
         // put the team in our context
         return team
@@ -528,12 +513,10 @@ export class Protocol extends EventEmitter {
     identityProofIsValid: (context, event) => {
       assert(context.team)
       const { team, challenge: originalChallenge } = context
-      const identityProofMessage = event as ProveIdentityMessage
-      const { challenge, proof } = identityProofMessage.payload
+      const { challenge, proof } = (event as ProveIdentityMessage).payload
 
-      this.log(`checking identity proof ${JSON.stringify({ challenge, proof })}`)
+      if (!R.equals(originalChallenge, challenge)) return false // proof applies to a different challenge
 
-      if (!R.equals(originalChallenge, challenge)) return false
       const deviceId = challenge.name
       const { userName, deviceName } = parseDeviceId(deviceId)
 

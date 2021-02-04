@@ -135,6 +135,7 @@ export const connect = async (a: UserStuff, b: UserStuff) => {
 /** Connects a (a member) with b (invited using the given seed). */
 export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: string) => {
   b.connectionContext = {
+    user: b.user,
     device: b.device,
     invitee: { type: KeyType.MEMBER, name: b.userName },
     invitationSeed: seed,
@@ -225,11 +226,12 @@ const parseAssetFile = memoize((fileName: string) =>
 )
 
 const retrieveAsset = <T>(fileName: string, fn: () => T): T => {
-  const filePath = path.join(__dirname, `./assets/${fileName}.json`)
-  if (fs.existsSync(filePath)) return parseAssetFile(filePath) as T
-  const result: any = fn()
-  fs.writeFileSync(filePath, JSON.stringify(result))
-  return result as T
+  // const filePath = path.join(__dirname, `./assets/${fileName}.json`)
+  // if (fs.existsSync(filePath)) return parseAssetFile(filePath) as T
+  // const result: any = fn()
+  // fs.writeFileSync(filePath, JSON.stringify(result))
+  // return result as T
+  return fn()
 }
 
 const fileSystemSafe = (s: string) =>
