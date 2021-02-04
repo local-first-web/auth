@@ -1,1 +1,19 @@
-{"type":3,"deviceName":"phone","userName":"bob","keys":{"type":"DEVICE","name":"deviceId::bob::phone","generation":0,"signature":{"publicKey":"Zg8Lm90lbW8Pv2ts7LIAxklH1c6dq5sc26Yk6YeY+1U=","secretKey":"+jnJQB85nUir0j+HlFFdpaIECaNwnL60rhKJ3x7SvepmDwub3SVtbw+/a2zssgDGSUfVzp2rmxzbpiTph5j7VQ=="},"encryption":{"publicKey":"i2Ty02aPxav+zfCTRemNMl3BnzuA8/l2kZjGm7zslXg=","secretKey":"Vaxx9HwcKb4fwV7Ee3tFzyDLtaeoWhQSc9TbsQD3jj4="},"secretKey":"tA+4Xe6cn+MzBZlED3c90nTe59+rMVLHoZWwIod4zQuCPf5A4wSaiFebU3BfBVRfXYPJ5uruTr5tgrT8ODHSzA=="}}
+{
+  "type": 3,
+  "deviceName": "phone",
+  "userName": "bob",
+  "keys": {
+    "type": "DEVICE",
+    "name": "bob::phone",
+    "generation": 0,
+    "signature": {
+      "publicKey": "Zg8Lm90lbW8Pv2ts7LIAxklH1c6dq5sc26Yk6YeY+1U=",
+      "secretKey": "+jnJQB85nUir0j+HlFFdpaIECaNwnL60rhKJ3x7SvepmDwub3SVtbw+/a2zssgDGSUfVzp2rmxzbpiTph5j7VQ=="
+    },
+    "encryption": {
+      "publicKey": "i2Ty02aPxav+zfCTRemNMl3BnzuA8/l2kZjGm7zslXg=",
+      "secretKey": "Vaxx9HwcKb4fwV7Ee3tFzyDLtaeoWhQSc9TbsQD3jj4="
+    },
+    "secretKey": "tA+4Xe6cn+MzBZlED3c90nTe59+rMVLHoZWwIod4zQuCPf5A4wSaiFebU3BfBVRfXYPJ5uruTr5tgrT8ODHSzA=="
+  }
+}

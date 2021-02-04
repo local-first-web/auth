@@ -194,7 +194,7 @@ export interface RemoveDeviceAction extends Action {
   type: 'REMOVE_DEVICE'
   payload: BasePayload & {
     userName: string
-    deviceId: string
+    deviceName: string
   }
 }
 

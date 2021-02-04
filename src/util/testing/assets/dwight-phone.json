@@ -1,1 +1,19 @@
-{"type":3,"deviceName":"phone","userName":"dwight","keys":{"type":"DEVICE","name":"deviceId::dwight::phone","generation":0,"signature":{"publicKey":"2xU40TWmEVwNVS/7GuvZg0F5qmKzzAJ4SDzcqAGEp/U=","secretKey":"VDaMttqlWyFyZTEOKyVbP0GHkT1nYH9mhjMU3ojVLinbFTjRNaYRXA1VL/sa69mDQXmqYrPMAnhIPNyoAYSn9Q=="},"encryption":{"publicKey":"c0/Rb7SE0WxhBGs0QDbwfC51cHKD7TT/dg7eCaW36CE=","secretKey":"SfecExBArvf3/vXh5b7Mx1yL6/wDEpMe3m2Od+PJCiQ="},"secretKey":"3uZgv40pSa0RUXJRsgobTnRdtsPLXrM54ZHPxJu3sCF8zuqSJfulzo9syYV71FKxlHDYK+jTpTW7bsxjW6noWQ=="}}
+{
+  "type": 3,
+  "deviceName": "phone",
+  "userName": "dwight",
+  "keys": {
+    "type": "DEVICE",
+    "name": "dwight::phone",
+    "generation": 0,
+    "signature": {
+      "publicKey": "2xU40TWmEVwNVS/7GuvZg0F5qmKzzAJ4SDzcqAGEp/U=",
+      "secretKey": "VDaMttqlWyFyZTEOKyVbP0GHkT1nYH9mhjMU3ojVLinbFTjRNaYRXA1VL/sa69mDQXmqYrPMAnhIPNyoAYSn9Q=="
+    },
+    "encryption": {
+      "publicKey": "c0/Rb7SE0WxhBGs0QDbwfC51cHKD7TT/dg7eCaW36CE=",
+      "secretKey": "SfecExBArvf3/vXh5b7Mx1yL6/wDEpMe3m2Od+PJCiQ="
+    },
+    "secretKey": "3uZgv40pSa0RUXJRsgobTnRdtsPLXrM54ZHPxJu3sCF8zuqSJfulzo9syYV71FKxlHDYK+jTpTW7bsxjW6noWQ=="
+  }
+}

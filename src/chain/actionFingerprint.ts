@@ -1,4 +1,5 @@
 import { isRootLink, TeamAction, TeamActionLink } from '/chain/types'
+import { getDeviceId } from '/device'
 
 /** Identifies a unique action for the purpose of detecting duplicates;
  * e.g. ADD_MEMBER:bob
@@ -16,9 +17,9 @@ export const actionFingerprint = (link: TeamActionLink) => {
       case 'REMOVE_MEMBER_ROLE':
         return `${action.payload.roleName}:${action.payload.userName}`
       case 'ADD_DEVICE':
-        return action.payload.device.deviceId
+        return getDeviceId(action.payload.device)
       case 'REMOVE_DEVICE':
-        return action.payload.deviceId
+        return getDeviceId(action.payload)
       case 'INVITE':
         return action.payload.invitation.id
       case 'REVOKE_INVITATION':

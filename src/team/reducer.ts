@@ -110,9 +110,9 @@ const getTransforms = (action: TeamAction): Reducer[] => {
 
     // TODO: I can only remove my own device, unless I'm an admin
     case 'REMOVE_DEVICE': {
-      const { userName, deviceId } = action.payload
+      const { userName, deviceName } = action.payload
       return [
-        removeDevice(userName, deviceId), //
+        removeDevice(userName, deviceName), //
       ]
     }
 

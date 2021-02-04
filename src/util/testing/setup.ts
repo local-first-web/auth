@@ -82,10 +82,9 @@ export const setup = (_config: (TestUserSettings | string)[] = []) => {
       : teams.create(userName, localContext) // non-members get a dummy empty placeholder team
 
     const makeDevice = (deviceName: string) => {
-      const device = retrieveAsset(`${userName}-${deviceName}`, () => {
-        const deviceInfo = { deviceName, userName } as DeviceInfo
-        const deviceKeys = keysets.create({ type: KeyType.DEVICE, name: getDeviceId(deviceInfo) })
-        return { ...deviceInfo, keys: deviceKeys } as DeviceWithSecrets
+      const key = `${userName}-${deviceName}`
+      const device = retrieveAsset(key, () => {
+        return devices.create({ deviceName, userName }, key)
       })
 
       return device

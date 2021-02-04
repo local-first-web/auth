@@ -300,9 +300,9 @@ export class Team extends EventEmitter {
     
   */
 
-  // TODO: I think the whole deviceId thing isn't buying us much - just use deviceName?
-  public removeDevice = ({ userName, deviceId }: { userName: string; deviceId: string }) => {
+  public removeDevice = (userName: string, deviceName: string) => {
     // create new keys & lockboxes for any keys this device had access to
+    const deviceId = getDeviceId({ userName, deviceName })
     const lockboxes = this.generateNewLockboxes({ type: DEVICE, name: deviceId })
 
     // post the removal to the signature chain
@@ -310,7 +310,7 @@ export class Team extends EventEmitter {
       type: 'REMOVE_DEVICE',
       payload: {
         userName,
-        deviceId,
+        deviceName,
         lockboxes,
       },
     })
@@ -369,17 +369,15 @@ export class Team extends EventEmitter {
     // either way, normalize it (all lower case, strip spaces & punctuation)
     seed = normalize(seed)
 
-    const deviceId = deviceName ? getDeviceId({ deviceName, userName }) : ''
     const invitee: Invitee = deviceName
-      ? { type: KeyType.DEVICE, name: deviceId }
+      ? { type: KeyType.DEVICE, name: getDeviceId({ deviceName, userName }) }
       : { type: KeyType.MEMBER, name: userName }
 
     const starterKeys = generateStarterKeys(invitee, seed)
 
-    if (invitee.type === KeyType.DEVICE) {
+    if (deviceName) {
       // create new device with starter keys and add it to chain
-
-      const device: PublicDevice = { userName, deviceId, keys: redactKeys(starterKeys) }
+      const device: PublicDevice = { userName, deviceName, keys: redactKeys(starterKeys) }
       const lockboxes = [lockbox.create(currentUser.keys, starterKeys)]
       this.dispatch({
         type: 'ADD_DEVICE',

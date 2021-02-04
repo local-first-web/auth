@@ -74,11 +74,11 @@ const validators: TeamStateValidatorSet = {
     const [prevState, link] = args
     if (link.body.type === 'ADD_DEVICE') {
       const { device } = link.body.payload
-      const { deviceId, userName } = device
+      const { deviceName, userName } = device
       const member = select.member(prevState, userName)
       const { devices = [] } = member
-      if (devices.find((d) => d.deviceId === deviceId))
-        return fail(`The member ${userName} already has a device with id '${deviceId}'`, ...args)
+      if (devices.find((d) => d.deviceName === deviceName))
+        return fail(`The member ${userName} already has a device named '${deviceName}'`, ...args)
     }
     return VALID
   },

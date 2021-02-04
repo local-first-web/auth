@@ -1,7 +1,7 @@
 ﻿import { Reducer } from '/team/reducers/index'
 import { KeyType } from '/keyset'
 
-export const removeDevice = (userName: string, deviceId: string): Reducer => (state) => ({
+export const removeDevice = (userName: string, deviceName: string): Reducer => (state) => ({
   ...state,
 
   // remove this device from this member's list of devices
@@ -11,7 +11,7 @@ export const removeDevice = (userName: string, deviceId: string): Reducer => (st
       devices:
         member.userName !== userName //
           ? member.devices // leave other members' devices alone
-          : member.devices?.filter((d) => d.deviceId !== deviceId),
+          : member.devices?.filter((d) => d.deviceName !== deviceName),
     }
   }),
 
@@ -21,7 +21,7 @@ export const removeDevice = (userName: string, deviceId: string): Reducer => (st
       !(
         lockbox.recipient.name === userName &&
         lockbox.contents.type === KeyType.DEVICE &&
-        lockbox.contents.name === deviceId
+        lockbox.contents.name === deviceName
       )
   ),
 })
