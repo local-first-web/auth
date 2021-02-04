@@ -21,7 +21,7 @@ const { DEVICE, MEMBER } = KeyType
 
 beforeAll(() => {})
 
-describe.skip('connection', () => {
+describe('connection', () => {
   it('connects two members', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
@@ -214,7 +214,7 @@ describe.skip('connection', () => {
     expect(alice.team.has('alice')).toBe(false)
   })
 
-  it('connects an invitee with a member', async () => {
+  it.only('connects an invitee with a member', async () => {
     const { alice, bob } = setup(['alice', { user: 'bob', member: false }])
 
     // 👩🏾📧👨🏻‍🦲 Alice invites Bob
