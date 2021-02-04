@@ -51,6 +51,7 @@ export const hasInvitee = (
 export interface ConnectionParams {
   /** A function to send messages to our peer (this is how you hook this up to your network stack) */
   sendMessage: SendFunction
+
   context: InitialContext
 }
 
