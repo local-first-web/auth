@@ -1,16 +1,18 @@
 ﻿import { challenge, prove, verify } from '/connection/identity'
 import { ADMIN_SCOPE, KeyScope, KeyType, TEAM_SCOPE } from '/keyset'
 import * as keyset from '/keyset'
-import { bob, eve } from '/util/testing'
+import { setup } from '/util/testing'
 
 import '/util/testing/expect/toBeValid'
+
+const { bob, eve } = setup(['alice', 'bob', 'eve'])
 
 const { MEMBER } = KeyType
 
 describe('identity', () => {
   it('accepts valid proof of identity', () => {
-    const bobSecretKeys = bob.keys
-    const bobPublicKeys = keyset.redactKeys(bob.keys)
+    const bobSecretKeys = bob.user.keys
+    const bobPublicKeys = keyset.redactKeys(bob.user.keys)
 
     // 👨🏻‍🦲 Bob shows up and says he's Bob
     const bobsClaim: KeyScope = { type: MEMBER, name: 'bob' }
@@ -29,8 +31,8 @@ describe('identity', () => {
   })
 
   it('rejects proof of identity with the wrong signature', () => {
-    const eveSecretKeys = eve.keys
-    const bobPublicKeys = keyset.redactKeys(bob.keys)
+    const eveSecretKeys = eve.user.keys
+    const bobPublicKeys = keyset.redactKeys(bob.user.keys)
 
     // 🦹‍♀️ Eve shows up and says she's Bob
     const evesClaimToBeBob: KeyScope = { type: MEMBER, name: 'bob' }
@@ -49,8 +51,8 @@ describe('identity', () => {
   })
 
   it('rejects reused proof of identity', () => {
-    const bobSecretKeys = bob.keys
-    const bobPublicKeys = keyset.redactKeys(bob.keys)
+    const bobSecretKeys = bob.user.keys
+    const bobPublicKeys = keyset.redactKeys(bob.user.keys)
 
     // 👨🏻‍🦲 Bob shows up and says he's Bob
     const bobsClaim: KeyScope = { type: MEMBER, name: 'bob' }
