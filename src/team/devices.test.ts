@@ -32,6 +32,14 @@ describe('Team', () => {
       expect(tryToRemoveDevice).toThrowError()
     })
 
+    it('can look up a device by name', () => {
+      const { alice } = setup()
+      const { deviceName } = alice.device
+      const aliceDevice = alice.team.getDevice('alice', deviceName)
+      expect(aliceDevice).not.toBeUndefined()
+      expect(aliceDevice.deviceName).toBe(deviceName)
+    })
+
     it('rotates keys after removing a device', () => {
       const { alice } = setup()
 

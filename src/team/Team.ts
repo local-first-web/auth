@@ -308,9 +308,18 @@ export class Team extends EventEmitter {
   }
 
   /**************** DEVICES
-    
-  */
+   */
 
+  /** Find a member's device by name */
+  public getDevice = (userName: string, deviceName: string): PublicDevice => {
+    const memberDevices = this.members(userName).devices || []
+    const device = memberDevices.find((d) => d.deviceName === deviceName)
+    if (device === undefined)
+      throw new Error(`Member ${userName} does not have a device called ${deviceName}`)
+    return device
+  }
+
+  /** Remove a member's device */
   public removeDevice = (userName: string, deviceName: string) => {
     // create new keys & lockboxes for any keys this device had access to
     const deviceId = getDeviceId({ userName, deviceName })
