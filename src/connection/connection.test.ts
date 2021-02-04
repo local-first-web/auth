@@ -214,7 +214,7 @@ describe('connection', () => {
     expect(alice.team.has('alice')).toBe(false)
   })
 
-  it.only('connects an invitee with a member', async () => {
+  it('connects an invitee with a member', async () => {
     const { alice, bob } = setup(['alice', { user: 'bob', member: false }])
 
     // 👩🏾📧👨🏻‍🦲 Alice invites Bob

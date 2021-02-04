@@ -136,6 +136,7 @@ export interface RootAction extends Action {
   payload: BasePayload & {
     teamName: string
     rootMember: Member
+    rootDevice: PublicDevice
   }
 }
 

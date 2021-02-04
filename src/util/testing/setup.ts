@@ -67,7 +67,10 @@ export const setup = (_config: (TestUserSettings | string)[] = []) => {
     // Add members
     for (const { user: userName, admin = true, member = true } of config) {
       if (member && !team.has(userName)) {
-        team.add(testUsers[userName], admin ? [ADMIN] : [])
+        const user = testUsers[userName]
+        const roles = admin ? [ADMIN] : []
+        const device = devices.redactDevice(testLaptops[userName])
+        team.add(user, roles, device)
       }
     }
     return team.chain

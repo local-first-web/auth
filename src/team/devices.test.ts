@@ -1,28 +1,51 @@
 ﻿import { KeyType } from '/keyset'
-
-const { DEVICE } = KeyType
+import { setup as setupUsers } from '/util/testing'
 
 describe('Team', () => {
-  // TODO
+  const setup = () => {
+    const { alice, bob } = setupUsers(['alice', { user: 'bob', admin: false }])
+    return { alice, bob }
+  }
+
   describe('devices', () => {
-    it('removes a device', () => {
-      // const { team, context } = setup()
-      // // From her laptop, Alice adds her phone
-      // expect(context.user.device.name).toBe(`alice's device`)
-      // const device = { userName: 'alice', name: `alice's phone` }
-      // const { secretKey } = team.inviteDevice(device)
-      // const deviceId = getDeviceId(device)
-      // const deviceKeys = keyset.create({ type: DEVICE, name: deviceId })
-      // const deviceWithSecrets: DeviceWithSecrets = { ...device, keys: deviceKeys }
-      // const proofOfInvitation = acceptDeviceInvitation(secretKey, redactDevice(deviceWithSecrets))
-      // team.admitDevice(proofOfInvitation)
-      // // Alice's phone is now listed on the signature chain
-      // expect(team.members('alice').devices!.map(d => d.deviceId)).toContain(deviceId)
-      // team.removeDevice(device)
-      // // Alice's phone is no longer listed
-      // expect(team.members('alice').devices!.map(d => d.deviceId)).not.toContain(deviceId)
+    it('Alice has a device', () => {
+      const { alice } = setup()
+      expect(alice.team.members('alice').devices).toHaveLength(1)
     })
 
-    it('rotates keys after removing a device', () => {})
+    it('Bob has a device', () => {
+      const { alice } = setup()
+      expect(alice.team.members('bob').devices).toHaveLength(1)
+    })
+
+    it(`Alice can remove Bob's device`, () => {
+      const { alice } = setup()
+      const bobDevice = alice.team.members('bob').devices![0].deviceName
+      alice.team.removeDevice('bob', bobDevice)
+      expect(alice.team.members('bob').devices).toHaveLength(0)
+    })
+
+    it(`Bob cannot remove Alice's device`, () => {
+      const { bob } = setup()
+      const aliceDevice = bob.team.members('alice').devices![0].deviceName
+      const tryToRemoveDevice = () => bob.team.removeDevice('alice', aliceDevice)
+      expect(tryToRemoveDevice).toThrowError()
+    })
+
+    it('rotates keys after removing a device', () => {
+      const { alice } = setup()
+
+      // keys have never been rotated
+      expect(alice.team.teamKeys().generation).toBe(0)
+      const { secretKey } = alice.team.teamKeys()
+
+      // remove bob's device
+      const bobDevice = alice.team.members('bob').devices![0].deviceName
+      alice.team.removeDevice('bob', bobDevice)
+
+      // team keys have now been rotated once
+      expect(alice.team.teamKeys().generation).toBe(1)
+      expect(alice.team.teamKeys().secretKey).not.toBe(secretKey)
+    })
   })
 })

@@ -1,14 +1,15 @@
 ﻿import { randomKey, signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
+import { generateStarterKeys } from '../invitation/generateStarterKeys'
 import { keysetSummary } from '../util/keysetSummary'
 import * as chains from '/chain'
 import { membershipResolver, TeamAction, TeamActionLink, TeamSignatureChain } from '/chain'
 import { membershipSequencer } from '/chain/membershipSequencer'
 import { LocalDeviceContext, LocalUserContext } from '/context'
-import { DeviceInfo, getDeviceId, PublicDevice, redactDevice } from '/device'
+import * as devices from '/device'
+import { DeviceWithSecrets, getDeviceId, PublicDevice, redactDevice } from '/device'
 import * as invitations from '/invitation'
 import { Invitee, ProofOfInvitation } from '/invitation'
-import { generateStarterKeys } from '../invitation/generateStarterKeys'
 import { normalize } from '/invitation/normalize'
 import * as keysets from '/keyset'
 import {
@@ -75,19 +76,20 @@ export class Team extends EventEmitter {
 
     if (isNewTeam(options)) {
       // Create a new team with the current user as founding member
+      const localDevice = options.context.device
       const localUser = options.context.user
 
       // Team & role secrets are never stored in plaintext, only encrypted into individual lockboxes.
       // Here we create new lockboxes with the team & admin keys for the founding member
       const teamLockbox = lockbox.create(keysets.create(TEAM_SCOPE, this.seed), localUser.keys)
       const adminLockbox = lockbox.create(keysets.create(ADMIN_SCOPE, this.seed), localUser.keys)
-
       const deviceLockbox = lockbox.create(localUser.keys, this.context.device.keys)
 
       // Post root link to signature chain
       const rootPayload = {
         teamName: options.teamName,
         rootMember: users.redactUser(localUser),
+        rootDevice: devices.redactDevice(localDevice),
         lockboxes: [teamLockbox, adminLockbox, deviceLockbox],
       }
       this.chain = chains.create<TeamAction>(rootPayload, options.context)
@@ -177,7 +179,7 @@ export class Team extends EventEmitter {
    * In real-world scenarios, you'll need to use the `team.invite` workflow
    * to add members without relying on some kind of public key infrastructure.
    */
-  public add = (user: User, roles: string[] = []) => {
+  public add = (user: User, roles: string[] = [], device?: PublicDevice) => {
     const member = { ...users.redactUser(user), roles }
 
     // make lockboxes for the new member
@@ -188,6 +190,15 @@ export class Team extends EventEmitter {
       type: 'ADD_MEMBER',
       payload: { member, roles, lockboxes },
     })
+
+    if (device) {
+      // post the member's device to the signature chain
+      const deviceLockbox = lockbox.create(user.keys, device.keys)
+      this.dispatch({
+        type: 'ADD_DEVICE',
+        payload: { device, lockboxes: [deviceLockbox] },
+      })
+    }
   }
 
   /** Remove a member from the team */

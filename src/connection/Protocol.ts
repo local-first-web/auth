@@ -31,12 +31,13 @@ import {
   SendFunction,
   StateMachineAction,
 } from '/connection/types'
+import { getDeviceId, parseDeviceId } from '/device'
 import * as invitations from '/invitation'
 import { create, KeyType, randomKey } from '/keyset'
 import { Team } from '/team'
 import { arrayToMap, assert, debug } from '/util'
 
-const { MEMBER } = KeyType
+const { DEVICE, MEMBER } = KeyType
 
 // NEXT: InitialContext needs to have two possible states - member or non-member
 
@@ -191,11 +192,11 @@ export class Protocol extends EventEmitter {
     sendHello: async (context) => {
       const payload = hasInvitee(context)
         ? { proofOfInvitation: this.myProofOfInvitation(context) }
-        : { identityClaim: { type: MEMBER, name: context.user!.userName } }
+        : { identityClaim: { type: DEVICE, name: getDeviceId(context.device) } }
       this.sendMessage({
         type: 'HELLO',
         payload,
-      })
+      } as HelloMessage)
     },
 
     // authenticating
@@ -277,7 +278,7 @@ export class Protocol extends EventEmitter {
     proveIdentity: (context, event) => {
       assert(context.user)
       const { challenge } = (event as ChallengeIdentityMessage).payload
-      const proof = identity.prove(challenge, context.user.keys)
+      const proof = identity.prove(challenge, context.device.keys)
       this.sendMessage({
         type: 'PROVE_IDENTITY',
         payload: { challenge, proof },
@@ -288,7 +289,9 @@ export class Protocol extends EventEmitter {
       peer: (context) => {
         assert(context.team)
         assert(context.theirIdentityClaim)
-        return context.team.members(context.theirIdentityClaim.name)
+        const deviceId = context.theirIdentityClaim.name
+        const { userName } = parseDeviceId(deviceId)
+        return context.team.members(userName)
       },
     }),
 
@@ -482,15 +485,9 @@ export class Protocol extends EventEmitter {
 
   /** These are referred to by name in `connectionMachine` (e.g. `cond: 'iHaveInvitation'`) */
   private readonly guards: Record<string, Condition> = {
-    iHaveInvitation: (context) => {
-      const result = context.invitee !== undefined
-      return result
-    },
+    iHaveInvitation: (context) => hasInvitee(context),
 
-    theyHaveInvitation: (context) => {
-      const result = context.theirProofOfInvitation !== undefined
-      return result
-    },
+    theyHaveInvitation: (context) => context.theyHaveInvitation === true,
 
     bothHaveInvitation: (...args) =>
       this.guards.iHaveInvitation(...args) && this.guards.theyHaveInvitation(...args),

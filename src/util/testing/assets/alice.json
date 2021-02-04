@@ -1,17 +1,1 @@
-{
-  "userName": "alice",
-  "keys": {
-    "type": "MEMBER",
-    "name": "alice",
-    "generation": 0,
-    "signature": {
-      "publicKey": "BjWx6EXS1AuY0hAehnaFaicaP7NB2MT1xC2hDgcph6o=",
-      "secretKey": "+wvg9nNm7ZdZtZrp9iHLrjUdtIEnQ3ju01ovFgsG4gsGNbHoRdLUC5jSEB6GdoVqJxo/s0HYxPXELaEOBymHqg=="
-    },
-    "encryption": {
-      "publicKey": "mFIpDwt2EptPHiB/n2o9JBEite14D0XtBws/1oTUf2Y=",
-      "secretKey": "UKQqQUjmgJhm4QDeex6j1lfQ/fwYyq8JEvGMV6JXbvE="
-    },
-    "secretKey": "f2aXBkFhRNZTFhEgOOOjxmIn6aDU/v9Hi95tK/8hwSHAoWvWphrj9G2wVz6nFeJt+LJY2oVRtH+L6bDA2bNMRA=="
-  }
-}
+{"userName":"alice","keys":{"type":"MEMBER","name":"alice","generation":0,"signature":{"publicKey":"BjWx6EXS1AuY0hAehnaFaicaP7NB2MT1xC2hDgcph6o=","secretKey":"+wvg9nNm7ZdZtZrp9iHLrjUdtIEnQ3ju01ovFgsG4gsGNbHoRdLUC5jSEB6GdoVqJxo/s0HYxPXELaEOBymHqg=="},"encryption":{"publicKey":"mFIpDwt2EptPHiB/n2o9JBEite14D0XtBws/1oTUf2Y=","secretKey":"UKQqQUjmgJhm4QDeex6j1lfQ/fwYyq8JEvGMV6JXbvE="},"secretKey":"f2aXBkFhRNZTFhEgOOOjxmIn6aDU/v9Hi95tK/8hwSHAoWvWphrj9G2wVz6nFeJt+LJY2oVRtH+L6bDA2bNMRA=="}}
