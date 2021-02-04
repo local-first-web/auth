@@ -1,7 +1,7 @@
 import { clone } from '/util'
 import { LocalUserContext } from '/context'
 import * as devices from '/device'
-import { DeviceType, getDeviceId } from '/device'
+import { getDeviceId } from '/device'
 import { generateProof, ProofOfInvitation } from '/invitation'
 import { ADMIN } from '/role'
 import * as teams from '/team'
@@ -158,7 +158,6 @@ describe('Team', () => {
         const phone = devices.create({
           userName: 'alice',
           deviceName: 'alicez phone',
-          type: DeviceType.mobile,
         })
 
         const { deviceName } = phone

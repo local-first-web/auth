@@ -4,7 +4,7 @@ import path from 'path'
 import { InitialContext } from '/connection'
 import { Connection } from '/connection/Connection'
 import { LocalUserContext } from '/context'
-import { DeviceInfo, DeviceType, DeviceWithSecrets, getDeviceId } from '/device'
+import { DeviceInfo, DeviceWithSecrets, getDeviceId } from '/device'
 import * as keysets from '/keyset'
 import { KeyType } from '/keyset'
 import { ADMIN } from '/role'
@@ -51,7 +51,7 @@ export const setup = (_config: (TestUserSettings | string)[] = []) => {
       retrieveAsset(`${userName}-laptop`, () => {
         const deviceName = `${userName}'s laptop`
         const seed = deviceName
-        const deviceInfo: DeviceInfo = { userName, deviceName, type: DeviceType.laptop }
+        const deviceInfo: DeviceInfo = { userName, deviceName }
         return devices.create(deviceInfo, seed)
       })
     )
@@ -81,9 +81,9 @@ export const setup = (_config: (TestUserSettings | string)[] = []) => {
       ? teams.load(chain, localContext) // members get a copy of the source team
       : teams.create(userName, localContext) // non-members get a dummy empty placeholder team
 
-    const makeDevice = (deviceName: string, type: DeviceType) => {
+    const makeDevice = (deviceName: string) => {
       const device = retrieveAsset(`${userName}-${deviceName}`, () => {
-        const deviceInfo = { type, deviceName, userName } as DeviceInfo
+        const deviceInfo = { deviceName, userName } as DeviceInfo
         const deviceKeys = keysets.create({ type: KeyType.DEVICE, name: getDeviceId(deviceInfo) })
         return { ...deviceInfo, keys: deviceKeys } as DeviceWithSecrets
       })
@@ -97,7 +97,7 @@ export const setup = (_config: (TestUserSettings | string)[] = []) => {
       team,
       device,
       localContext,
-      phone: makeDevice('phone', DeviceType.mobile),
+      phone: makeDevice('phone'),
       connectionContext: member
         ? { team, user, device }
         : { invitee: { type: KeyType.MEMBER, name: userName }, invitationSeed: '', device },
