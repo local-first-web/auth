@@ -26,13 +26,12 @@ import {
   ConnectionContext,
   ConnectionParams,
   ConnectionState,
-  InitialContext,
   hasInvitee,
+  InitialContext,
   SendFunction,
   StateMachineAction,
 } from '/connection/types'
 import * as invitations from '/invitation'
-import { Invitee } from '/invitation'
 import { create, KeyType, randomKey } from '/keyset'
 import { Team } from '/team'
 import { arrayToMap, assert, debug } from '/util'
