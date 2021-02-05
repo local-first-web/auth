@@ -1,53 +1,49 @@
 ﻿import { symmetric } from '@herbcaudill/crypto'
-import { generateEphemeralKeys } from '/invitation/generateEphemeralKeys'
+import { generateStarterKeys } from './generateStarterKeys'
 import { deriveId } from '/invitation/deriveId'
 import { normalize } from '/invitation/normalize'
-import { Invitation, InvitationBody } from '/invitation/types'
+import { Invitation, InvitationBody, Invitee } from '/invitation/types'
 import { KeysetWithSecrets } from '/keyset'
-import * as lockboxes from '/lockbox'
 
 export const IKEY_LENGTH = 16
 
-// A loosely adapted implementation of Keybase's Seitan Token v2 exchange protocol.
-
 /**
  * Returns an an invitation to publicly post on the team's signature chain.
- * @param teamKeys The global team keys (Alice obtains these from the appropriate lockbox)
- * @param userName The user to invite
- * @param roles The roles to add the new user to
- * @param secretKey A randomly generated secret to be passed to Bob via a side channel
+ * A loosely adapted implementation of Keybase's Seitan Token v2 exchange protocol.
  */
-export const create = ({
-  invitationSeed,
-  userName,
-  roles = [],
-  teamKeys,
-}: {
-  invitationSeed: string
-  userName: string
-  roles?: string[]
-  teamKeys: KeysetWithSecrets
-}): Invitation => {
-  invitationSeed = normalize(invitationSeed)!
-  const ephemeralKeys = generateEphemeralKeys(userName, invitationSeed)
+export const create = ({ seed, invitee, teamKeys }: CreateOptions): Invitation => {
+  seed = normalize(seed)
 
-  // Using the team-wide keys, encrypt Bob's username and roles so that we don't leak that
-  // information in the public signature chain. We also include the ephemeral public signature key,
-  // which will be used to verify Bob's proof of invitation.
+  // Alice generates the ephemeral keys from the invitation seed (Bob will do the same on his side)
+  const starterKeys = generateStarterKeys(invitee, seed)
 
   const invitationBody: InvitationBody = {
-    userName,
-    roles,
-    publicKey: ephemeralKeys.signature.publicKey,
-  }
-  const encryptedBody = symmetric.encrypt(invitationBody, teamKeys.secretKey)
+    // The user or device being invited
+    invitee,
 
-  // We put it all together to create the invitation.
-  return {
-    id: deriveId(invitationSeed, userName),
-    encryptedBody,
-    generation: teamKeys.generation,
-    used: false,
-    revoked: false,
+    // the ephemeral public signature key will be used to verify Bob's proof of invitation
+    publicKey: starterKeys.signature.publicKey,
   }
+
+  return {
+    // the ID of the invitation is derived from the seed
+    id: deriveId(seed, invitee.name),
+
+    // We encrypt the body to avoid leaking info (this invite will be publicly posted on the chain)
+    encryptedBody: symmetric.encrypt(invitationBody, teamKeys.secretKey),
+
+    // TODO: I don't think we're currently taking this into account anywhere
+    generation: teamKeys.generation,
+  }
+}
+
+interface CreateOptions {
+  /** A randomly generated secret to be passed to Bob via a side channel */
+  seed: string
+
+  /** The user or device to invite (e.g. `{type: MEMBER, name: userName}` or `{type: DEVICE, name: deviceId}` */
+  invitee: Invitee
+
+  /** The global team keys (Alice obtains these from the appropriate lockbox) */
+  teamKeys: KeysetWithSecrets
 }

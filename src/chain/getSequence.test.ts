@@ -2,7 +2,10 @@ import { randomKey } from '@herbcaudill/crypto'
 import { arbitraryDeterministicSort } from './arbitraryDeterministicSort'
 import { append, create, getSequence, Sequencer } from '/chain'
 import { buildChain, findByPayload, getPayloads } from '/chain/testUtils'
-import { defaultContext } from '/util/testing'
+import { setup } from '/util/testing'
+
+const { alice } = setup(['alice'])
+const defaultContext = alice.localContext
 
 const randomSequencer: Sequencer = (a, b) => {
   // change the hash key on each run, to ensure our tests aren't bound to one arbitrary sort

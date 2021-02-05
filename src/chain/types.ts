@@ -1,6 +1,6 @@
 ﻿import { MemberContext } from '/context'
 import { PublicDevice } from '/device'
-import { Invitation } from '/invitation'
+import { Invitation, Invitee } from '/invitation'
 import { PublicKeyset } from '/keyset'
 import { Lockbox } from '/lockbox'
 import { Member } from '/member'
@@ -67,7 +67,7 @@ export type MergeLink = {
   hash: Hash
 
   /** Hashes of the two concurrent heads being merged */
-  body: [Hash, Hash]
+  body: Hash[]
 }
 
 export type RootLink<A extends Action> = SignedLink<RootLinkBody<A>, A>
@@ -136,6 +136,7 @@ export interface RootAction extends Action {
   payload: BasePayload & {
     teamName: string
     rootMember: Member
+    rootDevice: PublicDevice
   }
 }
 
@@ -194,7 +195,7 @@ export interface RemoveDeviceAction extends Action {
   type: 'REMOVE_DEVICE'
   payload: BasePayload & {
     userName: string
-    deviceId: string
+    deviceName: string
   }
 }
 
@@ -216,7 +217,7 @@ export interface AdmitAction extends Action {
   type: 'ADMIT'
   payload: BasePayload & {
     id: string // invitation ID
-    userName: string
+    invitee: Invitee
   }
 }
 

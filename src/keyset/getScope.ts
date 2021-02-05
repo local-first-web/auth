@@ -1,6 +1,6 @@
-import { KeyScope, KeysetWithSecrets, PublicKeyset } from '/keyset/types'
+import { KeyScope } from '/keyset/types'
 
-export const getScope = (keyset: KeyScope | KeysetWithSecrets | PublicKeyset): KeyScope => ({
-  type: keyset.type,
-  name: keyset.name,
+export const getScope = (x: KeyScope): KeyScope => ({
+  type: x.type,
+  name: x.name,
 })

@@ -63,11 +63,12 @@ export const reducer = (state: TeamState, link: TeamActionLink) => {
 const getTransforms = (action: TeamAction): Reducer[] => {
   switch (action.type) {
     case ROOT:
-      const { teamName, rootMember } = action.payload
+      const { teamName, rootMember, rootDevice } = action.payload
       return [
         setTeamName(teamName),
         addRole({ roleName: ADMIN }), // create the admin role
         addMember(rootMember), // add the founding member
+        addDevice(rootDevice), // add the founding member's device
         ...addMemberRoles(rootMember.userName, [ADMIN]), // make the founding member an admin
       ]
 
@@ -110,9 +111,9 @@ const getTransforms = (action: TeamAction): Reducer[] => {
 
     // TODO: I can only remove my own device, unless I'm an admin
     case 'REMOVE_DEVICE': {
-      const { userName, deviceId } = action.payload
+      const { userName, deviceName } = action.payload
       return [
-        removeDevice(userName, deviceId), //
+        removeDevice(userName, deviceName), //
       ]
     }
 

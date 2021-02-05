@@ -13,11 +13,11 @@ identify the user within this team.
 The name of the device needs to be unique among this user's devices.
 
 ```js
-import { user, DeviceType } from 'taco'
+import { user } from 'taco'
 
 const alicesLaptop = {
-  name: `Alice's MacBook`,
-  type: DeviceType.Laptop,
+  userName: 'alice',
+  deviceName: `Alice's MacBook`,
 }
 
 const currentUser = user.create('alice', alicesLaptop)

@@ -2,23 +2,17 @@ import { append } from '/chain/append'
 import { clone } from '/util'
 import { create } from '/chain/create'
 import { merge } from '/chain/merge'
-import {
-  Link,
-  isMergeLink,
-  LinkBody,
-  SignatureChain,
-  SignedLink,
-  Action,
-  ActionLink,
-} from '/chain/types'
-import { defaultContext } from '/util/testing'
+import { Link, isMergeLink, LinkBody, SignatureChain, Action, ActionLink } from '/chain/types'
+import { setup } from '/util/testing'
+
+const { alice } = setup(['alice'])
 
 export const getPayloads = (sequence: Link<any>[]) =>
-  sequence.filter(n => !isMergeLink(n)).map(n => (n.body as LinkBody<Action>).payload)
+  sequence.filter((n) => !isMergeLink(n)).map((n) => (n.body as LinkBody<Action>).payload)
 
 export const findByPayload = (chain: SignatureChain<Action>, payload: Action['payload']) => {
   const links = Object.values(chain.links)
-  return links.find(n => !isMergeLink(n) && n.body.payload === payload) as ActionLink<Action>
+  return links.find((n) => !isMergeLink(n) && n.body.payload === payload) as ActionLink<Action>
 }
 
 /**
@@ -33,9 +27,9 @@ export const findByPayload = (chain: SignatureChain<Action>, payload: Action['pa
  */
 export const buildChain = () => {
   const appendLink = (chain: SignatureChain<Action>, payload: string) =>
-    append(chain, { type: 'X', payload }, defaultContext)
+    append(chain, { type: 'X', payload }, alice.localContext)
 
-  let a = create('a', defaultContext)
+  let a = create('a', alice.localContext)
   a = appendLink(a, 'b')
 
   // 3 branches from b:

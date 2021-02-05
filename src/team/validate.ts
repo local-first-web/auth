@@ -1,4 +1,5 @@
-﻿import { ActionLink, ROOT } from '/chain'
+﻿import { isAdminOnlyAction } from '../chain/isAdminOnlyAction'
+import { ActionLink, ROOT } from '/chain'
 import { KeyScope } from '/keyset'
 import * as select from '/team/selectors'
 import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '/team/types'
@@ -17,11 +18,8 @@ const validators: TeamStateValidatorSet = {
   /** check that the user who made these changes was a member with appropriate rights at the time */
   mustBeAdmin: (...args) => {
     const [prevState, link] = args
-
-    const { type, context } = link.body
-
-    // any team member can do these things
-    const nonAdminActions = ['ADD_DEVICE', 'CHANGE_MEMBER_KEYS', 'ADMIT']
+    const action = link.body
+    const { type, context } = action
 
     // at root link, team doesn't yet have members
     if (type !== ROOT) {
@@ -29,17 +27,10 @@ const validators: TeamStateValidatorSet = {
 
       // make sure member exists
       const noSuchMember = !select.hasMember(prevState, userName)
-      if (noSuchMember) {
-        console.error(
-          'member not found',
-          prevState.members.map((m) => m.userName),
-          link
-        )
-        return fail(`A member named '${userName}' was not found`, ...args)
-      }
+      if (noSuchMember) return fail(`A member named '${userName}' was not found`, ...args)
 
-      if (!nonAdminActions.includes(type)) {
-        // make sure member is admin
+      // make sure member is admin
+      if (isAdminOnlyAction(action)) {
         const isntAdmin = !select.memberIsAdmin(prevState, userName)
         if (isntAdmin) return fail(`Member '${userName}' is not an admin`, ...args)
       }
@@ -81,11 +72,11 @@ const validators: TeamStateValidatorSet = {
     const [prevState, link] = args
     if (link.body.type === 'ADD_DEVICE') {
       const { device } = link.body.payload
-      const { deviceId, userName } = device
+      const { deviceName, userName } = device
       const member = select.member(prevState, userName)
       const { devices = [] } = member
-      if (devices.find((d) => d.deviceId === deviceId))
-        return fail(`The member ${userName} already has a device with id '${deviceId}'`, ...args)
+      if (devices.find((d) => d.deviceName === deviceName))
+        return fail(`The member ${userName} already has a device named '${deviceName}'`, ...args)
     }
     return VALID
   },

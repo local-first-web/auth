@@ -13,7 +13,6 @@ export const protocolMachine: MachineConfig<
 > = {
   id: 'connection',
   initial: 'idle',
-  entry: ['sendReady'],
 
   on: {
     ERROR: {
@@ -24,13 +23,15 @@ export const protocolMachine: MachineConfig<
 
   states: {
     idle: {
+      id: 'idle',
+      meta: { label: 'Idle' },
       on: {
         READY: {
           actions: 'sendHello',
           target: 'idle',
         },
         HELLO: {
-          actions: ['sendHello', 'receiveHello'],
+          actions: ['receiveHello'],
           target: 'connecting',
         },
       },
@@ -38,19 +39,36 @@ export const protocolMachine: MachineConfig<
 
     disconnected: {
       id: 'disconnected',
+      meta: { label: 'Disconnected' },
       entry: ['onDisconnected'],
-      type: 'final',
+      on: {
+        READY: {
+          actions: 'sendHello',
+          target: 'idle',
+        },
+        HELLO: {
+          actions: ['receiveHello'],
+          target: 'connecting',
+        },
+        RECONNECT: {
+          actions: ['sendHello'],
+          target: 'connecting',
+        },
+      },
     },
 
     connecting: {
       id: 'connecting',
+      meta: { label: 'Connecting' },
       initial: 'invitation',
 
       states: {
         invitation: {
+          meta: { label: 'Processing invitations' },
           initial: 'initializing',
           states: {
             initializing: {
+              meta: { label: 'Looking for invitations' },
               always: [
                 // we can't both present invitations - someone has to be a member
                 {
@@ -80,6 +98,7 @@ export const protocolMachine: MachineConfig<
 
             waiting: {
               // wait for them to validate the invitation we've shown
+              meta: { label: 'Waiting for them to validate our invitation' },
               on: {
                 ACCEPT_INVITATION: [
                   // make sure the team I'm joining is actually the one that invited me
@@ -100,6 +119,7 @@ export const protocolMachine: MachineConfig<
             },
 
             validating: {
+              meta: { label: 'Validating their invitation' },
               always: [
                 // if the proof succeeds, add them to the team and send a welcome message,
                 // then proceed to the standard identity claim & challenge process
@@ -121,6 +141,7 @@ export const protocolMachine: MachineConfig<
 
         authenticating: {
           id: 'authenticating',
+          meta: { label: 'Authenticating' },
 
           // peers mutually authenticate to each other, so we have to complete two parallel processes:
           // 1. prove our identity
@@ -132,6 +153,7 @@ export const protocolMachine: MachineConfig<
               initial: 'awaitingChallenge',
               states: {
                 awaitingChallenge: {
+                  meta: { label: 'Waiting for them to challenge our identity' },
                   // if we just presented an invitation, we can skip this
                   always: {
                     cond: 'iHaveInvitation',
@@ -150,6 +172,7 @@ export const protocolMachine: MachineConfig<
 
                 // wait for a message confirming that they've validated our proof of identity
                 awaitingAcceptance: {
+                  meta: { label: 'Waiting for them to validate our identity proof' },
                   on: {
                     ACCEPT_IDENTITY: {
                       target: 'done',
@@ -158,7 +181,10 @@ export const protocolMachine: MachineConfig<
                   ...timeout,
                 },
 
-                done: { type: 'final' },
+                done: {
+                  meta: { label: 'Proved our identity' },
+                  type: 'final',
+                },
               },
             },
 
@@ -167,6 +193,7 @@ export const protocolMachine: MachineConfig<
               initial: 'challenging',
               states: {
                 challenging: {
+                  meta: { label: 'Challenging their identity' },
                   always: [
                     // if they just presented an invitation, we can skip this
                     {
@@ -192,6 +219,7 @@ export const protocolMachine: MachineConfig<
 
                 // then wait for them to respond to the challenge with proof
                 waiting: {
+                  meta: { label: 'Waiting for their proof of identity' },
                   on: {
                     PROVE_IDENTITY: [
                       // if the proof succeeds, we're done on our side
@@ -211,7 +239,10 @@ export const protocolMachine: MachineConfig<
                   ...timeout,
                 },
 
-                done: { type: 'final' },
+                done: {
+                  meta: { label: 'Confirmed their identity' },
+                  type: 'final',
+                },
               },
             },
           },
@@ -223,7 +254,10 @@ export const protocolMachine: MachineConfig<
           },
         },
 
-        done: { type: 'final' },
+        done: {
+          meta: { label: 'Done authenticating' },
+          type: 'final',
+        },
       },
 
       // Before connecting, we make sure sure we have the signature chain on both sides
@@ -235,11 +269,11 @@ export const protocolMachine: MachineConfig<
     // having established each others' identities, we now make sure that our team signature chains are up to date
     synchronizing: {
       id: 'synchronizing',
+      meta: { label: 'Synchronizing' },
       initial: 'sendingUpdate',
       on: {
         // when they send us their head & hashes,
         UPDATE: [
-          // if we have the same head, then we're caught up
           {
             actions: 'recordTheirHead',
             target: 'synchronizing.receivingUpdate',
@@ -255,11 +289,13 @@ export const protocolMachine: MachineConfig<
 
       states: {
         sendingUpdate: {
+          meta: { label: 'Sending updated state' },
           entry: 'sendUpdate',
           always: 'waiting',
         },
 
         receivingUpdate: {
+          meta: { label: 'Receiving updated state' },
           always: [
             // if our heads are equal, we're done
             { cond: 'headsAreEqual', target: 'done' },
@@ -269,11 +305,13 @@ export const protocolMachine: MachineConfig<
         },
 
         sendingMissingLinks: {
+          meta: { label: 'Sending missing links' },
           entry: 'sendMissingLinks',
           always: 'waiting',
         },
 
         receivingMissingLinks: {
+          meta: { label: 'Receiving missing links' },
           always: [
             // if our heads are now equal, we're done
             { cond: 'headsAreEqual', target: 'done' },
@@ -286,9 +324,15 @@ export const protocolMachine: MachineConfig<
           ],
         },
 
-        waiting: {},
+        waiting: {
+          meta: { label: 'Waiting for state update' },
+          ...timeout,
+        },
 
-        done: { type: 'final' },
+        done: {
+          meta: { label: 'Done synchronizing' },
+          type: 'final',
+        },
       },
 
       onDone: [
@@ -318,20 +362,27 @@ export const protocolMachine: MachineConfig<
     },
 
     negotiating: {
+      meta: { label: 'Negotiating encryption key' },
       type: 'parallel',
       states: {
         sendingSeed: {
+          meta: { label: 'Sending seed' },
           initial: 'sending',
           states: {
             sending: {
+              meta: { label: 'Sending seed' },
               entry: 'sendSeed',
               always: 'done',
             },
-            done: { type: 'final' },
+            done: {
+              meta: { label: 'Sent seed' },
+              type: 'final',
+            },
           },
         },
         receivingSeed: {
           initial: 'waiting',
+          meta: { label: 'Receiving seed' },
           on: {
             SEED: {
               actions: 'receiveSeed',
@@ -339,8 +390,14 @@ export const protocolMachine: MachineConfig<
             },
           },
           states: {
-            waiting: {},
-            done: { type: 'final' },
+            waiting: {
+              meta: { label: 'Waiting for seed' },
+              ...timeout,
+            },
+            done: {
+              meta: { label: 'Received seed' },
+              type: 'final',
+            },
           },
         },
       },
@@ -348,6 +405,7 @@ export const protocolMachine: MachineConfig<
     },
 
     connected: {
+      meta: { label: 'Connected' },
       on: {
         DISCONNECT: '#disconnected',
 

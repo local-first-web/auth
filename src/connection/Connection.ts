@@ -2,25 +2,37 @@ import { EventEmitter } from 'events'
 import { Transform } from 'stream'
 import { Protocol } from './Protocol'
 import { InitialContext } from '/connection/types'
+import { debug } from '/util'
 
 // This is a thin wrapper around a Protocol instance that gives it a transform (duplex) stream API.
 // Beyond that, the only work it does is to serialize the message on the way out, and deserialize it
 // on the way in.
 
+// An application using this will pipe it between the application and its web socket:
+// application ⇆ Connection ⇆ socket
+
+// TODO: Reimplement this with the stream as a property of Protocol, so there's just one class instead of two?
+
 export class Connection extends Transform {
   private protocol: Protocol
   userName: string
+  log: debug.Debugger
 
   constructor(context: InitialContext) {
     super()
+    this.userName = 'user' in context ? context.user!.userName : context.invitee.name
+    this.log = debug(`lf:auth:connection:${this.userName}`)
 
-    // outgoing messages are stringified and pushed into the stream
-    const sendMessage = (message: any) => this.push(JSON.stringify(message))
+    // outgoing messages from the protocol are stringified and pushed into the stream
+    const sendMessage = (message: any) => {
+      const serializedMessage = JSON.stringify(message)
+      this.push(serializedMessage)
+    }
 
     this.protocol = new Protocol({ context, sendMessage })
 
     // pass events from protocol
-    pipeEvents(this.protocol, this, ['connected', 'joined', 'updated', 'disconnected'])
+    pipeEvents(this.protocol, this, ['change', 'connected', 'joined', 'updated', 'disconnected'])
   }
 
   // Transform stream implementation
@@ -28,10 +40,12 @@ export class Connection extends Transform {
     if (typeof _ === 'function') next = _
 
     try {
-      // incoming messages are parsed and delivered to the protocol
+      // incoming messages from the stream are deserialized and delivered to the protocol
       const message = JSON.parse(chunk.toString())
       this.protocol.deliver(message)
     } catch (err) {
+      console.error(err)
+
       // callback with error
       if (next) next(err)
     }
@@ -49,8 +63,11 @@ export class Connection extends Transform {
 
   public stop() {
     this.protocol.stop()
+    this.removeAllListeners()
     return this
   }
+
+  // ------- passthrough from protocol
 
   public get state() {
     return this.protocol.state

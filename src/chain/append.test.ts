@@ -1,8 +1,11 @@
 import { append, create } from '/chain'
 import { getHead } from '/chain/getHead'
 import { getRoot } from '/chain/getRoot'
-import { defaultContext } from '/util/testing'
+import { setup } from '/util/testing'
 import '/util/testing/expect/toBeValid'
+
+const { alice } = setup(['alice'])
+const defaultContext = alice.localContext
 
 const __ = expect.objectContaining
 

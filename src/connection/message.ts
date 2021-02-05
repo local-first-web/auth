@@ -6,13 +6,13 @@ import { Base64, Hash } from '/util'
 
 export type ReadyMessage = {
   type: 'READY'
-  payload: {}
 }
+
 export type HelloMessage = {
   type: 'HELLO'
   payload: {
-    identityClaim: KeyScope // we always claim an identity
-    proofOfInvitation?: ProofOfInvitation // we only offer proof of invitation if we're not a member yet
+    identityClaim: KeyScope
+    proofOfInvitation?: ProofOfInvitation
   }
 }
 
@@ -29,6 +29,9 @@ export type DisconnectMessage = {
   payload?: {
     message: string
   }
+}
+export type ReconnectMessage = {
+  type: 'RECONNECT'
 }
 
 // Invitations
@@ -114,6 +117,7 @@ export type ConnectionMessage =
   | AcceptIdentityMessage
   | ErrorMessage
   | DisconnectMessage
+  | ReconnectMessage
   | UpdateMessage
   | LocalUpdateMessage
   | MissingLinksMessage

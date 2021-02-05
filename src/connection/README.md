@@ -1,31 +1,8 @@
-﻿TODO this is out of date
+﻿# Connection
 
-### Initial handshake
+TODO
 
-#### Both are existing members in good standing
-
-| Alice     | Bob       |
-| --------- | --------- |
-| CLAIM     | CLAIM     |
-| CHALLENGE | CHALLENGE |
-| PROVE     | PROVE     |
-| VERIFY    | VERIFY    |
-
-#### Bob has been invited
-
-| Alice           | Bob         |
-| --------------- | ----------- |
-| CLAIM           | SHOW_INVITE |
-| VALIDATE_INVITE |             |
-|                 | CLAIM       |
-| CHALLENGE       | CHALLENGE   |
-| PROVE           | PROVE       |
-| VERIFY          | VERIFY      |
-
-Q : How does Bob know he's talking to a team member?  
-A : He validates his own invitation after getting in
-
-# Identity & authentication
+## Identity & authentication
 
 Someone shows up, saying they're Bob. Without a trusted third party in the form of a centralized
 server to vouch that this is indeed Bob, how can Alice be sure that she's not talking to an

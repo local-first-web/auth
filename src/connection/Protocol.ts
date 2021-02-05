@@ -22,40 +22,43 @@ import {
 } from '/connection/message'
 import { orderedDelivery } from '/connection/orderedDelivery'
 import {
-  Action,
   Condition,
   ConnectionContext,
   ConnectionParams,
   ConnectionState,
+  hasInvitee,
+  InitialContext,
   SendFunction,
+  StateMachineAction,
 } from '/connection/types'
+import { getDeviceId, parseDeviceId } from '/device'
 import * as invitations from '/invitation'
-import { KeyType, randomKey } from '/keyset'
+import { create, KeyType, randomKey } from '/keyset'
 import { Team } from '/team'
 import { arrayToMap, assert, debug } from '/util'
 
-const { MEMBER } = KeyType
+const { DEVICE, MEMBER } = KeyType
+
+// NEXT: InitialContext needs to have two possible states - member or non-member
 
 /**
  * Wraps a state machine (using [XState](https://xstate.js.org/docs/)) that
  * implements the connection protocol. The XState configuration is in `machineConfig`.
  */
 export class Protocol extends EventEmitter {
+  private log: debug.Debugger
+
   private sendMessage: SendFunction
   private machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
   private incomingMessageQueue: Record<number, NumberedConnectionMessage> = {}
   private outgoingMessageIndex: number = 0
-  private log: debug.Debugger
-
-  private userName: string
-  private started: boolean = false
+  private isRunning: boolean = false
 
   constructor({ sendMessage, context }: ConnectionParams) {
     super()
 
-    this.userName = context.user.userName
-    this.log = debug(`lf:auth:connection:${this.userName}`)
-    this.log('new connection')
+    const debugLabel = hasInvitee(context) ? context.invitee.name : context.user.userName
+    this.log = debug(`lf:auth:protocol:${debugLabel}`)
 
     this.sendMessage = (message: ConnectionMessage) => {
       const index = this.outgoingMessageIndex++
@@ -69,59 +72,50 @@ export class Protocol extends EventEmitter {
     }).withContext(context)
 
     // instantiate the machine
-    this.machine = interpret(machine).onTransition(this.logState)
+    this.machine = interpret(machine).onTransition((state) => {
+      const summary = stateSummary(state.value)
+      this.emit('change', summary)
+      this.log(`⏩ ${summary}`)
+    })
   }
 
-  private logState = (state: any) => {
-    const stateSummary = (state: any): string => {
-      const s = isString(state)
-        ? state
-        : Object.keys(state)
-            .map((key) => {
-              const substate = state[key]
-              return substate === 'done' ? '' : `${key}:${stateSummary(substate)}`
-            })
-            .filter((s) => s.length)
-            .join(',')
-      return s //
-        .replace(/disconnected/g, '❌')
-        .replace(/connected/g, '✅')
-    }
-
-    return this.log(`⏩ ${stateSummary(state.value)}`)
-  }
-
-  private logMessage = (direction: 'in' | 'out', message: ConnectionMessage, index: number) => {
-    const arrow = direction === 'in' ? '<-' : '->'
-    this.log(`${arrow} ${this.peerName} ${message.type} #${index} ${getHead(message)}`)
-  }
-
-  /** Starts the protocol machine. Returns this Protocol object. */
-  public start = () => {
+  /** Starts (or restarts) the protocol machine. Returns this Protocol object. */
+  public start = (context?: Partial<InitialContext>) => {
     this.log('starting')
-    this.started = true
-    this.machine.start()
+    if (!this.isRunning) {
+      this.machine.start()
+      this.isRunning = true
+      this.sendMessage({ type: 'READY' })
+    } else {
+      this.machine.send({ type: 'RECONNECT' })
+    }
     return this
   }
 
-  /** Stops the protocol machine and sends a disconnect message to the peer. */
+  /** Sends a disconnect message to the peer. */
   public stop = () => {
     const disconnectMessage = { type: 'DISCONNECT' } as DisconnectMessage
     this.sendMessage(disconnectMessage) // send disconnect message to peer
-    if (this.started && !this.machine.state.done) {
-      this.started = false
+    if (this.isRunning && !this.machine.state.done) {
       this.machine.send(disconnectMessage) // send disconnect event to local machine
     }
+    this.removeAllListeners()
+    return this
+  }
+
+  get userName() {
+    if (!this.isRunning) return ''
+    return hasInvitee(this.context) ? this.context.invitee.name : this.context.user!.userName
   }
 
   /** Returns the current state of the protocol machine. */
   get state() {
-    if (!this.started) return 'disconnected'
+    if (!this.isRunning) return 'disconnected'
     else return this.machine.state.value
   }
 
-  get context() {
-    if (!this.started) throw new Error(`Can't get context; machine not started`)
+  get context(): ConnectionContext {
+    if (!this.isRunning) throw new Error(`Can't get context; machine not started`)
     return this.machine.state.context
   }
 
@@ -143,7 +137,7 @@ export class Protocol extends EventEmitter {
     return this.context.team
   }
 
-  /** Returns the connection's session key when we are in a connected state.
+  /** Returns the connection's session key Jwhen we are in a connected state.
    * Otherwise, returns `undefined`.
    */
   get sessionKey() {
@@ -151,11 +145,11 @@ export class Protocol extends EventEmitter {
   }
 
   get peerName() {
-    if (!this.started) return '? (not started)'
+    if (!this.isRunning) return '? (not started)'
     return (
       this.context.peer?.userName ??
       this.context.theirIdentityClaim?.name ??
-      this.context.theirProofOfInvitation?.userName ??
+      this.context.theirProofOfInvitation?.invitee.name ??
       '?'
     )
   }
@@ -175,7 +169,7 @@ export class Protocol extends EventEmitter {
 
     // send any messages that are ready to go out
     for (const m of nextMessages) {
-      if (this.started && !this.machine.state.done) this.machine.send(m)
+      if (this.isRunning && !this.machine.state.done) this.machine.send(m)
       else this.log(`stopped, not sending #${incomingMessage.index}`)
     }
   }
@@ -185,7 +179,6 @@ export class Protocol extends EventEmitter {
   private fail = (message: string, details?: any) =>
     assign({
       error: (context, event) => {
-        // console.error(message)
         const errorPayload = { message, details }
         const errorMessage: ErrorMessage = { type: 'ERROR', payload: errorPayload }
         this.machine.send(errorMessage) // force error state locally
@@ -195,24 +188,18 @@ export class Protocol extends EventEmitter {
     })
 
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendHello'`) */
-  private readonly actions: Record<string, Action> = {
-    sendReady: () => {
-      // We send a READY message without any content just to make sure there's someone at the other
-      // end before we identify ourselves etc.
-      this.sendMessage({ type: 'READY', payload: {} })
-    },
-
-    sendHello: (context) => {
+  private readonly actions: Record<string, StateMachineAction> = {
+    sendHello: async (context) => {
       this.sendMessage({
         type: 'HELLO',
         payload: {
-          // claim our identity
-          identityClaim: { type: MEMBER, name: context.user.userName },
-          // if we're not a member yet, attach our proof of invitation
-          proofOfInvitation:
-            context.invitationSeed !== undefined ? this.myProofOfInvitation(context) : undefined,
+          identityClaim: {
+            type: DEVICE,
+            name: getDeviceId(context.device),
+          },
+          proofOfInvitation: hasInvitee(context) ? this.myProofOfInvitation(context) : undefined,
         },
-      })
+      } as HelloMessage)
     },
 
     // authenticating
@@ -220,9 +207,20 @@ export class Protocol extends EventEmitter {
     // TODO: authentication should always use device keys, not member keys
 
     receiveHello: assign({
-      theirIdentityClaim: (_, event) => (event as HelloMessage).payload.identityClaim,
-      theyHaveInvitation: (_, event) => !!(event as HelloMessage).payload.proofOfInvitation,
-      theirProofOfInvitation: (_, event) => (event as HelloMessage).payload.proofOfInvitation,
+      theirIdentityClaim: (_, event) => {
+        event = event as HelloMessage
+        return 'identityClaim' in event.payload ? event.payload.identityClaim : undefined
+      },
+
+      theyHaveInvitation: (_, event) => {
+        event = event as HelloMessage
+        return 'proofOfInvitation' in event.payload
+      },
+
+      theirProofOfInvitation: (_, event) => {
+        event = event as HelloMessage
+        return 'proofOfInvitation' in event.payload ? event.payload.proofOfInvitation : undefined
+      },
     }),
 
     acceptInvitation: (context) => {
@@ -234,13 +232,19 @@ export class Protocol extends EventEmitter {
       } as AcceptInvitationMessage)
     },
 
-    joinTeam: assign({
-      team: (context, event) => {
-        const team = this.rehydrateTeam(context, event)
-        team.join(this.myProofOfInvitation(context))
-        return team
-      },
-    }),
+    joinTeam: (context, event) => {
+      // we've just received the team's signature chain; reconstruct team
+      const team = this.rehydrateTeam(context, event)
+
+      // join the team
+      const proof = this.myProofOfInvitation(context)
+      const { user, device } = team.join(proof)
+
+      // put the updated user, device, and team on our context
+      this.context.user = user
+      this.context.device = device
+      this.context.team = team
+    },
 
     challengeIdentity: (context) => {
       const identityClaim = context.theirIdentityClaim!
@@ -253,8 +257,9 @@ export class Protocol extends EventEmitter {
     },
 
     proveIdentity: (context, event) => {
+      assert(context.user)
       const { challenge } = (event as ChallengeIdentityMessage).payload
-      const proof = identity.prove(challenge, context.user.keys)
+      const proof = identity.prove(challenge, context.device.keys)
       this.sendMessage({
         type: 'PROVE_IDENTITY',
         payload: { challenge, proof },
@@ -265,7 +270,9 @@ export class Protocol extends EventEmitter {
       peer: (context) => {
         assert(context.team)
         assert(context.theirIdentityClaim)
-        return context.team.members(context.theirIdentityClaim.name)
+        const deviceId = context.theirIdentityClaim.name
+        const { userName } = parseDeviceId(deviceId)
+        return context.team.members(userName)
       },
     }),
 
@@ -390,6 +397,7 @@ export class Protocol extends EventEmitter {
     generateSeed: assign({ seed: (_) => randomKey() }),
 
     sendSeed: (context) => {
+      assert(context.user)
       assert(context.peer)
       assert(context.seed)
 
@@ -413,6 +421,7 @@ export class Protocol extends EventEmitter {
 
     deriveSharedKey: assign({
       sessionKey: (context, event) => {
+        assert(context.user)
         assert(context.theirEncryptedSeed)
         assert(context.seed)
         assert(context.peer)
@@ -438,12 +447,12 @@ export class Protocol extends EventEmitter {
       error: (_, event) => (event as ErrorMessage).payload,
     }),
 
-    rejectIdentity: this.fail(`I couldn't verify your identity`),
-    failNeitherIsMember: this.fail(`We can't connect because neither one of us is a member`),
-    rejectInvitation: this.fail(`Your invitation isn't valid - it may have been revoked`),
-    rejectTeam: this.fail(`This is not the team I was invited to`),
-    failPeerWasRemoved: this.fail(`You were removed from the team`),
-    failTimeout: this.fail('Connection timed out'),
+    rejectIdentity: this.fail(`I couldn't verify your identity.`),
+    failNeitherIsMember: this.fail(`We can't connect because neither one of us is a member.`),
+    rejectInvitation: this.fail(`Your invitation didn't work - maybe the code was mistyped?`),
+    rejectTeam: this.fail(`This is not the team I was invited to.`),
+    failPeerWasRemoved: this.fail(`You were removed from the team.`),
+    failTimeout: this.fail('Connection timed out.'),
 
     // events for external listeners
 
@@ -453,29 +462,18 @@ export class Protocol extends EventEmitter {
     onDisconnected: (_, event) => this.emit('disconnected', event),
   }
 
-  emit(event: string | symbol, ...args: any[]) {
-    this.log('emitting %o', event)
-    super.emit(event, ...args)
-    return true
-  }
-
   // GUARDS
 
   /** These are referred to by name in `connectionMachine` (e.g. `cond: 'iHaveInvitation'`) */
   private readonly guards: Record<string, Condition> = {
-    iHaveInvitation: (context) => {
-      const result = context.invitationSeed !== undefined
-      return result
-    },
+    iHaveInvitation: (context) => hasInvitee(context),
 
-    theyHaveInvitation: (context) => {
-      const result = context.theirProofOfInvitation !== undefined
-      return result
-    },
+    theyHaveInvitation: (context) => context.theyHaveInvitation === true,
 
     bothHaveInvitation: (...args) =>
       this.guards.iHaveInvitation(...args) && this.guards.theyHaveInvitation(...args),
 
+    // TODO smells bad that this guard has the side effect of admitting the person
     invitationProofIsValid: (context) => {
       assert(context.team)
       assert(context.theirProofOfInvitation)
@@ -497,20 +495,30 @@ export class Protocol extends EventEmitter {
 
     identityIsKnown: (context) => {
       if (context.team === undefined) return true
-      const identityClaim = context.theirIdentityClaim!
-      const userName = identityClaim.name
-      return context.team.has(userName)
+      const deviceId = context.theirIdentityClaim!.name
+      const { userName, deviceName } = parseDeviceId(deviceId)
+      return (
+        context.team.has(userName) &&
+        context.team
+          .members(userName)
+          .devices!.map((d) => d.deviceName)
+          .includes(deviceName)
+      )
     },
 
     identityProofIsValid: (context, event) => {
       assert(context.team)
       const { team, challenge: originalChallenge } = context
-      const identityProofMessage = event as ProveIdentityMessage
-      const { challenge, proof } = identityProofMessage.payload
+      const { challenge, proof } = (event as ProveIdentityMessage).payload
 
-      if (!R.equals(originalChallenge, challenge)) return false
-      const userName = challenge.name
-      const publicKeys = team.members(userName).keys
+      if (!R.equals(originalChallenge, challenge)) return false // proof applies to a different challenge
+
+      const deviceId = challenge.name
+      const { userName, deviceName } = parseDeviceId(deviceId)
+
+      const device = team.getDevice(userName, deviceName)
+
+      const publicKeys = device.keys
       const validation = identity.verify(challenge, proof, publicKeys)
       return validation.isValid
     },
@@ -540,21 +548,39 @@ export class Protocol extends EventEmitter {
 
   // helpers
 
-  private rehydrateTeam = (context: ConnectionContext, event: ConnectionMessage) =>
-    new Team({
+  private logMessage = (direction: 'in' | 'out', message: ConnectionMessage, index: number) => {
+    const arrow = direction === 'in' ? '<-' : '->'
+    this.log(`${arrow} ${this.peerName} #${index} ${message.type} ${messageSummary(message)}`)
+  }
+
+  private rehydrateTeam = (context: ConnectionContext, event: ConnectionMessage) => {
+    return new Team({
       source: (event as AcceptInvitationMessage).payload.chain,
-      context: { user: context.user },
+      context: { user: context.user!, device: context.device },
     })
+  }
 
   private myProofOfInvitation = (context: ConnectionContext) => {
     assert(context.invitationSeed)
-    return invitations.generateProof(context.invitationSeed, context.user.userName)
+    assert(context.invitee)
+    return invitations.generateProof(context.invitationSeed, context.invitee)
   }
 }
 
 // for debugging
 
-const getHead = (message: ConnectionMessage) =>
-  message.payload && 'head' in message.payload ? message.payload.head : ''
+const messageSummary = (message: ConnectionMessage) =>
+  // @ts-ignore
+  message.payload?.head || message.payload?.message || ''
 
 const isString = (state: any) => typeof state === 'string'
+
+const stateSummary = (state: any = 'disconnected'): string =>
+  isString(state)
+    ? state === 'done'
+      ? ''
+      : state
+    : Object.keys(state)
+        .map((key) => `${key}:${stateSummary(state[key])}`)
+        .filter((s) => s.length)
+        .join(',')

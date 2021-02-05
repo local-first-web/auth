@@ -1,7 +1,10 @@
-import { append, clone, create, merge } from '/chain'
-import { alicesContext, bobsContext, defaultContext } from '/util/testing'
+import { append, create, merge } from '/chain'
+import { clone } from '/util'
+import { setup } from '/util/testing'
 import '/util/testing/expect/toBeValid'
 
+const { alice, bob } = setup(['alice', 'bob'])
+const defaultContext = alice.localContext
 const __ = expect.objectContaining
 
 describe('chains', () => {
@@ -27,7 +30,7 @@ describe('chains', () => {
       const bobChain = clone(chain)
 
       // 👩🏾 Alice makes edits
-      const aliceChain = append(chain, { type: 'FOO', payload: 'doin stuff' }, alicesContext)
+      const aliceChain = append(chain, { type: 'FOO', payload: 'doin stuff' }, alice.localContext)
 
       // 👨🏻‍🦲 Bob doesn't make any changes
 
@@ -47,15 +50,23 @@ describe('chains', () => {
 
     test('concurrent edits', () => {
       // 👩🏾 Alice creates a chain and shares it with Bob
-      const aliceChain = create('a', alicesContext)
+      const aliceChain = create('a', alice.localContext)
       const bobChain = { ...aliceChain }
 
       // 👩🏾 Alice makes changes while disconnected
-      const aliceBranch1 = append(aliceChain, { type: 'FOO', payload: 'alice 1' }, alicesContext)
-      const aliceBranch2 = append(aliceBranch1, { type: 'FOO', payload: 'alice 2' }, alicesContext)
+      const aliceBranch1 = append(
+        aliceChain,
+        { type: 'FOO', payload: 'alice 1' },
+        alice.localContext
+      )
+      const aliceBranch2 = append(
+        aliceBranch1,
+        { type: 'FOO', payload: 'alice 2' },
+        alice.localContext
+      )
 
       // 👨🏻‍🦲 Bob makes changes while disconnected
-      const bobBranch = append(bobChain, { type: 'FOO', payload: 'bob' }, bobsContext)
+      const bobBranch = append(bobChain, { type: 'FOO', payload: 'bob' }, bob.localContext)
 
       // 👩🏾👨🏻‍🦲 They sync back up
       const aliceMerged = merge(aliceBranch2, bobBranch)
@@ -73,8 +84,8 @@ describe('chains', () => {
     })
 
     test(`can't merge chains with different roots`, () => {
-      const aliceChain = create('a', alicesContext)
-      const bobChain = create('b', bobsContext)
+      const aliceChain = create('a', alice.localContext)
+      const bobChain = create('b', bob.localContext)
 
       // nope
       const tryToMerge = () => merge(aliceChain, bobChain)

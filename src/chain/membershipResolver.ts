@@ -1,9 +1,9 @@
-﻿import { actionFingerprint } from '/chain/actionFingerprint'
-import { bySeniority } from '/chain/bySeniority'
+﻿import { bySeniority } from '/chain/bySeniority'
 import { baseResolver } from '/chain/getSequence'
 import {
   ActionFilter,
   ActionFilterFactory,
+  ActionLink,
   AddMemberAction,
   AddMemberRoleAction,
   Branch,
@@ -16,6 +16,8 @@ import {
   TeamSignatureChain,
   TwoBranches,
 } from '/chain/types'
+import { ADMIN } from '/role'
+import { isAdminOnlyAction } from './isAdminOnlyAction'
 import { arraysAreEqual, debug } from '/util'
 
 const log = debug('lf:auth:membershipResolver')
@@ -31,8 +33,8 @@ export const membershipResolver: Resolver<TeamAction> = (heads, chain) => {
   // Consecutively apply each type of filter to the branches
   for (const key in filterFactories) {
     const makeFilter = filterFactories[key]
-    const actionFilter = makeFilter(branches, chain)
-    const applyFilterToBranch = (branch: Branch) => branch.filter(actionFilter)
+    const filter = makeFilter(branches, chain)
+    const applyFilterToBranch = (branch: Branch) => branch.filter(filter)
     branches = branches.map(applyFilterToBranch) as TwoBranches
   }
 
@@ -40,18 +42,20 @@ export const membershipResolver: Resolver<TeamAction> = (heads, chain) => {
 }
 
 const filterFactories: Record<string, ActionFilterFactory> = {
-  // Deal with mutual and circular removals:
+  // RULE: mutual and circular removals are resolved by seniority
   // - If A removes B and concurrently B removes A, then the *least senior* of the two's actions
   //   will be omitted: so only B will be removed
   // - If A removes B; B removes C; C removes A, then the *least senior* of the three's actions
   //   will be omitted: A will not be removed, B will be removed, and C will not be removed
   //   (because C was removed by B, and B was concurrently removed).
   resolveMutualRemovals: (branches, chain) => {
-    const removedMembers = getRemovedUsers(branches)
-    const memberRemovers = getRemovals(branches).map(linkAuthor)
+    const removedMembers = getRemovedAndDemotedMembers(branches)
+    const memberRemovers = getRemovalsAndDemotions(branches).map(getAuthor)
 
     // is this a mutual or circular removal?
-    if (removedMembers.length > 0 && arraysAreEqual(removedMembers, memberRemovers)) {
+    const isCircularRemoval =
+      removedMembers.length > 0 && arraysAreEqual(removedMembers, memberRemovers)
+    if (isCircularRemoval) {
       // figure out which member has been around for the shortest amount of time
       const mostRecentMember = leastSenior(chain, memberRemovers)
       // omit any actions by that member
@@ -61,16 +65,26 @@ const filterFactories: Record<string, ActionFilterFactory> = {
     return noFilter
   },
 
-  // If A is removing C, B can't overcome this by concurrently removing C then adding C back
+  // RULE: If A is removing C, B can't overcome this by concurrently removing C then adding C back
   cantAddBackRemovedMember: (branches) => {
-    const removedMembers = getRemovedUsers(branches)
+    const removedMembers = getRemovedAndDemotedMembers(branches)
     return addedNotIn(removedMembers)
   },
 
-  // If B is removed, anything they do concurrently is omitted
+  // RULE: If B is removed, anything they do concurrently is omitted
   cantDoAnythingWhenRemoved: (branches) => {
-    const removedMembers = getRemovedUsers(branches)
+    const removedMembers = getRemovedMembers(branches)
     return authorNotIn(removedMembers)
+  },
+
+  // RULE: If B is demoted, any admin-only actions they do concurrently are omitted
+  cantDoAdminActionsWhenDemoted: (branches) => {
+    const demotedMembers = getDemotedMembers(branches)
+    return (link: TeamActionLink) => {
+      const authorNotDemoted = authorNotIn(demotedMembers)
+      const notAdminOnly = (link: TeamActionLink) => !isAdminOnlyAction(link.body)
+      return authorNotDemoted(link) || notAdminOnly(link)
+    }
   },
 }
 
@@ -79,25 +93,33 @@ const filterFactories: Record<string, ActionFilterFactory> = {
 const leastSenior = (chain: TeamSignatureChain, userNames: string[]) =>
   userNames.sort(bySeniority(chain)).pop()!
 
-const getRemovals = (branches: TwoBranches) => {
-  const isRemovalAction = (link: TeamActionLink): boolean =>
-    link.body.type === 'REMOVE_MEMBER' || link.body.type === 'REMOVE_MEMBER_ROLE'
-  return branches.flatMap((branch) => branch.filter(isRemovalAction))
-}
+const isRemovalAction = (link: TeamActionLink): boolean => link.body.type === 'REMOVE_MEMBER'
 
-const getRemovedUsers = (branches: TwoBranches) => getRemovals(branches).map(removedUserName)
+const getRemovals = (branches: TwoBranches) =>
+  branches.flatMap((branch) => branch.filter(isRemovalAction)) as RemoveAction[]
 
-const removedUserName = (link: TeamActionLink): string => {
-  const removalAction = link.body as LinkBody<RemoveMemberAction | RemoveMemberRoleAction>
-  return removalAction.payload.userName
-}
+const isDemotionAction = (link: TeamActionLink): boolean => link.body.type === 'REMOVE_MEMBER_ROLE' //&& link.body.payload.roleName === ADMIN
 
-const linkAuthor = (link: TeamActionLink): string => link.signed.userName
+const getDemotions = (branches: TwoBranches) =>
+  branches.flatMap((branch) => branch.filter(isDemotionAction)) as RemoveAction[]
 
-const authorIsNot = (author: string) => (link: TeamActionLink) => linkAuthor(link) !== author
+const getRemovalsAndDemotions = (branches: TwoBranches) =>
+  getRemovals(branches).concat(getDemotions(branches))
+
+const getRemovedAndDemotedMembers = (branches: TwoBranches) =>
+  getRemovalsAndDemotions(branches).map(getTarget)
+
+const getRemovedMembers = (branches: TwoBranches) => getRemovals(branches).map(getTarget)
+const getDemotedMembers = (branches: TwoBranches) => getDemotions(branches).map(getTarget)
+
+const getTarget = (link: RemoveAction): string => link.body.payload.userName
+
+const getAuthor = (link: TeamActionLink): string => link.signed.userName
+
+const authorIsNot = (author: string) => (link: TeamActionLink) => getAuthor(link) !== author
 
 const authorNotIn = (excludeList: string[]) => (link: TeamActionLink): boolean =>
-  !excludeList.includes(linkAuthor(link))
+  !excludeList.includes(getAuthor(link))
 
 const addedNotIn = (excludeList: string[]) => (link: TeamActionLink): boolean => {
   const isAddAction = (link: TeamActionLink): boolean =>
@@ -121,3 +143,5 @@ const addedNotIn = (excludeList: string[]) => (link: TeamActionLink): boolean =>
 }
 
 const noFilter: ActionFilter = (_: any) => true
+
+type RemoveAction = ActionLink<RemoveMemberAction | RemoveMemberRoleAction>

@@ -59,7 +59,7 @@ const _validators: ValidatorSet = {
   },
 
   /** Does this link's signature check out? */
-  validateSignatures: link => {
+  validateSignatures: (link) => {
     if (isMergeLink(link)) return { isValid: true } // merge links aren't signed
 
     const signedMessage = {
