@@ -1,4 +1,5 @@
-﻿import { ActionLink, ROOT } from '/chain'
+﻿import { isAdminOnlyAction } from '../chain/isAdminOnlyAction'
+import { ActionLink, ROOT } from '/chain'
 import { KeyScope } from '/keyset'
 import * as select from '/team/selectors'
 import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '/team/types'
@@ -17,11 +18,8 @@ const validators: TeamStateValidatorSet = {
   /** check that the user who made these changes was a member with appropriate rights at the time */
   mustBeAdmin: (...args) => {
     const [prevState, link] = args
-
-    const { type, context } = link.body
-
-    // any team member can do these things
-    const nonAdminActions = ['ADD_DEVICE', 'CHANGE_MEMBER_KEYS', 'ADMIT']
+    const action = link.body
+    const { type, context } = action
 
     // at root link, team doesn't yet have members
     if (type !== ROOT) {
@@ -32,7 +30,7 @@ const validators: TeamStateValidatorSet = {
       if (noSuchMember) return fail(`A member named '${userName}' was not found`, ...args)
 
       // make sure member is admin
-      if (!nonAdminActions.includes(type)) {
+      if (isAdminOnlyAction(action)) {
         const isntAdmin = !select.memberIsAdmin(prevState, userName)
         if (isntAdmin) return fail(`Member '${userName}' is not an admin`, ...args)
       }

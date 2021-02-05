@@ -15,6 +15,7 @@ import {
   setup,
   tryToConnect,
 } from '/util/testing/setup'
+import { getDeviceId } from '/device'
 
 const log = debug('lf:auth:test')
 const { DEVICE, MEMBER } = KeyType
@@ -448,13 +449,13 @@ describe('connection', () => {
     expect(bob.team.memberHasRole('charlie', ADMIN)).toBe(false)
   })
 
-  // TODO
-  it.skip('lets a member use an invitation to add a device', async () => {
+  it('lets a member use an invitation to add a device', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
-    // 👨🏻‍🦲💻📧->📱 on his laptop, Bob creates an invitation and somehow gets it to his phone
+    // 👨🏻‍🦲💻📧->📱 on his laptop, Bob creates an invitation and gets it to his phone
     const { deviceName } = bob.phone
     const { seed } = bob.team.invite({ deviceName })
+    bob.phone.keys = generateStarterKeys({ type: DEVICE, name: getDeviceId(bob.phone) }, seed)
 
     // 💻<->📱📧 Bob's phone and laptop connect and the phone joins
     await connectPhoneWithInvitation(bob, seed)
@@ -476,7 +477,9 @@ describe('connection', () => {
     alice.team.removeMemberRole('bob', ADMIN)
 
     // 👨🏻‍🦲💻📧📱 concurrently, on his laptop, Bob invites his phone
-    const { seed } = bob.team.invite({ userName: 'bob' })
+    const { deviceName } = bob.phone
+    const { seed } = bob.team.invite({ deviceName })
+    bob.phone.keys = generateStarterKeys({ type: DEVICE, name: getDeviceId(bob.phone) }, seed)
 
     // 💻<->📱 Bob's phone and laptop connect and the phone joins
     await connectPhoneWithInvitation(bob, seed)
@@ -491,7 +494,7 @@ describe('connection', () => {
     await connect(alice, bob)
 
     // ✅ Bob's phone is still in his devices
-    // expect(bob.team.members('bob').devices).toHaveLength(2)
+    expect(bob.team.members('bob').devices).toHaveLength(2)
 
     // ✅ Alice knows about the new device
     // expect(alice.team.members('bob').devices).toHaveLength(2)

@@ -20,7 +20,7 @@ const substituteTokens = (s: string) =>
     .replace(/dwight/g, '👴')
 
     .replace(/:laptop/g, '')
-    .replace(/:mobile/g, '📱')
+    .replace(/:phone/g, '📱')
 
     .replace(/↩/g, EOL)
     .replace(/\\n/g, EOL)

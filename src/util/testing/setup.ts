@@ -157,7 +157,9 @@ export const connectPhoneWithInvitation = async (a: UserStuff, seed: string) => 
 
   laptop.pipe(phone).pipe(laptop)
 
-  await all([laptop, phone], 'connected')
+  await all([laptop, phone], 'connected').then(() => {
+    a.team = laptop.team!
+  })
 }
 
 /** Passes if each of the given members is on the team, and knows every other member on the team */
@@ -225,16 +227,18 @@ const parseAssetFile = memoize((fileName: string) =>
   JSON.parse(fs.readFileSync(fileName).toString())
 )
 
-const retrieveAsset = <T>(fileName: string, assetGeneratorFunction: () => T): T => {
-  const filePath = path.join(__dirname, `./assets/${fileName}.json`)
+const retrieveAsset = <T>(fileName: string, generateAsset: () => T): T => {
+  return generateAsset()
 
-  // return cached object from assets folder if it exists
-  if (fs.existsSync(filePath)) return parseAssetFile(filePath) as T
+  // const filePath = path.join(__dirname, `./assets/${fileName}.json`)
 
-  // otherwise generate the asset
-  const result: any = assetGeneratorFunction()
-  fs.writeFileSync(filePath, JSON.stringify(result))
-  return result as T
+  // // return cached object from assets folder if it exists
+  // if (fs.existsSync(filePath)) return parseAssetFile(filePath) as T
+
+  // // otherwise generate the asset
+  // const result: any = generateAsset()
+  // fs.writeFileSync(filePath, JSON.stringify(result))
+  // return result as T
 }
 
 const fileSystemSafe = (s: string) =>
