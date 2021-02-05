@@ -4,6 +4,7 @@ import { KeyType } from '/keyset'
 import { ADMIN } from '/role'
 import { debug } from '/util'
 import {
+  setup,
   all,
   connect,
   connection,
@@ -12,9 +13,8 @@ import {
   disconnect,
   disconnection,
   expectEveryoneToKnowEveryone,
-  setup,
   tryToConnect,
-} from '/util/testing/setup'
+} from '/util/testing'
 import { getDeviceId } from '/device'
 
 const log = debug('lf:auth:test')
@@ -49,7 +49,7 @@ describe('connection', () => {
 
     // ❌ Alice and Charlie can't connect because Charlie was never on the team
     tryToConnect(alice, charlie)
-    // await disconnection(alice, charlie)
+    await disconnection(alice, charlie)
   })
 
   // TODO - not sure why this is not working any more
