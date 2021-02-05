@@ -195,16 +195,15 @@ describe('Team', () => {
 
       const { alice, bob, charlie } = setup([
         'alice',
-        { user: 'bob', member: false },
-        { user: 'charlie', member: false },
+        { user: 'bob', admin: false },
+        { user: 'charlie', admin: false },
       ])
 
       alice.team.addRole(COOLKIDS)
-      alice.team.add(bob.user, [COOLKIDS])
-      alice.team.add(charlie.user, [COOLKIDS])
+      alice.team.addMemberRole('bob', COOLKIDS)
+      alice.team.addMemberRole('charlie', COOLKIDS)
 
       const savedTeam = alice.team.save()
-
       bob.team = teams.load(savedTeam, bob.localContext)
       charlie.team = teams.load(savedTeam, charlie.localContext)
 
