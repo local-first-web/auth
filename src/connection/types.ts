@@ -21,14 +21,14 @@ export type SendFunction = <T extends ConnectionMessage>(message: T) => void
 
 /** The type of the initial context depends on whether we are already a member, or we've just been
  * invited and are connecting to the team for the first time. */
-export type InitialContext = (MemberInitialContext | InviteeInitialContext) & {
-  /** Information about the local device, including secret keys */
-  device: DeviceWithSecrets
-}
+export type InitialContext = MemberInitialContext | InviteeInitialContext
 
 export type MemberInitialContext = {
   /** The local user, including their secret keys  */
   user: User
+
+  /** Information about the local device, including secret keys */
+  device: DeviceWithSecrets
 
   /** The team object we both belong to */
   team: Team
@@ -37,6 +37,9 @@ export type MemberInitialContext = {
 export type InviteeInitialContext = {
   /** The local user, including their secret keys (not available if this is a device joining) */
   user?: User
+
+  /** Information about the local device, including secret keys */
+  device: DeviceWithSecrets
 
   /** The type and name associated with the invitation
    * (e.g. `{type: MEMBER, name: userName}` or `{type: DEVICE, name: deviceID}`) */
