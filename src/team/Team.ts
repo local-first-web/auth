@@ -495,10 +495,12 @@ export class Team extends EventEmitter {
     assert(this.hasInvitation(proof), `Can't join a team I wasn't invited to`)
 
     if (this.context.user === undefined) {
-      // If we don't have a `user` defined, it's because we're a device that just joined with an invitation.
-      // Now that we've been sent the team's signature chain, we should be able to find a lockbox with our user's
-      // keys in it that we can open with our device keys.
-      const { userName } = this.context.device
+      // If we don't have a `user` defined, it's because we're a device that just joined with an
+      // invitation. Now that we've been sent the team's signature chain, we should be able to find
+      // a lockbox with our user's keys in it that we can open with our device keys.
+      const { userName, deviceName } = this.context.device
+      this.log(`joining with device ${deviceName}`)
+
       const userKeys = this.keys({ type: MEMBER, name: userName })
       this.context.user = { userName, keys: userKeys }
 
@@ -508,6 +510,7 @@ export class Team extends EventEmitter {
       this.changeKeys(this.context.device.keys)
     } else {
       // if we did already have a `user` defined, we're joining as a new user.
+      this.log(`joining as new user`)
 
       // we need to create new user keys to replace the ephemeral ones from the invitation
       const { userName } = this.context.user
