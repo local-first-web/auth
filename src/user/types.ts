@@ -13,7 +13,4 @@ export interface User {
    *  The index of the keyset in the array corresponds to the
    *  key generation: previousKeys[0] is generation 0, etc. */
   keyHistory?: KeysetWithSecrets[]
-
-  /** The local device in use */
-  device: DeviceWithSecrets
 }

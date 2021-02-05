@@ -12,8 +12,8 @@ The name of the device needs to be unique among this user's devices.
 
 ```js
 const device = {
-  name: 'Windows Laptop 2019-12-11',
-  type: DeviceType.laptop,
+  userName: 'bob',
+  deviceName: 'iPhone 11',
 }
 ```
 

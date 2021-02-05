@@ -20,7 +20,7 @@ export class Connection extends Transform {
 
   constructor(context: InitialContext) {
     super()
-    this.userName = context.user.userName
+    this.userName = 'user' in context ? context.user!.userName : context.invitee.name
     this.log = debug(`lf:auth:connection:${this.userName}`)
 
     // outgoing messages from the protocol are stringified and pushed into the stream
@@ -42,7 +42,6 @@ export class Connection extends Transform {
     try {
       // incoming messages from the stream are deserialized and delivered to the protocol
       const message = JSON.parse(chunk.toString())
-      this.log('received', chunk.toString())
       this.protocol.deliver(message)
     } catch (err) {
       console.error(err)

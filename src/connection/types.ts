@@ -1,7 +1,7 @@
 import { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
 import { ConnectionMessage } from '/connection/message'
-import { PublicDevice } from '/device'
-import { ProofOfInvitation } from '/invitation'
+import { DeviceWithSecrets } from '/device'
+import { Invitee, ProofOfInvitation } from '/invitation'
 import { KeyScope } from '/keyset'
 import { Member } from '/member'
 import { Team } from '/team'
@@ -19,23 +19,49 @@ export type Challenge = KeyScope & {
 
 export type SendFunction = <T extends ConnectionMessage>(message: T) => void
 
-export type InitialContext = {
-  /** The local user, including their secret keys */
+/** The type of the initial context depends on whether we are already a member, or we've just been
+ * invited and are connecting to the team for the first time. */
+export type InitialContext = MemberInitialContext | InviteeInitialContext
+
+export type MemberInitialContext = {
+  /** The local user, including their secret keys  */
   user: User
-  /** If we already belong to the team, we pass the team object we both belong to */
-  team?: Team
-  /** If we've just been invited, we provide the invitation secret key that we've been given  */
-  invitationSeed?: string
+
+  /** Information about the local device, including secret keys */
+  device: DeviceWithSecrets
+
+  /** The team object we both belong to */
+  team: Team
 }
 
-/** Parameters needed to instantiate a connection  */
+export type InviteeInitialContext = {
+  /** The local user, including their secret keys (not available if this is a device joining) */
+  user?: User
+
+  /** Information about the local device, including secret keys */
+  device: DeviceWithSecrets
+
+  /** The type and name associated with the invitation
+   * (e.g. `{type: MEMBER, name: userName}` or `{type: DEVICE, name: deviceID}`) */
+  invitee: Invitee
+
+  /** The secret invitation seed that we've been given  */
+  invitationSeed: string
+}
+
+// type guard: MemberInitialContext vs InviteeInitialContext
+export const hasInvitee = (
+  c: MemberInitialContext | InviteeInitialContext | ConnectionContext
+): c is InviteeInitialContext => 'invitee' in c
+
 export interface ConnectionParams {
   /** A function to send messages to our peer (this is how you hook this up to your network stack) */
   sendMessage: SendFunction
+
   context: InitialContext
 }
 
-export type ConnectionContext = InitialContext & {
+export type ConnectionContext = {
   theyHaveInvitation?: boolean
   theirIdentityClaim?: KeyScope
   theirProofOfInvitation?: ProofOfInvitation
@@ -49,7 +75,9 @@ export type ConnectionContext = InitialContext & {
     message: string
     details?: any
   }
-}
+  device: DeviceWithSecrets
+} & Partial<MemberInitialContext> &
+  Partial<InviteeInitialContext>
 
 export type StateMachineAction =
   | ActionFunction<ConnectionContext, ConnectionMessage>

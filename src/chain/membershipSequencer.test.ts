@@ -1,8 +1,8 @@
+import { setup as userSetup } from '/util/testing'
 import { append, chainSummary, create, merge, TeamAction, TeamSignatureChain } from '/chain'
 import { ADMIN } from '/role'
 import { redactUser } from '/user'
 import { clone } from '/util'
-import { alice, alicesContext, bob, bobsContext, charlie } from '/util/testing'
 
 describe('chains', () => {
   describe('membershipSequencer', () => {
@@ -13,11 +13,11 @@ describe('chains', () => {
       // 🔌❌ Now Alice and Bob are disconnected
 
       // 👨🏻‍🦲 Bob adds Charlie
-      bChain = append(bChain, ADD_CHARLIE, bobsContext)
+      bChain = append(bChain, ADD_CHARLIE, bob.localContext)
       expect(sequence(bChain)).toEqual('ROOT, ADD:bob, ADD:charlie')
 
       // 👩🏾 concurrently, Alice also adds Charlie
-      aChain = append(aChain, ADD_CHARLIE, alicesContext)
+      aChain = append(aChain, ADD_CHARLIE, alice.localContext)
       expect(sequence(aChain)).toEqual('ROOT, ADD:bob, ADD:charlie')
 
       // 🔌✔ Alice and Bob reconnect and synchronize chains
@@ -29,7 +29,7 @@ describe('chains', () => {
     it('discards duplicate removals', () => {
       // 👩🏾 Alice creates a chain and adds Charlie
       let { aChain } = setup()
-      aChain = append(aChain, ADD_CHARLIE, alicesContext)
+      aChain = append(aChain, ADD_CHARLIE, alice.localContext)
 
       // 👩🏾 🡒 👨🏻‍🦲 Alice shares the chain with Bob
       let bChain = clone(aChain)
@@ -37,11 +37,11 @@ describe('chains', () => {
       // 🔌❌ Now Alice and Bob are disconnected
 
       // 👨🏻‍🦲 Bob removes Charlie
-      bChain = append(bChain, REMOVE_CHARLIE, bobsContext)
+      bChain = append(bChain, REMOVE_CHARLIE, bob.localContext)
       expect(sequence(bChain)).toEqual('ROOT, ADD:bob, ADD:charlie, REMOVE:charlie')
 
       // 👩🏾 concurrently, Alice also removes Charlie
-      aChain = append(aChain, REMOVE_CHARLIE, alicesContext)
+      aChain = append(aChain, REMOVE_CHARLIE, alice.localContext)
       expect(sequence(aChain)).toEqual('ROOT, ADD:bob, ADD:charlie, REMOVE:charlie')
 
       // 🔌✔ Alice and Bob reconnect and synchronize chains
@@ -97,13 +97,13 @@ describe('chains', () => {
       // 🔌❌ Now Alice and Bob are disconnected
 
       // 👨🏻‍🦲 Bob adds Charlie
-      bChain = append(bChain, ADD_CHARLIE, bobsContext)
+      bChain = append(bChain, ADD_CHARLIE, bob.localContext)
       expect(sequence(bChain)).toEqual('ROOT, ADD:bob, ADD:charlie')
 
       // 👩🏾 concurrently, Alice also adds Charlie and makes him a manager
-      aChain = append(aChain, ADD_ROLE_MANAGERS, alicesContext)
-      aChain = append(aChain, ADD_CHARLIE, alicesContext)
-      aChain = append(aChain, ADD_CHARLIE_TO_MANAGERS, alicesContext)
+      aChain = append(aChain, ADD_ROLE_MANAGERS, alice.localContext)
+      aChain = append(aChain, ADD_CHARLIE, alice.localContext)
+      aChain = append(aChain, ADD_CHARLIE_TO_MANAGERS, alice.localContext)
       expect(sequence(aChain)).toEqual(
         'ROOT, ADD:bob, ADD:managers, ADD:charlie, ADD:managers:charlie'
       )
@@ -121,11 +121,11 @@ describe('chains', () => {
     const setup = () => {
       // 👩🏾 Alice creates a chain
       let aChain = create<TeamAction>(
-        { teamName: 'Spies Я Us', rootMember: redactUser(alice) },
-        alicesContext
+        { teamName: 'Spies Я Us', rootMember: redactUser(alice.user) },
+        alice.localContext
       )
       // 👩🏾 Alice adds 👨🏻‍🦲 Bob as admin
-      aChain = append(aChain, ADD_BOB_AS_ADMIN, alicesContext)
+      aChain = append(aChain, ADD_BOB_AS_ADMIN, alice.localContext)
 
       // 👩🏾 🡒 👨🏻‍🦲 Alice shares the chain with Bob
       let bChain = clone(aChain)
@@ -148,62 +148,64 @@ describe('chains', () => {
       chainSummary(chain)
         .replace(/_MEMBER/g, '')
         .replace(/_ROLE/g, '')
-
-    // constant actions
-
-    const REMOVE_ALICE = {
-      type: 'REMOVE_MEMBER',
-      payload: { userName: 'alice' },
-    } as TeamAction
-
-    const DEMOTE_ALICE = {
-      type: 'REMOVE_MEMBER_ROLE',
-      payload: { userName: 'alice', roleName: ADMIN },
-    } as TeamAction
-
-    const ADD_BOB_AS_ADMIN = {
-      type: 'ADD_MEMBER',
-      payload: { member: redactUser(bob), roles: [ADMIN] },
-    } as TeamAction
-
-    const REMOVE_BOB = {
-      type: 'REMOVE_MEMBER',
-      payload: { userName: 'bob' },
-    } as TeamAction
-
-    const DEMOTE_BOB = {
-      type: 'REMOVE_MEMBER_ROLE',
-      payload: { userName: 'bob', roleName: ADMIN },
-    } as TeamAction
-
-    const ADD_CHARLIE = {
-      type: 'ADD_MEMBER',
-      payload: { member: redactUser(charlie) },
-    } as TeamAction
-
-    const ADD_CHARLIE_AS_ADMIN = {
-      type: 'ADD_MEMBER',
-      payload: { member: redactUser(charlie), roles: [ADMIN] },
-    } as TeamAction
-
-    const REMOVE_CHARLIE = {
-      type: 'REMOVE_MEMBER',
-      payload: { userName: 'charlie' },
-    } as TeamAction
-
-    const DEMOTE_CHARLIE = {
-      type: 'REMOVE_MEMBER_ROLE',
-      payload: { userName: 'charlie', roleName: ADMIN },
-    } as TeamAction
-
-    const ADD_ROLE_MANAGERS = {
-      type: 'ADD_ROLE',
-      payload: { roleName: 'managers' },
-    } as TeamAction
-
-    const ADD_CHARLIE_TO_MANAGERS = {
-      type: 'ADD_MEMBER_ROLE',
-      payload: { userName: 'charlie', roleName: 'managers' },
-    } as TeamAction
   })
+
+  const { alice, bob, charlie } = userSetup(['alice', 'bob', 'charlie'])
+
+  // constant actions
+
+  const REMOVE_ALICE = {
+    type: 'REMOVE_MEMBER',
+    payload: { userName: 'alice' },
+  } as TeamAction
+
+  const DEMOTE_ALICE = {
+    type: 'REMOVE_MEMBER_ROLE',
+    payload: { userName: 'alice', roleName: ADMIN },
+  } as TeamAction
+
+  const ADD_BOB_AS_ADMIN = {
+    type: 'ADD_MEMBER',
+    payload: { member: redactUser(bob.user), roles: [ADMIN] },
+  } as TeamAction
+
+  const REMOVE_BOB = {
+    type: 'REMOVE_MEMBER',
+    payload: { userName: 'bob' },
+  } as TeamAction
+
+  const DEMOTE_BOB = {
+    type: 'REMOVE_MEMBER_ROLE',
+    payload: { userName: 'bob', roleName: ADMIN },
+  } as TeamAction
+
+  const ADD_CHARLIE = {
+    type: 'ADD_MEMBER',
+    payload: { member: redactUser(charlie.user) },
+  } as TeamAction
+
+  const ADD_CHARLIE_AS_ADMIN = {
+    type: 'ADD_MEMBER',
+    payload: { member: redactUser(charlie.user), roles: [ADMIN] },
+  } as TeamAction
+
+  const REMOVE_CHARLIE = {
+    type: 'REMOVE_MEMBER',
+    payload: { userName: 'charlie' },
+  } as TeamAction
+
+  const DEMOTE_CHARLIE = {
+    type: 'REMOVE_MEMBER_ROLE',
+    payload: { userName: 'charlie', roleName: ADMIN },
+  } as TeamAction
+
+  const ADD_ROLE_MANAGERS = {
+    type: 'ADD_ROLE',
+    payload: { roleName: 'managers' },
+  } as TeamAction
+
+  const ADD_CHARLIE_TO_MANAGERS = {
+    type: 'ADD_MEMBER_ROLE',
+    payload: { userName: 'charlie', roleName: 'managers' },
+  } as TeamAction
 })

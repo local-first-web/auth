@@ -4,6 +4,7 @@ import { KeyType } from '/keyset'
 import { ADMIN } from '/role'
 import { debug } from '/util'
 import {
+  setup,
   all,
   connect,
   connection,
@@ -12,9 +13,9 @@ import {
   disconnect,
   disconnection,
   expectEveryoneToKnowEveryone,
-  setup,
   tryToConnect,
-} from '/util/testing/setup'
+} from '/util/testing'
+import { getDeviceId } from '/device'
 
 const log = debug('lf:auth:test')
 const { DEVICE, MEMBER } = KeyType
@@ -48,7 +49,7 @@ describe('connection', () => {
 
     // ❌ Alice and Charlie can't connect because Charlie was never on the team
     tryToConnect(alice, charlie)
-    // await disconnection(alice, charlie)
+    await disconnection(alice, charlie)
   })
 
   // TODO - not sure why this is not working any more
@@ -254,12 +255,18 @@ describe('connection', () => {
     ])
 
     // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
-    const { seed: charlieSeed } = alice.team.invite({ userName: 'charlie' })
-    charlie.context.invitationSeed = charlieSeed
+    const { seed: charlieSeed } = alice.team.invite('charlie')
+    charlie.connectionContext = {
+      ...charlie.connectionContext,
+      invitationSeed: charlieSeed,
+    }
 
     // 👩🏾 Alice invites 👴 Dwight
-    const { seed: dwightSeed } = alice.team.invite({ userName: 'dwight' })
-    dwight.context.invitationSeed = dwightSeed
+    const { seed: dwightSeed } = alice.team.invite('dwight')
+    dwight.connectionContext = {
+      ...dwight.connectionContext,
+      invitationSeed: dwightSeed,
+    }
 
     // 👳🏽‍♂️<->👴 Charlie and Dwight try to connect to each other
     connect(charlie, dwight)
@@ -442,11 +449,13 @@ describe('connection', () => {
     expect(bob.team.memberHasRole('charlie', ADMIN)).toBe(false)
   })
 
-  it.only('lets a member use an invitation to add a device', async () => {
+  it('lets a member use an invitation to add a device', async () => {
     const { alice, bob } = setup(['alice', 'bob'])
 
-    // 👨🏻‍🦲💻📧->📱 on his laptop, Bob creates an invitation and somehow gets it to his phone
-    const { seed } = bob.team.invite({ deviceName: bob.phone.device.deviceName })
+    // 👨🏻‍🦲💻📧->📱 on his laptop, Bob creates an invitation and gets it to his phone
+    const { deviceName } = bob.phone
+    const { seed } = bob.team.invite({ deviceName })
+    bob.phone.keys = generateStarterKeys({ type: DEVICE, name: getDeviceId(bob.phone) }, seed)
 
     // 💻<->📱📧 Bob's phone and laptop connect and the phone joins
     await connectPhoneWithInvitation(bob, seed)
@@ -468,7 +477,9 @@ describe('connection', () => {
     alice.team.removeMemberRole('bob', ADMIN)
 
     // 👨🏻‍🦲💻📧📱 concurrently, on his laptop, Bob invites his phone
-    const { seed } = bob.team.invite({ userName: 'bob' })
+    const { deviceName } = bob.phone
+    const { seed } = bob.team.invite({ deviceName })
+    bob.phone.keys = generateStarterKeys({ type: DEVICE, name: getDeviceId(bob.phone) }, seed)
 
     // 💻<->📱 Bob's phone and laptop connect and the phone joins
     await connectPhoneWithInvitation(bob, seed)
@@ -483,7 +494,7 @@ describe('connection', () => {
     await connect(alice, bob)
 
     // ✅ Bob's phone is still in his devices
-    // expect(bob.team.members('bob').devices).toHaveLength(2)
+    expect(bob.team.members('bob').devices).toHaveLength(2)
 
     // ✅ Alice knows about the new device
     // expect(alice.team.members('bob').devices).toHaveLength(2)
@@ -623,9 +634,10 @@ describe('connection', () => {
     const { seed } = alice.team.invite({ userName: 'bob' })
 
     // 👨🏻‍🦲📧<->👩🏾 Bob connects to Alice and uses his invitation to join
-    bob.context.invitationSeed = seed
-    const a = (alice.connection.bob = new Connection(alice.context).start())
-    const b = (bob.connection.alice = new Connection(bob.context).start())
+    bob.connectionContext = { ...bob.connectionContext, invitationSeed: seed }
+
+    const a = (alice.connection.bob = new Connection(alice.connectionContext).start())
+    const b = (bob.connection.alice = new Connection(bob.connectionContext).start())
     a.pipe(b).pipe(a)
 
     await all([a, b], 'connected')
@@ -646,16 +658,16 @@ describe('connection', () => {
     alice.team.invite({ userName: 'bob', seed })
 
     // 👨🏻‍🦲📧<->👩🏾 Bob tries to connect, but mistypes his code
-    bob.context.invitationSeed = 'password'
-    alice.connection.bob = new Connection(alice.context).start()
-    bob.connection.alice = new Connection(bob.context).start()
+    bob.connectionContext = { ...bob.connectionContext, invitationSeed: 'password' }
+    alice.connection.bob = new Connection(alice.connectionContext).start()
+    bob.connection.alice = new Connection(bob.connectionContext).start()
     bob.connection.alice.pipe(alice.connection.bob).pipe(bob.connection.alice)
 
     // ❌ The connection fails
     await disconnection(alice, bob)
 
     // 👨🏻‍🦲📧<->👩🏾 Bob tries again with the right code this time
-    bob.context.invitationSeed = 'passw0rd'
+    bob.connectionContext = { ...bob.connectionContext, invitationSeed: 'passw0rd' }
 
     //
     //

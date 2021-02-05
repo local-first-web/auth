@@ -136,6 +136,7 @@ export interface RootAction extends Action {
   payload: BasePayload & {
     teamName: string
     rootMember: Member
+    rootDevice: PublicDevice
   }
 }
 
@@ -194,7 +195,7 @@ export interface RemoveDeviceAction extends Action {
   type: 'REMOVE_DEVICE'
   payload: BasePayload & {
     userName: string
-    deviceId: string
+    deviceName: string
   }
 }
 

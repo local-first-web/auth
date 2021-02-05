@@ -1,40 +1,30 @@
 import { load } from '/Team'
-import { defaultContext, newTeam } from '/util/testing'
-import { storage } from '/util/testing'
+import { setup } from '/util/testing'
 
 describe('Team', () => {
-  beforeEach(() => {
-    storage.contents = undefined
-  })
-
-  const setup = () => ({
-    team: newTeam(),
-    context: defaultContext,
-  })
-
   describe('create', () => {
     it('returns a new team', () => {
-      const { team } = setup()
-      expect(team.teamName).toBe('Spies Я Us')
+      const { alice } = setup(['alice'])
+      expect(alice.team.teamName).toBe('Spies Я Us')
     })
 
     it('saves & loads', () => {
-      const { team, context } = setup()
-      const savedChain = team.save()
-      const restoredTeam = load(savedChain, context)
+      const { alice } = setup(['alice'])
+      const savedChain = alice.team.save()
+      const restoredTeam = load(savedChain, alice.localContext)
       expect(restoredTeam.teamName).toBe('Spies Я Us')
     })
 
     it('throws if saved chain is tampered with', () => {
       // 👩🏾 Alice creates and persists a team
-      const { team, context } = setup()
-      storage.save(team)
+      const { alice } = setup(['alice'])
+      let savedChain = alice.team.save()
 
       // 🦹‍♀️ Eve tampers with the team in storage, replacing Alice's name with hers
-      storage.contents = storage.contents!.replace(/alice/gi, 'eve')
+      savedChain = savedChain.replace(/alice/gi, 'eve')
 
       // 👩🏾 Alice reloads the team and is not fooled
-      const restoreTampered = () => storage.load(context)
+      const restoreTampered = () => load(savedChain, alice.localContext)
       expect(restoreTampered).toThrow(/not valid/)
     })
   })

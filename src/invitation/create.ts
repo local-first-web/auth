@@ -3,7 +3,7 @@ import { generateStarterKeys } from './generateStarterKeys'
 import { deriveId } from '/invitation/deriveId'
 import { normalize } from '/invitation/normalize'
 import { Invitation, InvitationBody, Invitee } from '/invitation/types'
-import { KeyScope, KeysetWithSecrets, KeyType } from '/keyset'
+import { KeysetWithSecrets } from '/keyset'
 
 export const IKEY_LENGTH = 16
 
