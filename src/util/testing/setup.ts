@@ -15,17 +15,16 @@ import * as devices from '/device'
 import { User } from '/user'
 import { arrayToMap, assert } from '/util'
 
-/*
-USAGE: 
+/**
+Usage: 
 
-  ```ts
-  const {alice, bob} = setup(['alice', 'bob'])
-  const {alice, bob, charlie} = setup(['alice', 'bob', {name: 'charlie', member: false}])
-  const {alice, bob, charlie, dwight} = setup(['alice', 'bob', 'charlie', {name: 'dwight', admin: false}])
+```ts
+const {alice, bob} = setup(['alice', 'bob'])
+const {alice, bob, charlie} = setup(['alice', 'bob', {name: 'charlie', member: false}])
+const {alice, bob, charlie, dwight} = setup(['alice', 'bob', 'charlie', {name: 'dwight', admin: false}])
 
-  alice.team.add('bob')
-  ```
-
+alice.team.add('bob')
+```
 */
 export const setup = (_config: (TestUserSettings | string)[] = []) => {
   assert(_config.length > 0)
@@ -148,6 +147,7 @@ export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: st
 
 export const connectPhoneWithInvitation = async (a: UserStuff, seed: string) => {
   const phoneContext = {
+    device: a.phone,
     invitee: { type: KeyType.DEVICE, name: getDeviceId(a.phone) },
     invitationSeed: seed,
   } as InitialContext
@@ -225,13 +225,16 @@ const parseAssetFile = memoize((fileName: string) =>
   JSON.parse(fs.readFileSync(fileName).toString())
 )
 
-const retrieveAsset = <T>(fileName: string, fn: () => T): T => {
-  // const filePath = path.join(__dirname, `./assets/${fileName}.json`)
-  // if (fs.existsSync(filePath)) return parseAssetFile(filePath) as T
-  // const result: any = fn()
-  // fs.writeFileSync(filePath, JSON.stringify(result))
-  // return result as T
-  return fn()
+const retrieveAsset = <T>(fileName: string, assetGeneratorFunction: () => T): T => {
+  const filePath = path.join(__dirname, `./assets/${fileName}.json`)
+
+  // return cached object from assets folder if it exists
+  if (fs.existsSync(filePath)) return parseAssetFile(filePath) as T
+
+  // otherwise generate the asset
+  const result: any = assetGeneratorFunction()
+  fs.writeFileSync(filePath, JSON.stringify(result))
+  return result as T
 }
 
 const fileSystemSafe = (s: string) =>
