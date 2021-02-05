@@ -1,4 +1,4 @@
-import { load } from '/Team'
+import { load } from '/team'
 import { setup } from '/util/testing'
 
 describe('Team', () => {
