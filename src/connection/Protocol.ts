@@ -232,23 +232,19 @@ export class Protocol extends EventEmitter {
       } as AcceptInvitationMessage)
     },
 
-    joinTeam: assign({
-      team: (context, event) => {
-        // we've just received the team's signature chain; reconstruct team
-        const team = this.rehydrateTeam(context, event)
+    joinTeam: (context, event) => {
+      // we've just received the team's signature chain; reconstruct team
+      const team = this.rehydrateTeam(context, event)
 
-        // join the team
-        const proof = this.myProofOfInvitation(context)
-        const { user, device } = team.join(proof)
+      // join the team
+      const proof = this.myProofOfInvitation(context)
+      const { user, device } = team.join(proof)
 
-        // put the updated user and device on our context
-        this.context.user = user
-        this.context.device = device
-
-        // put the team in our context
-        return team
-      },
-    }),
+      // put the updated user, device, and team on our context
+      this.context.user = user
+      this.context.device = device
+      this.context.team = team
+    },
 
     challengeIdentity: (context) => {
       const identityClaim = context.theirIdentityClaim!
