@@ -28,7 +28,7 @@ describe('Team', () => {
 
     it('makes lockboxes for added members', () => {
       // Alice creates a team, adds Bob
-      const { alice, bob } = setup(['alice', { user: 'bob', admin: false }])
+      const { bob } = setup(['alice', { user: 'bob', admin: false }])
 
       // Bob has team keys
       const teamKeys = bob.team.teamKeys()
@@ -36,12 +36,12 @@ describe('Team', () => {
 
       // Bob is not an admin so he doesn't have admin keys
       const bobLooksForAdminKeys = () => bob.team.roleKeys(ADMIN)
-      expect(bobLooksForAdminKeys).toThrow(/not found/)
+      expect(bobLooksForAdminKeys).toThrow()
     })
 
     it('makes an admin lockbox for an added admin member', () => {
       // Alice creates a team, adds Bob as an admin
-      const { alice, bob } = setup(['alice', { user: 'bob', admin: true }])
+      const { bob } = setup(['alice', { user: 'bob', admin: true }])
 
       // Bob is an admin and has admin keys
       const adminKeyset = bob.team.roleKeys(ADMIN)
