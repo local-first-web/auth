@@ -155,10 +155,7 @@ describe('Team', () => {
       it.skip('creates and accepts an invitation for a device', () => {
         const { alice } = setup(['alice'])
 
-        const phone = devices.create({
-          userName: 'alice',
-          deviceName: 'alicez phone',
-        })
+        const phone = devices.create('alice', 'alicez phone')
 
         const { deviceName } = phone
         const deviceId = getDeviceId(phone)

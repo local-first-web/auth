@@ -45,7 +45,7 @@ export const setup = (_config: (TestUserSettings | string)[] = []) => {
     const makeDevice = (userName: string, deviceName: string) => {
       const key = `${userName}-${deviceName}`
       const randomSeed = key
-      const device = devices.create({ deviceName, userName }, randomSeed)
+      const device = devices.create(deviceName, userName, randomSeed)
       return device
     }
 
