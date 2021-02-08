@@ -4,5 +4,6 @@ export { LocalUserContext } from '/context'
 export { generateProof } from '/invitation'
 export { ADMIN } from '/role'
 
+export * from '/device'
 export * from '/connection'
 export * from '/chain/types'
