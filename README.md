@@ -3,7 +3,7 @@
 `@localfirst/auth` provides **decentralized authentication and authorization** for team collaboration, using a secure chain of
 cryptographic signatures.
 
-> 🚧 **This is a work in progress**
+> 🚧 **Note:** This is a work in progress. 
 
 ## Why
 
@@ -27,8 +27,8 @@ This library solves the following problems without requiring a server or any oth
 - **Multi-reader encryption**, using lockboxes
 - **Key revocation and rotation**, using an acyclic directed graph of keys and lockboxes
 
-Each user is assigned a set of cryptographic keys for signatures, asymmetric encryption, and
-symmetric encryption. These are stored in their device's secure storage.
+Each user and each device is assigned a set of cryptographic keys for signatures, asymmetric
+encryption, and symmetric encryption.
 
 When Alice first creates a team, she writes the first link of a **signature chain**, containing her
 public keys for signatures and encryption. All subsequent links must be signed by Alice or by
@@ -51,12 +51,13 @@ permissions.**
 This object can also use the public keys embedded in the signature chain, along with the user's own
 secret keys, to provide **encryption** and **signature verification** within the team.
 
+It also includes a `Connection` object that implements a protocol for **authenticating** and **synchronizing** the team's signature chains between two peers. 
+
 #### Not included
 
-- **Storage** This library does **not** provide storage for user information (including keys) or the
+- **Storage** This library does not provide storage for user information (including keys) or the
   signature chain.
-- **Networking** This library includes a protocol for synchronizing the team's signature chains, but
-  you need to provide a working socket connecting us to a peer.
+- **Networking** You need to provide a working socket connecting us to a peer.
 
 ### Examples
 
@@ -67,20 +68,29 @@ yarn add @localfirst/auth
 #### Alice creates a new team
 
 ```js
-import { user, team } from '@localfirst/auth'
+import * as auth from '@localfirst/auth'
 
 // 👩🏾 Alice
-const alice = user.create('alice')
-const alicesTeam = team.create({ name: 'Spies Я Us', context: { user: alice } })
+const user  = auth.createUser('alice')
+const device = auth.createDevice('alice', 'laptop')
+const team = auth.createTeam({ name: 'Spies Я Us', context: { user, device } })
 ```
 
-Usernames (`alice` in the example) identify a person uniquely within the team. You could use existing user IDs or names, or email addresses.
+**User names** (`alice` in the example) identify a person uniquely within the team. You could use existing user IDs or names, or email addresses, or anonymized hashes:
+
+```js
+const user = auth.createUser('alice@spies.org')
+const user = auth.createUser('002309')
+const user = auth.createUser('XPVfE0JDpDrVQaXQbqPKRGm6')
+```
+
+**Device names** just need to be unique among a user’s devices. 
 
 #### Alice invites Bob
 
 ```js
 // 👩🏾 Alice
-const { secretKey } = alicesTeam.invite('bob')
+const { secretKey } = team.invite('bob')
 ```
 
 The invitation key is a single-use secret that only Alice and Bob will ever know. By default, it is
@@ -99,8 +109,7 @@ Bob uses the secret invitation key to generate proof that he was invited, withou
 
 ```js
 // 👨🏻‍🦲 Bob
-import { accept } from 'taco'
-const proofOfInvitation = accept('aj7x d2jr 9c8f zrbs')
+const proofOfInvitation = auth.generateProof('aj7x d2jr 9c8f zrbs', 'bob')
 ```
 
 When Bob shows up to join the team, anyone can validate his proof of invitation to admit him to the
@@ -112,7 +121,9 @@ team.admit(proofOfInvitation)
 const success = team.has('bob') // TRUE
 ```
 
-#### Alice defines a role and adds Bob
+#### Alice sets Bob’s roles
+
+Alice can create a role and add Bob to it. 
 
 ```js
 // 👩🏾 Alice
@@ -120,14 +131,21 @@ team.addRole('managers')
 team.addMemberRole('bob', 'managers')
 ```
 
-#### Alice checks Bob's role membership
+Alice checks Bob's role membership:
 
 ```js
 // 👩🏾 Alice
-const isAdmin = team.isAdmin('bob') // TRUE
+const isManager = team.memberHasRole('bob', 'managers') // TRUE
 ```
 
-#### Alice encrypts a message for managers
+The `admin` role is special, as it allows a member to modify the group by inviting or removing members, creating roles and assigning members to them, and so on. 
+
+```js
+team.addMemberRole('bob', 'admin')
+const isAdmin = team.memberIsAdmin('bob') // TRUE
+```
+
+#### Alice encrypts a message for Bob
 
 ```js
 // 👩🏾 Alice
@@ -135,11 +153,23 @@ const message = 'the condor flies at midnight'
 const encrypted = team.encrypt(message, 'managers')
 ```
 
-#### Bob decrypts the message
+Bob decrypts the message:
 
 ```js
 // 👨🏻‍🦲 Bob
 const decrypted = team.decrypt(encrypted) // 'the condor flies at midnight'
+```
+
+#### Alice and Bob connect over a network
+
+The examples above show how to use the invitation process manually. The `Connection` class encapsulates a complete communications protocol as a Duplex stream, allowing two peer devices to authenticate each other, synchronize, and encrypt communications. 
+
+```js
+const bobSocket = getWebSocketFromSomewhere()
+const aliceConnection = new Connection({user, device, team})
+connection.start()
+
+aliceConnection.pipe(bobSocket).pipe(aliceConnection)
 ```
 
 👉 Learn more: [API documentation](./docs/api.md).
