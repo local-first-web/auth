@@ -517,7 +517,6 @@ describe('connection', () => {
 
   it('handles three-way connections', async () => {
     const { alice, bob, charlie } = setup(['alice', 'bob', 'charlie'])
-    alice.team.addMemberRole('charlie', ADMIN) // Charlie needs to be an admin to do stuff
 
     // 👩🏾<->👨🏻‍🦲<->👳🏽‍♂️ Alice, Bob, and Charlie all connect to each other
     await connect(alice, bob)
@@ -626,8 +625,7 @@ describe('connection', () => {
     expect(isAdmin('charlie')).toBe(true)
   })
 
-  // TODO
-  it.skip('connects an invitee while simultaneously making other changes', async () => {
+  it('connects an invitee while simultaneously making other changes', async () => {
     const { alice, bob } = setup(['alice', { user: 'bob', member: false }])
 
     // 👩🏾📧👨🏻‍🦲 Alice invites Bob
@@ -692,27 +690,99 @@ describe('connection', () => {
     expectEveryoneToKnowEveryone(alice, bob)
   })
 
-  it.skip('rotates keys after a member is removed', async () => {
-    // Bob is removed from the team
-    // Bob's admin keys no longer work
+  it('rotates keys after a member is removed', async () => {
+    const { alice, bob } = setup(['alice', 'bob'])
+    await connect(alice, bob)
+
+    // 👨🏻‍🦲 Bob has admin keys
+    expect(() => bob.team.adminKeys()).not.toThrow()
+
+    // We have the first-generation keys
+    expect(alice.team.adminKeys().generation).toBe(0)
+
+    // <-> while connected...
+
+    // 👩🏾 Alice removes Bob from the team
+    alice.team.removeMemberRole('bob', ADMIN)
+
+    // 👨🏻‍🦲 Bob no longer has admin keys
+    expect(() => bob.team.adminKeys()).toThrow()
+
+    // The keys have been rotated
+    expect(alice.team.adminKeys().generation).toBe(1)
   })
 
-  it.skip('rotates keys after a device is removed', async () => {
-    // Bob removes his phone from the team
-    // The admin keys that his phone would have no longer work
+  it(`Eve steals Bob's phone; Bob heals the team`, async () => {
+    const { alice, bob, charlie } = setup(['alice', 'bob', 'charlie'])
+    await connect(alice, bob)
+    await connect(bob, charlie)
+
+    expect(alice.team.adminKeys().generation).toBe(0)
+    expect(alice.team.teamKeys().generation).toBe(0)
+
+    // Bob invites his phone and it joins
+    const { seed } = bob.team.invite({ deviceName: 'phone' })
+    bob.phone.keys = generateStarterKeys({ type: DEVICE, name: getDeviceId(bob.phone) }, seed)
+    await connectPhoneWithInvitation(bob, seed)
+
+    // Alice can see that Bob has two devices
+    expect(alice.team.members('bob').devices).toHaveLength(2)
+
+    // The keys have been rotated once
+    expect(alice.team.adminKeys().generation).toBe(1)
+    expect(alice.team.teamKeys().generation).toBe(1)
+
+    // Eve steals Bob's phone, so from his laptop, Bob removes his phone from the team
+    bob.team.removeDevice('bob', 'phone')
+
+    // Alice can see that Bob only has one device
+    expect(alice.team.members('bob').devices).toHaveLength(1)
+
+    // The keys have been rotated again
+    expect(charlie.team.adminKeys().generation).toBe(2)
+    expect(charlie.team.teamKeys().generation).toBe(2)
+
+    // Eve tries to connect to Charlie from Bob's phone, but she can't
+    const phoneContext = {
+      device: bob.phone,
+      user: bob.user,
+      team: bob.team,
+    }
+    const eveOnBobsPhone = new Connection(phoneContext).start()
+    const heyCharlie = new Connection(charlie.connectionContext).start()
+    heyCharlie.pipe(eveOnBobsPhone).pipe(heyCharlie)
+
+    // GRRR foiled again
+    await all([eveOnBobsPhone, heyCharlie], 'disconnected')
   })
 
-  it.skip(`Eve steals Charlie's only device; Alice heals the team`, async () => {
-    // Eve steals Charlie's laptop
-    // Alice removes the laptop from the team
-    // Eve uses Charlie's laptop to try to connect to Bob, but she can't
-    // Alice sends Charlie a new invitation; he's able to use it to connect from his phone
-  })
+  it(`Eve steals Bob's laptop; Alice heals the team`, async () => {
+    const { alice, bob, charlie } = setup(['alice', 'bob', 'charlie'])
+    await connect(alice, bob)
+    await connect(alice, charlie)
 
-  it.skip(`Eve steals one of Charlie's devices; Charlie heals the team`, async () => {
-    // Charlie invites his phone and it joins
-    // Eve steals Charlie's phone
-    // From his laptop, Charlie removes the phone from the team
-    // Eve uses Charlie's phone to try to connect to Bob, but she can't
+    expect(alice.team.adminKeys().generation).toBe(0)
+    expect(alice.team.teamKeys().generation).toBe(0)
+
+    // Eve steals Bob's laptop, so Alice removes Bob's laptop from the team
+    alice.team.removeDevice('bob', 'laptop')
+
+    // Alice can see that Bob has no devices
+    expect(alice.team.members('bob').devices).toHaveLength(0)
+
+    // The keys have been rotated
+    expect(charlie.team.adminKeys().generation).toBe(1)
+    expect(charlie.team.teamKeys().generation).toBe(1)
+
+    // Eve tries to connect to Charlie from Bob's laptop, but she can't
+    connect(bob, charlie)
+    // GRRR foiled again
+    await disconnection(bob, charlie)
+
+    // Alice sends Bob a new invitation; he's able to use it to connect from his phone
+
+    // const { seed } = bob.team.invite({ deviceName: 'phone' })
+    // bob.phone.keys = generateStarterKeys({ type: DEVICE, name: getDeviceId(bob.phone) }, seed)
+    // await connectPhoneWithInvitation(bob, seed)
   })
 })
