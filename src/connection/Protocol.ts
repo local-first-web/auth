@@ -154,7 +154,7 @@ export class Protocol extends EventEmitter {
     )
   }
 
-  // TODO: This probably should be implemented as a separate duplex stream in the pipeline
+  // TODO: The numbering & ordering should probably should be implemented as a separate duplex stream in the pipeline
 
   /** Passes an incoming message from the peer on to this protocol machine, guaranteeing that
    *  messages will be delivered in the intended order (according to the `index` field on the message) */
@@ -246,19 +246,22 @@ export class Protocol extends EventEmitter {
       this.context.team = team
     },
 
-    challengeIdentity: (context) => {
-      const identityClaim = context.theirIdentityClaim!
-      const challenge = identity.challenge(identityClaim)
-      context.challenge = challenge
-      this.sendMessage({
-        type: 'CHALLENGE_IDENTITY',
-        payload: { challenge },
-      } as ChallengeIdentityMessage)
-    },
+    challengeIdentity: assign({
+      challenge: (context) => {
+        const identityClaim = context.theirIdentityClaim!
+        const challenge = identity.challenge(identityClaim)
+        this.sendMessage({
+          type: 'CHALLENGE_IDENTITY',
+          payload: { challenge },
+        } as ChallengeIdentityMessage)
+        return challenge
+      },
+    }),
 
     proveIdentity: (context, event) => {
       assert(context.user)
       const { challenge } = (event as ChallengeIdentityMessage).payload
+      // TODO: proof = team.proveIdentity(challenge)
       const proof = identity.prove(challenge, context.device.keys)
       this.sendMessage({
         type: 'PROVE_IDENTITY',
@@ -270,6 +273,7 @@ export class Protocol extends EventEmitter {
       peer: (context) => {
         assert(context.team)
         assert(context.theirIdentityClaim)
+        // TODO: team.members(theirIdentityClaim) ?
         const deviceId = context.theirIdentityClaim.name
         const { userName } = parseDeviceId(deviceId)
         return context.team.members(userName)
@@ -314,6 +318,8 @@ export class Protocol extends EventEmitter {
         hashes: theirHashes,
       } = (event as UpdateMessage).payload
 
+      // TODO: const missingLinks = team.getMissingLinks({theirRoot, theirHead, theirHashes})
+
       assert(root === theirRoot, `Our roots should be the same`)
 
       // if we have the same head, there are no missing links
@@ -335,6 +341,8 @@ export class Protocol extends EventEmitter {
     receiveMissingLinks: assign({
       team: (context, event) => {
         assert(context.team)
+
+        // TODO: team.receiveMissingLinks(theirHead, theirLinks)
         const { chain } = context.team
 
         const { root, links } = chain
@@ -473,7 +481,8 @@ export class Protocol extends EventEmitter {
     bothHaveInvitation: (...args) =>
       this.guards.iHaveInvitation(...args) && this.guards.theyHaveInvitation(...args),
 
-    // TODO smells bad that this guard has the side effect of admitting the person
+    // TODO smells bad that this guard has the side effect of admitting the person - split this up
+    // into two processes, first validating their proof, then admitting them
     invitationProofIsValid: (context) => {
       assert(context.team)
       assert(context.theirProofOfInvitation)
@@ -494,6 +503,7 @@ export class Protocol extends EventEmitter {
     },
 
     identityIsKnown: (context) => {
+      // TODO: much of this should be moved to Team
       if (context.team === undefined) return true
       const deviceId = context.theirIdentityClaim!.name
       const { userName, deviceName } = parseDeviceId(deviceId)
@@ -507,6 +517,7 @@ export class Protocol extends EventEmitter {
     },
 
     identityProofIsValid: (context, event) => {
+      // TODO: much of this should be moved to Team
       assert(context.team)
       const { team, challenge: originalChallenge } = context
       const { challenge, proof } = (event as ProveIdentityMessage).payload
@@ -525,14 +536,17 @@ export class Protocol extends EventEmitter {
 
     headsAreEqual: (context, event) => {
       assert(context.team)
-      const { head } = context.team.chain
+
+      // If their message includes a head, use that; otherwise use the last head we had recorded
       const { type, payload } = event as UpdateMessage | MissingLinksMessage | LocalUpdateMessage
       const theirHead =
         type === 'UPDATE' || type === 'MISSING_LINKS'
           ? payload.head // take from message
           : context.theirHead // use what we already have in context
-      const result = head === theirHead
-      return result
+
+      const ourHead = context.team.chain.head
+
+      return ourHead === theirHead
     },
 
     headsAreDifferent: (...args) => !this.guards.headsAreEqual(...args),
