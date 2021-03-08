@@ -19,16 +19,11 @@
   "scripts": {
     "lerna": "lerna",
     "start": "lerna run start --stream --parallel",
-    "test": "lerna run test --",
-    "lint": "lerna run lint -- --fix",
+    "start:app": "yarn run build && yarn --cwd demo && yarn --cwd demo start",
+    "test": "lerna run test",
     "build": "lerna run build",
     "prepublish": "lerna run prepublish",
-    "start:app": "yarn run build && yarn --cwd demo && yarn --cwd demo start",
     "cypress": "cypress run",
-    "cypress:open": "cypress open",
-    "changeset": "changeset",
-    "release": "changeset publish",
-    "version:canary": "changeset version --snapshot canary",
-    "release:canary": "changeset publish --tag canary"
+    "cypress:open": "cypress open"
   }
 }

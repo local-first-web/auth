@@ -27,7 +27,7 @@
     "react-dom": "^16.8.0"
   },
   "dependencies": {
-    "@localfirst/utils": "^0.0.1",
+    "@localfirst/auth": "*",
     "tslib": "^2.0.0"
   },
   "publishConfig": {

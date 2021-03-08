@@ -1,0 +1,1 @@
+﻿export { clone } from 'ramda'

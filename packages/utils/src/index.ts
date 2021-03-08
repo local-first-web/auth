@@ -4,17 +4,17 @@
  * @param string - The string to be slugified
  */
 export function toSlug(str: string): string {
-  let s = str;
+  let s = str
   if (!s) {
-    return '';
+    return ''
   }
-  s = s.toLowerCase().trim();
-  s = s.replace(/ & /g, ' and ');
-  s = s.replace(/[ ]+/g, '-');
-  s = s.replace(/[-]+/g, '-');
-  s = s.replace(/[^a-z0-9-]+/g, '');
-  s = s.length > 32 ? s.substr(0, 32) : s;
-  return s;
+  s = s.toLowerCase().trim()
+  s = s.replace(/ & /g, ' and ')
+  s = s.replace(/[ ]+/g, '-')
+  s = s.replace(/[-]+/g, '-')
+  s = s.replace(/[^a-z0-9-]+/g, '')
+  s = s.length > 32 ? s.substr(0, 32) : s
+  return s
 }
 
 /**
@@ -23,15 +23,9 @@ export function toSlug(str: string): string {
  */
 export function fromPhoneE164(phone: string): string {
   if (phone.length === 12) {
-    return (
-      phone.substring(2, 5) +
-      '-' +
-      phone.substring(5, 8) +
-      '-' +
-      phone.substring(8, 12)
-    );
+    return phone.substring(2, 5) + '-' + phone.substring(5, 8) + '-' + phone.substring(8, 12)
   } else {
-    return phone;
+    return phone
   }
 }
 
@@ -39,16 +33,16 @@ export function fromPhoneE164(phone: string): string {
  * Convert a phone number into E.164 format.
  */
 export function toPhoneE164(phone: string): string {
-  phone = phone.replace(/[^0-9]/g, '');
+  phone = phone.replace(/[^0-9]/g, '')
   if (phone.length === 10) {
-    phone = '1' + phone;
+    phone = '1' + phone
   }
-  return '+' + phone;
+  return '+' + phone
 }
 
 /**
  * Add two numbers together
  */
 export function sum(a: number, b: number): number {
-  return a + b;
+  return a + b
 }

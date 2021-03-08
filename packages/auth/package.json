@@ -1,0 +1,65 @@
+{
+  "name": "@localfirst/auth",
+  "version": "0.7.0",
+  "author": {
+    "name": "Herb Caudill",
+    "email": "herb@devresults.com"
+  },
+  "description": "Decentralized authentication and authorization for team collaboration",
+  "license": "MIT",
+  "module": "dist/auth.esm.js",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=10"
+  },
+  "scripts": {
+    "watch": "tsdx watch --noClean ",
+    "build": "tsdx build",
+    "postbuild": "tscpaths -p tsconfig.json -s ./src -o ./dist --silent",
+    "test": "tsdx test",
+    "test:log": "cross-env DEBUG='lf*' DEBUG_COLORS=0 yarn test",
+    "lint": "tsdx lint src",
+    "prepublish": "yarn build",
+    "purge": "scripts/purge.bat"
+  },
+  "peerDependencies": {},
+  "dependencies": {
+    "@herbcaudill/crypto": "0",
+    "debug": "4",
+    "fast-memoize": "2",
+    "msgpack-lite": "0",
+    "ramda": "0",
+    "xstate": "4"
+  },
+  "devDependencies": {
+    "@herbcaudill/tscpaths": "0",
+    "@types/debug": "4",
+    "@types/msgpack-lite": "0",
+    "@types/node": "*",
+    "@types/ramda": "0",
+    "cross-env": "6",
+    "jest": "26",
+    "prettier": "2",
+    "ts-jest": "26",
+    "typescript": "3",
+    "v8-profiler-node8": "6"
+  },
+  "prettier": {
+    "printWidth": 100,
+    "semi": false,
+    "singleQuote": true,
+    "trailingComma": "es5",
+    "arrowParens": "avoid"
+  },
+  "eslintConfig": {
+    "rules": {
+      "@typescript-eslint/no-unused-vars": "off",
+      "no-unused-vars": "off"
+    }
+  }
+}
