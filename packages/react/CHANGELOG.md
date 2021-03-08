@@ -1,11 +1,11 @@
-# @thefakeorg/react
+# @localfirst/react
 
 ## 0.0.2
 
 ### Patch Changes
 
 - Updated dependencies [[`6468a9c`](https://github.com/jaredpalmer/tsdx-monorepo-playground/commit/6468a9c236a30f3650ca0a218055ac7de359b84f)]:
-  - @thefakeorg/utils@0.0.1
+  - @localfirst/utils@0.0.1
 
 ## 0.0.1
 

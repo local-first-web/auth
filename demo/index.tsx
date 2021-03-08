@@ -1,7 +1,7 @@
 import 'react-app-polyfill/ie11';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { Slug } from '@thefakeorg/react';
+import { Slug } from '@localfirst/react';
 
 const App = () => {
   return (

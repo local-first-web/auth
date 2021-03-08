@@ -1,4 +1,4 @@
-describe('@thefakeorg/utils', () => {
+describe('@localfirst/utils', () => {
   it('works', () => {
     expect(true).toBe(true);
   });

@@ -1,13 +1,13 @@
 {
   "extends": "./tsconfig.build.json",
-  "include": ["packages", "types", "scripts", "example"],
+  "include": ["packages", "types", "scripts", "demo"],
   "compilerOptions": {
     "allowJs": false,
     "baseUrl": ".",
     "typeRoots": ["./node_modules/@types", "./types"],
     "paths": {
-      "@thefakeorg/utils": ["packages/utils/src"],
-      "@thefakeorg/react": ["packages/react/src"],
+      "@localfirst/utils": ["packages/utils/src"],
+      "@localfirst/react": ["packages/react/src"],
       "$test/*": ["test/*"]
     }
   }
