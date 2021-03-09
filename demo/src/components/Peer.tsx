@@ -17,13 +17,7 @@ import { RemoveButton } from './RemoveButton'
 const urls = ['ws://localhost:8080']
 
 export const Peer = ({ peer, onRemove }: PeerProps) => {
-  const [user] = useState(() => {
-    const newUser = auth.createUser(peer.user.name)
-    console.log(
-      `**** ${peer.user.name} sig key on creation: ${newUser.keys.signature.publicKey.slice(0, 5)}`
-    )
-    return newUser
-  })
+  const [user] = useState(() => auth.createUser(peer.user.name))
   const [device] = useState(() => auth.createDevice(peer.user.name, peer.device.name))
 
   const log = debug(`lf:tc:peer:${user.userName}`)

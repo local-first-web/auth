@@ -9,7 +9,9 @@ describe('taco-chat', () => {
   describe('page loads', () => {
     it('we see just one peer, Alice', () => {
       cy.get('.Peer').should('have.length', 1)
-      cy.get('.Peer').userName().should('equal', 'Alice')
+      cy.get('.Peer')
+        .userName()
+        .should('equal', 'Alice')
     })
 
     it('we see the signature chain', () => {
@@ -49,7 +51,11 @@ describe('taco-chat', () => {
       it('Bob and Alice are on two different teams', () => {
         alice()
           .teamName()
-          .then(teamName => peer('Bob').teamName().should('not.equal', teamName))
+          .then(teamName =>
+            peer('Bob')
+              .teamName()
+              .should('not.equal', teamName)
+          )
       })
     })
 
@@ -68,7 +74,11 @@ describe('taco-chat', () => {
             bob().join(code) // This kicks off the connection protocol.
             alice()
               .teamName()
-              .then(teamName => bob().teamName().should('equal', teamName))
+              .then(teamName =>
+                bob()
+                  .teamName()
+                  .should('equal', teamName)
+              )
           })
       })
     })
@@ -81,12 +91,20 @@ describe('taco-chat', () => {
       it('has the same team for both peers', () => {
         alice()
           .teamName()
-          .then(aliceTeamName => bob().teamName().should('equal', aliceTeamName))
+          .then(aliceTeamName =>
+            bob()
+              .teamName()
+              .should('equal', aliceTeamName)
+          )
       })
 
       it(`both peers have 'connected' status`, () => {
-        alice().connectionStatus('Bob').should('equal', 'connected')
-        bob().connectionStatus('Alice').should('equal', 'connected')
+        alice()
+          .connectionStatus('Bob')
+          .should('equal', 'connected')
+        bob()
+          .connectionStatus('Alice')
+          .should('equal', 'connected')
       })
 
       describe('then we remove Bob', () => {
@@ -96,10 +114,14 @@ describe('taco-chat', () => {
 
         it(`we don't see Bob any more`, () => {
           cy.get('.Peer').should('have.length', 1)
-          cy.get('.Peer').userName().should('equal', 'Alice')
+          cy.get('.Peer')
+            .userName()
+            .should('equal', 'Alice')
         })
         it('Alice sees that Bob is disconnected', () => {
-          alice().connectionStatus('Bob').should('equal', 'disconnected')
+          alice()
+            .connectionStatus('Bob')
+            .should('equal', 'disconnected')
         })
 
         describe('then we add Bob back', () => {
@@ -110,9 +132,11 @@ describe('taco-chat', () => {
             // probably because Bob's keys haven't been updated somewhere
             // (same reason Bob can't do admin stuff even if he's admin)
           })
-          it.only('Bob rejoins the team ', () => {
+          it('Bob rejoins the team ', () => {
             cy.get('.Peer').should('have.length', 2)
-            alice().connectionStatus('Bob').should('equal', 'connected')
+            alice()
+              .connectionStatus('Bob')
+              .should('equal', 'connected')
           })
         })
       })
@@ -124,8 +148,12 @@ describe('taco-chat', () => {
         })
 
         it(`Alice and Bob see that Bob is admin`, () => {
-          alice().teamMember('Bob').should('be.admin')
-          bob().teamMember('Bob').should('be.admin')
+          alice()
+            .teamMember('Bob')
+            .should('be.admin')
+          bob()
+            .teamMember('Bob')
+            .should('be.admin')
         })
 
         describe('Bob invites Charlie', () => {
@@ -141,9 +169,13 @@ describe('taco-chat', () => {
             alice().demote('Bob')
           })
 
-          it(`neither one sees Bob as admin`, () => {
-            alice().teamMember('Bob').should('not.be.admin')
-            bob().teamMember('Bob').should('not.be.admin')
+          it.only(`neither one sees Bob as admin`, () => {
+            alice()
+              .teamMember('Bob')
+              .should('not.be.admin')
+            bob()
+              .teamMember('Bob')
+              .should('not.be.admin')
           })
         })
       })
