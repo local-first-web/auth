@@ -5,7 +5,7 @@
       {
         "root": "./",
         "alias": {
-          "@/*": ["src/*"]
+          "@": ["./src"]
         },
         "extensions": [".ts", ".tsx"]
       }
