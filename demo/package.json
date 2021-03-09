@@ -1,14 +1,19 @@
 {
   "name": "taco-chat",
+  "version": "0.1.0",
+  "author": {
+    "name": "Herb Caudill",
+    "email": "herb@devresults.com"
+  },
+  "description": "Demo app for @localfirst/auth",
   "license": "MIT",
   "private": false,
-  "version": "0.1.0",
   "scripts": {
     "build:css": "postcss src/index.postcss -o public/index.css",
     "prebuild": "yarn build:css",
     "build": "parcel build",
     "dev": "cross-env DEBUG='lf*' DEBUG_COLORS=1  run-p watch start:relay start",
-    "start": "parcel ./public/index.html",
+    "start": "parcel ./public/index.html --port 3000",
     "start:relay": "node ./scripts/start-relay-server.js",
     "test:cy": "cypress open basic --browser chrome",
     "dev:cy": "cross-env BROWSER=none CYPRESS_REMOTE_DEBUGGING_PORT=9222 run-p dev test:cy",
@@ -24,14 +29,15 @@
     "@localfirst/auth": "0",
     "@localfirst/relay": "1",
     "@localfirst/relay-client": "1",
-    "@testing-library/cypress": "^7.0.3",
+    "@testing-library/cypress": "7",
     "@testing-library/jest-dom": "5",
     "@testing-library/react": "11",
     "@testing-library/user-event": "12",
     "@types/classnames": "2",
     "@types/clipboard": "2",
-    "@types/debug": "^4.1.5",
+    "@types/debug": "4",
     "@types/jest": "26",
+    "@types/mermaid": "8",
     "@types/node": "12",
     "@types/react": "17",
     "@types/react-dom": "17",
@@ -41,19 +47,17 @@
     "clipboard": "2",
     "cross-env": "7",
     "cuid": "2",
-    "cypress": "^6.2.1",
-    "cypress-promise": "^1.1.0",
-    "debug": "^4.3.1",
+    "cypress": "6",
+    "debug": "4",
     "friendly-words": "1",
-    "keycode": "^2.2.0",
-    "mermaid": "^8.8.4",
-    "nodemon": "2",
+    "keycode": "2",
+    "mermaid": "8",
     "npm-run-all": "4",
     "postcss": "7",
     "postcss-cli": "7",
     "tailwindcss": "1",
     "parcel": "1.12.3",
-    "typescript": "^4.2.3",
+    "typescript": "4",
     "websocket-stream": "5"
   },
   "prettier": {
@@ -62,28 +66,5 @@
     "singleQuote": true,
     "trailingComma": "es5",
     "arrowParens": "avoid"
-  },
-  "nodemonConfig": {
-    "watch": [
-      "postcss.config.js",
-      "tailwind.config.js",
-      "src/index.postcss",
-      "src/theme.ts"
-    ]
-  },
-  "browserslist": {
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ],
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ]
-  },
-  "devDependencies": {
-    "@types/mermaid": "^8.2.1"
   }
 }

@@ -22,9 +22,7 @@
     "build": "tsdx build",
     "test": "tsdx test",
     "test:log": "cross-env DEBUG='lf*' DEBUG_COLORS=0 yarn test",
-    "lint": "tsdx lint src",
-    "prepublish": "yarn build",
-    "purge": "scripts/purge.bat"
+    "prepublish": "yarn build"
   },
   "peerDependencies": {},
   "dependencies": {
@@ -36,7 +34,7 @@
     "xstate": "4"
   },
   "devDependencies": {
-    "@babel/core": "^7.13.10",
+    "@babel/core": "7",
     "@herbcaudill/tscpaths": "0",
     "@types/debug": "4",
     "@types/msgpack-lite": "0",
@@ -46,7 +44,7 @@
     "jest": "26",
     "prettier": "2",
     "ts-jest": "26",
-    "typescript": "^4.2.3",
+    "typescript": "4",
     "v8-profiler-node8": "6"
   },
   "prettier": {
@@ -55,11 +53,5 @@
     "singleQuote": true,
     "trailingComma": "es5",
     "arrowParens": "avoid"
-  },
-  "eslintConfig": {
-    "rules": {
-      "@typescript-eslint/no-unused-vars": "off",
-      "no-unused-vars": "off"
-    }
   }
 }
