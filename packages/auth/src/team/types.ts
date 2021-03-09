@@ -1,11 +1,11 @@
-import { TeamActionLink, TeamSignatureChain } from '/chain'
-import { LocalDeviceContext, LocalUserContext, MemberContext } from '/context'
-import { Invitation } from '/invitation/types'
-import { KeyMetadata } from '/keyset'
-import { Lockbox } from '/lockbox'
-import { Member } from '/member'
-import { Role } from '/role'
-import { Base64, Payload, ValidationResult } from '/util'
+import { TeamActionLink, TeamSignatureChain } from '@/chain'
+import { LocalDeviceContext, LocalUserContext, MemberContext } from '@/context'
+import { Invitation } from '@/invitation/types'
+import { KeyMetadata } from '@/keyset'
+import { Lockbox } from '@/lockbox'
+import { Member } from '@/member'
+import { Role } from '@/role'
+import { Base64, Payload, ValidationResult } from '@/util'
 
 // TEAM CONSTRUCTOR
 

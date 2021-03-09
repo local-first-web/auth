@@ -18,7 +18,7 @@
     "node": ">=10"
   },
   "scripts": {
-    "watch": "tsdx watch --noClean ",
+    "start": "tsdx watch --tsconfig tsconfig.build.json --verbose --noClean",
     "build": "tsdx build",
     "postbuild": "tscpaths -p tsconfig.json -s ./src -o ./dist --silent",
     "test": "tsdx test",
@@ -46,7 +46,7 @@
     "jest": "26",
     "prettier": "2",
     "ts-jest": "26",
-    "typescript": "3",
+    "typescript": "^4.2.3",
     "v8-profiler-node8": "6"
   },
   "prettier": {

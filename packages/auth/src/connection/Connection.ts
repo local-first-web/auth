@@ -3,8 +3,8 @@ import { EventEmitter } from 'events'
 import { Transform } from 'stream'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
 import { protocolMachine } from './protocolMachine'
-import { deriveSharedKey } from '/connection/deriveSharedKey'
-import * as identity from '/connection/identity'
+import { deriveSharedKey } from '@/connection/deriveSharedKey'
+import * as identity from '@/connection/identity'
 import {
   AcceptInvitationMessage,
   ChallengeIdentityMessage,
@@ -19,8 +19,8 @@ import {
   ProveIdentityMessage,
   SeedMessage,
   UpdateMessage,
-} from '/connection/message'
-import { orderedDelivery } from '/connection/orderedDelivery'
+} from '@/connection/message'
+import { orderedDelivery } from '@/connection/orderedDelivery'
 import {
   Condition,
   ConnectionContext,
@@ -30,13 +30,13 @@ import {
   InitialContext,
   SendFunction,
   StateMachineAction,
-} from '/connection/types'
-import { getDeviceId, parseDeviceId } from '/device'
-import * as invitations from '/invitation'
-import { generateStarterKeys } from '/invitation/generateStarterKeys'
-import { KeyType, randomKey } from '/keyset'
-import { Team } from '/team'
-import { arrayToMap, assert, debug } from '/util'
+} from '@/connection/types'
+import { getDeviceId, parseDeviceId } from '@/device'
+import * as invitations from '@/invitation'
+import { generateStarterKeys } from '@/invitation/generateStarterKeys'
+import { KeyType, randomKey } from '@/keyset'
+import { Team } from '@/team'
+import { arrayToMap, assert, debug } from '@/util'
 
 const { DEVICE } = KeyType
 

@@ -1,5 +1,5 @@
 import { hash } from '@herbcaudill/crypto'
-import { Link } from '/chain/types'
+import { Link } from '@/chain/types'
 
 export const arbitraryDeterministicSort = (hashKey = 'DETERMINISTIC_SORT') => (
   a: Link<any>[],

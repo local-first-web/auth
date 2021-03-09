@@ -1,7 +1,7 @@
 ﻿import { generateStarterKeys } from '../invitation/generateStarterKeys'
-import { KeyType } from '/keyset'
-import { ADMIN } from '/role'
-import { debug } from '/util'
+import { KeyType } from '@/keyset'
+import { ADMIN } from '@/role'
+import { debug } from '@/util'
 import {
   setup,
   all,
@@ -13,9 +13,9 @@ import {
   disconnection,
   expectEveryoneToKnowEveryone,
   tryToConnect,
-} from '/util/testing'
-import { getDeviceId } from '/device'
-import { keysetSummary } from '/util/keysetSummary'
+} from '@/util/testing'
+import { getDeviceId } from '@/device'
+import { keysetSummary } from '@/util/keysetSummary'
 import { Connection } from './Connection'
 
 const log = debug('lf:auth:test')

@@ -1,5 +1,5 @@
-﻿import { KeyScope } from '/keyset'
-import { TeamState } from '/team/types'
+﻿import { KeyScope } from '@/keyset'
+import { TeamState } from '@/team/types'
 
 export const scopesToRotate = (state: TeamState, compromisedScope: KeyScope) => {
   return [compromisedScope, ...getVisibleScopes(state, compromisedScope)]

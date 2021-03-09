@@ -1,6 +1,6 @@
 import assert from 'assert'
-import { getScope } from '/keyset/getScope'
-import { KeyScope } from '/keyset/types'
+import { getScope } from '@/keyset/getScope'
+import { KeyScope } from '@/keyset/types'
 
 export const scopesMatch = (a: KeyScope, b: KeyScope) => {
   const scopeA = getScope(a)

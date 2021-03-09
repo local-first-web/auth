@@ -1,9 +1,9 @@
 import { symmetric } from '@herbcaudill/crypto'
 import { both } from 'ramda'
-import { ADMIN } from '/role'
-import * as teams from '/team'
-import { profile } from '/util/profile'
-import { setup } from '/util/testing'
+import { ADMIN } from '@/role'
+import * as teams from '@/team'
+import { profile } from '@/util/profile'
+import { setup } from '@/util/testing'
 import '/util/testing/expect/toLookLikeKeyset'
 
 const MANAGERS = 'managers'

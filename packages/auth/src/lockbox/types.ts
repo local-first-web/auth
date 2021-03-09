@@ -1,5 +1,5 @@
-﻿import { PublicKeyset, KeysetWithSecrets, KeyMetadata, KeyType } from '/keyset'
-import { Base64 } from '/util'
+﻿import { PublicKeyset, KeysetWithSecrets, KeyMetadata, KeyType } from '@/keyset'
+import { Base64 } from '@/util'
 
 export type KeyManifest = KeyMetadata & {
   publicKey: Base64

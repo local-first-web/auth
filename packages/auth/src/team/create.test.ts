@@ -1,5 +1,5 @@
-import { load } from '/team'
-import { setup } from '/util/testing'
+import { load } from '@/team'
+import { setup } from '@/util/testing'
 
 describe('Team', () => {
   describe('create', () => {

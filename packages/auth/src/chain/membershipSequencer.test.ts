@@ -1,8 +1,8 @@
-import { setup as userSetup } from '/util/testing'
-import { append, chainSummary, create, merge, TeamAction, TeamSignatureChain } from '/chain'
-import { ADMIN } from '/role'
-import { redactUser } from '/user'
-import { clone } from '/util'
+import { setup as userSetup } from '@/util/testing'
+import { append, chainSummary, create, merge, TeamAction, TeamSignatureChain } from '@/chain'
+import { ADMIN } from '@/role'
+import { redactUser } from '@/user'
+import { clone } from '@/util'
 
 describe('chains', () => {
   describe('membershipSequencer', () => {

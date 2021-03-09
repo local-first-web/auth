@@ -1,5 +1,5 @@
-import { isRootLink, TeamAction, TeamActionLink } from '/chain/types'
-import { getDeviceId } from '/device'
+import { isRootLink, TeamAction, TeamActionLink } from '@/chain/types'
+import { getDeviceId } from '@/device'
 
 /** Identifies a unique action for the purpose of detecting duplicates;
  * e.g. ADD_MEMBER:bob

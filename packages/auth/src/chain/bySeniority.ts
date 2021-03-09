@@ -1,4 +1,4 @@
-import { isMergeLink, RootLink, TeamAction, TeamLink, TeamSignatureChain } from '/chain/types'
+import { isMergeLink, RootLink, TeamAction, TeamLink, TeamSignatureChain } from '@/chain/types'
 import { isPredecessor } from './predecessors'
 
 export const bySeniority = (chain: TeamSignatureChain) => (a: string, b: string) => {

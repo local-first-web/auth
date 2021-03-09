@@ -1,7 +1,7 @@
 ﻿import { hasMember } from './hasMember'
 import { member } from './member'
-import { TeamState } from '/team/types'
-import { assert } from '/util'
+import { TeamState } from '@/team/types'
+import { assert } from '@/util'
 
 export const hasDevice = (state: TeamState, userName: string, deviceName: string) => {
   return hasMember(state, userName) && getDevice(state, userName, deviceName) !== undefined

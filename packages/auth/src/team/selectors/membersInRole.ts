@@ -1,5 +1,5 @@
-﻿import { ADMIN } from '/role'
-import { TeamState } from '/team/types'
+﻿import { ADMIN } from '@/role'
+import { TeamState } from '@/team/types'
 
 export const membersInRole = (state: TeamState, roleName: string) =>
   state.members.filter(member => member.roles && member.roles.includes(roleName))

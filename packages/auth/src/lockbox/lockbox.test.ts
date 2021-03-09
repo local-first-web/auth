@@ -1,9 +1,9 @@
-﻿import * as keyset from '/keyset'
-import { KeyType } from '/keyset'
-import { create, open, rotate } from '/lockbox'
-import { ADMIN } from '/role'
+﻿import * as keyset from '@/keyset'
+import { KeyType } from '@/keyset'
+import { create, open, rotate } from '@/lockbox'
+import { ADMIN } from '@/role'
 
-import { setup } from '/util/testing'
+import { setup } from '@/util/testing'
 
 const { bob, eve } = setup('alice', 'bob', { user: 'eve', member: false })
 const MANAGERS = 'managers'

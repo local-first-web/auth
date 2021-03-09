@@ -1,5 +1,5 @@
-﻿import { PublicKeyset } from '/keyset'
-import { PublicDevice } from '/device'
+﻿import { PublicKeyset } from '@/keyset'
+import { PublicDevice } from '@/device'
 
 export interface Member {
   userName: string

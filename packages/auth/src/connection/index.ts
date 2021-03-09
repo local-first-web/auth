@@ -1,2 +1,2 @@
-﻿export * from '/connection/Connection'
-export * from '/connection/types'
+﻿export * from '@/connection/Connection'
+export * from '@/connection/types'

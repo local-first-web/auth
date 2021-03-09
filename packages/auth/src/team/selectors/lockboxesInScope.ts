@@ -1,6 +1,6 @@
-﻿import { KeyScope } from '/keyset'
-import { TeamState } from '/team/types'
-import { Lockbox } from '/lockbox'
+﻿import { KeyScope } from '@/keyset'
+import { TeamState } from '@/team/types'
+import { Lockbox } from '@/lockbox'
 
 export const lockboxesInScope = (state: TeamState, scope: KeyScope): Lockbox[] =>
   state.lockboxes.filter(

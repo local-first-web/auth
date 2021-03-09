@@ -1,5 +1,5 @@
-﻿import { DeviceWithSecrets, PublicDevice } from '/device/types'
-import * as keyset from '/keyset'
+﻿import { DeviceWithSecrets, PublicDevice } from '@/device/types'
+import * as keyset from '@/keyset'
 
 export const redactDevice = (device: DeviceWithSecrets): PublicDevice => ({
   userName: device.userName,

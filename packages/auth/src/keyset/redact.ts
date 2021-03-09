@@ -1,4 +1,4 @@
-﻿import { KeysetWithSecrets, PublicKeyset, hasSecrets } from '/keyset/types'
+﻿import { KeysetWithSecrets, PublicKeyset, hasSecrets } from '@/keyset/types'
 
 /**
  * There are two kinds of keysets:

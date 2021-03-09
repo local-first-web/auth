@@ -1,8 +1,8 @@
 ﻿import { signatures, symmetric } from '@herbcaudill/crypto'
-import { Invitation, InvitationBody, ProofOfInvitation } from '/invitation/types'
-import { KeysetWithSecrets, scopesMatch } from '/keyset'
-import { VALID, ValidationResult } from '/util'
-import { memoize } from '/util'
+import { Invitation, InvitationBody, ProofOfInvitation } from '@/invitation/types'
+import { KeysetWithSecrets, scopesMatch } from '@/keyset'
+import { VALID, ValidationResult } from '@/util'
+import { memoize } from '@/util'
 
 export const validate = memoize(
   (

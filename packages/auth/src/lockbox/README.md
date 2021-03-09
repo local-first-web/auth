@@ -74,7 +74,7 @@ To make a lockbox, pass in two keysets:
 This makes a lockbox for Alice containing the admin keys.
 
 ```js
-import * as lockbox from '/lockbox'
+import * as lockbox from '@/lockbox'
 const adminLockboxForAlice = lockbox.create(adminKeys, alice.keys)
 ```
 

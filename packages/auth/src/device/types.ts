@@ -1,4 +1,4 @@
-﻿import { KeysetWithSecrets, PublicKeyset } from '/keyset'
+﻿import { KeysetWithSecrets, PublicKeyset } from '@/keyset'
 
 export interface DeviceInfo {
   userName: string

@@ -1,5 +1,5 @@
 import { base64, hash } from '@herbcaudill/crypto'
-import { HashPurpose } from '/util/constants'
+import { HashPurpose } from '@/util/constants'
 
 const { LINK_TO_PREVIOUS } = HashPurpose
 

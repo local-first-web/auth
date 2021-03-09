@@ -1,9 +1,9 @@
 ﻿import { symmetric } from '@herbcaudill/crypto'
 import { generateStarterKeys } from './generateStarterKeys'
-import { deriveId } from '/invitation/deriveId'
-import { normalize } from '/invitation/normalize'
-import { Invitation, InvitationBody, Invitee } from '/invitation/types'
-import { KeysetWithSecrets } from '/keyset'
+import { deriveId } from '@/invitation/deriveId'
+import { normalize } from '@/invitation/normalize'
+import { Invitation, InvitationBody, Invitee } from '@/invitation/types'
+import { KeysetWithSecrets } from '@/keyset'
 
 export const IKEY_LENGTH = 16
 

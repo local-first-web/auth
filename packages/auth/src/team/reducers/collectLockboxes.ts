@@ -1,5 +1,5 @@
-﻿import { Reducer } from '/team/reducers/index'
-import { Lockbox } from '/lockbox'
+﻿import { Reducer } from '@/team/reducers/index'
+import { Lockbox } from '@/lockbox'
 
 export const collectLockboxes = (newLockboxes?: Lockbox[]): Reducer => state => {
   const lockboxes = state.lockboxes

@@ -1,7 +1,7 @@
-﻿import { challenge, prove, verify } from '/connection/identity'
-import { ADMIN_SCOPE, KeyScope, KeyType, TEAM_SCOPE } from '/keyset'
-import * as keyset from '/keyset'
-import { setup } from '/util/testing'
+﻿import { challenge, prove, verify } from '@/connection/identity'
+import { ADMIN_SCOPE, KeyScope, KeyType, TEAM_SCOPE } from '@/keyset'
+import * as keyset from '@/keyset'
+import { setup } from '@/util/testing'
 
 import '/util/testing/expect/toBeValid'
 

@@ -1,8 +1,8 @@
 import { asymmetric, signatures, keyToBytes } from '@herbcaudill/crypto'
-import { ADMIN_SCOPE, EPHEMERAL_SCOPE } from '/keyset/constants'
-import { create } from '/keyset/create'
-import { KeyType } from '/keyset/types'
-import { ADMIN } from '/role'
+import { ADMIN_SCOPE, EPHEMERAL_SCOPE } from '@/keyset/constants'
+import { create } from '@/keyset/create'
+import { KeyType } from '@/keyset/types'
+import { ADMIN } from '@/role'
 
 const { MEMBER, ROLE } = KeyType
 

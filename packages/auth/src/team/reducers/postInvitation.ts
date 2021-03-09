@@ -1,5 +1,5 @@
-﻿import { Invitation } from '/invitation'
-import { Reducer } from '/team/reducers/index'
+﻿import { Invitation } from '@/invitation'
+import { Reducer } from '@/team/reducers/index'
 
 export const postInvitation = (invitation: Invitation): Reducer => state => ({
   ...state,

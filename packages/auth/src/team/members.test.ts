@@ -1,5 +1,5 @@
-import { ADMIN } from '/role'
-import { setup } from '/util/testing'
+import { ADMIN } from '@/role'
+import { setup } from '@/util/testing'
 import '/util/testing/expect/toLookLikeKeyset'
 
 describe('Team', () => {

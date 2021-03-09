@@ -1,10 +1,10 @@
 ﻿import { isAdminOnlyAction } from '../chain/isAdminOnlyAction'
-import { actionFingerprint, ActionLink, ROOT, TeamActionLink } from '/chain'
-import { parseDeviceId } from '/device'
-import * as select from '/team/selectors'
-import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '/team/types'
-import { truncateHashes, VALID, ValidationError } from '/util'
-import { debug } from '/util'
+import { actionFingerprint, ActionLink, ROOT, TeamActionLink } from '@/chain'
+import { parseDeviceId } from '@/device'
+import * as select from '@/team/selectors'
+import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '@/team/types'
+import { truncateHashes, VALID, ValidationError } from '@/util'
+import { debug } from '@/util'
 const log = debug('lf:auth:validate')
 
 export const validate: TeamStateValidator = (...args: ValidationArgs) => {

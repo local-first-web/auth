@@ -1,13 +1,13 @@
-﻿import { Reducer } from '/team/reducers/index'
-import { PublicKeyset } from '/keyset'
-import { debug } from '/util'
+﻿import { Reducer } from '@/team/reducers/index'
+import { PublicKeyset } from '@/keyset'
+import { debug } from '@/util'
 
 const log = debug('lf:auth:reducer')
 
-export const changeMemberKeys = (keys: PublicKeyset): Reducer => (state) => {
+export const changeMemberKeys = (keys: PublicKeyset): Reducer => state => {
   return {
     ...state,
-    members: state.members.map((member) => {
+    members: state.members.map(member => {
       if (member.userName === keys.name) {
         return {
           ...member,

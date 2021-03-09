@@ -5,8 +5,8 @@ import {
   isMergeLink,
   isPredecessor,
   SignedLink,
-} from '/chain'
-import { buildChain, findByPayload, getPayloads } from '/chain/testUtils'
+} from '@/chain'
+import { buildChain, findByPayload, getPayloads } from '@/chain/testUtils'
 
 /*
                      ┌─→ e ─→ g ─┐

@@ -1,7 +1,7 @@
 ﻿import { asymmetric, base64, hash, Key, signatures, stretch } from '@herbcaudill/crypto'
-import { randomKey } from '/keyset/randomKey'
-import { KeyScope, KeysetWithSecrets } from '/keyset/types'
-import { HashPurpose, Optional } from '/util'
+import { randomKey } from '@/keyset/randomKey'
+import { KeyScope, KeysetWithSecrets } from '@/keyset/types'
+import { HashPurpose, Optional } from '@/util'
 
 const { SIGNATURE, ENCRYPTION, SYMMETRIC } = HashPurpose
 

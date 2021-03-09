@@ -1,7 +1,7 @@
-﻿import { parseDeviceId } from '/device'
-import { PublicKeyset } from '/keyset'
-import { Reducer } from '/team/reducers/index'
-import { debug } from '/util'
+﻿import { parseDeviceId } from '@/device'
+import { PublicKeyset } from '@/keyset'
+import { Reducer } from '@/team/reducers/index'
+import { debug } from '@/util'
 
 const log = debug('lf:auth:reducer')
 

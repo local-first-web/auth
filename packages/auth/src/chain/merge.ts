@@ -1,8 +1,8 @@
-﻿import { clone } from '/util'
-import { hashLink } from '/chain/hashLink'
-import { isPredecessor } from '/chain/predecessors'
-import { Action, MergeLink, SignatureChain } from '/chain/types'
-import { Hash } from '/util'
+﻿import { clone } from '@/util'
+import { hashLink } from '@/chain/hashLink'
+import { isPredecessor } from '@/chain/predecessors'
+import { Action, MergeLink, SignatureChain } from '@/chain/types'
+import { Hash } from '@/util'
 
 export const merge = <A extends Action>(
   a: SignatureChain<A>,

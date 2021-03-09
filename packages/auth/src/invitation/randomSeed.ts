@@ -1,6 +1,6 @@
 ﻿import { randomKey } from '@herbcaudill/crypto'
-import { IKEY_LENGTH } from '/invitation/create'
-import { base30 } from '/util'
+import { IKEY_LENGTH } from '@/invitation/create'
+import { base30 } from '@/util'
 
 /**
  * Randomly generates a 16-character base30 string, for example `4kgd5mwq5z4fmfwq`, to be used as

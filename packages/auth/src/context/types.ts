@@ -1,7 +1,7 @@
-﻿import { DeviceWithSecrets, PublicDevice } from '/device'
-import { Member } from '/member'
-import { User } from '/user'
-import { SemVer } from '/util'
+﻿import { DeviceWithSecrets, PublicDevice } from '@/device'
+import { Member } from '@/member'
+import { User } from '@/user'
+import { SemVer } from '@/util'
 
 export interface LocalDeviceContext {
   client?: Client

@@ -1,6 +1,6 @@
-﻿import { Link, isMergeLink, isRootLink, Action, SignatureChain } from '/chain/types'
+﻿import { Link, isMergeLink, isRootLink, Action, SignatureChain } from '@/chain/types'
 import * as R from 'ramda'
-import { memoize } from '/util'
+import { memoize } from '@/util'
 
 const getPredecessorHashes = memoize((chain: SignatureChain<any>, hash: string): string[] => {
   const parents = getParentHashes(chain, chain.links[hash])

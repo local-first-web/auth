@@ -1,4 +1,4 @@
-﻿import { DeviceInfo } from '/device/types'
+﻿import { DeviceInfo } from '@/device/types'
 
 const separator = '::'
 

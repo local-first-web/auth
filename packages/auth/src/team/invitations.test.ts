@@ -1,11 +1,11 @@
-import * as devices from '/device'
-import { getDeviceId } from '/device'
-import { generateProof, ProofOfInvitation } from '/invitation'
-import { ADMIN } from '/role'
-import * as teams from '/team'
-import { setup } from '/util/testing'
-import { KeyType } from '/keyset'
-import { generateStarterKeys } from '/invitation/generateStarterKeys'
+import * as devices from '@/device'
+import { getDeviceId } from '@/device'
+import { generateProof, ProofOfInvitation } from '@/invitation'
+import { ADMIN } from '@/role'
+import * as teams from '@/team'
+import { setup } from '@/util/testing'
+import { KeyType } from '@/keyset'
+import { generateStarterKeys } from '@/invitation/generateStarterKeys'
 
 const { MEMBER, DEVICE } = KeyType
 describe('Team', () => {

@@ -1,5 +1,5 @@
-﻿import { Reducer } from '/team/reducers/index'
-import { KeyType } from '/keyset'
+﻿import { Reducer } from '@/team/reducers/index'
+import { KeyType } from '@/keyset'
 
 export const removeDevice = (userName: string, deviceName: string): Reducer => state => ({
   ...state,

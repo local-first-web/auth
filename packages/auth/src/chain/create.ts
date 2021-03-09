@@ -1,6 +1,6 @@
-﻿import { append } from '/chain/append'
-import { Action, ROOT, SignatureChain } from '/chain/types'
-import { LocalUserContext } from '/context'
+﻿import { append } from '@/chain/append'
+import { Action, ROOT, SignatureChain } from '@/chain/types'
+import { LocalUserContext } from '@/context'
 
 export const EMPTY_CHAIN = {
   root: null,

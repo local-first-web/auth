@@ -1,9 +1,9 @@
-import { append } from '/chain/append'
-import { clone } from '/util'
-import { create } from '/chain/create'
-import { merge } from '/chain/merge'
-import { Link, isMergeLink, LinkBody, SignatureChain, Action, ActionLink } from '/chain/types'
-import { setup } from '/util/testing'
+﻿import { append } from '@/chain/append'
+import { clone } from '@/util'
+import { create } from '@/chain/create'
+import { merge } from '@/chain/merge'
+import { Link, isMergeLink, LinkBody, SignatureChain, Action, ActionLink } from '@/chain/types'
+import { setup } from '@/util/testing'
 
 const { alice } = setup('alice')
 

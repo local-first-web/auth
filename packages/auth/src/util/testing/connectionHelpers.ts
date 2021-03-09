@@ -1,6 +1,6 @@
-import { InitialContext, Connection } from '/connection'
-import { getDeviceId } from '/device'
-import { KeyType } from '/keyset'
+import { InitialContext, Connection } from '@/connection'
+import { getDeviceId } from '@/device'
+import { KeyType } from '@/keyset'
 import { UserStuff } from './setup'
 
 // HELPERS

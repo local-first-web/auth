@@ -1,5 +1,5 @@
-﻿import { bySeniority } from '/chain/bySeniority'
-import { baseResolver } from '/chain/getSequence'
+﻿import { bySeniority } from '@/chain/bySeniority'
+import { baseResolver } from '@/chain/getSequence'
 import {
   ActionFilter,
   ActionFilterFactory,
@@ -16,10 +16,10 @@ import {
   TeamActionLink,
   TeamSignatureChain,
   TwoBranches,
-} from '/chain/types'
-import { ADMIN } from '/role'
+} from '@/chain/types'
+import { ADMIN } from '@/role'
 import { isAdminOnlyAction } from './isAdminOnlyAction'
-import { arraysAreEqual, debug } from '/util'
+import { arraysAreEqual, debug } from '@/util'
 
 const log = debug('lf:auth:membershipResolver')
 

@@ -1,6 +1,6 @@
-﻿import { clone, debug } from '/util'
-import { ROOT, TeamAction, TeamActionLink } from '/chain'
-import { ADMIN } from '/role'
+﻿import { clone, debug } from '@/util'
+import { ROOT, TeamAction, TeamActionLink } from '@/chain'
+import { ADMIN } from '@/role'
 import {
   addDevice,
   addMember,
@@ -19,9 +19,9 @@ import {
   revokeInvitation,
   setTeamName,
   useInvitation,
-} from '/team/reducers'
-import { TeamState } from '/team/types'
-import { validate } from '/team/validate'
+} from '@/team/reducers'
+import { TeamState } from '@/team/types'
+import { validate } from '@/team/validate'
 
 const log = debug('lf:auth:reducer')
 /**

@@ -1,7 +1,7 @@
 ﻿import { assertScopesMatch } from '../keyset/scopesMatch'
-import { KeysetWithSecrets, PublicKeyset } from '/keyset'
-import { create } from '/lockbox/create'
-import { Lockbox } from '/lockbox/types'
+import { KeysetWithSecrets, PublicKeyset } from '@/keyset'
+import { create } from '@/lockbox/create'
+import { Lockbox } from '@/lockbox/types'
 
 /**
  * "Rotating" a lockbox means replacing the keys it contains with new ones.

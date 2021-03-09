@@ -1,5 +1,5 @@
 import { asymmetric, signatures, symmetric } from '@herbcaudill/crypto'
-import { create } from '/user/create'
+import { create } from '@/user/create'
 import '/util/testing/expect/toLookLikeKeyset'
 
 describe('user', () => {

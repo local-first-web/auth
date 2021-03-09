@@ -1,4 +1,4 @@
-﻿import { Reducer } from '/team/reducers/index'
+﻿import { Reducer } from '@/team/reducers/index'
 
 export const useInvitation = (id: string): Reducer => state => {
   const invitations = { ...state.invitations }

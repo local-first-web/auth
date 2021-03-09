@@ -1,8 +1,8 @@
 import { randomKey } from '@herbcaudill/crypto'
 import { arbitraryDeterministicSort } from './arbitraryDeterministicSort'
-import { append, baseResolver, create, getSequence, Resolver, Sequencer, SignedLink } from '/chain'
-import { buildChain, findByPayload, getPayloads } from '/chain/testUtils'
-import { setup } from '/util/testing'
+import { append, baseResolver, create, getSequence, Resolver, Sequencer, SignedLink } from '@/chain'
+import { buildChain, findByPayload, getPayloads } from '@/chain/testUtils'
+import { setup } from '@/util/testing'
 
 const { alice } = setup('alice')
 const defaultContext = alice.localContext

@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": "./",
     "declaration": true,
     "esModuleInterop": true,
     "importHelpers": true,
@@ -14,7 +13,6 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "outDir": "./dist",
-    "paths": { "/*": ["src/*"] },
     "sourceMap": true,
     "strict": true,
     "strictPropertyInitialization": false,

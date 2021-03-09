@@ -1,4 +1,4 @@
-﻿import { Reducer } from '/team/reducers/index'
+﻿import { Reducer } from '@/team/reducers/index'
 
 export const removeMember = (userName: string): Reducer => state => ({
   ...state,

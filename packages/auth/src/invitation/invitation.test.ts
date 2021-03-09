@@ -1,5 +1,5 @@
-import { generateProof, randomSeed, create, validate } from '/invitation'
-import * as keyset from '/keyset'
+import { generateProof, randomSeed, create, validate } from '@/invitation'
+import * as keyset from '@/keyset'
 
 const { TEAM_SCOPE } = keyset
 const { MEMBER } = keyset.KeyType

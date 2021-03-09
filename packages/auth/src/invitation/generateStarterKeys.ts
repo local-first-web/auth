@@ -1,6 +1,6 @@
 import { normalize } from './normalize'
-import * as keysets from '/keyset'
-import { KeyScope } from '/keyset'
+import * as keysets from '@/keyset'
+import { KeyScope } from '@/keyset'
 
 /**
  * This will be Bob's first-use keyset; as soon as he's admitted, he'll provide keys of his own

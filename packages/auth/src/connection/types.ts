@@ -1,12 +1,12 @@
 import { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
-import { ConnectionMessage } from '/connection/message'
-import { DeviceWithSecrets } from '/device'
-import { Invitee, ProofOfInvitation } from '/invitation'
-import { KeyScope } from '/keyset'
-import { Member } from '/member'
-import { Team } from '/team'
-import { User } from '/user'
-import { Base64, Hash, UnixTimestamp } from '/util'
+import { ConnectionMessage } from '@/connection/message'
+import { DeviceWithSecrets } from '@/device'
+import { Invitee, ProofOfInvitation } from '@/invitation'
+import { KeyScope } from '@/keyset'
+import { Member } from '@/member'
+import { Team } from '@/team'
+import { User } from '@/user'
+import { Base64, Hash, UnixTimestamp } from '@/util'
 
 // Identity
 

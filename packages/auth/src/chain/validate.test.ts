@@ -1,8 +1,8 @@
-import { signatures } from '@herbcaudill/crypto'
-import { append, create, ROOT } from '/chain'
-import { getRoot } from '/chain/getRoot'
-import { validate } from '/chain/validate'
-import { setup } from '/util/testing'
+﻿import { signatures } from '@herbcaudill/crypto'
+import { append, create, ROOT } from '@/chain'
+import { getRoot } from '@/chain/getRoot'
+import { validate } from '@/chain/validate'
+import { setup } from '@/util/testing'
 import '/util/testing/expect/toBeValid'
 
 const __ = expect.objectContaining

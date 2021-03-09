@@ -1,5 +1,5 @@
-﻿import { DeviceWithSecrets } from '/device'
-import { KeysetWithSecrets } from '/keyset'
+﻿import { DeviceWithSecrets } from '@/device'
+import { KeysetWithSecrets } from '@/keyset'
 
 /** The local user and their full set of keys, including secrets.   */
 export interface User {

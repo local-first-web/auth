@@ -1,2 +1,2 @@
-﻿export * from '/context/types'
-export * from '/context/redactContext'
+﻿export * from '@/context/types'
+export * from '@/context/redactContext'

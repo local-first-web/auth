@@ -1,5 +1,5 @@
-import { hasSecrets, KeysetWithSecrets, PublicKeyset } from '/keyset/types'
-import { getScope } from '/keyset/getScope'
+import { hasSecrets, KeysetWithSecrets, PublicKeyset } from '@/keyset/types'
+import { getScope } from '@/keyset/getScope'
 
 import { debug } from './debug'
 

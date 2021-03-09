@@ -1,6 +1,6 @@
 ﻿import { randomKey } from '@herbcaudill/crypto'
-import * as keyset from '/keyset'
-import { User } from '/user/types'
+import * as keyset from '@/keyset'
+import { User } from '@/user/types'
 
 const { DEVICE, MEMBER } = keyset.KeyType
 

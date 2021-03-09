@@ -1,4 +1,4 @@
-﻿import { TeamState } from '/team/types'
+﻿import { TeamState } from '@/team/types'
 
 export const member = (state: TeamState, userName: string) => {
   const member = state.members.find(m => m.userName === userName)

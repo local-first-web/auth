@@ -1,9 +1,9 @@
-﻿import { Challenge } from '/connection/types'
-import { TeamLink } from '/chain'
-import { ProofOfInvitation } from '/invitation'
-import { KeyScope } from '/keyset'
-import { Base64, Hash } from '/util'
-import { EncryptedEnvelope } from '/team'
+﻿import { Challenge } from '@/connection/types'
+import { TeamLink } from '@/chain'
+import { ProofOfInvitation } from '@/invitation'
+import { KeyScope } from '@/keyset'
+import { Base64, Hash } from '@/util'
+import { EncryptedEnvelope } from '@/team'
 
 export type ReadyMessage = {
   type: 'READY'

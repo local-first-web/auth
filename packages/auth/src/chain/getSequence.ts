@@ -1,7 +1,7 @@
-﻿import { arbitraryDeterministicSequencer } from '/chain/arbitraryDeterministicSequencer'
-import { getHead } from '/chain/getHead'
-import { getRoot } from '/chain/getRoot'
-import { getCommonPredecessor, isPredecessor } from '/chain/predecessors'
+﻿import { arbitraryDeterministicSequencer } from '@/chain/arbitraryDeterministicSequencer'
+import { getHead } from '@/chain/getHead'
+import { getRoot } from '@/chain/getRoot'
+import { getCommonPredecessor, isPredecessor } from '@/chain/predecessors'
 import {
   Action,
   ActionLink,
@@ -12,8 +12,8 @@ import {
   Sequence,
   Sequencer,
   SignatureChain,
-} from '/chain/types'
-import { assert } from '/util'
+} from '@/chain/types'
+import { assert } from '@/util'
 
 /**
  * Takes a `SignatureChain` and returns an array of links by recursively performing a topographical

@@ -1,6 +1,6 @@
 ﻿import { User } from './types'
-import { redactKeys } from '/keyset'
-import { Member } from '/member'
+import { redactKeys } from '@/keyset'
+import { Member } from '@/member'
 
 export const redactUser = (user: User): Member => {
   const { userName } = user

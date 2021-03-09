@@ -1,6 +1,6 @@
 ﻿import { signatures } from '@herbcaudill/crypto'
-import { getRoot } from '/chain/getRoot'
-import { hashLink } from '/chain/hashLink'
+import { getRoot } from '@/chain/getRoot'
+import { hashLink } from '@/chain/hashLink'
 import {
   isMergeLink,
   isRootLink,
@@ -8,8 +8,8 @@ import {
   ROOT,
   RootLinkBody,
   ValidatorSet,
-} from '/chain/types'
-import { debug, memoize, ValidationError } from '/util'
+} from '@/chain/types'
+import { debug, memoize, ValidationError } from '@/util'
 
 const log = debug('lf:auth:validators')
 

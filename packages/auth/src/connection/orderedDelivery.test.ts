@@ -1,5 +1,5 @@
-import { orderedDelivery } from '/connection/orderedDelivery'
-import { arrayToMap } from '/util/arrayToMap'
+import { orderedDelivery } from '@/connection/orderedDelivery'
+import { arrayToMap } from '@/util/arrayToMap'
 
 const msgs = [
   { index: 0, payload: 'zero' },

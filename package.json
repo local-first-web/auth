@@ -1,21 +1,6 @@
 {
   "name": "mono",
   "private": true,
-  "devDependencies": {
-    "@changesets/changelog-github": "^0.2.7",
-    "@changesets/cli": "^2.10.3",
-    "@types/react": "^16.9.43",
-    "@types/react-dom": "^16.9.8",
-    "cypress": "^5.2.0",
-    "lerna": "^3.15.0",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1",
-    "tsdx": "^0.14.0",
-    "typescript": "^3.9.7"
-  },
-  "workspaces": [
-    "packages/*"
-  ],
   "scripts": {
     "lerna": "lerna",
     "start": "lerna run start --stream --parallel",
@@ -25,5 +10,21 @@
     "prepublish": "lerna run prepublish",
     "cypress": "cypress run",
     "cypress:open": "cypress open"
-  }
+  },
+  "devDependencies": {
+    "@changesets/changelog-github": "^0.2.7",
+    "@changesets/cli": "^2.10.3",
+    "@types/react": "17",
+    "@types/react-dom": "^16.9.8",
+    "babel-plugin-module-resolver": "^4.1.0",
+    "cypress": "^5.2.0",
+    "lerna": "^3.15.0",
+    "react": "17",
+    "react-dom": "17",
+    "tsdx": "^0.14.0",
+    "typescript": "^4.2.3"
+  },
+  "workspaces": [
+    "packages/*"
+  ]
 }

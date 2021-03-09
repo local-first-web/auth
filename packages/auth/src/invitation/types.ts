@@ -1,5 +1,5 @@
-import { KeyScope, KeyType } from '/keyset'
-import { Base64, Encrypted } from '/util'
+import { KeyScope, KeyType } from '@/keyset'
+import { Base64, Encrypted } from '@/util'
 
 // INVITATION
 

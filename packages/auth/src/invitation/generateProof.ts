@@ -1,10 +1,10 @@
 ﻿import { signatures } from '@herbcaudill/crypto'
-import { memoize } from '/util'
+import { memoize } from '@/util'
 import { generateStarterKeys } from './generateStarterKeys'
 import { normalize } from './normalize'
-import { deriveId } from '/invitation/deriveId'
-import { Invitee, ProofOfInvitation } from '/invitation/types'
-import { KeyType } from '/keyset'
+import { deriveId } from '@/invitation/deriveId'
+import { Invitee, ProofOfInvitation } from '@/invitation/types'
+import { KeyType } from '@/keyset'
 
 export const generateProof = memoize(
   (seed: string, invitee: string | Invitee): ProofOfInvitation => {

@@ -2,7 +2,7 @@
 import { EventEmitter } from 'events'
 import { generateStarterKeys } from '../invitation/generateStarterKeys'
 import { keysetSummary } from '../util/keysetSummary'
-import * as chains from '/chain'
+import * as chains from '@/chain'
 import {
   chainSummary,
   getParentHashes,
@@ -12,18 +12,18 @@ import {
   TeamLink,
   TeamLinkMap,
   TeamSignatureChain,
-} from '/chain'
-import { membershipSequencer } from '/chain/membershipSequencer'
-import { Challenge } from '/connection'
-import * as identity from '/connection/identity'
-import { MissingLinksMessage, UpdateMessage } from '/connection/message'
-import { LocalDeviceContext, LocalUserContext } from '/context'
-import * as devices from '/device'
-import { getDeviceId, parseDeviceId, PublicDevice, redactDevice } from '/device'
-import * as invitations from '/invitation'
-import { Invitee, ProofOfInvitation } from '/invitation'
-import { normalize } from '/invitation/normalize'
-import * as keysets from '/keyset'
+} from '@/chain'
+import { membershipSequencer } from '@/chain/membershipSequencer'
+import { Challenge } from '@/connection'
+import * as identity from '@/connection/identity'
+import { MissingLinksMessage, UpdateMessage } from '@/connection/message'
+import { LocalDeviceContext, LocalUserContext } from '@/context'
+import * as devices from '@/device'
+import { getDeviceId, parseDeviceId, PublicDevice, redactDevice } from '@/device'
+import * as invitations from '@/invitation'
+import { Invitee, ProofOfInvitation } from '@/invitation'
+import { normalize } from '@/invitation/normalize'
+import * as keysets from '@/keyset'
 import {
   ADMIN_SCOPE,
   isKeyset,
@@ -33,20 +33,20 @@ import {
   PublicKeyset,
   redactKeys,
   TEAM_SCOPE,
-} from '/keyset'
-import { getScope } from '/keyset/getScope'
-import { scopesMatch } from '/keyset/scopesMatch'
-import * as lockbox from '/lockbox'
-import { Member } from '/member'
-import { ADMIN, Role } from '/role'
-import { ALL, initialState } from '/team/constants'
-import { reducer } from '/team/reducer'
-import * as select from '/team/selectors'
-import { getVisibleScopes } from '/team/selectors'
-import { EncryptedEnvelope, isNewTeam, SignedEnvelope, TeamOptions, TeamState } from '/team/types'
-import * as users from '/user'
-import { User } from '/user'
-import { arrayToMap, assert, debug, Hash, Payload } from '/util'
+} from '@/keyset'
+import { getScope } from '@/keyset/getScope'
+import { scopesMatch } from '@/keyset/scopesMatch'
+import * as lockbox from '@/lockbox'
+import { Member } from '@/member'
+import { ADMIN, Role } from '@/role'
+import { ALL, initialState } from '@/team/constants'
+import { reducer } from '@/team/reducer'
+import * as select from '@/team/selectors'
+import { getVisibleScopes } from '@/team/selectors'
+import { EncryptedEnvelope, isNewTeam, SignedEnvelope, TeamOptions, TeamState } from '@/team/types'
+import * as users from '@/user'
+import { User } from '@/user'
+import { arrayToMap, assert, debug, Hash, Payload } from '@/util'
 
 const { DEVICE, ROLE, MEMBER } = KeyType
 
