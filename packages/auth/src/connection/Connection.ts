@@ -72,6 +72,7 @@ export class Connection extends EventEmitter {
       this.logMessage('out', message, index)
 
       const messageWithIndex = { ...message, index }
+
       if (sendMessage) {
         // manual interface: send message using provided function
         sendMessage(messageWithIndex)
@@ -390,15 +391,15 @@ export class Connection extends EventEmitter {
       assert(context.peer)
       assert(context.seed)
 
+      const encryptedSeed = asymmetric.encrypt({
+        secret: context.seed,
+        recipientPublicKey: context.peer.keys.encryption,
+        senderSecretKey: context.user.keys.encryption.secretKey,
+      })
+
       this.sendMessage({
         type: 'SEED',
-        payload: {
-          encryptedSeed: asymmetric.encrypt({
-            secret: context.seed,
-            recipientPublicKey: context.peer.keys.encryption,
-            senderSecretKey: context.user.keys.encryption.secretKey,
-          }),
-        },
+        payload: { encryptedSeed },
       })
     },
 
