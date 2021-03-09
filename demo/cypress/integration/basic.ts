@@ -132,7 +132,7 @@ describe('taco-chat', () => {
             // probably because Bob's keys haven't been updated somewhere
             // (same reason Bob can't do admin stuff even if he's admin)
           })
-          it('Bob rejoins the team ', () => {
+          it.skip('Bob rejoins the team ', () => {
             cy.get('.Peer').should('have.length', 2)
             alice()
               .connectionStatus('Bob')
@@ -169,7 +169,7 @@ describe('taco-chat', () => {
             alice().demote('Bob')
           })
 
-          it.only(`neither one sees Bob as admin`, () => {
+          it(`neither one sees Bob as admin`, () => {
             alice()
               .teamMember('Bob')
               .should('not.be.admin')
