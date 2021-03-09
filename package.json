@@ -3,8 +3,9 @@
   "private": true,
   "scripts": {
     "lerna": "lerna",
-    "start": "lerna run start --stream --parallel",
-    "dev": "yarn run build && yarn --cwd demo && yarn --cwd demo dev",
+    "watch": "lerna run watch --stream --parallel",
+    "dev:demo": "yarn --cwd demo dev",
+    "dev": "run-p watch dev:demo",
     "test": "lerna run test",
     "build": "lerna run build",
     "prepublish": "lerna run prepublish",
