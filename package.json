@@ -15,7 +15,8 @@
     "dev:cy:demo": "yarn --cwd demo && yarn --cwd demo dev:cy",
     "dev:cy": "run-p watch dev:cy:demo",
     "dev": "run-p watch dev:demo",
-    "test": "lerna run test",
+    "test": "yarn --cwd packages/auth test",
+    "test:log": "yarn --cwd packages/auth test:log",
     "build": "lerna run build",
     "prepublish": "lerna run prepublish"
   },
