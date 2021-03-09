@@ -1,0 +1,14 @@
+﻿{
+  "plugins": [
+    [
+      "module-resolver",
+      {
+        "root": "./",
+        "alias": {
+          "@/*": ["src/*"]
+        },
+        "extensions": [".ts", ".tsx"]
+      }
+    ]
+  ]
+}
