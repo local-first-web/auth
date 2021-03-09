@@ -124,15 +124,14 @@ describe('taco-chat', () => {
             .should('equal', 'disconnected')
         })
 
-        describe('then we add Bob back', () => {
+        describe.skip('then we add Bob back', () => {
           beforeEach(() => {
-            console.log('---------------------------------')
             add('Bob:laptop')
             // TODO: now this is failing with "I couldn't verify your identity"
             // probably because Bob's keys haven't been updated somewhere
             // (same reason Bob can't do admin stuff even if he's admin)
           })
-          it.skip('Bob rejoins the team ', () => {
+          it('Bob rejoins the team ', () => {
             cy.get('.Peer').should('have.length', 2)
             alice()
               .connectionStatus('Bob')
