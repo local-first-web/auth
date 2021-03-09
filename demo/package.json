@@ -10,7 +10,6 @@
     "dev": "cross-env DEBUG='lf*' DEBUG_COLORS=1  run-p watch start:relay start",
     "start": "parcel ./public/index.html",
     "start:relay": "node ./scripts/start-relay-server.js",
-    "test": "parcel test",
     "test:cy": "cypress open basic --browser chrome",
     "dev:cy": "cross-env BROWSER=none CYPRESS_REMOTE_DEBUGGING_PORT=9222 run-p dev test:cy",
     "watch": "nodemon -x yarn build:css"

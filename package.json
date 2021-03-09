@@ -4,7 +4,7 @@
   "scripts": {
     "lerna": "lerna",
     "start": "lerna run start --stream --parallel",
-    "start:app": "yarn run build && yarn --cwd demo && yarn --cwd demo start",
+    "dev": "yarn run build && yarn --cwd demo && yarn --cwd demo devq",
     "test": "lerna run test",
     "build": "lerna run build",
     "prepublish": "lerna run prepublish",
@@ -19,6 +19,7 @@
     "babel-plugin-module-resolver": "^4.1.0",
     "cypress": "^5.2.0",
     "lerna": "^3.15.0",
+    "npm-run-all": "^4.1.5",
     "react": "17",
     "react-dom": "17",
     "tsdx": "^0.14.0",
