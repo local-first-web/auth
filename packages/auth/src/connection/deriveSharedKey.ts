@@ -1,4 +1,4 @@
-import { hash, Base64, base64 } from '@herbcaudill/crypto'
+﻿import { hash, Base64, base64 } from '@herbcaudill/crypto'
 import { HashPurpose } from '@/util'
 
 /**
