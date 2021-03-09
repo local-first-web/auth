@@ -1,14 +1,18 @@
 import * as auth from '@localfirst/auth'
 import debug from 'debug'
 import { EventEmitter } from './EventEmitter'
-import { Duplex } from 'stream'
+import { Transform } from 'stream'
 import { WebSocketDuplex } from 'websocket-stream'
-
-const NOOP = () => {}
 
 export class Connection extends EventEmitter {
   authConnection: auth.Connection
-  stream = new Duplex({ write: NOOP, read: NOOP })
+
+  stream = new Transform({
+    transform: (_chunk: any, _enc?: string | Callback, next?: Callback) => {
+      if (typeof _enc === 'function') next = _enc
+      if (next) next(null)
+    },
+  })
 
   public log: debug.Debugger
 
@@ -47,3 +51,5 @@ export class Connection extends EventEmitter {
 
 const pipeEvents = (source: EventEmitter, target: EventEmitter, events: string[]) =>
   events.forEach(event => source.on(event, payload => target.emit(event, payload)))
+
+type Callback = (error: Error | null | undefined) => void
