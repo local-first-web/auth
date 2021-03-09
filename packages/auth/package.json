@@ -36,6 +36,7 @@
     "xstate": "4"
   },
   "devDependencies": {
+    "@babel/core": "^7.13.10",
     "@herbcaudill/tscpaths": "0",
     "@types/debug": "4",
     "@types/msgpack-lite": "0",
