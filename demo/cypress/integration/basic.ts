@@ -155,9 +155,10 @@ describe('taco-chat', () => {
             .should('be.admin')
         })
 
-        describe('Bob invites Charlie', () => {
+        describe.only('Bob adds Charlie to the team', () => {
           beforeEach(() => {
-            bob().invite('Charlie')
+            add('Charlie:laptop')
+            bob().addToTeam('Charlie')
           })
           it(`doesn't throw an error`, () => {})
         })
