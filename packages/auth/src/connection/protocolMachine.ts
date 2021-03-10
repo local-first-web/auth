@@ -260,7 +260,6 @@ export const protocolMachine: MachineConfig<
         },
       },
 
-      // Before connecting, we make sure sure we have the signature chain on both sides
       onDone: {
         target: '#synchronizing',
       },
