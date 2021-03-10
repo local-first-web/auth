@@ -12,6 +12,7 @@ import { CreateOrJoinTeam } from './CreateOrJoinTeam'
 import { Team } from './Team'
 import { ErrorBoundary } from './ErrorBoundary'
 import { RemoveButton } from './RemoveButton'
+import { TeamProvider, useTeam } from './TeamContext'
 
 // TODO: make this an environment var
 const urls = ['ws://localhost:8080']
@@ -22,8 +23,9 @@ export const Peer = ({ peer, onRemove }: PeerProps) => {
 
   const log = debug(`lf:tc:peer:${user.userName}`)
 
+  const { team, setTeam: _setTeam } = useTeam()
+
   const [alerts, setAlerts] = useState([] as AlertInfo[])
-  const [team, _setTeam] = useState<auth.Team | undefined>()
   const [connections, setConnections] = useState<Record<string, string>>({})
   const [connectionManager, setConnectionManager] = useState<ConnectionManager>()
 
