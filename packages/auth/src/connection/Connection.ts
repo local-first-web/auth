@@ -45,7 +45,7 @@ const { DEVICE } = KeyType
  * implements the connection protocol. The XState configuration is in `machineConfig`.
  */
 export class Connection extends EventEmitter {
-  log: debug.Debugger
+  private log: debug.Debugger
 
   private sendMessage: SendFunction
   private machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
@@ -69,9 +69,9 @@ export class Connection extends EventEmitter {
     this.sendMessage = (message: ConnectionMessage) => {
       // add a sequential index to any outgoing messages
       const index = this.outgoingMessageIndex++
-      this.logMessage('out', message, index)
-
       const messageWithIndex = { ...message, index }
+
+      this.logMessage('out', message, index)
 
       if (sendMessage) {
         // manual interface: send message using provided function
@@ -84,19 +84,22 @@ export class Connection extends EventEmitter {
     }
 
     // define state machine
-    const machine = createMachine(protocolMachine, {
-      actions: this.actions,
-      guards: this.guards,
-    }).withContext(context)
+    const machineConfig = { actions: this.actions, guards: this.guards }
+    const machine = createMachine(protocolMachine, machineConfig).withContext(context)
 
     // instantiate the machine
-    this.machine = interpret(machine).onTransition(state => {
+    this.machine = interpret(machine)
+
+    // emit and log transitions
+    const reportTransition = (state: any) => {
       const summary = stateSummary(state.value)
       this.emit('change', summary)
       this.log(`⏩ ${summary}`)
-    })
+    }
+    this.machine.onTransition(reportTransition)
   }
 
+  // expose stream interface
   public stream: Transform = new Transform({
     transform: (chunk: any, _?: BufferEncoding | Callback, next?: Callback) => {
       if (typeof _ === 'function') next = _
@@ -139,9 +142,14 @@ export class Connection extends EventEmitter {
     return this
   }
 
+  /** Returns the local user's name. */
   get userName() {
     if (!this.isRunning) return ''
-    return hasInvitee(this.context) ? this.context.invitee.name : this.context.user!.userName
+    return this.context.user !== undefined
+      ? this.context.user.userName
+      : hasInvitee(this.context)
+      ? this.context.invitee.name
+      : 'unknown'
   }
 
   /** Returns the current state of the protocol machine. */
@@ -231,6 +239,7 @@ export class Connection extends EventEmitter {
 
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendHello'`) */
   private readonly actions: Record<string, StateMachineAction> = {
+    //
     // initializing
 
     sendHello: async context => {
@@ -241,22 +250,35 @@ export class Connection extends EventEmitter {
             type: DEVICE,
             name: getDeviceId(context.device),
           },
-          proofOfInvitation: hasInvitee(context) ? this.myProofOfInvitation(context) : undefined,
+          proofOfInvitation:
+            hasInvitee(context) && this.team === undefined // we only attach proof of invitation if we haven't already joined
+              ? this.myProofOfInvitation(context)
+              : undefined,
         },
       } as HelloMessage)
     },
 
-    // authenticating
-
     receiveHello: assign({
       theirIdentityClaim: (_, event) => {
         event = event as HelloMessage
-        return 'identityClaim' in event.payload ? event.payload.identityClaim : undefined
+        if ('identityClaim' in event.payload) {
+          this.log = debug(`lf:auth:protocol:${this.userName}:${event.payload.identityClaim.name}`)
+          return event.payload.identityClaim
+        } else {
+          return undefined
+        }
       },
 
       theyHaveInvitation: (_, event) => {
         event = event as HelloMessage
-        return 'proofOfInvitation' in event.payload
+        if ('proofOfInvitation' in event.payload) {
+          this.log = debug(
+            `lf:auth:protocol:${this.userName}:${event.payload.proofOfInvitation!.invitee.name}`
+          )
+          return true
+        } else {
+          return false
+        }
       },
 
       theirProofOfInvitation: (_, event) => {
@@ -264,6 +286,8 @@ export class Connection extends EventEmitter {
         return 'proofOfInvitation' in event.payload ? event.payload.proofOfInvitation : undefined
       },
     }),
+
+    // handling invitations
 
     acceptInvitation: context => {
       assert(context.team)
@@ -287,6 +311,8 @@ export class Connection extends EventEmitter {
       this.context.device = device
       this.context.team = team
     },
+
+    // authenticating
 
     challengeIdentity: assign({
       challenge: context => {
@@ -465,7 +491,14 @@ export class Connection extends EventEmitter {
 
   /** These are referred to by name in `connectionMachine` (e.g. `cond: 'iHaveInvitation'`) */
   private readonly guards: Record<string, Condition> = {
-    iHaveInvitation: context => hasInvitee(context),
+    iHaveInvitation: context => {
+      this.log(
+        `iHaveInvitation: hasInvitee = ${hasInvitee(context)}, this.team undefined = ${
+          this.team === undefined
+        }`
+      )
+      return hasInvitee(context) && this.team === undefined
+    },
 
     theyHaveInvitation: context => context.theyHaveInvitation === true,
 
