@@ -13,7 +13,7 @@ const peerArray = devices.flatMap(device =>
         user,
         device,
         id: `${user.name}:${device.name}`,
-        added: false,
+        show: false,
       } as PeerInfo)
   )
 )
@@ -24,7 +24,7 @@ export interface PeerInfo {
   user: UserInfo
   device: DeviceInfo
   id: string
-  added: boolean
+  show: boolean
   team?: Team
 }
 
