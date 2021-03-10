@@ -1,7 +1,7 @@
 import ClipboardJS from 'clipboard'
 import { Button, Select } from '@windmill/react-ui'
 import { UserInfo, users } from '../users'
-import { useTeam } from './TeamContext'
+import { useTeam } from './TeamProvider'
 
 import { FC, useRef, useState, useEffect } from 'react'
 import { assert } from '../util/assert'

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { peers as allPeers } from '../peers'
 import { Chooser } from './Chooser'
 import { Peer } from './Peer'
-import { TeamProvider } from './TeamContext'
+import { TeamProvider } from './TeamProvider'
 
 // 👩🏾💻 Add Alice's laptop by default
 allPeers['Alice:laptop'].show = true

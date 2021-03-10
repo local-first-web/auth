@@ -12,7 +12,7 @@ import { CreateOrJoinTeam } from './CreateOrJoinTeam'
 import { Team } from './Team'
 import { ErrorBoundary } from './ErrorBoundary'
 import { RemoveButton } from './RemoveButton'
-import { TeamProvider, useTeam } from './TeamContext'
+import { TeamProvider, useTeam } from './TeamProvider'
 
 // TODO: make this an environment var
 const urls = ['ws://localhost:8080']

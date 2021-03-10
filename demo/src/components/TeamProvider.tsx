@@ -7,6 +7,7 @@ export const useTeam = () => {
   const context = React.useContext(TeamContext)
   if (context === undefined) throw new Error(`useTeam must be used within a TeamProvider`)
   const [team, setTeam] = context
+
   return { team, setTeam }
 }
 
