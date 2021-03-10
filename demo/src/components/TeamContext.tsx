@@ -10,11 +10,11 @@ export const useTeam = () => {
   return { team, setTeam }
 }
 
-export const TeamProvider: React.FC<{ value: Team }> = props => {
+export const TeamProvider: React.FC<{ value: Team | undefined }> = props => {
   const { value, ...otherProps } = props
-  const [team, setTeam] = React.useState<Team>(value)
+  const [team, setTeam] = React.useState(value)
   const contextValue = React.useMemo(() => [team, setTeam] as TeamContextPayload, [team])
   return <TeamContext.Provider {...otherProps} value={contextValue} />
 }
 
-type TeamContextPayload = [Team, React.Dispatch<React.SetStateAction<Team>>] | undefined
+type TeamContextPayload = [Team | undefined, React.Dispatch<React.SetStateAction<Team>>] | undefined
