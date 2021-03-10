@@ -26,7 +26,7 @@ export const Team: FC<TeamProps> = ({ team, user, connections }) => {
   const adminCount = () => members.filter(m => team.memberIsAdmin(m.userName)).length
 
   return (
-    <TeamProvider value={team}>
+    <>
       <CardBody className="Team">
         {/* Team name */}
         <CardLabel>Team</CardLabel>
@@ -107,7 +107,7 @@ export const Team: FC<TeamProps> = ({ team, user, connections }) => {
         <CardLabel>Signature chain</CardLabel>
         <ChainDiagram chain={team.chain} id={user.userName} />
       </CardBody>
-    </TeamProvider>
+    </>
   )
 }
 
