@@ -13,10 +13,11 @@ export const Chooser = ({ onAdd, peers }: ChooserProps) => {
         ref={peerSelect}
         className="opacity-25 w-64 group-hover:opacity-100 h-10 font-normal text-lg"
         onChange={onChange}
+        css=""
       >
         <option>Add...</option>
         {Object.values(peers)
-          .filter(p => !p.added)
+          .filter(p => !p.show)
           .map(p => (
             <option key={p.id} value={p.id}>
               {p.user.emoji} {p.device.emoji}
