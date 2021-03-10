@@ -4,6 +4,7 @@ import { UserInfo, users } from '../users'
 import { useTeam } from './TeamContext'
 
 import { FC, useRef, useState, useEffect } from 'react'
+import { assert } from '../util/assert'
 
 /*
 TODO implement different levels of invitation security
@@ -45,6 +46,7 @@ export const Invite: FC = () => {
   }
 
   const invite = () => {
+    assert(team)
     const userName = select.current.value
     setUserName(userName)
 
@@ -75,9 +77,11 @@ export const Invite: FC = () => {
     case 'requestingName':
       const isMember = (user: UserInfo) =>
         team
-          .members()
-          .map(m => m.userName)
-          .includes(user.name)
+          ? team
+              .members()
+              .map(m => m.userName)
+              .includes(user.name)
+          : false
 
       const nonMembers = Object.values(users).filter(u => !isMember(u))
 
@@ -87,7 +91,7 @@ export const Invite: FC = () => {
 
           <div className="flex gap-2">
             {/* Dropdown with names & emoji */}
-            <Select ref={select} className="InviteWho mt-1 w-full">
+            <Select ref={select} className="InviteWho mt-1 w-full" css="">
               {nonMembers.map(u => (
                 <option key={u.name} value={u.name}>
                   {u.emoji} {u.name}
