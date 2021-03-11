@@ -50,6 +50,12 @@ declare global {
 export type commandFn = (...args: any[]) => void | Cypress.Chainable | Promise<unknown>
 
 export const add = (id: string) => cy.get('.Chooser select').select(id)
-export const peer = (name: string) => cy.get('h1').contains(name).parents('.Peer')
+export const peer = (name: string) =>
+  cy
+    .get('h1')
+    .contains(name)
+    .parents('.Peer')
+
 export const alice = () => peer('Alice')
 export const bob = () => peer('Bob')
+export const charlie = () => peer('Charlie')
