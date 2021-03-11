@@ -1,38 +1,26 @@
-import * as auth from '@localfirst/auth'
 import { Card, CardBody } from '@windmill/react-ui'
-import cuid from 'cuid'
 import debug from 'debug'
-import React, { useEffect, useState } from 'react'
-import { ConnectionManager } from '../ConnectionManager'
+import React from 'react'
 import { PeerInfo } from '../peers'
-import { randomTeamName } from '../util/randomTeamName'
-import { AlertInfo, Alerts } from './Alerts'
+import { Alerts } from './Alerts'
 import { Avatar } from './Avatar'
 import { CreateOrJoinTeam } from './CreateOrJoinTeam'
-import { Team } from './Team'
 import { ErrorBoundary } from './ErrorBoundary'
+import { usePeerState } from './PeerStateProvider'
 import { RemoveButton } from './RemoveButton'
-import { PeerState, PeerStateProvider, usePeerState } from './PeerStateProvider'
-
-// TODO: make this an environment var
-const urls = ['ws://localhost:8080']
+import { Team } from './Team'
 
 export const Peer = ({ peer, onRemove }: PeerProps) => {
-  const [user] = useState(() => auth.createUser(peer.user.name))
-  const [device] = useState(() => auth.createDevice(peer.user.name, peer.device.name))
+  const { peerState, clearAlert, createTeam, joinTeam, connect } = usePeerState()
+
+  const { team, user, device, connectionManager, connectionStatus = {} } = peerState
 
   const log = debug(`lf:tc:peer:${user.userName}`)
 
-  const { peerState, setPeerState } = usePeerState()
-
-  const [alerts, setAlerts] = useState([] as AlertInfo[])
-  const [connections, setConnections] = useState<Record<string, string>>({})
-  const [connectionManager, setConnectionManager] = useState<ConnectionManager>()
-
-  useEffect(() => {
+  React.useEffect(() => {
     if (peer.team) {
-      log('reconnecting to', peer.team.teamName)
-      setTeam(peer.team)
+      // log('reconnecting to', peer.team.teamName)
+      // setTeam(peer.team)
       const context = { user, device, team: peer.team }
       connect(peer.team.teamName, context)
     } else {
@@ -41,66 +29,6 @@ export const Peer = ({ peer, onRemove }: PeerProps) => {
       if (AUTO_CREATE_ALICE_TEAM && isAlice(peer)) createTeam()
     }
   }, [peer])
-
-  const setTeam = (newTeam: auth.Team) => {
-    setPeerState((prevPeerState: PeerState) => {
-      const oldTeam = prevPeerState.team
-      if (!oldTeam) {
-        return { ...prevPeerState, team: newTeam }
-      } else {
-        const team = oldTeam.merge(newTeam.chain)
-        peer.team = team
-        return { ...prevPeerState, team }
-      }
-    })
-  }
-
-  const addAlert = (message: string, type: AlertInfo['type'] = 'info') => {
-    const alert = { id: cuid(), message, type }
-    setAlerts(alerts => [...alerts, alert])
-  }
-
-  const clearAlert = (id: string) => {
-    setAlerts(alerts => alerts.filter(alert => alert.id !== id))
-  }
-
-  const createTeam = () => {
-    log('creating team')
-    const team = auth.createTeam(randomTeamName(), { user, device })
-
-    setTeam(team)
-
-    const { teamName } = team
-    const context = { user, device, team }
-    connect(teamName, context)
-  }
-
-  const joinTeam = (teamName: string, invitationSeed: string) => {
-    log('joining team')
-    const context = {
-      user,
-      device,
-      invitee: { type: 'MEMBER', name: user.userName } as auth.Invitee,
-      invitationSeed,
-    }
-    connect(teamName, context)
-  }
-
-  const connect = (teamName: string, context: auth.InitialContext) => {
-    const connectionManager = new ConnectionManager({ teamName, urls, context })
-      .on('change', () => {
-        return setConnections(connectionManager.state)
-      })
-      .on('connected', (connection: auth.Connection) => {
-        // get the latest team info from the connection
-        setTeam(connection.team!)
-      })
-      .on('disconnected', (_id, event) => {
-        if (event?.type === 'ERROR') addAlert(event.payload.message)
-        setConnections(connectionManager.state)
-      }) as ConnectionManager
-    setConnectionManager(connectionManager)
-  }
 
   const remove = async () => {
     await connectionManager?.disconnectServer()
@@ -123,10 +51,10 @@ export const Peer = ({ peer, onRemove }: PeerProps) => {
           <Avatar size="sm">{peer.device.emoji}</Avatar>
         </CardBody>
 
-        <Alerts alerts={alerts} clearAlert={clearAlert} />
+        <Alerts alerts={peerState.alerts} clearAlert={clearAlert} />
 
-        {peerState.team ? (
-          <Team user={user} device={peer.device} team={peerState.team} connections={connections} />
+        {team ? (
+          <Team user={user} device={peer.device} team={team} connections={connectionStatus} />
         ) : (
           <CreateOrJoinTeam user={user} createTeam={createTeam} joinTeam={joinTeam} />
         )}

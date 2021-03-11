@@ -11,7 +11,7 @@
   "scripts": {
     "build:css": "postcss src/index.postcss -o public/index.css",
     "prebuild": "yarn build:css",
-    "build": "parcel build",
+    "build": "parcel build ./public/index.html",
     "dev": "cross-env DEBUG='lf*' DEBUG_COLORS=1  run-p watch start:relay start",
     "start": "parcel ./public/index.html --port 3000",
     "start:relay": "node ./scripts/start-relay-server.js",
