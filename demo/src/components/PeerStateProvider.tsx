@@ -1,5 +1,6 @@
 import * as auth from '@localfirst/auth'
 import { DeviceWithSecrets, Team, User } from '@localfirst/auth'
+import debug from 'debug'
 import cuid from 'cuid'
 import * as React from 'react'
 import { randomTeamName } from '../util/randomTeamName'
@@ -18,6 +19,20 @@ export const usePeerState = () => {
 
   const [peerState, setPeerState] = context
   const { user, device, team } = peerState
+
+  const log = debug(`lf:tc:peer:${user.userName}`)
+
+  React.useEffect(() => {
+    if (team) {
+      log('reconnecting to', team.teamName)
+      const context = { user, device, team }
+      connect(team.teamName, context)
+    } else {
+      // set up Alice on first load
+      const AUTO_CREATE_ALICE_TEAM = true
+      if (AUTO_CREATE_ALICE_TEAM && isAlice(peerState)) createTeam()
+    }
+  }, [user, device])
 
   const addAlert = (message: string, type: AlertInfo['type'] = 'info') => {
     setPeerState(prevPeerState => {
@@ -52,7 +67,7 @@ export const usePeerState = () => {
   }
 
   const createTeam = () => {
-    // log('creating team')
+    log('creating team')
     const team = auth.createTeam(randomTeamName(), { user, device })
 
     setTeam(team)
@@ -63,7 +78,7 @@ export const usePeerState = () => {
   }
 
   const joinTeam = (teamName: string, invitationSeed: string) => {
-    // log('joining team')
+    log('joining team')
     const context = {
       user,
       device,
@@ -131,3 +146,7 @@ export type PeerState = {
 
 export type UserName = string
 export type ConnectionStatus = string
+
+const isAlice = (peer: PeerState) => {
+  return peer.user.userName === 'Alice' && peer.device.deviceName === 'laptop'
+}
