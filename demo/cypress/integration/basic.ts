@@ -1,4 +1,4 @@
-import { add, bob, alice, peer } from '../support'
+import { add, alice, bob, charlie, peer } from '../support'
 
 describe('taco-chat', () => {
   beforeEach(() => {
@@ -160,7 +160,14 @@ describe('taco-chat', () => {
             add('Charlie:laptop')
             bob().addToTeam('Charlie')
           })
-          it(`doesn't throw an error`, () => {})
+          it(`Bob and Charlie are connected`, () => {
+            bob()
+              .connectionStatus('Charlie')
+              .should('equal', 'connected')
+            charlie()
+              .connectionStatus('Bob')
+              .should('equal', 'connected')
+          })
         })
 
         describe('then Alice demotes Bob', () => {
