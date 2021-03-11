@@ -12,7 +12,7 @@ import { CreateOrJoinTeam } from './CreateOrJoinTeam'
 import { Team } from './Team'
 import { ErrorBoundary } from './ErrorBoundary'
 import { RemoveButton } from './RemoveButton'
-import { TeamProvider, useTeam } from './TeamProvider'
+import { PeerState, PeerStateProvider, usePeerState } from './PeerStateProvider'
 
 // TODO: make this an environment var
 const urls = ['ws://localhost:8080']
@@ -23,7 +23,7 @@ export const Peer = ({ peer, onRemove }: PeerProps) => {
 
   const log = debug(`lf:tc:peer:${user.userName}`)
 
-  const { team, setTeam: _setTeam } = useTeam()
+  const { peerState, setPeerState } = usePeerState()
 
   const [alerts, setAlerts] = useState([] as AlertInfo[])
   const [connections, setConnections] = useState<Record<string, string>>({})
@@ -43,11 +43,15 @@ export const Peer = ({ peer, onRemove }: PeerProps) => {
   }, [peer])
 
   const setTeam = (newTeam: auth.Team) => {
-    _setTeam((oldTeam?: auth.Team) => {
-      if (!oldTeam) return newTeam
-      const team = oldTeam.merge(newTeam.chain)
-      peer.team = team
-      return team
+    setPeerState((prevPeerState: PeerState) => {
+      const oldTeam = prevPeerState.team
+      if (!oldTeam) {
+        return { ...prevPeerState, team: newTeam }
+      } else {
+        const team = oldTeam.merge(newTeam.chain)
+        peer.team = team
+        return { ...prevPeerState, team }
+      }
     })
   }
 
@@ -121,8 +125,8 @@ export const Peer = ({ peer, onRemove }: PeerProps) => {
 
         <Alerts alerts={alerts} clearAlert={clearAlert} />
 
-        {team ? (
-          <Team user={user} device={peer.device} team={team} connections={connections} />
+        {peerState.team ? (
+          <Team user={user} device={peer.device} team={peerState.team} connections={connections} />
         ) : (
           <CreateOrJoinTeam user={user} createTeam={createTeam} joinTeam={joinTeam} />
         )}
