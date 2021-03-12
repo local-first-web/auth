@@ -155,12 +155,12 @@ describe('taco-chat', () => {
             .should('be.admin')
         })
 
-        describe.only('Bob adds Charlie to the team', () => {
+        describe('Bob adds Charlie to the team', () => {
           beforeEach(() => {
             add('Charlie:laptop')
             bob().addToTeam('Charlie')
           })
-          it(`Bob and Charlie are connected`, () => {
+          it.only(`Bob and Charlie are connected`, () => {
             bob()
               .connectionStatus('Charlie')
               .should('equal', 'connected')

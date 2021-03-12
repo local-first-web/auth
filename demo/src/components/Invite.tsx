@@ -1,7 +1,7 @@
 import ClipboardJS from 'clipboard'
 import { Button, Select } from '@windmill/react-ui'
 import { UserInfo, users } from '../users'
-import { usePeerState } from './PeerStateProvider'
+import { useTeam } from '../hooks/useTeam'
 
 import { FC, useRef, useState, useEffect } from 'react'
 import { assert } from '../util/assert'
@@ -28,8 +28,7 @@ export const Invite: FC = () => {
   const [seed, setSeed] = useState<string>()
   const [userName, setUserName] = useState<string>()
 
-  const { peerState } = usePeerState()
-  const { team } = peerState
+  const { team } = useTeam()
 
   const select = useRef() as React.MutableRefObject<HTMLSelectElement>
   const copyInvitationSeed = useRef() as React.MutableRefObject<HTMLButtonElement>

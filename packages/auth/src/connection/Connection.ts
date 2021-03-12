@@ -144,7 +144,7 @@ export class Connection extends EventEmitter {
 
   /** Returns the local user's name. */
   get userName() {
-    if (!this.isRunning) return ''
+    if (!this.isRunning) return '(not started)'
     return this.context.user !== undefined
       ? this.context.user.userName
       : hasInvitee(this.context)
@@ -189,7 +189,7 @@ export class Connection extends EventEmitter {
   }
 
   get peerName() {
-    if (!this.isRunning) return '? (not started)'
+    if (!this.isRunning) return '(not started)'
     return (
       this.context.peer?.userName ??
       this.context.theirIdentityClaim?.name ??
@@ -226,10 +226,10 @@ export class Connection extends EventEmitter {
 
   // ACTIONS
 
-  private fail = (message: string, details?: any) =>
+  private fail = (message: () => string, details?: any) =>
     assign<ConnectionContext, ConnectionMessage>({
       error: () => {
-        const errorPayload = { message, details }
+        const errorPayload = { message: message(), details }
         const errorMessage: ErrorMessage = { type: 'ERROR', payload: errorPayload }
         this.machine.send(errorMessage) // force error state locally
         this.sendMessage(errorMessage) // send error to peer
@@ -472,17 +472,31 @@ export class Connection extends EventEmitter {
       error: (_, event) => (event as ErrorMessage).payload,
     }),
 
-    rejectIdentity: this.fail(`I couldn't verify your identity.`),
-    failNeitherIsMember: this.fail(`We can't connect because neither one of us is a member.`),
-    rejectInvitation: this.fail(`Your invitation didn't work - maybe the code was mistyped?`),
-    rejectTeam: this.fail(`This is not the team I was invited to.`),
-    failPeerWasRemoved: this.fail(`You were removed from the team.`),
-    failTimeout: this.fail('Connection timed out.'),
+    rejectIdentity: this.fail(
+      () => `${this.userName} can't verify ${this.peerName}'s identity.   `
+    ),
+
+    failNeitherIsMember: this.fail(
+      () => `${this.userName} can't connect with ${this.peerName} because neither one is a member.`
+    ),
+
+    rejectInvitation: this.fail(
+      () => `${this.peerName}'s invitation didn't work - maybe the code was mistyped?`
+    ),
+
+    rejectTeam: this.fail(
+      () =>
+        `${this.userName} was admitted to a team by ${this.peerName}, but it is not the same team ${this.userName} was invited to.`
+    ),
+
+    failPeerWasRemoved: this.fail(() => `${this.peerName} was removed from the team.`),
+
+    failTimeout: this.fail(() => `${this.userName}'s connection to ${this.peerName} timed out.`),
 
     // events for external listeners
 
     onConnected: () => this.emit('connected'),
-    onJoined: () => this.emit('joined'),
+    onJoined: () => this.emit('joined', this.team),
     onUpdated: () => this.emit('updated'),
     onDisconnected: (_, event) => this.emit('disconnected', event),
   }

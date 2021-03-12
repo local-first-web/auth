@@ -6,6 +6,9 @@
 
       // remove "Chrome is being controlled..." infobar
       launchOptions.args = launchOptions.args.filter((a: string) => a !== '--enable-automation')
+
+      // allow debugging in vs code
+      launchOptions.args.push('--remote-debugging-port=9222')
     }
 
     // whatever you return here becomes the launchOptions

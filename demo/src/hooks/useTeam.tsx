@@ -5,34 +5,22 @@ import cuid from 'cuid'
 import * as React from 'react'
 import { randomTeamName } from '../util/randomTeamName'
 import { ConnectionManager } from '../ConnectionManager'
-import { PeerInfo } from '../peers'
-import { AlertInfo } from './Alerts'
+import { AlertInfo } from '../components/Alerts'
+import { assert } from '../util/assert'
+import { teamContext } from '../components/TeamProvider'
+import { UserName, ConnectionStatus } from '../types'
 
 // TODO: make this an environment var
 const urls = ['ws://localhost:8080']
 
-const peerStateContext = React.createContext<PeerStateContextPayload>(undefined)
-
-export const usePeerState = () => {
-  const context = React.useContext(peerStateContext)
-  if (context === undefined) throw new Error(`usePeerState must be used within a PeerStateProvider`)
+export const useTeam = () => {
+  const context = React.useContext(teamContext)
+  assert(context, `useTeam must be used within a TeamProvider`)
 
   const [peerState, setPeerState] = context
-  const { user, device, team } = peerState
+  const { user, device } = peerState
 
   const log = debug(`lf:tc:peer:${user.userName}`)
-
-  React.useEffect(() => {
-    if (team) {
-      log('reconnecting to', team.teamName)
-      const context = { user, device, team }
-      connect(team.teamName, context)
-    } else {
-      // set up Alice on first load
-      const AUTO_CREATE_ALICE_TEAM = true
-      if (AUTO_CREATE_ALICE_TEAM && isAlice(peerState)) createTeam()
-    }
-  }, [user, device])
 
   const addAlert = (message: string, type: AlertInfo['type'] = 'info') => {
     setPeerState(prevPeerState => {
@@ -60,7 +48,6 @@ export const usePeerState = () => {
         return { ...prevPeerState, team: newTeam }
       } else {
         const team = oldTeam.merge(newTeam.chain)
-        // peer.team = team
         return { ...prevPeerState, team }
       }
     })
@@ -70,7 +57,12 @@ export const usePeerState = () => {
     log('creating team')
     const team = auth.createTeam(randomTeamName(), { user, device })
 
-    setTeam(team)
+    setPeerState((prevPeerState: PeerState) => {
+      return {
+        ...prevPeerState,
+        team,
+      }
+    })
 
     const { teamName } = team
     const context = { user, device, team }
@@ -110,43 +102,14 @@ export const usePeerState = () => {
     peerState.connectionManager = connectionManager
   }
 
-  return { peerState, setPeerState, addAlert, clearAlert, createTeam, joinTeam, connect }
+  return { ...peerState, addAlert, clearAlert, createTeam, joinTeam, connect }
 }
-
-export const PeerStateProvider: React.FC<{ peer: PeerInfo }> = props => {
-  const { peer, ...otherProps } = props
-
-  const initialValue: PeerState = {
-    user: auth.createUser(peer.user.name),
-    device: auth.createDevice(peer.user.name, peer.device.name),
-    alerts: [],
-  }
-
-  const [peerState, setPeerState] = React.useState(initialValue)
-
-  const contextValue = React.useMemo(() => {
-    return [peerState, setPeerState] as PeerStateContextPayload
-  }, [peerState])
-
-  return <peerStateContext.Provider {...otherProps} value={contextValue} />
-}
-
-type PeerStateContextPayload =
-  | [PeerState, React.Dispatch<React.SetStateAction<PeerState>>]
-  | undefined
 
 export type PeerState = {
   user: User
   device: DeviceWithSecrets
   team?: Team
   connectionManager?: ConnectionManager
-  connectionStatus?: Record<UserName, ConnectionStatus>
+  connectionStatus: Record<UserName, ConnectionStatus>
   alerts: AlertInfo[]
-}
-
-export type UserName = string
-export type ConnectionStatus = string
-
-const isAlice = (peer: PeerState) => {
-  return peer.user.userName === 'Alice' && peer.device.deviceName === 'laptop'
 }

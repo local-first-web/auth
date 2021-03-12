@@ -1,22 +1,29 @@
 import { Card, CardBody } from '@windmill/react-ui'
-import React from 'react'
 import { PeerInfo } from '../peers'
 import { Alerts } from './Alerts'
 import { Avatar } from './Avatar'
 import { CreateOrJoinTeam } from './CreateOrJoinTeam'
 import { ErrorBoundary } from './ErrorBoundary'
-import { usePeerState } from './PeerStateProvider'
+import { useTeam } from '../hooks/useTeam'
 import { RemoveButton } from './RemoveButton'
 import { Team } from './Team'
+import * as React from 'react'
 
-export const Peer = ({ peer, onRemove }: PeerProps) => {
-  const { peerState, clearAlert, createTeam, joinTeam, connect } = usePeerState()
+const AUTO_CREATE_ALICE_TEAM = true
 
-  const { team, user, device, connectionManager, connectionStatus = {} } = peerState
+export const Peer = ({ peerInfo, onRemove }: PeerProps) => {
+  const { team, createTeam, connectionManager } = useTeam()
+
+  React.useEffect(() => {
+    // set up Alice on first load
+    if (!team && AUTO_CREATE_ALICE_TEAM && peerInfo.id === 'Alice:laptop') {
+      createTeam()
+    }
+  }, [peerInfo.id])
 
   const remove = async () => {
-    await connectionManager?.disconnectServer()
-    onRemove(peer.id)
+    await connectionManager?.disconnectRelayServer()
+    onRemove(peerInfo.id)
   }
 
   return (
@@ -26,15 +33,20 @@ export const Peer = ({ peer, onRemove }: PeerProps) => {
       <Card className="Peer group max-w-sm flex-1 bg-white shadow-md relative">
         <RemoveButton onClick={remove}></RemoveButton>
         <CardBody className="Header flex items-center bg-teal-500">
-          <Avatar size="lg" className="bg-opacity-75" children={peer.user.emoji} />
-          <h1 className="text-white text-2xl font-extrabold flex-grow" children={peer.user.name} />
-          <Avatar size="sm" children={peer.device.emoji} />
+          <Avatar size="lg" className="bg-opacity-75" children={peerInfo.user.emoji} />
+          <h1
+            className="text-white text-2xl font-extrabold flex-grow"
+            children={peerInfo.user.name}
+          />
+          <Avatar size="sm" children={peerInfo.device.emoji} />
         </CardBody>
-        <Alerts alerts={peerState.alerts} clearAlert={clearAlert} />
-        {team ? (
-          <Team user={user} device={peer.device} team={team} connections={connectionStatus} />
+        <Alerts />
+        {!team ? (
+          // Not on a team; show Create team / Join team buttons
+          <CreateOrJoinTeam />
         ) : (
-          <CreateOrJoinTeam user={user} createTeam={createTeam} joinTeam={joinTeam} />
+          // Team members, sig chain, etc.
+          <Team />
         )}
       </Card>
     </ErrorBoundary>
@@ -42,6 +54,6 @@ export const Peer = ({ peer, onRemove }: PeerProps) => {
 }
 
 interface PeerProps {
-  peer: PeerInfo
+  peerInfo: PeerInfo
   onRemove: (id: string) => void
 }

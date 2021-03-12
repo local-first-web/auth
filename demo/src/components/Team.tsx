@@ -1,16 +1,19 @@
 import * as auth from '@localfirst/auth'
 import { Button, CardBody } from '@windmill/react-ui'
-import { Fragment, FC, useEffect, useState } from 'react'
+import debug from 'debug'
+import { Fragment, useEffect, useState } from 'react'
+import { assert } from '../util/assert'
 import { users } from '../users'
 import { CardLabel } from './CardLabel'
-import { Invite } from './Invite'
-import { PeerStateProvider } from './PeerStateProvider'
 import { ChainDiagram } from './ChainDiagram'
-import { DeviceInfo } from '../devices'
-import debug from 'debug'
+import { Invite } from './Invite'
 import { StatusIndicator } from './StatusIndicator'
+import { useTeam } from '../hooks/useTeam'
 
-export const Team: FC<TeamProps> = ({ team, user, connections }) => {
+export const Team = () => {
+  const { team, user, connectionStatus } = useTeam()
+  assert(team) // we know we're on a team if we're showing this component
+
   const [members, setMembers] = useState(team?.members())
   const log = debug(`lf:tc:Team:${user.userName}`)
 
@@ -38,7 +41,7 @@ export const Team: FC<TeamProps> = ({ team, user, connections }) => {
             {/* One row per member */}
             {members?.map(m => {
               const isAdmin = team.memberIsAdmin(m.userName)
-              const status = connections[m.userName] || 'disconnected'
+              const status = connectionStatus[m.userName] || 'disconnected'
               return (
                 <Fragment key={m.userName}>
                   <tr className="border-t border-b border-gray-200 group">
@@ -109,11 +112,4 @@ export const Team: FC<TeamProps> = ({ team, user, connections }) => {
       </CardBody>
     </>
   )
-}
-
-interface TeamProps {
-  team: auth.Team
-  user: auth.User
-  device: DeviceInfo
-  connections: Record<string, string>
 }

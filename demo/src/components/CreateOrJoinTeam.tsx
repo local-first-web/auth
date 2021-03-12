@@ -1,12 +1,10 @@
-import * as auth from '@localfirst/auth'
 import { Button, CardBody, Input, Label } from '@windmill/react-ui'
 import React, { useEffect, useRef, useState } from 'react'
+import { useTeam } from '../hooks/useTeam'
 
-export const CreateOrJoinTeam: React.FC<PeerWithoutTeamProps> = ({
-  createTeam,
-  joinTeam,
-  user,
-}) => {
+export const CreateOrJoinTeam = () => {
+  const { joinTeam, createTeam } = useTeam()
+
   const invitationSeedInput = useRef() as React.MutableRefObject<HTMLInputElement>
 
   type State = 'inactive' | 'joining' | 'done'
@@ -41,7 +39,10 @@ export const CreateOrJoinTeam: React.FC<PeerWithoutTeamProps> = ({
     case 'joining':
       const onClickJoin = () => {
         const invitationSeed = invitationSeedInput.current.value // e.g. ambitious-raccoon-1234
-        const teamName = invitationSeed.split('-').slice(0, 2).join('-') // e.g. ambitious-raccoon
+        const teamName = invitationSeed
+          .split('-')
+          .slice(0, 2)
+          .join('-') // e.g. ambitious-raccoon
         joinTeam(teamName, invitationSeed)
       }
 
@@ -50,7 +51,7 @@ export const CreateOrJoinTeam: React.FC<PeerWithoutTeamProps> = ({
           <p className="my-2">Join team</p>
           <Label>
             <span>Invitation code</span>
-            <Input ref={invitationSeedInput} className="my-2 w-full text-black"></Input>
+            <Input ref={invitationSeedInput} className="my-2 w-full text-black" css="" />
           </Label>
           <div className="text-right">
             <Button className="" onClick={onClickJoin}>
@@ -65,9 +66,4 @@ export const CreateOrJoinTeam: React.FC<PeerWithoutTeamProps> = ({
     default:
       return null
   }
-}
-interface PeerWithoutTeamProps {
-  createTeam: () => void
-  joinTeam: (teamName: string, invitationSeed: string) => void
-  user: auth.User
 }

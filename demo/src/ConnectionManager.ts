@@ -1,9 +1,11 @@
 ﻿import * as auth from '@localfirst/auth'
 import { Client } from '@localfirst/relay-client'
 import debug from 'debug'
+import { ConnectionStatus, UserName } from './types'
 import { WebSocketDuplex } from 'websocket-stream'
 import { Connection } from './Connection'
 import { EventEmitter } from './EventEmitter'
+import { MemberInitialContext } from '@localfirst/auth'
 
 /**
  * Wraps a Relay client and creates a Connection instance for each peer we connect to.
@@ -12,11 +14,8 @@ export class ConnectionManager extends EventEmitter {
   private context: auth.InitialContext
 
   private client: Client
-  private connections: Record<string, Connection> = {}
-
-  /** This is a map of userName -> state, where `state` is the state summary
-   * from the auth.Connection machine, e.g. "connecting:authenticating". */
-  public state: Record<string, string> = {}
+  private connections: Record<UserName, Connection> = {}
+  public state: Record<UserName, ConnectionStatus> = {}
   urls: string[]
   teamName: string
 
@@ -29,10 +28,10 @@ export class ConnectionManager extends EventEmitter {
     this.teamName = teamName
 
     // connect to relay server
-    this.client = this.connectServer()
+    this.client = this.connectRelayServer()
   }
 
-  private connectServer(): Client {
+  private connectRelayServer(): Client {
     const client = new Client({ userName: this.context.user!.userName, url: this.urls[0] })
     // tell relay server we're interested in a specific team
     client
@@ -40,7 +39,7 @@ export class ConnectionManager extends EventEmitter {
 
       .on('close', () => {
         // disconnected from relay server
-        this.disconnectServer()
+        this.disconnectRelayServer()
       })
 
       .on('peer.connect', ({ userName, socket }) => {
@@ -51,7 +50,7 @@ export class ConnectionManager extends EventEmitter {
     return client
   }
 
-  public async disconnectServer() {
+  public async disconnectRelayServer() {
     const closeAllConnections = Object.keys(this.connections).map(peerId =>
       this.disconnectPeer(peerId)
     )
@@ -65,13 +64,19 @@ export class ConnectionManager extends EventEmitter {
     const connection = new Connection(socket, this.context)
     this.connections[userName] = connection
 
-    connection.on('change', connectionState => {
-      this.state = {
-        ...this.state,
-        [userName]: connectionState,
-      }
-      this.emit('change')
-    })
+    connection
+      .on('change', connectionState => {
+        this.state = {
+          ...this.state,
+          [userName]: connectionState,
+        }
+        this.emit('change')
+      })
+      .on('joined', team => {
+        this.log('joined team', team.teamName)
+        const context = this.context as MemberInitialContext
+        context.team = team
+      })
 
     connection.on('connected', () => this.emit('connected', connection))
     connection.on('disconnected', event => this.disconnectPeer(userName, event))

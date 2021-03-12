@@ -1,7 +1,7 @@
-﻿import { Button, CardBody } from '@windmill/react-ui'
-import React, { useState } from 'react'
+﻿import { useTeam } from '../hooks/useTeam'
 
-export const Alerts: React.FC<AlertsProps> = ({ alerts, clearAlert }) => {
+export const Alerts = () => {
+  const { alerts, clearAlert } = useTeam()
   return alerts.length ? (
     <div className="Alerts p-2">
       {alerts.map(a => (
@@ -29,9 +29,4 @@ export interface AlertInfo {
   id: string
   message: string
   type: 'error' | 'warning' | 'info'
-}
-
-interface AlertsProps {
-  alerts: AlertInfo[]
-  clearAlert: (id: string) => void
 }

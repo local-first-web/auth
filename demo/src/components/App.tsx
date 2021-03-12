@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { peers as allPeers } from '../peers'
 import { Chooser } from './Chooser'
 import { Peer } from './Peer'
-import { PeerStateProvider } from './PeerStateProvider'
+import { TeamProvider } from './TeamProvider'
 
 // 👩🏾💻 Add Alice's laptop by default
 allPeers['Alice:laptop'].show = true
@@ -18,9 +18,9 @@ export const App = () => {
       {Object.values(peers)
         .filter(p => p.show)
         .map(p => (
-          <PeerStateProvider key={p.id} peer={p}>
-            <Peer onRemove={setShow(false)} peer={p}></Peer>
-          </PeerStateProvider>
+          <TeamProvider key={p.id} peerInfo={p}>
+            <Peer onRemove={setShow(false)} peerInfo={p}></Peer>
+          </TeamProvider>
         ))}
       <Chooser onAdd={setShow(true)} peers={peers}></Chooser>
     </div>
