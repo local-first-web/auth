@@ -270,7 +270,7 @@ describe('connection', () => {
     connect(charlie, dwight)
 
     // ✅ ❌ They're unable to connect because at least one needs to be a member
-    await disconnection(charlie, dwight, 'neither one of us is a member')
+    await disconnection(charlie, dwight, 'neither one is a member')
   })
 
   it('eventually updates disconnected members when someone uses an invitation to join', async () => {
