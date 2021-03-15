@@ -54,13 +54,13 @@ export class ConnectionManager extends EventEmitter {
 
     connection
       .on('change', state => {
-        this.emit('change', state)
         this.updateStatus(userName, state)
+        this.emit('change', state)
       })
       .on('joined', team => {
-        this.emit('joined', team)
         const context = this.context as MemberInitialContext
         context.team = team
+        this.emit('joined', team)
       })
       .on('connected', () => this.emit('connected', connection))
       .on('disconnected', event => this.disconnectPeer(userName, event))
