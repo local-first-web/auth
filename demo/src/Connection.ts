@@ -1,38 +1,31 @@
 import * as auth from '@localfirst/auth'
-import debug from 'debug'
 import { EventEmitter } from './EventEmitter'
 
 export class Connection extends EventEmitter {
-  authConnection: auth.Connection
-
-  public log: debug.Debugger
+  private authConnection: auth.Connection
+  private peerSocket: WebSocket
 
   constructor(peerSocket: WebSocket, context: auth.InitialContext) {
     super()
-    this.authConnection = this.connect(peerSocket, context)
-    this.log = debug(`lf:tc:conn:${context.user?.userName || 'unknown'}`)
-  }
+    this.peerSocket = peerSocket
 
-  public connect(peerSocket: WebSocket, context: auth.InitialContext) {
-    const sendMessage: auth.SendFunction = message => {
-      peerSocket.send(JSON.stringify(message))
-    }
+    const sendMessage: auth.SendFunction = message => peerSocket.send(JSON.stringify(message))
+    this.authConnection = new auth.Connection({ context, sendMessage }).start()
 
-    const authConnection = new auth.Connection({ context, sendMessage }).start()
-
+    // listen for incoming messages and pass them to the auth connection
     peerSocket.addEventListener('message', messageEvent => {
       const message = messageEvent.data
-      authConnection.deliver(JSON.parse(message))
+      this.authConnection.deliver(JSON.parse(message))
     })
 
-    pipeEvents(authConnection, this, ['connected', 'joined', 'disconnected', 'change'])
-
+    // if the remote peer closes the connection, close up here as well
     peerSocket.addEventListener('close', () => this.disconnect())
 
-    return authConnection
+    pipeEvents(this.authConnection, this, ['connected', 'joined', 'disconnected', 'change'])
   }
 
   public disconnect() {
+    this.peerSocket.close()
     this.authConnection.stop()
   }
 

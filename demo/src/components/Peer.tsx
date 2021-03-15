@@ -22,7 +22,7 @@ export const Peer = ({ peerInfo, onRemove }: PeerProps) => {
   }, [peerInfo.id])
 
   const remove = async () => {
-    await connectionManager?.disconnectRelayServer()
+    await connectionManager?.disconnectServer()
     onRemove(peerInfo.id)
   }
 

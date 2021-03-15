@@ -59,30 +59,6 @@ describe('taco-chat', () => {
       })
     })
 
-    describe('Alice promotes Bob before he joins', () => {
-      it(`Alice sees that Bob is an admin`, () => {
-        alice()
-          .invite('Bob')
-          .then(code => {
-            alice().promote('Bob')
-            // Alice sees that Bob is an admin
-            alice()
-              .teamMember('Bob')
-              .findByTitle('Team admin (click to remove)')
-              .should('have.length', '1')
-
-            bob().join(code) // This kicks off the connection protocol.
-            alice()
-              .teamName()
-              .then(teamName =>
-                bob()
-                  .teamName()
-                  .should('equal', teamName)
-              )
-          })
-      })
-    })
-
     describe('Alice adds Bob to the team', () => {
       beforeEach(() => {
         alice().addToTeam('Bob')
@@ -109,6 +85,7 @@ describe('taco-chat', () => {
 
       describe('then we remove Bob', () => {
         beforeEach(() => {
+          console.log('------------------------------- BOB REMOVED')
           bob().remove()
         })
 
@@ -118,13 +95,14 @@ describe('taco-chat', () => {
             .userName()
             .should('equal', 'Alice')
         })
-        it('Alice sees that Bob is disconnected', () => {
+
+        it.only('Alice sees that Bob is disconnected', () => {
           alice()
             .connectionStatus('Bob')
             .should('equal', 'disconnected')
         })
 
-        describe.skip('then we add Bob back', () => {
+        describe('then we add Bob back', () => {
           beforeEach(() => {
             add('Bob:laptop')
             // TODO: now this is failing with "I couldn't verify your identity"
@@ -160,7 +138,7 @@ describe('taco-chat', () => {
             add('Charlie:laptop')
             bob().addToTeam('Charlie')
           })
-          it.only(`Bob and Charlie are connected`, () => {
+          it.skip(`Bob and Charlie are connected`, () => {
             bob()
               .connectionStatus('Charlie')
               .should('equal', 'connected')
@@ -185,6 +163,30 @@ describe('taco-chat', () => {
               .should('not.be.admin')
           })
         })
+      })
+    })
+
+    describe('Alice promotes Bob before he joins', () => {
+      it(`Alice sees that Bob is an admin`, () => {
+        alice()
+          .invite('Bob')
+          .then(code => {
+            alice().promote('Bob')
+            // Alice sees that Bob is an admin
+            alice()
+              .teamMember('Bob')
+              .findByTitle('Team admin (click to remove)')
+              .should('have.length', '1')
+
+            bob().join(code) // This kicks off the connection protocol.
+            alice()
+              .teamName()
+              .then(teamName =>
+                bob()
+                  .teamName()
+                  .should('equal', teamName)
+              )
+          })
       })
     })
   })

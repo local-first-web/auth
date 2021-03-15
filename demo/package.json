@@ -14,7 +14,7 @@
     "build:css": "postcss src/index.postcss -o public/index.css",
     "dev:relay": "cross-env DEBUG='lf*' DEBUG_COLORS=1 node ./scripts/start-relay-server.js",
     "dev:serve": "parcel ./public/index.html --port 3000",
-    "dev": "run-p watch:css dev:serve",
+    "dev": "run-p watch:css dev:relay dev:serve",
     "dev:cy": "cross-env BROWSER=none CYPRESS_REMOTE_DEBUGGING_PORT=9222 run-p dev test:cy",
     "test:cy": "cypress open",
     "watch:css": "nodemon -x yarn build:css"

@@ -15,7 +15,6 @@ export class ConnectionManager extends EventEmitter {
   private client: Client
   private connections: Record<UserName, Connection> = {}
   public connectionStatus: Record<UserName, ConnectionStatus> = {}
-  urls: string[]
   teamName: string
 
   constructor({ teamName, urls, context }: ConnectionManagerOptions) {
@@ -23,60 +22,48 @@ export class ConnectionManager extends EventEmitter {
     this.log = debug(`lf:tc:connection-manager:${context.user!.userName}`)
 
     this.context = context
-    this.urls = urls
     this.teamName = teamName
 
     // connect to relay server
-    this.client = this.connectRelayServer()
+    this.client = this.connectServer(urls[0])
   }
 
-  private connectRelayServer(): Client {
-    const client = new Client({ userName: this.context.user!.userName, url: this.urls[0] })
-    // tell relay server we're interested in a specific team
-    client
-      .on('server.connect', () => {
-        client.join(this.teamName)
-      })
-      .on('peer.connect', async ({ userName, socket }) => {
-        // connected to a new peer
-        if (socket) {
-          this.connectPeer(userName, socket)
-        } else this.log('no socket')
-      })
-      .on('close', () => {
-        // disconnected from relay server
-        this.disconnectRelayServer()
-      })
+  private connectServer(url: string): Client {
+    const { userName } = this.context.user! // we always provide a user whether we're invited or a member
+    const client = new Client({ userName, url })
+
+    client.on('server.connect', () => client.join(this.teamName))
+    client.on('peer.connect', ({ userName, socket }) => this.connectPeer(userName, socket))
+    client.on('close', () => this.disconnectServer())
+
     return client
   }
 
-  public async disconnectRelayServer() {
+  public disconnectServer() {
     const allPeers = Object.keys(this.connections)
-    await Promise.all(allPeers.map(this.disconnectPeer))
+    allPeers.forEach(p => this.disconnectPeer(p))
+    this.client.disconnectServer()
     this.connections = {}
     this.emit('close')
   }
 
-  private connectPeer(userName: string, socket: WebSocket) {
+  public connectPeer = (userName: string, socket: WebSocket) => {
+    // connected to a new peer
     const connection = new Connection(socket, this.context)
     this.connections[userName] = connection
 
     connection
-      .on('change', connectionState => {
-        this.connectionStatus = {
-          ...this.connectionStatus,
-          [userName]: connectionState,
-        }
-        this.emit('change')
+      .on('change', state => {
+        this.emit('change', state)
+        this.updateStatus(userName, state)
       })
       .on('joined', team => {
-        this.log('joined team', team.teamName)
+        this.emit('joined', team)
         const context = this.context as MemberInitialContext
         context.team = team
       })
-
-    connection.on('connected', () => this.emit('connected', connection))
-    connection.on('disconnected', event => this.disconnectPeer(userName, event))
+      .on('connected', () => this.emit('connected', connection))
+      .on('disconnected', event => this.disconnectPeer(userName, event))
   }
 
   public disconnectPeer = (userName: string, event?: any) => {
@@ -86,20 +73,25 @@ export class ConnectionManager extends EventEmitter {
       delete this.connections[userName]
     }
 
-    // update our state object
-    this.connectionStatus = {
-      ...this.connectionStatus,
-      [userName]: 'disconnected',
-    }
-
     // notify relay server
-    this.client.leave(this.teamName)
+    this.client.disconnectPeer(userName)
+
+    // update our state object for the app's benefit
+    this.updateStatus(userName, 'disconnected')
 
     this.emit('disconnected', userName, event)
   }
 
   public get connectionCount() {
     return Object.keys(this.connections).length
+  }
+
+  private updateStatus = (userName: UserName, state: string) => {
+    // we recreate the whole object so that react reacts
+    this.connectionStatus = {
+      ...this.connectionStatus,
+      [userName]: state,
+    }
   }
 }
 

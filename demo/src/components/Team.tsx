@@ -14,15 +14,10 @@ export const Team = () => {
   const { team, user, connectionStatus } = useTeam()
   assert(team) // we know we're on a team if we're showing this component
 
-  useEffect(() => {
-    console.log(connectionStatus)
-  }, [connectionStatus])
-
   const [members, setMembers] = useState(team?.members())
   const log = debug(`lf:tc:Team:${user.userName}`)
 
   useEffect(() => {
-    log('(useEffect) wiring up team change handler')
     setMembers(team.members())
     team.on('updated', () => setMembers(team.members()))
     return () => {

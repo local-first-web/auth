@@ -31,11 +31,17 @@ export const Invite: FC = () => {
   const { team } = useTeam()
 
   const select = useRef() as React.MutableRefObject<HTMLSelectElement>
-  const copyInvitationSeed = useRef() as React.MutableRefObject<HTMLButtonElement>
+  const copyInvitationSeedButton = useRef() as React.MutableRefObject<HTMLButtonElement>
 
   useEffect(() => {
-    if (copyInvitationSeed?.current && seed) new ClipboardJS(copyInvitationSeed.current)
-  }, [copyInvitationSeed, seed])
+    let c: ClipboardJS
+    if (copyInvitationSeedButton?.current && seed) {
+      c = new ClipboardJS(copyInvitationSeedButton.current)
+    }
+    return () => {
+      c?.destroy()
+    }
+  }, [copyInvitationSeedButton, seed])
 
   const activate = () => {
     setState('requestingName')
@@ -122,7 +128,7 @@ export const Invite: FC = () => {
             children={seed}
           />
           <div className="mt-1 text-right">
-            <Button ref={copyInvitationSeed} onClick={done} data-clipboard-text={seed}>
+            <Button ref={copyInvitationSeedButton} onClick={done} data-clipboard-text={seed}>
               Copy
             </Button>
           </div>

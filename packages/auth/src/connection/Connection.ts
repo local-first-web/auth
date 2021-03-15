@@ -34,7 +34,6 @@ import { Team } from '@/team'
 import { assert, debug } from '@/util'
 import { asymmetric, Payload, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
-import { Transform } from 'stream'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
 import { protocolMachine } from './protocolMachine'
 
@@ -70,17 +69,8 @@ export class Connection extends EventEmitter {
       // add a sequential index to any outgoing messages
       const index = this.outgoingMessageIndex++
       const messageWithIndex = { ...message, index }
-
       this.logMessage('out', message, index)
-
-      if (sendMessage) {
-        // manual interface: send message using provided function
-        sendMessage(messageWithIndex)
-      } else {
-        // streaming interface: serialize outgoing messages for the stream
-        const serializedMessage = JSON.stringify(messageWithIndex)
-        this.stream.push(serializedMessage)
-      }
+      sendMessage(messageWithIndex)
     }
 
     // define state machine
@@ -99,24 +89,6 @@ export class Connection extends EventEmitter {
     this.machine.onTransition(reportTransition)
   }
 
-  // expose stream interface
-  public stream: Transform = new Transform({
-    transform: (chunk: any, _?: BufferEncoding | Callback, next?: Callback) => {
-      if (typeof _ === 'function') next = _
-      try {
-        // deserialize incoming messages and deliver them to the machine
-        const message = JSON.parse(chunk.toString())
-        this.deliver(message)
-        // callback with no error
-        if (next) next(null)
-      } catch (err) {
-        console.error(err)
-        // callback with error
-        if (next) next(err)
-      }
-    },
-  })
-
   /** Starts (or restarts) the protocol machine. Returns this Protocol object. */
   public start = (context?: Partial<InitialContext>) => {
     this.log('starting')
@@ -132,13 +104,15 @@ export class Connection extends EventEmitter {
 
   /** Sends a disconnect message to the peer. */
   public stop = () => {
-    const disconnectMessage = { type: 'DISCONNECT' } as DisconnectMessage
-    this.sendMessage(disconnectMessage) // send disconnect message to peer
     if (this.isRunning && !this.machine.state.done) {
+      const disconnectMessage = { type: 'DISCONNECT' } as DisconnectMessage
+      this.sendMessage(disconnectMessage) // send disconnect message to peer
       this.machine.send(disconnectMessage) // send disconnect event to local machine
     }
     this.removeAllListeners()
-    this.stream.removeAllListeners()
+    this.machine.stop()
+    this.machine.state.done = true
+    this.log('machine stopped: %o', this.machine.state.done)
     return this
   }
 

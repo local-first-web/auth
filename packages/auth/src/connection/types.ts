@@ -55,10 +55,8 @@ export const hasInvitee = (
 ): c is InviteeInitialContext => 'invitee' in c
 
 export interface ConnectionParams {
-  /** A function to send messages to our peer. This is one way to hook this up to your network stack -
-   * alternatively you can use the streaming interface.
-   */
-  sendMessage?: SendFunction
+  /** A function to send messages to our peer. This how you hook this up to your network stack. */
+  sendMessage: SendFunction
 
   context: InitialContext
 }
