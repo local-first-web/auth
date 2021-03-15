@@ -25,6 +25,7 @@ export const Team = () => {
     }
   }, [team])
 
+  const userIsAdmin = team.memberIsAdmin(user.userName)
   const adminCount = () => members.filter(m => team.memberIsAdmin(m.userName)).length
 
   return (
@@ -40,6 +41,7 @@ export const Team = () => {
             {/* One row per member */}
             {members?.map(m => {
               const isAdmin = team.memberIsAdmin(m.userName)
+              const isOnlyAdmin = isAdmin && adminCount() === 1
               const status = connectionStatus[m.userName] || 'disconnected'
               return (
                 <Fragment key={m.userName}>
@@ -49,16 +51,16 @@ export const Team = () => {
                       <Button
                         layout="link"
                         size="small"
-                        disabled={isAdmin && adminCount() === 1}
+                        disabled={!userIsAdmin || isOnlyAdmin}
                         onClick={() => {
                           if (isAdmin) team.removeMemberRole(m.userName, auth.ADMIN)
                           else team.addMemberRole(m.userName, auth.ADMIN)
                         }}
                         title={
-                          isAdmin
-                            ? adminCount() === 1
-                              ? `Can't remove the only admin`
-                              : 'Team admin (click to remove)'
+                          isOnlyAdmin
+                            ? `Can't remove the only admin`
+                            : isAdmin
+                            ? 'Team admin (click to remove)'
                             : 'Click to make team admin'
                         }
                         className={`px-1 m-1 hover:opacity-25 ${
@@ -85,7 +87,7 @@ export const Team = () => {
 
                     {/* Remove button */}
                     <td>
-                      {team.memberIsAdmin(user.userName) ? (
+                      {userIsAdmin ? (
                         <button
                           title="Remove member from team"
                           className="group-hover group-hover:opacity-100 opacity-0 font-bold"
