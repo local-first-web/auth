@@ -32,7 +32,7 @@ export const validate = memoize(
   }
 )
 
-const fail = (message: string, details: any) =>
+export const fail = (message: string, details: any = null) =>
   ({
     isValid: false,
     error: new InvitationValidationError(message, details),

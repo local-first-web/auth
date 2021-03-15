@@ -1,9 +1,4 @@
-﻿import { asymmetric, Payload, symmetric } from '@herbcaudill/crypto'
-import { EventEmitter } from 'events'
-import { Transform } from 'stream'
-import { assign, createMachine, interpret, Interpreter } from 'xstate'
-import { protocolMachine } from './protocolMachine'
-import { deriveSharedKey } from '@/connection/deriveSharedKey'
+﻿import { deriveSharedKey } from '@/connection/deriveSharedKey'
 import * as identity from '@/connection/identity'
 import {
   AcceptInvitationMessage,
@@ -36,13 +31,18 @@ import * as invitations from '@/invitation'
 import { generateStarterKeys } from '@/invitation/generateStarterKeys'
 import { KeyType, randomKey } from '@/keyset'
 import { Team } from '@/team'
-import { arrayToMap, assert, debug } from '@/util'
+import { assert, debug } from '@/util'
+import { asymmetric, Payload, symmetric } from '@herbcaudill/crypto'
+import { EventEmitter } from 'events'
+import { Transform } from 'stream'
+import { assign, createMachine, interpret, Interpreter } from 'xstate'
+import { protocolMachine } from './protocolMachine'
 
 const { DEVICE } = KeyType
 
 /**
  * Wraps a state machine (using [XState](https://xstate.js.org/docs/)) that
- * implements the connection protocol. The XState configuration is in `machineConfig`.
+ * implements the connection protocol. The XState configuration is in `protocolMachine`.
  */
 export class Connection extends EventEmitter {
   private log: debug.Debugger
@@ -291,6 +291,11 @@ export class Connection extends EventEmitter {
 
     acceptInvitation: context => {
       assert(context.team)
+      assert(context.theirProofOfInvitation)
+
+      // admit them to the team
+      context.team.admit(context.theirProofOfInvitation)
+
       // welcome them by sending the team's signature chain, so they can reconstruct team membership state
       this.sendMessage({
         type: 'ACCEPT_INVITATION',
@@ -481,12 +486,12 @@ export class Connection extends EventEmitter {
     ),
 
     rejectInvitation: this.fail(
-      () => `${this.peerName}'s invitation didn't work - maybe the code was mistyped?`
+      () => `${this.peerName}'s invitation didn't work: ${this.context.error}`
     ),
 
     rejectTeam: this.fail(
       () =>
-        `${this.userName} was admitted to a team by ${this.peerName}, but it is not the same team ${this.userName} was invited to.`
+        `${this.userName} was admitted to a team by ${this.peerName}, but it isn't the team ${this.userName} was invited to.`
     ),
 
     failPeerWasRemoved: this.fail(() => `${this.peerName} was removed from the team.`),
@@ -505,32 +510,24 @@ export class Connection extends EventEmitter {
 
   /** These are referred to by name in `connectionMachine` (e.g. `cond: 'iHaveInvitation'`) */
   private readonly guards: Record<string, Condition> = {
-    iHaveInvitation: context => {
-      this.log(
-        `iHaveInvitation: hasInvitee = ${hasInvitee(context)}, this.team undefined = ${
-          this.team === undefined
-        }`
-      )
-      return hasInvitee(context) && this.team === undefined
-    },
+    iHaveInvitation: context => hasInvitee(context) && this.team === undefined,
 
     theyHaveInvitation: context => context.theyHaveInvitation === true,
 
     bothHaveInvitation: (...args) =>
       this.guards.iHaveInvitation(...args) && this.guards.theyHaveInvitation(...args),
 
-    // TODO smells bad that this guard has the side effect of admitting the person - split this up
-    // into two processes, first validating their proof, then admitting them
     invitationProofIsValid: context => {
       assert(context.team)
       assert(context.theirProofOfInvitation)
-
-      try {
-        context.team.admit(context.theirProofOfInvitation)
-      } catch (e) {
+      const validation = context.team.validateInvitation(context.theirProofOfInvitation)
+      this.log(`invitation validation: %o`, validation)
+      if (validation.isValid) {
+        return true
+      } else {
+        this.context.error = validation.error
         return false
       }
-      return true
     },
 
     joinedTheRightTeam: (context, event) => {

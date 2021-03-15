@@ -2,7 +2,6 @@
 import { Client } from '@localfirst/relay-client'
 import debug from 'debug'
 import { ConnectionStatus, UserName } from './types'
-import { WebSocketDuplex } from 'websocket-stream'
 import { Connection } from './Connection'
 import { EventEmitter } from './EventEmitter'
 import { MemberInitialContext } from '@localfirst/auth'
@@ -15,7 +14,7 @@ export class ConnectionManager extends EventEmitter {
 
   private client: Client
   private connections: Record<UserName, Connection> = {}
-  public state: Record<UserName, ConnectionStatus> = {}
+  public connectionStatus: Record<UserName, ConnectionStatus> = {}
   urls: string[]
   teamName: string
 
@@ -35,39 +34,37 @@ export class ConnectionManager extends EventEmitter {
     const client = new Client({ userName: this.context.user!.userName, url: this.urls[0] })
     // tell relay server we're interested in a specific team
     client
-      .join(this.teamName)
-
+      .on('server.connect', () => {
+        client.join(this.teamName)
+      })
+      .on('peer.connect', async ({ userName, socket }) => {
+        // connected to a new peer
+        if (socket) {
+          this.connectPeer(userName, socket)
+        } else this.log('no socket')
+      })
       .on('close', () => {
         // disconnected from relay server
         this.disconnectRelayServer()
-      })
-
-      .on('peer.connect', ({ userName, socket }) => {
-        // connected to a new peer
-        if (socket) this.connectPeer(userName, socket)
-        else this.log('no socket')
       })
     return client
   }
 
   public async disconnectRelayServer() {
-    const closeAllConnections = Object.keys(this.connections).map(peerId =>
-      this.disconnectPeer(peerId)
-    )
-    await Promise.all(closeAllConnections)
+    const allPeers = Object.keys(this.connections)
+    await Promise.all(allPeers.map(this.disconnectPeer))
     this.connections = {}
     this.emit('close')
   }
 
-  private connectPeer(userName: string, socket: WebSocketDuplex) {
-    this.log('peer.connect', userName)
+  private connectPeer(userName: string, socket: WebSocket) {
     const connection = new Connection(socket, this.context)
     this.connections[userName] = connection
 
     connection
       .on('change', connectionState => {
-        this.state = {
-          ...this.state,
+        this.connectionStatus = {
+          ...this.connectionStatus,
           [userName]: connectionState,
         }
         this.emit('change')
@@ -90,13 +87,13 @@ export class ConnectionManager extends EventEmitter {
     }
 
     // update our state object
-    this.state = {
-      ...this.state,
+    this.connectionStatus = {
+      ...this.connectionStatus,
       [userName]: 'disconnected',
     }
 
     // notify relay server
-    this.client.disconnect(userName)
+    this.client.leave(this.teamName)
 
     this.emit('disconnected', userName, event)
   }

@@ -9,15 +9,15 @@
   "license": "MIT",
   "private": false,
   "scripts": {
-    "build:css": "postcss src/index.postcss -o public/index.css",
     "prebuild": "yarn build:css",
     "build": "parcel build ./public/index.html",
-    "dev": "cross-env DEBUG='lf*' DEBUG_COLORS=1  run-p watch start:relay start",
-    "start": "parcel ./public/index.html --port 3000",
-    "start:relay": "node ./scripts/start-relay-server.js",
-    "test:cy": "cypress open basic --browser chrome",
+    "build:css": "postcss src/index.postcss -o public/index.css",
+    "dev:relay": "cross-env DEBUG='lf*' DEBUG_COLORS=1 node ./scripts/start-relay-server.js",
+    "dev:serve": "parcel ./public/index.html --port 3000",
+    "dev": "run-p watch:css dev:serve",
     "dev:cy": "cross-env BROWSER=none CYPRESS_REMOTE_DEBUGGING_PORT=9222 run-p dev test:cy",
-    "watch": "nodemon -x yarn build:css"
+    "test:cy": "cypress open",
+    "watch:css": "nodemon -x yarn build:css"
   },
   "alias": {
     "@localfirst/auth": "../packages/auth",
@@ -54,12 +54,11 @@
     "mermaid": "8",
     "nodemon": "2",
     "npm-run-all": "4",
+    "parcel": "1.12.3",
     "postcss": "7",
     "postcss-cli": "7",
     "tailwindcss": "1",
-    "parcel": "1.12.3",
-    "typescript": "4",
-    "websocket-stream": "5"
+    "typescript": "4"
   },
   "nodemonConfig": {
     "watch": [

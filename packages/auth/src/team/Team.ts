@@ -21,7 +21,7 @@ import { LocalDeviceContext, LocalUserContext } from '@/context'
 import * as devices from '@/device'
 import { getDeviceId, parseDeviceId, PublicDevice, redactDevice } from '@/device'
 import * as invitations from '@/invitation'
-import { Invitee, ProofOfInvitation } from '@/invitation'
+import { InvitationValidationError, Invitee, ProofOfInvitation } from '@/invitation'
 import { normalize } from '@/invitation/normalize'
 import * as keysets from '@/keyset'
 import {
@@ -46,7 +46,7 @@ import { getVisibleScopes } from '@/team/selectors'
 import { EncryptedEnvelope, isNewTeam, SignedEnvelope, TeamOptions, TeamState } from '@/team/types'
 import * as users from '@/user'
 import { User } from '@/user'
-import { arrayToMap, assert, debug, Hash, Payload } from '@/util'
+import { arrayToMap, assert, debug, Hash, Payload, ValidationResult } from '@/util'
 
 const { DEVICE, ROLE, MEMBER } = KeyType
 
@@ -529,26 +529,29 @@ export class Team extends EventEmitter {
   public getInvitation = (id: string) => {
     // throw if the invitation doesn't exist
     assert(this.hasInvitation(id), `No invitation with id '${id}' found.`)
-
     const invitation = this.state.invitations[id]
-
-    // make sure the invitation can be used
-    assert(!invitation.revoked, `This invitation has been revoked.`)
-    assert(!invitation.used, `This invitation has already been used.`)
-
     return invitation
+  }
+
+  /** Check whether a proof of invitation matches a valid invitation  */
+  public validateInvitation = (proof: ProofOfInvitation) => {
+    const teamKeys = this.teamKeys()
+    const { id } = proof
+    if (!this.hasInvitation(id)) return invitations.fail(`No invitation with id '${id}' found.`)
+
+    const invitation = this.getInvitation(id)
+
+    if (invitation.revoked) return invitations.fail(`This invitation has been revoked.`)
+    if (invitation.used) return invitations.fail(`This invitation has already been used.`)
+
+    return invitations.validate(proof, invitation, teamKeys)
   }
 
   /** Admit a new member/device to the team based on proof of invitation */
   public admit = (proof: ProofOfInvitation) => {
-    const teamKeys = this.teamKeys()
-    const { id, invitee } = proof
-
-    const invitation = this.getInvitation(id)
-
-    // validate proof of invitation
-    const validation = invitations.validate(proof, invitation, teamKeys)
+    const validation = this.validateInvitation(proof)
     if (validation.isValid === false) throw validation.error
+    const { id, invitee } = proof
 
     // post admission to the signature chain
     this.dispatch({

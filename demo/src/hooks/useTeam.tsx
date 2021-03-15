@@ -85,7 +85,7 @@ export const useTeam = () => {
       .on('change', () => {
         setPeerState((prevPeerState: PeerState) => ({
           ...prevPeerState,
-          connectionStatus: connectionManager.state,
+          connectionStatus: connectionManager.connectionStatus,
         }))
       })
       .on('connected', (connection: auth.Connection) => {
@@ -96,7 +96,7 @@ export const useTeam = () => {
         if (event?.type === 'ERROR') addAlert(event.payload.message)
         setPeerState((prevPeerState: PeerState) => ({
           ...prevPeerState,
-          connectionStatus: connectionManager.state,
+          connectionStatus: connectionManager.connectionStatus,
         }))
       }) as ConnectionManager
     peerState.connectionManager = connectionManager

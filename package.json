@@ -9,15 +9,16 @@
   "license": "MIT",
   "private": true,
   "scripts": {
+    "build": "lerna run build",
     "lerna": "lerna",
-    "watch": "lerna run watch --stream --parallel",
     "dev:demo": "yarn --cwd demo && yarn --cwd demo dev",
     "dev:cy:demo": "yarn --cwd demo && yarn --cwd demo dev:cy",
     "dev:cy": "run-p watch dev:cy:demo",
     "dev": "run-p watch dev:demo",
+    "dev:relay": "yarn --cwd demo dev:relay",
     "test": "yarn --cwd packages/auth test",
     "test:log": "yarn --cwd packages/auth test:log",
-    "build": "lerna run build",
+    "watch": "lerna run watch --stream --parallel",
     "prepublish": "lerna run prepublish"
   },
   "devDependencies": {
