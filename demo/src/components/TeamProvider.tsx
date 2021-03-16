@@ -8,6 +8,7 @@ export const TeamProvider = ({ peerInfo, children }: TeamProviderProps) => {
     return {
       user: auth.createUser(peerInfo.user.name),
       device: auth.createDevice(peerInfo.user.name, peerInfo.device.name),
+      online: false,
       connectionStatus: {},
       alerts: [],
     }
