@@ -22,14 +22,12 @@ export const Peer = ({ peerInfo, onRemove }: PeerProps) => {
   }, [peerInfo.id])
 
   const remove = async () => {
-    await connectionManager?.disconnectServer()
+    connectionManager?.disconnectServer()
     onRemove(peerInfo.id)
   }
 
   return (
     <ErrorBoundary>
-      {/* TODO: can't have nested tailwindcss groups, so need to do custom css for group-hover */}
-
       <Card className="Peer group max-w-sm flex-1 bg-white shadow-md relative">
         <RemoveButton onClick={remove}></RemoveButton>
         <CardBody className="Header flex items-center bg-teal-500">
