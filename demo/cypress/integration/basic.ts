@@ -76,16 +76,87 @@ describe('taco-chat', () => {
 
       it(`both peers have 'connected' status`, () => {
         alice()
-          .connectionStatus('Bob')
+          .peerConnectionStatus('Bob')
           .should('equal', 'connected')
         bob()
-          .connectionStatus('Alice')
+          .peerConnectionStatus('Alice')
           .should('equal', 'connected')
       })
 
-      describe('then we remove Bob', () => {
+      describe('Alice disconnects from the server', () => {
         beforeEach(() => {
-          console.log('------------------------------- BOB REMOVED')
+          alice().should('be.connected')
+          alice().toggleOnline()
+        })
+
+        it(`Alice is no longer connected`, () => {
+          alice().should('not.be.connected')
+        })
+
+        describe('Alice reconnects to the server', () => {
+          beforeEach(() => {
+            alice().toggleOnline()
+          })
+
+          it('Alice is connected again to the server', () => {
+            alice().should('be.connected')
+          })
+
+          it('Alice is connected again to Bob', () => {
+            alice()
+              .peerConnectionStatus('Bob')
+              .should('equal', 'connected')
+          })
+        })
+      })
+
+      describe.only(`Alice and Bob disconnect and reconnect`, () => {
+        it('connects and disconnects as expected', () => {
+          const expectConnected = (value: boolean) => {
+            const compare = value ? 'equal' : 'not.equal'
+            alice()
+              .peerConnectionStatus('Bob')
+              .should(compare, 'connected')
+            bob()
+              .peerConnectionStatus('Alice')
+              .should(compare, 'connected')
+          }
+
+          expectConnected(true)
+
+          // alice disconnects and reconnects
+          alice().toggleOnline()
+          expectConnected(false)
+
+          alice().toggleOnline()
+          expectConnected(true)
+
+          // bob disconnects and reconnects
+          bob().toggleOnline()
+          expectConnected(false)
+
+          bob().toggleOnline()
+          expectConnected(true)
+
+          // bob and alice both disconnect
+          bob().toggleOnline()
+          expectConnected(false)
+
+          alice().toggleOnline()
+          expectConnected(false)
+
+          // alice reconnects
+          alice().toggleOnline()
+          expectConnected(false) // bob is still disconnected
+
+          // bob reconnects
+          bob().toggleOnline()
+          expectConnected(true) // now both are connected
+        })
+      })
+
+      describe('we remove Bob', () => {
+        beforeEach(() => {
           bob().remove()
         })
 
@@ -96,13 +167,13 @@ describe('taco-chat', () => {
             .should('equal', 'Alice')
         })
 
-        it.only('Alice sees that Bob is disconnected', () => {
+        it('Alice sees that Bob is disconnected', () => {
           alice()
-            .connectionStatus('Bob')
+            .peerConnectionStatus('Bob')
             .should('equal', 'disconnected')
         })
 
-        describe('then we add Bob back', () => {
+        describe('we add Bob back', () => {
           beforeEach(() => {
             add('Bob:laptop')
             // TODO: now this is failing with "I couldn't verify your identity"
@@ -112,7 +183,7 @@ describe('taco-chat', () => {
           it('Bob rejoins the team ', () => {
             cy.get('.Peer').should('have.length', 2)
             alice()
-              .connectionStatus('Bob')
+              .peerConnectionStatus('Bob')
               .should('equal', 'connected')
           })
         })
@@ -140,15 +211,15 @@ describe('taco-chat', () => {
           })
           it.skip(`Bob and Charlie are connected`, () => {
             bob()
-              .connectionStatus('Charlie')
+              .peerConnectionStatus('Charlie')
               .should('equal', 'connected')
             charlie()
-              .connectionStatus('Bob')
+              .peerConnectionStatus('Bob')
               .should('equal', 'connected')
           })
         })
 
-        describe('then Alice demotes Bob', () => {
+        describe('Alice demotes Bob', () => {
           beforeEach(() => {
             // Alice removes Bob's admin role
             alice().demote('Bob')
