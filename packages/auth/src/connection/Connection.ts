@@ -60,9 +60,10 @@ export class Connection extends EventEmitter {
 
     // If we're a user connecting with an invitation, we need to use the starter keys derived from
     // our invitation seed
-    if (hasInvitee(context) && context.user) {
+    if (!isMember(context) && hasInvitee(context) && context.user) {
       const starterKeys = generateStarterKeys(context.invitee, context.invitationSeed)
       context.user.keys = starterKeys
+      this.log(`starter public encryption key: ${starterKeys.encryption.publicKey}`)
     }
 
     this.sendMessage = (message: ConnectionMessage) => {
@@ -217,6 +218,10 @@ export class Connection extends EventEmitter {
     // initializing
 
     sendHello: async context => {
+      assert(context.user)
+      this.log(
+        `${context.user.userName}'s public encryption key: ${context.user.keys.encryption.publicKey}`
+      )
       this.sendMessage({
         type: 'HELLO',
         payload: {
@@ -331,7 +336,12 @@ export class Connection extends EventEmitter {
       },
     }),
 
-    acceptIdentity: _ => {
+    acceptIdentity: context => {
+      assert(context.user)
+      this.log(
+        `${context.user.userName}'s public encryption key: ${context.user.keys.encryption.publicKey}`
+      )
+
       this.sendMessage({
         type: 'ACCEPT_IDENTITY',
         payload: {},
@@ -396,10 +406,14 @@ export class Connection extends EventEmitter {
       assert(context.peer)
       assert(context.seed)
 
+      const recipientPublicKey = context.peer.keys.encryption
+      const senderPublicKey = context.user.keys.encryption.publicKey
+      const senderSecretKey = context.user.keys.encryption.secretKey
+      this.log(`encrypting %o`, { recipientPublicKey, senderPublicKey })
       const encryptedSeed = asymmetric.encrypt({
         secret: context.seed,
-        recipientPublicKey: context.peer.keys.encryption,
-        senderSecretKey: context.user.keys.encryption.secretKey,
+        recipientPublicKey,
+        senderSecretKey,
       })
 
       this.sendMessage({
@@ -425,10 +439,14 @@ export class Connection extends EventEmitter {
         const ourSeed = context.seed
 
         // their seed is encrypted and stored in context
+        const senderPublicKey = context.peer.keys.encryption
+        const recipientPublicKey = context.user.keys.encryption.publicKey
+        const recipientSecretKey = context.user.keys.encryption.secretKey
+        this.log(`decrypting %o`, { senderPublicKey, recipientPublicKey })
         const theirSeed = asymmetric.decrypt({
           cipher: context.theirEncryptedSeed,
-          senderPublicKey: context.peer.keys.encryption,
-          recipientSecretKey: context.user.keys.encryption.secretKey,
+          senderPublicKey,
+          recipientSecretKey,
         })
 
         // with the two keys, we derive a shared key
@@ -484,7 +502,7 @@ export class Connection extends EventEmitter {
 
   /** These are referred to by name in `connectionMachine` (e.g. `cond: 'iHaveInvitation'`) */
   private readonly guards: Record<string, Condition> = {
-    iHaveInvitation: context => hasInvitee(context) && this.team === undefined,
+    iHaveInvitation: context => hasInvitee(context) && !isMember(context),
 
     theyHaveInvitation: context => context.theyHaveInvitation === true,
 
@@ -589,3 +607,5 @@ const stateSummary = (state: any = 'disconnected'): string =>
         .join(',')
 
 type Callback = (error: Error | null | undefined) => void
+
+const isMember = (context: ConnectionContext) => context.team !== undefined
