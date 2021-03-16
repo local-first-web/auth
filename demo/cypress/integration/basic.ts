@@ -85,12 +85,12 @@ describe('taco-chat', () => {
 
       describe('Alice disconnects from the server', () => {
         beforeEach(() => {
-          alice().should('be.connected')
+          alice().should('be.online')
           alice().toggleOnline()
         })
 
         it(`Alice is no longer connected`, () => {
-          alice().should('not.be.connected')
+          alice().should('not.be.online')
         })
 
         describe('Alice reconnects to the server', () => {
@@ -99,7 +99,7 @@ describe('taco-chat', () => {
           })
 
           it('Alice is connected again to the server', () => {
-            alice().should('be.connected')
+            alice().should('be.online')
           })
 
           it('Alice is connected again to Bob', () => {
@@ -108,9 +108,25 @@ describe('taco-chat', () => {
               .should('equal', 'connected')
           })
         })
+
+        describe('Alice promotes Bob then reconnects', () => {
+          beforeEach(() => {
+            alice().promote('Bob')
+            alice().toggleOnline()
+          })
+
+          it(`Alice and Bob see that Bob is admin`, () => {
+            alice()
+              .teamMember('Bob')
+              .should('be.admin')
+            bob()
+              .teamMember('Bob')
+              .should('be.admin')
+          })
+        })
       })
 
-      describe.only(`Alice and Bob disconnect and reconnect`, () => {
+      describe(`Alice and Bob disconnect and reconnect`, () => {
         it('connects and disconnects as expected', () => {
           const expectConnected = (value: boolean) => {
             const compare = value ? 'equal' : 'not.equal'
@@ -232,6 +248,40 @@ describe('taco-chat', () => {
             bob()
               .teamMember('Bob')
               .should('not.be.admin')
+          })
+        })
+
+        describe.only('Alice and Bob demote each other concurrently', () => {
+          beforeEach(() => {
+            alice().toggleOnline()
+            alice().should('not.be.online')
+
+            bob().toggleOnline()
+            bob().should('not.be.online')
+
+            alice().demote('Bob')
+            bob().demote('Alice')
+
+            alice().toggleOnline()
+            alice().should('be.online')
+
+            bob().toggleOnline()
+            bob().should('be.online')
+          })
+
+          it(`Alice is admin, Bob is not`, () => {
+            alice()
+              .teamMember('Bob')
+              .should('not.be.admin')
+            bob()
+              .teamMember('Bob')
+              .should('not.be.admin')
+            alice()
+              .teamMember('Alice')
+              .should('be.admin')
+            bob()
+              .teamMember('Alice')
+              .should('be.admin')
           })
         })
       })
