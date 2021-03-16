@@ -32,7 +32,10 @@ export class ConnectionManager extends EventEmitter {
     const { userName } = this.context.user! // we always provide a user whether we're invited or a member
     const client = new Client({ userName, url })
 
-    client.on('server.connect', () => client.join(this.teamName))
+    client.on('server.connect', () => {
+      client.join(this.teamName)
+      this.emit('server.connect')
+    })
     client.on('peer.connect', ({ userName, socket }) => this.connectPeer(userName, socket))
     client.on('close', () => this.disconnectServer())
 
@@ -44,7 +47,7 @@ export class ConnectionManager extends EventEmitter {
     allPeers.forEach(p => this.disconnectPeer(p))
     this.client.disconnectServer()
     this.connections = {}
-    this.emit('close')
+    this.emit('server.disconnect')
   }
 
   public connectPeer = (userName: string, socket: WebSocket) => {
