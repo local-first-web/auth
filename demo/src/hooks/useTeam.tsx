@@ -23,32 +23,32 @@ export const useTeam = () => {
   const log = debug(`lf:tc:peer:${user.userName}`)
 
   const addAlert = (message: string, type: AlertInfo['type'] = 'info') => {
-    setPeerState(prevPeerState => {
+    setPeerState(prev => {
       const alert = { id: cuid(), message, type }
       return {
-        ...prevPeerState,
-        alerts: prevPeerState.alerts.concat(alert),
+        ...prev,
+        alerts: prev.alerts.concat(alert),
       }
     })
   }
 
   const clearAlert = (id: string) => {
-    setPeerState(prevPeerState => {
+    setPeerState(prev => {
       return {
-        ...prevPeerState,
-        alerts: prevPeerState.alerts.filter(alert => alert.id !== id),
+        ...prev,
+        alerts: prev.alerts.filter(alert => alert.id !== id),
       }
     })
   }
 
   const setTeam = (newTeam: auth.Team) => {
-    setPeerState((prevPeerState: PeerState) => {
-      const oldTeam = prevPeerState.team
+    setPeerState((prev: PeerState) => {
+      const oldTeam = prev.team
       if (!oldTeam) {
-        return { ...prevPeerState, team: newTeam }
+        return { ...prev, team: newTeam }
       } else {
         const team = oldTeam.merge(newTeam.chain)
-        return { ...prevPeerState, team }
+        return { ...prev, team }
       }
     })
   }
@@ -57,9 +57,9 @@ export const useTeam = () => {
     log('creating team')
     const team = auth.createTeam(randomTeamName(), { user, device })
 
-    setPeerState((prevPeerState: PeerState) => {
+    setPeerState((prev: PeerState) => {
       return {
-        ...prevPeerState,
+        ...prev,
         team,
       }
     })
@@ -82,9 +82,23 @@ export const useTeam = () => {
 
   const connect = (teamName: string, context: auth.InitialContext) => {
     const connectionManager = new ConnectionManager({ teamName, urls, context })
+      .on('server.connect', () => {
+        setPeerState(prev => ({
+          ...prev,
+          online: true,
+          connectionStatus: connectionManager.connectionStatus,
+        }))
+      })
+      .on('server.disconnect', () => {
+        setPeerState(prev => ({
+          ...prev,
+          online: false,
+          connectionStatus: {},
+        }))
+      })
       .on('change', () => {
-        setPeerState((prevPeerState: PeerState) => ({
-          ...prevPeerState,
+        setPeerState((prev: PeerState) => ({
+          ...prev,
           connectionStatus: connectionManager.connectionStatus,
         }))
       })
@@ -94,15 +108,24 @@ export const useTeam = () => {
       })
       .on('disconnected', (_id, event) => {
         if (event?.type === 'ERROR') addAlert(event.payload.message)
-        setPeerState((prevPeerState: PeerState) => ({
-          ...prevPeerState,
+        setPeerState((prev: PeerState) => ({
+          ...prev,
           connectionStatus: connectionManager.connectionStatus,
         }))
       }) as ConnectionManager
-    peerState.connectionManager = connectionManager
+
+    setPeerState(prev => ({
+      ...prev,
+      connectionManager,
+    }))
   }
 
-  return { ...peerState, addAlert, clearAlert, createTeam, joinTeam, connect }
+  const disconnect = () => {
+    if (!peerState.connectionManager) return
+    peerState.connectionManager.disconnectServer()
+  }
+
+  return { ...peerState, addAlert, clearAlert, createTeam, joinTeam, connect, disconnect }
 }
 
 export type PeerState = {
@@ -110,6 +133,7 @@ export type PeerState = {
   device: DeviceWithSecrets
   team?: Team
   connectionManager?: ConnectionManager
+  online: boolean
   connectionStatus: Record<UserName, ConnectionStatus>
   alerts: AlertInfo[]
 }
