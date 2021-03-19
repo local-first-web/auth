@@ -7,6 +7,7 @@ import { addToTeam } from './commands/addToTeam'
 import { adminButton } from './commands/adminButton'
 import { demote } from './commands/demote'
 import { invite } from './commands/invite'
+import { isConnectedTo } from './commands/isConnectedTo'
 import { join } from './commands/join'
 import { peerConnectionStatus } from './commands/peerConnectionStatus'
 import { promote } from './commands/promote'
@@ -20,6 +21,7 @@ Cypress.Commands.add('addToTeam', { prevSubject: true }, addToTeam)
 Cypress.Commands.add('adminButton', { prevSubject: true }, adminButton)
 Cypress.Commands.add('demote', { prevSubject: true }, demote)
 Cypress.Commands.add('invite', { prevSubject: true }, invite)
+Cypress.Commands.add('isConnectedTo', { prevSubject: true }, isConnectedTo)
 Cypress.Commands.add('join', { prevSubject: true }, join)
 Cypress.Commands.add('peerConnectionStatus', { prevSubject: true }, peerConnectionStatus)
 Cypress.Commands.add('promote', { prevSubject: true }, promote)
@@ -42,6 +44,7 @@ declare global {
       adminButton(userName: string): Chainable<Element>
       demote(userName: string): Chainable<Element>
       invite(userName: string): Chainable<string>
+      isConnectedTo(userName: string): Chainable<string>
       join(code: string): Chainable<Element>
       peerConnectionStatus(userName: string): Chainable<string>
       promote(userName: string): Chainable<Element>

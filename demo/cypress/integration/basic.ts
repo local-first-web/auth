@@ -17,7 +17,7 @@ describe('taco-chat', () => {
     it('we see the signature chain', () => {
       cy.get('.ChainDiagram')
         .get('svg')
-        // has only one link
+        // has just one link
         .should('have.length', 1)
         // it's the ROOT
         .contains('ROOT')
@@ -225,13 +225,13 @@ describe('taco-chat', () => {
             add('Charlie:laptop')
             bob().addToTeam('Charlie')
           })
-          it.skip(`Bob and Charlie are connected`, () => {
-            bob()
-              .peerConnectionStatus('Charlie')
-              .should('equal', 'connected')
-            charlie()
-              .peerConnectionStatus('Bob')
-              .should('equal', 'connected')
+          it.only(`everyone is connected`, () => {
+            alice().isConnectedTo('Bob')
+            alice().isConnectedTo('Charlie')
+            bob().isConnectedTo('Alice')
+            bob().isConnectedTo('Charlie')
+            charlie().isConnectedTo('Alice')
+            charlie().isConnectedTo('Bob')
           })
         })
 
@@ -251,7 +251,7 @@ describe('taco-chat', () => {
           })
         })
 
-        describe.only('Alice and Bob demote each other concurrently', () => {
+        describe.skip('Alice and Bob demote each other concurrently', () => {
           beforeEach(() => {
             alice().toggleOnline()
             alice().should('not.be.online')

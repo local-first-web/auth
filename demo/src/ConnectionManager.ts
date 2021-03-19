@@ -5,17 +5,23 @@ import { ConnectionStatus, UserName } from './types'
 import { Connection } from './Connection'
 import { EventEmitter } from './EventEmitter'
 import { MemberInitialContext } from '@localfirst/auth'
+import { Mutex, withTimeout, E_CANCELED } from 'async-mutex'
+
+// It shouldn't take longer than this to present an invitation and have it accepted. If this time
+// expires, we'll try presenting the invitation to someone else.
+const INVITATION_TIMEOUT = 10 * 1000 // in ms
 
 /**
  * Wraps a Relay client and creates a Connection instance for each peer we connect to.
  */
 export class ConnectionManager extends EventEmitter {
   private context: auth.InitialContext
-
   private client: Client
   private connections: Record<UserName, Connection> = {}
+  private invitationMutex = withTimeout(new Mutex(), INVITATION_TIMEOUT)
+
   public connectionStatus: Record<UserName, ConnectionStatus> = {}
-  teamName: string
+  public teamName: string
 
   constructor({ teamName, urls, context }: ConnectionManagerOptions) {
     super()
@@ -50,23 +56,53 @@ export class ConnectionManager extends EventEmitter {
     this.emit('server.disconnect')
   }
 
-  public connectPeer = (userName: string, socket: WebSocket) => {
-    // connected to a new peer
-    const connection = new Connection(socket, this.context)
-    this.connections[userName] = connection
+  public connectPeer = async (userName: string, socket: WebSocket) => {
+    const connect = async () =>
+      new Promise<void>((resolve, reject) => {
+        this.log(`*********** connecting with ${userName}`)
+        // connected to a new peer
+        const connection = new Connection(socket, this.context)
+        this.connections[userName] = connection
 
-    connection
-      .on('change', state => {
-        this.updateStatus(userName, state)
-        this.emit('change', state)
+        connection
+          .on('joined', team => {
+            const context = this.context as MemberInitialContext
+            context.team = team
+            this.emit('joined', team)
+          })
+          .on('connected', () => {
+            this.emit('connected', connection)
+            resolve()
+          })
+          .on('change', state => {
+            this.updateStatus(userName, state)
+            this.emit('change', { userName, state })
+          })
+          .on('disconnected', event => {
+            this.disconnectPeer(userName, event)
+            reject()
+          })
       })
-      .on('joined', team => {
-        const context = this.context as MemberInitialContext
-        context.team = team
-        this.emit('joined', team)
-      })
-      .on('connected', () => this.emit('connected', connection))
-      .on('disconnected', event => this.disconnectPeer(userName, event))
+
+    if (!this.isMember) {
+      // We don't want to present invitations to multiple people simultaneously, because then they
+      // both might admit us concurrently and we don't know how to merge concurrent ADMITs
+      // gracefully. So if we have an invitation and we're going to connect, we need to make sure
+      // that we only present it to one person at a time.
+      try {
+        this.log(`*********** connecting with ${userName} in mutex`)
+        await this.invitationMutex.runExclusive(connect)
+      } catch (err) {
+        if (err === E_CANCELED) {
+          console.error(err)
+        } else {
+          throw err
+        }
+      }
+    } else {
+      this.log(`*********** connecting with ${userName}, no mutex`)
+      connect()
+    }
   }
 
   public disconnectPeer = (userName: string, event?: any) => {
@@ -87,6 +123,10 @@ export class ConnectionManager extends EventEmitter {
 
   public get connectionCount() {
     return Object.keys(this.connections).length
+  }
+
+  private get isMember() {
+    return 'team' in this.context && this.context.team !== undefined
   }
 
   private updateStatus = (userName: UserName, state: string) => {
