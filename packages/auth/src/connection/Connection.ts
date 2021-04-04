@@ -47,13 +47,16 @@ export class Connection extends EventEmitter {
   private log: debug.Debugger
 
   private sendMessage: SendFunction
+  private peerUserName?: string
   private machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
   private incomingMessageQueue: Record<number, NumberedConnectionMessage> = {}
   private outgoingMessageIndex: number = 0
   private isRunning: boolean = false
 
-  constructor({ sendMessage, context }: ConnectionParams) {
+  constructor({ sendMessage, context, peerUserName }: ConnectionParams) {
     super()
+
+    this.peerUserName = peerUserName
 
     const name = hasInvitee(context) ? context.invitee.name : context.user.userName
     this.log = debug(`lf:auth:protocol:${name}`)
@@ -82,12 +85,11 @@ export class Connection extends EventEmitter {
     this.machine = interpret(machine)
 
     // emit and log transitions
-    const reportTransition = (state: any) => {
+    this.machine.onTransition((state, event) => {
       const summary = stateSummary(state.value)
       this.emit('change', summary)
-      this.log(`⏩ ${summary}`)
-    }
-    this.machine.onTransition(reportTransition)
+      this.log(`${JSON.stringify(event)} ⏩ ${summary} `)
+    })
   }
 
   /** Starts (or restarts) the protocol machine. Returns this Protocol object. */
@@ -166,6 +168,7 @@ export class Connection extends EventEmitter {
   get peerName() {
     if (!this.isRunning) return '(not started)'
     return (
+      this.peerUserName ??
       this.context.peer?.userName ??
       this.context.theirIdentityClaim?.name ??
       this.context.theirProofOfInvitation?.invitee.name ??
@@ -218,10 +221,6 @@ export class Connection extends EventEmitter {
     // initializing
 
     sendHello: async context => {
-      assert(context.user)
-      this.log(
-        `${context.user.userName}'s public encryption key: ${context.user.keys.encryption.publicKey}`
-      )
       this.sendMessage({
         type: 'HELLO',
         payload: {
@@ -250,9 +249,9 @@ export class Connection extends EventEmitter {
 
       theyHaveInvitation: (_, event) => {
         event = event as HelloMessage
-        if ('proofOfInvitation' in event.payload) {
+        if (event.payload.proofOfInvitation) {
           this.log = debug(
-            `lf:auth:protocol:${this.userName}:${event.payload.proofOfInvitation!.invitee.name}`
+            `lf:auth:protocol:${this.userName}:${event.payload.proofOfInvitation.invitee.name}`
           )
           return true
         } else {
@@ -262,7 +261,7 @@ export class Connection extends EventEmitter {
 
       theirProofOfInvitation: (_, event) => {
         event = event as HelloMessage
-        return 'proofOfInvitation' in event.payload ? event.payload.proofOfInvitation : undefined
+        return event.payload.proofOfInvitation
       },
     }),
 
@@ -443,14 +442,19 @@ export class Connection extends EventEmitter {
         const recipientPublicKey = context.user.keys.encryption.publicKey
         const recipientSecretKey = context.user.keys.encryption.secretKey
         this.log(`decrypting %o`, { senderPublicKey, recipientPublicKey })
-        const theirSeed = asymmetric.decrypt({
-          cipher: context.theirEncryptedSeed,
-          senderPublicKey,
-          recipientSecretKey,
-        })
+        try {
+          const theirSeed = asymmetric.decrypt({
+            cipher: context.theirEncryptedSeed,
+            senderPublicKey,
+            recipientSecretKey,
+          })
 
-        // with the two keys, we derive a shared key
-        return deriveSharedKey(ourSeed, theirSeed)
+          // with the two keys, we derive a shared key
+          return deriveSharedKey(ourSeed, theirSeed)
+        } catch (e) {
+          this.log(`decryption failed %o`, { senderPublicKey, recipientPublicKey })
+          throw e
+        }
       },
     }),
 
