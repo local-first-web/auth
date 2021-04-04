@@ -3,7 +3,7 @@ import { ADMIN_SCOPE, KeyScope, KeyType, TEAM_SCOPE } from '@/keyset'
 import * as keyset from '@/keyset'
 import { setup } from '@/util/testing'
 
-import '/util/testing/expect/toBeValid'
+import '@/util/testing/expect/toBeValid'
 
 const { bob, eve } = setup('alice', 'bob', 'eve')
 

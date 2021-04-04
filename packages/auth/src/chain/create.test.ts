@@ -4,7 +4,7 @@ import { setup } from '@/util/testing'
 const { alice } = setup('alice')
 const defaultContext = alice.localContext
 
-import '/util/testing/expect/toBeValid'
+import '@/util/testing/expect/toBeValid'
 
 const __ = expect.objectContaining
 

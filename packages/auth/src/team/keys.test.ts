@@ -1,6 +1,6 @@
 import { ADMIN } from '@/role'
 import { setup } from '@/util/testing'
-import '/util/testing/expect/toLookLikeKeyset'
+import '@/util/testing/expect/toLookLikeKeyset'
 import * as keysets from '@/keyset'
 import { getDeviceId } from '@/device'
 
