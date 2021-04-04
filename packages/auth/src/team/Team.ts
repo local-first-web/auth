@@ -569,12 +569,12 @@ export class Team extends EventEmitter {
     const { invitee } = proof
 
     if (this.context.user === undefined) {
-      // If we don't have a `user` defined, it's because we're a device that just joined with an
-      // invitation. Now that we've been sent the team's signature chain, we should be able to find
-      // a lockbox with our user's keys in it that we can open with our device keys.
+      // If we don't have a `user` defined, it's because we're a device that just joined with an invitation.
       const { userName, deviceName } = this.context.device
       this.log(`joining with device ${deviceName}`)
 
+      // Now that we've been sent the team's signature chain, we should be able to find a lockbox
+      // with our user's keys in it that we can open with our device keys.
       const userKeys = this.keys({ type: MEMBER, name: userName })
       this.context.user = { userName, keys: userKeys }
 
