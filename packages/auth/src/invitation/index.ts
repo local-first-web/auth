@@ -1,5 +1,6 @@
 ﻿export * from '@/invitation/create'
 export * from '@/invitation/randomSeed'
 export * from '@/invitation/generateProof'
+export * from '@/invitation/generateStarterKeys'
 export * from '@/invitation/validate'
 export * from '@/invitation/types'
