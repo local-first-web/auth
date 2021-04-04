@@ -1,14 +1,12 @@
 import * as auth from '@localfirst/auth'
-import { DeviceWithSecrets, Team, User } from '@localfirst/auth'
-import debug from 'debug'
 import cuid from 'cuid'
+import debug from 'debug'
 import * as React from 'react'
-import { randomTeamName } from '../util/randomTeamName'
-import { ConnectionManager } from '../ConnectionManager'
-import { AlertInfo } from '../components/Alerts'
-import { assert } from '../util/assert'
 import { teamContext } from '../components/TeamProvider'
-import { UserName, ConnectionStatus } from '../types'
+import { ConnectionManager } from '../ConnectionManager'
+import { AlertInfo, PeerState } from '../types'
+import { assert } from '../util/assert'
+import { randomTeamName } from '../util/randomTeamName'
 
 // TODO: make this an environment var
 const urls = ['ws://localhost:8080']
@@ -20,7 +18,7 @@ export const useTeam = () => {
   const [peerState, setPeerState] = context
   const { user, device } = peerState
 
-  const log = debug(`lf:tc:peer:${user.userName}`)
+  const log = debug(`lf:tc:team:${user.userName}`)
 
   const addAlert = (message: string, type: AlertInfo['type'] = 'info') => {
     setPeerState(prev => {
@@ -44,12 +42,10 @@ export const useTeam = () => {
   const setTeam = (newTeam: auth.Team) => {
     setPeerState((prev: PeerState) => {
       const oldTeam = prev.team
-      if (!oldTeam) {
-        return { ...prev, team: newTeam }
-      } else {
-        const team = oldTeam.merge(newTeam.chain)
-        return { ...prev, team }
-      }
+      const team = !oldTeam
+        ? { ...prev, team: newTeam }
+        : { ...prev, team: oldTeam.merge(newTeam.chain) }
+      return team
     })
   }
 
@@ -126,14 +122,4 @@ export const useTeam = () => {
   }
 
   return { ...peerState, addAlert, clearAlert, createTeam, joinTeam, connect, disconnect }
-}
-
-export type PeerState = {
-  user: User
-  device: DeviceWithSecrets
-  team?: Team
-  connectionManager?: ConnectionManager
-  online: boolean
-  connectionStatus: Record<UserName, ConnectionStatus>
-  alerts: AlertInfo[]
 }

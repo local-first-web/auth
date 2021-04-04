@@ -24,6 +24,11 @@ import { TeamState } from '@/team/types'
 import { validate } from '@/team/validate'
 
 const log = debug('lf:auth:reducer')
+
+export const setHead = (link: TeamActionLink): Reducer => state => {
+  return { ...state, __HEAD: link.hash }
+}
+
 /**
  * Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `TeamState`
  * from a `TeamChain`, by applying a Redux-style reducer to the array of links. The reducer runs on
@@ -49,11 +54,13 @@ export const reducer = (state: TeamState, link: TeamActionLink) => {
 
   // get all transforms and compose them into a single function
   const applyTransforms = compose([
+    setHead(link),
     collectLockboxes(action.payload.lockboxes), // any payload can include lockboxes
     ...getTransforms(action), // get the specific transforms indicated by this action
   ])
+  const newState = applyTransforms(state)
 
-  return applyTransforms(state)
+  return newState
 }
 
 /**

@@ -1,18 +1,17 @@
-﻿import * as auth from '@localfirst/auth'
-import * as React from 'react'
+﻿import * as React from 'react'
 import { PeerInfo } from '../peers'
-import { PeerState } from '../hooks/useTeam'
+import { PeerState, StoredPeerState, TeamContextPayload } from '../types'
+import debug from 'debug'
 
-export const TeamProvider = ({ peerInfo, children }: TeamProviderProps) => {
-  const [peerState, setPeerState] = React.useState<PeerState>(() => {
-    return {
-      user: auth.createUser(peerInfo.user.name),
-      device: auth.createDevice(peerInfo.user.name, peerInfo.device.name),
-      online: false,
-      connectionStatus: {},
-      alerts: [],
-    }
-  })
+export const TeamProvider = ({ initialState, onUpdate, children }: TeamProviderProps) => {
+  const [peerState, setPeerState] = React.useState<PeerState>(initialState)
+
+  React.useEffect(() => {
+    // store state whenever it changes
+    const { user, device, team } = peerState
+    const teamChain = team?.save()
+    onUpdate({ user, device, teamChain })
+  }, [peerState])
 
   return <teamContext.Provider value={[peerState, setPeerState]} children={children} />
 }
@@ -21,9 +20,8 @@ export const teamContext = React.createContext<TeamContextPayload>(undefined)
 
 // TYPES
 
-type TeamContextPayload = [PeerState, React.Dispatch<React.SetStateAction<PeerState>>] | undefined
-
 interface TeamProviderProps {
-  peerInfo: PeerInfo
+  initialState: PeerState
+  onUpdate: (s: StoredPeerState) => void
   children: React.ReactNode
 }

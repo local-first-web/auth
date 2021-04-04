@@ -59,7 +59,6 @@ export class ConnectionManager extends EventEmitter {
   public connectPeer = async (userName: string, socket: WebSocket) => {
     const connect = async () =>
       new Promise<void>((resolve, reject) => {
-        this.log(`*********** connecting with ${userName}`)
         // connected to a new peer
         const connection = new Connection(socket, this.context)
         this.connections[userName] = connection
@@ -90,7 +89,6 @@ export class ConnectionManager extends EventEmitter {
       // gracefully. So if we have an invitation and we're going to connect, we need to make sure
       // that we only present it to one person at a time.
       try {
-        this.log(`*********** connecting with ${userName} in mutex`)
         await this.invitationMutex.runExclusive(connect)
       } catch (err) {
         if (err === E_CANCELED) {
@@ -100,7 +98,6 @@ export class ConnectionManager extends EventEmitter {
         }
       }
     } else {
-      this.log(`*********** connecting with ${userName}, no mutex`)
       connect()
     }
   }

@@ -24,9 +24,3 @@ export const Alerts = () => {
     </div>
   ) : null
 }
-
-export interface AlertInfo {
-  id: string
-  message: string
-  type: 'error' | 'warning' | 'info'
-}

@@ -12,17 +12,18 @@ import * as React from 'react'
 const AUTO_CREATE_ALICE_TEAM = true
 
 export const Peer = ({ peerInfo, onRemove }: PeerProps) => {
-  const { team, createTeam, connectionManager } = useTeam()
+  const { team, createTeam, disconnect } = useTeam()
 
   React.useEffect(() => {
     // set up Alice on first load
     if (!team && AUTO_CREATE_ALICE_TEAM && peerInfo.id === 'Alice:laptop') {
+      console.log('***** setting up alice on first load')
       createTeam()
     }
   }, [peerInfo.id])
 
   const remove = async () => {
-    connectionManager?.disconnectServer()
+    disconnect()
     onRemove(peerInfo.id)
   }
 
