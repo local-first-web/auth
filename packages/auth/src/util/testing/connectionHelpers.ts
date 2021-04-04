@@ -1,15 +1,17 @@
 import { InitialContext, Connection } from '@/connection'
 import { getDeviceId } from '@/device'
 import { KeyType } from '@/keyset'
+import { joinTestChannel } from './joinTestChannel'
 import { UserStuff } from './setup'
+import { TestChannel } from './TestChannel'
 
 // HELPERS
 
 export const tryToConnect = async (a: UserStuff, b: UserStuff) => {
-  const aConn = (a.connection[b.userName] = new Connection({ context: a.context }).start())
-  const bConn = (b.connection[a.userName] = new Connection({ context: b.context }).start())
+  const join = joinTestChannel(new TestChannel())
 
-  aConn.stream.pipe(bConn.stream).pipe(aConn.stream)
+  a.connection[b.userName] = join(a.context).start()
+  b.connection[a.userName] = join(b.context).start()
 }
 
 /** Connects the two members and waits for them to be connected */
@@ -32,20 +34,21 @@ export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: st
   })
 }
 
-export const connectPhoneWithInvitation = async (a: UserStuff, seed: string) => {
+export const connectPhoneWithInvitation = async (user: UserStuff, seed: string) => {
   const phoneContext = {
-    device: a.phone,
-    invitee: { type: KeyType.DEVICE, name: getDeviceId(a.phone) },
+    device: user.phone,
+    invitee: { type: KeyType.DEVICE, name: getDeviceId(user.phone) },
     invitationSeed: seed,
   } as InitialContext
 
-  const laptop = new Connection({ context: a.context }).start()
-  const phone = new Connection({ context: phoneContext }).start()
+  const join = joinTestChannel(new TestChannel())
 
-  laptop.stream.pipe(phone.stream).pipe(laptop.stream)
+  const laptop = join(user.context).start()
+  const phone = join(phoneContext).start()
 
   await all([laptop, phone], 'connected').then(() => {
-    a.team = laptop.team!
+    const chain = laptop.team!.chain
+    user.team.merge(chain)
   })
 }
 
