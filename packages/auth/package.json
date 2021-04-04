@@ -20,7 +20,7 @@
   "scripts": {
     "watch": "tsdx watch --tsconfig tsconfig.build.json --verbose --noClean",
     "build": "tsdx build",
-    "test": "tsdx test",
+    "test": "jest",
     "test:log": "cross-env DEBUG='lf*' DEBUG_COLORS=0 yarn test",
     "prepublish": "yarn build"
   },
