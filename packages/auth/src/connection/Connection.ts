@@ -1,4 +1,4 @@
-import { deriveSharedKey } from '@/connection/deriveSharedKey'
+﻿import { deriveSharedKey } from '@/connection/deriveSharedKey'
 import * as identity from '@/connection/identity'
 import {
   AcceptInvitationMessage,
@@ -239,10 +239,12 @@ export class Connection extends EventEmitter {
     receiveHello: assign({
       theirIdentityClaim: (_, event) => {
         event = event as HelloMessage
+        console.log('*****', event)
         if ('identityClaim' in event.payload) {
           this.log = debug(`lf:auth:protocol:${this.userName}:${event.payload.identityClaim.name}`)
           return event.payload.identityClaim
         } else {
+          console.error('no identity claim in HELLO message')
           return undefined
         }
       },
