@@ -193,7 +193,7 @@ describe('taco-chat', () => {
           beforeEach(() => {
             add('Bob:laptop')
           })
-          it.only('Bob rejoins the team ', () => {
+          it('Bob rejoins the team ', () => {
             cy.get('.Peer').should('have.length', 2)
             bob().toggleOnline() // TODO: do this automatically?
           })
@@ -220,7 +220,7 @@ describe('taco-chat', () => {
             add('Charlie:laptop')
             bob().addToTeam('Charlie')
           })
-          it(`everyone is connected`, () => {
+          it.only(`everyone is connected`, () => {
             alice().isConnectedTo('Bob')
             alice().isConnectedTo('Charlie')
             bob().isConnectedTo('Alice')
