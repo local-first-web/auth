@@ -88,7 +88,7 @@ export class Connection extends EventEmitter {
     this.machine.onTransition((state, event) => {
       const summary = stateSummary(state.value)
       this.emit('change', summary)
-      this.log(`${JSON.stringify(event)} ⏩ ${summary} `)
+      this.log(`${messageSummary(event)} ⏩ ${summary} `)
     })
   }
 
