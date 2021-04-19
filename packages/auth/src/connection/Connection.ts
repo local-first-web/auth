@@ -1,4 +1,4 @@
-﻿import { deriveSharedKey } from '@/connection/deriveSharedKey'
+import { deriveSharedKey } from '@/connection/deriveSharedKey'
 import * as identity from '@/connection/identity'
 import {
   AcceptInvitationMessage,
@@ -609,7 +609,5 @@ const stateSummary = (state: any = 'disconnected'): string =>
         .map(key => `${key}:${stateSummary(state[key])}`)
         .filter(s => s.length)
         .join(',')
-
-type Callback = (error: Error | null | undefined) => void
 
 const isMember = (context: ConnectionContext) => context.team !== undefined
