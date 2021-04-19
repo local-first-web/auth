@@ -575,7 +575,7 @@ export class Connection extends EventEmitter {
 
   private logMessage = (direction: 'in' | 'out', message: ConnectionMessage, index: number) => {
     const arrow = direction === 'in' ? '<-' : '->'
-    this.log(`${arrow} ${this.peerName} #${index} ${message.type} ${messageSummary(message)}`)
+    this.log(`${arrow} ${this.peerName} #${index} ${messageSummary(message)}`)
   }
 
   private rehydrateTeam = (context: ConnectionContext, event: ConnectionMessage) => {
