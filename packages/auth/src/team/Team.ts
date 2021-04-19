@@ -134,8 +134,6 @@ export class Team extends EventEmitter {
 
   /** Run the reducer on the entire chain to reconstruct the current team state. */
   private updateState = () => {
-    this.log(`updating state ${chainSummary(this.chain)}`)
-
     // Validate the chain's integrity. (This does not enforce team rules - that is done in the
     // reducer as it progresses through each link.)
     const validation = chains.validate(this.chain)
