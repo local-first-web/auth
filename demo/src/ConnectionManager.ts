@@ -1,10 +1,10 @@
-import * as auth from '@localfirst/auth'
+﻿import * as auth from '@localfirst/auth'
 import { Client } from '@localfirst/relay-client'
 import debug from 'debug'
 import { ConnectionStatus, UserName } from './types'
 import { Connection } from './Connection'
 import { EventEmitter } from './EventEmitter'
-import { MemberInitialContext } from '@localfirst/auth'
+import { InviteeInitialContext, MemberInitialContext } from '@localfirst/auth'
 import { Mutex, withTimeout, E_CANCELED } from 'async-mutex'
 
 // It shouldn't take longer than this to present an invitation and have it accepted. If this time
@@ -66,8 +66,10 @@ export class ConnectionManager extends EventEmitter {
         this.connections[userName] = connection
         connection
           .on('joined', team => {
-            const context = this.context as MemberInitialContext
-            context.team = team
+            this.log(`**** joined via ${userName}`)
+            // no longer an invitee - update our context for any future connections
+            const { device, user } = this.context as InviteeInitialContext
+            this.context = { device, user, team } as MemberInitialContext
             this.emit('joined', team)
           })
           .on('connected', () => {
