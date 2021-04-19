@@ -1,4 +1,4 @@
-﻿import * as auth from '@localfirst/auth'
+import * as auth from '@localfirst/auth'
 import { Client } from '@localfirst/relay-client'
 import debug from 'debug'
 import { ConnectionStatus, UserName } from './types'
@@ -59,10 +59,9 @@ export class ConnectionManager extends EventEmitter {
   public connectPeer = async (userName: string, socket: WebSocket) => {
     const connect = async () =>
       new Promise<void>((resolve, reject) => {
-        // connected to a new peer
-        const connection = new Connection(socket, this.context)
+        // connect with a new peer
+        const connection = new Connection(socket, this.context, userName)
         this.connections[userName] = connection
-
         connection
           .on('joined', team => {
             const context = this.context as MemberInitialContext
