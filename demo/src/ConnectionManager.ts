@@ -57,6 +57,8 @@ export class ConnectionManager extends EventEmitter {
   }
 
   public connectPeer = async (userName: string, socket: WebSocket) => {
+    this.log('connect.peer', userName)
+
     const connect = async () =>
       new Promise<void>((resolve, reject) => {
         // connect with a new peer
@@ -69,8 +71,9 @@ export class ConnectionManager extends EventEmitter {
             this.emit('joined', team)
           })
           .on('connected', () => {
-            this.emit('connected', connection)
+            this.log(`**** connected to ${userName}`)
             resolve()
+            this.emit('connected', connection)
           })
           .on('change', state => {
             this.updateStatus(userName, state)
@@ -82,21 +85,23 @@ export class ConnectionManager extends EventEmitter {
           })
       })
 
-    if (!this.isMember) {
+    if (!this.isMember)
       // We don't want to present invitations to multiple people simultaneously, because then they
       // both might admit us concurrently and we don't know how to merge concurrent ADMITs
-      // gracefully. So if we have an invitation and we're going to connect, we need to make sure
-      // that we only present it to one person at a time.
+      // gracefully. So if we have an invitation we need to make sure that we only present it to one
+      // person at a time.
       try {
+        this.log(`**** connecting to ${userName} with mutex (with invitation)`)
         await this.invitationMutex.runExclusive(connect)
+        this.log(`**** ${userName} mutex released`)
       } catch (err) {
-        if (err === E_CANCELED) {
-          console.error(err)
-        } else {
-          throw err
-        }
+        if (err === E_CANCELED) console.error(err)
+        else throw err
       }
-    } else {
+    // If we're already a member, we don't need to put on a lock - we can connect with multiple
+    // peers simultaneously
+    else {
+      this.log(`**** connecting to ${userName} without mutex`)
       connect()
     }
   }
