@@ -596,7 +596,7 @@ export class Connection extends EventEmitter {
 
 const messageSummary = (message: ConnectionMessage) =>
   // @ts-ignore
-  message.payload?.head || message.payload?.message || ''
+  `${message.type} ${message.payload?.head?.slice(0, 5) || message.payload?.message || ''}`
 
 const isString = (state: any) => typeof state === 'string'
 
