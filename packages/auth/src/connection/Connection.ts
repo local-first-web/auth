@@ -44,7 +44,7 @@ const { DEVICE } = KeyType
  * implements the connection protocol. The XState configuration is in `protocolMachine`.
  */
 export class Connection extends EventEmitter {
-  private log: debug.Debugger
+  public log: debug.Debugger
 
   private sendMessage: SendFunction
   private peerUserName?: string
@@ -188,17 +188,22 @@ export class Connection extends EventEmitter {
    *  messages will be delivered in the intended order (according to the `index` field on the message) */
   public async deliver(incomingMessage: NumberedConnectionMessage) {
     this.logMessage('in', incomingMessage, incomingMessage.index)
-    const { queue, nextMessages } = orderedDelivery(this.incomingMessageQueue, incomingMessage)
 
-    // TODO: detect hang when we've got message N+1 and message N doesn't come in for a while?
+    const { queue, nextMessages } = orderedDelivery(this.incomingMessageQueue, incomingMessage)
 
     // update queue
     this.incomingMessageQueue = queue
 
+    // TODO: detect hang when we've got message N+1 and message N doesn't come in for a while?
+
+    // PROBLEM: Alice has already sent a READY message, #0
+
     // send any messages that are ready to go out
     for (const m of nextMessages) {
-      if (this.isRunning && !this.machine.state.done) this.machine.send(m)
-      else this.log(`stopped, not sending #${incomingMessage.index}`)
+      if (this.isRunning && !this.machine.state.done) {
+        this.log(`delivering #${m.index} from ${this.peerName}`)
+        this.machine.send(m)
+      } else this.log(`stopped, not delivering #${m.index}`)
     }
   }
 
@@ -239,7 +244,6 @@ export class Connection extends EventEmitter {
     receiveHello: assign({
       theirIdentityClaim: (_, event) => {
         event = event as HelloMessage
-        console.log('*****', event)
         if ('identityClaim' in event.payload) {
           this.log = debug(`lf:auth:protocol:${this.userName}:${event.payload.identityClaim.name}`)
           return event.payload.identityClaim
