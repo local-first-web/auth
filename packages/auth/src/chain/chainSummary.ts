@@ -8,5 +8,5 @@ export const chainSummary = (chain: TeamSignatureChain) => {
   const links = getSequence<TeamAction>({ chain, sequencer, resolver })
     .map(l => actionFingerprint(l))
     .join(', ')
-  return `${chain.head.slice(0, 5)}:${links}`
+  return links //`${chain.head.slice(0, 5)}:${links}`
 }
