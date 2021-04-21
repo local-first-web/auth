@@ -15,6 +15,11 @@ export const protocolMachine: MachineConfig<
   initial: 'idle',
 
   on: {
+    // TODO rename READY to REQUEST_IDENTITY
+    READY: {
+      actions: 'sendHello',
+      target: 'idle',
+    },
     ERROR: {
       actions: 'receiveError',
       target: '#failure',
@@ -22,36 +27,14 @@ export const protocolMachine: MachineConfig<
   },
 
   states: {
+    // TODO rename idle to awaitingIdentityClaim
     idle: {
       id: 'idle',
       meta: { label: 'Idle' },
       on: {
-        READY: {
-          actions: 'sendHello',
-          target: 'idle',
-        },
+        // TODO rename HELLO to CLAIM_IDENTITY
         HELLO: {
           actions: ['receiveHello'],
-          target: 'connecting',
-        },
-      },
-    },
-
-    disconnected: {
-      id: 'disconnected',
-      meta: { label: 'Disconnected' },
-      entry: ['onDisconnected'],
-      on: {
-        READY: {
-          actions: 'sendHello',
-          target: 'idle',
-        },
-        HELLO: {
-          actions: ['receiveHello'],
-          target: 'connecting',
-        },
-        RECONNECT: {
-          actions: ['sendHello'],
           target: 'connecting',
         },
       },
@@ -265,8 +248,8 @@ export const protocolMachine: MachineConfig<
       },
     },
 
-    // having established each others' identities, we now make sure that our team signature chains are up to date
     synchronizing: {
+      // having established each others' identities, we now make sure that our team signature chains are up to date
       id: 'synchronizing',
       meta: { label: 'Synchronizing' },
       initial: 'sendingUpdate',
@@ -431,6 +414,12 @@ export const protocolMachine: MachineConfig<
     failure: {
       id: 'failure',
       always: '#disconnected',
+    },
+
+    disconnected: {
+      id: 'disconnected',
+      meta: { label: 'Disconnected' },
+      entry: ['onDisconnected'],
     },
   },
 }

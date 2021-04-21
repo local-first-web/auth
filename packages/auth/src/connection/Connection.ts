@@ -51,7 +51,7 @@ export class Connection extends EventEmitter {
   private machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
   private incomingMessageQueue: Record<number, NumberedConnectionMessage> = {}
   private outgoingMessageIndex: number = 0
-  private isRunning: boolean = false
+  private started: boolean = false
 
   constructor({ sendMessage, context, peerUserName }: ConnectionParams) {
     super()
@@ -59,7 +59,7 @@ export class Connection extends EventEmitter {
     this.peerUserName = peerUserName
 
     const name = hasInvitee(context) ? context.invitee.name : context.user.userName
-    this.log = debug(`lf:auth:protocol:${name}`)
+    this.log = debug(`lf:auth:connection:${name}`)
 
     // If we're a user connecting with an invitation, we need to use the starter keys derived from
     // our invitation seed
@@ -93,12 +93,15 @@ export class Connection extends EventEmitter {
   }
 
   /** Starts (or restarts) the protocol machine. Returns this Protocol object. */
-  public start = (context?: Partial<InitialContext>) => {
+  public start = (storedMessages: string[] = []) => {
     this.log('starting')
-    if (!this.isRunning) {
+    if (!this.started) {
       this.machine.start()
-      this.isRunning = true
+      this.started = true
       this.sendMessage({ type: 'READY' })
+
+      // deliver any stored messages we might have received before starting
+      storedMessages.forEach(m => this.deliver(JSON.parse(m)))
     } else {
       this.machine.send({ type: 'RECONNECT' })
     }
@@ -107,7 +110,7 @@ export class Connection extends EventEmitter {
 
   /** Sends a disconnect message to the peer. */
   public stop = () => {
-    if (this.isRunning && !this.machine.state.done) {
+    if (this.started && !this.machine.state.done) {
       const disconnectMessage = { type: 'DISCONNECT' } as DisconnectMessage
       this.sendMessage(disconnectMessage) // send disconnect message to peer
       this.machine.send(disconnectMessage) // send disconnect event to local machine
@@ -121,7 +124,7 @@ export class Connection extends EventEmitter {
 
   /** Returns the local user's name. */
   get userName() {
-    if (!this.isRunning) return '(not started)'
+    if (!this.started) return '(not started)'
     return this.context.user !== undefined
       ? this.context.user.userName
       : hasInvitee(this.context)
@@ -131,12 +134,12 @@ export class Connection extends EventEmitter {
 
   /** Returns the current state of the protocol machine. */
   get state() {
-    if (!this.isRunning) return 'disconnected'
+    if (!this.started) return 'disconnected'
     else return this.machine.state.value
   }
 
   get context(): ConnectionContext {
-    if (!this.isRunning) throw new Error(`Can't get context; machine not started`)
+    if (!this.started) throw new Error(`Can't get context; machine not started`)
     return this.machine.state.context
   }
 
@@ -166,7 +169,7 @@ export class Connection extends EventEmitter {
   }
 
   get peerName() {
-    if (!this.isRunning) return '(not started)'
+    if (!this.started) return '(not started)'
     return (
       this.peerUserName ??
       this.context.peer?.userName ??
@@ -196,11 +199,9 @@ export class Connection extends EventEmitter {
 
     // TODO: detect hang when we've got message N+1 and message N doesn't come in for a while?
 
-    // PROBLEM: Alice has already sent a READY message, #0
-
     // send any messages that are ready to go out
     for (const m of nextMessages) {
-      if (this.isRunning && !this.machine.state.done) {
+      if (this.started && !this.machine.state.done) {
         this.log(`delivering #${m.index} from ${this.peerName}`)
         this.machine.send(m)
       } else this.log(`stopped, not delivering #${m.index}`)

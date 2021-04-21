@@ -18,9 +18,16 @@ export class ConnectionManager extends EventEmitter {
   private context: auth.InitialContext
   private client: Client
   private connections: Record<UserName, Connection> = {}
-  private invitationMutex = withTimeout(new Mutex(), INVITATION_TIMEOUT)
+  private connectingMutex = withTimeout(new Mutex(), INVITATION_TIMEOUT)
 
+  /**
+   * A dictionary of strings describing the connection status of each of our peers.
+   * e.g.
+   *
+   *       {alice: 'connected', bob: 'connecting', charlie: 'disconnected'}
+   */
   public connectionStatus: Record<UserName, ConnectionStatus> = {}
+
   public teamName: string
 
   constructor({ teamName, urls, context }: ConnectionManagerOptions) {
@@ -35,15 +42,20 @@ export class ConnectionManager extends EventEmitter {
   }
 
   private connectServer(url: string): Client {
-    const { userName } = this.context.user! // we always provide a user whether we're invited or a member
+    const { userName } = this.context.user! // the demo app always provides a user whether we're invited or a member
     const client = new Client({ userName, url })
 
-    client.on('server.connect', () => {
-      client.join(this.teamName)
-      this.emit('server.connect')
-    })
-    client.on('peer.connect', ({ userName, socket }) => this.connectPeer(userName, socket))
-    client.on('close', () => this.disconnectServer())
+    client
+      .on('server.connect', () => {
+        client.join(this.teamName)
+        this.emit('server.connect')
+      })
+      .on('peer.connect', ({ userName, socket }) => {
+        this.connectPeer(userName, socket)
+      })
+      .on('close', () => {
+        this.disconnectServer()
+      })
 
     return client
   }
@@ -56,65 +68,55 @@ export class ConnectionManager extends EventEmitter {
     this.emit('server.disconnect')
   }
 
-  public connectPeer = async (userName: string, socket: WebSocket) => {
-    this.log('connect.peer', userName)
-
-    const connect = async () =>
-      new Promise<void>((resolve, reject) => {
-        this.log(
-          `**** instantiating connection to ${userName} ... (${
-            this.isMember ? 'member' : 'not member'
-          })`
-        )
-
-        // connect with a new peer
-        const connection = new Connection(socket, this.context, userName)
-        this.connections[userName] = connection
-        connection
-          .on('joined', team => {
-            this.log(`**** joined via ${userName}`)
-            // no longer an invitee - update our context for any future connections
-            const { device, user } = this.context as InviteeInitialContext
-            this.context = { device, user, team } as MemberInitialContext
-            this.emit('joined', team)
-          })
-          .on('connected', () => {
-            this.log(`**** connected to ${userName}`)
-            resolve()
-            this.emit('connected', connection)
-          })
-          .on('change', state => {
-            this.updateStatus(userName, state)
-            this.emit('change', { userName, state })
-          })
-          .on('disconnected', event => {
-            this.disconnectPeer(userName, event)
-            reject()
-          })
+  private connect = async (socket: WebSocket, peerUserName: string, storedMessages: string[]) =>
+    new Promise<void>((resolve, reject) => {
+      // connect with a new peer
+      const connection = new Connection({
+        socket,
+        context: this.context,
+        peerUserName,
+        storedMessages,
       })
+      connection
+        .on('joined', team => {
+          // no longer an invitee - update our context for future connections
+          const { device, user } = this.context as InviteeInitialContext
+          this.context = { device, user, team } as MemberInitialContext
+          this.emit('joined', team)
+        })
+        .on('connected', () => {
+          this.emit('connected', connection)
+          resolve()
+        })
+        .on('change', state => {
+          this.updateStatus(peerUserName, state)
+          this.emit('change', { userName: peerUserName, state })
+        })
+        .on('disconnected', event => {
+          this.disconnectPeer(peerUserName, event)
+          reject()
+        })
 
-    if (!this.isMember)
-      // We don't want to present invitations to multiple people simultaneously, because then they
-      // both might admit us concurrently and we don't know how to merge concurrent ADMITs
-      // gracefully. So if we have an invitation we need to make sure that we only present it to one
-      // person at a time.
-      try {
-        this.log(`**** connecting to ${userName} with mutex (with invitation)`)
-        await this.invitationMutex.runExclusive(connect)
-        this.log(`**** ${userName} mutex released`)
-      } catch (err) {
-        if (err === CANCELED) console.error(err)
-        else throw err
-      }
-    // If we're already a member, we don't need to put on a lock - we can connect with multiple
-    // peers simultaneously
-    else {
-      this.log(`**** connecting to ${userName} without mutex`)
-      connect()
-    }
+      this.connections[peerUserName] = connection
+    })
+
+  private connectPeer = async (peerUserName: string, socket: WebSocket) => {
+    this.log('connect.peer', peerUserName)
+
+    // in case we're not able to start the connection immediately (e.g. because there's a mutex
+    // lock), store any messages we receive, so we can deliver them when we start it
+    const storedMessages: string[] = []
+    socket.addEventListener('message', ({ data: message }) => {
+      storedMessages.push(message)
+    })
+
+    // We don't want to present invitations to multiple people simultaneously, because then they
+    // both might admit us concurrently and that complicates things unnecessarily. So we need to
+    // make sure that we go through the connection process with one other peer at a time.
+    this.connectingMutex.runExclusive(() => this.connect(socket, peerUserName, storedMessages))
   }
 
-  public disconnectPeer = (userName: string, event?: any) => {
+  private disconnectPeer = (userName: string, event?: any) => {
     // if we have this connection, disconnect it
     if (this.connections[userName]) {
       this.connections[userName].disconnect()
@@ -128,14 +130,6 @@ export class ConnectionManager extends EventEmitter {
     this.updateStatus(userName, 'disconnected')
 
     this.emit('disconnected', userName, event)
-  }
-
-  public get connectionCount() {
-    return Object.keys(this.connections).length
-  }
-
-  private get isMember() {
-    return 'team' in this.context && this.context.team !== undefined
   }
 
   private updateStatus = (userName: UserName, state: string) => {

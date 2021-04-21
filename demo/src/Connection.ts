@@ -5,25 +5,26 @@ export class Connection extends EventEmitter {
   private authConnection: auth.Connection
   private peerSocket: WebSocket
 
-  constructor(peerSocket: WebSocket, context: auth.InitialContext, peerUserName: string) {
+  constructor({ socket, context, peerUserName, storedMessages }: ConnectionParams) {
     super()
-    this.peerSocket = peerSocket
+    this.peerSocket = socket
 
-    const sendMessage: auth.SendFunction = message => peerSocket.send(JSON.stringify(message))
+    const sendMessage: auth.SendFunction = message => socket.send(JSON.stringify(message))
     this.authConnection = new auth.Connection({ context, sendMessage, peerUserName })
 
     // listen for incoming messages and pass them to the auth connection
-    peerSocket.addEventListener('message', messageEvent => {
-      const message = messageEvent.data
+    socket.addEventListener('message', ({ data: message }) => {
       this.authConnection.deliver(JSON.parse(message))
     })
 
     // if the remote peer closes the connection, close up here as well
-    peerSocket.addEventListener('close', () => this.disconnect())
+    socket.addEventListener('close', () => this.disconnect())
 
+    // pass through events from the auth connection
     pipeEvents(this.authConnection, this, ['connected', 'joined', 'disconnected', 'change'])
 
-    this.authConnection.start()
+    // start the connection with any stored messages
+    this.authConnection.start(storedMessages)
   }
 
   public disconnect() {
@@ -42,3 +43,10 @@ export class Connection extends EventEmitter {
 
 const pipeEvents = (source: EventEmitter, target: EventEmitter, events: string[]) =>
   events.forEach(event => source.on(event, payload => target.emit(event, payload)))
+
+type ConnectionParams = {
+  socket: WebSocket
+  context: auth.InitialContext
+  peerUserName: string
+  storedMessages?: string[]
+}
