@@ -100,6 +100,7 @@ export const useTeam = () => {
       })
       .on('connected', (connection: auth.Connection) => {
         // get the latest team info from the connection
+
         setTeam(connection.team!)
       })
       .on('disconnected', (_id, event) => {
