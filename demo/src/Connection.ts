@@ -10,7 +10,7 @@ export class Connection extends EventEmitter {
     this.peerSocket = peerSocket
 
     const sendMessage: auth.SendFunction = message => peerSocket.send(JSON.stringify(message))
-    this.authConnection = new auth.Connection({ context, sendMessage, peerUserName }).start()
+    this.authConnection = new auth.Connection({ context, sendMessage, peerUserName })
 
     // listen for incoming messages and pass them to the auth connection
     peerSocket.addEventListener('message', messageEvent => {
@@ -22,6 +22,8 @@ export class Connection extends EventEmitter {
     peerSocket.addEventListener('close', () => this.disconnect())
 
     pipeEvents(this.authConnection, this, ['connected', 'joined', 'disconnected', 'change'])
+
+    this.authConnection.start()
   }
 
   public disconnect() {
