@@ -5,7 +5,7 @@ import { ConnectionStatus, UserName } from './types'
 import { Connection } from './Connection'
 import { EventEmitter } from './EventEmitter'
 import { InviteeInitialContext, MemberInitialContext } from '@localfirst/auth'
-import { Mutex, withTimeout, E_CANCELED } from 'async-mutex'
+import { Mutex, withTimeout, E_CANCELED as CANCELED } from 'async-mutex'
 
 // It shouldn't take longer than this to present an invitation and have it accepted. If this time
 // expires, we'll try presenting the invitation to someone else.
@@ -61,6 +61,12 @@ export class ConnectionManager extends EventEmitter {
 
     const connect = async () =>
       new Promise<void>((resolve, reject) => {
+        this.log(
+          `**** instantiating connection to ${userName} ... (${
+            this.isMember ? 'member' : 'not member'
+          })`
+        )
+
         // connect with a new peer
         const connection = new Connection(socket, this.context, userName)
         this.connections[userName] = connection
@@ -97,7 +103,7 @@ export class ConnectionManager extends EventEmitter {
         await this.invitationMutex.runExclusive(connect)
         this.log(`**** ${userName} mutex released`)
       } catch (err) {
-        if (err === E_CANCELED) console.error(err)
+        if (err === CANCELED) console.error(err)
         else throw err
       }
     // If we're already a member, we don't need to put on a lock - we can connect with multiple
