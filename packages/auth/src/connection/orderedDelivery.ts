@@ -1,11 +1,4 @@
-﻿export type Queue<M extends Indexed> = Record<number, M>
-
-export interface Indexed {
-  index: number
-}
-export type Unindexed<T> = Omit<T, 'index'>
-
-/**
+﻿/**
  * Given a message queue and an incoming message, returns a new queue and an array of messages that
  * are ready to be delivered. Messages that are received out of order are held until their
  * predecessors arrive.
@@ -22,10 +15,15 @@ export const orderedDelivery = <M extends Indexed>(queue: Queue<M>, message: M) 
 
   const nextMessages = [] as M[]
   let nextIndex = firstGap(queue)
+
+  // console.log({ highestIndex, nextIndex })
   while (nextIndex in updatedQueue && nextIndex <= highestIndex) {
     nextMessages.push(updatedQueue[nextIndex])
     nextIndex += 1
   }
+
+  // console.log({ updatedQueue, nextMessages })
+
   return { queue: updatedQueue, nextMessages }
 }
 
@@ -36,3 +34,11 @@ const firstGap = <M extends Indexed>(queue: Queue<M>) => {
 }
 
 const highest = <M extends Indexed>(queue: Queue<M>) => Math.max(...Object.keys(queue).map(Number))
+
+export type Queue<M extends Indexed> = Record<number, M>
+
+export interface Indexed {
+  index: number
+}
+
+export type Unindexed<T> = Omit<T, 'index'>
