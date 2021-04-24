@@ -1,6 +1,14 @@
 {
   "extends": "./tsconfig.build.json",
-  "include": ["packages", "types", "scripts", "demo", "babel.config.js", "rollup.config.js"],
+  "include": [
+    "packages",
+    "types",
+    "scripts",
+    "demo",
+    "babel.config.js",
+    "rollup.config.js",
+    "wallaby.js"
+  ],
   "compilerOptions": {
     "allowJs": false,
     "baseUrl": ".",
