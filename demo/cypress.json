@@ -3,6 +3,6 @@
   "baseUrl": "http://localhost:3000",
   "fixturesFolder": false,
   "video": false,
-  "viewportWidth": 1200,
+  "viewportWidth": 1400,
   "viewportHeight": 1400
 }
