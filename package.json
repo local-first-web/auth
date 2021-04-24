@@ -20,7 +20,8 @@
     "test": "yarn --cwd packages/auth test",
     "test:log": "yarn --cwd packages/auth test:log",
     "watch": "lerna run watch --stream --parallel",
-    "prepublish": "lerna run prepublish"
+    "prepublish": "lerna run prepublish",
+    "pub": "lerna publish --yes"
   },
   "devDependencies": {
     "@changesets/changelog-github": "0",
