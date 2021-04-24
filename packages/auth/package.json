@@ -6,6 +6,7 @@
     "email": "herb@devresults.com"
   },
   "description": "Decentralized authentication and authorization for team collaboration",
+  "repository": "http://github.com/local-first-web/auth",
   "license": "MIT",
   "module": "dist/auth.esm.js",
   "main": "dist/index.js",

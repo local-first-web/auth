@@ -6,6 +6,7 @@
     "email": "herb@devresults.com"
   },
   "description": "Monorepo for @localfirst/auth",
+  "repository": "http://github.com/local-first-web/auth",
   "license": "MIT",
   "private": true,
   "scripts": {

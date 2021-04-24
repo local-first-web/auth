@@ -6,6 +6,7 @@
     "email": "herb@devresults.com"
   },
   "description": "Demo app for @localfirst/auth",
+  "repository": "http://github.com/local-first-web/auth",
   "license": "MIT",
   "private": false,
   "scripts": {
