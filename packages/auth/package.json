@@ -1,6 +1,6 @@
 {
   "name": "@localfirst/auth",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "Herb Caudill",
     "email": "herb@devresults.com"
@@ -25,7 +25,6 @@
     "test:log": "cross-env DEBUG='lf*' DEBUG_COLORS=0 yarn test",
     "prepublish": "yarn build"
   },
-  "peerDependencies": {},
   "dependencies": {
     "@herbcaudill/crypto": "0",
     "debug": "4",
