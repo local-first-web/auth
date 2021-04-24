@@ -220,7 +220,7 @@ describe('taco-chat', () => {
             add('Charlie:laptop')
             bob().addToTeam('Charlie')
           })
-          it.only(`everyone is connected`, () => {
+          it(`everyone is connected`, () => {
             alice().isConnectedTo('Bob')
             alice().isConnectedTo('Charlie')
             bob().isConnectedTo('Alice')
