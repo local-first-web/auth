@@ -32,8 +32,6 @@ export class ConnectionManager extends EventEmitter {
 
   constructor({ teamName, urls, context }: ConnectionManagerOptions) {
     super()
-    this.log = debug(`lf:tc:connection-manager:${context.user!.userName}`)
-
     this.context = context
     this.teamName = teamName
 
@@ -51,15 +49,10 @@ export class ConnectionManager extends EventEmitter {
         this.emit('server.connect')
       })
       .on('peer.connect', ({ userName: peerUserName, socket }) => {
-        // this.connectPeer(userName, socket)
-        this.log('connect.peer', peerUserName)
-
         // in case we're not able to start the connection immediately (e.g. because there's a mutex
         // lock), store any messages we receive, so we can deliver them when we start it
         const storedMessages: string[] = []
-        socket.addEventListener('message', ({ data: message }) => {
-          storedMessages.push(message)
-        })
+        socket.addEventListener('message', ({ data: message }) => storedMessages.push(message))
 
         // We don't want to present invitations to multiple people simultaneously, because then they
         // both might admit us concurrently and that complicates things unnecessarily. So we need to
