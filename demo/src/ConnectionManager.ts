@@ -1,6 +1,5 @@
 ﻿import * as auth from '@localfirst/auth'
 import { Client } from '@localfirst/relay-client'
-import debug from 'debug'
 import { ConnectionStatus, UserName } from './types'
 import { Connection } from './Connection'
 import { EventEmitter } from './EventEmitter'
