@@ -246,7 +246,7 @@ describe('taco-chat', () => {
           })
         })
 
-        describe.skip('Alice and Bob demote each other concurrently', () => {
+        describe('Alice and Bob demote each other concurrently', () => {
           beforeEach(() => {
             alice().toggleOnline()
             alice().should('not.be.online')
