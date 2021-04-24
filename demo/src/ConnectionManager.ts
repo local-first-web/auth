@@ -50,13 +50,24 @@ export class ConnectionManager extends EventEmitter {
         client.join(this.teamName)
         this.emit('server.connect')
       })
-      .on('peer.connect', ({ userName, socket }) => {
-        this.connectPeer(userName, socket)
-      })
-      .on('close', () => {
-        this.disconnectServer()
-      })
+      .on('peer.connect', ({ userName: peerUserName, socket }) => {
+        // this.connectPeer(userName, socket)
+        this.log('connect.peer', peerUserName)
 
+        // in case we're not able to start the connection immediately (e.g. because there's a mutex
+        // lock), store any messages we receive, so we can deliver them when we start it
+        const storedMessages: string[] = []
+        socket.addEventListener('message', ({ data: message }) => {
+          storedMessages.push(message)
+        })
+
+        // We don't want to present invitations to multiple people simultaneously, because then they
+        // both might admit us concurrently and that complicates things unnecessarily. So we need to
+        // make sure that we go through the connection process with one other peer at a time.
+        this.connectingMutex.runExclusive(() =>
+          this.connectPeer(socket, peerUserName, storedMessages)
+        )
+      })
     return client
   }
 
@@ -68,7 +79,7 @@ export class ConnectionManager extends EventEmitter {
     this.emit('server.disconnect')
   }
 
-  private connect = async (socket: WebSocket, peerUserName: string, storedMessages: string[]) =>
+  private connectPeer = async (socket: WebSocket, peerUserName: string, storedMessages: string[]) =>
     new Promise<void>((resolve, reject) => {
       // connect with a new peer
       const connection = new Connection({
@@ -99,22 +110,6 @@ export class ConnectionManager extends EventEmitter {
 
       this.connections[peerUserName] = connection
     })
-
-  private connectPeer = async (peerUserName: string, socket: WebSocket) => {
-    this.log('connect.peer', peerUserName)
-
-    // in case we're not able to start the connection immediately (e.g. because there's a mutex
-    // lock), store any messages we receive, so we can deliver them when we start it
-    const storedMessages: string[] = []
-    socket.addEventListener('message', ({ data: message }) => {
-      storedMessages.push(message)
-    })
-
-    // We don't want to present invitations to multiple people simultaneously, because then they
-    // both might admit us concurrently and that complicates things unnecessarily. So we need to
-    // make sure that we go through the connection process with one other peer at a time.
-    this.connectingMutex.runExclusive(() => this.connect(socket, peerUserName, storedMessages))
-  }
 
   private disconnectPeer = (userName: string, event?: any) => {
     // if we have this connection, disconnect it
