@@ -197,15 +197,18 @@ export class Team extends EventEmitter {
     return this.merge(theirChain)
   }
 
-  public identityIsKnown = (identityClaim: KeyScope): boolean => {
+  public lookupIdentity = (identityClaim: KeyScope): LookupIdentityResult => {
     assert(identityClaim.type === DEVICE) // we always authenticate as devices now
     const deviceId = identityClaim.name
     const { userName, deviceName } = parseDeviceId(deviceId)
-    const deviceIsKnown = this.hasDevice(userName, deviceName)
-    return deviceIsKnown
+    if (this.memberWasRemoved(userName)) return 'MEMBER_REMOVED'
+    if (!this.has(userName)) return 'MEMBER_UNKNOWN'
+    if (this.deviceWasRemoved(userName, deviceName)) return 'DEVICE_REMOVED'
+    if (!this.hasDevice(userName, deviceName)) return 'DEVICE_UNKNOWN'
+    return 'VALID_DEVICE'
   }
 
-  public verifyIdentity = (challenge: Challenge, proof: Base64) => {
+  public verifyIdentityProof = (challenge: Challenge, proof: Base64) => {
     assert(challenge.type === DEVICE) // we always authenticate as devices now
     const deviceId = challenge.name
     const { userName, deviceName } = parseDeviceId(deviceId)
@@ -780,3 +783,10 @@ const maybeDeserialize = (source: string | TeamSignatureChain): TeamSignatureCha
   typeof source === 'string' ? chains.deserialize(source) : source
 
 type inviteResult = { id: string; seed: string }
+
+type LookupIdentityResult =
+  | 'VALID_DEVICE'
+  | 'MEMBER_UNKNOWN'
+  | 'MEMBER_REMOVED'
+  | 'DEVICE_UNKNOWN'
+  | 'DEVICE_REMOVED'
