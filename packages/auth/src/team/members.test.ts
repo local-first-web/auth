@@ -63,9 +63,15 @@ describe('Team', () => {
       const { alice } = setup('alice', 'bob')
 
       expect(alice.team.has('bob')).toBe(true)
+      expect(alice.team.memberWasRemoved('bob')).toBe(false)
 
       alice.team.remove('bob')
       expect(alice.team.has('bob')).toBe(false)
+
+      // memberWasRemoved works as expected
+      expect(alice.team.memberWasRemoved('alice')).toBe(false) // alice is still a member
+      expect(alice.team.memberWasRemoved('bob')).toBe(true) // bob is no longer a member
+      expect(alice.team.memberWasRemoved('charlie')).toBe(false) // charlie was never a member
     })
 
     it('rotates keys after removing a member', () => {

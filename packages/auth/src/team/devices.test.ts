@@ -19,9 +19,13 @@ describe('Team', () => {
 
     it(`Alice can remove Bob's device`, () => {
       const { alice } = setup()
-      const bobDevice = alice.team.members('bob').devices![0].deviceName
-      alice.team.removeDevice('bob', bobDevice)
+      alice.team.removeDevice('bob', 'laptop')
       expect(alice.team.members('bob').devices).toHaveLength(0)
+
+      // deviceWasRemoved works as expected
+      expect(alice.team.deviceWasRemoved('alice', 'laptop')).toBe(false) // device still exists
+      expect(alice.team.deviceWasRemoved('bob', 'laptop')).toBe(true) // device was removed
+      expect(alice.team.deviceWasRemoved('bob', 'phone')).toBe(false) // device never existed
     })
 
     it(`throws when trying to access a removed device`, () => {
