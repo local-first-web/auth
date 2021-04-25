@@ -22,7 +22,6 @@ import {
   ConnectionParams,
   ConnectionState,
   hasInvitee,
-  InitialContext,
   SendFunction,
   StateMachineAction,
 } from '@/connection/types'
@@ -304,6 +303,36 @@ export class Connection extends EventEmitter {
 
     // authenticating
 
+    // throws an appropriate error if
+    // - the member is unknown
+    // - the member is known but has been removed
+    // - the member does not have a device by that name
+    // - the member had a device by that name but it was removed
+    // otherwise does nothing
+    confirmIdentityExists: (context, event) => {
+      if (context.team === undefined) return // we're not on the team yet, we don't have a way of knowing if they are
+      const helloMessage = event as HelloMessage
+      const { identityClaim } = helloMessage.payload
+      const identityLookupResult = context.team.lookupIdentity(identityClaim)
+      switch (identityLookupResult) {
+        case 'DEVICE_UNKNOWN':
+          this.fail(() => `device unknown`)
+          return
+        case 'DEVICE_REMOVED':
+          this.fail(() => `device removed`)
+          return
+        case 'MEMBER_UNKNOWN':
+          this.fail(() => `member unknown`)
+          return
+        case 'MEMBER_REMOVED':
+          this.fail(() => `member removed`)
+          return
+        case 'VALID_DEVICE':
+          // 👍 continue
+          return
+      }
+    },
+
     challengeIdentity: assign({
       challenge: context => {
         const identityClaim = context.theirIdentityClaim!
@@ -480,8 +509,8 @@ export class Connection extends EventEmitter {
       error: (_, event) => (event as ErrorMessage).payload,
     }),
 
-    rejectIdentity: this.fail(() => {
-      return `${this.userName} can't verify ${this.peerName}'s identity.   `
+    rejectIdentityProof: this.fail(() => {
+      return `${this.userName} can't verify ${this.peerName}'s proof of identity.`
     }),
 
     failNeitherIsMember: this.fail(
@@ -513,6 +542,9 @@ export class Connection extends EventEmitter {
 
   /** These are referred to by name in `connectionMachine` (e.g. `cond: 'iHaveInvitation'`) */
   private readonly guards: Record<string, Condition> = {
+    //
+    // INVITATIONS
+
     iHaveInvitation: context => hasInvitee(context) && !isMember(context),
 
     theyHaveInvitation: context => context.theyHaveInvitation === true,
@@ -540,17 +572,21 @@ export class Connection extends EventEmitter {
       return team.hasInvitation(this.myProofOfInvitation(context))
     },
 
-    identityIsKnown: context => {
-      if (context.team === undefined) return true // we're not on the team yet so we can't say if they're a member
-      assert(context.theirIdentityClaim)
-      return context.team.identityIsKnown(context.theirIdentityClaim)
+    // IDENTITY
+
+    peerWasRemoved: context => {
+      assert(context.team)
+      assert(context.peer)
+      return context.team.has(context.peer.userName) === false
     },
 
     identityProofIsValid: (context, event) => {
       assert(context.team)
       const { challenge, proof } = (event as ProveIdentityMessage).payload
-      return context.team.verifyIdentity(challenge, proof)
+      return context.team.verifyIdentityProof(challenge, proof)
     },
+
+    // SYNCHRONIZATION
 
     headsAreEqual: (context, event) => {
       assert(context.team)
@@ -570,12 +606,6 @@ export class Connection extends EventEmitter {
     headsAreDifferent: (...args) => !this.guards.headsAreEqual(...args),
 
     dontHaveSessionkey: context => context.sessionKey === undefined,
-
-    peerWasRemoved: context => {
-      assert(context.team)
-      assert(context.peer)
-      return context.team.has(context.peer.userName) === false
-    },
   }
 
   // helpers
