@@ -480,9 +480,9 @@ export class Connection extends EventEmitter {
       error: (_, event) => (event as ErrorMessage).payload,
     }),
 
-    rejectIdentity: this.fail(
-      () => `${this.userName} can't verify ${this.peerName}'s identity.   `
-    ),
+    rejectIdentity: this.fail(() => {
+      return `${this.userName} can't verify ${this.peerName}'s identity.   `
+    }),
 
     failNeitherIsMember: this.fail(
       () => `${this.userName} can't connect with ${this.peerName} because neither one is a member.`
