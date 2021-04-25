@@ -171,7 +171,14 @@ describe('taco-chat', () => {
         })
       })
 
-      describe('we remove Bob', () => {
+      describe('Alice removes Bob from the team', () => {
+        beforeEach(() => {
+          alice().removeFromTeam('Bob')
+        })
+        it.only('should ', () => {})
+      })
+
+      describe(`we remove Bob's device`, () => {
         beforeEach(() => {
           bob().remove()
         })
