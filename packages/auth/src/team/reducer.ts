@@ -23,8 +23,6 @@ import {
 import { TeamState } from '@/team/types'
 import { validate } from '@/team/validate'
 
-const log = debug('lf:auth:reducer')
-
 export const setHead = (link: TeamActionLink): Reducer => state => {
   return { ...state, __HEAD: link.hash }
 }
