@@ -3,7 +3,6 @@ import { generateStarterKeys } from '@/invitation'
 import { KeyType } from '@/keyset'
 import { ADMIN } from '@/role'
 import { debug } from '@/util'
-import { keysetSummary } from '@/util/keysetSummary'
 import {
   all,
   connect,
@@ -19,7 +18,6 @@ import {
   tryToConnect,
   updated,
 } from '@/util/testing'
-import { pause } from '@/util/testing/pause'
 
 const log = debug('lf:auth:test')
 const { DEVICE, MEMBER } = KeyType
@@ -37,7 +35,7 @@ describe('connection', () => {
     await disconnect(alice, bob)
   })
 
-  it(`doesn't connect with a member who has been removed`, async () => {
+  it.skip(`doesn't connect with a member who has been removed`, async () => {
     const { alice, bob } = setup('alice', 'bob')
 
     // 👩🏾 Alice removes Bob
@@ -45,7 +43,7 @@ describe('connection', () => {
 
     // ❌ They can't connect because Bob was removed
     connect(alice, bob)
-    await disconnection(alice, bob)
+    await disconnection(alice, bob, 'removed')
   })
 
   it(`doesn't connect with someone who doesn't belong to the team`, async () => {
@@ -767,7 +765,7 @@ describe('connection', () => {
     expect(alice.team.teamKeys().generation).toBe(0)
   })
 
-  it(`Eve steals Bob's phone; Bob heals the team`, async () => {
+  it.skip(`Eve steals Bob's phone; Bob heals the team`, async () => {
     const { alice, bob, charlie } = setup('alice', 'bob', 'charlie')
     await connect(alice, bob)
     // await connect(bob, charlie)
@@ -825,7 +823,7 @@ describe('connection', () => {
     // await all([eveOnBobsPhone, heyCharlie], 'disconnected')
   })
 
-  it(`Eve steals Bob's laptop; Alice heals the team`, async () => {
+  it.skip(`Eve steals Bob's laptop; Alice heals the team`, async () => {
     const { alice, bob, charlie } = setup('alice', 'bob', 'charlie')
     await connect(alice, bob)
     await connect(alice, charlie)
