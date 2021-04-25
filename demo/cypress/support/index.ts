@@ -4,6 +4,7 @@ import './assertions/admin'
 import './assertions/online'
 
 import { addToTeam } from './commands/addToTeam'
+import { removeFromTeam } from './commands/removeFromTeam'
 import { adminButton } from './commands/adminButton'
 import { demote } from './commands/demote'
 import { invite } from './commands/invite'
@@ -18,6 +19,7 @@ import { toggleOnline } from './commands/toggleOnline'
 import { userName } from './commands/userName'
 
 Cypress.Commands.add('addToTeam', { prevSubject: true }, addToTeam)
+Cypress.Commands.add('removeFromTeam', { prevSubject: true }, removeFromTeam)
 Cypress.Commands.add('adminButton', { prevSubject: true }, adminButton)
 Cypress.Commands.add('demote', { prevSubject: true }, demote)
 Cypress.Commands.add('invite', { prevSubject: true }, invite)
@@ -41,6 +43,7 @@ declare global {
     }
     interface Chainable {
       addToTeam(userName: string): Chainable<Element>
+      removeFromTeam(userName: string): Chainable<Element>
       adminButton(userName: string): Chainable<Element>
       demote(userName: string): Chainable<Element>
       invite(userName: string): Chainable<string>
