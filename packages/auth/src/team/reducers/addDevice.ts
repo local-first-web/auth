@@ -1,19 +1,23 @@
 ﻿import { Reducer } from '@/team/reducers/index'
-import { PublicDevice } from '@/device'
+import { getDeviceId, PublicDevice } from '@/device'
 
 export const addDevice = (device: PublicDevice): Reducer => state => {
   const { userName } = device
   return {
     ...state,
+
+    // add device to the member's list of devices
     members: state.members.map(member => {
       if (member.userName === userName) {
         const { devices = [] } = member
-        devices.push(device)
         return {
           ...member,
-          devices,
+          devices: [...devices, device],
         }
       } else return member
     }),
+
+    // remove device ID from list of removed devices (e.g. if it was removed at one point and is being re-added)
+    removedDevices: state.removedDevices.filter(deviceId => deviceId === getDeviceId(device)),
   }
 }

@@ -46,6 +46,8 @@ export interface TeamState {
   roles: Role[]
   lockboxes: Lockbox[]
   invitations: InvitationMap
+  removedMembers: string[]
+  removedDevices: string[]
 }
 
 export interface TeamLockboxMap {

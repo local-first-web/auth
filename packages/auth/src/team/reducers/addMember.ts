@@ -3,6 +3,8 @@ import { Member } from '@/member'
 
 export const addMember = (newMember: Member): Reducer => state => ({
   ...state,
+
+  // add member to the team's list of members
   members: [
     ...state.members,
     {
@@ -10,4 +12,7 @@ export const addMember = (newMember: Member): Reducer => state => ({
       roles: [],
     },
   ],
+
+  // remove member's name from list of removed members (e.g. if member was removed and is now being re-added)
+  removedMembers: state.removedMembers.filter(userName => userName === newMember.userName),
 })

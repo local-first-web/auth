@@ -117,7 +117,7 @@ export const Team = () => {
                         className="hover:opacity-100 opacity-25 font-bold"
                         onClick={() => {
                           // TODO: need to handle this gracefully - what should Bob see after he is removed?
-                          // team.remove(m.userName)
+                          team.remove(m.userName)
                         }}
                         children="✖"
                       />

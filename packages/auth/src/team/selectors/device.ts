@@ -4,7 +4,8 @@ import { TeamState } from '@/team/types'
 import { assert } from '@/util'
 
 export const hasDevice = (state: TeamState, userName: string, deviceName: string) => {
-  return hasMember(state, userName) && getDevice(state, userName, deviceName) !== undefined
+  if (!hasMember(state, userName)) return false
+  return getDevice(state, userName, deviceName) !== undefined
 }
 
 export const device = (state: TeamState, userName: string, deviceName: string) => {

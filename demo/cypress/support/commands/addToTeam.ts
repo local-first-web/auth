@@ -1,5 +1,5 @@
-import { commandFn } from '../'
-import { peer } from '../'
+import { commandFn } from '..'
+import { peer } from '..'
 
 export const addToTeam: commandFn = (subject, userName: string) => {
   const s = () => cy.wrap(subject)
@@ -11,6 +11,10 @@ export const addToTeam: commandFn = (subject, userName: string) => {
     .then(() =>
       s()
         .teamName()
-        .then(teamName => peer(userName).teamName().should('equal', teamName))
+        .then(teamName =>
+          peer(userName)
+            .teamName()
+            .should('equal', teamName)
+        )
     )
 }

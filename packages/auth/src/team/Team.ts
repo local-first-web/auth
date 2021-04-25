@@ -201,7 +201,8 @@ export class Team extends EventEmitter {
     assert(identityClaim.type === DEVICE) // we always authenticate as devices now
     const deviceId = identityClaim.name
     const { userName, deviceName } = parseDeviceId(deviceId)
-    return this.hasDevice(userName, deviceName)
+    const deviceIsKnown = this.hasDevice(userName, deviceName)
+    return deviceIsKnown
   }
 
   public verifyIdentity = (challenge: Challenge, proof: Base64) => {
@@ -273,6 +274,9 @@ export class Team extends EventEmitter {
       },
     })
   }
+
+  /** Returns true if the member was once on the team but was removed */
+  public memberWasRemoved = (userName: string) => select.memberWasRemoved(this.state, userName)
 
   private createMemberLockboxes = (member: Member) => {
     const roleKeys = member.roles.map(this.roleKeys)
@@ -398,6 +402,12 @@ export class Team extends EventEmitter {
         lockboxes,
       },
     })
+  }
+
+  /** Returns true if the device was once on the team but was removed */
+  public deviceWasRemoved = (userName: string, deviceName: string) => {
+    const deviceId = getDeviceId({ userName, deviceName })
+    return select.deviceWasRemoved(this.state, deviceId)
   }
 
   /**************** INVITATIONS
