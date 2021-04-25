@@ -16,6 +16,7 @@ export const protocolMachine: MachineConfig<
 
   on: {
     // TODO rename READY to REQUEST_IDENTITY
+    // TODO rename sendHello to claimIdentity
     READY: {
       actions: 'sendHello',
       target: 'idle',
@@ -177,8 +178,14 @@ export const protocolMachine: MachineConfig<
               states: {
                 challenging: {
                   meta: { label: 'Challenging their identity' },
+
+                  // before anything else, make sure that the identity they are claiming exists on
+                  // the team (the member exists and hasn't been removed; and the member has a
+                  // device by the name given, and that device hasn't been removed)
+                  entry: 'confirmIdentityExists',
+
                   always: [
-                    // if they just presented an invitation, we can skip this
+                    // if they just presented an invitation, they've already proven their identity - we can move on
                     {
                       cond: 'theyHaveInvitation',
                       target: 'done',
@@ -187,15 +194,8 @@ export const protocolMachine: MachineConfig<
                     // we received their identity claim in their HELLO message
                     // if we have a member by that name on the team, send a challenge
                     {
-                      cond: 'identityIsKnown',
                       actions: 'challengeIdentity',
                       target: 'waiting',
-                    },
-
-                    // if we don't have anybody by that name in the team, disconnect with error
-                    {
-                      actions: 'rejectIdentity',
-                      target: '#failure',
                     },
                   ],
                 },
@@ -214,7 +214,7 @@ export const protocolMachine: MachineConfig<
 
                       // if the proof fails, disconnect with error
                       {
-                        actions: 'rejectIdentity',
+                        actions: 'rejectIdentityProof',
                         target: '#failure',
                       },
                     ],
