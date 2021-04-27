@@ -1,4 +1,4 @@
-import { cache } from './cache'
+﻿import { cache } from './cache'
 import { InitialContext, Connection } from '@/connection'
 import { LocalUserContext } from '@/context'
 import * as devices from '@/device'
@@ -93,7 +93,7 @@ export const setup = (
     const team = member
       ? teams.load(chain, localContext) // members get a copy of the source team
       : teams.create(userName, localContext, randomSeed) // non-members get a dummy empty placeholder team
-    const connectionContext = (member
+    const context = (member
       ? { user, device, team }
       : {
           user,
@@ -104,17 +104,7 @@ export const setup = (
     const connection = {} as Record<string, Connection>
     const getState = (peer: string) => connection[peer].state
 
-    return {
-      userName,
-      user,
-      team,
-      device,
-      localContext,
-      phone,
-      context: connectionContext,
-      connection,
-      getState,
-    }
+    return { userName, user, team, device, localContext, phone, context, connection, getState }
   }
 
   const testUserStuff: Record<string, UserStuff> = config
