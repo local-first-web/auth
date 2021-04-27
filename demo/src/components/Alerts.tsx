@@ -16,7 +16,7 @@ export const Alerts = () => {
             children="🗙"
           />
           <div className="flex gap-3 align-top">
-            <div className="text-xl">💥</div>
+            <div className="text-xl">😕</div>
             <div className="text-sm font-bold">{a.message}</div>
           </div>
         </div>
