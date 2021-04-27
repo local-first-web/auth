@@ -52,7 +52,7 @@ describe('taco-chat', () => {
         alice()
           .teamName()
           .then(teamName =>
-            peer('Bob')
+            bob()
               .teamName()
               .should('not.equal', teamName)
           )
