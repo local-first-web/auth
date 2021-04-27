@@ -27,7 +27,8 @@ export const Team = () => {
     }
   }, [team])
 
-  const userIsAdmin = team.memberIsAdmin(user.userName)
+  const userBelongsToTeam = team.has(user.userName)
+  const userIsAdmin = userBelongsToTeam && team.memberIsAdmin(user.userName)
   const adminCount = () => members.filter(m => team.memberIsAdmin(m.userName)).length
 
   return (
