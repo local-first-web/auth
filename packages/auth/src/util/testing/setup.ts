@@ -1,4 +1,4 @@
-﻿import { cache } from './cache'
+import { cache } from './cache'
 import { InitialContext, Connection } from '@/connection'
 import { LocalUserContext } from '@/context'
 import * as devices from '@/device'
@@ -18,8 +18,8 @@ Usage:
 
 ```ts
 const {alice, bob} = setup(['alice', 'bob'])
-const {alice, bob, charlie} = setup(['alice', 'bob', {name: 'charlie', member: false}])
-const {alice, bob, charlie, dwight} = setup(['alice', 'bob', 'charlie', {name: 'dwight', admin: false}])
+const {alice, bob, charlie} = setup(['alice', 'bob', {user: 'charlie', member: false}])
+const {alice, bob, charlie, dwight} = setup(['alice', 'bob', 'charlie', {user: 'dwight', admin: false}])
 
 alice.team.add('bob')
 ```
