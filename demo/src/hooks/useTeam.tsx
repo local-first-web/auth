@@ -18,8 +18,12 @@ export const useTeam = () => {
   const [peerState, setPeerState] = context
   const { user, device } = peerState
 
-  const log = debug(`lf:tc:team:${user.userName}`)
-
+  const clearTeam = () => {
+    setPeerState((prev: PeerState) => {
+      const { team, ...stateWithoutTeam } = prev
+      return stateWithoutTeam
+    })
+  }
   const addAlert = (message: string, type: AlertInfo['type'] = 'info') => {
     setPeerState(prev => {
       const alert = { id: cuid(), message, type }
@@ -50,7 +54,6 @@ export const useTeam = () => {
   }
 
   const createTeam = () => {
-    log('creating team')
     const team = auth.createTeam(randomTeamName(), { user, device })
 
     setPeerState((prev: PeerState) => {
@@ -66,7 +69,6 @@ export const useTeam = () => {
   }
 
   const joinTeam = (teamName: string, invitationSeed: string) => {
-    log('joining team')
     const context = {
       user,
       device,
@@ -120,6 +122,11 @@ export const useTeam = () => {
     if (!peerState.connectionManager) return
     peerState.connectionManager.disconnectServer()
   }
+
+  React.useEffect(() => {
+    // clear the team if the user is no longer a member
+    if (!peerState.team?.has(user.userName)) clearTeam()
+  }, [peerState.team?.chain.head])
 
   return { ...peerState, addAlert, clearAlert, createTeam, joinTeam, connect, disconnect }
 }
