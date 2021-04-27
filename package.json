@@ -15,6 +15,7 @@
     "dev:demo": "yarn --cwd demo && yarn --cwd demo dev",
     "dev:cy:demo": "yarn --cwd demo && yarn --cwd demo dev:cy",
     "dev:cy": "run-p watch dev:cy:demo",
+    "dev:cy:debug": "cross-env CYPRESS_REMOTE_DEBUGGING_PORT=9222 yarn dev:cy",
     "dev": "run-p watch dev:demo",
     "dev:relay": "yarn --cwd demo dev:relay",
     "test": "yarn --cwd packages/auth test",
