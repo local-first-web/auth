@@ -11,4 +11,4 @@ yarn.lock
 .yalc
 yalc.lock
 
-**/.profiles
+*.cpuprofile
