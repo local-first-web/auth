@@ -131,18 +131,21 @@ export const protocolMachine: MachineConfig<
           // 1. prove our identity
           // 2. verify their identity
           type: 'parallel',
+
           states: {
-            // 1.
+            // 1. prove our identity
             proving: {
               initial: 'awaitingChallenge',
               states: {
                 awaitingChallenge: {
                   meta: { label: 'Waiting for them to challenge our identity' },
+
                   // if we just presented an invitation, we can skip this
                   always: {
                     cond: 'iHaveInvitation',
                     target: 'done',
                   },
+
                   on: {
                     CHALLENGE_IDENTITY: {
                       // we claimed our identity already, in our HELLO message; now we wait for a challenge
@@ -172,17 +175,12 @@ export const protocolMachine: MachineConfig<
               },
             },
 
-            // 2.
+            // 2. verify their identity
             verifying: {
               initial: 'challenging',
               states: {
                 challenging: {
                   meta: { label: 'Challenging their identity' },
-
-                  // before anything else, make sure that the identity they are claiming exists on
-                  // the team (the member exists and hasn't been removed; and the member has a
-                  // device by the name given, and that device hasn't been removed)
-                  entry: 'confirmIdentityExists',
 
                   always: [
                     // if they just presented an invitation, they've already proven their identity - we can move on
@@ -192,9 +190,9 @@ export const protocolMachine: MachineConfig<
                     },
 
                     // we received their identity claim in their HELLO message
-                    // if we have a member by that name on the team, send a challenge
+                    // if we have a member & device by that name on the team, send a challenge
                     {
-                      actions: 'challengeIdentity',
+                      actions: ['confirmIdentityExists', 'challengeIdentity'],
                       target: 'waiting',
                     },
                   ],
