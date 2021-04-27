@@ -209,15 +209,17 @@ export class Connection extends EventEmitter {
 
   // ACTIONS
 
+  private createError = (message: () => string, details?: any) => {
+    const errorPayload = { message: message(), details }
+    const errorMessage: ErrorMessage = { type: 'ERROR', payload: errorPayload }
+    this.machine.send(errorMessage) // force error state locally
+    this.sendMessage(errorMessage) // send error to peer
+    return errorPayload
+  }
+
   private fail = (message: () => string, details?: any) =>
     assign<ConnectionContext, ConnectionMessage>({
-      error: () => {
-        const errorPayload = { message: message(), details }
-        const errorMessage: ErrorMessage = { type: 'ERROR', payload: errorPayload }
-        this.machine.send(errorMessage) // force error state locally
-        this.sendMessage(errorMessage) // send error to peer
-        return errorPayload
-      },
+      error: () => this.createError(message, details),
     })
 
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendHello'`) */
@@ -303,30 +305,47 @@ export class Connection extends EventEmitter {
 
     // authenticating
 
-    // throws an appropriate error if
-    // - the member is unknown
-    // - the member is known but has been removed
-    // - the member does not have a device by that name
-    // - the member had a device by that name but it was removed
-    // otherwise does nothing
+    /**
+     * Looks up the device name (e.g. alice::laptop) on the team chain. Returns an appropriate error if
+     * - the member is unknown
+     * - the member is known but has been removed
+     * - the member does not have a device by that name
+     * - the member had a device by that name but it was removed
+     *
+     * When on the happy path (user and device both in good standing) does nothing.
+     */
     confirmIdentityExists: (context, event) => {
-      if (context.team === undefined) return // we're not on the team yet, we don't have a way of knowing if they are
-      const helloMessage = event as HelloMessage
-      const { identityClaim } = helloMessage.payload
+      // if we're not on the team yet, we don't have a way of knowing if the peer is
+      if (context.team === undefined) return
+
+      const { identityClaim } = (event as HelloMessage).payload
+
+      // if no identity claim is being made, there's nothing to confirm
+      if (identityClaim === undefined) return
+
+      const deviceId = identityClaim.name
+      const { userName, deviceName } = parseDeviceId(deviceId)
+
       const identityLookupResult = context.team.lookupIdentity(identityClaim)
+
+      const fail = (msg: string) => {
+        debugger
+        context.error = this.createError(() => msg)
+      }
+
       switch (identityLookupResult) {
-        case 'DEVICE_UNKNOWN':
-          this.fail(() => `device unknown`)
-          return
-        case 'DEVICE_REMOVED':
-          this.fail(() => `device removed`)
-          return
         case 'MEMBER_UNKNOWN':
-          this.fail(() => `member unknown`)
-          return
+          return fail(`${userName} is not a member of this team.`)
+
         case 'MEMBER_REMOVED':
-          this.fail(() => `member removed`)
-          return
+          return fail(`${userName} was removed from this team.`)
+
+        case 'DEVICE_UNKNOWN':
+          return fail(`${userName} does not have a device '${deviceName}'.`)
+
+        case 'DEVICE_REMOVED':
+          return fail(`${userName}'s device '${deviceName}' was removed.`)
+
         case 'VALID_DEVICE':
           // 👍 continue
           return
@@ -518,7 +537,7 @@ export class Connection extends EventEmitter {
     ),
 
     rejectInvitation: this.fail(
-      () => `${this.peerName}'s invitation didn't work: ${this.context.error}`
+      () => `${this.peerName}'s invitation didn't work. ${this.context.error?.message}`
     ),
 
     rejectTeam: this.fail(
