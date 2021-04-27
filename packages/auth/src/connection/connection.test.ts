@@ -1,4 +1,5 @@
-﻿import { getDeviceId } from '@/device'
+﻿import * as teams from '@/team'
+import { getDeviceId } from '@/device'
 import { generateStarterKeys } from '@/invitation'
 import { KeyType } from '@/keyset'
 import { ADMIN } from '@/role'
@@ -18,6 +19,8 @@ import {
   tryToConnect,
   updated,
 } from '@/util/testing'
+import { pause } from '@/util/testing/pause'
+import { chainSummary } from '@/chain'
 
 const log = debug('lf:auth:test')
 const { DEVICE, MEMBER } = KeyType
@@ -35,7 +38,7 @@ describe('connection', () => {
     await disconnect(alice, bob)
   })
 
-  it.skip(`doesn't connect with a member who has been removed`, async () => {
+  it(`doesn't connect with a member who has been removed`, async () => {
     const { alice, bob } = setup('alice', 'bob')
 
     // 👩🏾 Alice removes Bob
@@ -43,29 +46,33 @@ describe('connection', () => {
 
     // ❌ They can't connect because Bob was removed
     connect(alice, bob)
-    await disconnection(alice, bob, 'removed')
+    await disconnection(alice, bob, 'bob was removed from this team')
   })
 
   it(`doesn't connect with someone who doesn't belong to the team`, async () => {
     const { alice, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
 
-    // ❌ Alice and Charlie can't connect because Charlie was never on the team
+    charlie.context = {
+      team: teams.create(`team charlie`, { device: charlie.device, user: charlie.user }),
+      user: charlie.user,
+      device: charlie.device,
+    }
+
+    // ❌ Alice and Charlie can't connect because they're on different teams
     tryToConnect(alice, charlie)
-    await disconnection(alice, charlie)
+    await disconnection(alice, charlie, `not a member of this team`)
   })
 
-  it.skip(`can reconnect after disconnecting`, async () => {
+  it(`can reconnect after disconnecting`, async () => {
     const { alice, bob } = setup('alice', 'bob')
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
 
     // 👩🏾🔌👨🏻‍🦲 Alice disconnects
-    alice.connection.bob.stop()
-    await disconnection(alice, bob)
+    await disconnect(alice, bob)
 
     // 👩🏾<->👨🏻‍🦲 Alice reconnects
-    alice.connection.bob.start()
-    await connection(alice, bob)
+    await connect(alice, bob)
 
     // ✅ all good
   })
@@ -676,7 +683,7 @@ describe('connection', () => {
     expect(bob.team.has('alice')).toBe(true)
   })
 
-  it.skip('connects an invitee after one failed attempt', async () => {
+  it('connects an invitee after one failed attempt', async () => {
     const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
     // 👩🏾📧👨🏻‍🦲 Alice invites Bob
@@ -686,10 +693,7 @@ describe('connection', () => {
     // 👨🏻‍🦲📧<->👩🏾 Bob tries to connect, but mistypes his code
     bob.context = { ...bob.context, invitationSeed: 'password' }
 
-    const join = joinTestChannel(new TestChannel())
-
-    alice.connection.bob = join(alice.context).start()
-    bob.connection.alice = join(bob.context).start()
+    connect(bob, alice)
 
     // ❌ The connection fails
     await disconnection(alice, bob)
@@ -697,18 +701,8 @@ describe('connection', () => {
     // 👨🏻‍🦲📧<->👩🏾 Bob tries again with the right code this time
     bob.context = { ...bob.context, invitationSeed: 'passw0rd' }
 
-    // we can make this work by uncommenting the following lines, which start Alice and Bob
-    // out with shiny new connections. However we want Bob to be able to try again with the same
-    // connection. Maybe the answer is to separate out presenting an invitation from the HELLO message?
-    //
-    // It almost works if we don't restart Alice's connection, but she can't handle Bob's hello message coming in as #0.
-
-    // bob.connection.alice = new Connection(bob.context).start()
-    // alice.connection.bob = new Connection(alice.context).start()
-    // alice.connection.bob.stream.pipe(bob.connection.alice.stream).pipe(alice.connection.bob.stream)
-
     // ✅ that works
-    await connection(bob, alice)
+    await connect(bob, alice)
     bob.team = bob.connection.alice.team!
 
     expectEveryoneToKnowEveryone(alice, bob)
@@ -765,7 +759,7 @@ describe('connection', () => {
     expect(alice.team.teamKeys().generation).toBe(0)
   })
 
-  it.skip(`Eve steals Bob's phone; Bob heals the team`, async () => {
+  it(`Eve steals Bob's phone; Bob heals the team`, async () => {
     const { alice, bob, charlie } = setup('alice', 'bob', 'charlie')
     await connect(alice, bob)
     // await connect(bob, charlie)
@@ -778,30 +772,36 @@ describe('connection', () => {
     bob.phone.keys = generateStarterKeys({ type: DEVICE, name: getDeviceId(bob.phone) }, seed)
     await connectPhoneWithInvitation(bob, seed)
 
-    // // Bob's laptop knows what's up
-    // expect(bob.team.members('bob').devices).toHaveLength(2)
-    // expect(bob.team.adminKeys().generation).toBe(1) // the keys have been rotated once
-    // expect(bob.team.teamKeys().generation).toBe(1)
+    await pause(2000)
 
-    // // Alice knows what's up
-    // expect(alice.team.members('bob').devices).toHaveLength(2)
-    // expect(alice.team.adminKeys().generation).toBe(1)
-    // expect(alice.team.teamKeys().generation).toBe(1)
+    // for some reason, when Bob admits his phone, those changes don't get replicated
+
+    console.log('**** bob:', chainSummary(bob.team.chain))
+    console.log('**** alice:', chainSummary(alice.team.chain))
+
+    // Bob's laptop knows what's up
+    expect(bob.team.members('bob').devices).toHaveLength(2)
+    expect(bob.team.adminKeys().generation).toBe(1) // the keys have been rotated once
+    expect(bob.team.teamKeys().generation).toBe(1)
+
+    // Alice knows what's up
+    expect(alice.team.members('bob').devices).toHaveLength(2)
+    expect(alice.team.adminKeys().generation).toBe(1)
+    expect(alice.team.teamKeys().generation).toBe(1)
 
     // Eve steals Bob's phone.
 
-    expect(bob.connection.alice.team).toBe(bob.team)
+    // expect(bob.connection.alice.team).toBe(bob.team)
 
-    // From his laptop, Bob removes his phone from the team
+    // // From his laptop, Bob removes his phone from the team
 
-    bob.team.removeDevice('bob', 'phone')
-    expect(bob.team.members('bob').devices).toHaveLength(1)
+    // bob.team.removeDevice('bob', 'phone')
+    // expect(bob.team.members('bob').devices).toHaveLength(1)
 
-    // TODO: at this point Alice and Bob are no longer updating, so this times out:
     // await updated(alice, bob)
 
-    // Alice can see that Bob only has one device
-    expect(alice.team.members('bob').devices).toHaveLength(1)
+    // // Alice can see that Bob only has one device
+    // expect(alice.team.members('bob').devices).toHaveLength(1)
 
     // // The keys have been rotated again
     // expect(charlie.team.adminKeys().generation).toBe(2)
