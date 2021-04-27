@@ -134,8 +134,8 @@ export class Team extends EventEmitter {
 
   /** Run the reducer on the entire chain to reconstruct the current team state. */
   private updateState = () => {
-    // Validate the chain's integrity. (This does not enforce team rules - that is done in the
-    // reducer as it progresses through each link.)
+    // Validate the chain's integrity.
+    // (This does not enforce team rules - that is done in the reducer as it progresses through each link.)
     const validation = chains.validate(this.chain)
     if (!validation.isValid) throw validation.error
 
@@ -169,7 +169,9 @@ export class Team extends EventEmitter {
       ? // if we have the same head, there are no missing links
         []
       : // otherwise send every link that we have that they don't have
-        hashes.filter(hash => theirHashes.includes(hash) === false).map(hash => links[hash])
+        hashes
+          .filter(hash => theirHashes.includes(hash) === false) // only send the ones they're missing
+          .map(hash => links[hash]) // look up the full link
   }
 
   public receiveMissingLinks = ({
@@ -198,7 +200,7 @@ export class Team extends EventEmitter {
   }
 
   public lookupIdentity = (identityClaim: KeyScope): LookupIdentityResult => {
-    assert(identityClaim.type === DEVICE) // we always authenticate as devices now
+    assert(identityClaim.type === DEVICE) // we always authenticate as devices
     const deviceId = identityClaim.name
     const { userName, deviceName } = parseDeviceId(deviceId)
     if (this.memberWasRemoved(userName)) return 'MEMBER_REMOVED'
@@ -209,7 +211,7 @@ export class Team extends EventEmitter {
   }
 
   public verifyIdentityProof = (challenge: Challenge, proof: Base64) => {
-    assert(challenge.type === DEVICE) // we always authenticate as devices now
+    assert(challenge.type === DEVICE) // we always authenticate as devices
     const deviceId = challenge.name
     const { userName, deviceName } = parseDeviceId(deviceId)
     const device = this.device(userName, deviceName)
