@@ -47,8 +47,7 @@ export const connectPhoneWithInvitation = async (user: UserStuff, seed: string) 
   const phone = join(phoneContext).start()
 
   await all([laptop, phone], 'connected').then(() => {
-    const chain = laptop.team!.chain
-    user.team.merge(chain)
+    user.team = laptop.team!
   })
 }
 
