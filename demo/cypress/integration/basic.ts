@@ -175,7 +175,17 @@ describe('taco-chat', () => {
         beforeEach(() => {
           alice().removeFromTeam('Bob')
         })
-        it.only('should ', () => {})
+        it.only('bob is no longer the team', () => {
+          bob()
+            .findByText('Create team')
+            .should('exist')
+          bob()
+            .findByText('Join team')
+            .should('exist')
+          bob()
+            .find('.TeamName')
+            .should('not.exist')
+        })
       })
 
       describe(`we remove Bob's device`, () => {
@@ -202,7 +212,7 @@ describe('taco-chat', () => {
           })
           it('Bob rejoins the team ', () => {
             cy.get('.Peer').should('have.length', 2)
-            bob().toggleOnline() // TODO: do this automatically?
+            bob().toggleOnline()
           })
         })
       })
