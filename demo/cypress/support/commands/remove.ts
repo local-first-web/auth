@@ -1,6 +1,9 @@
 import { commandFn } from '..'
 
-export const remove: commandFn = subject => {
+export const remove: commandFn = (subject, userName: string) => {
   const s = () => cy.wrap(subject)
-  return s().find('.RemoveButton button').click()
+  s()
+    .teamMember(userName)
+    .findByText('✖')
+    .click()
 }

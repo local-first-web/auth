@@ -44,7 +44,7 @@ export const App = () => {
         .filter(p => p.show)
         .map(p => (
           <TeamProvider key={p.id} initialState={getInitialState(p)} onUpdate={onUpdate}>
-            <Peer onRemove={setShow(false)} peerInfo={p}></Peer>
+            <Peer onHide={setShow(false)} peerInfo={p}></Peer>
           </TeamProvider>
         ))}
       <Chooser onAdd={setShow(true)} peers={peers}></Chooser>

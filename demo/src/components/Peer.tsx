@@ -5,32 +5,31 @@ import { Avatar } from './Avatar'
 import { CreateOrJoinTeam } from './CreateOrJoinTeam'
 import { ErrorBoundary } from './ErrorBoundary'
 import { useTeam } from '../hooks/useTeam'
-import { RemoveButton } from './RemoveButton'
+import { HideButton } from './HideButton'
 import { Team } from './Team'
 import * as React from 'react'
 
 const AUTO_CREATE_ALICE_TEAM = true
 
-export const Peer = ({ peerInfo, onRemove }: PeerProps) => {
+export const Peer = ({ peerInfo, onHide }: PeerProps) => {
   const { team, createTeam, disconnect } = useTeam()
 
   React.useEffect(() => {
     // set up Alice on first load
     if (!team && AUTO_CREATE_ALICE_TEAM && peerInfo.id === 'Alice:laptop') {
-      console.log('***** setting up alice on first load')
       createTeam()
     }
   }, [peerInfo.id])
 
-  const remove = async () => {
+  const hide = async () => {
     disconnect()
-    onRemove(peerInfo.id)
+    onHide(peerInfo.id)
   }
 
   return (
     <ErrorBoundary>
       <Card className="Peer group max-w-sm flex-1 bg-white shadow-md relative">
-        <RemoveButton onClick={remove}></RemoveButton>
+        <HideButton onClick={hide}></HideButton>
         <CardBody className="Header flex items-center bg-teal-500">
           <Avatar size="lg" className="bg-opacity-75" children={peerInfo.user.emoji} />
           <h1
@@ -54,5 +53,5 @@ export const Peer = ({ peerInfo, onRemove }: PeerProps) => {
 
 interface PeerProps {
   peerInfo: PeerInfo
-  onRemove: (id: string) => void
+  onHide: (id: string) => void
 }

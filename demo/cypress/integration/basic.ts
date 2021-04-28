@@ -1,4 +1,4 @@
-import { add, alice, bob, charlie, peer } from '../support'
+import { show, alice, bob, charlie } from '../support'
 
 describe('taco-chat', () => {
   beforeEach(() => {
@@ -6,321 +6,352 @@ describe('taco-chat', () => {
     localStorage.setItem('debug', 'lf:*')
   })
 
-  describe('page loads', () => {
-    it('we see just one peer, Alice', () => {
-      cy.get('.Peer').should('have.length', 1)
-      cy.get('.Peer')
-        .userName()
-        .should('equal', 'Alice')
-    })
+  it('We load the page', () => {
+    // we see just one peer, Alice
+    cy.get('.Peer').should('have.length', 1)
+    cy.get('.Peer')
+      .userName()
+      .should('equal', 'Alice')
 
-    it('we see the signature chain', () => {
-      cy.get('.ChainDiagram')
-        .get('svg')
-        // has just one link
-        .should('have.length', 1)
-        // it's the ROOT
-        .contains('ROOT')
-    })
+    // we see the signature chain
+    cy.get('.ChainDiagram')
+      .get('svg')
+      // has just one link
+      .should('have.length', 1)
+      // it's the ROOT
+      .contains('ROOT')
   })
 
-  describe('we add Bob', () => {
-    beforeEach(() => {
-      add('Bob:laptop')
-    })
+  it(`We show Bob's device`, () => {
+    show('Bob:laptop')
+    cy.get('.Peer')
+      // there are two
+      .should('have.length', 2)
+      // the second is Bob
+      .eq(1)
+      .contains('Bob')
+  })
 
-    it('we see two peers, Alice and Bob', () => {
-      cy.get('.Peer')
-        // there are two
-        .should('have.length', 2)
-        // the second is Bob
-        .eq(1)
-        .contains('Bob')
-    })
-
-    describe('Bob creates another team', () => {
-      beforeEach(() => {
+  it('Bob creates another team', () => {
+    show('Bob:laptop')
+    bob()
+      // Click 'create team'
+      .findByText('Create team')
+      .click()
+      // wait for the team name to show up
+      .get('.TeamName')
+    alice()
+      .teamName()
+      .then(teamName =>
         bob()
-          // Click 'create team'
-          .findByText('Create team')
-          .click()
-          // wait for the team name to show up
-          .get('.TeamName')
-      })
+          .teamName()
+          .should('not.equal', teamName)
+      )
+  })
 
-      it('Bob and Alice are on two different teams', () => {
+  it('Alice adds Bob to team', () => {
+    show('Bob:laptop')
+    alice().addToTeam('Bob')
+
+    // alice and bob see the same team name
+    alice()
+      .teamName()
+      .then(aliceTeamName =>
+        bob()
+          .teamName()
+          .should('equal', aliceTeamName)
+      )
+
+    // both peers have 'connected' status
+    alice()
+      .peerConnectionStatus('Bob')
+      .should('equal', 'connected')
+    bob()
+      .peerConnectionStatus('Alice')
+      .should('equal', 'connected')
+  })
+
+  it(`Alice promotes Bob before he joins`, () => {
+    show('Bob:laptop')
+    alice()
+      // Alice invites Bob
+      .invite('Bob')
+      .then(code => {
+        // Alice promotes Bob
+        alice().promote('Bob')
+
+        // Alice sees that Bob is an admin
+        alice()
+          .teamMember('Bob')
+          .findByTitle('Team admin (click to remove)')
+          .should('have.length', '1')
+
+        // Bob joins
+        bob().join(code) // This kicks off the connection protocol.
         alice()
           .teamName()
           .then(teamName =>
             bob()
               .teamName()
-              .should('not.equal', teamName)
+              .should('equal', teamName)
           )
       })
-    })
+  })
 
-    describe('Alice adds Bob to the team', () => {
-      beforeEach(() => {
-        alice().addToTeam('Bob')
-      })
+  it(`Alice promotes Bob after he joins`, () => {
+    show('Bob:laptop')
+    alice().addToTeam('Bob')
 
-      it('has the same team for both peers', () => {
-        alice()
-          .teamName()
-          .then(aliceTeamName =>
-            bob()
-              .teamName()
-              .should('equal', aliceTeamName)
-          )
-      })
+    // Alice promotes Bob to admin
+    alice().promote('Bob')
 
-      it(`both peers have 'connected' status`, () => {
-        alice()
-          .peerConnectionStatus('Bob')
-          .should('equal', 'connected')
-        bob()
-          .peerConnectionStatus('Alice')
-          .should('equal', 'connected')
-      })
+    // Alice and Bob see that Bob is admin
+    alice()
+      .teamMember('Bob')
+      .should('be.admin')
+    bob()
+      .teamMember('Bob')
+      .should('be.admin')
+  })
 
-      describe('Alice disconnects from the server', () => {
-        beforeEach(() => {
-          alice().should('be.online')
-          alice().toggleOnline()
-        })
+  it(`Bob adds Charlie to the team`, () => {
+    show('Bob:laptop')
+    alice().addToTeam('Bob')
+    alice().promote('Bob')
 
-        it(`Alice is no longer connected`, () => {
-          alice().should('not.be.online')
-        })
+    // show Charlie's device
+    show('Charlie:laptop')
 
-        describe('Alice reconnects to the server', () => {
-          beforeEach(() => {
-            alice().toggleOnline()
-          })
+    // Bob adds Charlie to the team
+    bob().addToTeam('Charlie')
 
-          it('Alice is connected again to the server', () => {
-            alice().should('be.online')
-          })
+    // Charlie's on the team and everyone can see it
+    alice().isConnectedTo('Bob')
+    alice().isConnectedTo('Charlie')
+    bob().isConnectedTo('Alice')
+    bob().isConnectedTo('Charlie')
+    charlie().isConnectedTo('Alice')
+    charlie().isConnectedTo('Bob')
+  })
 
-          it('Alice is connected again to Bob', () => {
-            alice()
-              .peerConnectionStatus('Bob')
-              .should('equal', 'connected')
-          })
-        })
+  it(`Alice demotes Bob`, () => {
+    show('Bob:laptop')
+    alice().addToTeam('Bob')
+    alice().promote('Bob')
 
-        describe('Alice promotes Bob then reconnects', () => {
-          beforeEach(() => {
-            alice().promote('Bob')
-            alice().toggleOnline()
-          })
+    // Alice and Bob see that Bob is admin
+    alice()
+      .teamMember('Bob')
+      .should('be.admin')
+    bob()
+      .teamMember('Bob')
+      .should('be.admin')
 
-          it(`Alice and Bob see that Bob is admin`, () => {
-            alice()
-              .teamMember('Bob')
-              .should('be.admin')
-            bob()
-              .teamMember('Bob')
-              .should('be.admin')
-          })
-        })
-      })
+    // Alice demotes Bob
+    alice().demote('Bob')
 
-      describe(`Alice and Bob disconnect and reconnect`, () => {
-        it('connects and disconnects as expected', () => {
-          const expectConnected = (value: boolean) => {
-            const compare = value ? 'equal' : 'not.equal'
-            alice()
-              .peerConnectionStatus('Bob')
-              .should(compare, 'connected')
-            bob()
-              .peerConnectionStatus('Alice')
-              .should(compare, 'connected')
-          }
+    // neither one sees Bob as admin
+    alice()
+      .teamMember('Bob')
+      .should('not.be.admin')
+    bob()
+      .teamMember('Bob')
+      .should('not.be.admin')
+  })
 
-          expectConnected(true)
+  it(`Alice and Bob demote each other concurrently`, () => {
+    show('Bob:laptop')
+    alice().addToTeam('Bob')
+    alice().promote('Bob')
 
-          // alice disconnects and reconnects
-          alice().toggleOnline()
-          expectConnected(false)
+    // Alice and Bob both disconnect
 
-          alice().toggleOnline()
-          expectConnected(true)
+    alice().toggleOnline()
+    alice().should('not.be.online')
 
-          // bob disconnects and reconnects
-          bob().toggleOnline()
-          expectConnected(false)
+    bob().toggleOnline()
+    bob().should('not.be.online')
 
-          bob().toggleOnline()
-          expectConnected(true)
+    // They demote each other
 
-          // bob and alice both disconnect
-          bob().toggleOnline()
-          expectConnected(false)
+    alice().demote('Bob')
+    bob().demote('Alice')
 
-          alice().toggleOnline()
-          expectConnected(false)
+    // They both reconnect
 
-          // alice reconnects
-          alice().toggleOnline()
-          expectConnected(false) // bob is still disconnected
+    alice()
+      .toggleOnline()
+      .should('be.online')
 
-          // bob reconnects
-          bob().toggleOnline()
-          expectConnected(true) // now both are connected
-        })
-      })
+    bob()
+      .toggleOnline()
+      .should('be.online')
 
-      describe('Alice removes Bob from the team', () => {
-        beforeEach(() => {
-          alice().removeFromTeam('Bob')
-        })
-        it.only('bob is no longer the team', () => {
-          bob()
-            .findByText('Create team')
-            .should('exist')
-          bob()
-            .findByText('Join team')
-            .should('exist')
-          bob()
-            .find('.TeamName')
-            .should('not.exist')
-        })
-      })
+    // Alice is admin, Bob is not
 
-      describe(`we remove Bob's device`, () => {
-        beforeEach(() => {
-          bob().remove()
-        })
+    alice()
+      .teamMember('Bob')
+      .should('not.be.admin')
+    bob()
+      .teamMember('Bob')
+      .should('not.be.admin')
+    alice()
+      .teamMember('Alice')
+      .should('be.admin')
+    bob()
+      .teamMember('Alice')
+      .should('be.admin')
+  })
 
-        it(`we don't see Bob any more`, () => {
-          cy.get('.Peer').should('have.length', 1)
-          cy.get('.Peer')
-            .userName()
-            .should('equal', 'Alice')
-        })
+  it('Alice disconnects and reconnects', () => {
+    show('Bob:laptop')
+    alice().addToTeam('Bob')
 
-        it('Alice sees that Bob is disconnected', () => {
-          alice()
-            .peerConnectionStatus('Bob')
-            .should('equal', 'disconnected')
-        })
+    // Alice is connected to the server
+    alice().should('be.online')
 
-        describe('we add Bob back', () => {
-          beforeEach(() => {
-            add('Bob:laptop')
-          })
-          it('Bob rejoins the team ', () => {
-            cy.get('.Peer').should('have.length', 2)
-            bob().toggleOnline()
-          })
-        })
-      })
+    // she disconnects
+    alice().toggleOnline()
 
-      describe('Alice promotes Bob', () => {
-        beforeEach(() => {
-          // Alice makes Bob an admin
-          alice().promote('Bob')
-        })
+    // she is not connected to the server
+    alice().should('not.be.online')
 
-        it(`Alice and Bob see that Bob is admin`, () => {
-          alice()
-            .teamMember('Bob')
-            .should('be.admin')
-          bob()
-            .teamMember('Bob')
-            .should('be.admin')
-        })
+    // she is not connected to Bob
+    alice()
+      .peerConnectionStatus('Bob')
+      .should('not.equal', 'connected')
 
-        describe('Bob adds Charlie to the team', () => {
-          beforeEach(() => {
-            add('Charlie:laptop')
-            bob().addToTeam('Charlie')
-          })
-          it(`everyone is connected`, () => {
-            alice().isConnectedTo('Bob')
-            alice().isConnectedTo('Charlie')
-            bob().isConnectedTo('Alice')
-            bob().isConnectedTo('Charlie')
-            charlie().isConnectedTo('Alice')
-            charlie().isConnectedTo('Bob')
-          })
-        })
+    // she reconnects
+    alice().toggleOnline()
 
-        describe('Alice demotes Bob', () => {
-          beforeEach(() => {
-            // Alice removes Bob's admin role
-            alice().demote('Bob')
-          })
+    // she is connected again to the server
+    alice().should('be.online')
 
-          it(`neither one sees Bob as admin`, () => {
-            alice()
-              .teamMember('Bob')
-              .should('not.be.admin')
-            bob()
-              .teamMember('Bob')
-              .should('not.be.admin')
-          })
-        })
+    // she is connected again to Bob
+    alice()
+      .peerConnectionStatus('Bob')
+      .should('equal', 'connected')
+  })
 
-        describe('Alice and Bob demote each other concurrently', () => {
-          beforeEach(() => {
-            alice().toggleOnline()
-            alice().should('not.be.online')
+  it(`Alice disconnects, promotes Bob then reconnects`, () => {
+    show('Bob:laptop')
+    alice().addToTeam('Bob')
 
-            bob().toggleOnline()
-            bob().should('not.be.online')
+    // Alice disconnects
+    alice().toggleOnline()
 
-            alice().demote('Bob')
-            bob().demote('Alice')
+    // Alice promotes Bob
+    alice().promote('Bob')
 
-            alice().toggleOnline()
-            alice().should('be.online')
+    // Alice reconnects
+    alice().toggleOnline()
 
-            bob().toggleOnline()
-            bob().should('be.online')
-          })
+    // Alice sees that Bob is admin
+    alice()
+      .teamMember('Bob')
+      .should('be.admin')
 
-          it(`Alice is admin, Bob is not`, () => {
-            alice()
-              .teamMember('Bob')
-              .should('not.be.admin')
-            bob()
-              .teamMember('Bob')
-              .should('not.be.admin')
-            alice()
-              .teamMember('Alice')
-              .should('be.admin')
-            bob()
-              .teamMember('Alice')
-              .should('be.admin')
-          })
-        })
-      })
-    })
+    // Bob sees that Bob is admin
+    bob()
+      .teamMember('Bob')
+      .should('be.admin')
+  })
 
-    describe('Alice promotes Bob before he joins', () => {
-      it(`Alice sees that Bob is an admin`, () => {
-        alice()
-          .invite('Bob')
-          .then(code => {
-            alice().promote('Bob')
-            // Alice sees that Bob is an admin
-            alice()
-              .teamMember('Bob')
-              .findByTitle('Team admin (click to remove)')
-              .should('have.length', '1')
+  it('Fun with disconnecting and reconnecting', () => {
+    show('Bob:laptop')
+    alice().addToTeam('Bob')
 
-            bob().join(code) // This kicks off the connection protocol.
-            alice()
-              .teamName()
-              .then(teamName =>
-                bob()
-                  .teamName()
-                  .should('equal', teamName)
-              )
-          })
-      })
-    })
+    const expectConnected = (value: boolean) => {
+      const compare = value ? 'equal' : 'not.equal'
+      alice()
+        .peerConnectionStatus('Bob')
+        .should(compare, 'connected')
+      bob()
+        .peerConnectionStatus('Alice')
+        .should(compare, 'connected')
+    }
+
+    expectConnected(true)
+
+    // Alice disconnects and reconnects
+    alice().toggleOnline()
+    expectConnected(false)
+
+    alice().toggleOnline()
+    expectConnected(true)
+
+    // Bob disconnects and reconnects
+    bob().toggleOnline()
+    expectConnected(false)
+
+    bob().toggleOnline()
+    expectConnected(true)
+
+    // Bob and Alice both disconnect
+    bob().toggleOnline()
+    expectConnected(false)
+
+    alice().toggleOnline()
+    expectConnected(false)
+
+    // Alice reconnects
+    alice().toggleOnline()
+    expectConnected(false) // Bob is still disconnected
+
+    // Bob reconnects
+    bob().toggleOnline()
+    expectConnected(true) // now both are connected
+  })
+
+  it('Alice removes Bob from the team', () => {
+    show('Bob:laptop')
+    alice().addToTeam('Bob')
+
+    // Alice removes Bob
+    alice().remove('Bob')
+
+    // Bob is no longer on the team
+    bob()
+      .findByText('Create team')
+      .should('exist')
+    bob()
+      .findByText('Join team')
+      .should('exist')
+    bob()
+      .find('.TeamName')
+      .should('not.exist')
+  })
+
+  it(`We hide Bob's device`, () => {
+    show('Bob:laptop')
+    alice().addToTeam('Bob')
+
+    // we hide Bob's device
+    bob().hide()
+
+    // we don't see Bob any more
+    cy.get('.Peer').should('have.length', 1)
+    cy.get('.Peer')
+      .userName()
+      .should('equal', 'Alice')
+
+    // Alice sees that Bob is disconnected
+    alice()
+      .peerConnectionStatus('Bob')
+      .should('equal', 'disconnected')
+  })
+
+  it(`We show Bob's device again`, () => {
+    show('Bob:laptop')
+    alice().addToTeam('Bob')
+
+    // we hide Bob's device
+    bob().remove()
+
+    // we show Bob's device again
+    show('Bob:laptop')
+    cy.get('.Peer').should('have.length', 2)
+    bob().toggleOnline()
+    // Bob rejoins the team
   })
 })

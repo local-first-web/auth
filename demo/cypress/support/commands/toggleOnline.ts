@@ -14,4 +14,5 @@ export const toggleOnline: commandFn = subject => {
             .should('not.equal', prevState)
         })
     })
+  return s()
 }

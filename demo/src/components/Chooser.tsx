@@ -15,7 +15,7 @@ export const Chooser = ({ onAdd, peers }: ChooserProps) => {
         onChange={onChange}
         css=""
       >
-        <option>Add...</option>
+        <option>Show device...</option>
         {Object.values(peers)
           .filter(p => !p.show)
           .map(p => (
