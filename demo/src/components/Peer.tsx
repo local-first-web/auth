@@ -30,14 +30,18 @@ export const Peer = ({ peerInfo, onHide }: PeerProps) => {
     <ErrorBoundary>
       <Card className="Peer group max-w-sm flex-1 bg-white shadow-md relative">
         <HideButton onClick={hide}></HideButton>
-        <CardBody className="Header flex items-center bg-teal-500">
-          <Avatar size="lg" className="bg-opacity-75" children={peerInfo.user.emoji} />
+        <div className="Header flex items-center bg-teal-500 max-h-20">
+          <div className="pl-4 py-4">
+            <Avatar size="lg" className="bg-opacity-75" children={peerInfo.user.emoji} />
+          </div>
           <h1
             className="text-white text-2xl font-extrabold flex-grow"
             children={peerInfo.user.name}
           />
-          <Avatar size="sm" children={peerInfo.device.emoji} />
-        </CardBody>
+          <div style={{ fontSize: '5rem' }} className="pt-4">
+            {peerInfo.device.emoji}
+          </div>
+        </div>
         <Alerts />
         {!team ? (
           // Not on a team; show Create team / Join team buttons

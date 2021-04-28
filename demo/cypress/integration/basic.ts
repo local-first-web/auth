@@ -49,7 +49,7 @@ describe('taco-chat', () => {
       )
   })
 
-  it('Alice adds Bob to team', () => {
+  it.only('Alice adds Bob to team', () => {
     show('Bob:laptop')
     alice().addToTeam('Bob')
 
