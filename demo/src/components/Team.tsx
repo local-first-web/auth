@@ -1,16 +1,15 @@
 import * as auth from '@localfirst/auth'
 import { Button, CardBody } from '@windmill/react-ui'
 import debug from 'debug'
-import { Fragment, useEffect, useState } from 'react'
-import { assert } from '../util/assert'
+import { useEffect, useState } from 'react'
+import { useTeam } from '../hooks/useTeam'
 import { users } from '../users'
+import { assert } from '../util/assert'
 import { CardLabel } from './CardLabel'
 import { ChainDiagram } from './ChainDiagram'
 import { Invite } from './Invite'
-import { StatusIndicator } from './StatusIndicator'
-import { useTeam } from '../hooks/useTeam'
 import { OnlineToggle } from './OnlineToggle'
-import { connect } from 'node:http2'
+import { StatusIndicator } from './StatusIndicator'
 
 export const Team = () => {
   const { team, user, device, online, connect, disconnect, connectionStatus } = useTeam()
@@ -131,7 +130,7 @@ export const Team = () => {
         </table>
 
         {/* Invitation UI */}
-        {userIsAdmin ? <Invite /> : null}
+        <Invite />
       </CardBody>
 
       {/* Chain visualization */}
