@@ -1,9 +1,8 @@
-import ClipboardJS from 'clipboard'
 import { Button, Select } from '@windmill/react-ui'
-import { UserInfo, users } from '../users'
+import ClipboardJS from 'clipboard'
+import React from 'react'
 import { useTeam } from '../hooks/useTeam'
-
-import { FC, useRef, useState, useEffect } from 'react'
+import { UserInfo, users } from '../users'
 import { assert } from '../util/assert'
 
 /*
@@ -21,19 +20,19 @@ From most secure to least secure:
 - anyone who knows team name can join
 
 */
-export const Invite: FC = () => {
+export const Invite = () => {
   type State = 'inactive' | 'requestingName' | 'done'
 
-  const [state, setState] = useState<State>('inactive')
-  const [seed, setSeed] = useState<string>()
-  const [userName, setUserName] = useState<string>()
+  const [state, setState] = React.useState<State>('inactive')
+  const [seed, setSeed] = React.useState<string>()
+  const [userName, setUserName] = React.useState<string>()
 
-  const { team } = useTeam()
+  const { team, user } = useTeam()
 
-  const select = useRef() as React.MutableRefObject<HTMLSelectElement>
-  const copyInvitationSeedButton = useRef() as React.MutableRefObject<HTMLButtonElement>
+  const select = React.useRef() as React.MutableRefObject<HTMLSelectElement>
+  const copyInvitationSeedButton = React.useRef() as React.MutableRefObject<HTMLButtonElement>
 
-  useEffect(() => {
+  React.useEffect(() => {
     let c: ClipboardJS
     if (copyInvitationSeedButton?.current && seed) {
       c = new ClipboardJS(copyInvitationSeedButton.current)
@@ -59,24 +58,29 @@ export const Invite: FC = () => {
     const seed = `${team.teamName}-${randomSeed()}`
     setSeed(seed)
 
-    // TODO store id so we can revoke
+    // TODO we're storing id so we can revoke - wire that up
     const { id } = team.invite({ userName, seed })
 
     setState('done')
   }
 
+  const userIsAdmin = team?.memberIsAdmin(user.userName)
+
   switch (state) {
     case 'inactive':
       return (
         <div className="Invite flex gap-2">
-          <Button size="small" className="my-2 mr-2" onClick={activate}>
-            Invite someone
-          </Button>
-
-          {/* TODO: add a device */}
+          {/* anyone can "invite" a device*/}
           <Button size="small" className="my-2 mr-2">
             Add a device
           </Button>
+
+          {/* only admins can invite users */}
+          {userIsAdmin ? (
+            <Button size="small" className="my-2 mr-2" onClick={activate}>
+              Invite someone
+            </Button>
+          ) : null}
         </div>
       )
 
