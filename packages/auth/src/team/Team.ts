@@ -450,7 +450,7 @@ export class Team extends EventEmitter {
     */
 
   /** Invite a member */
-  public invite(params: string): inviteResult // Overload: Member invitation
+  public invite(params: string): inviteResult // Overload: Member invitation with just user name
   public invite(params: { userName: string; roles?: string[]; seed?: string }): inviteResult // Overload: Member invitation
   /** Invite a device */
   public invite(params: { deviceName: string; seed?: string }): inviteResult // Overload: Device invitation
