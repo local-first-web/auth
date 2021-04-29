@@ -4,6 +4,6 @@ export const remove: commandFn = (subject, userName: string) => {
   const s = () => cy.wrap(subject)
   s()
     .teamMember(userName)
-    .findByText('✖')
+    .findByTitle('Remove member from team')
     .click()
 }
