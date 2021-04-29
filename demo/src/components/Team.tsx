@@ -119,7 +119,7 @@ export const Team = () => {
                           // TODO: need to handle this gracefully - what should Bob see after he is removed?
                           team.remove(m.userName)
                         }}
-                        children="✖"
+                        children="🚫"
                       />
                     ) : null}
                   </td>
