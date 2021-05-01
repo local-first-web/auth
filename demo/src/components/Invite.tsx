@@ -42,14 +42,6 @@ export const Invite = () => {
     }
   }, [copyInvitationSeedButton, seed])
 
-  const activate = () => {
-    setState('requestingName')
-  }
-
-  const done = () => {
-    setState('inactive')
-  }
-
   const invite = () => {
     assert(team)
     const userName = select.current.value
@@ -77,7 +69,13 @@ export const Invite = () => {
 
           {/* only admins can invite users */}
           {userIsAdmin ? (
-            <Button size="small" className="my-2 mr-2" onClick={activate}>
+            <Button
+              size="small"
+              className="my-2 mr-2"
+              onClick={() => {
+                setState('requestingName')
+              }}
+            >
               Invite someone
             </Button>
           ) : null}
@@ -114,7 +112,14 @@ export const Invite = () => {
             </Button>
           </div>
 
-          <Button size="small" layout="outline" className="CancelButton mt-1" onClick={done}>
+          <Button
+            size="small"
+            layout="outline"
+            className="CancelButton mt-1"
+            onClick={() => {
+              setState('inactive')
+            }}
+          >
             Cancel
           </Button>
         </>
@@ -132,7 +137,11 @@ export const Invite = () => {
             children={seed}
           />
           <div className="mt-1 text-right">
-            <Button ref={copyInvitationSeedButton} onClick={done} data-clipboard-text={seed}>
+            <Button
+              ref={copyInvitationSeedButton}
+              onClick={() => setState('inactive')}
+              data-clipboard-text={seed}
+            >
               Copy
             </Button>
           </div>
