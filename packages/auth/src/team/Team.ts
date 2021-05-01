@@ -417,6 +417,8 @@ export class Team extends EventEmitter {
 
   /**************** INVITATIONS
 
+  TODO: remove userNames and deviceNames from the invitation process? 
+
   Inviting a new member: 
 
     Alice generates an invitation using a secret seed. The seed an be randomly generated, or
