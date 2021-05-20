@@ -28,8 +28,8 @@
   "dependencies": {
     "@ibm/plex": "5",
     "@localfirst/auth": "0",
-    "@localfirst/relay": "1",
-    "@localfirst/relay-client": "1",
+    "@localfirst/relay": "3",
+    "@localfirst/relay-client": "3",
     "@testing-library/cypress": "7",
     "@testing-library/jest-dom": "5",
     "@testing-library/react": "11",
