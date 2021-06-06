@@ -1,6 +1,6 @@
 import { TeamActionLink, TeamSignatureChain } from '@/chain'
 import { LocalDeviceContext, LocalUserContext, MemberContext } from '@/context'
-import { Invitation } from '@/invitation/types'
+import { Invitation, InvitationState } from '@/invitation/types'
 import { KeyMetadata } from '@/keyset'
 import { Lockbox } from '@/lockbox'
 import { Member } from '@/member'
@@ -59,7 +59,7 @@ export interface UserLockboxMap {
 }
 
 export interface InvitationMap {
-  [id: string]: Invitation
+  [id: string]: InvitationState
 }
 
 // VALIDATION
