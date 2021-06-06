@@ -10,11 +10,14 @@ export interface Invitation {
   /** The public signing key derived from the secret invitation key */
   publicKey: Base64
 
+  /** Time when the invitation expires. If 0, the invitation does not expire. */
+  expiration: UnixTimestamp
+
   /** Number of times the invitation can be used. If 0, the invitation can be used any number of times. */
   maxUses: number
 
-  /** Time when the invitation expires. If 0, the invitation does not expire. */
-  expiration: UnixTimestamp
+  /** (Device invitations only) User name the device will be associated with. */
+  userName?: string
 }
 
 /**
