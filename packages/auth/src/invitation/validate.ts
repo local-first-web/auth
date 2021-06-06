@@ -1,32 +1,19 @@
-﻿import { signatures, symmetric } from '@herbcaudill/crypto'
-import { Invitation, InvitationBody, ProofOfInvitation } from '@/invitation/types'
-import { KeysetWithSecrets, scopesMatch } from '@/keyset'
-import { VALID, ValidationResult } from '@/util'
-import { memoize } from '@/util'
+﻿import { Invitation, ProofOfInvitation } from '@/invitation/types'
+import { memoize, VALID, ValidationResult } from '@/util'
+import { signatures } from '@herbcaudill/crypto'
 
 export const validate = memoize(
-  (
-    proof: ProofOfInvitation,
-    invitation: Invitation,
-    teamKeys: KeysetWithSecrets
-  ): ValidationResult => {
-    // Decrypt and parse invitation
-    const invitationBody = open(invitation, teamKeys)
-    const details = { invitationBody, proof }
-
-    // Check that IDs and user names from proof match invitation
-    const { id, invitee } = proof
-    if (id !== invitation.id) return fail(`IDs don't match`, details)
-
-    if (!scopesMatch(invitee, invitationBody.invitee))
-      return fail(`User names don't match`, details)
+  (proof: ProofOfInvitation, invitation: Invitation): ValidationResult => {
+    // Check that id from proof matches invitation
+    const { id } = proof
+    if (id !== invitation.id) return fail(`IDs don't match`, { proof, invitation })
 
     // Check signature on proof
     const { signature } = proof
-    const payload = { id, name: invitee.name }
-    const { publicKey } = invitationBody
+    const payload = { id }
+    const { publicKey } = invitation
     if (!signatures.verify({ payload, signature, publicKey }))
-      return fail(`Signature provided is not valid`, details)
+      return fail(`Signature provided is not valid`, { proof, invitation })
 
     return VALID
   }
@@ -47,9 +34,4 @@ export class InvitationValidationError extends Error {
   }
   public index?: number
   public details?: any
-}
-
-export const open = (invitation: Invitation, teamKeys: KeysetWithSecrets) => {
-  const decryptedBody = symmetric.decrypt(invitation.encryptedBody, teamKeys.secretKey)
-  return JSON.parse(decryptedBody) as InvitationBody
 }
