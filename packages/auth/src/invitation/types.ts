@@ -1,3 +1,4 @@
+import { PublicKeyset } from '@/keyset'
 import { Base64, UnixTimestamp } from '@/util'
 
 /**
@@ -44,9 +45,9 @@ export interface ProofOfInvitation {
   /** Public, unique identifier for the invitation */
   id: Base64
 
-  /** The public signing key derived from the secret invitation key */
-  publicKey: Base64
-
   /** Signature of userName and id, using the private signing key derived from the secret invitation key */
   signature: Base64
+
+  /** New keys to use for this member or device */
+  keys: PublicKeyset
 }
