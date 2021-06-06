@@ -46,7 +46,7 @@ import { getVisibleScopes } from '@/team/selectors'
 import { EncryptedEnvelope, isNewTeam, SignedEnvelope, TeamOptions, TeamState } from '@/team/types'
 import * as users from '@/user'
 import { User } from '@/user'
-import { arrayToMap, assert, debug, Hash, Payload, ValidationResult } from '@/util'
+import { arrayToMap, assert, debug, Hash, Payload, UnixTimestamp, ValidationResult } from '@/util'
 
 const { DEVICE, ROLE, MEMBER } = KeyType
 
@@ -451,56 +451,18 @@ export class Team extends EventEmitter {
   
     */
 
-  /** Invite a member */
-  public invite(params: string): inviteResult // Overload: Member invitation with just user name
-  public invite(params: { userName: string; roles?: string[]; seed?: string }): inviteResult // Overload: Member invitation
-  /** Invite a device */
-  public invite(params: { deviceName: string; seed?: string }): inviteResult // Overload: Device invitation
-  //
-  public invite(
-    params: string | { deviceName?: string; userName?: string; roles?: string[]; seed?: string }
-  ): inviteResult {
-    if (typeof params === 'string') params = { userName: params }
-
-    let currentUser = this.context.user!
-    const { deviceName, userName = currentUser.userName, roles = [] } = params
-
+  public invite({
     // use their seed if provided, otherwise generate a random one
-    let { seed = invitations.randomSeed() } = params
-    // either way, normalize it (all lower case, strip spaces & punctuation)
+    seed = invitations.randomSeed(),
+    expiration = 0,
+    maxUses = 0,
+    userName,
+  }: InviteParams): InviteResult {
+    // normalize the seed (all lower case, strip spaces & punctuation)
     seed = normalize(seed)
 
-    const invitee: Invitee = deviceName
-      ? { type: DEVICE, name: getDeviceId({ deviceName, userName }) }
-      : { type: MEMBER, name: userName }
-
-    const starterKeys = generateStarterKeys(invitee, seed)
-
-    if (deviceName) {
-      // create new device with starter keys and add it to chain
-      const device: PublicDevice = { userName, deviceName, keys: redactKeys(starterKeys) }
-      const lockboxes = [lockbox.create(currentUser.keys, starterKeys)]
-      this.dispatch({
-        type: 'ADD_DEVICE',
-        payload: { device, lockboxes },
-      })
-    } else {
-      // create new member with starter keys and add it to chain
-
-      // confirm that we're an admin (courtesy check - actually enforced at reducer level)
-      assert(this.memberIsAdmin(currentUser.userName), `Only admins can add invite new members`)
-
-      const member: Member = { userName, roles, keys: redactKeys(starterKeys) }
-      const lockboxes = this.createMemberLockboxes(member)
-      this.dispatch({
-        type: 'ADD_MEMBER',
-        payload: { member, roles, lockboxes },
-      })
-    }
-
     // generate invitation
-    const teamKeys = this.teamKeys()
-    const invitation = invitations.create({ seed, invitee, teamKeys })
+    const invitation = invitations.create({ seed, expiration, maxUses, userName })
 
     // post invitation to signature chain
     this.dispatch({
@@ -509,7 +471,7 @@ export class Team extends EventEmitter {
     })
 
     // return the secret invitation seed (to pass on to invitee) and the invitation id (which could be used to revoke later)
-    return { seed, id: invitation.id }
+    return { id: invitation.id, seed }
   }
 
   /** Revoke an invitation and remove the member or device that was invited. */
@@ -786,7 +748,28 @@ export class Team extends EventEmitter {
 const maybeDeserialize = (source: string | TeamSignatureChain): TeamSignatureChain =>
   typeof source === 'string' ? chains.deserialize(source) : source
 
-type inviteResult = { id: string; seed: string }
+type InviteParams = {
+  /** A randomly generated secret to be passed to Bob via a side channel. If not provided, one will
+   * be randomly generated. */
+  seed?: string
+
+  /** Time when the invitation expires. If not provided, the invitation does not expire. */
+  expiration?: UnixTimestamp
+
+  /** Number of times the invitation can be used. If not provided, the invitation can be used any number of times. */
+  maxUses?: number
+
+  /** (Device invitations only) User name the device will be associated with. */
+  userName?: string
+}
+
+type InviteResult = {
+  /** The unique identifier for this invitation. */
+  id: string
+
+  /** The secret invitation key. (Returned in case it was generated randomly.) */
+  seed: string
+}
 
 type LookupIdentityResult =
   | 'VALID_DEVICE'
