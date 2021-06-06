@@ -2,6 +2,7 @@ import { Base64, UnixTimestamp } from '@/util'
 
 /**
  * The public record of the invitation that Alice adds to the signature chain after inviting Bob.
+ * This can be used to invite members or devices.
  * */
 export interface Invitation {
   /** Public, unique identifier for the invitation */
