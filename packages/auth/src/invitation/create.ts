@@ -10,7 +10,12 @@ export const IKEY_LENGTH = 16
  * Returns an an invitation to publicly post on the team's signature chain. Inspired by Keybase's
  * Seitan Token v2 exchange protocol.
  */
-export const create = ({ seed, maxUses, expiration }: CreateOptions): Invitation => {
+export const create = ({
+  seed,
+  maxUses = 0,
+  expiration = 0,
+  userName,
+}: CreateOptions): Invitation => {
   seed = normalize(seed)
 
   // the ID of the invitation is derived from the seed
@@ -20,16 +25,19 @@ export const create = ({ seed, maxUses, expiration }: CreateOptions): Invitation
   const starterKeys = generateStarterKeys(seed)
   const { publicKey } = starterKeys.signature
 
-  return { id, publicKey, maxUses, expiration }
+  return { id, publicKey, expiration, maxUses, userName }
 }
 
 interface CreateOptions {
   /** A randomly generated secret to be passed to Bob via a side channel */
   seed: string
 
-  /** Number of times the invitation can be used. If 0, the invitation can be used any number of times. */
-  maxUses: number
-
   /** Time when the invitation expires. If 0, the invitation does not expire. */
-  expiration: UnixTimestamp
+  expiration?: UnixTimestamp
+
+  /** Number of times the invitation can be used. If 0, the invitation can be used any number of times. */
+  maxUses?: number
+
+  /** (Device invitations only) User name the device will be associated with. */
+  userName?: string
 }
