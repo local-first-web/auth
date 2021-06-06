@@ -1,10 +1,5 @@
-﻿import { Base64, randomKey, signatures, symmetric } from '@herbcaudill/crypto'
-import { EventEmitter } from 'events'
-import { generateStarterKeys } from '../invitation/generateStarterKeys'
-import { keysetSummary } from '../util/keysetSummary'
-import * as chains from '@/chain'
+﻿import * as chains from '@/chain'
 import {
-  chainSummary,
   getParentHashes,
   membershipResolver,
   TeamAction,
@@ -21,7 +16,7 @@ import { LocalDeviceContext, LocalUserContext } from '@/context'
 import * as devices from '@/device'
 import { getDeviceId, parseDeviceId, PublicDevice, redactDevice } from '@/device'
 import * as invitations from '@/invitation'
-import { InvitationValidationError, Invitee, ProofOfInvitation } from '@/invitation'
+import { ProofOfInvitation } from '@/invitation'
 import { normalize } from '@/invitation/normalize'
 import * as keysets from '@/keyset'
 import {
@@ -30,7 +25,6 @@ import {
   KeyScope,
   KeysetWithSecrets,
   KeyType,
-  PublicKeyset,
   redactKeys,
   TEAM_SCOPE,
 } from '@/keyset'
@@ -46,7 +40,9 @@ import { getVisibleScopes } from '@/team/selectors'
 import { EncryptedEnvelope, isNewTeam, SignedEnvelope, TeamOptions, TeamState } from '@/team/types'
 import * as users from '@/user'
 import { User } from '@/user'
-import { arrayToMap, assert, debug, Hash, Payload, UnixTimestamp, ValidationResult } from '@/util'
+import { arrayToMap, assert, debug, Hash, Payload, UnixTimestamp } from '@/util'
+import { Base64, randomKey, signatures, symmetric } from '@herbcaudill/crypto'
+import { EventEmitter } from 'events'
 
 const { DEVICE, ROLE, MEMBER } = KeyType
 
@@ -529,22 +525,23 @@ export class Team extends EventEmitter {
   public admit = (proof: ProofOfInvitation) => {
     const validation = this.validateInvitation(proof)
     if (validation.isValid === false) throw validation.error
-    const { id, invitee } = proof
+    const { id, keys } = proof
 
     // post admission to the signature chain
     this.dispatch({
       type: 'ADMIT',
-      payload: { id, invitee },
+      payload: { id, keys },
     })
   }
 
   /** Once the new member has received the chain and can instantiate the team, they call this to add
-   * their device and change their keys */
+   * their device. */
   public join = (proof: ProofOfInvitation, seed: string) => {
     // This is an important check - make sure that we've not been spoofed into joining the wrong team
     assert(this.hasInvitation(proof), `Can't join a team I wasn't invited to`)
 
-    const { invitee } = proof
+    // TODO
+    // const { keys } = proof
 
     if (this.context.user === undefined) {
       // If we don't have a `user` defined, it's because we're a device that just joined with an invitation.
@@ -564,13 +561,14 @@ export class Team extends EventEmitter {
       // if we did already have a `user` defined, we're joining as a new user.
       this.log(`joining as new user`)
 
-      // create new user keys to replace the ephemeral ones from the invitation
-      const newKeys = keysets.create(invitee)
+      // TODO
+      // // create new user keys to replace the ephemeral ones from the invitation
+      // const newKeys = keysets.create(invitee)
 
-      // make sure we're using our starter keys to sign the key change
-      this.context.user.keys = generateStarterKeys(invitee, seed)
+      // // make sure we're using our starter keys to sign the key change
+      // this.context.user.keys = generateStarterKeys(invitee, seed)
 
-      this.changeKeys(newKeys)
+      // this.changeKeys(newKeys)
 
       // add our device to the signature chain, as well as a lockbox for that device containing our user keys
       const deviceLockbox = lockbox.create(this.context.user.keys, this.context.device.keys)
