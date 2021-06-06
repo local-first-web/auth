@@ -25,7 +25,7 @@ export interface Invitation {
  * by the reducer.
  * */
 export interface InvitationState extends Invitation {
-  /**  */
+  /** If true, this invitation is past its expiration date */
   expired: Boolean
 
   /** Number of times the invitation has been used */
