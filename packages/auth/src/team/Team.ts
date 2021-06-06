@@ -519,7 +519,8 @@ export class Team extends EventEmitter {
     const invitation = this.getInvitation(id)
 
     if (invitation.revoked) return invitations.fail(`This invitation has been revoked.`)
-    if (invitation.used) return invitations.fail(`This invitation has already been used.`)
+    if (invitation.uses >= invitation.maxUses)
+      return invitations.fail(`This invitation has already been used ${invitation.maxUses} times.`)
 
     return invitations.validate(proof, invitation, teamKeys)
   }
