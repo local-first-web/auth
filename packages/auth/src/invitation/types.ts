@@ -1,8 +1,8 @@
 import { Base64, UnixTimestamp } from '@/util'
 
 /**
- * The public record of the invitation that Alice adds to the signature chain after inviting Bob.
- * This can be used to invite members or devices.
+ * The public record of the invitation that Alice adds to the signature chain after inviting Bob
+ * (or, that Bob's laptop adds after inviting Bob's phone).
  * */
 export interface Invitation {
   /** Public, unique identifier for the invitation */
@@ -30,15 +30,15 @@ export interface InvitationState extends Invitation {
   expired: Boolean
 
   /** Number of times the invitation has been used */
-  useCount: number
+  uses: number
 
   /** If true, this invitation was revoked at some point after it was created (but before it was used) */
   revoked: Boolean
 }
 
 /**
- * The document Bob presents the first time he connects to an admin (could be Alice, but could also
- * be someone else) to prove that he's been invited, so they'll let him in.
+ * The document an invitee presents the first time they connect to an admin, to prove that they've
+ * been invited.
  * */
 export interface ProofOfInvitation {
   /** Public, unique identifier for the invitation */
