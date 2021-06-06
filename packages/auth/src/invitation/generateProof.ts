@@ -1,30 +1,29 @@
-﻿import { signatures } from '@herbcaudill/crypto'
+﻿import { deriveId } from '@/invitation/deriveId'
+import { ProofOfInvitation } from '@/invitation/types'
+import { PublicKeyset } from '@/keyset'
 import { memoize } from '@/util'
+import { signatures } from '@herbcaudill/crypto'
 import { generateStarterKeys } from './generateStarterKeys'
 import { normalize } from './normalize'
-import { deriveId } from '@/invitation/deriveId'
-import { Invitee, ProofOfInvitation } from '@/invitation/types'
-import { KeyType } from '@/keyset'
 
 export const generateProof = memoize(
-  (seed: string, invitee: string | Invitee): ProofOfInvitation => {
-    if (typeof invitee === 'string') invitee = { type: KeyType.MEMBER, name: invitee } as Invitee
-
+  (seed: string, keys: PublicKeyset): ProofOfInvitation => {
     seed = normalize(seed)
 
     // Bob independently derives the invitation id and the ephemeral keys
-    const { name } = invitee
-    const id = deriveId(seed, name)
-    const ephemeralKeys = generateStarterKeys(invitee, seed)
+    const id = deriveId(seed)
+    const ephemeralKeys = generateStarterKeys(seed)
+
+    // We take Bob's username from the keyset. (For a device, this is the device name.)
+    const { name } = keys
 
     // Bob uses the ephemeral keys to sign a message consisting of
     // the invitation id and his username
     const payload = { id, name }
     const signature = signatures.sign(payload, ephemeralKeys.signature.secretKey)
 
-    // This signature will be shown to an existing team member as proof that
-    // Bob knows the secret invitation key.
-    const proof = { id, invitee, signature } as ProofOfInvitation
-    return proof
+    // This signature will be shown to an existing team admin as proof that Bob knows the secret
+    // invitation key. Bob's actual public keys will be posted on the signature chain.
+    return { id, signature, keys }
   }
 )
