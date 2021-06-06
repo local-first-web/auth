@@ -28,7 +28,7 @@ export const create = ({
   return { id, publicKey, expiration, maxUses, userName }
 }
 
-interface CreateOptions {
+type CreateOptions = {
   /** A randomly generated secret to be passed to Bob via a side channel */
   seed: string
 
