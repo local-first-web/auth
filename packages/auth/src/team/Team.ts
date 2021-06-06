@@ -9,7 +9,7 @@ import {
   TeamSignatureChain,
 } from '@/chain'
 import { membershipSequencer } from '@/chain/membershipSequencer'
-import { Challenge } from '@/connection'
+import { Challenge } from '@/connection/types'
 import * as identity from '@/connection/identity'
 import { MissingLinksMessage, UpdateMessage } from '@/connection/message'
 import { LocalDeviceContext, LocalUserContext } from '@/context'
@@ -453,7 +453,7 @@ export class Team extends EventEmitter {
     expiration = 0,
     maxUses = 0,
     userName,
-  }: InviteParams): InviteResult {
+  }: InviteParams = {}): InviteResult {
     // normalize the seed (all lower case, strip spaces & punctuation)
     seed = normalize(seed)
 
@@ -470,20 +470,8 @@ export class Team extends EventEmitter {
     return { id: invitation.id, seed }
   }
 
-  /** Revoke an invitation and remove the member or device that was invited. */
+  /** Revoke an invitation. */
   public revokeInvitation = (id: string) => {
-    // remove the device or user that was invited
-    const invitation = this.getInvitation(id)
-    const invitationBody = invitations.open(invitation, this.teamKeys())
-    const { type, name } = invitationBody.invitee
-    if (type === DEVICE) {
-      const { userName, deviceName } = devices.parseDeviceId(name)
-      this.removeDevice(userName, deviceName)
-    } else if (type === MEMBER) {
-      const userName = name
-      this.remove(userName)
-    }
-
     // mark the invitation as revoked
     this.dispatch({
       type: 'REVOKE_INVITATION',
@@ -515,22 +503,24 @@ export class Team extends EventEmitter {
     const invitation = this.getInvitation(id)
 
     if (invitation.revoked) return invitations.fail(`This invitation has been revoked.`)
-    if (invitation.uses >= invitation.maxUses)
+    if (invitation.maxUses > 0 && invitation.uses >= invitation.maxUses)
       return invitations.fail(`This invitation has already been used ${invitation.maxUses} times.`)
 
-    return invitations.validate(proof, invitation, teamKeys)
+    return invitations.validate(proof, invitation)
   }
 
   /** Admit a new member/device to the team based on proof of invitation */
   public admit = (proof: ProofOfInvitation) => {
     const validation = this.validateInvitation(proof)
     if (validation.isValid === false) throw validation.error
-    const { id, keys } = proof
+    const { id } = proof
 
     // post admission to the signature chain
     this.dispatch({
       type: 'ADMIT',
-      payload: { id, keys },
+      // TODO
+      payload: { id },
+      // payload: { id, keys },
     })
   }
 
