@@ -1,7 +1,7 @@
 import { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
 import { ConnectionMessage } from '@/connection/message'
 import { DeviceWithSecrets } from '@/device'
-import { Invitee, ProofOfInvitation } from '@/invitation'
+import { ProofOfInvitation } from '@/invitation'
 import { KeyScope } from '@/keyset'
 import { Member } from '@/member'
 import { Team } from '@/team'
@@ -41,9 +41,10 @@ export type InviteeInitialContext = {
   /** Information about the local device, including secret keys */
   device: DeviceWithSecrets
 
+  // TODO
   /** The type and name associated with the invitation
    * (e.g. `{type: MEMBER, name: userName}` or `{type: DEVICE, name: deviceID}`) */
-  invitee: Invitee
+  invitee: any
 
   /** The secret invitation seed that we've been given  */
   invitationSeed: string
