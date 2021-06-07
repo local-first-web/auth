@@ -22,6 +22,7 @@ import {
 } from '@/team/reducers'
 import { TeamState } from '@/team/types'
 import { validate } from '@/team/validate'
+import { Member } from '@/member'
 
 export const setHead = (link: TeamActionLink): Reducer => state => {
   return { ...state, __HEAD: link.hash }
@@ -79,10 +80,10 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       ]
 
     case 'ADD_MEMBER': {
-      const { member: user, roles } = action.payload
+      const { member, roles } = action.payload
       return [
-        addMember(user), // add this member to the team
-        ...addMemberRoles(user.userName, roles), // add each of these roles to the member's list of roles
+        addMember(member), // add this member to the team
+        ...addMemberRoles(member.userName, roles), // add each of these roles to the member's list of roles
       ]
     }
 
@@ -150,9 +151,15 @@ const getTransforms = (action: TeamAction): Reducer[] => {
     }
 
     case 'ADMIT': {
-      const { id } = action.payload
+      const { id, keys } = action.payload
+      const member: Member = {
+        userName: keys.name,
+        keys,
+        roles: [],
+      }
       return [
-        useInvitation(id), // mark the invitation used so it can't be used a second time
+        useInvitation(id), // mark the invitation as used
+        addMember(member), // add this member to the team
       ]
     }
 
