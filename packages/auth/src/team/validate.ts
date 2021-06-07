@@ -1,10 +1,9 @@
-﻿import { isAdminOnlyAction } from '../chain/isAdminOnlyAction'
-import { actionFingerprint, ActionLink, ROOT, TeamActionLink } from '@/chain'
+﻿import { actionFingerprint, ROOT, TeamActionLink } from '@/chain'
 import { parseDeviceId } from '@/device'
 import * as select from '@/team/selectors'
 import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '@/team/types'
-import { truncateHashes, VALID, ValidationError } from '@/util'
-import { debug } from '@/util'
+import { debug, truncateHashes, VALID, ValidationError } from '@/util'
+import { isAdminOnlyAction } from '../chain/isAdminOnlyAction'
 const log = debug('lf:auth:validate')
 
 export const validate: TeamStateValidator = (...args: ValidationArgs) => {
@@ -105,6 +104,25 @@ const validators: TeamStateValidatorSet = {
       // TODO: test this case
       if (devices.find(d => d.deviceName === deviceName))
         return fail(`The member ${userName} already has a device named '${deviceName}'`, ...args)
+    }
+    return VALID
+  },
+
+  // check for ADMIT with invitations that are revoked OR have been used more than maxUses OR are expired
+  cantAdmitWithInvalidInvitation: (...args) => {
+    const [prevState, link] = args
+    if (link.body.type === 'ADMIT') {
+      const { timestamp } = link.body
+      const { id } = link.body.payload
+      const invitation = prevState.invitations[id]
+      if (invitation === undefined)
+        return fail(`An invitation with id '${id}' was not found`, ...args)
+
+      if (invitation.revoked) return fail(`This invitation has been revoked.`, ...args)
+      if (invitation.maxUses > 0 && invitation.uses >= invitation.maxUses)
+        return fail(`This invitation cannot be used again.`, ...args)
+
+      if (invitation.expiration < timestamp) return fail(`This invitation has expired.`, ...args)
     }
     return VALID
   },
