@@ -414,8 +414,6 @@ export class Team extends EventEmitter {
 
   /**************** INVITATIONS
 
-  TODO: remove userNames and deviceNames from the invitation process? 
-
   Inviting a new member: 
 
     Alice generates an invitation using a secret seed. The seed an be randomly generated, or
@@ -496,8 +494,10 @@ export class Team extends EventEmitter {
   }
 
   /** Check whether a proof of invitation matches a valid invitation  */
-  public validateInvitation = (proof: ProofOfInvitation) => {
-    const teamKeys = this.teamKeys()
+  public validateInvitation = (
+    proof: ProofOfInvitation,
+    currentTime: number = new Date().getTime()
+  ) => {
     const { id } = proof
     if (!this.hasInvitation(id)) return invitations.fail(`No invitation with id '${id}' found.`)
 
@@ -505,7 +505,9 @@ export class Team extends EventEmitter {
 
     if (invitation.revoked) return invitations.fail(`This invitation has been revoked.`)
     if (invitation.maxUses > 0 && invitation.uses >= invitation.maxUses)
-      return invitations.fail(`This invitation has already been used ${invitation.maxUses} times.`)
+      return invitations.fail(`This invitation cannot be used again.`)
+
+    if (invitation.expiration < currentTime) return invitations.fail(`This invitation has expired.`)
 
     return invitations.validate(proof, invitation)
   }
