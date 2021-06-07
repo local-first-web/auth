@@ -25,6 +25,7 @@ import {
   KeyScope,
   KeysetWithSecrets,
   KeyType,
+  PublicKeyset,
   redactKeys,
   TEAM_SCOPE,
 } from '@/keyset'
@@ -510,7 +511,7 @@ export class Team extends EventEmitter {
   }
 
   /** Admit a new member/device to the team based on proof of invitation */
-  public admit = (proof: ProofOfInvitation) => {
+  public admit = (proof: ProofOfInvitation, keys: PublicKeyset) => {
     const validation = this.validateInvitation(proof)
     if (validation.isValid === false) throw validation.error
     const { id } = proof
@@ -518,9 +519,7 @@ export class Team extends EventEmitter {
     // post admission to the signature chain
     this.dispatch({
       type: 'ADMIT',
-      // TODO
-      payload: { id },
-      // payload: { id, keys },
+      payload: { id, keys },
     })
   }
 
