@@ -63,7 +63,7 @@ export class Connection extends EventEmitter {
     // If we're a user connecting with an invitation, we need to use the starter keys derived from
     // our invitation seed
     if (!isMember(context) && hasInvitee(context) && context.user) {
-      const starterKeys = generateStarterKeys(context.invitee, context.invitationSeed)
+      const starterKeys = generateStarterKeys(context.invitationSeed)
       context.user.keys = starterKeys
       this.log(`starter public encryption key: ${starterKeys.encryption.publicKey}`)
     }
@@ -173,7 +173,6 @@ export class Connection extends EventEmitter {
       this.peerUserName ??
       this.context.peer?.userName ??
       this.context.theirIdentityClaim?.name ??
-      this.context.theirProofOfInvitation?.invitee.name ??
       '?'
     )
   }
@@ -259,7 +258,9 @@ export class Connection extends EventEmitter {
         event = event as HelloMessage
         if (event.payload.proofOfInvitation) {
           this.log = debug(
-            `lf:auth:protocol:${this.userName}:${event.payload.proofOfInvitation.invitee.name}`
+            // TODO
+            // `lf:auth:protocol:${this.userName}:${event.payload.proofOfInvitation.invitee.name}`
+            `lf:auth:protocol:${this.userName}`
           )
           return true
         } else {
@@ -644,7 +645,7 @@ export class Connection extends EventEmitter {
   private myProofOfInvitation = (context: ConnectionContext) => {
     assert(context.invitationSeed)
     assert(context.invitee)
-    return invitations.generateProof(context.invitationSeed, context.invitee)
+    return invitations.generateProof(context.invitationSeed)
   }
 }
 
