@@ -1,6 +1,6 @@
 ﻿import { MemberContext } from '@/context'
 import { PublicDevice } from '@/device'
-import { Invitation, Invitee } from '@/invitation'
+import { Invitation } from '@/invitation'
 import { PublicKeyset } from '@/keyset'
 import { Lockbox } from '@/lockbox'
 import { Member } from '@/member'
