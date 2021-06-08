@@ -14,7 +14,7 @@ describe('Team', () => {
         const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
         // 👩🏾 Alice invites 👨🏻‍🦲 Bob by sending him a random secret key
-        const { seed } = alice.team.invite()
+        const { seed } = alice.team.inviteMember()
 
         // 👨🏻‍🦲 Bob accepts the invitation
         const proofOfInvitation = generateProof(seed)
@@ -32,7 +32,7 @@ describe('Team', () => {
 
         // 👩🏾 Alice invites 👨🏻‍🦲 Bob by sending him a secret key of her choosing
         const seed = 'passw0rd'
-        alice.team.invite({ seed })
+        alice.team.inviteMember({ seed })
 
         const proofOfInvitation = generateProof(seed)
 
@@ -47,7 +47,7 @@ describe('Team', () => {
 
         // 👩🏾 Alice invites 👨🏻‍🦲 Bob
         const seed = 'abc def ghi'
-        alice.team.invite({ userName: 'bob', seed })
+        alice.team.inviteMember({ seed })
 
         // 👨🏻‍🦲 Bob accepts the invitation using a url-friendlier version of the key
         const proofOfInvitation = generateProof('abc+def+ghi')
@@ -65,7 +65,7 @@ describe('Team', () => {
         )
 
         // 👩🏾 Alice invites 👳🏽‍♂️ Charlie by sending him a secret key
-        const { seed } = alice.team.invite()
+        const { seed } = alice.team.inviteMember()
 
         // 👳🏽‍♂️ Charlie accepts the invitation
         const proofOfInvitation = generateProof(seed)
@@ -94,7 +94,7 @@ describe('Team', () => {
 
         // 👩🏾 Alice invites 👨🏻‍🦲 Bob with a future expiration date
         const expiration = new Date(Date.UTC(2999, 12, 25)).valueOf() // NOTE 👩‍🚀 this test will fail if run in the distant future
-        const { seed } = alice.team.invite({ expiration })
+        const { seed } = alice.team.inviteMember({ expiration })
         const proofOfInvitation = generateProof(seed)
         alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.device.keys)
 
@@ -107,7 +107,7 @@ describe('Team', () => {
 
         // A long time ago 👩🏾 Alice invited 👨🏻‍🦲 Bob
         const expiration = new Date(Date.UTC(2020, 12, 25)).valueOf()
-        const { seed } = alice.team.invite({ expiration })
+        const { seed } = alice.team.inviteMember({ expiration })
         const proofOfInvitation = generateProof(seed)
 
         const tryToAdmitBob = () =>
@@ -127,7 +127,7 @@ describe('Team', () => {
           { user: 'charlie', member: false }
         )
 
-        const { seed } = alice.team.invite({ maxUses: 2 })
+        const { seed } = alice.team.inviteMember({ maxUses: 2 })
 
         // 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie both generate the same proof of invitation from the seed
         const proofOfInvitation = generateProof(seed)
@@ -149,7 +149,7 @@ describe('Team', () => {
           { user: 'charlie', member: false }
         )
 
-        const { seed } = alice.team.invite({ maxUses: 1 })
+        const { seed } = alice.team.inviteMember({ maxUses: 1 })
 
         // 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie both generate the same proof of invitation from the seed
         const proofOfInvitation = generateProof(seed)
@@ -180,7 +180,7 @@ describe('Team', () => {
         )
 
         // 👩🏾 Alice invites 👳🏽‍♂️ Charlie by sending him a secret key
-        const { seed, id } = alice.team.invite()
+        const { seed, id } = alice.team.inviteMember()
 
         // 👳🏽‍♂️ Charlie accepts the invitation
         const proofOfInvitation = generateProof(seed)
@@ -205,38 +205,34 @@ describe('Team', () => {
     })
 
     describe('devices', () => {
-      const phoneName = 'alicez phone'
-      const phone = devices.create('alice', phoneName)
-      const phoneKeys = keysets.create({ type: DEVICE, name: 'phone' })
-      const deviceId = getDeviceId(phone)
+      it('creates and accepts an invitation for a device', () => {
+        const { alice } = setup('alice')
 
-      // it('creates and accepts an invitation for a device', () => {
-      //   const { alice } = setup('alice')
+        // 👩🏾 Alice only has 💻 one device on the signature chain
+        expect(alice.team.members('alice').devices).toHaveLength(1)
 
-      //   // 👩🏾 Alice only has 💻 one device on the signature chain
-      //   expect(alice.team.members('alice').devices).toHaveLength(1)
+        // 💻 on her laptop, Alice generates an invitation for her phone
+        const { seed } = alice.team.inviteDevice()
 
-      //   // 💻 on her laptop, Alice generates an invitation for her phone
-      //   const { seed } = alice.team.invite({ userName: 'alice' })
+        // 📱 Alice gets the seed to her phone, perhaps by typing it in or by scanning a QR code.
 
-      //   // 📱 Alice gets the seed to her phone, perhaps by typing it in or by scanning a QR code.
+        // Alice's phone uses the seed to generate her starter keys and her proof of invitation
+        const proofOfInvitation = generateProof(seed)
 
-      //   // Alice's phone uses the seed to generate her starter keys and her proof of invitation
-      //   const proofOfInvitation = generateProof(seed)
+        // 📱 Alice's phone connects with 💻 her laptop and presents the proof
+        alice.team.admitDevice(proofOfInvitation, 'alice', alice.phone.keys)
 
-      //   // 📱 Alice's phone connects with 💻 her laptop and presents the proof
-      //   alice.team.admitDevice(proofOfInvitation, phonePublicKeys)
+        // 👍 The proof was good, so the laptop sends the phone the team's signature chain
+        const savedTeam = alice.team.save()
+        const phoneTeam = teams.load(savedTeam, { device: alice.phone })
 
-      //   // 👍 The proof was good, so the laptop sends the phone the team's signature chain
-      //   const savedTeam = alice.team.save()
-      //   const phoneTeam = teams.load(savedTeam, { device: phone })
+        // 📱 Alice's phone joins the team
+        const { user, device } = phoneTeam.join(proofOfInvitation, seed)
 
-      //   // 📱 Alice's phone joins the team
-      //   const { user, device } = phoneTeam.join(proofOfInvitation, seed)
-
-      //   // ✅ Now Alice has 💻📱 two devices on the signature chain
-      //   expect(phoneTeam.members('alice').devices).toHaveLength(2)
-      // })
+        // ✅ Now Alice has 💻📱 two devices on the signature chain
+        expect(phoneTeam.members('alice').devices).toHaveLength(2)
+        expect(alice.team.members('alice').devices).toHaveLength(2)
+      })
 
       // it('allows revoking an invitation', () => {
       //   let { alice, bob } = setup('alice', 'bob')
