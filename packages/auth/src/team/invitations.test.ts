@@ -1,12 +1,10 @@
 import * as devices from '@/device'
-import * as keysets from '@/keyset'
 import { getDeviceId } from '@/device'
-import { generateProof, ProofOfInvitation } from '@/invitation'
-import { ADMIN } from '@/role'
+import { generateProof } from '@/invitation'
+import * as keysets from '@/keyset'
+import { KeyType } from '@/keyset'
 import * as teams from '@/team'
 import { setup } from '@/util/testing'
-import { KeyType } from '@/keyset'
-import { generateStarterKeys } from '@/invitation/generateStarterKeys'
 
 const { MEMBER, DEVICE } = KeyType
 describe('Team', () => {
@@ -92,7 +90,78 @@ describe('Team', () => {
         expect(alice.team.has('charlie')).toBe(true)
       })
 
-      it('allows revoking an invitation', () => {
+      it(`will use an invitation that hasn't expired yet`, () => {
+        const { alice } = setup('alice')
+
+        // 👩🏾 Alice invites 👨🏻‍🦲 Bob with a future expiration date
+        const expiration = new Date(Date.UTC(2999, 12, 25)).valueOf() // NOTE 👩‍🚀 this test will fail if run in the distant future
+        const { seed } = alice.team.invite({ expiration })
+        const proofOfInvitation = generateProof(seed)
+        alice.team.admit(proofOfInvitation, bobPublicKeys)
+
+        // ✅ 👨🏻‍🦲 Bob's invitation has not expired so he is on the team
+        expect(alice.team.has('bob')).toBe(true)
+      })
+
+      it(`won't use an expired invitation`, () => {
+        const { alice } = setup('alice')
+
+        // A long time ago 👩🏾 Alice invited 👨🏻‍🦲 Bob
+        const expiration = new Date(Date.UTC(2020, 12, 25)).valueOf()
+        const { seed } = alice.team.invite({ expiration })
+        const proofOfInvitation = generateProof(seed)
+
+        const tryToAdmitBob = () => alice.team.admit(proofOfInvitation, bobPublicKeys)
+
+        // 👎 👨🏻‍🦲 Bob's invitation has expired so he can't get in
+        expect(tryToAdmitBob).toThrowError(/expired/)
+
+        // ❌ 👨🏻‍🦲 Bob is not on the team
+        expect(alice.team.has('bob')).toBe(false)
+      })
+
+      it(`can use an invitation multiple times`, () => {
+        const { alice } = setup('alice')
+
+        const { seed } = alice.team.invite({ maxUses: 2 })
+
+        // 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie both generate the same proof of invitation from the seed
+        const proofOfInvitation = generateProof(seed)
+
+        // 👩🏾 Alice admits them both
+        alice.team.admit(proofOfInvitation, bobPublicKeys)
+        alice.team.admit(proofOfInvitation, charliePublicKeys)
+
+        // ✅ 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie are both on the team
+        expect(alice.team.has('bob')).toBe(true)
+        expect(alice.team.has('charlie')).toBe(true)
+      })
+
+      it(`won't use an invitation more than the maximum uses defined`, () => {
+        const { alice } = setup('alice')
+
+        const { seed } = alice.team.invite({ maxUses: 1 })
+
+        // 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie both generate the same proof of invitation from the seed
+        const proofOfInvitation = generateProof(seed)
+
+        const tryToAdmitBob = () => alice.team.admit(proofOfInvitation, bobPublicKeys)
+        const tryToAdmitCharlie = () => alice.team.admit(proofOfInvitation, charliePublicKeys)
+
+        // 👍 👨🏻‍🦲 Bob uses the invitation first and he gets in
+        expect(tryToAdmitBob).not.toThrow()
+
+        // 👎 👳🏽‍♂️ Charlie also tries to use the invitation, but it can only be used once
+        expect(tryToAdmitCharlie).toThrow(/used/)
+
+        // ✅ 👨🏻‍🦲 Bob is on the team
+        expect(alice.team.has('bob')).toBe(true)
+
+        // ❌ 👳🏽‍♂️ Charlie is not on the team
+        expect(alice.team.has('charlie')).toBe(false)
+      })
+
+      it(`won't use a revoked invitation`, () => {
         let { alice, bob } = setup('alice', 'bob')
 
         // 👩🏾 Alice invites 👳🏽‍♂️ Charlie by sending him a secret key
@@ -111,10 +180,10 @@ describe('Team', () => {
         // 👳🏽‍♂️ Charlie shows 👨🏻‍🦲 Bob his proof of invitation
         const tryToAdmitCharlie = () => bob.team.admit(proofOfInvitation, charliePublicKeys)
 
-        // 👎 But the invitation is rejected
+        // 👎 But the invitation is rejected because it was revoked
         expect(tryToAdmitCharlie).toThrowError(/revoked/)
 
-        // ✅ 👳🏽‍♂️ Charlie is not on the team
+        // ❌ 👳🏽‍♂️ Charlie is not on the team
         expect(bob.team.has('charlie')).toBe(false)
       })
     })
