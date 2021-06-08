@@ -142,6 +142,28 @@ describe('Team', () => {
         expect(alice.team.has('charlie')).toBe(true)
       })
 
+      it(`can use an invitation infinite uses when maxUses is zero`, () => {
+        const { alice, bob, charlie } = setup(
+          'alice',
+          { user: 'bob', member: false },
+          { user: 'charlie', member: false }
+        )
+
+        const { seed } = alice.team.inviteMember({ maxUses: 0 })
+
+        // 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie both generate the same proof of invitation from the seed
+        const proofOfInvitation = generateProof(seed)
+
+        // 👩🏾 Alice admits them both
+
+        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.device.keys)
+        alice.team.admitMember(proofOfInvitation, charlie.user.keys, charlie.device.keys)
+
+        // ✅ 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie are both on the team
+        expect(alice.team.has('bob')).toBe(true)
+        expect(alice.team.has('charlie')).toBe(true)
+      })
+
       it(`won't use an invitation more than the maximum uses defined`, () => {
         const { alice, bob, charlie } = setup(
           'alice',
