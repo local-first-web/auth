@@ -496,7 +496,7 @@ export class Team extends EventEmitter {
     // generate invitation
     const userName = this.userName
 
-    const maxUses = 1
+    const maxUses = 1 // can't invite multiple devices with the same invitation
     const invitation = invitations.create({ seed, expiration, maxUses, userName })
     const { id } = invitation
 
