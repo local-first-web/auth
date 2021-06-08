@@ -120,29 +120,40 @@ describe('Team', () => {
     })
 
     describe('devices', () => {
+      const phoneName = 'alicez phone'
+      const phone = devices.create('alice', phoneName)
+      const phoneKeys = keysets.create({ type: DEVICE, name: 'phone' })
+      const phonePublicKeys = keysets.redactKeys(phoneKeys)
+      const deviceId = getDeviceId(phone)
+
       // it('creates and accepts an invitation for a device', () => {
       //   const { alice } = setup('alice')
-      //   const deviceName = 'alicez phone'
+
       //   // 👩🏾 Alice only has 💻 one device on the signature chain
       //   expect(alice.team.members('alice').devices).toHaveLength(1)
+
       //   // 💻 on her laptop, Alice generates an invitation for her phone
-      //   const { seed } = alice.team.invite({ deviceName })
+      //   const { seed } = alice.team.invite({ userName: 'alice' })
+
       //   // 📱 Alice gets the seed to her phone, perhaps by typing it in or by scanning a QR code.
+
       //   // Alice's phone uses the seed to generate her starter keys and her proof of invitation
-      //   const phone = devices.create('alice', deviceName)
-      //   const deviceId = getDeviceId(phone)
-      //   phone.keys = generateStarterKeys({ type: DEVICE, name: deviceId }, seed)
-      //   const proofOfInvitation = generateProof(seed, { type: DEVICE, name: deviceId })
+      //   const proofOfInvitation = generateProof(seed)
+
       //   // 📱 Alice's phone connects with 💻 her laptop and presents the proof
-      //   alice.team.admit(proofOfInvitation)
+      //   alice.team.admit(proofOfInvitation, phonePublicKeys)
+
       //   // 👍 The proof was good, so the laptop sends the phone the team's signature chain
       //   const savedTeam = alice.team.save()
       //   const phoneTeam = teams.load(savedTeam, { device: phone })
+
       //   // 📱 Alice's phone joins the team
       //   const { user, device } = phoneTeam.join(proofOfInvitation, seed)
+
       //   // ✅ Now Alice has 💻📱 two devices on the signature chain
       //   expect(phoneTeam.members('alice').devices).toHaveLength(2)
       // })
+
       // it('allows revoking an invitation', () => {
       //   let { alice, bob } = setup('alice', 'bob')
       //   const deviceName = 'alicez phone'
