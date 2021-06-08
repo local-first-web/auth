@@ -1,5 +1,6 @@
 ﻿import { actionFingerprint, ROOT, TeamActionLink } from '@/chain'
 import { parseDeviceId } from '@/device'
+import { invitationCanBeUsed } from '@/invitation'
 import * as select from '@/team/selectors'
 import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '@/team/types'
 import { debug, truncateHashes, VALID, ValidationError } from '@/util'
@@ -112,18 +113,9 @@ const validators: TeamStateValidatorSet = {
   cantAdmitWithInvalidInvitation: (...args) => {
     const [prevState, link] = args
     if (link.body.type === 'ADMIT') {
-      const { timestamp } = link.body
       const { id } = link.body.payload
-      const invitation = prevState.invitations[id]
-      if (invitation === undefined)
-        return fail(`An invitation with id '${id}' was not found`, ...args)
-
-      if (invitation.revoked) return fail(`This invitation has been revoked.`, ...args)
-      if (invitation.maxUses > 0 && invitation.uses >= invitation.maxUses)
-        return fail(`This invitation cannot be used again.`, ...args)
-
-      if (invitation.expiration > 0 && invitation.expiration < timestamp)
-        return fail(`This invitation has expired.`, ...args)
+      const invitation = select.getInvitation(prevState, id)
+      return invitationCanBeUsed(invitation, link.body.timestamp)
     }
     return VALID
   },
