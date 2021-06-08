@@ -12,8 +12,8 @@ export const IKEY_LENGTH = 16
  */
 export const create = ({
   seed,
-  maxUses = 0,
-  expiration = 0,
+  maxUses = 1, // by default an invitation can only be used once
+  expiration = 0, // by default an invitation never expires
   userName,
 }: CreateOptions): Invitation => {
   seed = normalize(seed)
@@ -35,7 +35,7 @@ type CreateOptions = {
   /** Time when the invitation expires. If 0, the invitation does not expire. */
   expiration?: UnixTimestamp
 
-  /** Number of times the invitation can be used. If 0, the invitation can be used any number of times. */
+  /** Number of times the invitation can be used. If 0, the invitation can be used any number of times. By default, an invitation can only be used once. */
   maxUses?: number
 
   /** (Device invitations only) User name the device will be associated with. */
