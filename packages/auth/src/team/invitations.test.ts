@@ -10,14 +10,8 @@ const { MEMBER, DEVICE } = KeyType
 describe('Team', () => {
   describe('invitations', () => {
     describe('members', () => {
-      const bobKeys = keysets.create({ type: MEMBER, name: 'bob' })
-      const bobPublicKeys = keysets.redactKeys(bobKeys)
-
-      const charlieKeys = keysets.create({ type: MEMBER, name: 'charlie' })
-      const charliePublicKeys = keysets.redactKeys(charlieKeys)
-
       it('accepts valid proof of invitation', () => {
-        const { alice } = setup('alice')
+        const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
         // 👩🏾 Alice invites 👨🏻‍🦲 Bob by sending him a random secret key
         const { seed } = alice.team.invite()
@@ -27,28 +21,29 @@ describe('Team', () => {
 
         // 👨🏻‍🦲 Bob shows 👩🏾 Alice his proof of invitation, and she lets him in, associating
         // him with the public keys he's provided
-        alice.team.admit(proofOfInvitation, bobPublicKeys)
+        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.device.keys)
 
         // ✅ 👨🏻‍🦲 Bob is now on the team. Congratulations, Bob!
         expect(alice.team.has('bob')).toBe(true)
       })
 
       it('lets you use a key of your choosing', () => {
-        const { alice } = setup('alice')
+        const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
         // 👩🏾 Alice invites 👨🏻‍🦲 Bob by sending him a secret key of her choosing
         const seed = 'passw0rd'
         alice.team.invite({ seed })
 
         const proofOfInvitation = generateProof(seed)
-        alice.team.admit(proofOfInvitation, bobPublicKeys)
+
+        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.device.keys)
 
         // ✅ Still works
         expect(alice.team.has('bob')).toBe(true)
       })
 
       it('normalizes the secret key', () => {
-        const { alice } = setup('alice')
+        const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
         // 👩🏾 Alice invites 👨🏻‍🦲 Bob
         const seed = 'abc def ghi'
@@ -56,14 +51,18 @@ describe('Team', () => {
 
         // 👨🏻‍🦲 Bob accepts the invitation using a url-friendlier version of the key
         const proofOfInvitation = generateProof('abc+def+ghi')
-        alice.team.admit(proofOfInvitation, bobPublicKeys)
+        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.device.keys)
 
         // ✅ Bob is on the team
         expect(alice.team.has('bob')).toBe(true)
       })
 
       it('allows non-admins to accept an invitation', () => {
-        let { alice, bob } = setup('alice', { user: 'bob', admin: false })
+        let { alice, bob, charlie } = setup(
+          'alice',
+          { user: 'bob', admin: false },
+          { user: 'charlie', member: false }
+        )
 
         // 👩🏾 Alice invites 👳🏽‍♂️ Charlie by sending him a secret key
         const { seed } = alice.team.invite()
@@ -79,7 +78,7 @@ describe('Team', () => {
         expect(bobsTeam.memberIsAdmin('bob')).toBe(false)
 
         // 👳🏽‍♂️ Charlie shows 👨🏻‍🦲 Bob his proof of invitation
-        bobsTeam.admit(proofOfInvitation, charliePublicKeys)
+        bobsTeam.admitMember(proofOfInvitation, charlie.user.keys, charlie.device.keys)
 
         // 👍👳🏽‍♂️ Charlie is now on the team
         expect(bobsTeam.has('charlie')).toBe(true)
@@ -91,27 +90,28 @@ describe('Team', () => {
       })
 
       it(`will use an invitation that hasn't expired yet`, () => {
-        const { alice } = setup('alice')
+        const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
         // 👩🏾 Alice invites 👨🏻‍🦲 Bob with a future expiration date
         const expiration = new Date(Date.UTC(2999, 12, 25)).valueOf() // NOTE 👩‍🚀 this test will fail if run in the distant future
         const { seed } = alice.team.invite({ expiration })
         const proofOfInvitation = generateProof(seed)
-        alice.team.admit(proofOfInvitation, bobPublicKeys)
+        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.device.keys)
 
         // ✅ 👨🏻‍🦲 Bob's invitation has not expired so he is on the team
         expect(alice.team.has('bob')).toBe(true)
       })
 
       it(`won't use an expired invitation`, () => {
-        const { alice } = setup('alice')
+        const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
         // A long time ago 👩🏾 Alice invited 👨🏻‍🦲 Bob
         const expiration = new Date(Date.UTC(2020, 12, 25)).valueOf()
         const { seed } = alice.team.invite({ expiration })
         const proofOfInvitation = generateProof(seed)
 
-        const tryToAdmitBob = () => alice.team.admit(proofOfInvitation, bobPublicKeys)
+        const tryToAdmitBob = () =>
+          alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.device.keys)
 
         // 👎 👨🏻‍🦲 Bob's invitation has expired so he can't get in
         expect(tryToAdmitBob).toThrowError(/expired/)
@@ -121,7 +121,11 @@ describe('Team', () => {
       })
 
       it(`can use an invitation multiple times`, () => {
-        const { alice } = setup('alice')
+        const { alice, bob, charlie } = setup(
+          'alice',
+          { user: 'bob', member: false },
+          { user: 'charlie', member: false }
+        )
 
         const { seed } = alice.team.invite({ maxUses: 2 })
 
@@ -129,8 +133,9 @@ describe('Team', () => {
         const proofOfInvitation = generateProof(seed)
 
         // 👩🏾 Alice admits them both
-        alice.team.admit(proofOfInvitation, bobPublicKeys)
-        alice.team.admit(proofOfInvitation, charliePublicKeys)
+
+        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.device.keys)
+        alice.team.admitMember(proofOfInvitation, charlie.user.keys, charlie.device.keys)
 
         // ✅ 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie are both on the team
         expect(alice.team.has('bob')).toBe(true)
@@ -138,15 +143,21 @@ describe('Team', () => {
       })
 
       it(`won't use an invitation more than the maximum uses defined`, () => {
-        const { alice } = setup('alice')
+        const { alice, bob, charlie } = setup(
+          'alice',
+          { user: 'bob', member: false },
+          { user: 'charlie', member: false }
+        )
 
         const { seed } = alice.team.invite({ maxUses: 1 })
 
         // 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie both generate the same proof of invitation from the seed
         const proofOfInvitation = generateProof(seed)
 
-        const tryToAdmitBob = () => alice.team.admit(proofOfInvitation, bobPublicKeys)
-        const tryToAdmitCharlie = () => alice.team.admit(proofOfInvitation, charliePublicKeys)
+        const tryToAdmitBob = () =>
+          alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.device.keys)
+        const tryToAdmitCharlie = () =>
+          alice.team.admitMember(proofOfInvitation, charlie.user.keys, charlie.device.keys)
 
         // 👍 👨🏻‍🦲 Bob uses the invitation first and he gets in
         expect(tryToAdmitBob).not.toThrow()
@@ -162,7 +173,11 @@ describe('Team', () => {
       })
 
       it(`won't use a revoked invitation`, () => {
-        let { alice, bob } = setup('alice', 'bob')
+        const { alice, bob, charlie } = setup(
+          'alice',
+          { user: 'bob', admin: false },
+          { user: 'charlie', member: false }
+        )
 
         // 👩🏾 Alice invites 👳🏽‍♂️ Charlie by sending him a secret key
         const { seed, id } = alice.team.invite()
@@ -178,7 +193,8 @@ describe('Team', () => {
         bob.team = teams.load(persistedTeam, bob.localContext)
 
         // 👳🏽‍♂️ Charlie shows 👨🏻‍🦲 Bob his proof of invitation
-        const tryToAdmitCharlie = () => bob.team.admit(proofOfInvitation, charliePublicKeys)
+        const tryToAdmitCharlie = () =>
+          bob.team.admitMember(proofOfInvitation, charlie.user.keys, charlie.device.keys)
 
         // 👎 But the invitation is rejected because it was revoked
         expect(tryToAdmitCharlie).toThrowError(/revoked/)
@@ -192,7 +208,6 @@ describe('Team', () => {
       const phoneName = 'alicez phone'
       const phone = devices.create('alice', phoneName)
       const phoneKeys = keysets.create({ type: DEVICE, name: 'phone' })
-      const phonePublicKeys = keysets.redactKeys(phoneKeys)
       const deviceId = getDeviceId(phone)
 
       // it('creates and accepts an invitation for a device', () => {
@@ -210,7 +225,7 @@ describe('Team', () => {
       //   const proofOfInvitation = generateProof(seed)
 
       //   // 📱 Alice's phone connects with 💻 her laptop and presents the proof
-      //   alice.team.admit(proofOfInvitation, phonePublicKeys)
+      //   alice.team.admitDevice(proofOfInvitation, phonePublicKeys)
 
       //   // 👍 The proof was good, so the laptop sends the phone the team's signature chain
       //   const savedTeam = alice.team.save()
