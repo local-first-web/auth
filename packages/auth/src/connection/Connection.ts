@@ -281,7 +281,8 @@ export class Connection extends EventEmitter {
       assert(context.theirProofOfInvitation)
 
       // admit them to the team
-      context.team.admit(context.theirProofOfInvitation)
+      // TODO: we'll need their user keys & device keys to continue
+      // context.team.admitMember(context.theirProofOfInvitation, )
 
       // welcome them by sending the team's signature chain, so they can reconstruct team membership state
       this.sendMessage({

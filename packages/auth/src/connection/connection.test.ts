@@ -83,7 +83,8 @@ describe('connection', () => {
     // at this point, Alice and Bob have the same signature chain
 
     // 👩🏾 but now Alice does some stuff
-    alice.team.invite({ userName: 'charlie' })
+    // TODO
+
     alice.team.addRole('managers')
     alice.team.addMemberRole('charlie', 'managers')
 
@@ -106,7 +107,8 @@ describe('connection', () => {
     // at this point, Alice and Bob have the same signature chain
 
     // 👨🏻‍🦲 but now Bob does some stuff
-    bob.team.invite({ userName: 'charlie' })
+    // TODO
+
     bob.team.addRole('managers')
     bob.team.addMemberRole('charlie', 'managers')
 
@@ -128,7 +130,8 @@ describe('connection', () => {
     // at this point, Alice and Bob have the same signature chain
 
     // 👨🏻‍🦲 now Bob does some stuff
-    bob.team.invite({ userName: 'charlie' })
+    // TODO
+
     bob.team.addRole('managers')
     bob.team.addMemberRole('charlie', 'managers')
 
@@ -149,7 +152,8 @@ describe('connection', () => {
     expect(alice.team.hasRole('MANAGERS')).toBe(true)
 
     // 👨🏻‍🦲 concurrently, Bob invites Charlie
-    const { id } = bob.team.invite({ userName: 'charlie' })
+    // TODO
+    const { id } = bob.team.inviteMember()
     expect(bob.team.hasInvitation(id)).toBe(true)
 
     // Bob doesn't see the new role
@@ -229,7 +233,7 @@ describe('connection', () => {
     const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
     // 👩🏾📧👨🏻‍🦲 Alice invites Bob
-    const { seed } = alice.team.invite({ userName: 'bob' })
+    const { seed } = alice.team.inviteMember()
 
     // 👨🏻‍🦲📧<->👩🏾 Bob connects to Alice and uses his invitation to join
     await connectWithInvitation(alice, bob, seed)
@@ -242,7 +246,7 @@ describe('connection', () => {
     const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
     // 👩🏾📧👨🏻‍🦲 Alice invites Bob
-    const { seed } = alice.team.invite({ userName: 'bob' })
+    const { seed } = alice.team.inviteMember()
 
     // 👨🏻‍🦲📧<->👩🏾 Bob connects to Alice and uses his invitation to join
     await connectWithInvitation(alice, bob, seed)
@@ -263,14 +267,14 @@ describe('connection', () => {
     ])
 
     // 👩🏾 Alice invites 👳🏽‍♂️ Charlie
-    const { seed: charlieSeed } = alice.team.invite('charlie')
+    const { seed: charlieSeed } = alice.team.inviteMember()
     charlie.context = {
       ...charlie.context,
       invitationSeed: charlieSeed,
     }
 
     // 👩🏾 Alice invites 👴 Dwight
-    const { seed: dwightSeed } = alice.team.invite('dwight')
+    const { seed: dwightSeed } = alice.team.inviteMember()
     dwight.context = {
       ...dwight.context,
       invitationSeed: dwightSeed,
@@ -287,7 +291,7 @@ describe('connection', () => {
     const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
 
     // 👩🏾📧👳🏽‍♂️ Alice invites Charlie
-    const { seed } = alice.team.invite({ userName: 'charlie' })
+    const { seed } = alice.team.inviteMember()
 
     // 👳🏽‍♂️📧<->👩🏾 Charlie connects to Alice and uses his invitation to join
     await connectWithInvitation(alice, charlie, seed)
@@ -306,7 +310,7 @@ describe('connection', () => {
     await connect(alice, bob)
 
     // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie
-    const { seed } = alice.team.invite({ userName: 'charlie' })
+    const { seed } = alice.team.inviteMember()
 
     // 👳🏽‍♂️📧<->👩🏾 Charlie connects to Alice and uses his invitation to join
     await connectWithInvitation(alice, charlie, seed)
@@ -326,12 +330,12 @@ describe('connection', () => {
     ])
 
     // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie and Dwight
-    const aliceInvitesCharlie = alice.team.invite({ userName: 'charlie' })
-    const aliceInvitesDwight = alice.team.invite({ userName: 'dwight' }) // invitation unused, but that's OK
+    const aliceInvitesCharlie = alice.team.inviteMember()
+    const aliceInvitesDwight = alice.team.inviteMember() // invitation unused, but that's OK
 
     // 👨🏻‍🦲📧👳🏽‍♂️👴 concurrently, Bob invites Charlie and Dwight
-    const bobInvitesCharlie = bob.team.invite({ userName: 'charlie' }) // invitation unused, but that's OK
-    const bobInvitesDwight = bob.team.invite({ userName: 'dwight' })
+    const bobInvitesCharlie = bob.team.inviteMember() // invitation unused, but that's OK
+    const bobInvitesDwight = bob.team.inviteMember()
 
     // 👳🏽‍♂️📧<->👩🏾 Charlie connects to Alice and uses his invitation to join
     log('Charlie connects to Alice and uses his invitation to join')
@@ -354,7 +358,7 @@ describe('connection', () => {
     const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
 
     // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie
-    const { seed } = alice.team.invite({ userName: 'charlie' })
+    const { seed } = alice.team.inviteMember()
 
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect, so Bob knows about the invitation
     await connect(alice, bob)
@@ -471,8 +475,10 @@ describe('connection', () => {
 
     // 👨🏻‍🦲💻📧->📱 on his laptop, Bob creates an invitation and gets it to his phone
     const { deviceName } = bob.phone
-    const { seed } = bob.team.invite({ deviceName })
-    bob.phone.keys = generateStarterKeys({ type: DEVICE, name: getDeviceId(bob.phone) }, seed)
+    const { seed } = (bob.phone.keys = generateStarterKeys(
+      { type: DEVICE, name: getDeviceId(bob.phone) },
+      `seed
+    ))
 
     // 💻<->📱📧 Bob's phone and laptop connect and the phone joins
     await connectPhoneWithInvitation(bob, seed)
@@ -497,8 +503,10 @@ describe('connection', () => {
 
     // 👨🏻‍🦲💻📧📱 concurrently, on his laptop, Bob invites his phone
     const { deviceName } = bob.phone
-    const { seed } = bob.team.invite({ deviceName })
-    bob.phone.keys = generateStarterKeys({ type: DEVICE, name: getDeviceId(bob.phone) }, seed)
+    const { seed } = (bob.phone.keys = generateStarterKeys(
+      { type: DEVICE, name: getDeviceId(bob.phone) },
+      seed
+    ))
 
     // 💻<->📱 Bob's phone and laptop connect and the phone joins
     await connectPhoneWithInvitation(bob, seed)
@@ -664,7 +672,7 @@ describe('connection', () => {
     const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
     // 👩🏾📧👨🏻‍🦲 Alice invites Bob
-    const { seed } = alice.team.invite({ userName: 'bob' })
+    const { seed } = alice.team.inviteMember()
 
     // 👨🏻‍🦲📧<->👩🏾 Bob connects to Alice and uses his invitation to join
     bob.context = { ...bob.context, invitationSeed: seed }
@@ -688,7 +696,7 @@ describe('connection', () => {
 
     // 👩🏾📧👨🏻‍🦲 Alice invites Bob
     const seed = 'passw0rd'
-    alice.team.invite({ userName: 'bob', seed })
+    alice.team.inviteMember({})
 
     // 👨🏻‍🦲📧<->👩🏾 Bob tries to connect, but mistypes his code
     bob.context = { ...bob.context, invitationSeed: 'password' }
@@ -768,7 +776,7 @@ describe('connection', () => {
     expect(alice.team.teamKeys().generation).toBe(0)
 
     // Bob invites his phone and it joins
-    const { seed } = bob.team.invite({ deviceName: 'phone' })
+    const { seed } = bob.team.inviteMember()
     bob.phone.keys = generateStarterKeys({ type: DEVICE, name: getDeviceId(bob.phone) }, seed)
     await connectPhoneWithInvitation(bob, seed)
 
@@ -881,7 +889,7 @@ describe('connection', () => {
 
   it('Alice promotes Bob then demotes him', async () => {
     const { alice, bob } = setup('alice', { user: 'bob', member: false })
-    const { seed } = alice.team.invite({ userName: 'bob' })
+    const { seed } = alice.team.inviteMember()
     await connectWithInvitation(alice, bob, seed)
 
     // 👨🏻‍🦲 Bob is not an admin
