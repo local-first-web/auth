@@ -64,20 +64,6 @@ describe('Team', () => {
         expect(alice.team.has('bob')).toBe(true)
       })
 
-      // it('supports including roles in the invitation', () => {
-      //   const { alice } = setup('alice')
-
-      //   // 👩🏾 Alice invites 👨🏻‍🦲 Bob as admin
-      //   const { seed } = alice.team.invite({ userName: 'bob', roles: [ADMIN] })
-
-      //   // 👨🏻‍🦲 Bob accepts the invitation
-      //   const proofOfInvitation = generateProof(seed, 'bob')
-      //   alice.team.admit(proofOfInvitation)
-
-      //   // ✅ Bob is on the team as an admin 👍
-      //   expect(alice.team.memberIsAdmin('bob')).toBe(true)
-      // })
-
       // it('rejects invitation if name is altered', () => {
       //   const { alice } = setup('alice')
 
