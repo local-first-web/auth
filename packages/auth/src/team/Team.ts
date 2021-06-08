@@ -444,8 +444,9 @@ export class Team extends EventEmitter {
     *Note:* A member can only invite their own devices. A non-admin member can only remove their own
     device; an admin member can remove a device for anyone.
   
-    */
+  */
 
+  //
   public invite({
     // use their seed if provided, otherwise generate a random one
     seed = invitations.randomSeed(),
@@ -507,7 +508,8 @@ export class Team extends EventEmitter {
     if (invitation.maxUses > 0 && invitation.uses >= invitation.maxUses)
       return invitations.fail(`This invitation cannot be used again.`)
 
-    if (invitation.expiration < currentTime) return invitations.fail(`This invitation has expired.`)
+    if (invitation.expiration > 0 && invitation.expiration < currentTime)
+      return invitations.fail(`This invitation has expired.`)
 
     return invitations.validate(proof, invitation)
   }

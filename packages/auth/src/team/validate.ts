@@ -122,7 +122,8 @@ const validators: TeamStateValidatorSet = {
       if (invitation.maxUses > 0 && invitation.uses >= invitation.maxUses)
         return fail(`This invitation cannot be used again.`, ...args)
 
-      if (invitation.expiration < timestamp) return fail(`This invitation has expired.`, ...args)
+      if (invitation.expiration > 0 && invitation.expiration < timestamp)
+        return fail(`This invitation has expired.`, ...args)
     }
     return VALID
   },
