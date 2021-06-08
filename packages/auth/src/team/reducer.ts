@@ -23,6 +23,7 @@ import {
 import { TeamState } from '@/team/types'
 import { validate } from '@/team/validate'
 import { Member } from '@/member'
+import { PublicDevice } from '@/device'
 
 export const setHead = (link: TeamActionLink): Reducer => state => {
   return { ...state, __HEAD: link.hash }
@@ -150,16 +151,41 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       ]
     }
 
-    case 'ADMIT': {
-      const { id, keys } = action.payload
+    case 'ADMIT_MEMBER': {
+      const { id, memberKeys, deviceKeys } = action.payload
+      const userName = memberKeys.name
+
       const member: Member = {
-        userName: keys.name,
-        keys,
+        userName,
+        keys: memberKeys,
         roles: [],
       }
+
+      const device: PublicDevice = {
+        userName,
+        deviceName: deviceKeys.name,
+        keys: deviceKeys,
+      }
+
       return [
         useInvitation(id), // mark the invitation as used
         addMember(member), // add this member to the team
+        addDevice(device), // add this device for the member
+      ]
+    }
+
+    case 'ADMIT_DEVICE': {
+      const { id, userName, deviceKeys } = action.payload
+
+      const device: PublicDevice = {
+        userName,
+        deviceName: deviceKeys.name,
+        keys: deviceKeys,
+      }
+
+      return [
+        useInvitation(id), // mark the invitation as used
+        addDevice(device), // add this device
       ]
     }
 
