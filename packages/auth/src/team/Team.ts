@@ -1,4 +1,4 @@
-﻿import * as chains from '@/chain'
+import * as chains from '@/chain'
 import {
   getParentHashes,
   membershipResolver,
@@ -450,8 +450,8 @@ export class Team extends EventEmitter {
   public invite({
     // use their seed if provided, otherwise generate a random one
     seed = invitations.randomSeed(),
-    expiration = 0,
-    maxUses = 0,
+    expiration,
+    maxUses,
     userName,
   }: InviteParams = {}): InviteResult {
     // normalize the seed (all lower case, strip spaces & punctuation)
@@ -459,6 +459,7 @@ export class Team extends EventEmitter {
 
     // generate invitation
     const invitation = invitations.create({ seed, expiration, maxUses, userName })
+    const { id } = invitation
 
     // post invitation to signature chain
     this.dispatch({
@@ -467,7 +468,7 @@ export class Team extends EventEmitter {
     })
 
     // return the secret invitation seed (to pass on to invitee) and the invitation id (which could be used to revoke later)
-    return { id: invitation.id, seed }
+    return { id, seed }
   }
 
   /** Revoke an invitation. */
