@@ -1,4 +1,4 @@
-import * as chains from '@/chain'
+﻿import * as chains from '@/chain'
 import {
   getParentHashes,
   membershipResolver,
@@ -499,32 +499,66 @@ export class Team extends EventEmitter {
   /** Check whether a proof of invitation matches a valid invitation  */
   public validateInvitation = (proof: ProofOfInvitation) => {
     const { id } = proof
-
     if (!this.hasInvitation(id)) return invitations.fail(`No invitation with id '${id}' found.`)
-
     const invitation = this.getInvitation(id)
-    const canBeUsedResult = invitations.invitationCanBeUsed(invitation, Date.now())
 
+    // make sure the invitation hasn't already been used, hasn't expired, and hasn't been revoked
+    const canBeUsedResult = invitations.invitationCanBeUsed(invitation, Date.now())
     if (canBeUsedResult !== VALID) return canBeUsedResult
 
+    // validate the proof of invitation
     return invitations.validate(proof, invitation)
   }
 
-  /** Admit a new member/device to the team based on proof of invitation */
-  public admit = (proof: ProofOfInvitation, keys: PublicKeyset) => {
+  /** An existing team member calls this to admit a new member & their device to the team based on proof of invitation */
+  public admitMember = (
+    proof: ProofOfInvitation,
+    memberKeys: PublicKeyset | KeysetWithSecrets, // we accept KeysetWithSecrets here to simplify testing - in practice we'll only receive PublicKeyset
+    deviceKeys: PublicKeyset | KeysetWithSecrets
+  ) => {
     const validation = this.validateInvitation(proof)
     if (validation.isValid === false) throw validation.error
     const { id } = proof
 
     // post admission to the signature chain
     this.dispatch({
-      type: 'ADMIT',
-      payload: { id, keys },
+      type: 'ADMIT_MEMBER',
+      payload: {
+        id,
+        memberKeys: keysets.redactKeys(memberKeys),
+        deviceKeys: keysets.redactKeys(deviceKeys),
+      },
     })
   }
 
-  /** Once the new member has received the chain and can instantiate the team, they call this to add
-   * their device. */
+  /** A member calls this to admit a new device for themselves based on proof of invitation */
+  public admitDevice = (
+    proof: ProofOfInvitation,
+    userName: string,
+    deviceKeys: PublicKeyset | KeysetWithSecrets
+  ) => {
+    const validation = this.validateInvitation(proof)
+    if (validation.isValid === false) throw validation.error
+    const { id } = proof
+
+    assert(this.context.user)
+    assert(this.userName === userName, `Can't admit someone else's device`)
+
+    const deviceLockbox = lockbox.create(this.context.user.keys, deviceKeys)
+
+    // post admission to the signature chain
+    this.dispatch({
+      type: 'ADMIT_DEVICE',
+      payload: {
+        id,
+        userName: this.userName,
+        deviceKeys: keysets.redactKeys(deviceKeys),
+        lockboxes: [deviceLockbox],
+      },
+    })
+  }
+
+  /** Once the new member has received the chain and can instantiate the team, they call this to add their device. */
   public join = (proof: ProofOfInvitation, seed: string) => {
     // This is an important check - make sure that we've not been spoofed into joining the wrong team
     assert(this.hasInvitation(proof), `Can't join a team I wasn't invited to`)
