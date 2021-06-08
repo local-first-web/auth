@@ -447,17 +447,56 @@ export class Team extends EventEmitter {
   */
 
   //
-  public invite({
+
+  public inviteMember({
     // use their seed if provided, otherwise generate a random one
     seed = invitations.randomSeed(),
     expiration,
     maxUses,
-    userName,
-  }: InviteParams = {}): InviteResult {
+  }: {
+    /** A secret to be passed to the invitee via a side channel. If not provided, one will be randomly generated. */
+    seed?: string
+
+    /** Time when the invitation expires. If not provided, the invitation does not expire. */
+    expiration?: UnixTimestamp
+
+    /** Number of times the invitation can be used. If not provided, the invitation can be used any number of times. */
+    maxUses?: number
+  } = {}): InviteResult {
     // normalize the seed (all lower case, strip spaces & punctuation)
     seed = normalize(seed)
 
     // generate invitation
+    const invitation = invitations.create({ seed, expiration, maxUses })
+    const { id } = invitation
+
+    // post invitation to signature chain
+    this.dispatch({
+      type: 'INVITE',
+      payload: { invitation },
+    })
+
+    // return the secret invitation seed (to pass on to invitee) and the invitation id (which could be used to revoke later)
+    return { id, seed }
+  }
+
+  public inviteDevice({
+    seed = invitations.randomSeed(),
+    expiration = Date.now() + 30 * 60 * 1000, // 30 minutes
+  }: {
+    /** A secret to be passed to the device via a side channel. If not provided, one will be randomly generated. */
+    seed?: string
+
+    /** Time when the invitation expires. Defaults to 30 minutes from now. */
+    expiration?: UnixTimestamp
+  } = {}): InviteResult {
+    // normalize the seed (all lower case, strip spaces & punctuation)
+    seed = normalize(seed)
+
+    // generate invitation
+    const userName = this.userName
+
+    const maxUses = 1
     const invitation = invitations.create({ seed, expiration, maxUses, userName })
     const { id } = invitation
 
@@ -566,44 +605,44 @@ export class Team extends EventEmitter {
     // TODO
     // const { keys } = proof
 
-    if (this.context.user === undefined) {
-      // If we don't have a `user` defined, it's because we're a device that just joined with an invitation.
-      const { userName, deviceName } = this.context.device
-      this.log(`joining with device ${deviceName}`)
+    // if (this.context.user === undefined) {
+    //   // If we don't have a `user` defined, it's because we're a device that just joined with an invitation.
+    //   const { userName, deviceName } = this.context.device
+    //   this.log(`joining with device ${deviceName}`)
 
-      // Now that we've been sent the team's signature chain, we should be able to find a lockbox
-      // with our user's keys in it that we can open with our device keys.
-      const userKeys = this.keys({ type: MEMBER, name: userName })
-      this.context.user = { userName, keys: userKeys }
+    //   // Now that we've been sent the team's signature chain, we should be able to find a lockbox
+    //   // with our user's keys in it that we can open with our device keys.
+    //   const userKeys = this.keys({ type: MEMBER, name: userName })
+    //   this.context.user = { userName, keys: userKeys }
 
-      // create new device keys for ourselves to replace the ephemeral ones from the invitation
-      const deviceId = getDeviceId(this.context.device)
-      const newKeys = keysets.create({ type: DEVICE, name: deviceId })
-      this.changeKeys(newKeys)
-    } else {
-      // if we did already have a `user` defined, we're joining as a new user.
-      this.log(`joining as new user`)
+    //   // create new device keys for ourselves to replace the ephemeral ones from the invitation
+    //   const deviceId = getDeviceId(this.context.device)
+    //   const newKeys = keysets.create({ type: DEVICE, name: deviceId })
+    //   this.changeKeys(newKeys)
+    // } else {
+    //   // if we did already have a `user` defined, we're joining as a new user.
+    //   this.log(`joining as new user`)
 
-      // TODO
-      // // create new user keys to replace the ephemeral ones from the invitation
-      // const newKeys = keysets.create(invitee)
+    //   // TODO
+    //   // // create new user keys to replace the ephemeral ones from the invitation
+    //   // const newKeys = keysets.create(invitee)
 
-      // // make sure we're using our starter keys to sign the key change
-      // this.context.user.keys = generateStarterKeys(invitee, seed)
+    //   // // make sure we're using our starter keys to sign the key change
+    //   // this.context.user.keys = generateStarterKeys(invitee, seed)
 
-      // this.changeKeys(newKeys)
+    //   // this.changeKeys(newKeys)
 
-      // add our device to the signature chain, as well as a lockbox for that device containing our user keys
-      const deviceLockbox = lockbox.create(this.context.user.keys, this.context.device.keys)
-      const device = redactDevice(this.context.device)
-      this.dispatch({
-        type: 'ADD_DEVICE',
-        payload: {
-          device,
-          lockboxes: [deviceLockbox],
-        },
-      })
-    }
+    //   // add our device to the signature chain, as well as a lockbox for that device containing our user keys
+    //   const deviceLockbox = lockbox.create(this.context.user.keys, this.context.device.keys)
+    //   const device = redactDevice(this.context.device)
+    //   this.dispatch({
+    //     type: 'ADD_DEVICE',
+    //     payload: {
+    //       device,
+    //       lockboxes: [deviceLockbox],
+    //     },
+    //   })
+    // }
 
     // return the updated user and device
     const { user, device } = this.context
@@ -769,21 +808,6 @@ export class Team extends EventEmitter {
 
 const maybeDeserialize = (source: string | TeamSignatureChain): TeamSignatureChain =>
   typeof source === 'string' ? chains.deserialize(source) : source
-
-type InviteParams = {
-  /** A randomly generated secret to be passed to Bob via a side channel. If not provided, one will
-   * be randomly generated. */
-  seed?: string
-
-  /** Time when the invitation expires. If not provided, the invitation does not expire. */
-  expiration?: UnixTimestamp
-
-  /** Number of times the invitation can be used. If not provided, the invitation can be used any number of times. */
-  maxUses?: number
-
-  /** (Device invitations only) User name the device will be associated with. */
-  userName?: string
-}
 
 type InviteResult = {
   /** The unique identifier for this invitation. */
