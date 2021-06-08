@@ -143,25 +143,27 @@ describe('Team', () => {
       })
 
       it(`can use an invitation infinite uses when maxUses is zero`, () => {
-        const { alice, bob, charlie } = setup(
-          'alice',
-          { user: 'bob', member: false },
-          { user: 'charlie', member: false }
-        )
+        const { alice } = setup('alice')
 
-        const { seed } = alice.team.inviteMember({ maxUses: 0 })
-
-        // 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie both generate the same proof of invitation from the seed
+        // 👩🏾 Alice makes an invitation that anyone can use
+        const { seed } = alice.team.inviteMember({ maxUses: 0 }) // no limit
         const proofOfInvitation = generateProof(seed)
 
-        // 👩🏾 Alice admits them both
+        // A bunch of people use the same invitation and 👩🏾 Alice admits them all
+        const invitees = `
+            amanda, bob, charlie, dwight, edwin, frida, gertrude, herbert, 
+            ignaszi, joão, krishna, lashawn, mary, ngunda, oprah, phil, quân, 
+            rainbow, steve, thad, uriah, vanessa, wade, xerxes, yazmin, zelda`
+          .replace(/\s/g, '')
+          .split(',')
+        for (const userName of invitees) {
+          const userKeys = keysets.create({ type: MEMBER, name: userName })
+          const deviceKeys = keysets.create({ type: DEVICE, name: `${userName}'s laptop` })
+          alice.team.admitMember(proofOfInvitation, userKeys, deviceKeys)
+        }
 
-        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.device.keys)
-        alice.team.admitMember(proofOfInvitation, charlie.user.keys, charlie.device.keys)
-
-        // ✅ 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie are both on the team
-        expect(alice.team.has('bob')).toBe(true)
-        expect(alice.team.has('charlie')).toBe(true)
+        // ✅ they're all on the team
+        for (const userName of invitees) expect(alice.team.has(userName)).toBe(true)
       })
 
       it(`won't use an invitation more than the maximum uses defined`, () => {
@@ -254,6 +256,32 @@ describe('Team', () => {
         // ✅ Now Alice has 💻📱 two devices on the signature chain
         expect(phoneTeam.members('alice').devices).toHaveLength(2)
         expect(alice.team.members('alice').devices).toHaveLength(2)
+      })
+
+      it(`doesn't let someone else admit Alice's device`, () => {
+        const { alice, bob } = setup('alice', 'bob')
+
+        // 👩🏾 Alice only has 💻 one device on the signature chain
+        expect(alice.team.members('alice').devices).toHaveLength(1)
+
+        // 💻 on her laptop, Alice generates an invitation for her phone
+        const { seed } = alice.team.inviteDevice()
+
+        // 📱 Alice gets the seed to her phone, perhaps by typing it in or by scanning a QR code.
+
+        // Alice's phone uses the seed to generate her starter keys and her proof of invitation
+        const proofOfInvitation = generateProof(seed)
+
+        // 👨🏻‍🦲 Bob syncs up with Alice
+        const savedTeam = alice.team.save()
+        bob.team = teams.load(savedTeam, { user: bob.user, device: bob.device })
+
+        // 📱 Alice's phone connects with 👨🏻‍🦲 Bob and she presents the proof
+        const tryToAdmitPhone = () =>
+          bob.team.admitDevice(proofOfInvitation, 'alice', alice.phone.keys)
+
+        // ❌ Alice's phone can only present its invitation to one of Alice's other devices
+        expect(tryToAdmitPhone).toThrow(`Can't admit someone else's device`)
       })
     })
   })
