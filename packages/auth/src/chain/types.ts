@@ -216,11 +216,21 @@ export interface RevokeInvitationAction extends Action {
   }
 }
 
-export interface AdmitAction extends Action {
-  type: 'ADMIT'
+export interface AdmitMemberAction extends Action {
+  type: 'ADMIT_MEMBER'
   payload: BasePayload & {
     id: string // invitation ID
-    keys: PublicKeyset
+    memberKeys: PublicKeyset // member keys provided by the new member
+    deviceKeys: PublicKeyset // device keys provided by the new member
+  }
+}
+
+export interface AdmitDeviceAction extends Action {
+  type: 'ADMIT_DEVICE'
+  payload: BasePayload & {
+    id: string // invitation ID
+    userName: string // user name of the device's owner
+    deviceKeys: PublicKeyset // device keys provided by the new device
   }
 }
 
@@ -250,7 +260,8 @@ export type TeamAction =
   | RemoveMemberRoleAction
   | InviteAction
   | RevokeInvitationAction
-  | AdmitAction
+  | AdmitMemberAction
+  | AdmitDeviceAction
   | ChangeMemberKeysAction
   | ChangeDeviceKeysAction
 
