@@ -41,7 +41,7 @@ import { getVisibleScopes } from '@/team/selectors'
 import { EncryptedEnvelope, isNewTeam, SignedEnvelope, TeamOptions, TeamState } from '@/team/types'
 import * as users from '@/user'
 import { User } from '@/user'
-import { arrayToMap, assert, debug, Hash, Payload, UnixTimestamp } from '@/util'
+import { arrayToMap, assert, debug, Hash, Payload, UnixTimestamp, VALID } from '@/util'
 import { Base64, randomKey, signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
 
@@ -483,33 +483,28 @@ export class Team extends EventEmitter {
   public hasInvitation(id: Hash): boolean
   public hasInvitation(proof: ProofOfInvitation): boolean
   public hasInvitation(proofOrId: Hash | ProofOfInvitation): boolean {
-    const id = typeof proofOrId === 'string' ? proofOrId : proofOrId.id
-    return id in this.state.invitations
+    const id =
+      typeof proofOrId === 'string' //
+        ? proofOrId // string id was passed
+        : proofOrId.id // proof of invitation was passed
+    return select.hasInvitation(this.state, id)
   }
 
+  /** Gets the invitation corresponding to the given id. If it does not exist, throws an error. */
   public getInvitation = (id: string) => {
-    // throw if the invitation doesn't exist
-    assert(this.hasInvitation(id), `No invitation with id '${id}' found.`)
-    const invitation = this.state.invitations[id]
-    return invitation
+    return select.getInvitation(this.state, id)
   }
 
   /** Check whether a proof of invitation matches a valid invitation  */
-  public validateInvitation = (
-    proof: ProofOfInvitation,
-    currentTime: number = new Date().getTime()
-  ) => {
+  public validateInvitation = (proof: ProofOfInvitation) => {
     const { id } = proof
+
     if (!this.hasInvitation(id)) return invitations.fail(`No invitation with id '${id}' found.`)
 
     const invitation = this.getInvitation(id)
+    const canBeUsedResult = invitations.invitationCanBeUsed(invitation, Date.now())
 
-    if (invitation.revoked) return invitations.fail(`This invitation has been revoked.`)
-    if (invitation.maxUses > 0 && invitation.uses >= invitation.maxUses)
-      return invitations.fail(`This invitation cannot be used again.`)
-
-    if (invitation.expiration > 0 && invitation.expiration < currentTime)
-      return invitations.fail(`This invitation has expired.`)
+    if (canBeUsedResult !== VALID) return canBeUsedResult
 
     return invitations.validate(proof, invitation)
   }
