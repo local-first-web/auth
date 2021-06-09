@@ -112,7 +112,7 @@ const validators: TeamStateValidatorSet = {
   // check for ADMIT with invitations that are revoked OR have been used more than maxUses OR are expired
   cantAdmitWithInvalidInvitation: (...args) => {
     const [prevState, link] = args
-    if (link.body.type === 'ADMIT') {
+    if (link.body.type === 'ADMIT_MEMBER' || link.body.type === 'ADMIT_DEVICE') {
       const { id } = link.body.payload
       const invitation = select.getInvitation(prevState, id)
       return invitationCanBeUsed(invitation, link.body.timestamp)
