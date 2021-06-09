@@ -24,7 +24,10 @@ export const actionFingerprint = (link: TeamActionLink) => {
         return action.payload.invitation.id
       case 'REVOKE_INVITATION':
         return action.payload.id
-      case 'ADMIT':
+      case 'ADMIT_MEMBER':
+        // TODO
+        return action.payload.id
+      case 'ADMIT_DEVICE':
         // TODO
         return action.payload.id
       case 'CHANGE_MEMBER_KEYS':
