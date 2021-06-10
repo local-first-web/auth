@@ -25,7 +25,6 @@ export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: st
   b.context = {
     user: b.user,
     device: b.device,
-    invitee: { type: KeyType.MEMBER, name: b.userName },
     invitationSeed: seed,
   }
   return connect(a, b).then(() => {
@@ -37,7 +36,6 @@ export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: st
 export const connectPhoneWithInvitation = async (user: UserStuff, seed: string) => {
   const phoneContext = {
     device: user.phone,
-    invitee: { type: KeyType.DEVICE, name: getDeviceId(user.phone) },
     invitationSeed: seed,
   } as InitialContext
 
