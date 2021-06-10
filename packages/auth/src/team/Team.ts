@@ -617,6 +617,14 @@ export class Team extends EventEmitter {
     })
   }
 
+  public joinAsDevice = (userName: string) => {
+    this.context.user = {
+      userName,
+      keys: this.keys({ type: MEMBER, name: userName }),
+    }
+    return this.context.user
+  }
+
   /**************** CRYPTO
    */
 

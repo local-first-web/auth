@@ -465,22 +465,19 @@ describe('connection', () => {
     expect(bob.team.adminKeys().generation).toBe(0)
 
     // 👨🏻‍🦲💻📧->📱 on his laptop, Bob creates an invitation and gets it to his phone
-    const seed = '123'
-    bob.phone.keys = generateStarterKeys(seed)
+    const { seed } = bob.team.inviteDevice()
 
     // 💻<->📱📧 Bob's phone and laptop connect and the phone joins
     await connectPhoneWithInvitation(bob, seed)
 
     // 👨🏻‍🦲👍📱 Bob's phone is added to his list of devices
     expect(bob.team.members('bob').devices).toHaveLength(2)
-    expect(bob.team.adminKeys().generation).toBe(1)
 
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
 
     // ✅ 👩🏾👍📱 Alice knows about Bob's phone
     expect(alice.team.members('bob').devices).toHaveLength(2)
-    expect(alice.team.adminKeys().generation).toBe(1)
   })
 
   it(`when a member is demoted and concurrently adds a device, the new device is kept`, async () => {

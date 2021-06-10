@@ -45,19 +45,24 @@ export class Connection extends EventEmitter {
   public log: debug.Debugger
 
   private sendMessage: SendFunction
-  private peerUserName?: string
+
+  private peerDeviceId: string = '?'
+  private peerUserName: string = '?'
+
   private machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
   private incomingMessageQueue: Record<number, NumberedConnectionMessage> = {}
   private outgoingMessageIndex: number = 0
   private started: boolean = false
 
-  constructor({ sendMessage, context, peerUserName = '?' }: ConnectionParams) {
+  constructor({ sendMessage, context, peerUserName }: ConnectionParams) {
     super()
 
-    this.peerUserName = peerUserName
+    if (peerUserName) {
+      this.peerUserName = peerUserName
+      this.peerDeviceId = `${peerUserName}::?`
+    }
 
-    const name = 'user' in context ? context.user.userName : context.userName
-    this.log = debug(`lf:auth:connection:${name}:${this.peerUserName}`)
+    this.log = debug(`lf:auth:connection:${context.device.keys.name}:${this.peerDeviceId}`)
 
     this.sendMessage = (message: ConnectionMessage) => {
       // add a sequential index to any outgoing messages
@@ -233,6 +238,7 @@ export class Connection extends EventEmitter {
                 : {}),
             }
 
+      this.log('sending HELLO', payload)
       this.sendMessage({
         type: 'HELLO',
         payload,
@@ -243,8 +249,8 @@ export class Connection extends EventEmitter {
       theirIdentityClaim: (_, event) => {
         event = event as HelloMessage
         if ('identityClaim' in event.payload) {
-          const deviceId = event.payload.identityClaim.name
-          this.peerUserName = parseDeviceId(deviceId).userName
+          this.peerDeviceId = event.payload.identityClaim.name
+          this.peerUserName = parseDeviceId(this.peerDeviceId).userName
           return event.payload.identityClaim
         } else {
           return undefined
@@ -281,8 +287,8 @@ export class Connection extends EventEmitter {
       theirDeviceKeys: (_, event) => {
         event = event as HelloMessage
         if ('deviceKeys' in event.payload) {
-          const deviceId = event.payload.deviceKeys.name
-          this.peerUserName = parseDeviceId(deviceId).userName
+          this.peerDeviceId = event.payload.deviceKeys.name
+          this.peerUserName = parseDeviceId(this.peerDeviceId).userName
           return event.payload.deviceKeys
         } else {
           return undefined
@@ -324,14 +330,18 @@ export class Connection extends EventEmitter {
       // we've just received the team's signature chain; reconstruct team
       const team = this.rehydrateTeam(context, event)
 
+      // TODO: replace all these `'foo' in context` checks with proper type guards
+
       // join the team
-      if ('user' in context) {
+      if ('userName' in context && context.userName) {
+        // we get the user's keys from the team and rehydrate our user that way
+        this.context.user = team.joinAsDevice(context.userName)
+      } else {
+        // we add our current device to the team chain
         team.joinAsMember()
       }
 
-      // TODO: if we're joining as a device, do we know who our user is?
-
-      // put the updated user, device, and team on our context
+      // put the updated team on our context
       this.context.team = team
     },
 
@@ -426,11 +436,6 @@ export class Connection extends EventEmitter {
     }),
 
     acceptIdentity: context => {
-      assert(context.user)
-      this.log(
-        `${context.user.userName}'s public encryption key: ${context.user.keys.encryption.publicKey}`
-      )
-
       this.sendMessage({
         type: 'ACCEPT_IDENTITY',
         payload: {},

@@ -1,4 +1,9 @@
-import { InitialContext, Connection } from '@/connection'
+import {
+  InitialContext,
+  Connection,
+  InviteeDeviceInitialContext,
+  InviteeMemberInitialContext,
+} from '@/connection'
 import { getDeviceId } from '@/device'
 import { KeyType } from '@/keyset'
 import { joinTestChannel } from './joinTestChannel'
@@ -26,7 +31,8 @@ export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: st
     user: b.user,
     device: b.device,
     invitationSeed: seed,
-  }
+  } as InviteeMemberInitialContext
+
   return connect(a, b).then(() => {
     // The connection now has the team object, so let's update our user stuff
     b.team = b.connection[a.userName].team!
@@ -35,9 +41,10 @@ export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: st
 
 export const connectPhoneWithInvitation = async (user: UserStuff, seed: string) => {
   const phoneContext = {
+    userName: user.userName,
     device: user.phone,
     invitationSeed: seed,
-  } as InitialContext
+  } as InviteeDeviceInitialContext
 
   const join = joinTestChannel(new TestChannel())
 
