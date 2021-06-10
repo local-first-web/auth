@@ -27,7 +27,6 @@ import {
 } from '@/connection/types'
 import { getDeviceId, parseDeviceId } from '@/device'
 import * as invitations from '@/invitation'
-import { generateStarterKeys } from '@/invitation/generateStarterKeys'
 import { KeyType, randomKey, redactKeys } from '@/keyset'
 import { Team } from '@/team'
 import { assert, debug } from '@/util'
@@ -309,11 +308,7 @@ export class Connection extends EventEmitter {
       // admit them to the team
       if ('theirUserKeys' in context && context.theirUserKeys !== undefined) {
         // new member
-        context.team.admitMember(
-          context.theirProofOfInvitation,
-          context.theirUserKeys,
-          context.theirDeviceKeys
-        )
+        context.team.admitMember(context.theirProofOfInvitation, context.theirUserKeys)
       } else {
         // new device for existing member
         const userName = parseDeviceId(context.theirDeviceKeys.name).userName
