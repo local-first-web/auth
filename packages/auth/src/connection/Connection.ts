@@ -59,14 +59,6 @@ export class Connection extends EventEmitter {
     const name = 'user' in context ? context.user.userName : context.userName
     this.log = debug(`lf:auth:connection:${name}:${this.peerUserName}`)
 
-    // // If we're a user connecting with an invitation, we need to use the starter keys derived from
-    // // our invitation seed
-    // if (!isMember(context) && hasInvitee(context) && 'user' in context) {
-    //   const starterKeys = generateStarterKeys(context.invitationSeed)
-    //   context.user.keys = starterKeys
-    //   this.log(`starter public encryption key: ${starterKeys.encryption.publicKey}`)
-    // }
-
     this.sendMessage = (message: ConnectionMessage) => {
       // add a sequential index to any outgoing messages
       const index = this.outgoingMessageIndex++
