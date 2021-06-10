@@ -109,6 +109,7 @@ export class Team extends EventEmitter {
   lockboxes, or signing links) are done here, not in the selectors or reducers. Only the
   public-facing outputs (for example, the resulting lockboxesInScope, the signed links) are posted
   on the chain.
+
   */
 
   public get teamName() {
@@ -217,8 +218,7 @@ export class Team extends EventEmitter {
   }
 
   /**************** MEMBERS
-  
-  */
+   */
 
   /** Returns true if the team has a member with the given userName */
   public has = (userName: string) => select.hasMember(this.state, userName)
@@ -288,8 +288,7 @@ export class Team extends EventEmitter {
   }
 
   /**************** ROLES
-    
-  */
+   */
 
   /** Returns all roles in the team */
   public roles(): Role[]
@@ -552,8 +551,7 @@ export class Team extends EventEmitter {
   /** An existing team member calls this to admit a new member & their device to the team based on proof of invitation */
   public admitMember = (
     proof: ProofOfInvitation,
-    memberKeys: PublicKeyset | KeysetWithSecrets, // we accept KeysetWithSecrets here to simplify testing - in practice we'll only receive PublicKeyset
-    deviceKeys: PublicKeyset | KeysetWithSecrets
+    memberKeys: PublicKeyset | KeysetWithSecrets // we accept KeysetWithSecrets here to simplify testing - in practice we'll only receive PublicKeyset
   ) => {
     const validation = this.validateInvitation(proof)
     if (validation.isValid === false) throw validation.error
@@ -573,7 +571,6 @@ export class Team extends EventEmitter {
       payload: {
         id,
         memberKeys: keysets.redactKeys(memberKeys),
-        deviceKeys: keysets.redactKeys(deviceKeys),
         lockboxes: [teamKeysLockbox],
       },
     })
@@ -621,8 +618,7 @@ export class Team extends EventEmitter {
   }
 
   /**************** CRYPTO
-    
-  */
+   */
 
   /**
    * Symmetrically encrypt a payload for the given scope using keys available to the current user.
