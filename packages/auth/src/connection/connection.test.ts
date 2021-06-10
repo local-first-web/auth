@@ -83,22 +83,19 @@ describe('connection', () => {
     // at this point, Alice and Bob have the same signature chain
 
     // 👩🏾 but now Alice does some stuff
-    // TODO
-
     alice.team.addRole('managers')
-    alice.team.addMemberRole('charlie', 'managers')
+    alice.team.addMemberRole('bob', 'managers')
 
     // 👨🏻‍🦲 Bob hasn't connected, so he doesn't have Alice's changes
-    expect(bob.team.has('charlie')).toBe(false)
     expect(bob.team.hasRole('managers')).toBe(false)
+    expect(bob.team.memberHasRole('bob', 'managers')).toBe(false)
 
     // 👩🏾 👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
 
     // ✅ 👨🏻‍🦲 Bob is up to date with Alice's changes
-    expect(bob.team.has('charlie')).toBe(true)
     expect(bob.team.hasRole('managers')).toBe(true)
-    expect(bob.team.memberHasRole('charlie', 'managers')).toBe(true)
+    expect(bob.team.memberHasRole('bob', 'managers')).toBe(true)
   })
 
   it('updates local user after connecting', async () => {
@@ -107,18 +104,15 @@ describe('connection', () => {
     // at this point, Alice and Bob have the same signature chain
 
     // 👨🏻‍🦲 but now Bob does some stuff
-    // TODO
-
     bob.team.addRole('managers')
-    bob.team.addMemberRole('charlie', 'managers')
+    bob.team.addMemberRole('bob', 'managers')
 
     // 👩🏾 👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
 
     // ✅ 👩🏾 Alice is up to date with Bob's changes
-    expect(alice.team.has('charlie')).toBe(true)
     expect(alice.team.hasRole('managers')).toBe(true)
-    expect(alice.team.memberHasRole('charlie', 'managers')).toBe(true)
+    expect(alice.team.memberHasRole('bob', 'managers')).toBe(true)
   })
 
   it('updates local user while connected', async () => {
@@ -130,17 +124,14 @@ describe('connection', () => {
     // at this point, Alice and Bob have the same signature chain
 
     // 👨🏻‍🦲 now Bob does some stuff
-    // TODO
-
     bob.team.addRole('managers')
-    bob.team.addMemberRole('charlie', 'managers')
+    bob.team.addMemberRole('bob', 'managers')
 
     await updated(alice, bob)
 
     // ✅ 👩🏾 Alice is up to date with Bob's changes
-    expect(alice.team.has('charlie')).toBe(true)
     expect(alice.team.hasRole('managers')).toBe(true)
-    expect(alice.team.memberHasRole('charlie', 'managers')).toBe(true)
+    expect(alice.team.memberHasRole('bob', 'managers')).toBe(true)
   })
 
   it('resolves concurrent non-conflicting changes when updating', async () => {
@@ -474,11 +465,8 @@ describe('connection', () => {
     expect(bob.team.adminKeys().generation).toBe(0)
 
     // 👨🏻‍🦲💻📧->📱 on his laptop, Bob creates an invitation and gets it to his phone
-    const { deviceName } = bob.phone
-    const { seed } = (bob.phone.keys = generateStarterKeys(
-      { type: DEVICE, name: getDeviceId(bob.phone) },
-      `seed
-    ))
+    const seed = '123'
+    bob.phone.keys = generateStarterKeys(seed)
 
     // 💻<->📱📧 Bob's phone and laptop connect and the phone joins
     await connectPhoneWithInvitation(bob, seed)
@@ -502,11 +490,8 @@ describe('connection', () => {
     alice.team.removeMemberRole('bob', ADMIN)
 
     // 👨🏻‍🦲💻📧📱 concurrently, on his laptop, Bob invites his phone
-    const { deviceName } = bob.phone
-    const { seed } = (bob.phone.keys = generateStarterKeys(
-      { type: DEVICE, name: getDeviceId(bob.phone) },
-      seed
-    ))
+    const seed = '123'
+    bob.phone.keys = generateStarterKeys(seed)
 
     // 💻<->📱 Bob's phone and laptop connect and the phone joins
     await connectPhoneWithInvitation(bob, seed)
@@ -777,7 +762,8 @@ describe('connection', () => {
 
     // Bob invites his phone and it joins
     const { seed } = bob.team.inviteMember()
-    bob.phone.keys = generateStarterKeys({ type: DEVICE, name: getDeviceId(bob.phone) }, seed)
+
+    bob.phone.keys = generateStarterKeys(seed)
     await connectPhoneWithInvitation(bob, seed)
 
     await pause(2000)
