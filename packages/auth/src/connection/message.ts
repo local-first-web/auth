@@ -1,19 +1,33 @@
 ﻿import { Challenge } from '@/connection/types'
 import { TeamLink } from '@/chain'
 import { ProofOfInvitation } from '@/invitation'
-import { KeyScope } from '@/keyset'
+import { KeyScope, PublicKeyset } from '@/keyset'
 import { Base64, Hash } from '@/util'
 
 export type ReadyMessage = {
   type: 'READY'
 }
 
+/**
+ * - If we're a member, we just authorize as a device. So all we provide is an identity claim for a
+ *   device.
+ * - If we're a new member with an invitation, we want to give them our user's public keys and our
+ *   device's public keys.
+ * - If we're a new device with an invitation, we just want to give them our device public keys.
+ */
 export type HelloMessage = {
   type: 'HELLO'
-  payload: {
-    identityClaim: KeyScope
-    proofOfInvitation?: ProofOfInvitation
-  }
+  payload:
+    | {
+        // I'm already a member
+        identityClaim: KeyScope
+      }
+    | {
+        // I have an invitation
+        proofOfInvitation: ProofOfInvitation
+        userKeys?: PublicKeyset // only for new member (not for new device)
+        deviceKeys: PublicKeyset
+      }
 }
 
 export type ErrorMessage = {
@@ -30,6 +44,7 @@ export type DisconnectMessage = {
     message: string
   }
 }
+
 export type ReconnectMessage = {
   type: 'RECONNECT'
 }
