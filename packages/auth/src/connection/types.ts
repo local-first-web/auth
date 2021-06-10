@@ -2,7 +2,7 @@ import { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
 import { ConnectionMessage } from '@/connection/message'
 import { DeviceWithSecrets } from '@/device'
 import { ProofOfInvitation } from '@/invitation'
-import { KeyScope } from '@/keyset'
+import { KeyScope, PublicKeyset } from '@/keyset'
 import { Member } from '@/member'
 import { Team } from '@/team'
 import { User } from '@/user'
@@ -19,41 +19,33 @@ export type Challenge = KeyScope & {
 
 export type SendFunction = <T extends ConnectionMessage>(message: T) => void
 
+export type MemberInitialContext = {
+  user: User
+  device: DeviceWithSecrets
+  team: Team
+}
+
+export type InviteeMemberInitialContext = {
+  user: User
+  device: DeviceWithSecrets
+  invitationSeed: string
+}
+
+export type InviteeDeviceInitialContext = {
+  userName: string
+  device: DeviceWithSecrets
+  invitationSeed: string
+}
+
+export type InviteeInitialContext = InviteeMemberInitialContext | InviteeDeviceInitialContext
+
 /** The type of the initial context depends on whether we are already a member, or we've just been
  * invited and are connecting to the team for the first time. */
 export type InitialContext = MemberInitialContext | InviteeInitialContext
 
-export type MemberInitialContext = {
-  /** The local user, including their secret keys  */
-  user: User
-
-  /** Information about the local device, including secret keys */
-  device: DeviceWithSecrets
-
-  /** The team object we both belong to */
-  team: Team
-}
-
-export type InviteeInitialContext = {
-  /** The local user, including their secret keys (not available if this is a device joining) */
-  user?: User
-
-  /** Information about the local device, including secret keys */
-  device: DeviceWithSecrets
-
-  // TODO
-  /** The type and name associated with the invitation
-   * (e.g. `{type: MEMBER, name: userName}` or `{type: DEVICE, name: deviceID}`) */
-  invitee: any
-
-  /** The secret invitation seed that we've been given  */
-  invitationSeed: string
-}
-
 // type guard: MemberInitialContext vs InviteeInitialContext
-export const hasInvitee = (
-  c: MemberInitialContext | InviteeInitialContext | ConnectionContext
-): c is InviteeInitialContext => 'invitee' in c
+export const isInvitee = (c: InitialContext | ConnectionContext): c is InviteeInitialContext =>
+  !('team' in c)
 
 export interface ConnectionParams {
   /** A function to send messages to our peer. This how you hook this up to your network stack. */
@@ -69,10 +61,15 @@ export interface ErrorPayload {
 
 export interface ConnectionContext
   extends Partial<MemberInitialContext>,
-    Partial<InviteeInitialContext> {
+    Partial<InviteeMemberInitialContext>,
+    Partial<InviteeDeviceInitialContext> {
   theyHaveInvitation?: boolean
   theirIdentityClaim?: KeyScope
+
   theirProofOfInvitation?: ProofOfInvitation
+  theirUserKeys?: PublicKeyset
+  theirDeviceKeys?: PublicKeyset
+
   challenge?: Challenge
   peer?: Member
   theirHead?: Hash
