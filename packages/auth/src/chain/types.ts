@@ -221,7 +221,6 @@ export interface AdmitMemberAction extends Action {
   payload: BasePayload & {
     id: string // invitation ID
     memberKeys: PublicKeyset // member keys provided by the new member
-    deviceKeys: PublicKeyset // device keys provided by the new member
   }
 }
 

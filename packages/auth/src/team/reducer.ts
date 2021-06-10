@@ -152,7 +152,7 @@ const getTransforms = (action: TeamAction): Reducer[] => {
     }
 
     case 'ADMIT_MEMBER': {
-      const { id, memberKeys, deviceKeys } = action.payload
+      const { id, memberKeys } = action.payload
       const userName = memberKeys.name
 
       const member: Member = {
@@ -161,16 +161,9 @@ const getTransforms = (action: TeamAction): Reducer[] => {
         roles: [],
       }
 
-      const device: PublicDevice = {
-        userName,
-        deviceName: deviceKeys.name,
-        keys: deviceKeys,
-      }
-
       return [
         useInvitation(id), // mark the invitation as used
         addMember(member), // add this member to the team
-        addDevice(device), // add this device for the member
       ]
     }
 

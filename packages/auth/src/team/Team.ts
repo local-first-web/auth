@@ -14,7 +14,7 @@ import * as identity from '@/connection/identity'
 import { MissingLinksMessage, UpdateMessage } from '@/connection/message'
 import { LocalDeviceContext, LocalUserContext } from '@/context'
 import * as devices from '@/device'
-import { getDeviceId, parseDeviceId, PublicDevice, redactDevice } from '@/device'
+import { DeviceWithSecrets, getDeviceId, parseDeviceId, PublicDevice, redactDevice } from '@/device'
 import * as invitations from '@/invitation'
 import { ProofOfInvitation } from '@/invitation'
 import { normalize } from '@/invitation/normalize'
@@ -559,6 +559,14 @@ export class Team extends EventEmitter {
     if (validation.isValid === false) throw validation.error
     const { id } = proof
 
+    // TODO: make lockbox naming consistent?
+    // lockbox_TeamKeysForMember
+    // lockbox_UserKeysForDevice
+    // lockbox_AdminKeysForMember
+
+    // we know the team keys, so we can put them in a lockbox for the new member now (even if we're not an admin)
+    const teamKeysLockbox = lockbox.create(this.teamKeys(), memberKeys)
+
     // post admission to the signature chain
     this.dispatch({
       type: 'ADMIT_MEMBER',
@@ -566,6 +574,7 @@ export class Team extends EventEmitter {
         id,
         memberKeys: keysets.redactKeys(memberKeys),
         deviceKeys: keysets.redactKeys(deviceKeys),
+        lockboxes: [teamKeysLockbox],
       },
     })
   }
@@ -598,55 +607,17 @@ export class Team extends EventEmitter {
   }
 
   /** Once the new member has received the chain and can instantiate the team, they call this to add their device. */
-  public join = (proof: ProofOfInvitation, seed: string) => {
-    // This is an important check - make sure that we've not been spoofed into joining the wrong team
-    assert(this.hasInvitation(proof), `Can't join a team I wasn't invited to`)
-
-    // TODO
-    // const { keys } = proof
-
-    // if (this.context.user === undefined) {
-    //   // If we don't have a `user` defined, it's because we're a device that just joined with an invitation.
-    //   const { userName, deviceName } = this.context.device
-    //   this.log(`joining with device ${deviceName}`)
-
-    //   // Now that we've been sent the team's signature chain, we should be able to find a lockbox
-    //   // with our user's keys in it that we can open with our device keys.
-    //   const userKeys = this.keys({ type: MEMBER, name: userName })
-    //   this.context.user = { userName, keys: userKeys }
-
-    //   // create new device keys for ourselves to replace the ephemeral ones from the invitation
-    //   const deviceId = getDeviceId(this.context.device)
-    //   const newKeys = keysets.create({ type: DEVICE, name: deviceId })
-    //   this.changeKeys(newKeys)
-    // } else {
-    //   // if we did already have a `user` defined, we're joining as a new user.
-    //   this.log(`joining as new user`)
-
-    //   // TODO
-    //   // // create new user keys to replace the ephemeral ones from the invitation
-    //   // const newKeys = keysets.create(invitee)
-
-    //   // // make sure we're using our starter keys to sign the key change
-    //   // this.context.user.keys = generateStarterKeys(invitee, seed)
-
-    //   // this.changeKeys(newKeys)
-
-    //   // add our device to the signature chain, as well as a lockbox for that device containing our user keys
-    //   const deviceLockbox = lockbox.create(this.context.user.keys, this.context.device.keys)
-    //   const device = redactDevice(this.context.device)
-    //   this.dispatch({
-    //     type: 'ADD_DEVICE',
-    //     payload: {
-    //       device,
-    //       lockboxes: [deviceLockbox],
-    //     },
-    //   })
-    // }
-
-    // return the updated user and device
-    const { user, device } = this.context
-    return { user, device }
+  public joinAsMember = () => {
+    assert(this.context.user)
+    const deviceLockbox = lockbox.create(this.context.user.keys, this.context.device.keys)
+    const device = redactDevice(this.context.device)
+    this.dispatch({
+      type: 'ADD_DEVICE',
+      payload: {
+        device,
+        lockboxes: [deviceLockbox],
+      },
+    })
   }
 
   /**************** CRYPTO

@@ -332,16 +332,19 @@ export class Connection extends EventEmitter {
     },
 
     joinTeam: (context, event) => {
+      assert(this.context.invitationSeed)
+
       // we've just received the team's signature chain; reconstruct team
       const team = this.rehydrateTeam(context, event)
 
       // join the team
-      const proof = this.myProofOfInvitation(context)
-      const { user, device } = team.join(proof, this.context.invitationSeed!)
+      if ('user' in context) {
+        team.joinAsMember()
+      }
+
+      // TODO: if we're joining as a device, do we know who our user is?
 
       // put the updated user, device, and team on our context
-      this.context.user = user
-      this.context.device = device
       this.context.team = team
     },
 
