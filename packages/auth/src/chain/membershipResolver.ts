@@ -84,11 +84,6 @@ const filterFactories: Record<string, ActionFilterFactory> = {
     return (link: TeamActionLink) => {
       const authorNotDemoted = authorNotIn(demotedMembers)
       const notAdminOnly = (link: TeamActionLink) => !isAdminOnlyAction(link.body)
-      console.log(
-        `${link.signed.userName}:${link.body.type} (authorNotDemoted: ${authorNotDemoted(
-          link
-        )}, notAdminOnly: ${notAdminOnly(link)})`
-      )
       return authorNotDemoted(link) || notAdminOnly(link)
     }
   },
