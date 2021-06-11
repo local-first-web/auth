@@ -252,7 +252,7 @@ export const protocolMachine: MachineConfig<
       meta: { label: 'Synchronizing' },
       initial: 'sendingUpdate',
       on: {
-        // when they send us their head & hashes,
+        // when they send us their head & hashes, receive them
         UPDATE: [
           {
             actions: 'recordTheirHead',
@@ -391,7 +391,6 @@ export const protocolMachine: MachineConfig<
 
         // if something changes locally, sync back up with them
         LOCAL_UPDATE: {
-          cond: 'headsAreDifferent',
           target: '#synchronizing',
         },
 

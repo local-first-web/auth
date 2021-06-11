@@ -59,8 +59,10 @@ export const connectPhoneWithInvitation = async (user: UserStuff, seed: string) 
 /** Passes if each of the given members is on the team, and knows every other member on the team */
 export const expectEveryoneToKnowEveryone = (...members: UserStuff[]) => {
   for (const a of members)
-    for (const b of members) //
-      expect(a.team.has(b.userName)).toBe(true)
+    for (const b of members) {
+      if (!a.team.has(b.userName))
+        throw new Error(`${a.userName} does not have ${b.userName} on their team`)
+    }
 }
 
 /** Disconnects the two members and waits for them to be disconnected */

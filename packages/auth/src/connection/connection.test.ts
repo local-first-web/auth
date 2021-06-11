@@ -115,6 +115,25 @@ describe('connection', () => {
     expect(alice.team.memberHasRole('bob', 'managers')).toBe(true)
   })
 
+  it('updates remote user while connected', async () => {
+    const { alice, bob } = setup('alice', 'bob')
+
+    // 👩🏾 👨🏻‍🦲 Alice and Bob connect
+    await connect(alice, bob)
+
+    // at this point, Alice and Bob have the same signature chain
+
+    // 👨🏻‍🦲 now Bob does some stuff
+    alice.team.addRole('managers')
+    alice.team.addMemberRole('bob', 'managers')
+
+    await updated(alice, bob)
+
+    // ✅ 👩🏾 Alice is up to date with Bob's changes
+    expect(bob.team.hasRole('managers')).toBe(true)
+    expect(bob.team.memberHasRole('bob', 'managers')).toBe(true)
+  })
+
   it('updates local user while connected', async () => {
     const { alice, bob } = setup('alice', 'bob')
 
@@ -305,6 +324,8 @@ describe('connection', () => {
 
     // 👳🏽‍♂️📧<->👩🏾 Charlie connects to Alice and uses his invitation to join
     await connectWithInvitation(alice, charlie, seed)
+
+    // await connect(alice, bob) // passes if this happens here instead of above
 
     // ✅
     expectEveryoneToKnowEveryone(alice, charlie, bob)

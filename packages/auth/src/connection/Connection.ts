@@ -45,8 +45,6 @@ export class Connection extends EventEmitter {
   public log: debug.Debugger
 
   private sendMessage: SendFunction
-
-  private peerDeviceId: string = '?'
   private peerUserName: string = '?'
 
   private machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
@@ -59,10 +57,9 @@ export class Connection extends EventEmitter {
 
     if (peerUserName) {
       this.peerUserName = peerUserName
-      this.peerDeviceId = `${peerUserName}::?`
     }
 
-    this.log = debug(`lf:auth:connection:${context.device.keys.name}:${this.peerDeviceId}`)
+    this.log = debug(`lf:auth:connection:${context.device.keys.name}:${this.peerUserName}`)
 
     this.sendMessage = (message: ConnectionMessage) => {
       // add a sequential index to any outgoing messages
@@ -165,13 +162,7 @@ export class Connection extends EventEmitter {
 
   get peerName() {
     if (!this.started) return '(not started)'
-    // TODO we shouldn't really need this since we have this.peerUserName
-    return (
-      this.peerUserName ??
-      this.context.peer?.userName ??
-      this.context.theirIdentityClaim?.name ??
-      '?'
-    )
+    return this.context.peer?.userName ?? this.context.theirIdentityClaim?.name ?? '?'
   }
 
   /** Sends an encrypted message to the peer we're connected with */
@@ -246,11 +237,14 @@ export class Connection extends EventEmitter {
     },
 
     receiveHello: assign({
-      theirIdentityClaim: (_, event) => {
+      theirIdentityClaim: (context, event) => {
         event = event as HelloMessage
         if ('identityClaim' in event.payload) {
-          this.peerDeviceId = event.payload.identityClaim.name
-          this.peerUserName = parseDeviceId(this.peerDeviceId).userName
+          // update peer user name
+          const deviceId = event.payload.identityClaim.name
+          this.peerUserName = parseDeviceId(deviceId).userName
+          this.log = debug(`lf:auth:connection:${context.device.keys.name}:${deviceId}`)
+
           return event.payload.identityClaim
         } else {
           return undefined
@@ -284,11 +278,14 @@ export class Connection extends EventEmitter {
         }
       },
 
-      theirDeviceKeys: (_, event) => {
+      theirDeviceKeys: (context, event) => {
         event = event as HelloMessage
         if ('deviceKeys' in event.payload) {
-          this.peerDeviceId = event.payload.deviceKeys.name
-          this.peerUserName = parseDeviceId(this.peerDeviceId).userName
+          // update peer user name
+          const deviceId = event.payload.deviceKeys.name
+          this.peerUserName = parseDeviceId(deviceId).userName
+          this.log = debug(`lf:auth:connection:${context.device.keys.name}:${deviceId}`)
+
           return event.payload.deviceKeys
         } else {
           return undefined
@@ -425,10 +422,8 @@ export class Connection extends EventEmitter {
         assert(this.peerUserName)
         if (context.team.has(this.peerUserName)) {
           // peer still on the team
-          this.log('storePeer', this.peerUserName)
           return context.team.members(this.peerUserName)
         } else {
-          this.log(`storePeer: peer ${this.peerUserName} was removed from team`)
           // peer was removed from team
           return undefined
         }
@@ -448,6 +443,7 @@ export class Connection extends EventEmitter {
       assert(context.team)
       const { root, head, links } = context.team.chain
       const hashes = Object.keys(links)
+      this.log('sending UPDATE', head)
       this.sendMessage({
         type: 'UPDATE',
         payload: { root, head, hashes },
@@ -485,7 +481,6 @@ export class Connection extends EventEmitter {
       assert(context.team)
       context.team.addListener('updated', ({ head }) => {
         if (!this.machine.state.done) {
-          this.log(`LOCAL_UPDATE ${head}`)
           this.machine.send({ type: 'LOCAL_UPDATE', payload: { head } }) // send update event to local machine
         }
       })
@@ -658,6 +653,7 @@ export class Connection extends EventEmitter {
           : context.theirHead // use what we already have in context
 
       const ourHead = context.team.chain.head
+      this.log(`headsAreEqual? ourHead: ${ourHead} theirHead: ${theirHead}`)
 
       return ourHead === theirHead
     },
