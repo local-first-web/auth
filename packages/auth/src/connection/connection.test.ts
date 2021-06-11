@@ -457,7 +457,7 @@ describe('connection', () => {
     await disconnection(bob, charlie)
   })
 
-  it(`when a member is demoted and makes concurrent changes, discards those changes`, async () => {
+  it(`when a member is demoted and makes concurrent admin-only changes, discards those changes`, async () => {
     const { alice, bob } = setup('alice', 'bob', { user: 'charlie', admin: false })
 
     // 👩🏾 Alice removes 👨🏻‍🦲 Bob from admin role
@@ -483,7 +483,6 @@ describe('connection', () => {
     // It doesn't work, because after Bob's laptop connects to his phone, Bob's laptop doesn't update Alice
 
     expect(bob.team.members('bob').devices).toHaveLength(1)
-    expect(bob.team.adminKeys().generation).toBe(0)
 
     // 👨🏻‍🦲💻📧->📱 on his laptop, Bob creates an invitation and gets it to his phone
     const { seed } = bob.team.inviteDevice()
@@ -508,8 +507,7 @@ describe('connection', () => {
     alice.team.removeMemberRole('bob', ADMIN)
 
     // 👨🏻‍🦲💻📧📱 concurrently, on his laptop, Bob invites his phone
-    const seed = '123'
-    bob.phone.keys = generateStarterKeys(seed)
+    const { seed } = bob.team.inviteDevice()
 
     // 💻<->📱 Bob's phone and laptop connect and the phone joins
     await connectPhoneWithInvitation(bob, seed)
@@ -523,10 +521,10 @@ describe('connection', () => {
     // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
     await connect(alice, bob)
 
-    // ✅ Bob's phone is still in his devices
+    // // ✅ Bob's phone is still in his devices
     expect(bob.team.members('bob').devices).toHaveLength(2)
 
-    // ✅ Alice knows about the new device
+    // // ✅ Alice knows about the new device
     expect(alice.team.members('bob').devices).toHaveLength(2)
   })
 

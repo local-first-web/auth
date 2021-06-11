@@ -137,7 +137,14 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       ]
     }
 
-    case 'INVITE': {
+    case 'INVITE_MEMBER': {
+      const { invitation } = action.payload
+      return [
+        postInvitation(invitation), // add the invitation to the list of open invitations.
+      ]
+    }
+
+    case 'INVITE_DEVICE': {
       const { invitation } = action.payload
       return [
         postInvitation(invitation), // add the invitation to the list of open invitations.

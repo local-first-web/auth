@@ -471,7 +471,7 @@ export class Team extends EventEmitter {
 
     // post invitation to signature chain
     this.dispatch({
-      type: 'INVITE',
+      type: 'INVITE_MEMBER',
       payload: { invitation },
     })
 
@@ -501,7 +501,7 @@ export class Team extends EventEmitter {
 
     // post invitation to signature chain
     this.dispatch({
-      type: 'INVITE',
+      type: 'INVITE_DEVICE',
       payload: { invitation },
     })
 

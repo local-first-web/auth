@@ -202,8 +202,15 @@ export interface RemoveDeviceAction extends Action {
   }
 }
 
-export interface InviteAction extends Action {
-  type: 'INVITE'
+export interface InviteMemberAction extends Action {
+  type: 'INVITE_MEMBER'
+  payload: BasePayload & {
+    invitation: Invitation
+  }
+}
+
+export interface InviteDeviceAction extends Action {
+  type: 'INVITE_DEVICE'
   payload: BasePayload & {
     invitation: Invitation
   }
@@ -257,7 +264,8 @@ export type TeamAction =
   | RemoveDeviceAction
   | RemoveRoleAction
   | RemoveMemberRoleAction
-  | InviteAction
+  | InviteMemberAction
+  | InviteDeviceAction
   | RevokeInvitationAction
   | AdmitMemberAction
   | AdmitDeviceAction

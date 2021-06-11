@@ -84,6 +84,11 @@ const filterFactories: Record<string, ActionFilterFactory> = {
     return (link: TeamActionLink) => {
       const authorNotDemoted = authorNotIn(demotedMembers)
       const notAdminOnly = (link: TeamActionLink) => !isAdminOnlyAction(link.body)
+      console.log(
+        `${link.signed.userName}:${link.body.type} (authorNotDemoted: ${authorNotDemoted(
+          link
+        )}, notAdminOnly: ${notAdminOnly(link)})`
+      )
       return authorNotDemoted(link) || notAdminOnly(link)
     }
   },
@@ -99,7 +104,8 @@ const isRemovalAction = (link: TeamActionLink): boolean => link.body.type === 'R
 const getRemovals = (branches: TwoBranches) =>
   branches.flatMap(branch => branch.filter(isRemovalAction)) as RemoveActionLink[]
 
-const isDemotionAction = (link: TeamActionLink): boolean => link.body.type === 'REMOVE_MEMBER_ROLE' //&& link.body.payload.roleName === ADMIN
+const isDemotionAction = (link: TeamActionLink): boolean =>
+  link.body.type === 'REMOVE_MEMBER_ROLE' && link.body.payload.roleName === ADMIN
 
 const getDemotions = (branches: TwoBranches) =>
   branches.flatMap(branch => branch.filter(isDemotionAction)) as RemoveActionLink[]
