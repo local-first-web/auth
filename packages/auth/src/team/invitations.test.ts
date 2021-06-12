@@ -1,12 +1,10 @@
-import * as devices from '@/device'
-import { getDeviceId } from '@/device'
 import { generateProof } from '@/invitation'
 import * as keysets from '@/keyset'
-import { KeyType } from '@/keyset'
 import * as teams from '@/team'
 import { setup } from '@/util/testing'
 
-const { MEMBER, DEVICE } = KeyType
+const { MEMBER, DEVICE } = keysets.KeyType
+
 describe('Team', () => {
   describe('invitations', () => {
     describe('members', () => {
@@ -21,7 +19,7 @@ describe('Team', () => {
 
         // 👨🏻‍🦲 Bob shows 👩🏾 Alice his proof of invitation, and she lets him in, associating
         // him with the public keys he's provided
-        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.device.keys)
+        alice.team.admitMember(proofOfInvitation, bob.user.keys)
 
         // ✅ 👨🏻‍🦲 Bob is now on the team. Congratulations, Bob!
         expect(alice.team.has('bob')).toBe(true)
@@ -36,7 +34,7 @@ describe('Team', () => {
 
         const proofOfInvitation = generateProof(seed)
 
-        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.device.keys)
+        alice.team.admitMember(proofOfInvitation, bob.user.keys)
 
         // ✅ Still works
         expect(alice.team.has('bob')).toBe(true)
@@ -51,7 +49,7 @@ describe('Team', () => {
 
         // 👨🏻‍🦲 Bob accepts the invitation using a url-friendlier version of the key
         const proofOfInvitation = generateProof('abc+def+ghi')
-        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.device.keys)
+        alice.team.admitMember(proofOfInvitation, bob.user.keys)
 
         // ✅ Bob is on the team
         expect(alice.team.has('bob')).toBe(true)
@@ -78,7 +76,7 @@ describe('Team', () => {
         expect(bobsTeam.memberIsAdmin('bob')).toBe(false)
 
         // 👳🏽‍♂️ Charlie shows 👨🏻‍🦲 Bob his proof of invitation
-        bobsTeam.admitMember(proofOfInvitation, charlie.user.keys, charlie.device.keys)
+        bobsTeam.admitMember(proofOfInvitation, charlie.user.keys)
 
         // 👍👳🏽‍♂️ Charlie is now on the team
         expect(bobsTeam.has('charlie')).toBe(true)
@@ -96,7 +94,7 @@ describe('Team', () => {
         const expiration = new Date(Date.UTC(2999, 12, 25)).valueOf() // NOTE 👩‍🚀 this test will fail if run in the distant future
         const { seed } = alice.team.inviteMember({ expiration })
         const proofOfInvitation = generateProof(seed)
-        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.device.keys)
+        alice.team.admitMember(proofOfInvitation, bob.user.keys)
 
         // ✅ 👨🏻‍🦲 Bob's invitation has not expired so he is on the team
         expect(alice.team.has('bob')).toBe(true)
@@ -110,8 +108,7 @@ describe('Team', () => {
         const { seed } = alice.team.inviteMember({ expiration })
         const proofOfInvitation = generateProof(seed)
 
-        const tryToAdmitBob = () =>
-          alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.device.keys)
+        const tryToAdmitBob = () => alice.team.admitMember(proofOfInvitation, bob.user.keys)
 
         // 👎 👨🏻‍🦲 Bob's invitation has expired so he can't get in
         expect(tryToAdmitBob).toThrowError(/expired/)
@@ -134,8 +131,8 @@ describe('Team', () => {
 
         // 👩🏾 Alice admits them both
 
-        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.device.keys)
-        alice.team.admitMember(proofOfInvitation, charlie.user.keys, charlie.device.keys)
+        alice.team.admitMember(proofOfInvitation, bob.user.keys)
+        alice.team.admitMember(proofOfInvitation, charlie.user.keys)
 
         // ✅ 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie are both on the team
         expect(alice.team.has('bob')).toBe(true)
@@ -159,7 +156,7 @@ describe('Team', () => {
         for (const userName of invitees) {
           const userKeys = keysets.create({ type: MEMBER, name: userName })
           const deviceKeys = keysets.create({ type: DEVICE, name: `${userName}'s laptop` })
-          alice.team.admitMember(proofOfInvitation, userKeys, deviceKeys)
+          alice.team.admitMember(proofOfInvitation, userKeys)
         }
 
         // ✅ they're all on the team
@@ -178,10 +175,8 @@ describe('Team', () => {
         // 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie both generate the same proof of invitation from the seed
         const proofOfInvitation = generateProof(seed)
 
-        const tryToAdmitBob = () =>
-          alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.device.keys)
-        const tryToAdmitCharlie = () =>
-          alice.team.admitMember(proofOfInvitation, charlie.user.keys, charlie.device.keys)
+        const tryToAdmitBob = () => alice.team.admitMember(proofOfInvitation, bob.user.keys)
+        const tryToAdmitCharlie = () => alice.team.admitMember(proofOfInvitation, charlie.user.keys)
 
         // 👍 👨🏻‍🦲 Bob uses the invitation first and he gets in
         expect(tryToAdmitBob).not.toThrow()
@@ -217,8 +212,7 @@ describe('Team', () => {
         bob.team = teams.load(persistedTeam, bob.localContext)
 
         // 👳🏽‍♂️ Charlie shows 👨🏻‍🦲 Bob his proof of invitation
-        const tryToAdmitCharlie = () =>
-          bob.team.admitMember(proofOfInvitation, charlie.user.keys, charlie.device.keys)
+        const tryToAdmitCharlie = () => bob.team.admitMember(proofOfInvitation, charlie.user.keys)
 
         // 👎 But the invitation is rejected because it was revoked
         expect(tryToAdmitCharlie).toThrowError(/revoked/)
@@ -251,7 +245,7 @@ describe('Team', () => {
         const phoneTeam = teams.load(savedTeam, { device: alice.phone })
 
         // 📱 Alice's phone joins the team
-        const { user, device } = phoneTeam.join(proofOfInvitation, seed)
+        phoneTeam.joinAsDevice('alice')
 
         // ✅ Now Alice has 💻📱 two devices on the signature chain
         expect(phoneTeam.members('alice').devices).toHaveLength(2)
