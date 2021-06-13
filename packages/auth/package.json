@@ -42,6 +42,7 @@
     "@types/ramda": "0",
     "cross-env": "6",
     "jest": "26",
+    "js-sha256": "^0.9.0",
     "prettier": "2",
     "ts-jest": "26",
     "typescript": "4",
