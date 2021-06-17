@@ -80,7 +80,7 @@ export type ActionLink<A extends Action> = NonRootLink<A> | RootLink<A> // exclu
 
 export type Link<A extends Action> = ActionLink<A> | MergeLink
 
-export type LinkMap<A extends Action> = { [hash: string]: Link<A> }
+export type LinkMap<A extends Action> = Record<Hash, Link<A>>
 
 export interface SignatureChain<A extends Action> {
   root: Hash
