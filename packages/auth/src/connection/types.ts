@@ -7,6 +7,7 @@ import { Member } from '@/member'
 import { Team } from '@/team'
 import { User } from '@/user'
 import { Base64, Hash, UnixTimestamp } from '@/util'
+import { SyncState } from '@/sync/types'
 
 // Identity
 
@@ -78,6 +79,8 @@ export interface ConnectionContext
   sessionKey?: Base64
   error?: ErrorPayload
   device: DeviceWithSecrets
+
+  syncState?: SyncState
 }
 
 export type StateMachineAction =
@@ -90,7 +93,9 @@ export type Condition = ConditionPredicate<ConnectionContext, ConnectionMessage>
 export interface ConnectionState {
   states: {
     idle: {}
+
     disconnected: {}
+
     connecting: {
       states: {
         invitation: {
@@ -121,16 +126,18 @@ export interface ConnectionState {
         done: {}
       }
     }
-    synchronizing: {
-      states: {
-        sendingUpdate: {}
-        receivingUpdate: {}
-        sendingMissingLinks: {}
-        receivingMissingLinks: {}
-        waiting: {}
-        done: {}
-      }
-    }
+
+    // synchronizing: {
+    //   states: {
+    //     sendingUpdate: {}
+    //     receivingUpdate: {}
+    //     sendingMissingLinks: {}
+    //     receivingMissingLinks: {}
+    //     waiting: {}
+    //     done: {}
+    //   }
+    // }
+
     negotiating: {
       states: {
         sendingSeed: {
@@ -147,7 +154,9 @@ export interface ConnectionState {
         }
       }
     }
+
     connected: {}
+
     failure: {}
   }
 }
