@@ -241,109 +241,115 @@ export const protocolMachine: MachineConfig<
         },
       },
 
-      onDone: {
-        target: '#synchronizing',
-      },
-    },
-
-    synchronizing: {
-      // having established each others' identities, we now make sure that our team signature chains are up to date
-      id: 'synchronizing',
-      meta: { label: 'Synchronizing' },
-      initial: 'sendingUpdate',
-      on: {
-        // when they send us their head & hashes, receive them
-        UPDATE: [
-          {
-            actions: 'recordTheirHead',
-            target: 'synchronizing.receivingUpdate',
-          },
-        ],
-
-        // when they send us missing links, add them to our chain
-        MISSING_LINKS: {
-          actions: ['recordTheirHead', 'receiveMissingLinks'],
-          target: 'synchronizing.receivingMissingLinks',
-        },
-      },
-
-      states: {
-        sendingUpdate: {
-          meta: { label: 'Sending updated state' },
-          entry: 'sendUpdate',
-          always: 'waiting',
-        },
-
-        receivingUpdate: {
-          meta: { label: 'Receiving updated state' },
-          always: [
-            // if our heads are equal, we're done
-            { cond: 'headsAreEqual', target: 'done' },
-            // otherwise see if we have anything they don't
-            { target: 'sendingMissingLinks' },
-          ],
-        },
-
-        sendingMissingLinks: {
-          meta: { label: 'Sending missing links' },
-          entry: 'sendMissingLinks',
-          always: 'waiting',
-        },
-
-        receivingMissingLinks: {
-          meta: { label: 'Receiving missing links' },
-          always: [
-            // if our heads are now equal, we're done
-            { cond: 'headsAreEqual', target: 'done' },
-            // otherwise we're waiting for them to get missing links from us & confirm
-            { target: 'waiting' },
-          ],
-          exit: [
-            'storePeer', // we might have received new peer info (e.g. keys)
-            'sendUpdate', // either way let them know our status
-          ],
-        },
-
-        waiting: {
-          meta: { label: 'Waiting for state update' },
-          ...timeout,
-        },
-
-        done: {
-          meta: { label: 'Done synchronizing' },
-          type: 'final',
-        },
-      },
-
       onDone: [
-        // after our first synchronization, we still need to negotiate a session key
         {
-          cond: 'dontHaveSessionkey',
           actions: [
-            'listenForTeamUpdates', // add listener to team, so we trigger this process again if needed
-            'generateSeed',
+            'listenForTeamUpdates', // add listener to team, so we sync updates as needed
           ],
-          target: 'negotiating',
-        },
-
-        // if the peer is no longer on the team, disconnect
-        {
-          cond: 'peerWasRemoved',
-          actions: 'failPeerWasRemoved',
-          target: 'disconnected',
-        },
-
-        // on following updates, once we're done syncing we just go back to being connected
-        {
-          actions: 'onUpdated',
-          target: 'connected',
+          target: '#negotiating',
         },
       ],
     },
 
+    // synchronizing: {
+    //   // having established each others' identities, we now make sure that our team signature chains are up to date
+    //   id: 'synchronizing',
+    //   meta: { label: 'Synchronizing' },
+    //   initial: 'sendingUpdate',
+    //   on: {
+    //     // when they send us their head & hashes, receive them
+    //     UPDATE: [
+    //       {
+    //         actions: 'recordTheirHead',
+    //         target: 'synchronizing.receivingUpdate',
+    //       },
+    //     ],
+
+    //     // when they send us missing links, add them to our chain
+    //     MISSING_LINKS: {
+    //       actions: ['recordTheirHead', 'receiveMissingLinks'],
+    //       target: 'synchronizing.receivingMissingLinks',
+    //     },
+    //   },
+
+    //   states: {
+    //     sendingUpdate: {
+    //       meta: { label: 'Sending updated state' },
+    //       entry: 'sendUpdate',
+    //       always: 'waiting',
+    //     },
+
+    //     receivingUpdate: {
+    //       meta: { label: 'Receiving updated state' },
+    //       always: [
+    //         // if our heads are equal, we're done
+    //         { cond: 'headsAreEqual', target: 'done' },
+    //         // otherwise see if we have anything they don't
+    //         { target: 'sendingMissingLinks' },
+    //       ],
+    //     },
+
+    //     sendingMissingLinks: {
+    //       meta: { label: 'Sending missing links' },
+    //       entry: 'sendMissingLinks',
+    //       always: 'waiting',
+    //     },
+
+    //     receivingMissingLinks: {
+    //       meta: { label: 'Receiving missing links' },
+    //       always: [
+    //         // if our heads are now equal, we're done
+    //         { cond: 'headsAreEqual', target: 'done' },
+    //         // otherwise we're waiting for them to get missing links from us & confirm
+    //         { target: 'waiting' },
+    //       ],
+    //       exit: [
+    //         'storePeer', // we might have received new peer info (e.g. keys)
+    //         'sendUpdate', // either way let them know our status
+    //       ],
+    //     },
+
+    //     waiting: {
+    //       meta: { label: 'Waiting for state update' },
+    //       ...timeout,
+    //     },
+
+    //     done: {
+    //       meta: { label: 'Done synchronizing' },
+    //       type: 'final',
+    //     },
+    //   },
+
+    //   onDone: [
+    //     // after our first synchronization, we still need to negotiate a session key
+    //     {
+    //       cond: 'dontHaveSessionkey',
+    //       actions: [
+    //         'listenForTeamUpdates', // add listener to team, so we trigger this process again if needed
+    //         'generateSeed',
+    //       ],
+    //       target: 'negotiating',
+    //     },
+
+    //     // if the peer is no longer on the team, disconnect
+    //     {
+    //       cond: 'peerWasRemoved',
+    //       actions: 'failPeerWasRemoved',
+    //       target: 'disconnected',
+    //     },
+
+    //     // on following updates, once we're done syncing we just go back to being connected
+    //     {
+    //       actions: 'onUpdated',
+    //       target: 'connected',
+    //     },
+    //   ],
+    // },
+
     negotiating: {
       meta: { label: 'Negotiating encryption key' },
       type: 'parallel',
+      entry: 'generateSeed',
       states: {
         sendingSeed: {
           meta: { label: 'Sending seed' },
@@ -381,23 +387,33 @@ export const protocolMachine: MachineConfig<
           },
         },
       },
-      onDone: { actions: ['deriveSharedKey', 'onConnected'], target: 'connected' },
+      onDone: {
+        actions: ['deriveSharedKey', 'onConnected'],
+        target: 'connected',
+      },
     },
 
     connected: {
       meta: { label: 'Connected' },
+      entry: [
+        // if the peer is no longer on the team, disconnect
+        {
+          cond: 'peerWasRemoved',
+          type: 'failPeerWasRemoved',
+          target: 'disconnected',
+        },
+        'sendSyncMessage',
+      ],
       on: {
-        DISCONNECT: '#disconnected',
-
-        // if something changes locally, sync back up with them
+        // if something changes locally, send them a sync message
         LOCAL_UPDATE: {
-          target: '#synchronizing',
+          actions: ['sendSyncMessage'],
         },
 
-        // if they send an update, sync back up with them
-        UPDATE: {
-          cond: 'headsAreDifferent',
-          target: '#synchronizing',
+        // if they send a sync message, process it
+        SYNC: {
+          actions: ['receiveSyncMessage'],
+          target: 'connected',
         },
 
         // deliver any encrypted messages
@@ -405,6 +421,8 @@ export const protocolMachine: MachineConfig<
           actions: ['receiveEncryptedMessage'],
           target: 'connected',
         },
+
+        DISCONNECT: '#disconnected',
       },
     },
 
