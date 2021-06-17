@@ -9,11 +9,10 @@ import {
   ErrorMessage,
   HelloMessage,
   LocalUpdateMessage,
-  MissingLinksMessage,
   NumberedConnectionMessage,
   ProveIdentityMessage,
   SeedMessage,
-  UpdateMessage,
+  SyncMessage,
 } from '@/connection/message'
 import { orderedDelivery } from '@/connection/orderedDelivery'
 import {
@@ -28,6 +27,7 @@ import {
 import { getDeviceId, parseDeviceId } from '@/device'
 import * as invitations from '@/invitation'
 import { KeyType, randomKey, redactKeys } from '@/keyset'
+import * as sync from '@/sync'
 import { Team } from '@/team'
 import { assert, debug } from '@/util'
 import { asymmetric, Payload, symmetric } from '@herbcaudill/crypto'
@@ -430,7 +430,7 @@ export class Connection extends EventEmitter {
       },
     }),
 
-    acceptIdentity: context => {
+    acceptIdentity: () => {
       this.sendMessage({
         type: 'ACCEPT_IDENTITY',
         payload: {},
@@ -438,44 +438,6 @@ export class Connection extends EventEmitter {
     },
 
     // updating
-
-    sendUpdate: context => {
-      assert(context.team)
-      const { root, head, links } = context.team.chain
-      const hashes = Object.keys(links)
-      this.log('sending UPDATE', head)
-      this.sendMessage({
-        type: 'UPDATE',
-        payload: { root, head, hashes },
-      })
-    },
-
-    recordTheirHead: assign({
-      theirHead: (_, event) => {
-        const { payload } = event as UpdateMessage | MissingLinksMessage
-        return payload.head
-      },
-    }),
-
-    sendMissingLinks: (context, event) => {
-      assert(context.team)
-      const { payload } = event as UpdateMessage
-      const links = context.team.getMissingLinks(payload)
-      if (links.length > 0) {
-        this.sendMessage({
-          type: 'MISSING_LINKS',
-          payload: { head: context.team.chain.head, links },
-        })
-      }
-    },
-
-    receiveMissingLinks: assign({
-      team: (context, event) => {
-        assert(context.team)
-        const { payload } = event as MissingLinksMessage
-        return context.team.receiveMissingLinks(payload)
-      },
-    }),
 
     listenForTeamUpdates: context => {
       assert(context.team)
@@ -485,6 +447,60 @@ export class Connection extends EventEmitter {
         }
       })
     },
+
+    sendSyncMessage: context => {
+      assert(context.team)
+      const syncState = context.syncState ?? sync.initSyncState()
+
+      const [newSyncState, syncMessage] = sync.generateMessage(context.team.chain, syncState)
+      context.syncState = newSyncState
+
+      this.sendMessage({
+        type: 'SYNC',
+        payload: syncMessage,
+      })
+    },
+
+    receiveSyncMessage: assign({
+      team: (context, event) => {
+        assert(context.team)
+
+        const chain = context.team.chain
+        const syncState = context.syncState ?? sync.initSyncState()
+        const syncMessage = (event as SyncMessage).payload
+        const [newChain, newSyncState] = sync.receiveMessage(chain, syncState, syncMessage)
+        context.syncState = newSyncState
+
+        return context.team.merge(newChain)
+      },
+    }),
+
+    // recordTheirHead: assign({
+    //   theirHead: (_, event) => {
+    //     const { payload } = event as UpdateMessage | MissingLinksMessage
+    //     return payload.head
+    //   },
+    // }),
+
+    // sendMissingLinks: (context, event) => {
+    //   assert(context.team)
+    //   const { payload } = event as UpdateMessage
+    //   const links = context.team.getMissingLinks(payload)
+    //   if (links.length > 0) {
+    //     this.sendMessage({
+    //       type: 'MISSING_LINKS',
+    //       payload: { head: context.team.chain.head, links },
+    //     })
+    //   }
+    // },
+
+    // receiveMissingLinks: assign({
+    //   team: (context, event) => {
+    //     assert(context.team)
+    //     const { payload } = event as MissingLinksMessage
+    //     return context.team.receiveMissingLinks(payload)
+    //   },
+    // }),
 
     // negotiating
 
@@ -646,14 +662,12 @@ export class Connection extends EventEmitter {
       assert(context.team)
 
       // If their message includes a head, use that; otherwise use the last head we had recorded
-      const { type, payload } = event as UpdateMessage | MissingLinksMessage | LocalUpdateMessage
       const theirHead =
-        type === 'UPDATE' || type === 'MISSING_LINKS'
-          ? payload.head // take from message
+        event.type === 'SYNC'
+          ? event.payload.head // take from message
           : context.theirHead // use what we already have in context
 
       const ourHead = context.team.chain.head
-      this.log(`headsAreEqual? ourHead: ${ourHead} theirHead: ${theirHead}`)
 
       return ourHead === theirHead
     },
