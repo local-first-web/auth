@@ -1,5 +1,4 @@
 import { Hash } from '@/util'
-import { sha256 as hash } from 'js-sha256'
 import { ProbabilisticFilter } from './ProbabilisticFilter'
 
 interface TruncatedHashFilterOptions {
@@ -66,5 +65,3 @@ export class TruncatedHashFilter extends ProbabilisticFilter {
     return Buffer.from(hash, 'hex').slice(0, this.resolution).toString('hex')
   }
 }
-
-const makeHash = (s: string | number) => hash(s.toString())
