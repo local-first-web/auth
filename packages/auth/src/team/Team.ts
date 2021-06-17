@@ -1,20 +1,11 @@
 ﻿import * as chains from '@/chain'
-import {
-  getParentHashes,
-  membershipResolver,
-  TeamAction,
-  TeamActionLink,
-  TeamLink,
-  TeamLinkMap,
-  TeamSignatureChain,
-} from '@/chain'
+import { membershipResolver, TeamAction, TeamActionLink, TeamSignatureChain } from '@/chain'
 import { membershipSequencer } from '@/chain/membershipSequencer'
-import { Challenge } from '@/connection/types'
 import * as identity from '@/connection/identity'
-import { MissingLinksMessage, UpdateMessage } from '@/connection/message'
+import { Challenge } from '@/connection/types'
 import { LocalDeviceContext, LocalUserContext } from '@/context'
 import * as devices from '@/device'
-import { DeviceWithSecrets, getDeviceId, parseDeviceId, PublicDevice, redactDevice } from '@/device'
+import { getDeviceId, parseDeviceId, PublicDevice, redactDevice } from '@/device'
 import * as invitations from '@/invitation'
 import { ProofOfInvitation } from '@/invitation'
 import { normalize } from '@/invitation/normalize'
@@ -41,7 +32,7 @@ import { getVisibleScopes } from '@/team/selectors'
 import { EncryptedEnvelope, isNewTeam, SignedEnvelope, TeamOptions, TeamState } from '@/team/types'
 import * as users from '@/user'
 import { User } from '@/user'
-import { arrayToMap, assert, debug, Hash, Payload, UnixTimestamp, VALID } from '@/util'
+import { assert, debug, Hash, Payload, UnixTimestamp, VALID } from '@/util'
 import { Base64, randomKey, signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
 
@@ -151,50 +142,6 @@ export class Team extends EventEmitter {
     this.chain = chains.merge(this.chain, theirChain)
     this.updateState()
     return this
-  }
-
-  public getMissingLinks = ({
-    root: theirRoot,
-    head: theirHead,
-    hashes: theirHashes,
-  }: UpdateMessage['payload']): TeamLink[] => {
-    const { root, head, links } = this.chain
-    const hashes = Object.keys(links)
-
-    assert(root === theirRoot, `Our roots should be the same`)
-
-    return theirHead === head
-      ? // if we have the same head, there are no missing links
-        []
-      : // otherwise send every link that we have that they don't have
-        hashes
-          .filter(hash => theirHashes.includes(hash) === false) // only send the ones they're missing
-          .map(hash => links[hash]) // look up the full link
-  }
-
-  public receiveMissingLinks = ({
-    head: theirHead,
-    links: theirLinks,
-  }: MissingLinksMessage['payload']) => {
-    const { root, links } = this.chain
-
-    const allLinks = {
-      // all our links
-      ...links,
-      // all their new links, converted from an array to a hashmap
-      ...theirLinks.reduce(arrayToMap('hash'), {}),
-    } as TeamLinkMap
-
-    // make sure we're not missing any links that are referenced by these new links (shouldn't happen)
-    const parentHashes = theirLinks.flatMap(link => getParentHashes(this.chain, link))
-    const missingParents = parentHashes.filter(hash => !(hash in allLinks))
-    assert(missingParents.length === 0, `Can't update; missing parent links`)
-
-    // we can now reconstruct their chain
-    const theirChain = { root, head: theirHead, links: allLinks }
-
-    // and merge with it
-    return this.merge(theirChain)
   }
 
   public lookupIdentity = (identityClaim: KeyScope): LookupIdentityResult => {
