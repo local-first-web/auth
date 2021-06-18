@@ -17,14 +17,8 @@ export const protocolMachine: MachineConfig<
   on: {
     // TODO rename READY to REQUEST_IDENTITY
     // TODO rename sendHello to claimIdentity
-    READY: {
-      actions: 'sendHello',
-      target: 'idle',
-    },
-    ERROR: {
-      actions: 'receiveError',
-      target: '#failure',
-    },
+    READY: { actions: 'sendHello', target: 'idle' },
+    ERROR: { actions: 'receiveError', target: '#failure' },
   },
 
   states: {
@@ -33,10 +27,7 @@ export const protocolMachine: MachineConfig<
       id: 'idle',
       on: {
         // TODO rename HELLO to CLAIM_IDENTITY
-        HELLO: {
-          actions: ['receiveHello'],
-          target: 'connecting',
-        },
+        HELLO: { actions: ['receiveHello'], target: 'connecting' },
       },
     },
 
@@ -51,28 +42,16 @@ export const protocolMachine: MachineConfig<
             initializing: {
               always: [
                 // we can't both present invitations - someone has to be a member
-                {
-                  cond: 'bothHaveInvitation',
-                  actions: 'failNeitherIsMember',
-                  target: '#failure',
-                },
+                { cond: 'bothHaveInvitation', actions: 'failNeitherIsMember', target: '#failure' },
 
                 // if I have an invitation, wait for acceptance
-                {
-                  cond: 'iHaveInvitation',
-                  target: 'waiting',
-                },
+                { cond: 'iHaveInvitation', target: 'waiting' },
 
                 // if they have an invitation, validate it
-                {
-                  cond: 'theyHaveInvitation',
-                  target: 'validating',
-                },
+                { cond: 'theyHaveInvitation', target: 'validating' },
 
                 // otherwise, we can proceed directly to authentication
-                {
-                  target: '#authenticating',
-                },
+                { target: '#authenticating' },
               ],
             },
 
@@ -88,10 +67,7 @@ export const protocolMachine: MachineConfig<
                   },
 
                   // if it's not, disconnect with error
-                  {
-                    actions: 'rejectTeam',
-                    target: '#failure',
-                  },
+                  { actions: 'rejectTeam', target: '#failure' },
                 ],
               },
               ...timeout,
@@ -108,10 +84,7 @@ export const protocolMachine: MachineConfig<
                 },
 
                 // if the proof fails, disconnect with error
-                {
-                  actions: 'rejectInvitation',
-                  target: '#failure',
-                },
+                { actions: 'rejectInvitation', target: '#failure' },
               ],
             },
           },
@@ -132,10 +105,7 @@ export const protocolMachine: MachineConfig<
               states: {
                 awaitingChallenge: {
                   // if we just presented an invitation, we can skip this
-                  always: {
-                    cond: 'iHaveInvitation',
-                    target: 'done',
-                  },
+                  always: { cond: 'iHaveInvitation', target: 'done' },
 
                   on: {
                     CHALLENGE_IDENTITY: {
@@ -151,9 +121,7 @@ export const protocolMachine: MachineConfig<
                 // wait for a message confirming that they've validated our proof of identity
                 awaitingAcceptance: {
                   on: {
-                    ACCEPT_IDENTITY: {
-                      target: 'done',
-                    },
+                    ACCEPT_IDENTITY: { target: 'done' },
                   },
                   ...timeout,
                 },
@@ -171,10 +139,7 @@ export const protocolMachine: MachineConfig<
                 challenging: {
                   always: [
                     // if they just presented an invitation, they've already proven their identity - we can move on
-                    {
-                      cond: 'theyHaveInvitation',
-                      target: 'done',
-                    },
+                    { cond: 'theyHaveInvitation', target: 'done' },
 
                     // we received their identity claim in their HELLO message
                     // if we have a member & device by that name on the team, send a challenge
@@ -190,34 +155,22 @@ export const protocolMachine: MachineConfig<
                   on: {
                     PROVE_IDENTITY: [
                       // if the proof succeeds, we're done on our side
-                      {
-                        cond: 'identityProofIsValid',
-                        actions: 'acceptIdentity',
-                        target: 'done',
-                      },
+                      { cond: 'identityProofIsValid', actions: 'acceptIdentity', target: 'done' },
 
                       // if the proof fails, disconnect with error
-                      {
-                        actions: 'rejectIdentityProof',
-                        target: '#failure',
-                      },
+                      { actions: 'rejectIdentityProof', target: '#failure' },
                     ],
                   },
                   ...timeout,
                 },
 
-                done: {
-                  type: 'final',
-                },
+                done: { type: 'final' },
               },
             },
           },
 
           // Once BOTH processes complete, we continue
-          onDone: {
-            actions: ['storePeer'],
-            target: '#connecting.done',
-          },
+          onDone: { actions: 'storePeer', target: '#connecting.done' },
         },
 
         done: {
@@ -225,12 +178,7 @@ export const protocolMachine: MachineConfig<
         },
       },
 
-      onDone: [
-        {
-          actions: 'sendSyncMessage',
-          target: '#synchronizing',
-        },
-      ],
+      onDone: { actions: 'sendSyncMessage', target: '#synchronizing' },
     },
 
     synchronizing: {
@@ -238,10 +186,7 @@ export const protocolMachine: MachineConfig<
       id: 'synchronizing',
       always: { cond: 'headsAreEqual', target: '#negotiating' },
       on: {
-        SYNC: {
-          actions: ['receiveSyncMessage', 'sendSyncMessage'],
-          target: '#synchronizing',
-        },
+        SYNC: { actions: ['receiveSyncMessage', 'sendSyncMessage'], target: '#synchronizing' },
       },
       // add listener to team, so we sync any further updates as needed
       exit: 'listenForTeamUpdates',
@@ -255,30 +200,18 @@ export const protocolMachine: MachineConfig<
         sendingSeed: {
           initial: 'sending',
           states: {
-            sending: {
-              entry: 'sendSeed',
-              always: 'done',
-            },
-            done: {
-              type: 'final',
-            },
+            sending: { entry: 'sendSeed', always: 'done' },
+            done: { type: 'final' },
           },
         },
         receivingSeed: {
           initial: 'waiting',
           on: {
-            SEED: {
-              actions: 'receiveSeed',
-              target: 'receivingSeed.done',
-            },
+            SEED: { actions: 'receiveSeed', target: 'receivingSeed.done' },
           },
           states: {
-            waiting: {
-              ...timeout,
-            },
-            done: {
-              type: 'final',
-            },
+            waiting: { ...timeout },
+            done: { type: 'final' },
           },
         },
       },
@@ -290,32 +223,17 @@ export const protocolMachine: MachineConfig<
 
     connected: {
       // if the peer is no longer on the team, disconnect
-      always: {
-        cond: 'peerWasRemoved',
-        actions: 'failPeerWasRemoved',
-        target: 'disconnected',
-      },
+      always: { cond: 'peerWasRemoved', actions: 'failPeerWasRemoved', target: 'disconnected' },
 
       on: {
         // if something changes locally, send them a sync message
-        LOCAL_UPDATE: {
-          actions: ['sendSyncMessage'],
-        },
+        LOCAL_UPDATE: { actions: 'sendSyncMessage' },
 
         // if they send a sync message, process it
-        SYNC: {
-          actions: [
-            { cond: 'headsAreDifferent', type: 'receiveSyncMessage' },
-            { cond: 'headsAreDifferent', type: 'onUpdated' },
-          ],
-          target: ['connected'],
-        },
+        SYNC: { actions: ['receiveSyncMessage', 'onUpdated'], target: 'connected' },
 
         // deliver any encrypted messages
-        ENCRYPTED_MESSAGE: {
-          actions: ['receiveEncryptedMessage'],
-          target: 'connected',
-        },
+        ENCRYPTED_MESSAGE: { actions: 'receiveEncryptedMessage', target: 'connected' },
 
         DISCONNECT: '#disconnected',
       },
@@ -328,7 +246,7 @@ export const protocolMachine: MachineConfig<
 
     disconnected: {
       id: 'disconnected',
-      entry: ['onDisconnected'],
+      entry: 'onDisconnected',
     },
   },
 }
