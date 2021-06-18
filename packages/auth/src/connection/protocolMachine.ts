@@ -31,7 +31,6 @@ export const protocolMachine: MachineConfig<
     // TODO rename idle to awaitingIdentityClaim
     idle: {
       id: 'idle',
-      meta: { label: 'Idle' },
       on: {
         // TODO rename HELLO to CLAIM_IDENTITY
         HELLO: {
@@ -43,16 +42,13 @@ export const protocolMachine: MachineConfig<
 
     connecting: {
       id: 'connecting',
-      meta: { label: 'Connecting' },
       initial: 'invitation',
 
       states: {
         invitation: {
-          meta: { label: 'Processing invitations' },
           initial: 'initializing',
           states: {
             initializing: {
-              meta: { label: 'Looking for invitations' },
               always: [
                 // we can't both present invitations - someone has to be a member
                 {
@@ -82,7 +78,6 @@ export const protocolMachine: MachineConfig<
 
             waiting: {
               // wait for them to validate the invitation we've shown
-              meta: { label: 'Waiting for them to validate our invitation' },
               on: {
                 ACCEPT_INVITATION: [
                   // make sure the team I'm joining is actually the one that invited me
@@ -103,7 +98,6 @@ export const protocolMachine: MachineConfig<
             },
 
             validating: {
-              meta: { label: 'Validating their invitation' },
               always: [
                 // if the proof succeeds, add them to the team and send a welcome message,
                 // then proceed to the standard identity claim & challenge process
@@ -125,7 +119,6 @@ export const protocolMachine: MachineConfig<
 
         authenticating: {
           id: 'authenticating',
-          meta: { label: 'Authenticating' },
 
           // peers mutually authenticate to each other, so we have to complete two parallel processes:
           // 1. prove our identity
@@ -138,8 +131,6 @@ export const protocolMachine: MachineConfig<
               initial: 'awaitingChallenge',
               states: {
                 awaitingChallenge: {
-                  meta: { label: 'Waiting for them to challenge our identity' },
-
                   // if we just presented an invitation, we can skip this
                   always: {
                     cond: 'iHaveInvitation',
@@ -159,7 +150,6 @@ export const protocolMachine: MachineConfig<
 
                 // wait for a message confirming that they've validated our proof of identity
                 awaitingAcceptance: {
-                  meta: { label: 'Waiting for them to validate our identity proof' },
                   on: {
                     ACCEPT_IDENTITY: {
                       target: 'done',
@@ -169,7 +159,6 @@ export const protocolMachine: MachineConfig<
                 },
 
                 done: {
-                  meta: { label: 'Proved our identity' },
                   type: 'final',
                 },
               },
@@ -180,8 +169,6 @@ export const protocolMachine: MachineConfig<
               initial: 'challenging',
               states: {
                 challenging: {
-                  meta: { label: 'Challenging their identity' },
-
                   always: [
                     // if they just presented an invitation, they've already proven their identity - we can move on
                     {
@@ -200,7 +187,6 @@ export const protocolMachine: MachineConfig<
 
                 // then wait for them to respond to the challenge with proof
                 waiting: {
-                  meta: { label: 'Waiting for their proof of identity' },
                   on: {
                     PROVE_IDENTITY: [
                       // if the proof succeeds, we're done on our side
@@ -221,7 +207,6 @@ export const protocolMachine: MachineConfig<
                 },
 
                 done: {
-                  meta: { label: 'Confirmed their identity' },
                   type: 'final',
                 },
               },
@@ -236,139 +221,53 @@ export const protocolMachine: MachineConfig<
         },
 
         done: {
-          meta: { label: 'Done authenticating' },
           type: 'final',
         },
       },
 
       onDone: [
         {
-          actions: [
-            'listenForTeamUpdates', // add listener to team, so we sync updates as needed
-          ],
-          target: '#negotiating',
+          actions: 'sendSyncMessage',
+          target: '#synchronizing',
         },
       ],
     },
 
-    // synchronizing: {
-    //   // having established each others' identities, we now make sure that our team signature chains are up to date
-    //   id: 'synchronizing',
-    //   meta: { label: 'Synchronizing' },
-    //   initial: 'sendingUpdate',
-    //   on: {
-    //     // when they send us their head & hashes, receive them
-    //     UPDATE: [
-    //       {
-    //         actions: 'recordTheirHead',
-    //         target: 'synchronizing.receivingUpdate',
-    //       },
-    //     ],
-
-    //     // when they send us missing links, add them to our chain
-    //     MISSING_LINKS: {
-    //       actions: ['recordTheirHead', 'receiveMissingLinks'],
-    //       target: 'synchronizing.receivingMissingLinks',
-    //     },
-    //   },
-
-    //   states: {
-    //     sendingUpdate: {
-    //       meta: { label: 'Sending updated state' },
-    //       entry: 'sendUpdate',
-    //       always: 'waiting',
-    //     },
-
-    //     receivingUpdate: {
-    //       meta: { label: 'Receiving updated state' },
-    //       always: [
-    //         // if our heads are equal, we're done
-    //         { cond: 'headsAreEqual', target: 'done' },
-    //         // otherwise see if we have anything they don't
-    //         { target: 'sendingMissingLinks' },
-    //       ],
-    //     },
-
-    //     sendingMissingLinks: {
-    //       meta: { label: 'Sending missing links' },
-    //       entry: 'sendMissingLinks',
-    //       always: 'waiting',
-    //     },
-
-    //     receivingMissingLinks: {
-    //       meta: { label: 'Receiving missing links' },
-    //       always: [
-    //         // if our heads are now equal, we're done
-    //         { cond: 'headsAreEqual', target: 'done' },
-    //         // otherwise we're waiting for them to get missing links from us & confirm
-    //         { target: 'waiting' },
-    //       ],
-    //       exit: [
-    //         'storePeer', // we might have received new peer info (e.g. keys)
-    //         'sendUpdate', // either way let them know our status
-    //       ],
-    //     },
-
-    //     waiting: {
-    //       meta: { label: 'Waiting for state update' },
-    //       ...timeout,
-    //     },
-
-    //     done: {
-    //       meta: { label: 'Done synchronizing' },
-    //       type: 'final',
-    //     },
-    //   },
-
-    //   onDone: [
-    //     // after our first synchronization, we still need to negotiate a session key
-    //     {
-    //       cond: 'dontHaveSessionkey',
-    //       actions: [
-    //         'listenForTeamUpdates', // add listener to team, so we trigger this process again if needed
-    //         'generateSeed',
-    //       ],
-    //       target: 'negotiating',
-    //     },
-
-    //     // if the peer is no longer on the team, disconnect
-    //     {
-    //       cond: 'peerWasRemoved',
-    //       actions: 'failPeerWasRemoved',
-    //       target: 'disconnected',
-    //     },
-
-    //     // on following updates, once we're done syncing we just go back to being connected
-    //     {
-    //       actions: 'onUpdated',
-    //       target: 'connected',
-    //     },
-    //   ],
-    // },
+    synchronizing: {
+      // having established each others' identities, we now make sure that our team signature chains are up to date
+      id: 'synchronizing',
+      always: {
+        cond: 'headsAreEqual',
+        actions: 'listenForTeamUpdates',
+        target: '#negotiating',
+      },
+      on: {
+        SYNC: {
+          actions: ['receiveSyncMessage', 'sendSyncMessage'],
+          target: '#synchronizing',
+        },
+      },
+    },
 
     negotiating: {
-      meta: { label: 'Negotiating encryption key' },
+      id: 'negotiating',
       type: 'parallel',
       entry: 'generateSeed',
       states: {
         sendingSeed: {
-          meta: { label: 'Sending seed' },
           initial: 'sending',
           states: {
             sending: {
-              meta: { label: 'Sending seed' },
               entry: 'sendSeed',
               always: 'done',
             },
             done: {
-              meta: { label: 'Sent seed' },
               type: 'final',
             },
           },
         },
         receivingSeed: {
           initial: 'waiting',
-          meta: { label: 'Receiving seed' },
           on: {
             SEED: {
               actions: 'receiveSeed',
@@ -377,11 +276,9 @@ export const protocolMachine: MachineConfig<
           },
           states: {
             waiting: {
-              meta: { label: 'Waiting for seed' },
               ...timeout,
             },
             done: {
-              meta: { label: 'Received seed' },
               type: 'final',
             },
           },
@@ -394,16 +291,14 @@ export const protocolMachine: MachineConfig<
     },
 
     connected: {
-      meta: { label: 'Connected' },
-      entry: [
-        // if the peer is no longer on the team, disconnect
-        {
-          cond: 'peerWasRemoved',
-          type: 'failPeerWasRemoved',
-          target: 'disconnected',
-        },
-        'sendSyncMessage',
-      ],
+      // entry: , // add listener to team, so we sync any further updates as needed
+
+      always: {
+        cond: 'peerWasRemoved',
+        actions: 'failPeerWasRemoved',
+        target: 'disconnected',
+      },
+
       on: {
         // if something changes locally, send them a sync message
         LOCAL_UPDATE: {
@@ -412,8 +307,16 @@ export const protocolMachine: MachineConfig<
 
         // if they send a sync message, process it
         SYNC: {
-          actions: ['receiveSyncMessage'],
-          target: 'connected',
+          actions: [
+            {
+              cond: 'headsAreDifferent',
+              type: 'receiveSyncMessage',
+            },
+          ],
+          target: [
+            // if the peer is no longer on the team, disconnect
+            'connected',
+          ],
         },
 
         // deliver any encrypted messages
@@ -433,7 +336,6 @@ export const protocolMachine: MachineConfig<
 
     disconnected: {
       id: 'disconnected',
-      meta: { label: 'Disconnected' },
       entry: ['onDisconnected'],
     },
   },
