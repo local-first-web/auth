@@ -8,7 +8,6 @@ import {
   EncryptedMessage,
   ErrorMessage,
   HelloMessage,
-  LocalUpdateMessage,
   NumberedConnectionMessage,
   ProveIdentityMessage,
   SeedMessage,
@@ -454,53 +453,30 @@ export class Connection extends EventEmitter {
 
       const [newSyncState, syncMessage] = sync.generateMessage(context.team.chain, syncState)
       context.syncState = newSyncState
-
-      this.sendMessage({
-        type: 'SYNC',
-        payload: syncMessage,
-      })
+      if (syncMessage !== undefined) {
+        this.sendMessage({
+          type: 'SYNC',
+          payload: syncMessage,
+        })
+      }
     },
 
-    receiveSyncMessage: assign({
-      team: (context, event) => {
-        assert(context.team)
+    receiveSyncMessage: assign((context, event) => {
+      assert(context.team)
 
-        const chain = context.team.chain
-        const syncState = context.syncState ?? sync.initSyncState()
-        const syncMessage = (event as SyncMessage).payload
-        const [newChain, newSyncState] = sync.receiveMessage(chain, syncState, syncMessage)
-        context.syncState = newSyncState
+      const chain = context.team.chain
+      const oldSyncState = context.syncState ?? sync.initSyncState()
+      const syncMessage = (event as SyncMessage).payload
 
-        return context.team.merge(newChain)
-      },
+      const [newChain, syncState] = sync.receiveMessage(chain, oldSyncState, syncMessage)
+      const team = context.team.merge(newChain)
+
+      return {
+        ...context,
+        syncState,
+        team,
+      }
     }),
-
-    // recordTheirHead: assign({
-    //   theirHead: (_, event) => {
-    //     const { payload } = event as UpdateMessage | MissingLinksMessage
-    //     return payload.head
-    //   },
-    // }),
-
-    // sendMissingLinks: (context, event) => {
-    //   assert(context.team)
-    //   const { payload } = event as UpdateMessage
-    //   const links = context.team.getMissingLinks(payload)
-    //   if (links.length > 0) {
-    //     this.sendMessage({
-    //       type: 'MISSING_LINKS',
-    //       payload: { head: context.team.chain.head, links },
-    //     })
-    //   }
-    // },
-
-    // receiveMissingLinks: assign({
-    //   team: (context, event) => {
-    //     assert(context.team)
-    //     const { payload } = event as MissingLinksMessage
-    //     return context.team.receiveMissingLinks(payload)
-    //   },
-    // }),
 
     // negotiating
 
@@ -665,16 +641,16 @@ export class Connection extends EventEmitter {
       const theirHead =
         event.type === 'SYNC'
           ? event.payload.head // take from message
-          : context.theirHead // use what we already have in context
+          : context.syncState?.theirHead // use what we already have in context
 
       const ourHead = context.team.chain.head
 
       return ourHead === theirHead
     },
 
-    headsAreDifferent: (...args) => !this.guards.headsAreEqual(...args),
-
-    dontHaveSessionkey: context => context.sessionKey === undefined,
+    headsAreDifferent: (...args) => {
+      return !this.guards.headsAreEqual(...args)
+    },
   }
 
   // helpers
