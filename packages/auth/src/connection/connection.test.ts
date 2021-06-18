@@ -1,5 +1,4 @@
-﻿import { KeyType } from '@/keyset'
-import { ADMIN } from '@/role'
+﻿import { ADMIN } from '@/role'
 import * as teams from '@/team'
 import { debug } from '@/util'
 import {
@@ -20,10 +19,8 @@ import { pause } from '@/util/testing/pause'
 
 const log = debug('lf:auth:test')
 
-beforeAll(() => {})
-
 describe('connection', () => {
-  it.only('connects two members', async () => {
+  it('connects two members', async () => {
     const { alice, bob } = setup('alice', 'bob')
 
     // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel
@@ -231,7 +228,6 @@ describe('connection', () => {
 
     // ✅ Alice is no longer on the team 👩🏾👎
     expect(bob.team.has('alice')).toBe(false)
-    expect(alice.team.has('alice')).toBe(false)
   })
 
   it('connects an invitee with a member', async () => {
@@ -324,66 +320,6 @@ describe('connection', () => {
 
     // ✅
     expectEveryoneToKnowEveryone(alice, charlie, bob)
-  })
-
-  // TODO: need to think some more about how to handle a situation where two members concurrently invite the same person.
-
-  it.skip('resolves concurrent duplicate invitations when updating', async () => {
-    const { alice, bob, charlie, dwight } = setup([
-      'alice',
-      'bob',
-      { user: 'charlie', member: false },
-      { user: 'dwight', member: false },
-    ])
-
-    // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie and Dwight
-    const aliceInvitesCharlie = alice.team.inviteMember()
-    const aliceInvitesDwight = alice.team.inviteMember() // invitation unused, but that's OK
-
-    // 👨🏻‍🦲📧👳🏽‍♂️👴 concurrently, Bob invites Charlie and Dwight
-    const bobInvitesCharlie = bob.team.inviteMember() // invitation unused, but that's OK
-    const bobInvitesDwight = bob.team.inviteMember()
-
-    // 👳🏽‍♂️📧<->👩🏾 Charlie connects to Alice and uses his invitation to join
-    log('Charlie connects to Alice and uses his invitation to join')
-    await connectWithInvitation(alice, charlie, aliceInvitesCharlie.seed)
-
-    // 👴📧<->👨🏻‍🦲 Dwight connects to Bob and uses his invitation to join
-    log('Dwight connects to Bob and uses his invitation to join')
-    await connectWithInvitation(bob, dwight, bobInvitesDwight.seed)
-
-    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
-    log('Alice and Bob connect')
-    await connect(alice, bob)
-
-    // ✅ No problemo
-    log('No problemo')
-    expectEveryoneToKnowEveryone(alice, charlie, bob, dwight)
-  })
-
-  it.skip(`handles concurrent admittance of the same invitation`, async () => {
-    const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
-
-    // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie
-    const { seed } = alice.team.inviteMember()
-
-    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect, so Bob knows about the invitation
-    await connect(alice, bob)
-    await disconnect(alice, bob)
-
-    await Promise.all([
-      // 👳🏽‍♂️📧<->👩🏾 Charlie presents his invitation to Alice
-      connectWithInvitation(alice, charlie, seed),
-
-      // 👳🏽‍♂️📧<-> 👨🏻‍🦲 concurrently Charlie presents his invitation to Bob
-      connectWithInvitation(bob, charlie, seed),
-    ])
-
-    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
-    await connect(alice, bob)
-
-    // ✅ It all works out
-    expectEveryoneToKnowEveryone(alice, bob, charlie)
   })
 
   it('resolves mutual demotions in favor of the senior member', async () => {
@@ -663,8 +599,7 @@ describe('connection', () => {
     expect(isAdmin('charlie')).toBe(true)
   })
 
-  // TODO: not clear what's supposed to be happpening here
-  it.skip('connects an invitee while simultaneously making other changes', async () => {
+  it('connects an invitee while simultaneously making other changes', async () => {
     const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
     // 👩🏾📧👨🏻‍🦲 Alice invites Bob
@@ -729,9 +664,6 @@ describe('connection', () => {
     alice.team.remove('bob')
     await disconnection(alice, bob)
 
-    // 👨🏻‍🦲 Bob no longer has admin keys
-    expect(() => bob.team.adminKeys()).toThrow()
-
     // The admin keys and team keys have been rotated
     expect(alice.team.adminKeys().generation).toBe(1)
     expect(alice.team.teamKeys().generation).toBe(1)
@@ -763,11 +695,52 @@ describe('connection', () => {
     expect(alice.team.teamKeys().generation).toBe(0)
   })
 
-  // TODO: Alice is no longer syncing after the first change
-  it.skip(`Eve steals Bob's phone; Bob heals the team`, async () => {
+  it('Alice promotes Bob then demotes him', async () => {
+    const { alice, bob } = setup('alice', { user: 'bob', member: false })
+    const { seed } = alice.team.inviteMember()
+    await connectWithInvitation(alice, bob, seed)
+
+    // 👨🏻‍🦲 Bob is not an admin
+    expect(bob.team.memberIsAdmin('bob')).toBe(false)
+
+    // 👩🏾 Alice promotes Bob
+    alice.team.addMemberRole('bob', ADMIN)
+    await updated(alice, bob)
+
+    // 👨🏻‍🦲 Bob sees that he is admin
+    expect(bob.team.memberIsAdmin('bob')).toBe(true)
+
+    // 👩🏾 Alice demotes Bob
+    alice.team.removeMemberRole('bob', ADMIN)
+    await updated(alice, bob)
+
+    // 👨🏻‍🦲 Bob sees that he is no longer admin
+    expect(bob.team.memberIsAdmin('bob')).toBe(false)
+  })
+
+  it('allows Alice and Bob to send each other encrypted messages', async done => {
+    const { alice, bob } = setup('alice', 'bob')
+
+    // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel
+    await connect(alice, bob)
+
+    // 👨🏻‍🦲 Bob sets up his message handler
+    bob.connection.alice.once('message', receiveMessage)
+
+    // 👩🏾 Alice sends a message
+    alice.connection.bob.send('hello')
+
+    // 👨🏻‍🦲 Bob receives it
+    function receiveMessage(d: string) {
+      expect(d).toEqual('hello')
+      done()
+    }
+  })
+
+  it(`Eve steals Bob's phone; Bob heals the team`, async () => {
     const { alice, bob, charlie } = setup('alice', 'bob', 'charlie')
     await connect(alice, bob)
-    // await connect(bob, charlie)
+    await connect(bob, charlie)
 
     // Bob invites his phone and it joins
     const { seed } = bob.team.inviteDevice()
@@ -781,7 +754,7 @@ describe('connection', () => {
 
     // From his laptop, Bob removes his phone from the team
     bob.team.removeDevice('bob', 'bob::phone')
-    // await updated(alice, bob)
+    await updated(alice, bob)
 
     expect(bob.team.members('bob').devices).toHaveLength(1)
 
@@ -790,24 +763,20 @@ describe('connection', () => {
     // Alice can see that Bob only has one device
     expect(alice.team.members('bob').devices).toHaveLength(1)
 
-    // // The keys have been rotated again
-    // expect(charlie.team.adminKeys().generation).toBe(2)
-    // expect(charlie.team.teamKeys().generation).toBe(2)
+    // Eve tries to connect to Charlie from Bob's phone, but she can't
+    const phoneContext = {
+      device: bob.phone,
+      user: bob.user,
+      team: bob.team,
+    }
 
-    // // Eve tries to connect to Charlie from Bob's phone, but she can't
-    // const phoneContext = {
-    //   device: bob.phone,
-    //   user: bob.user,
-    //   team: bob.team,
-    // }
+    const join = joinTestChannel(new TestChannel())
 
-    // const join = joinTestChannel(new TestChannel())
+    const eveOnBobsPhone = join(phoneContext).start()
+    const heyCharlie = join(charlie.context).start()
 
-    // const eveOnBobsPhone = join(phoneContext).start()
-    // const heyCharlie = join(charlie.context).start()
-
-    // // GRRR foiled again
-    // await all([eveOnBobsPhone, heyCharlie], 'disconnected')
+    // GRRR foiled again
+    await all([eveOnBobsPhone, heyCharlie], 'disconnected')
   })
 
   it.skip(`Eve steals Bob's laptop; Alice heals the team`, async () => {
@@ -847,45 +816,63 @@ describe('connection', () => {
     // -
   })
 
-  it('allows Alice and Bob to send each other encrypted messages', async done => {
-    const { alice, bob } = setup('alice', 'bob')
+  // TODO: need to think some more about how to handle a situation where two members concurrently invite the same person.
 
-    // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel
+  it.skip('resolves concurrent duplicate invitations when updating', async () => {
+    const { alice, bob, charlie, dwight } = setup([
+      'alice',
+      'bob',
+      { user: 'charlie', member: false },
+      { user: 'dwight', member: false },
+    ])
+
+    // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie and Dwight
+    const aliceInvitesCharlie = alice.team.inviteMember()
+    const aliceInvitesDwight = alice.team.inviteMember() // invitation unused, but that's OK
+
+    // 👨🏻‍🦲📧👳🏽‍♂️👴 concurrently, Bob invites Charlie and Dwight
+    const bobInvitesCharlie = bob.team.inviteMember() // invitation unused, but that's OK
+    const bobInvitesDwight = bob.team.inviteMember()
+
+    // 👳🏽‍♂️📧<->👩🏾 Charlie connects to Alice and uses his invitation to join
+    log('Charlie connects to Alice and uses his invitation to join')
+    await connectWithInvitation(alice, charlie, aliceInvitesCharlie.seed)
+
+    // 👴📧<->👨🏻‍🦲 Dwight connects to Bob and uses his invitation to join
+    log('Dwight connects to Bob and uses his invitation to join')
+    await connectWithInvitation(bob, dwight, bobInvitesDwight.seed)
+
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
+    log('Alice and Bob connect')
     await connect(alice, bob)
 
-    // 👨🏻‍🦲 Bob sets up his message handler
-    bob.connection.alice.once('message', receiveMessage)
-
-    // 👩🏾 Alice sends a message
-    alice.connection.bob.send('hello')
-
-    // 👨🏻‍🦲 Bob receives it
-    function receiveMessage(d: string) {
-      expect(d).toEqual('hello')
-      done()
-    }
+    // ✅ No problemo
+    log('No problemo')
+    expectEveryoneToKnowEveryone(alice, charlie, bob, dwight)
   })
 
-  it('Alice promotes Bob then demotes him', async () => {
-    const { alice, bob } = setup('alice', { user: 'bob', member: false })
+  it.skip(`handles concurrent admittance of the same invitation`, async () => {
+    const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+
+    // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie
     const { seed } = alice.team.inviteMember()
-    await connectWithInvitation(alice, bob, seed)
 
-    // 👨🏻‍🦲 Bob is not an admin
-    expect(bob.team.memberIsAdmin('bob')).toBe(false)
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect, so Bob knows about the invitation
+    await connect(alice, bob)
+    await disconnect(alice, bob)
 
-    // 👩🏾 Alice promotes Bob
-    alice.team.addMemberRole('bob', ADMIN)
-    await updated(alice, bob)
+    await Promise.all([
+      // 👳🏽‍♂️📧<->👩🏾 Charlie presents his invitation to Alice
+      connectWithInvitation(alice, charlie, seed),
 
-    // 👨🏻‍🦲 Bob sees that he is admin
-    expect(bob.team.memberIsAdmin('bob')).toBe(true)
+      // 👳🏽‍♂️📧<-> 👨🏻‍🦲 concurrently Charlie presents his invitation to Bob
+      connectWithInvitation(bob, charlie, seed),
+    ])
 
-    // 👩🏾 Alice demotes Bob
-    alice.team.removeMemberRole('bob', ADMIN)
-    await updated(alice, bob)
+    // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
+    await connect(alice, bob)
 
-    // 👨🏻‍🦲 Bob sees that he is no longer admin
-    expect(bob.team.memberIsAdmin('bob')).toBe(false)
+    // ✅ It all works out
+    expectEveryoneToKnowEveryone(alice, bob, charlie)
   })
 })
