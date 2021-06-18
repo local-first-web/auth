@@ -236,17 +236,15 @@ export const protocolMachine: MachineConfig<
     synchronizing: {
       // having established each others' identities, we now make sure that our team signature chains are up to date
       id: 'synchronizing',
-      always: {
-        cond: 'headsAreEqual',
-        actions: 'listenForTeamUpdates',
-        target: '#negotiating',
-      },
+      always: { cond: 'headsAreEqual', target: '#negotiating' },
       on: {
         SYNC: {
           actions: ['receiveSyncMessage', 'sendSyncMessage'],
           target: '#synchronizing',
         },
       },
+      // add listener to team, so we sync any further updates as needed
+      exit: 'listenForTeamUpdates',
     },
 
     negotiating: {
@@ -291,8 +289,7 @@ export const protocolMachine: MachineConfig<
     },
 
     connected: {
-      // entry: , // add listener to team, so we sync any further updates as needed
-
+      // if the peer is no longer on the team, disconnect
       always: {
         cond: 'peerWasRemoved',
         actions: 'failPeerWasRemoved',
@@ -308,15 +305,10 @@ export const protocolMachine: MachineConfig<
         // if they send a sync message, process it
         SYNC: {
           actions: [
-            {
-              cond: 'headsAreDifferent',
-              type: 'receiveSyncMessage',
-            },
+            { cond: 'headsAreDifferent', type: 'receiveSyncMessage' },
+            { cond: 'headsAreDifferent', type: 'onUpdated' },
           ],
-          target: [
-            // if the peer is no longer on the team, disconnect
-            'connected',
-          ],
+          target: ['connected'],
         },
 
         // deliver any encrypted messages
