@@ -127,16 +127,7 @@ export interface ConnectionState {
       }
     }
 
-    // synchronizing: {
-    //   states: {
-    //     sendingUpdate: {}
-    //     receivingUpdate: {}
-    //     sendingMissingLinks: {}
-    //     receivingMissingLinks: {}
-    //     waiting: {}
-    //     done: {}
-    //   }
-    // }
+    synchronizing: {}
 
     negotiating: {
       states: {
