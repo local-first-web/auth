@@ -3,13 +3,22 @@ import { Action, SignatureChain, getPredecessors, TeamSignatureChain } from '@/c
 import { Hash } from '@/util'
 import { SyncState, SyncPayload } from './types'
 import { TruncatedHashFilter } from './TruncatedHashFilter'
+import { assert, debug } from '@/util'
 
 export * from './types'
+
+const log = debug('lf:auth:sync')
 
 export const generateMessage = <A extends Action>(
   chain: SignatureChain<A>,
   syncState: SyncState
-): [SyncState, SyncPayload<A>] => {
+): [SyncState, SyncPayload<A> | undefined] => {
+  // log({ ourHead: syncState.ourHead, chainHead: chain.head, theirHead: syncState.theirHead })
+  if (syncState.ourHead === chain.head && syncState.theirHead === chain.head) {
+    // already synced up
+    return [syncState, undefined]
+  }
+
   // const { commonHead, theirNeed } = syncState
   const { root, head } = chain
 
@@ -48,6 +57,7 @@ export const generateMessage = <A extends Action>(
   const links = chain.links
 
   const syncMessage: SyncPayload<A> = { root, head, links, have, need }
+  log('generateMessage %o', { syncState, syncMessage })
   return [newSyncState, syncMessage]
 }
 
@@ -57,9 +67,15 @@ export const receiveMessage = <A extends Action>(
   syncMessage: SyncPayload<A>
 ): [SignatureChain<A>, SyncState] => {
   const { root, head, links } = syncMessage
+
   const theirChain = { root, head, links } as SignatureChain<A>
   const newChain = chains.merge(chain, theirChain)
-  return [newChain, syncState]
+  const newSyncState = {
+    ...syncState,
+    theirHead: head,
+  }
+  log('receiveMessage %o', { syncMessage, syncState, newSyncState })
+  return [newChain, newSyncState]
 }
 
 export const initSyncState = (): SyncState => ({
