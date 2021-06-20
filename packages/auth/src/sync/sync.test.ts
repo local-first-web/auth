@@ -1,5 +1,6 @@
 import {
   logMessages,
+  NetworkMessage,
   setupWithNetwork as setup,
   UserStuffWithPeer as UserStuff,
 } from '@/util/testing'
@@ -40,13 +41,12 @@ describe('sync', () => {
     // Alice exchanges sync messages with Bob
     alice.peer.sync()
     const msgs = network.deliverAll()
-    logMessages(msgs)
 
     // Now they are synced up again
     expectToBeSynced(alice, bob)
   })
 
-  it.only('many changes followed by a single change', () => {
+  it('many changes followed by a single change', () => {
     const [{ alice, bob }, network] = setup('alice', 'bob')
     network.connect(alice.peer, bob.peer)
 
@@ -57,20 +57,20 @@ describe('sync', () => {
     }
     alice.peer.sync()
     const msgs1 = network.deliverAll()
+    expect(countLinks(msgs1)).toEqual(10)
 
-    logMessages(msgs1)
     // they're synced up again
     expectToBeSynced(alice, bob)
 
-    console.log('- - - - - - - - - - - - ')
-
+    // Alice makes one more change
     alice.team.addRole(`one-more-role`)
     alice.peer.sync()
-    const msgs = network.deliverAll()
-    logMessages(msgs)
 
-    // Now they are synced up again
     expectToBeSynced(alice, bob)
+
+    // make sure we didn't send more information that we had to
+    const msgs2 = network.deliverAll()
+    expect(countLinks(msgs2)).toEqual(1)
   })
 
   it('concurrent changes', () => {
@@ -100,4 +100,11 @@ const expectToBeSynced = (a: UserStuff, b: UserStuff) => {
 
 const expectNotToBeSynced = (a: UserStuff, b: UserStuff) => {
   expect(a.team.chain.head).not.toEqual(b.team.chain.head)
+}
+
+const countLinks = (messages: NetworkMessage[]) => {
+  const linkCount = (message: NetworkMessage) =>
+    message.body.links ? Object.keys(message.body.links).length : 0
+
+  return messages.reduce((result, message) => result + linkCount(message), 0)
 }
