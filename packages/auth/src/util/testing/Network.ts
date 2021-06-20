@@ -43,11 +43,14 @@ export class Network {
     const delivered = [] as NetworkMessage[]
 
     while (this.queue.length) {
-      const { to, from, body } = this.queue.shift()
-      delivered.push({ to, from, body })
-      const peer = this.peers[to]
+      const msg = this.queue.shift()
+      const { to, from, body } = msg
+
       log('network: receiving %o', { from, body })
-      peer.receiveMessage(from, body)
+      this.peers[to].receiveMessage(from, body)
+
+      // log the message for the results of this delivery run
+      delivered.push(msg)
 
       // catch failure to converge
       if (messageCount++ > maxMessages) {
