@@ -27,7 +27,7 @@ export const generateMessage = <A extends Action>(
 
   if (weHaveConverged) {
     // we converged with the last message we received
-    // (we still want to send them a final message so they know we're done)
+    // (we still want to send them a final message so theJy know we're done)
     syncState.commonHead = ourHead
   } else if (theyAreBehind) {
     // we are ahead of them , so we know exactly what they need
