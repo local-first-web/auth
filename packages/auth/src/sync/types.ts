@@ -11,6 +11,7 @@ export interface SyncState {
   /** Our head as of the last time we sent a sync message */
   ourHead: Hash | null
 
+  /** Links that we know we need because links we have depend on them */
   ourNeed: Hash[]
 
   /** Their head as of the last time they sent a sync message */
@@ -21,9 +22,6 @@ export interface SyncState {
 
   /** All the links we believe they have */
   theirHave: Hash[]
-
-  /** All the links we've sent them */
-  sentLinks: Hash[]
 }
 
 export interface SyncPayload<A extends Action> {
