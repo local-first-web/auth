@@ -116,7 +116,7 @@ export const setup = (
 
 // TYPES
 
-type TestUserSettings = {
+export type TestUserSettings = {
   user: string
   admin?: boolean
   member?: boolean
