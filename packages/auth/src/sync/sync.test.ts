@@ -25,7 +25,7 @@ describe('sync', () => {
     expectToBeSynced(alice, bob)
   })
 
-  it('lots of changes', () => {
+  it('many changes', () => {
     const [{ alice, bob }, network] = setup('alice', 'bob')
     network.connect(alice.peer, bob.peer)
 
