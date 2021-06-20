@@ -18,7 +18,6 @@ export class Network {
 
   registerPeer(peer: Peer) {
     this.peers[peer.userName] = peer
-    peer.network = this
   }
 
   // Establishes a bidirectionial connection between two peers
@@ -41,7 +40,7 @@ export class Network {
     const peerCount = Object.keys(this.peers).length
     const maxMessages = 5 ** peerCount // rough estimate
 
-    const delivered = [] as any[]
+    const delivered = [] as NetworkMessage[]
 
     while (this.queue.length) {
       const { to, from, body } = this.queue.shift()
@@ -86,7 +85,7 @@ class Peer {
     for (const [userName, prevSyncState] of Object.entries(this.syncStates)) {
       const [syncState, message] = generateMessage(this.team.chain, prevSyncState)
       this.syncStates[userName] = syncState
-      if (message !== undefined) this.network.sendMessage(this.userName, userName, message)
+      if (message) this.network.sendMessage(this.userName, userName, message)
     }
   }
 
@@ -100,12 +99,12 @@ class Peer {
 }
 
 function truncateStack(err: Error, lines = 5) {
-  err.stack = err.stack!.split('\n').slice(1, lines).join('\n') // truncate repetitive stack
+  err.stack = err
+    .stack! //
+    .split('\n')
+    .slice(1, lines)
+    .join('\n') // truncate repetitive stack
   return err
-}
-
-export interface UserStuffWithPeer extends UserStuff {
-  peer: Peer
 }
 
 export const setupWithNetwork = (
@@ -123,7 +122,7 @@ export const setupWithNetwork = (
   return [users, network]
 }
 
-export const logMessages = (msgs: { to: string; from: string; body: SyncPayload<TeamAction> }[]) =>
+export const logMessages = (msgs: NetworkMessage[]) =>
   msgs.forEach(m =>
     console.log(
       `from ${m.from} to ${m.to}: ${truncateHashes(
@@ -131,3 +130,13 @@ export const logMessages = (msgs: { to: string; from: string; body: SyncPayload<
       )}`
     )
   )
+
+export type NetworkMessage = {
+  to: string
+  from: string
+  body: SyncPayload<TeamAction>
+}
+
+export interface UserStuffWithPeer extends UserStuff {
+  peer: Peer
+}
