@@ -23,16 +23,13 @@ export const receiveMessage = <A extends Action>(
   // record any links ; if we're missing any dependencies, note them to ask for them next time
   chain.links = { ...prevChain.links, ...newLinks } as LinkMap<A>
 
-  let ourNeed: Hash[] = []
-  if (theirHead) {
-    const theirChain = { ...chain, head: theirHead }
-    ourNeed = getMissingLinks(theirChain)
+  const theirChain = { ...chain, head: theirHead }
+  const ourNeed = getMissingLinks(theirChain)
 
-    // if we're not missing anything, merge with their chain
-    if (ourNeed.length === 0) {
-      // console.log({ prevChain, theirChain })
-      chain = merge(prevChain, theirChain)
-    }
+  // if we're not missing anything, merge with their chain
+  if (newLinks && ourNeed.length === 0) {
+    // console.log({ prevChain, theirChain })
+    chain = merge(prevChain, theirChain)
   }
   const ourHead = chain.head
 
