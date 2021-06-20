@@ -3,7 +3,6 @@ import { Hash } from '@/util'
 
 export type EncodedFilter = Uint8Array // the encoded output of a probabilistic filter
 
-// TODO will need to figure out serializing/deserializing these sets as arrays
 export interface SyncState {
   /** The head we had in common with this peer the last time we synced. If null, we don't have any
    * record of having synced before. */
@@ -12,6 +11,8 @@ export interface SyncState {
   /** Our head as of the last time we sent a sync message */
   ourHead: Hash | null
 
+  ourNeed: Hash[]
+
   /** Their head as of the last time they sent a sync message */
   theirHead: Hash | null
 
@@ -19,10 +20,10 @@ export interface SyncState {
   theirNeed: Hash[]
 
   /** All the links we believe they have */
-  theirHave: Set<Hash>
+  theirHave: Hash[]
 
   /** All the links we've sent them */
-  sentLinks: Set<Hash>
+  sentLinks: Hash[]
 }
 
 export interface SyncPayload<A extends Action> {
@@ -33,11 +34,11 @@ export interface SyncPayload<A extends Action> {
   head: Hash
 
   /** Any links we know they need. */
-  links: LinkMap<A>
+  links?: LinkMap<A>
 
   /** Any hashes we know we need. */
-  need: Hash[]
+  need?: Hash[]
 
-  /** A byte-array encoding of a probabilistic filter representing the hashes we have and think they may need */
-  have: EncodedFilter
+  /** A byte-array encoding of a probabilistic filter representing the hashes we have  */
+  encodedFilter?: EncodedFilter
 }
