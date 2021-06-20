@@ -19,6 +19,7 @@ export const protocolMachine: MachineConfig<
     // TODO rename sendHello to claimIdentity
     READY: { actions: 'sendHello', target: 'idle' },
     ERROR: { actions: 'receiveError', target: '#failure' },
+    SYNC: [{ actions: ['receiveSyncMessage', 'sendSyncMessage'] }],
   },
 
   states: {
@@ -178,19 +179,10 @@ export const protocolMachine: MachineConfig<
         },
       },
 
-      onDone: { actions: 'sendSyncMessage', target: '#synchronizing' },
+      onDone: { actions: ['sendSyncMessage', 'listenForTeamUpdates'], target: '#negotiating' },
     },
 
-    synchronizing: {
-      // having established each others' identities, we now make sure that our team signature chains are up to date
-      id: 'synchronizing',
-      always: { cond: 'headsAreEqual', target: '#negotiating' },
-      on: {
-        SYNC: { actions: ['receiveSyncMessage', 'sendSyncMessage'], target: '#synchronizing' },
-      },
-      // add listener to team, so we sync any further updates as needed
-      exit: 'listenForTeamUpdates',
-    },
+    synchronizing: {},
 
     negotiating: {
       id: 'negotiating',
