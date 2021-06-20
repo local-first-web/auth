@@ -69,7 +69,7 @@ describe('connection', () => {
     // ✅ all good
   })
 
-  it('updates remote user after connecting', async () => {
+  it.only('updates remote user after connecting', async () => {
     const { alice, bob } = setup('alice', 'bob')
 
     // at this point, Alice and Bob have the same signature chain
