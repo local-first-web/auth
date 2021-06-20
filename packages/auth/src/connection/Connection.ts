@@ -58,7 +58,7 @@ export class Connection extends EventEmitter {
       this.peerUserName = peerUserName
     }
 
-    this.log = debug(`lf:auth:connection:${context.device.keys.name}:${this.peerUserName}`)
+    this.log = debug(`lf:auth:connection:${context.device.userName}:${this.peerUserName}`)
 
     this.sendMessage = (message: ConnectionMessage) => {
       // add a sequential index to any outgoing messages
@@ -242,7 +242,7 @@ export class Connection extends EventEmitter {
           // update peer user name
           const deviceId = event.payload.identityClaim.name
           this.peerUserName = parseDeviceId(deviceId).userName
-          this.log = debug(`lf:auth:connection:${context.device.keys.name}:${deviceId}`)
+          this.log = debug(`lf:auth:connection:${context.device.userName}:${this.peerUserName}`)
 
           return event.payload.identityClaim
         } else {
@@ -283,7 +283,7 @@ export class Connection extends EventEmitter {
           // update peer user name
           const deviceId = event.payload.deviceKeys.name
           this.peerUserName = parseDeviceId(deviceId).userName
-          this.log = debug(`lf:auth:connection:${context.device.keys.name}:${deviceId}`)
+          this.log = debug(`lf:auth:connection:${context.device.userName}:${this.peerUserName}`)
 
           return event.payload.deviceKeys
         } else {
@@ -636,16 +636,15 @@ export class Connection extends EventEmitter {
 
     headsAreEqual: (context, event) => {
       assert(context.team)
-
-      // If their message includes a head, use that; otherwise use the last head we had recorded
-      const theirHead =
-        event.type === 'SYNC'
-          ? event.payload.head // take from message
-          : context.syncState?.theirHead // use what we already have in context
-
       const ourHead = context.team.chain.head
-
-      return ourHead === theirHead
+      if (event.type === 'SYNC') {
+        const { head, need } = event.payload
+        if (head !== ourHead) return false
+        if (need) return false
+        return true
+      } else {
+        return ourHead === context.syncState?.commonHead
+      }
     },
 
     headsAreDifferent: (...args) => {
