@@ -66,11 +66,11 @@ describe('sync', () => {
     alice.team.addRole(`one-more-role`)
     alice.peer.sync()
 
-    expectToBeSynced(alice, bob)
-
     // make sure we didn't send more information that we had to
     const msgs2 = network.deliverAll()
     expect(countLinks(msgs2)).toEqual(1)
+
+    expectToBeSynced(alice, bob)
   })
 
   it('concurrent changes', () => {
