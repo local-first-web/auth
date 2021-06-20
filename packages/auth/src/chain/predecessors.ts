@@ -3,7 +3,7 @@ import * as R from 'ramda'
 import { memoize } from '@/util'
 
 const getPredecessorHashes = memoize((chain: SignatureChain<any>, hash: string): string[] => {
-  const parents = getParentHashes(chain, chain.links[hash])
+  const parents = getParentHashes(chain.links[hash])
   const predecessors = parents.flatMap(parent => getPredecessorHashes(chain, parent))
   return R.uniq(parents.concat(predecessors))
 })
@@ -26,9 +26,9 @@ const getCommonPredecessorHash = memoize(
 )
 
 export const getParents = (chain: SignatureChain<any>, link: Link<any>) =>
-  getParentHashes(chain, link).map(hash => chain.links[hash])
+  getParentHashes(link).map(hash => chain.links[hash])
 
-export const getParentHashes = (chain: SignatureChain<any>, link: Link<any>) =>
+export const getParentHashes = (link: Link<any>): string[] =>
   isRootLink(link)
     ? [] // root link = 0 parents
     : isMergeLink(link)
