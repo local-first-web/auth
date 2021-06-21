@@ -3,7 +3,7 @@ import { arrayToMap, assert, debug } from '@/util'
 import { messageSummary } from '@/util/testing'
 import { TruncatedHashFilter } from './TruncatedHashFilter'
 import { SyncPayload, SyncState } from './types'
-import { unique } from './unique'
+import { unique } from '../util/unique'
 
 const log = debug('lf:auth:sync')
 
