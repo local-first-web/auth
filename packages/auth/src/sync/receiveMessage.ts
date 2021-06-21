@@ -1,16 +1,16 @@
 import { Action, merge, SignatureChain } from '@/chain'
 import { assert, clone, debug, Hash } from '@/util'
-import { messageSummary } from '@/util/testing'
-import * as R from 'ramda'
 import { getMissingLinks } from '../chain/getMissingLinks'
 import { TruncatedHashFilter } from './TruncatedHashFilter'
 import { SyncPayload, SyncState } from './types'
+import { unique } from './unique'
+
 const log = debug('lf:auth:sync')
 
 export const receiveMessage = <A extends Action>(
   prevChain: SignatureChain<A>,
-  prevSyncState: SyncState,
-  syncMessage: SyncPayload<A>
+  prevState: SyncState,
+  message: SyncPayload<A>
 ): [SignatureChain<A>, SyncState] => {
   const {
     root: theirRoot, //
@@ -18,15 +18,15 @@ export const receiveMessage = <A extends Action>(
     links: newLinks = {},
     need = [],
     encodedFilter,
-  } = syncMessage
+  } = message
 
   assert(prevChain.root === theirRoot, `Can't sync chains with different roots`)
 
   let chain = clone(prevChain)
 
-  const theyHaveSent = R.uniq([...prevSyncState.theyHaveSent, ...Object.keys(newLinks)])
+  const theyHaveSent = unique([...prevState.theyHaveSent, ...Object.keys(newLinks)])
 
-  let pendingLinks = { ...prevSyncState.pendingLinks, ...newLinks }
+  let pendingLinks = { ...prevState.pendingLinks, ...newLinks }
 
   let ourNeed: Hash[] = []
 
@@ -48,22 +48,20 @@ export const receiveMessage = <A extends Action>(
 
   let theirNeed = need
   if (!theirNeed.length && encodedFilter && encodedFilter.byteLength) {
-    log('using filter', encodedFilter.length)
-
     const filter = new TruncatedHashFilter().load(encodedFilter)
     for (const hash in chain.links) {
       const theyProbablyHaveHash =
         filter.has(hash) ||
         theirRoot === hash ||
         theirHead === hash ||
-        prevSyncState.weHaveSent.includes(hash) ||
+        prevState.weHaveSent.includes(hash) ||
         theyHaveSent.includes(hash)
       if (!theyProbablyHaveHash) theirNeed.push(hash)
     }
   }
 
-  const syncState: SyncState = {
-    ...prevSyncState,
+  const state: SyncState = {
+    ...prevState,
     ourHead,
     theirHead,
     ourNeed,
@@ -72,6 +70,5 @@ export const receiveMessage = <A extends Action>(
     pendingLinks,
   }
 
-  // log('receiveMessage %o', syncState)
-  return [chain, syncState]
+  return [chain, state]
 }
