@@ -1,5 +1,7 @@
-import { Action, getPredecessors, SignatureChain } from '@/chain'
-import { arrayToMap, assert, debug, Hash } from '@/util'
+import { Action, getHead, getPredecessorHashes, isPredecessor, SignatureChain } from '@/chain'
+import { arrayToMap, assert, debug } from '@/util'
+import { messageSummary } from '@/util/testing'
+import * as R from 'ramda'
 import { TruncatedHashFilter } from './TruncatedHashFilter'
 import { SyncPayload, SyncState } from './types'
 
@@ -23,7 +25,11 @@ export const generateMessage = <A extends Action>(
   const syncMessage: SyncPayload<A> = { root, head }
 
   const weHaveConverged = theirHead === ourHead
-  const theyAreBehind = theirHead && theirHead in prevChain.links
+  const theyAreBehind =
+    theirNeed.length === 0 &&
+    theirHead &&
+    theirHead in prevChain.links &&
+    isPredecessor(prevChain, prevChain.links[theirHead], getHead(prevChain))
 
   if (weHaveConverged) {
     // we converged with the last message we received
@@ -32,32 +38,29 @@ export const generateMessage = <A extends Action>(
   } else if (theyAreBehind) {
     // we are ahead of them , so we know exactly what they need
 
-    // they already have everything preceding their head
+    // they already have their head and everything preceding it
     assert(theirHead)
-    const predecessorHashes = getPredecessors(prevChain, prevChain.links[theirHead]).map(
-      link => link.hash
-    )
     const theyAlreadyHave = [
-      ...predecessorHashes,
+      ...getPredecessorHashes(prevChain, theirHead),
       theirHead, // also the head itself
     ]
 
     // send them everything we have that they don't already have
     syncMessage.links = Object.keys(prevChain.links)
-      .filter(hash => !theyAlreadyHave.includes(hash))
-      .map(hash => prevChain.links[hash])
-      .reduce(arrayToMap('hash'), {})
+      .filter(hash => !theyAlreadyHave.includes(hash)) // exclude what they have
+      .filter(hash => !syncState.weHaveSent.includes(hash)) // exclude what we've already sent
+      .map(hash => prevChain.links[hash]) // look up the link
+      .reduce(arrayToMap('hash'), {}) // turn into map
   } else {
     // we have divergent chains
 
     // build a probabilistic filter representing the hashes we think they may need
-    const syncedLinks = commonHead
-      ? getPredecessors(prevChain, prevChain.links[commonHead]) // we'll omit everything they already have
+    const alreadySynced = commonHead
+      ? getPredecessorHashes(prevChain, commonHead) // omit what they already have
       : []
-    const syncedHashes = syncedLinks.map(link => link.hash)
     const hashesTheyMightNeed = Object.keys(prevChain.links)
       .filter(hash => hash !== commonHead) // omit last common head
-      .filter(hash => !syncedHashes.includes(hash)) // and its predecessors
+      .filter(hash => !alreadySynced.includes(hash)) // and its predecessors
 
     // TODO: we already have hashes - make TruncatedHashFilter compatible with base64
     const filter = new TruncatedHashFilter().add(hashesTheyMightNeed)
@@ -68,10 +71,15 @@ export const generateMessage = <A extends Action>(
       .map(hash => prevChain.links[hash]) // look up each link
       .reduce(arrayToMap('hash'), {}) // put links in a map
 
+    syncState.theirNeed = []
+
     // our missing dependencies
     syncMessage.need = ourNeed
   }
 
-  log('generateMessage %o', { syncState: prevSyncState, syncMessage })
+  syncState.weHaveSent = R.uniq([...syncState.weHaveSent, ...Object.keys(syncMessage.links ?? {})])
+
+  log('generateMessage %o', messageSummary(syncMessage))
+
   return [syncState, syncMessage]
 }

@@ -1,5 +1,5 @@
 ﻿import { append } from '@/chain/append'
-import { clone } from '@/util'
+import { clone, truncateHashes } from '@/util'
 import { create } from '@/chain/create'
 import { merge } from '@/chain/merge'
 import { Link, isMergeLink, LinkBody, SignatureChain, Action, ActionLink } from '@/chain/types'
@@ -68,3 +68,5 @@ export const buildChain = () => {
 
   return a
 }
+
+export const getHashes = (chain: SignatureChain<any>) => Object.keys(chain.links)

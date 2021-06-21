@@ -20,8 +20,13 @@ export interface SyncState {
   /** Links they said they needed in their most recent sync message */
   theirNeed: Hash[]
 
-  /** All the links we believe they have */
-  theirHave: Hash[]
+  /** All the links we've sent them */
+  weHaveSent: Hash[]
+
+  /** All the links they've sent us*/
+  theyHaveSent: Hash[]
+
+  pendingLinks: LinkMap<any>
 }
 
 export interface SyncPayload<A extends Action> {

@@ -1,11 +1,16 @@
+import { getHashes } from '@/chain/testUtils'
+import { truncateHashes } from '@/util'
 import {
   logMessages,
+  MessageMutator,
   NetworkMessage,
   setupWithNetwork as setup,
   UserStuffWithPeer as UserStuff,
 } from '@/util/testing'
 
 describe('sync', () => {
+  const N = 10 // "many"
+
   it('one change', () => {
     const [{ alice, bob }, network] = setup('alice', 'bob')
     network.connect(alice.peer, bob.peer)
@@ -33,7 +38,7 @@ describe('sync', () => {
     expectToBeSynced(alice, bob)
 
     // Alice makes many changes; now they are out of sync
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < N; i++) {
       alice.team.addRole(`role-${i}`)
     }
     expectNotToBeSynced(alice, bob)
@@ -41,6 +46,9 @@ describe('sync', () => {
     // Alice exchanges sync messages with Bob
     alice.peer.sync()
     const msgs = network.deliverAll()
+
+    expect(msgs.length).toBeLessThanOrEqual(5)
+    expect(countLinks(msgs)).toEqual(N)
 
     // Now they are synced up again
     expectToBeSynced(alice, bob)
@@ -51,7 +59,6 @@ describe('sync', () => {
     network.connect(alice.peer, bob.peer)
 
     // Alice makes many changes
-    const N = 10
     for (let i = 0; i < N; i++) {
       alice.team.addRole(`role-${i}`)
     }
@@ -97,7 +104,6 @@ describe('sync', () => {
     const [{ alice, bob }, network] = setup('alice', 'bob')
     network.connect(alice.peer, bob.peer)
 
-    const N = 10
     for (let i = 0; i < N; i++) {
       alice.team.addRole(`role-${i}`)
     }
@@ -114,14 +120,37 @@ describe('sync', () => {
     }
     expectNotToBeSynced(alice, bob)
 
-    // Alice exchanges sync messages with Bob
     bob.peer.sync()
+
     const msgs = network.deliverAll()
 
     // Links sent should be N per peer, plus 1 merge link
     expect(countLinks(msgs)).toEqual(N + N + 1)
 
     // Now they are synced up again
+    expectToBeSynced(alice, bob)
+  })
+
+  it('with simulated false positives', () => {
+    const [{ alice, bob }, network] = setup('alice', 'bob')
+    network.connect(alice.peer, bob.peer)
+
+    // Alice and Bob both make changes
+    for (let i = 0; i < N; i++) {
+      alice.team.addRole(`alice-${i}`)
+      bob.team.addRole(`bob-${i}`)
+    }
+    expectNotToBeSynced(alice, bob)
+
+    bob.peer.sync()
+
+    // Deliver messages but randomly omit some links
+    const msgs = network.deliverAll(removeRandomLinks)
+
+    // All links were eventually sent and none were repeated
+    expect(countLinks(msgs)).toEqual(N + N + 1)
+
+    // We were still able to sync up
     expectToBeSynced(alice, bob)
   })
 })
@@ -139,4 +168,32 @@ const countLinks = (messages: NetworkMessage[]) => {
     message.body.links ? Object.keys(message.body.links).length : 0
 
   return messages.reduce((result, message) => result + linksInMessage(message), 0)
+}
+
+// this mutates a message containing multiple inks by removing one link
+const removeRandomLinks: MessageMutator = msg => {
+  const { links } = msg.body
+  if (!links || Object.keys(links).length <= 3) return msg
+
+  const hashes = Object.keys(links)
+  const modifiedLinks = hashes.reduce((result, hash) => {
+    return Math.random() < 0.1
+      ? result
+      : {
+          ...result,
+          [hash]: links[hash],
+        }
+  }, {})
+
+  return {
+    ...msg,
+    body: {
+      ...msg.body,
+      links: modifiedLinks,
+    },
+  }
+}
+
+const logHashes = (a: UserStuff) => {
+  console.log(a.userName, truncateHashes(getHashes(a.team.chain).join(', ')))
 }

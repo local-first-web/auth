@@ -1,5 +1,7 @@
-import { Action, Link, LinkMap, merge, SignatureChain } from '@/chain'
-import { assert, debug, Hash } from '@/util'
+import { Action, merge, SignatureChain } from '@/chain'
+import { assert, clone, debug, Hash } from '@/util'
+import { messageSummary } from '@/util/testing'
+import * as R from 'ramda'
 import { getMissingLinks } from '../chain/getMissingLinks'
 import { TruncatedHashFilter } from './TruncatedHashFilter'
 import { SyncPayload, SyncState } from './types'
@@ -13,28 +15,52 @@ export const receiveMessage = <A extends Action>(
   const {
     root: theirRoot, //
     head: theirHead,
-    links: newLinks = [],
+    links: newLinks = {},
+    need = [],
     encodedFilter,
   } = syncMessage
 
   assert(prevChain.root === theirRoot, `Can't sync chains with different roots`)
 
-  let chain = { ...prevChain }
-  // record any links ; if we're missing any dependencies, note them to ask for them next time
-  chain.links = { ...prevChain.links, ...newLinks } as LinkMap<A>
+  let chain = clone(prevChain)
 
-  const theirChain = { ...chain, head: theirHead }
-  const ourNeed = getMissingLinks(theirChain)
+  const theyHaveSent = R.uniq([...prevSyncState.theyHaveSent, ...Object.keys(newLinks)])
 
-  // if we're not missing anything, merge with their chain
-  if (newLinks && ourNeed.length === 0) {
-    // console.log({ prevChain, theirChain })
-    chain = merge(prevChain, theirChain)
+  let pendingLinks = { ...prevSyncState.pendingLinks, ...newLinks }
+
+  let ourNeed: Hash[] = []
+
+  if (Object.keys(newLinks).length > 0) {
+    const theirChain = {
+      root: theirRoot,
+      head: theirHead,
+      links: { ...chain.links, ...pendingLinks },
+    }
+    ourNeed = getMissingLinks(theirChain)
+    // if we have everything necessary to reconstruct their chain, merge with it
+    if (ourNeed.length === 0) {
+      chain = merge(prevChain, theirChain)
+      pendingLinks = {}
+    }
   }
+
   const ourHead = chain.head
 
-  // if they've sent us a filter, run all our links through it to know what they have and what they need
-  const [theirNeed, theirHave] = checkLinksAgainstFilter(prevChain, prevSyncState, encodedFilter)
+  let theirNeed = need
+  if (!theirNeed.length && encodedFilter && encodedFilter.byteLength) {
+    log('using filter', encodedFilter.length)
+
+    const filter = new TruncatedHashFilter().load(encodedFilter)
+    for (const hash in chain.links) {
+      const theyProbablyHaveHash =
+        filter.has(hash) ||
+        theirRoot === hash ||
+        theirHead === hash ||
+        prevSyncState.weHaveSent.includes(hash) ||
+        theyHaveSent.includes(hash)
+      if (!theyProbablyHaveHash) theirNeed.push(hash)
+    }
+  }
 
   const syncState: SyncState = {
     ...prevSyncState,
@@ -42,28 +68,10 @@ export const receiveMessage = <A extends Action>(
     theirHead,
     ourNeed,
     theirNeed,
-    theirHave,
+    theyHaveSent,
+    pendingLinks,
   }
 
-  log('receiveMessage %o', { syncState, chain })
+  // log('receiveMessage %o', syncState)
   return [chain, syncState]
-}
-
-const checkLinksAgainstFilter = <A extends Action>(
-  chain: SignatureChain<A>,
-  syncState: SyncState,
-  encodedFilter: Uint8Array | undefined
-) => {
-  if (encodedFilter === undefined || encodedFilter.length === 0) return [[], syncState.theirHave]
-  const theirNeed = new Set<Hash>()
-  const theirHave = new Set<Hash>(syncState.theirHave)
-  const filter = new TruncatedHashFilter().load(encodedFilter)
-  for (const hash in chain.links) {
-    if (filter.has(hash) || chain.root === hash || syncState.theirHead === hash) {
-      theirHave.add(hash)
-    } else {
-      theirNeed.add(hash)
-    }
-  }
-  return [Array.from(theirNeed), Array.from(theirHave)]
 }
