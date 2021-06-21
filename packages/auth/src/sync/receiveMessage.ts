@@ -3,7 +3,7 @@ import { assert, clone, debug, Hash } from '@/util'
 import { getMissingLinks } from '../chain/getMissingLinks'
 import { TruncatedHashFilter } from './TruncatedHashFilter'
 import { SyncPayload, SyncState } from './types'
-import { unique } from './unique'
+import { unique } from '../util/unique'
 
 const log = debug('lf:auth:sync')
 
