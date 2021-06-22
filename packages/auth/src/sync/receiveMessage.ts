@@ -1,15 +1,13 @@
 import { Action, merge, SignatureChain } from '@/chain'
-import { assert, clone, debug, Hash } from '@/util'
+import { assert, clone, Hash } from '@/util'
 import { getMissingLinks } from '../chain/getMissingLinks'
+import { unique } from '../util/unique'
 import { TruncatedHashFilter } from './TruncatedHashFilter'
 import { SyncPayload, SyncState } from './types'
-import { unique } from '../util/unique'
-
-const log = debug('lf:auth:sync')
 
 export const receiveMessage = <A extends Action>(
-  prevChain: SignatureChain<A>,
-  prevState: SyncState,
+  chain: SignatureChain<A>,
+  state: SyncState,
   message: SyncPayload<A>
 ): [SignatureChain<A>, SyncState] => {
   const {
@@ -20,55 +18,59 @@ export const receiveMessage = <A extends Action>(
     encodedFilter,
   } = message
 
-  assert(prevChain.root === theirRoot, `Can't sync chains with different roots`)
+  assert(chain.root === theirRoot, `Can't sync chains with different roots`)
 
-  let chain = clone(prevChain)
+  // 1. What did they send? Do we need anything else?
 
-  const theyHaveSent = unique([...prevState.theyHaveSent, ...Object.keys(newLinks)])
+  const theySentLinks = Object.keys(newLinks).length > 0
+  if (theySentLinks) {
+    state.theyHaveSent = unique(state.theyHaveSent.concat(Object.keys(newLinks)))
 
-  let pendingLinks = { ...prevState.pendingLinks, ...newLinks }
+    // store the new links in state, in case we can't merge yet
+    state.pendingLinks = { ...state.pendingLinks, ...newLinks }
 
-  let ourNeed: Hash[] = []
-
-  if (Object.keys(newLinks).length > 0) {
     const theirChain = {
       root: theirRoot,
       head: theirHead,
-      links: { ...chain.links, ...pendingLinks },
+      links: { ...chain.links, ...state.pendingLinks },
     }
-    ourNeed = getMissingLinks(theirChain)
-    // if we have everything necessary to reconstruct their chain, merge with it
-    if (ourNeed.length === 0) {
-      chain = merge(prevChain, theirChain)
-      pendingLinks = {}
+
+    // check if we have links with missing dependencies
+    const missingLinks = getMissingLinks(theirChain)
+
+    // if we have everything necessary to reconstruct their chain and merge with it
+    if (!missingLinks.length) {
+      state.pendingLinks = {} // we've used all the pending links, clear that out
+      chain = merge(chain, theirChain)
     }
+
+    state.ourNeed = missingLinks
+  } else {
+    // they didn't send links, so we can't say if we need anything new
+    state.ourNeed = []
   }
 
-  const ourHead = chain.head
+  // 2. What do they need?
 
-  let theirNeed = need
-  if (!theirNeed.length && encodedFilter && encodedFilter.byteLength) {
+  if (!need.length && encodedFilter?.byteLength) {
     const filter = new TruncatedHashFilter().load(encodedFilter)
-    for (const hash in chain.links) {
-      const theyProbablyHaveHash =
-        filter.has(hash) ||
+
+    const theyMightNotHave = (hash: Hash) =>
+      !(
+        filter.hasHash(hash) ||
         theirRoot === hash ||
         theirHead === hash ||
-        prevState.weHaveSent.includes(hash) ||
-        theyHaveSent.includes(hash)
-      if (!theyProbablyHaveHash) theirNeed.push(hash)
-    }
+        state.weHaveSent.includes(hash) ||
+        state.theyHaveSent.includes(hash)
+      )
+
+    state.theirNeed = Object.keys(chain.links).filter(theyMightNotHave)
+  } else {
+    state.theirNeed = need
   }
 
-  const state: SyncState = {
-    ...prevState,
-    ourHead,
-    theirHead,
-    ourNeed,
-    theirNeed,
-    theyHaveSent,
-    pendingLinks,
-  }
+  state.ourHead = chain.head
+  state.theirHead = theirHead
 
   return [chain, state]
 }
