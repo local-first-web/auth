@@ -1,4 +1,4 @@
-﻿import { Link, isMergeLink, isRootLink, Action, SignatureChain } from '@/chain/types'
+import { Link, isMergeLink, isRootLink, Action, SignatureChain } from '@/chain/types'
 import * as R from 'ramda'
 import { memoize } from '@/util'
 
@@ -68,5 +68,6 @@ export const getCommonPredecessor = <T extends Action = Action>(
   b: Link<T>
 ) => {
   const hash = getCommonPredecessorHash(chain, a.hash, b.hash)
-  return hash ? chain.links[hash] : undefined
+  if (!hash) throw new Error('no common predecessor was found')
+  return chain.links[hash]
 }
