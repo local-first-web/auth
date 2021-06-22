@@ -1,7 +1,8 @@
-import { sha256 as hash } from 'js-sha256'
+import { base64, hash } from '@herbcaudill/crypto'
+import { makeHash } from './ProbabilisticFilter'
 import { TruncatedHashFilter } from './TruncatedHashFilter'
 
-describe('Bloom filter', () => {
+describe('Truncated hash filter', () => {
   it('2 values', () => {
     const filter = new TruncatedHashFilter({ resolution: 3 }).add(['a', 'b'])
 
@@ -106,4 +107,3 @@ describe('Bloom filter', () => {
 })
 
 const range = (size: number): number[] => [...Array(size).keys()]
-const makeHash = (s: string | number) => hash(s.toString())

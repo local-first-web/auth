@@ -1,4 +1,5 @@
 import { Hash } from '@/util'
+import { base64, hash } from '@herbcaudill/crypto'
 import { ProbabilisticFilter } from './ProbabilisticFilter'
 
 interface TruncatedHashFilterOptions {
@@ -7,34 +8,34 @@ interface TruncatedHashFilterOptions {
 
 export class TruncatedHashFilter extends ProbabilisticFilter {
   resolution: number = 4
-  value: Set<string>
+  hashes: Set<string>
 
   constructor(options: TruncatedHashFilterOptions = {}) {
     super()
     if (options.resolution !== undefined) this.resolution = options.resolution
-    this.value = new Set()
+    this.hashes = new Set()
   }
 
   addHashes(hashes: Hash | Hash[]) {
     if (!Array.isArray(hashes)) hashes = [hashes]
     for (const hash of hashes) {
-      this.value.add(this.truncateHash(hash))
+      this.hashes.add(this.truncateHash(hash))
     }
     return this
   }
 
   hasHash(hash: string) {
-    return this.value.has(this.truncateHash(hash))
+    return this.hashes.has(this.truncateHash(hash))
   }
 
   save() {
-    const encodedValue = this.encode(this.value)
+    const encodedValue = this.encode(this.hashes)
     return encodedValue
   }
 
   load(encodedValue: Uint8Array) {
     const decodedValue = this.decode(encodedValue)
-    this.value = decodedValue
+    this.hashes = decodedValue
     return this
   }
 
@@ -62,6 +63,7 @@ export class TruncatedHashFilter extends ProbabilisticFilter {
   }
 
   private truncateHash(hash: Hash): Hash {
-    return Buffer.from(hash, 'hex').slice(0, this.resolution).toString('hex')
+    const bytes = Buffer.from(base64.decode(hash))
+    return bytes.slice(0, this.resolution).toString('hex')
   }
 }
