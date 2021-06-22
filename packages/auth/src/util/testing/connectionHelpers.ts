@@ -1,11 +1,4 @@
-import {
-  InitialContext,
-  Connection,
-  InviteeDeviceInitialContext,
-  InviteeMemberInitialContext,
-} from '@/connection'
-import { getDeviceId } from '@/device'
-import { KeyType } from '@/keyset'
+import { Connection, InviteeDeviceInitialContext, InviteeMemberInitialContext } from '@/connection'
 import { joinTestChannel } from './joinTestChannel'
 import { UserStuff } from './setup'
 import { TestChannel } from './TestChannel'
