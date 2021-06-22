@@ -1,4 +1,4 @@
-import { Link, isMergeLink, isRootLink, Action, SignatureChain } from '@/chain/types'
+﻿import { Link, isMergeLink, isRootLink, Action, SignatureChain } from '@/chain/types'
 import * as R from 'ramda'
 import { memoize } from '@/util'
 
@@ -45,8 +45,8 @@ export const isPredecessor = <T extends Action>(
   b: Link<T>
 ): boolean => {
   return (
-    a &&
-    b &&
+    a !== undefined &&
+    b !== undefined &&
     a.hash in chain.links &&
     b.hash in chain.links &&
     getPredecessorHashes(chain, b.hash).includes(a.hash)
