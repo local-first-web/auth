@@ -1,11 +1,11 @@
 import { Hash } from '@/util'
-import { sha256 as hash } from 'js-sha256'
+import { base64, hash } from '@herbcaudill/crypto'
 
 export abstract class ProbabilisticFilter {
   constructor() {}
 
   add(values: string[] | number[]) {
-    const hashes = values.map((value: string | number) => hash(value.toString()))
+    const hashes = values.map((value: string | number) => makeHash(value))
     this.addHashes(hashes)
     return this
   }
@@ -13,7 +13,7 @@ export abstract class ProbabilisticFilter {
   abstract addHashes(hashes: Hash[]): ProbabilisticFilter
 
   has(value: string | number) {
-    return this.hasHash(hash(value.toString()))
+    return this.hasHash(makeHash(value))
   }
 
   abstract hasHash(hash: Hash): boolean
@@ -21,3 +21,6 @@ export abstract class ProbabilisticFilter {
   abstract save(): Uint8Array
   abstract load(encodedValue: Uint8Array): ProbabilisticFilter
 }
+
+export const makeHash = (s: string | number) =>
+  base64.encode(hash('ProbabilisticFilter', s.toString()))
