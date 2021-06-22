@@ -22,7 +22,7 @@
     "watch": "tsdx watch --tsconfig tsconfig.build.json --verbose --noClean",
     "build": "tsdx build",
     "test": "jest",
-    "test:log": "cross-env DEBUG='lf*' DEBUG_COLORS=0 yarn test",
+    "test:log": "cross-env DEBUG='lf*' DEBUG_COLORS=1 yarn test",
     "prepublish": "yarn build"
   },
   "dependencies": {
@@ -42,6 +42,7 @@
     "@types/ramda": "0",
     "cross-env": "6",
     "jest": "26",
+    "js-sha256": "^0.9.0",
     "prettier": "2",
     "ts-jest": "26",
     "typescript": "4",

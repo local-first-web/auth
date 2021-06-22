@@ -1,6 +1,4 @@
-import { InitialContext, Connection } from '@/connection'
-import { getDeviceId } from '@/device'
-import { KeyType } from '@/keyset'
+import { Connection, InviteeDeviceInitialContext, InviteeMemberInitialContext } from '@/connection'
 import { joinTestChannel } from './joinTestChannel'
 import { UserStuff } from './setup'
 import { TestChannel } from './TestChannel'
@@ -17,7 +15,8 @@ export const tryToConnect = async (a: UserStuff, b: UserStuff) => {
 /** Connects the two members and waits for them to be connected */
 export const connect = async (a: UserStuff, b: UserStuff) => {
   tryToConnect(a, b)
-  return connection(a, b)
+  await connection(a, b)
+  await updated(a, b)
 }
 
 /** Connects a (a member) with b (invited using the given seed). */
@@ -25,9 +24,9 @@ export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: st
   b.context = {
     user: b.user,
     device: b.device,
-    invitee: { type: KeyType.MEMBER, name: b.userName },
     invitationSeed: seed,
-  }
+  } as InviteeMemberInitialContext
+
   return connect(a, b).then(() => {
     // The connection now has the team object, so let's update our user stuff
     b.team = b.connection[a.userName].team!
@@ -36,10 +35,10 @@ export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: st
 
 export const connectPhoneWithInvitation = async (user: UserStuff, seed: string) => {
   const phoneContext = {
+    userName: user.userName,
     device: user.phone,
-    invitee: { type: KeyType.DEVICE, name: getDeviceId(user.phone) },
     invitationSeed: seed,
-  } as InitialContext
+  } as InviteeDeviceInitialContext
 
   const join = joinTestChannel(new TestChannel())
 
@@ -54,8 +53,10 @@ export const connectPhoneWithInvitation = async (user: UserStuff, seed: string) 
 /** Passes if each of the given members is on the team, and knows every other member on the team */
 export const expectEveryoneToKnowEveryone = (...members: UserStuff[]) => {
   for (const a of members)
-    for (const b of members) //
-      expect(a.team.has(b.userName)).toBe(true)
+    for (const b of members) {
+      if (!a.team.has(b.userName))
+        throw new Error(`${a.userName} does not have ${b.userName} on their team`)
+    }
 }
 
 /** Disconnects the two members and waits for them to be disconnected */

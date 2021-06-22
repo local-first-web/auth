@@ -1,6 +1,6 @@
 ﻿import { MemberContext } from '@/context'
 import { PublicDevice } from '@/device'
-import { Invitation, Invitee } from '@/invitation'
+import { Invitation } from '@/invitation'
 import { PublicKeyset } from '@/keyset'
 import { Lockbox } from '@/lockbox'
 import { Member } from '@/member'
@@ -80,7 +80,7 @@ export type ActionLink<A extends Action> = NonRootLink<A> | RootLink<A> // exclu
 
 export type Link<A extends Action> = ActionLink<A> | MergeLink
 
-export type LinkMap<A extends Action> = { [hash: string]: Link<A> }
+export type LinkMap<A extends Action> = Record<Hash, Link<A>>
 
 export interface SignatureChain<A extends Action> {
   root: Hash
@@ -202,8 +202,15 @@ export interface RemoveDeviceAction extends Action {
   }
 }
 
-export interface InviteAction extends Action {
-  type: 'INVITE'
+export interface InviteMemberAction extends Action {
+  type: 'INVITE_MEMBER'
+  payload: BasePayload & {
+    invitation: Invitation
+  }
+}
+
+export interface InviteDeviceAction extends Action {
+  type: 'INVITE_DEVICE'
   payload: BasePayload & {
     invitation: Invitation
   }
@@ -216,11 +223,20 @@ export interface RevokeInvitationAction extends Action {
   }
 }
 
-export interface AdmitAction extends Action {
-  type: 'ADMIT'
+export interface AdmitMemberAction extends Action {
+  type: 'ADMIT_MEMBER'
   payload: BasePayload & {
     id: string // invitation ID
-    invitee: Invitee
+    memberKeys: PublicKeyset // member keys provided by the new member
+  }
+}
+
+export interface AdmitDeviceAction extends Action {
+  type: 'ADMIT_DEVICE'
+  payload: BasePayload & {
+    id: string // invitation ID
+    userName: string // user name of the device's owner
+    deviceKeys: PublicKeyset // device keys provided by the new device
   }
 }
 
@@ -248,9 +264,11 @@ export type TeamAction =
   | RemoveDeviceAction
   | RemoveRoleAction
   | RemoveMemberRoleAction
-  | InviteAction
+  | InviteMemberAction
+  | InviteDeviceAction
   | RevokeInvitationAction
-  | AdmitAction
+  | AdmitMemberAction
+  | AdmitDeviceAction
   | ChangeMemberKeysAction
   | ChangeDeviceKeysAction
 

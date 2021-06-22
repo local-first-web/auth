@@ -22,6 +22,8 @@ import {
 } from '@/team/reducers'
 import { TeamState } from '@/team/types'
 import { validate } from '@/team/validate'
+import { Member } from '@/member'
+import { PublicDevice } from '@/device'
 
 export const setHead = (link: TeamActionLink): Reducer => state => {
   return { ...state, __HEAD: link.hash }
@@ -79,10 +81,10 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       ]
 
     case 'ADD_MEMBER': {
-      const { member: user, roles } = action.payload
+      const { member, roles } = action.payload
       return [
-        addMember(user), // add this member to the team
-        ...addMemberRoles(user.userName, roles), // add each of these roles to the member's list of roles
+        addMember(member), // add this member to the team
+        ...addMemberRoles(member.userName, roles), // add each of these roles to the member's list of roles
       ]
     }
 
@@ -135,7 +137,14 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       ]
     }
 
-    case 'INVITE': {
+    case 'INVITE_MEMBER': {
+      const { invitation } = action.payload
+      return [
+        postInvitation(invitation), // add the invitation to the list of open invitations.
+      ]
+    }
+
+    case 'INVITE_DEVICE': {
       const { invitation } = action.payload
       return [
         postInvitation(invitation), // add the invitation to the list of open invitations.
@@ -149,10 +158,34 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       ]
     }
 
-    case 'ADMIT': {
-      const { id } = action.payload
+    case 'ADMIT_MEMBER': {
+      const { id, memberKeys } = action.payload
+      const userName = memberKeys.name
+
+      const member: Member = {
+        userName,
+        keys: memberKeys,
+        roles: [],
+      }
+
       return [
-        useInvitation(id), // mark the invitation used so it can't be used a second time
+        useInvitation(id), // mark the invitation as used
+        addMember(member), // add this member to the team
+      ]
+    }
+
+    case 'ADMIT_DEVICE': {
+      const { id, userName, deviceKeys } = action.payload
+
+      const device: PublicDevice = {
+        userName,
+        deviceName: deviceKeys.name,
+        keys: deviceKeys,
+      }
+
+      return [
+        useInvitation(id), // mark the invitation as used
+        addDevice(device), // add this device
       ]
     }
 

@@ -36,7 +36,10 @@ export const ChainDiagram: FC<{ chain: TeamSignatureChain; id: string }> = ({ ch
     return mermaidEdgeFromLink(link)
   })
 
-  const chart = chartHeader.concat(chartNodes).concat(chartEdges).join(LINE_BREAK)
+  const chart = chartHeader
+    .concat(chartNodes)
+    .concat(chartEdges)
+    .join(LINE_BREAK)
 
   return (
     <div className="ChainDiagram">
@@ -100,7 +103,8 @@ const actionSummary = (action: LinkBody<TeamAction>) => {
       return `${action.payload.device.userName}::${action.payload.device.deviceName}`
     case 'REMOVE_DEVICE':
       return `${action.payload.userName}::${action.payload.deviceName}`
-    case 'INVITE':
+    case 'INVITE_MEMBER':
+    case 'INVITE_DEVICE':
       return action.payload.invitation.id
     case 'REVOKE_INVITATION':
       return action.payload.id

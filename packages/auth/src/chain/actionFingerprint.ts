@@ -20,12 +20,14 @@ export const actionFingerprint = (link: TeamActionLink) => {
         return getDeviceId(action.payload.device)
       case 'REMOVE_DEVICE':
         return getDeviceId(action.payload)
-      case 'INVITE':
+      case 'INVITE_MEMBER':
+      case 'INVITE_DEVICE':
         return action.payload.invitation.id
       case 'REVOKE_INVITATION':
         return action.payload.id
-      case 'ADMIT':
-        return action.payload.invitee.name
+      case 'ADMIT_MEMBER':
+      case 'ADMIT_DEVICE':
+        return action.payload.id
       case 'CHANGE_MEMBER_KEYS':
       case 'CHANGE_DEVICE_KEYS':
         return JSON.stringify(action.payload.keys)

@@ -99,7 +99,8 @@ const isRemovalAction = (link: TeamActionLink): boolean => link.body.type === 'R
 const getRemovals = (branches: TwoBranches) =>
   branches.flatMap(branch => branch.filter(isRemovalAction)) as RemoveActionLink[]
 
-const isDemotionAction = (link: TeamActionLink): boolean => link.body.type === 'REMOVE_MEMBER_ROLE' //&& link.body.payload.roleName === ADMIN
+const isDemotionAction = (link: TeamActionLink): boolean =>
+  link.body.type === 'REMOVE_MEMBER_ROLE' && link.body.payload.roleName === ADMIN
 
 const getDemotions = (branches: TwoBranches) =>
   branches.flatMap(branch => branch.filter(isDemotionAction)) as RemoveActionLink[]

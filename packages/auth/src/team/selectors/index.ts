@@ -2,6 +2,7 @@
 export * from '@/team/selectors/deviceWasRemoved'
 export * from '@/team/selectors/hasMember'
 export * from '@/team/selectors/hasRole'
+export * from '@/team/selectors/invitation'
 export * from '@/team/selectors/keys'
 export * from '@/team/selectors/lockboxesInScope'
 export * from '@/team/selectors/member'
