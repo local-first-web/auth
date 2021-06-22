@@ -1,7 +1,7 @@
 import { SyncState } from './types'
 
 export const initSyncState = (): SyncState => ({
-  commonHead: null,
+  lastCommonHead: null,
   ourHead: null,
   theirHead: null,
   ourNeed: [],
