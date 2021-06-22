@@ -643,7 +643,7 @@ export class Connection extends EventEmitter {
         if (need) return false
         return true
       } else {
-        return ourHead === context.syncState?.commonHead
+        return ourHead === context.syncState?.lastCommonHead
       }
     },
 
