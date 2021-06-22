@@ -1,5 +1,4 @@
-﻿import { ADMIN } from '@/role'
-import * as teams from '@/team'
+﻿import * as teams from '@/team'
 import {
   all,
   connect,
@@ -12,7 +11,6 @@ import {
   setup,
   TestChannel,
   tryToConnect,
-  updated,
 } from '@/util/testing'
 
 describe('connection', () => {
@@ -65,54 +63,6 @@ describe('connection', () => {
         await connect(alice, bob)
 
         // ✅ all good
-      })
-
-      it('rotates keys after a member is removed', async () => {
-        const { alice, bob } = setup('alice', 'bob')
-        await connect(alice, bob)
-
-        // 👨🏻‍🦲 Bob has admin keys
-        expect(() => bob.team.adminKeys()).not.toThrow()
-
-        // We have the first-generation keys
-        expect(alice.team.adminKeys().generation).toBe(0)
-        expect(alice.team.teamKeys().generation).toBe(0)
-
-        // <-> while connected...
-
-        // 👩🏾 Alice removes Bob from the team
-        alice.team.remove('bob')
-        await disconnection(alice, bob)
-
-        // The admin keys and team keys have been rotated
-        expect(alice.team.adminKeys().generation).toBe(1)
-        expect(alice.team.teamKeys().generation).toBe(1)
-      })
-
-      it('rotates keys after a member is demoted', async () => {
-        const { alice, bob } = setup('alice', 'bob')
-        await connect(alice, bob)
-
-        // 👨🏻‍🦲 Bob has admin keys
-        expect(() => bob.team.adminKeys()).not.toThrow()
-
-        // We have the first-generation keys
-        expect(alice.team.adminKeys().generation).toBe(0)
-
-        // <-> while connected...
-
-        // 👩🏾 Alice demotes Bob
-        alice.team.removeMemberRole('bob', ADMIN)
-        await updated(alice, bob)
-
-        // 👨🏻‍🦲 Bob no longer has admin keys
-        expect(() => bob.team.adminKeys()).toThrow()
-
-        // The admin keys have been rotated
-        expect(alice.team.adminKeys().generation).toBe(1)
-
-        // The team keys haven't been rotated because Bob wasn't removed from the team
-        expect(alice.team.teamKeys().generation).toBe(0)
       })
     })
 
