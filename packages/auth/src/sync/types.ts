@@ -6,7 +6,7 @@ export type EncodedFilter = Uint8Array // the encoded output of a probabilistic 
 export interface SyncState {
   /** The head we had in common with this peer the last time we synced. If null, we don't have any
    * record of having synced before. */
-  commonHead: Hash | null
+  lastCommonHead: Hash | null
 
   /** Our head as of the last time we sent a sync message */
   ourHead: Hash | null
