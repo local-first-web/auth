@@ -1,5 +1,5 @@
 import { Hash } from '@/util'
-import { base64, hash } from '@herbcaudill/crypto'
+import { base64 } from '@herbcaudill/crypto'
 import { ProbabilisticFilter } from './ProbabilisticFilter'
 
 interface TruncatedHashFilterOptions {
