@@ -31,6 +31,8 @@
     "fast-memoize": "2",
     "msgpack-lite": "0",
     "ramda": "0",
+    "tsdx": "0.14",
+    "typescript": "4",
     "xstate": "4"
   },
   "devDependencies": {
@@ -38,7 +40,7 @@
     "@herbcaudill/tscpaths": "0",
     "@types/debug": "4",
     "@types/msgpack-lite": "0",
-    "@types/node": "*",
+    "@types/node": "15",
     "@types/ramda": "0",
     "cross-env": "6",
     "jest": "26",
