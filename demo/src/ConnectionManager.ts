@@ -51,7 +51,7 @@ export class ConnectionManager extends EventEmitter {
         // in case we're not able to start the connection immediately (e.g. because there's a mutex
         // lock), store any messages we receive, so we can deliver them when we start it
         const storedMessages: string[] = []
-        socket.addEventListener('message', ({ data: message }) => storedMessages.push(message))
+        socket.on('message', ({ data }) => storedMessages.push(data))
 
         // We don't want to present invitations to multiple people simultaneously, because then they
         // both might admit us concurrently and that complicates things unnecessarily. So we need to

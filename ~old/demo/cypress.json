@@ -1,9 +1,0 @@
-{
-  "projectId": "taco-chat",
-  "baseUrl": "http://localhost:3000",
-  "fixturesFolder": false,
-  "video": false,
-  "viewportWidth": 1300,
-  "viewportHeight": 1400,
-  "defaultCommandTimeout": 10000
-}
