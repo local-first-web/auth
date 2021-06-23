@@ -1,4 +1,5 @@
-import { Connection, InviteeDeviceInitialContext, InviteeMemberInitialContext } from '@/connection'
+import { InviteeDeviceInitialContext, InviteeMemberInitialContext } from '@/connection/types'
+import { Connection } from '@/connection/Connection'
 import { joinTestChannel } from './joinTestChannel'
 import { UserStuff } from './setup'
 import { TestChannel } from './TestChannel'

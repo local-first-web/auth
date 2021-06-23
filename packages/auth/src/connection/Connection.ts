@@ -564,7 +564,7 @@ export class Connection extends EventEmitter {
     ),
 
     rejectInvitation: this.fail(
-      () => `${this.peerName}'s invitation didn't work. ${this.context.error?.message}`
+      () => `This invitation didn't work. ${this.context.error?.message}`
     ),
 
     rejectTeam: this.fail(

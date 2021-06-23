@@ -1,9 +1,8 @@
-import { Action, getHead, getPredecessorHashes, isPredecessor, SignatureChain } from '@/chain'
-import { arrayToMap, assert, debug } from '@/util'
-import { messageSummary } from '@/util/testing'
+import { getHead, getPredecessorHashes, isPredecessor, SignatureChain } from '@/chain'
+import { arrayToMap, debug } from '@/util'
+import { unique } from '../util/unique'
 import { TruncatedHashFilter } from './TruncatedHashFilter'
 import { SyncPayload, SyncState } from './types'
-import { unique } from '../util/unique'
 
 const log = debug('lf:auth:sync')
 
@@ -75,7 +74,6 @@ export const generateMessage = (
 
     const sendingNow = Object.keys(message.links ?? {})
     state.weHaveSent = unique([...state.weHaveSent, ...sendingNow])
-    log('generateMessage %o', messageSummary(message))
   }
 
   return [state, message]

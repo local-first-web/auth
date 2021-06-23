@@ -1,4 +1,5 @@
-import { Connection, InitialContext, SendFunction } from '@/connection'
+import { Connection } from '@/connection/Connection'
+import { InitialContext, SendFunction } from '@/connection/types'
 import { getDeviceId } from '@/device'
 import { pause } from './pause'
 import { TestChannel } from './TestChannel'

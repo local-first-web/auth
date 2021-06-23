@@ -50,8 +50,4 @@ module.exports = windmill({
     textColor: ({ after }) => after(['group-hover', 'group-focus']),
     boxShadow: ({ after }) => after(['group-hover', 'group-focus']),
   },
-  future: {
-    removeDeprecatedGapUtilities: true,
-    purgeLayersByDefault: true,
-  },
 })
