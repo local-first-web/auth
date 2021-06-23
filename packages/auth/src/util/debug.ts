@@ -1,5 +1,4 @@
-﻿import { EOL } from 'os'
-import originalDebug from 'debug'
+﻿import originalDebug from 'debug'
 import { truncateHashes } from './truncateHashes'
 
 const eliminateDates = (s: string) => {
@@ -24,8 +23,6 @@ const substituteTokens = (s: string) => {
 
       .replace(/"/g, '')
 
-      .replace(/↩/g, EOL)
-      .replace(/\\n/g, EOL)
   )
 }
 

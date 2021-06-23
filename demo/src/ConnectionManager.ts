@@ -39,7 +39,7 @@ export class ConnectionManager extends EventEmitter {
   }
 
   private connectServer(url: string): Client {
-    const { userName } = this.context.user! // the demo app always provides a user whether we're invited or a member
+    const { userName } = this.context.device
     const client = new Client({ userName, url })
 
     client

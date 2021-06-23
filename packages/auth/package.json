@@ -26,8 +26,10 @@
     "prepublish": "yarn build"
   },
   "dependencies": {
-    "@herbcaudill/crypto": "0",
+    "@herbcaudill/crypto": "0.1.13",
+    "buffer": "6",
     "debug": "4",
+    "events": "3",
     "fast-memoize": "2",
     "msgpack-lite": "0",
     "ramda": "0",
@@ -40,11 +42,9 @@
     "@herbcaudill/tscpaths": "0",
     "@types/debug": "4",
     "@types/msgpack-lite": "0",
-    "@types/node": "15",
     "@types/ramda": "0",
     "cross-env": "6",
     "jest": "26",
-    "js-sha256": "^0.9.0",
     "prettier": "2",
     "ts-jest": "26",
     "typescript": "4",

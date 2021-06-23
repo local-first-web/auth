@@ -1,6 +1,7 @@
 import { Hash } from '@/util'
 import { base64 } from '@herbcaudill/crypto'
 import { ProbabilisticFilter } from './ProbabilisticFilter'
+import { Buffer } from 'buffer'
 
 interface TruncatedHashFilterOptions {
   resolution?: number
