@@ -1,5 +1,3 @@
-@import '../node_modules/@ibm/plex/scss/ibm-plex.scss';
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

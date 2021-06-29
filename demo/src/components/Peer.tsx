@@ -1,13 +1,13 @@
-import { Card, CardBody } from '@windmill/react-ui'
+import { Card } from '@windmill/react-ui'
+import React from 'react'
+import { useTeam } from '../hooks/useTeam'
 import { PeerInfo } from '../peers'
 import { Alerts } from './Alerts'
 import { Avatar } from './Avatar'
 import { CreateOrJoinTeam } from './CreateOrJoinTeam'
 import { ErrorBoundary } from './ErrorBoundary'
-import { useTeam } from '../hooks/useTeam'
 import { HideButton } from './HideButton'
 import { Team } from './Team'
-import * as React from 'react'
 
 const AUTO_CREATE_ALICE_TEAM = true
 

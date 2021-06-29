@@ -1,4 +1,4 @@
-import { FC } from 'react'
+import React, { FC } from 'react'
 import { useMermaid } from '../hooks/useMermaid'
 
 export const Mermaid: FC<MermaidProps> = ({ id, chart, config = {} }) => {

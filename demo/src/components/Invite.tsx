@@ -1,10 +1,8 @@
-import { Button, Input, Label, Select } from '@windmill/react-ui'
+import { Button, Label, Select } from '@windmill/react-ui'
 import ClipboardJS from 'clipboard'
-import React from 'react'
-import { UserInfo } from 'users'
+import React, { MutableRefObject, useEffect, useRef, useState } from 'react'
 import { useTeam } from '../hooks/useTeam'
 import { assert } from '../util/assert'
-import { CardLabel } from './CardLabel'
 
 /*
 TODO implement different levels of invitation security
@@ -24,18 +22,18 @@ From most secure to least secure:
 export const Invite = () => {
   type State = 'inactive' | 'configuring' | 'done'
 
-  const [state, setState] = React.useState<State>('configuring')
-  // const [state, setState] = React.useState<State>('inactive')
-  const [seed, setSeed] = React.useState<string>()
+  const [state, setState] = useState<State>('configuring')
+  // const [state, setState] = useState<State>('inactive')
+  const [seed, setSeed] = useState<string>()
 
-  const maxUses = React.useRef() as React.MutableRefObject<HTMLSelectElement>
-  const expiration = React.useRef() as React.MutableRefObject<HTMLSelectElement>
+  const maxUses = useRef() as MutableRefObject<HTMLSelectElement>
+  const expiration = useRef() as MutableRefObject<HTMLSelectElement>
 
   const { team, user } = useTeam()
 
-  const copyInvitationSeedButton = React.useRef() as React.MutableRefObject<HTMLButtonElement>
+  const copyInvitationSeedButton = useRef() as MutableRefObject<HTMLButtonElement>
 
-  React.useEffect(() => {
+  useEffect(() => {
     let c: ClipboardJS
     if (copyInvitationSeedButton?.current && seed) {
       c = new ClipboardJS(copyInvitationSeedButton.current)

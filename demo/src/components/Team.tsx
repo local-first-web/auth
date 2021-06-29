@@ -1,7 +1,7 @@
 import * as auth from '@localfirst/auth'
 import { Button, CardBody } from '@windmill/react-ui'
 import debug from 'debug'
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useTeam } from '../hooks/useTeam'
 import { users } from '../users'
 import { assert } from '../util/assert'

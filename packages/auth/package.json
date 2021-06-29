@@ -26,7 +26,7 @@
     "prepublish": "yarn build"
   },
   "dependencies": {
-    "@herbcaudill/crypto": "0.1.13",
+    "@herbcaudill/crypto": "^0.1.14",
     "buffer": "6",
     "debug": "4",
     "events": "3",

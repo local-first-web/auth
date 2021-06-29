@@ -1,5 +1,5 @@
 import { Select } from '@windmill/react-ui'
-import { useRef } from 'react'
+import React, { useRef } from 'react'
 import { PeerMap } from '../peers'
 
 export const Chooser = ({ onAdd, peers }: ChooserProps) => {

@@ -1,14 +1,17 @@
-import React from 'react'
+import { Windmill } from '@windmill/react-ui'
+import React, { StrictMode } from 'react'
 import ReactDOM from 'react-dom'
 import { App } from './components/App'
-import { Windmill } from '@windmill/react-ui'
+import '@ibm/plex'
+import './index.css'
+
 import { theme } from './theme'
 
 ReactDOM.render(
-  <React.StrictMode>
+  <StrictMode>
     <Windmill theme={theme}>
       <App />
     </Windmill>
-  </React.StrictMode>,
+  </StrictMode>,
   document.getElementById('root')
 )

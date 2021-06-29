@@ -1,7 +1,7 @@
 import React from 'react'
 const noOp = () => {}
 
-export const Toggle: React.FC<ToggleProps> = ({
+export const Toggle = ({
   title,
   on,
   disabled = false,
@@ -41,6 +41,7 @@ export const Toggle: React.FC<ToggleProps> = ({
     </span>
   )
 }
+
 interface ToggleProps {
   title: string
   on: boolean

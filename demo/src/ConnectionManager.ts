@@ -1,10 +1,11 @@
 ﻿import * as auth from '@localfirst/auth'
+import { InviteeMemberInitialContext, MemberInitialContext } from '@localfirst/auth'
 import { Client } from '@localfirst/relay-client'
-import { ConnectionStatus, UserName } from './types'
+import { Mutex, withTimeout } from 'async-mutex'
+import { PeerEventPayload } from '../../../relay/packages/client/dist/src/types'
 import { Connection } from './Connection'
 import { EventEmitter } from './EventEmitter'
-import { InviteeInitialContext, MemberInitialContext } from '@localfirst/auth'
-import { Mutex, withTimeout, E_CANCELED as CANCELED } from 'async-mutex'
+import { ConnectionStatus, UserName } from './types'
 
 // It shouldn't take longer than this to present an invitation and have it accepted. If this time
 // expires, we'll try presenting the invitation to someone else.
@@ -47,11 +48,11 @@ export class ConnectionManager extends EventEmitter {
         client.join(this.teamName)
         this.emit('server.connect')
       })
-      .on('peer.connect', ({ userName: peerUserName, socket }) => {
+      .on('peer.connect', ({ userName: peerUserName, socket }: PeerEventPayload) => {
         // in case we're not able to start the connection immediately (e.g. because there's a mutex
         // lock), store any messages we receive, so we can deliver them when we start it
         const storedMessages: string[] = []
-        socket.on('message', ({ data }) => storedMessages.push(data))
+        socket.addEventListener('message', ({ data: message }) => storedMessages.push(message))
 
         // We don't want to present invitations to multiple people simultaneously, because then they
         // both might admit us concurrently and that complicates things unnecessarily. So we need to
@@ -83,7 +84,7 @@ export class ConnectionManager extends EventEmitter {
       connection
         .on('joined', team => {
           // no longer an invitee - update our context for future connections
-          const { device, user } = this.context as InviteeInitialContext
+          const { device, user } = this.context as InviteeMemberInitialContext
           this.context = { device, user, team } as MemberInitialContext
           this.emit('joined', team)
         })

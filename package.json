@@ -21,6 +21,7 @@
     "test": "yarn --cwd packages/auth test",
     "test:log": "yarn --cwd packages/auth test:log",
     "watch": "lerna run watch --stream --parallel",
+    "postinstall": "yarn --cwd demo install",
     "prepublish": "lerna run prepublish",
     "pub": "lerna publish --yes"
   },

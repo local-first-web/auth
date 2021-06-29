@@ -1,3 +1,5 @@
+import React from 'react'
+
 export const StatusIndicator: React.FC<{ status: string }> = ({ status = '' }) => {
   const statusIndicatorCx = () => {
     status = status.split(':')[0]

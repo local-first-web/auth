@@ -6,7 +6,7 @@ import {
   TeamLink,
   TeamSignatureChain,
 } from '@localfirst/auth'
-import { FC } from 'react'
+import React, { FC } from 'react'
 import { theme } from '../mermaid.theme'
 import { users } from '../users'
 import { Mermaid } from './Mermaid'
