@@ -7,7 +7,6 @@ import {
   AddMemberAction,
   AddMemberRoleAction,
   Branch,
-  Link,
   LinkBody,
   RemoveMemberAction,
   RemoveMemberRoleAction,
@@ -18,10 +17,8 @@ import {
   TwoBranches,
 } from '@/chain/types'
 import { ADMIN } from '@/role'
+import { arraysAreEqual } from '@/util'
 import { isAdminOnlyAction } from './isAdminOnlyAction'
-import { arraysAreEqual, debug } from '@/util'
-
-const log = debug('lf:auth:membershipResolver')
 
 /**
  * This is a custom resolver, used to flatten a graph of team membership operations into a strictly
@@ -120,26 +117,30 @@ const getAuthor = (link: TeamActionLink): string => link.signed.userName
 
 const authorIsNot = (author: string) => (link: TeamActionLink) => getAuthor(link) !== author
 
-const authorNotIn = (excludeList: string[]) => (link: TeamActionLink): boolean =>
-  !excludeList.includes(getAuthor(link))
+const authorNotIn =
+  (excludeList: string[]) =>
+  (link: TeamActionLink): boolean =>
+    !excludeList.includes(getAuthor(link))
 
-const addedNotIn = (excludeList: string[]) => (link: TeamActionLink): boolean => {
-  const addedUserName = (link: AddActionLink): string => {
-    if (link.body.type === 'ADD_MEMBER') {
-      const addAction = link.body as LinkBody<AddMemberAction>
-      return addAction.payload.member.userName
-    } else if (link.body.type === 'ADD_MEMBER_ROLE') {
-      const addAction = link.body as LinkBody<AddMemberRoleAction>
-      return addAction.payload.userName
+const addedNotIn =
+  (excludeList: string[]) =>
+  (link: TeamActionLink): boolean => {
+    const addedUserName = (link: AddActionLink): string => {
+      if (link.body.type === 'ADD_MEMBER') {
+        const addAction = link.body as LinkBody<AddMemberAction>
+        return addAction.payload.member.userName
+      } else if (link.body.type === 'ADD_MEMBER_ROLE') {
+        const addAction = link.body as LinkBody<AddMemberRoleAction>
+        return addAction.payload.userName
+      }
+      // ignore coverage
+      else throw new Error()
     }
-    // ignore coverage
-    else throw new Error()
-  }
 
-  if (!isAddAction(link)) return true // only concerned with add actions
-  const added = addedUserName(link)
-  return !excludeList.includes(added)
-}
+    if (!isAddAction(link)) return true // only concerned with add actions
+    const added = addedUserName(link)
+    return !excludeList.includes(added)
+  }
 
 const noFilter: ActionFilter = (_: any) => true
 
