@@ -28,7 +28,7 @@ import * as invitations from '@/invitation'
 import { KeyType, randomKey, redactKeys } from '@/keyset'
 import * as sync from '@/sync'
 import { Team } from '@/team'
-import { assert, debug } from '@/util'
+import { assert, debug, truncateHashes } from '@/util'
 import { asymmetric, Payload, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
@@ -523,7 +523,7 @@ export class Connection extends EventEmitter {
         const senderPublicKey = context.peer.keys.encryption
         const recipientPublicKey = context.user.keys.encryption.publicKey
         const recipientSecretKey = context.user.keys.encryption.secretKey
-        this.log(`decrypting %o`, { senderPublicKey, recipientPublicKey })
+        this.log(`decrypting %o`, truncateHashes({ senderPublicKey, recipientPublicKey }))
         try {
           const theirSeed = asymmetric.decrypt({
             cipher: context.theirEncryptedSeed,
@@ -534,7 +534,7 @@ export class Connection extends EventEmitter {
           // with the two keys, we derive a shared key
           return deriveSharedKey(ourSeed, theirSeed)
         } catch (e) {
-          this.log(`decryption failed %o`, { senderPublicKey, recipientPublicKey })
+          this.log(`decryption failed %o`, truncateHashes({ senderPublicKey, recipientPublicKey }))
           throw e
         }
       },
