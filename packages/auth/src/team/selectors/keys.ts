@@ -1,13 +1,9 @@
-﻿import { memoize } from '@/util'
-import { DeviceWithSecrets, getDeviceId } from '@/device'
+﻿import { DeviceWithSecrets, getDeviceId } from '@/device'
 import { KeyMetadata, KeysetWithSecrets } from '@/keyset'
 import { open } from '@/lockbox'
 import { TeamState } from '@/team/types'
-import { User } from '@/user'
-import { assert, debug, Optional } from '@/util'
+import { assert, Optional } from '@/util'
 import { lockboxSummary } from '@/util/lockboxSummary'
-
-const log = debug('lf:auth:select:keys')
 
 export const keys = (
   state: TeamState,
