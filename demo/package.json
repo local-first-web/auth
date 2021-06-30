@@ -41,7 +41,7 @@
     "clipboard": "2",
     "cross-env": "7",
     "cuid": "2",
-    "cypress": "6",
+    "cypress": "7",
     "debug": "4",
     "events": "3",
     "friendly-words": "1",
