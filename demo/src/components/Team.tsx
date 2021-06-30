@@ -20,11 +20,7 @@ export const Team = () => {
 
   useEffect(() => {
     setMembers(team.members())
-    team.on('updated', () => setMembers(team.members()))
-    return () => {
-      team.removeAllListeners()
-    }
-  }, [team])
+  }, [team.members()])
 
   const userBelongsToTeam = team.has(user.userName)
   const userIsAdmin = userBelongsToTeam && team.memberIsAdmin(user.userName)
@@ -40,6 +36,7 @@ export const Team = () => {
             <p className="TeamName">{team.teamName}</p>
           </div>
           <div className="text-right">
+            {/* Online/offline switch */}
             <OnlineToggle
               isOnline={online}
               onChange={isConnected => {
@@ -114,12 +111,12 @@ export const Team = () => {
                     {userIsAdmin && !isOnlyAdmin ? (
                       <button
                         title="Remove member from team"
-                        className="hover:opacity-100 opacity-25 font-bold"
+                        className="hover:opacity-100 opacity-10 font-bold"
                         onClick={() => {
                           // TODO: need to handle this gracefully - what should Bob see after he is removed?
                           team.remove(m.userName)
                         }}
-                        children="🚫"
+                        children="⛔"
                       />
                     ) : null}
                   </td>
