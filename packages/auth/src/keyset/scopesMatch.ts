@@ -1,4 +1,4 @@
-import assert from 'assert'
+import { assert } from '@/util'
 import { getScope } from '@/keyset/getScope'
 import { KeyScope } from '@/keyset/types'
 
