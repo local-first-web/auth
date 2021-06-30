@@ -22,8 +22,7 @@ From most secure to least secure:
 export const Invite = () => {
   type State = 'inactive' | 'configuring' | 'done'
 
-  const [state, setState] = useState<State>('configuring')
-  // const [state, setState] = useState<State>('inactive')
+  const [state, setState] = useState<State>('inactive')
   const [seed, setSeed] = useState<string>()
 
   const maxUses = useRef() as MutableRefObject<HTMLSelectElement>
@@ -52,7 +51,7 @@ export const Invite = () => {
     // TODO we're storing id so we can revoke - wire that up
     const { id } = team.inviteMember({ seed })
 
-    setState('configuring')
+    setState('done')
   }
 
   const userIsAdmin = team?.memberIsAdmin(user.userName)
@@ -72,7 +71,7 @@ export const Invite = () => {
                 size="small"
                 className="my-2 mr-2"
                 onClick={() => {
-                  invite()
+                  setState('configuring')
                 }}
               >
                 Invite members
