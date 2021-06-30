@@ -1,10 +1,8 @@
 import { getHead, getPredecessorHashes, isPredecessor, SignatureChain } from '@/chain'
-import { arrayToMap, debug } from '@/util'
+import { arrayToMap } from '@/util'
 import { unique } from '../util/unique'
 import { TruncatedHashFilter } from './TruncatedHashFilter'
 import { SyncPayload, SyncState } from './types'
-
-const log = debug('lf:auth:sync')
 
 export const generateMessage = (
   chain: SignatureChain<any>,
