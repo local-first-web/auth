@@ -46,7 +46,7 @@ declare global {
       adminButton(userName: string): Chainable<Element>
       demote(userName: string): Chainable<Element>
       hide(): Chainable<Element>
-      invite(userName: string): Chainable<string>
+      invite(): Chainable<string>
       isConnectedTo(userName: string): Chainable<string>
       join(code: string): Chainable<Element>
       peerConnectionStatus(userName: string): Chainable<string>

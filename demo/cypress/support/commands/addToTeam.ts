@@ -4,7 +4,7 @@ import { peer } from '..'
 export const addToTeam: commandFn = (subject, userName: string) => {
   const s = () => cy.wrap(subject)
   s()
-    .invite(userName)
+    .invite()
     .then(code => {
       peer(userName).join(code)
     })

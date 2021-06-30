@@ -1,21 +1,24 @@
 import { commandFn } from '../'
 
-export const invite: commandFn = (subject, userName: string) => {
+export const invite: commandFn = subject => {
   const s = () => cy.wrap(subject)
   // click invite button
-  s().findByText('Invite someone').click()
-
-  // choose user from dropdown
-  s().find('select').select(userName)
+  s()
+    .findByText('Invite members')
+    .click()
 
   // press invite button
-  s().findByText('Invite').click()
+  s()
+    .findByText('Invite')
+    .click()
 
   // capture invitation code
   return s()
     .get('pre.InvitationCode')
     .then(pre => {
-      s().findByText('Copy').click()
+      s()
+        .findByText('Copy')
+        .click()
       return cy.wrap(pre).invoke('text')
     })
 }
