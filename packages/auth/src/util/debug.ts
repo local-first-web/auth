@@ -1,37 +1,27 @@
 ﻿import originalDebug from 'debug'
 import { truncateHashes } from './truncateHashes'
 
-const eliminateDates = (s: string) => {
-  const isoDateRx = /((\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+)|(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d)|(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d))Z? /
-  return s.replace(isoDateRx, '')
-}
+const APP_PREFIX = 'lf:auth'
 
 const substituteTokens = (s: string) => {
-  s = eliminateDates(s)
-  s = truncateHashes(s)
-  return (
-    s
-      .replace(/lf:auth:/g, '')
+  return truncateHashes(s)
+    .replace(/"/g, '')
+    .replace(APP_PREFIX + ':', '')
+    .replace('::', '')
 
-      // .replace(/alice/g, '👩🏾')
-      // .replace(/bob/g, '👨🏻‍🦲')
-      // .replace(/charlie/g, '👳🏽‍♂️')
-      // .replace(/dwight/g, '👴')
+    .replace(/alice/gi, '👩🏾')
+    .replace(/bob/gi, '👨🏻‍🦲')
+    .replace(/charlie/gi, '👳🏽‍♂️')
+    .replace(/dwight/gi, '👴')
+    .replace(/eve/gi, '🦹‍♀️')
 
-      // .replace(/laptop/g, '💻')
-      // .replace(/phone/g, '📱')
-
-      .replace(/"/g, '')
-
-  )
+    .replace(/laptop/gi, '💻')
+    .replace(/phone/gi, '📱')
 }
 
-const modifiedDebug = (prefix: string) => {
+export function debug(prefix: string) {
   const debug = originalDebug(prefix)
-  debug.log = (s: string, o: any) => {
-    originalDebug('lf:auth')(substituteTokens(s), o)
-  }
+  debug.log = (s: string, ...args: any[]) =>
+    console.log(substituteTokens(s), ...args.map(truncateHashes))
   return debug
 }
-
-export const debug = modifiedDebug
