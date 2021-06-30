@@ -11,7 +11,10 @@ export const Chooser = ({ onAdd, peers }: ChooserProps) => {
     <div className="Chooser group flex-grow">
       <Select
         ref={peerSelect}
-        className="opacity-25 w-64 group-hover:opacity-100 h-10 font-normal text-lg"
+        className={`
+          opacity-25 group-hover:opacity-100
+          border-none rounded-lg focus:rounded-b-none
+          h-10 font-normal text-lg`}
         onChange={onChange}
         css=""
       >
