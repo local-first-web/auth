@@ -5,6 +5,7 @@ import * as select from '@/team/selectors'
 import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '@/team/types'
 import { debug, truncateHashes, VALID, ValidationError } from '@/util'
 import { isAdminOnlyAction } from '../chain/isAdminOnlyAction'
+
 const log = debug('lf:auth:validate')
 
 export const validate: TeamStateValidator = (...args: ValidationArgs) => {
