@@ -7,6 +7,7 @@ import {
   AddMemberAction,
   AddMemberRoleAction,
   Branch,
+  Link,
   LinkBody,
   RemoveMemberAction,
   RemoveMemberRoleAction,
@@ -17,8 +18,8 @@ import {
   TwoBranches,
 } from '@/chain/types'
 import { ADMIN } from '@/role'
-import { arraysAreEqual } from '@/util'
 import { isAdminOnlyAction } from './isAdminOnlyAction'
+import { arraysAreEqual, debug } from '@/util'
 
 /**
  * This is a custom resolver, used to flatten a graph of team membership operations into a strictly
