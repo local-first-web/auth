@@ -1,7 +1,4 @@
-﻿import { debug } from '@/util'
-import { connect, setup } from '@/util/testing'
-
-const log = debug('lf:auth:test')
+﻿import { connect, setup } from '@/util/testing'
 
 describe('connection', () => {
   describe('encryption', () => {
