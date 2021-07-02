@@ -1,12 +1,9 @@
 ﻿import originalDebug from 'debug'
 import { truncateHashes } from './truncateHashes'
 
-const APP_PREFIX = 'lf:auth'
-
 const substituteTokens = (s: string) => {
   return truncateHashes(s)
     .replace(/"/g, '')
-    .replace(APP_PREFIX + ':', '')
     .replace('::', '')
 
     .replace(/alice/gi, '👩🏾')
