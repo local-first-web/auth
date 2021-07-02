@@ -106,4 +106,4 @@ describe('Truncated hash filter', () => {
   })
 })
 
-const range = (size: number): number[] => [...Array(size).keys()]
+const range = (size: number): string[] => [...Array(size).keys()].map(n => n.toString())
