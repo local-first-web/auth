@@ -9,7 +9,7 @@ const serif = 'IBM Plex Serif'
 
 module.exports = windmill({
   mode: 'jit',
-  purge: ['./src/**/*.{js,jsx,ts,tsx}', './public/**/*.html'],
+  purge: ['./src/**/*.{js,jsx,ts,tsx}', './index.html'],
   theme: {
     extend: {
       fontFamily: {
