@@ -1,7 +1,6 @@
 import { getHashes } from '@/chain/testUtils'
 import { truncateHashes } from '@/util'
 import {
-  logMessages,
   MessageMutator,
   NetworkMessage,
   setupWithNetwork as setup,
