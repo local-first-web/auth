@@ -30,7 +30,7 @@ import * as sync from '@/sync'
 import { Team } from '@/team'
 import { assert, debug, truncateHashes } from '@/util'
 import { asymmetric, Payload, symmetric } from '@herbcaudill/crypto'
-import { EventEmitter } from 'events'
+import { EventEmitter } from '@/util'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
 import { protocolMachine } from './protocolMachine'
 
