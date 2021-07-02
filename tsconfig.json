@@ -15,7 +15,6 @@
     "typeRoots": ["./node_modules/@types", "./types"],
     "paths": {
       "@localfirst/auth": ["packages/auth/src"],
-      "@localfirst/utils": ["packages/utils/src"],
       "@localfirst/react": ["packages/react/src"]
     }
   }
