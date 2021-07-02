@@ -1,6 +1,6 @@
 {
   "name": "@localfirst/auth-monorepo",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "author": {
     "name": "Herb Caudill",
     "email": "herb@devresults.com"
@@ -21,7 +21,6 @@
     "test": "yarn --cwd packages/auth test",
     "test:log": "yarn --cwd packages/auth test:log",
     "watch": "lerna run watch --stream --parallel",
-    "postinstall": "yarn --cwd demo install",
     "prepublish": "lerna run prepublish",
     "pub": "lerna publish --yes"
   },
@@ -39,6 +38,7 @@
     "typescript": "4"
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "demo"
   ]
 }
