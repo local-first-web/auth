@@ -9,7 +9,13 @@ export class Connection extends EventEmitter {
     super()
     this.peerSocket = socket
 
-    const sendMessage: auth.SendFunction = message => socket.send(JSON.stringify(message))
+    // TODO probably the relay client should take care of this (checking if socket is ready, queuing
+    // messages if not, etc.)
+    const sendMessage: auth.SendFunction = message => {
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify(message))
+      }
+    }
     this.authConnection = new auth.Connection({ context, sendMessage, peerUserName })
 
     // listen for incoming messages and pass them to the auth connection
