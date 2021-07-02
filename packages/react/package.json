@@ -2,12 +2,8 @@
   "name": "@localfirst/react",
   "version": "1.0.1",
   "description": "Official React library for @localfirst",
-  "author": "Jared Palmer",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/mono/mono.git",
-    "directory": "packages/react"
-  },
+  "author": "Herb Caudill",
+  "license": "MIT",
   "scripts": {
     "watch": "tsdx watch --tsconfig tsconfig.build.json --verbose --noClean",
     "build": "tsdx build --tsconfig tsconfig.build.json",
