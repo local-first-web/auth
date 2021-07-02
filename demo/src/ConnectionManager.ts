@@ -6,6 +6,7 @@ import { PeerEventPayload } from '../../../relay/packages/client/dist/src/types'
 import { Connection } from './Connection'
 import { EventEmitter } from './EventEmitter'
 import { ConnectionStatus, UserName } from './types'
+import debug from 'debug'
 
 // It shouldn't take longer than this to present an invitation and have it accepted. If this time
 // expires, we'll try presenting the invitation to someone else.
@@ -35,6 +36,8 @@ export class ConnectionManager extends EventEmitter {
     this.context = context
     this.teamName = teamName
 
+    this.log = debug(`lf:auth:demo:connection-manager:${context.device.userName}`)
+
     // connect to relay server
     this.client = this.connectServer(urls[0])
   }
@@ -57,9 +60,15 @@ export class ConnectionManager extends EventEmitter {
         // We don't want to present invitations to multiple people simultaneously, because then they
         // both might admit us concurrently and that complicates things unnecessarily. So we need to
         // make sure that we go through the connection process with one other peer at a time.
-        this.connectingMutex.runExclusive(() =>
+        if ('invitationSeed' in this.context && this.context.invitationSeed) {
+          this.connectingMutex.runExclusive(() => {
+            this.log('connecting with mutex')
+            this.connectPeer(socket, peerUserName, storedMessages)
+          })
+        } else {
+          this.log('connecting without mutex')
           this.connectPeer(socket, peerUserName, storedMessages)
-        )
+        }
       })
     return client
   }
@@ -74,6 +83,7 @@ export class ConnectionManager extends EventEmitter {
 
   private connectPeer = async (socket: WebSocket, peerUserName: string, storedMessages: string[]) =>
     new Promise<void>((resolve, reject) => {
+      this.log('connecting with context', this.context)
       // connect with a new peer
       const connection = new Connection({
         socket,
