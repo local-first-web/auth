@@ -115,7 +115,7 @@ function truncateStack(err: Error, lines = 5) {
   return err
 }
 
-export const setupWithNetwork = (...config: any) => {
+export const setupWithNetwork = (...config: any): [Record<string, UserStuffWithPeer>, Network] => {
   const users = setup(...config) as Record<string, UserStuffWithPeer>
 
   const network = new Network()
