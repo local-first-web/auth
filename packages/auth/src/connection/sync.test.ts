@@ -392,6 +392,16 @@ describe('connection', () => {
 
       it('resolves mutual demotions in favor of the senior member', async () => {
         const { alice, bob } = setup('alice', 'bob')
+        await connect(alice, bob)
+
+        // Both are admins
+        expect(alice.team.memberIsAdmin('alice')).toBe(true)
+        expect(bob.team.memberIsAdmin('alice')).toBe(true)
+        expect(alice.team.memberIsAdmin('bob')).toBe(true)
+        expect(bob.team.memberIsAdmin('bob')).toBe(true)
+
+        // they both go offline
+        await disconnect(alice, bob)
 
         // 👨🏻‍🦲 Bob removes 👩🏾 Alice from admin role
         bob.team.removeMemberRole('alice', ADMIN)
