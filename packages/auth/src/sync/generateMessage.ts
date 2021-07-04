@@ -3,6 +3,10 @@ import { arrayToMap } from '@/util'
 import { unique } from '../util/unique'
 import { TruncatedHashFilter } from './TruncatedHashFilter'
 import { SyncPayload, SyncState } from './types'
+import debug from 'debug'
+import { messageSummary } from '@/util/testing/Network'
+
+const log = debug('lf:auth:sync')
 
 export const generateMessage = (
   chain: SignatureChain<any>,
@@ -55,7 +59,6 @@ export const generateMessage = (
         .filter(hash => hash !== lastCommonHead) // omit last common head
         .filter(hash => !alreadySynced.includes(hash)) // and its predecessors
 
-      // TODO: we already have hashes - make TruncatedHashFilter compatible with base64
       const filter = new TruncatedHashFilter().addHashes(hashesTheyMightNeed)
       message.encodedFilter = filter.save() // send compact representation of the filter
 
@@ -74,5 +77,6 @@ export const generateMessage = (
     state.weHaveSent = unique([...state.weHaveSent, ...sendingNow])
   }
 
+  log('generateMessage', message ? messageSummary(message) : 'DONE')
   return [state, message]
 }
