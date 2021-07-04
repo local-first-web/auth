@@ -6,7 +6,6 @@ import {
   setupWithNetwork as setup,
   UserStuffWithPeer as UserStuff,
 } from '@/util/testing'
-import { pause } from '@/util/testing/pause'
 
 describe('sync', () => {
   const N = 10 // "many"
