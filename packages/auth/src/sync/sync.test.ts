@@ -6,6 +6,7 @@ import {
   setupWithNetwork as setup,
   UserStuffWithPeer as UserStuff,
 } from '@/util/testing'
+import { pause } from '@/util/testing/pause'
 
 describe('sync', () => {
   const N = 10 // "many"
@@ -93,6 +94,7 @@ describe('sync', () => {
 
     // Alice exchanges sync messages with Bob
     alice.peer.sync()
+    bob.peer.sync()
     network.deliverAll()
 
     // Now they are synced up again
@@ -107,6 +109,7 @@ describe('sync', () => {
       alice.team.addRole(`role-${i}`)
     }
     alice.peer.sync()
+    bob.peer.sync()
     network.deliverAll()
 
     // no changes yet; Alice and Bob are synced up
@@ -119,18 +122,18 @@ describe('sync', () => {
     }
     expectNotToBeSynced(alice, bob)
 
+    alice.peer.sync()
     bob.peer.sync()
-
     const msgs = network.deliverAll()
 
-    // Links sent should be N per peer, plus 1 merge link
-    expect(countLinks(msgs)).toEqual(N + N + 1)
+    // Links sent should be N +1 per peer
+    expect(countLinks(msgs)).toEqual(2 * (N + 1))
 
     // Now they are synced up again
     expectToBeSynced(alice, bob)
   })
 
-  it('with simulated false positives', () => {
+  it('with simulated false positives', async () => {
     const [{ alice, bob }, network] = setup('alice', 'bob')
     network.connect(alice.peer, bob.peer)
 
@@ -141,13 +144,16 @@ describe('sync', () => {
     }
     expectNotToBeSynced(alice, bob)
 
+    alice.peer.sync()
     bob.peer.sync()
 
     // Deliver messages but randomly omit some links
     const msgs = network.deliverAll(removeRandomLinks)
 
     // All links were eventually sent and none were repeated
+
     expect(countLinks(msgs)).toEqual(N + N + 1)
+    expect(msgs.length).toBeLessThanOrEqual(5)
 
     // We were still able to sync up
     expectToBeSynced(alice, bob)
