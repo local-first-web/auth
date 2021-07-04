@@ -1,9 +1,12 @@
 import { Action, merge, SignatureChain } from '@/chain'
-import { assert, clone, Hash } from '@/util'
+import { assert, clone, Hash, truncateHashes } from '@/util'
 import { getMissingLinks } from '../chain/getMissingLinks'
 import { unique } from '../util/unique'
 import { TruncatedHashFilter } from './TruncatedHashFilter'
 import { SyncPayload, SyncState } from './types'
+import debug from 'debug'
+
+const log = debug('lf:auth:sync')
 
 export const receiveMessage = <A extends Action>(
   chain: SignatureChain<A>,
@@ -22,37 +25,32 @@ export const receiveMessage = <A extends Action>(
 
   // 1. What did they send? Do we need anything else?
 
-  const theySentLinks = Object.keys(newLinks).length > 0
-  if (theySentLinks) {
-    state.theyHaveSent = unique(state.theyHaveSent.concat(Object.keys(newLinks)))
+  const newHashes = Object.keys(newLinks)
+  state.theyHaveSent = unique(state.theyHaveSent.concat(newHashes))
 
-    // store the new links in state, in case we can't merge yet
-    state.pendingLinks = { ...state.pendingLinks, ...newLinks }
+  // store the new links in state, in case we can't merge yet
+  state.pendingLinks = { ...state.pendingLinks, ...newLinks }
 
-    const theirChain = {
-      root: theirRoot,
-      head: theirHead,
-      links: { ...chain.links, ...state.pendingLinks },
-    }
-
-    // check if we have links with missing dependencies
-    const missingLinks = getMissingLinks(theirChain)
-
-    // if we have everything necessary to reconstruct their chain and merge with it
-    if (!missingLinks.length) {
-      state.pendingLinks = {} // we've used all the pending links, clear that out
-      chain = merge(chain, theirChain)
-    }
-
-    state.ourNeed = missingLinks
-  } else {
-    // they didn't send links, so we can't say if we need anything new
-    state.ourNeed = []
+  const theirChain = {
+    root: theirRoot,
+    head: theirHead,
+    links: { ...chain.links, ...state.pendingLinks },
   }
+
+  // check if we have links with missing dependencies
+  const missingLinks = getMissingLinks(theirChain)
+
+  // if we have everything we need, reconstruct their chain and merge with it
+  if (!missingLinks.length) {
+    state.pendingLinks = {} // we've used all the pending links, clear that out
+    chain = merge(chain, theirChain)
+  }
+
+  state.ourNeed = missingLinks
 
   // 2. What do they need?
 
-  if (!need.length && encodedFilter?.byteLength) {
+  if (encodedFilter?.byteLength) {
     const filter = new TruncatedHashFilter().load(encodedFilter)
 
     const theyMightNotHave = (hash: Hash) =>
@@ -72,5 +70,9 @@ export const receiveMessage = <A extends Action>(
   state.ourHead = chain.head
   state.theirHead = theirHead
 
+  log(
+    'receiveMessage',
+    truncateHashes(JSON.stringify({ chain: { head: chain.head, links: Object.keys(chain.links) } }))
+  )
   return [chain, state]
 }
