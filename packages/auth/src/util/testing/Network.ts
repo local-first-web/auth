@@ -142,7 +142,7 @@ export const messageSummary = (m: SyncPayload<any>) => {
   if (links) body.links = Object.keys(links).join(', ')
   if (need) body.need = need.join(', ')
 
-  return body
+  return truncateHashes(body)
 }
 
 export interface UserStuffWithPeer extends UserStuff {
