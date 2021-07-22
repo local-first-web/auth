@@ -1261,10 +1261,10 @@
     unique-filename "^1.1.1"
     which "^1.3.1"
 
-"@herbcaudill/crypto@0":
-  version "0.1.12"
-  resolved "https://registry.yarnpkg.com/@herbcaudill/crypto/-/crypto-0.1.12.tgz#c50b43320d2010055c6af3665c8c685f89c9111d"
-  integrity sha512-gmhJ5JHk8ZKQTaLh1f1sbTn49DtmRQoZ3TRs417IkG5ZOe4eQe00qmuwEeJNEBlwRrunjPW4qljjazN1H4R1Uw==
+"@herbcaudill/crypto@0", "@herbcaudill/crypto@^0.1.14":
+  version "0.1.14"
+  resolved "https://registry.yarnpkg.com/@herbcaudill/crypto/-/crypto-0.1.14.tgz#5d70c25bd22443c458d38fab5cf7d837cd3888b2"
+  integrity sha512-6S4OEO4iB54jpAvPz5BU1qUpK5XXLAJxU0NNkSuZLmdIVHkaZTPAcJsdEnNC40tPQ2xjdJt57palGfsNqXAtMA==
   dependencies:
     "@stablelib/base64" "1"
     "@stablelib/utf8" "1"

@@ -26,7 +26,7 @@
     "prepublish": "yarn build"
   },
   "dependencies": {
-    "@herbcaudill/crypto": "0",
+    "@herbcaudill/crypto": "1",
     "debug": "4",
     "fast-memoize": "2",
     "msgpack-lite": "0",
