@@ -1,4 +1,4 @@
-import { base64, hash } from '@herbcaudill/crypto'
+import { base58, hash } from '@herbcaudill/crypto'
 import { makeHash } from './ProbabilisticFilter'
 import { TruncatedHashFilter } from './TruncatedHashFilter'
 

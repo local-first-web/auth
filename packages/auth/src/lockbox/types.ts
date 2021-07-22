@@ -1,8 +1,8 @@
 ﻿import { PublicKeyset, KeysetWithSecrets, KeyMetadata, KeyType } from '@/keyset'
-import { Base64 } from '@/util'
+import { Base58 } from '@/util'
 
 export type KeyManifest = KeyMetadata & {
-  publicKey: Base64
+  publicKey: Base58
 }
 
 // type guard
@@ -16,7 +16,7 @@ export interface Lockbox {
   /** The public key of the keypair used to encrypt this lockbox  */
   encryptionKey: {
     type: KeyType.EPHEMERAL
-    publicKey: Base64
+    publicKey: Base58
   }
 
   /** Manifest for the keyset that can open this lockbox (the lockbox recipient's keys) */
@@ -26,5 +26,5 @@ export interface Lockbox {
   contents: KeyManifest
 
   /** The encrypted keyset */
-  encryptedPayload: Base64
+  encryptedPayload: Base58
 }

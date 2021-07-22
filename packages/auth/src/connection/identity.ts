@@ -1,7 +1,7 @@
 ﻿import { signatures } from '@herbcaudill/crypto'
 import { Challenge } from '@/connection/types'
 import { KeyScope, KeysetWithSecrets, PublicKeyset, randomKey } from '@/keyset'
-import { Base64, VALID, ValidationResult } from '@/util'
+import { Base58, VALID, ValidationResult } from '@/util'
 
 export const challenge = (identityClaim: KeyScope): Challenge => ({
   ...identityClaim,
@@ -9,12 +9,12 @@ export const challenge = (identityClaim: KeyScope): Challenge => ({
   timestamp: new Date().getTime(),
 })
 
-export const prove = (challenge: Challenge, keys: KeysetWithSecrets): Base64 =>
+export const prove = (challenge: Challenge, keys: KeysetWithSecrets): Base58 =>
   signatures.sign(challenge, keys.signature.secretKey)
 
 export const verify = (
   challenge: Challenge,
-  signature: Base64,
+  signature: Base58,
   publicKeys: PublicKeyset
 ): ValidationResult => {
   const details = { challenge, signature }

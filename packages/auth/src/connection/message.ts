@@ -2,7 +2,7 @@
 import { TeamAction, TeamLink } from '@/chain'
 import { ProofOfInvitation } from '@/invitation'
 import { KeyScope, PublicKeyset } from '@/keyset'
-import { Base64, Hash } from '@/util'
+import { Base58, Hash } from '@/util'
 import { SyncPayload } from '@/sync/types'
 
 export type ReadyMessage = {
@@ -70,7 +70,7 @@ export type ProveIdentityMessage = {
   type: 'PROVE_IDENTITY'
   payload: {
     challenge: Challenge
-    proof: Base64 // this is a signature
+    proof: Base58 // this is a signature
   }
 }
 
@@ -104,7 +104,7 @@ export type LocalUpdateMessage = {
 export type SeedMessage = {
   type: 'SEED'
   payload: {
-    encryptedSeed: Base64
+    encryptedSeed: Base58
   }
 }
 
@@ -112,7 +112,7 @@ export type SeedMessage = {
 
 export type EncryptedMessage = {
   type: 'ENCRYPTED_MESSAGE'
-  payload: Base64
+  payload: Base58
 }
 
 export type ConnectionMessage =

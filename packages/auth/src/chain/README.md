@@ -61,18 +61,18 @@ A link is an object that looks like this:
 
 ```ts
 {
-  hash: Base64
+  hash: Base58
   body: {
     type: string
     payload: any
     context: Context
     timestamp: UnixTimestamp
-    prev: Base64
+    prev: Base58
   }
   signed: {
-    signature: Base64
+    signature: Base58
     userName: string
-    key: Base64
+    key: Base58
   }
 }
 ```

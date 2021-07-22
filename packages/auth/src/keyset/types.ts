@@ -1,9 +1,9 @@
-﻿import { Base64, Base64Keypair } from '@herbcaudill/crypto'
+﻿import { Base58, Base58Keypair } from '@herbcaudill/crypto'
 
 export interface Keyset {
-  secretKey: Base64 // for symmetric encryption
-  encryption: Base64Keypair // for asymmetric encryption
-  signature: Base64Keypair
+  secretKey: Base58 // for symmetric encryption
+  encryption: Base58Keypair // for asymmetric encryption
+  signature: Base58Keypair
 }
 
 /**
@@ -34,8 +34,8 @@ export interface KeyMetadata extends KeyScope {
 export interface KeysetWithSecrets extends KeyMetadata, Keyset {}
 
 export interface PublicKeyset extends KeyMetadata {
-  encryption: Base64 // = encryption.publicKey
-  signature: Base64 // = signature.publicKey
+  encryption: Base58 // = encryption.publicKey
+  signature: Base58 // = signature.publicKey
 }
 
 // type guard: PublicKeyset vs KeysetWithSecrets

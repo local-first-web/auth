@@ -6,13 +6,13 @@ import { KeyScope, PublicKeyset } from '@/keyset'
 import { Member } from '@/member'
 import { Team } from '@/team'
 import { User } from '@/user'
-import { Base64, Hash, UnixTimestamp } from '@/util'
+import { Base58, Hash, UnixTimestamp } from '@/util'
 import { SyncState } from '@/sync/types'
 
 // Identity
 
 export type Challenge = KeyScope & {
-  nonce: Base64
+  nonce: Base58
   timestamp: UnixTimestamp
 }
 
@@ -74,9 +74,9 @@ export interface ConnectionContext
   challenge?: Challenge
   peer?: Member
   theirHead?: Hash
-  seed?: Base64
-  theirEncryptedSeed?: Base64
-  sessionKey?: Base64
+  seed?: Base58
+  theirEncryptedSeed?: Base58
+  sessionKey?: Base58
   error?: ErrorPayload
   device: DeviceWithSecrets
 
