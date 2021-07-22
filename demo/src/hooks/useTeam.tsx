@@ -4,8 +4,8 @@ import * as React from 'react'
 import { teamContext } from '../components/TeamProvider'
 import { ConnectionManager } from '../ConnectionManager'
 import { AlertInfo, PeerState } from '../types'
-import { assert } from '../util/assert'
-import { randomTeamName } from '../util/randomTeamName'
+import { assert } from '@/util/assert'
+import { randomTeamName } from '@/util/randomTeamName'
 
 // TODO: make this an environment var
 const urls = ['ws://localhost:8080']

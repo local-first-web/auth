@@ -1,7 +1,7 @@
 import { assert, Hash, truncateHashes } from '@/util'
 import { Action, getMissingLinks, merge, SignatureChain } from 'crdx'
 import debug from 'debug'
-import { unique } from '../util/unique'
+import { unique } from '@/util/unique'
 import { TruncatedHashFilter } from './TruncatedHashFilter'
 import { SyncPayload, SyncState } from './types'
 

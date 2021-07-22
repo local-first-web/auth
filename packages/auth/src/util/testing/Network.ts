@@ -4,8 +4,6 @@ import { receiveMessage } from '@/sync/receiveMessage'
 import { SyncPayload, SyncState } from '@/sync/types'
 import { Team } from '@/team'
 import { TeamAction } from '@/team/types'
-import util from 'util'
-import { truncateHashes } from '../truncateHashes'
 import { setup, UserStuff } from './setup'
 
 // Simulates a peer-to-peer network
@@ -58,10 +56,10 @@ export class Network {
 
       // catch failure to converge
       if (messageCount++ > maxMessages) {
-        return delivered
+        // return delivered
         // const recentlyDelivered = delivered.slice(delivered.length - 10)
-        // // console.log(logMessages(recentlyDelivered))
-        // throw truncateStack(new Error('loop detected'))
+        // console.log(logMessages(recentlyDelivered))
+        throw truncateStack(new Error('loop detected'))
       }
     }
     // console.log(`${Object.keys(this.peers).length} peers, required ${messageCount} messages`)
@@ -126,23 +124,6 @@ export const setupWithNetwork = (...config: any): [Record<string, UserStuffWithP
   }
 
   return [users, network]
-}
-
-export const logMessages = (msgs: NetworkMessage[]) => {
-  msgs.forEach(m => {
-    const summary = truncateHashes(util.inspect(messageSummary(m.body), { depth: 1, colors: true }))
-    console.log(`from ${m.from} to ${m.to}: ${summary}`)
-  })
-}
-
-export const messageSummary = (m: SyncPayload<any>) => {
-  const { head, encodedFilter, links, need } = m
-  const body = { head } as any
-  if (encodedFilter?.length) body.encodedFilter = encodedFilter.length
-  if (links) body.links = Object.keys(links).join(', ')
-  if (need) body.need = need.join(', ')
-
-  return truncateHashes(body)
 }
 
 export interface UserStuffWithPeer extends UserStuff {

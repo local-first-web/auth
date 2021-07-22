@@ -1,10 +1,10 @@
+import { arrayToMap } from '@/util/arrayToMap'
+import { messageSummary } from '@/util/testing/messageSummary'
+import { unique } from '@/util/unique'
 import { getHead, getPredecessorHashes, isPredecessor, SignatureChain } from 'crdx'
-import { arrayToMap } from '@/util'
-import { unique } from '../util/unique'
+import debug from 'debug'
 import { TruncatedHashFilter } from './TruncatedHashFilter'
 import { SyncPayload, SyncState } from './types'
-import debug from 'debug'
-import { messageSummary } from '@/util/testing/Network'
 
 const log = debug('lf:auth:sync')
 
