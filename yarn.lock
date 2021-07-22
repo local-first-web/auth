@@ -1252,7 +1252,7 @@
   dependencies:
     purgecss "^4.0.3"
 
-"@herbcaudill/crypto@^0.1.14":
+"@herbcaudill/crypto@0", "@herbcaudill/crypto@^0.1.14":
   version "0.1.14"
   resolved "https://registry.yarnpkg.com/@herbcaudill/crypto/-/crypto-0.1.14.tgz#5d70c25bd22443c458d38fab5cf7d837cd3888b2"
   integrity sha512-6S4OEO4iB54jpAvPz5BU1qUpK5XXLAJxU0NNkSuZLmdIVHkaZTPAcJsdEnNC40tPQ2xjdJt57palGfsNqXAtMA==
@@ -1263,6 +1263,13 @@
     msgpack-lite "0"
     scrypt-js "^3.0.1"
     tweetnacl "1"
+
+"@herbcaudill/random@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@herbcaudill/random/-/random-0.3.0.tgz#211419d8e8be248cd45edd00e407731dec3879ea"
+  integrity sha512-PQQ8Wym+y7Eh1LLQTJziLAwxiXwBCxmap2OLMwLykOxIUVBFoIezODVMraxqGlrRl+KYrpOiN+Cx0QtbAZAwCg==
+  dependencies:
+    seed-random "2"
 
 "@herbcaudill/tscpaths@^0.0.17":
   version "0.0.17"
@@ -4664,6 +4671,19 @@ cosmiconfig@^7.0.0:
     parse-json "^5.0.0"
     path-type "^4.0.0"
     yaml "^1.10.0"
+
+crdx@^0.1.2:
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/crdx/-/crdx-0.1.2.tgz#efff873cf95469df031286e342f8401ef2952796"
+  integrity sha512-9o1LIhnLQzn69giSzsvIiFRXoJv8I0BUlrA8Q/BnqpMfeii/vwabNI44g12C2CaEmvw5IpF3nSJdtHQZ+S2uXQ==
+  dependencies:
+    "@herbcaudill/crypto" "0"
+    "@herbcaudill/random" "^0.3.0"
+    cuid "2"
+    debug "4"
+    events "3"
+    fast-memoize "2"
+    lodash "4"
 
 cross-env@6:
   version "6.0.3"
@@ -8994,7 +9014,7 @@ lodash.uniq@^4.5.0:
   resolved "https://registry.yarnpkg.com/lodash.uniq/-/lodash.uniq-4.5.0.tgz#d0225373aeb652adc1bc82e4945339a842754773"
   integrity sha1-0CJTc662Uq3BvILklFM5qEJ1R3M=
 
-lodash@4.x, lodash@^4.17.12, lodash@^4.17.14, lodash@^4.17.15, lodash@^4.17.19, lodash@^4.17.21, lodash@^4.2.1, lodash@^4.7.0:
+lodash@4, lodash@4.x, lodash@^4.17.12, lodash@^4.17.14, lodash@^4.17.15, lodash@^4.17.19, lodash@^4.17.21, lodash@^4.2.1, lodash@^4.7.0:
   version "4.17.21"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.21.tgz#679591c564c3bffaae8454cf0b3df370c3d6911c"
   integrity sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==
@@ -11563,6 +11583,11 @@ scrypt-js@^3.0.1:
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/scrypt-js/-/scrypt-js-3.0.1.tgz#d314a57c2aef69d1ad98a138a21fe9eafa9ee312"
   integrity sha512-cdwTTnqPu0Hyvf5in5asVdZocVDTNRmR7XEcJuIzMjJeSHybHl7vpB66AzwTaIg6CLSbtjcxc8fqcySfnTkccA==
+
+seed-random@2:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/seed-random/-/seed-random-2.2.0.tgz#2a9b19e250a817099231a5b99a4daf80b7fbed54"
+  integrity sha1-KpsZ4lCoFwmSMaW5mk2vgLf77VQ=
 
 select@^1.1.2:
   version "1.1.2"

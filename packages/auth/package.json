@@ -27,8 +27,9 @@
     "prepublish": "yarn build"
   },
   "dependencies": {
-    "@herbcaudill/crypto": "^0.1.14",
+    "@herbcaudill/crypto": "1",
     "buffer": "6",
+    "crdx": "0",
     "debug": "4",
     "events": "3",
     "fast-memoize": "2",
@@ -40,7 +41,7 @@
   },
   "devDependencies": {
     "@babel/core": "7",
-    "@herbcaudill/tscpaths": "^0.0.17",
+    "@herbcaudill/tscpaths": "0",
     "@types/debug": "4",
     "@types/msgpack-lite": "0",
     "@types/ramda": "0",
