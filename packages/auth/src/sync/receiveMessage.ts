@@ -1,10 +1,9 @@
-import { Action, merge, SignatureChain } from '@/chain'
-import { assert, clone, Hash, truncateHashes } from '@/util'
-import { getMissingLinks } from '../chain/getMissingLinks'
+import { assert, Hash, truncateHashes } from '@/util'
+import { Action, getMissingLinks, merge, SignatureChain } from 'crdx'
+import debug from 'debug'
 import { unique } from '../util/unique'
 import { TruncatedHashFilter } from './TruncatedHashFilter'
 import { SyncPayload, SyncState } from './types'
-import debug from 'debug'
 
 const log = debug('lf:auth:sync')
 

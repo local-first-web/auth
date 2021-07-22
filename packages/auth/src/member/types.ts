@@ -1,10 +1,10 @@
-﻿import { PublicKeyset } from '@/keyset'
+﻿import { Keyset } from 'crdx'
 import { PublicDevice } from '@/device'
 
 export interface Member {
   userName: string
-  keys: PublicKeyset
+  keys: Keyset
   roles: string[]
   devices?: PublicDevice[]
-  keyHistory?: PublicKeyset[]
+  keyHistory?: Keyset[]
 }

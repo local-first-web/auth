@@ -1,6 +1,6 @@
 ﻿import { DeviceWithSecrets, PublicDevice } from '@/device'
 import { Member } from '@/member'
-import { User } from '@/user'
+import { Keyset, User } from 'crdx'
 import { SemVer } from '@/util'
 
 export interface LocalDeviceContext {

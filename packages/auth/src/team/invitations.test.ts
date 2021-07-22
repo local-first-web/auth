@@ -1,5 +1,5 @@
 import { generateProof } from '@/invitation'
-import * as keysets from '@/keyset'
+import * as keysets from 'crdx'
 import * as teams from '@/team'
 import { setup } from '@/util/testing'
 
@@ -154,8 +154,8 @@ describe('Team', () => {
           .replace(/\s/g, '')
           .split(',')
         for (const userName of invitees) {
-          const userKeys = keysets.create({ type: MEMBER, name: userName })
-          const deviceKeys = keysets.create({ type: DEVICE, name: `${userName}'s laptop` })
+          const userKeys = createKeyset({ type: MEMBER, name: userName })
+          const deviceKeys = createKeyset({ type: DEVICE, name: `${userName}'s laptop` })
           alice.team.admitMember(proofOfInvitation, userKeys)
         }
 

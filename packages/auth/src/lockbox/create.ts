@@ -1,22 +1,19 @@
-﻿import { asymmetric } from '@herbcaudill/crypto'
-import * as keyset from '@/keyset'
-import { KeysetWithSecrets, PublicKeyset } from '@/keyset'
-import { isKeyManifest, KeyManifest, Lockbox } from '@/lockbox/types'
-
-const { EPHEMERAL_SCOPE } = keyset
+﻿import { isKeyManifest, KeyManifest, Lockbox } from '@/lockbox/types'
+import { asymmetric } from '@herbcaudill/crypto'
+import { EPHEMERAL_SCOPE, Keyset, KeysetWithSecrets, redactKeys } from 'crdx'
 
 /** Creates a new lockbox that can be opened using the recipient's private key. */
 export const create = (
   contents: KeysetWithSecrets,
-  recipientKeys: KeysetWithSecrets | PublicKeyset | KeyManifest
+  recipientKeys: KeysetWithSecrets | Keyset | KeyManifest
 ): Lockbox => {
   // Don't leak the recipient's secrets if we have them
-  const redactedRecipientKeys: PublicKeyset | KeyManifest = isKeyManifest(recipientKeys)
+  const redactedRecipientKeys: Keyset | KeyManifest = isKeyManifest(recipientKeys)
     ? recipientKeys
-    : keyset.redactKeys(recipientKeys)
+    : redactKeys(recipientKeys)
 
   // Don't leak secrets from the contents
-  const redactedContents = keyset.redactKeys(contents)
+  const redactedContents = redactKeys(contents)
 
   // Generate a new single-use keypair to encrypt the lockbox with
   const encryptionKeys = asymmetric.keyPair()

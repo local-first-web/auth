@@ -1,21 +1,19 @@
-import { append, chainSummary, create, merge, TeamAction, TeamSignatureChain } from '@/chain'
+import { createTeam } from './createTeam'
+import { TeamAction, TeamSignatureChain } from './types'
 import { ADMIN } from '@/role'
-import { redactUser } from '@/user'
-import { clone } from '@/util'
+import { append, merge, redactUser } from 'crdx'
+import { chainSummary, clone } from '@/util'
 import { setup as userSetup } from '@/util/testing'
 
 describe('chains', () => {
   const setup = () => {
     // 👩🏾 Alice creates a chain
-    let aChain = create<TeamAction>(
-      { teamName: 'Spies Я Us', rootMember: redactUser(alice.user) },
-      alice.localContext
-    )
+    let aChain: TeamSignatureChain = createTeam('Spies Я Us', alice.localContext).chain
     // 👩🏾 Alice adds 👨🏻‍🦲 Bob as admin
     aChain = append(aChain, ADD_BOB_AS_ADMIN, alice.localContext)
 
     // 👩🏾 🡒 👨🏻‍🦲 Alice shares the chain with Bob
-    let bChain = clone(aChain)
+    let bChain: TeamSignatureChain = clone(aChain)
     return { aChain, bChain }
   }
 

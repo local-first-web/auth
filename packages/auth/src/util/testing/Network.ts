@@ -1,10 +1,10 @@
-import util from 'util'
-import { TeamAction } from '@/chain/types'
-import { SyncPayload, SyncState } from '@/sync/types'
 import { generateMessage } from '@/sync/generateMessage'
 import { initSyncState } from '@/sync/initSyncState'
 import { receiveMessage } from '@/sync/receiveMessage'
+import { SyncPayload, SyncState } from '@/sync/types'
 import { Team } from '@/team'
+import { TeamAction } from '@/team/types'
+import util from 'util'
 import { truncateHashes } from '../truncateHashes'
 import { setup, UserStuff } from './setup'
 

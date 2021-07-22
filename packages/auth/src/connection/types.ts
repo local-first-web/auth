@@ -1,13 +1,12 @@
-import { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
 import { ConnectionMessage } from '@/connection/message'
 import { DeviceWithSecrets } from '@/device'
 import { ProofOfInvitation } from '@/invitation'
-import { KeyScope, PublicKeyset } from '@/keyset'
 import { Member } from '@/member'
-import { Team } from '@/team'
-import { User } from '@/user'
-import { Base58, Hash, UnixTimestamp } from '@/util'
 import { SyncState } from '@/sync/types'
+import { Team } from '@/team'
+import { Base58, Hash, UnixTimestamp } from '@/util'
+import { KeyScope, Keyset, User } from 'crdx'
+import { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
 
 // Identity
 
@@ -68,8 +67,8 @@ export interface ConnectionContext
   theirIdentityClaim?: KeyScope
 
   theirProofOfInvitation?: ProofOfInvitation
-  theirUserKeys?: PublicKeyset
-  theirDeviceKeys?: PublicKeyset
+  theirUserKeys?: Keyset
+  theirDeviceKeys?: Keyset
 
   challenge?: Challenge
   peer?: Member

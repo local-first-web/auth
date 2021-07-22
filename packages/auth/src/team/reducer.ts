@@ -1,5 +1,6 @@
 ﻿import { clone, debug } from '@/util'
-import { ROOT, TeamAction, TeamActionLink } from '@/chain'
+import { ROOT } from 'crdx'
+import { TeamAction, TeamActionLink } from './types'
 import { ADMIN } from '@/role'
 import {
   addDevice,
@@ -25,9 +26,11 @@ import { validate } from '@/team/validate'
 import { Member } from '@/member'
 import { PublicDevice } from '@/device'
 
-export const setHead = (link: TeamActionLink): Reducer => state => {
-  return { ...state, __HEAD: link.hash }
-}
+export const setHead =
+  (link: TeamActionLink): Reducer =>
+  state => {
+    return { ...state, __HEAD: link.hash }
+  }
 
 /**
  * Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `TeamState`

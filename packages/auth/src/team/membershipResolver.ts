@@ -1,25 +1,21 @@
-﻿import { bySeniority } from '@/chain/bySeniority'
-import { baseResolver } from '@/chain/getSequence'
+﻿import { ADMIN } from '@/role'
+import { bySeniority } from '@/team/bySeniority'
 import {
   ActionFilter,
   ActionFilterFactory,
-  ActionLink,
   AddMemberAction,
   AddMemberRoleAction,
   Branch,
-  Link,
-  LinkBody,
   RemoveMemberAction,
   RemoveMemberRoleAction,
-  Resolver,
   TeamAction,
-  TeamActionLink,
+  TeamNonMergeLink,
   TeamSignatureChain,
   TwoBranches,
-} from '@/chain/types'
-import { ADMIN } from '@/role'
+} from '@/team/types'
+import { arraysAreEqual } from '@/util/arraysAreEqual'
+import { ActionLink, baseResolver, isRootLink, LinkBody, Resolver } from 'crdx'
 import { isAdminOnlyAction } from './isAdminOnlyAction'
-import { arraysAreEqual, debug } from '@/util'
 
 /**
  * This is a custom resolver, used to flatten a graph of team membership operations into a strictly
@@ -27,7 +23,7 @@ import { arraysAreEqual, debug } from '@/util'
  * arise with concurrency: mutual removals, duplicate actions, etc.
  */
 export const membershipResolver: Resolver<TeamAction> = (heads, chain) => {
-  let branches = baseResolver(heads, chain) as TwoBranches
+  let branches: TwoBranches = baseResolver(heads, chain)
 
   // Consecutively apply each type of filter to the branches
   for (const key in filterFactories) {
@@ -79,9 +75,9 @@ const filterFactories: Record<string, ActionFilterFactory> = {
   // RULE: If B is demoted, any admin-only actions they do concurrently are omitted
   cantDoAdminActionsWhenDemoted: branches => {
     const demotedMembers = getDemotedMembers(branches)
-    return (link: TeamActionLink) => {
+    return (link: TeamNonMergeLink) => {
       const authorNotDemoted = authorNotIn(demotedMembers)
-      const notAdminOnly = (link: TeamActionLink) => !isAdminOnlyAction(link.body)
+      const notAdminOnly = (link: TeamNonMergeLink) => !isAdminOnlyAction(link.body)
       return authorNotDemoted(link) || notAdminOnly(link)
     }
   },
@@ -92,13 +88,15 @@ const filterFactories: Record<string, ActionFilterFactory> = {
 const leastSenior = (chain: TeamSignatureChain, userNames: string[]) =>
   userNames.sort(bySeniority(chain)).pop()!
 
-const isRemovalAction = (link: TeamActionLink): boolean => link.body.type === 'REMOVE_MEMBER'
+const isRemovalAction = (link: TeamNonMergeLink): boolean => link.body.type === 'REMOVE_MEMBER'
 
 const getRemovals = (branches: TwoBranches) =>
   branches.flatMap(branch => branch.filter(isRemovalAction)) as RemoveActionLink[]
 
-const isDemotionAction = (link: TeamActionLink): boolean =>
-  link.body.type === 'REMOVE_MEMBER_ROLE' && link.body.payload.roleName === ADMIN
+const isDemotionAction = (link: TeamNonMergeLink): boolean =>
+  !isRootLink(link) &&
+  link.body.type === 'REMOVE_MEMBER_ROLE' &&
+  link.body.payload.roleName === ADMIN
 
 const getDemotions = (branches: TwoBranches) =>
   branches.flatMap(branch => branch.filter(isDemotionAction)) as RemoveActionLink[]
@@ -114,18 +112,18 @@ const getDemotedMembers = (branches: TwoBranches) => getDemotions(branches).map(
 
 const getTarget = (link: RemoveActionLink): string => link.body.payload.userName
 
-const getAuthor = (link: TeamActionLink): string => link.signed.userName
+const getAuthor = (link: TeamNonMergeLink): string => link.signed.userName
 
-const authorIsNot = (author: string) => (link: TeamActionLink) => getAuthor(link) !== author
+const authorIsNot = (author: string) => (link: TeamNonMergeLink) => getAuthor(link) !== author
 
 const authorNotIn =
   (excludeList: string[]) =>
-  (link: TeamActionLink): boolean =>
+  (link: TeamNonMergeLink): boolean =>
     !excludeList.includes(getAuthor(link))
 
 const addedNotIn =
   (excludeList: string[]) =>
-  (link: TeamActionLink): boolean => {
+  (link: TeamNonMergeLink): boolean => {
     const addedUserName = (link: AddActionLink): string => {
       if (link.body.type === 'ADD_MEMBER') {
         const addAction = link.body as LinkBody<AddMemberAction>
@@ -147,7 +145,7 @@ const noFilter: ActionFilter = (_: any) => true
 
 // type guards
 
-const isAddAction = (link: TeamActionLink): link is AddActionLink =>
+const isAddAction = (link: TeamNonMergeLink): link is AddActionLink =>
   link.body.type === 'ADD_MEMBER' || link.body.type === 'ADD_MEMBER_ROLE'
 
 type RemoveActionLink = ActionLink<RemoveMemberAction | RemoveMemberRoleAction>

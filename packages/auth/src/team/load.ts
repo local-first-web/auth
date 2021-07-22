@@ -1,4 +1,4 @@
-﻿import { TeamSignatureChain } from '@/chain'
+﻿import { TeamSignatureChain } from './types'
 import { LocalDeviceContext } from '@/context'
 import { Team } from '@/team/Team'
 

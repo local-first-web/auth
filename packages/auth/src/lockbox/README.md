@@ -123,7 +123,7 @@ For example, if the admin keys are compromised, we'll need to come up with a new
 we'll need to find every lockbox that contained the old keys, and replace them with the new ones.
 
 ```js
-const newAdminKeys = keyset.create({ type: ROLE, name: ADMIN })
+const newAdminKeys = createKeyset({ type: ROLE, name: ADMIN })
 const newAdminLockboxForAlice = lockbox.rotate(adminLockboxForAlice, newAdminKeys)
 ```
 

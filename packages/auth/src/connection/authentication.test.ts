@@ -41,7 +41,7 @@ describe('connection', () => {
         const { alice, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
 
         charlie.context = {
-          team: teams.create(`team charlie`, { device: charlie.device, user: charlie.user }),
+          team: teams.createTeam(`team charlie`, { device: charlie.device, user: charlie.user }),
           user: charlie.user,
           device: charlie.device,
         }

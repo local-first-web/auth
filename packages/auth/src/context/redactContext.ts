@@ -1,6 +1,6 @@
 ﻿import { LocalUserContext, MemberContext } from '@/context/types'
 import { redactDevice } from '@/device'
-import { redactUser } from '@/user'
+import { redactUser } from 'crdx'
 
 export const redactContext = (context: LocalUserContext): MemberContext => {
   const { client, user, device } = context

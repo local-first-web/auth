@@ -1,10 +1,16 @@
-﻿import { actionFingerprint, ROOT, TeamActionLink } from '@/chain'
-import { parseDeviceId } from '@/device'
+﻿import { parseDeviceId } from '@/device'
 import { invitationCanBeUsed } from '@/invitation'
-import * as select from '@/team/selectors'
-import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '@/team/types'
-import { debug, truncateHashes, VALID, ValidationError } from '@/util'
-import { isAdminOnlyAction } from '../chain/isAdminOnlyAction'
+import { actionFingerprint, debug, truncateHashes, VALID, ValidationError } from '@/util'
+import { ROOT } from 'crdx'
+import { isAdminOnlyAction } from './isAdminOnlyAction'
+import * as select from './selectors'
+import {
+  TeamActionLink,
+  TeamState,
+  TeamStateValidator,
+  TeamStateValidatorSet,
+  ValidationArgs,
+} from './types'
 
 const log = debug('lf:auth:validate')
 
@@ -22,8 +28,8 @@ const validators: TeamStateValidatorSet = {
   mustBeAdmin: (...args) => {
     const [prevState, link] = args
     const action = link.body
-    const { type, context } = action
-    const { userName } = context.member
+    const { type, user } = action
+    const { userName } = user
 
     // at root link, team doesn't yet have members
     if (type === ROOT) return VALID
@@ -86,12 +92,14 @@ const validators: TeamStateValidatorSet = {
         if (author !== target) return fail(`Can't change another user's keys.`, ...args)
       }
     } else if (link.body.type === 'CHANGE_DEVICE_KEYS') {
-      const authorUserName = link.signed.userName
-      const authorDeviceName = link.body.context.device.deviceName
-      // Devices can only change their own keys
-      const target = parseDeviceId(link.body.payload.keys.name)
-      if (authorUserName !== target.userName || authorDeviceName !== target.deviceName)
-        return fail(`Can't change another device's keys.`, ...args)
+      // TODO: we don't have device information in context any more
+      //
+      // const authorUserName = link.signed.userName
+      // const authorDeviceName = link.body.context.device.deviceName
+      // // Devices can only change their own keys
+      // const target = parseDeviceId(link.body.payload.keys.name)
+      // if (authorUserName !== target.userName || authorDeviceName !== target.deviceName)
+      //   return fail(`Can't change another device's keys.`, ...args)
     }
     return VALID
   },

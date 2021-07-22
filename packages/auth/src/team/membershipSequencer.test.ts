@@ -1,8 +1,10 @@
 import { setup as userSetup } from '@/util/testing'
-import { append, chainSummary, create, merge, TeamAction, TeamSignatureChain } from '@/chain'
+import { TeamAction, TeamSignatureChain } from '@/team'
+import { append, createChain, merge } from 'crdx'
 import { ADMIN } from '@/role'
-import { redactUser } from '@/user'
+import { redactUser } from 'crdx'
 import { clone } from '@/util'
+import { chainSummary } from '@/util'
 
 describe('chains', () => {
   describe('membershipSequencer', () => {
@@ -120,10 +122,11 @@ describe('chains', () => {
 
     const setup = () => {
       // 👩🏾 Alice creates a chain
-      let aChain = create<TeamAction>(
-        { teamName: 'Spies Я Us', rootMember: redactUser(alice.user) },
-        alice.localContext
-      )
+      let aChain = createChain<TeamAction>({
+        user: alice.localContext.user,
+        name: 'Spies Я Us',
+        rootPayload: { ...redactUser(alice.user) },
+      })
       // 👩🏾 Alice adds 👨🏻‍🦲 Bob as admin
       aChain = append(aChain, ADD_BOB_AS_ADMIN, alice.localContext)
 

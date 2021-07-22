@@ -1,4 +1,4 @@
-import { getHead, getPredecessorHashes, isPredecessor, SignatureChain } from '@/chain'
+import { getHead, getPredecessorHashes, isPredecessor, SignatureChain } from 'crdx'
 import { arrayToMap } from '@/util'
 import { unique } from '../util/unique'
 import { TruncatedHashFilter } from './TruncatedHashFilter'

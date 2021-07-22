@@ -1,6 +1,5 @@
+import { createKeyset, EPHEMERAL_SCOPE } from 'crdx'
 import { normalize } from './normalize'
-import * as keysets from '@/keyset'
-import { EPHEMERAL_SCOPE, KeyScope } from '@/keyset'
 
 /**
  * This will be Bob's first-use keyset; as soon as he's admitted, he'll provide keys of his own
@@ -16,5 +15,5 @@ import { EPHEMERAL_SCOPE, KeyScope } from '@/keyset'
  */
 export const generateStarterKeys = (seed: string) => {
   seed = normalize(seed)
-  return keysets.create(EPHEMERAL_SCOPE, seed)
+  return createKeyset(EPHEMERAL_SCOPE, seed)
 }

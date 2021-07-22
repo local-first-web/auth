@@ -1,9 +1,9 @@
 ﻿import { DeviceWithSecrets, getDeviceId } from '@/device'
-import { KeyMetadata, KeysetWithSecrets } from '@/keyset'
 import { open } from '@/lockbox'
 import { TeamState } from '@/team/types'
 import { assert, Optional } from '@/util'
 import { lockboxSummary } from '@/util/lockboxSummary'
+import { KeyMetadata, KeysetWithSecrets } from 'crdx'
 
 export const keys = (
   state: TeamState,

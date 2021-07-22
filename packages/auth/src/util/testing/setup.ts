@@ -1,15 +1,13 @@
-﻿import { cache } from './cache'
-import { InitialContext, Connection } from '@/connection'
+﻿import { Connection, InitialContext } from '@/connection'
 import { LocalUserContext } from '@/context'
 import * as devices from '@/device'
 import { DeviceWithSecrets } from '@/device'
-import { KeyType } from '@/keyset'
 import { ADMIN } from '@/role'
 import * as teams from '@/team'
 import { Team } from '@/team'
-import * as users from '@/user'
-import { User } from '@/user'
 import { arrayToMap, assert } from '@/util'
+import { createUser, KeyType, User } from 'crdx'
+import { cache } from './cache'
 
 // ignore file coverage
 
@@ -44,7 +42,7 @@ export const setup = (
     const testUsers: Record<string, User> = userNames
       .map((userName: string) => {
         const randomSeed = userName // make these predictable
-        return users.create(userName, randomSeed)
+        return createUser(userName, randomSeed)
       })
       .reduce(arrayToMap('userName'), {})
 
@@ -68,7 +66,7 @@ export const setup = (
     const founderContext = { user: testUsers[founder], device: laptops[founder] }
     const teamName = 'Spies Я Us'
     const randomSeed = teamName
-    const team = teams.create(teamName, founderContext, randomSeed)
+    const team = teams.createTeam(teamName, founderContext, randomSeed)
 
     // Add members
     for (const { user: userName, admin = true, member = true } of config) {
@@ -92,15 +90,17 @@ export const setup = (
     const localContext = { user, device }
     const team = member
       ? teams.load(chain, localContext) // members get a copy of the source team
-      : teams.create(userName, localContext, randomSeed) // non-members get a dummy empty placeholder team
-    const context = (member
-      ? { user, device, team }
-      : {
-          user,
-          device,
-          invitee: { type: KeyType.MEMBER, name: userName },
-          invitationSeed: '',
-        }) as InitialContext
+      : teams.createTeam(userName, localContext, randomSeed) // non-members get a dummy empty placeholder team
+    const context = (
+      member
+        ? { user, device, team }
+        : {
+            user,
+            device,
+            invitee: { type: KeyType.USER, name: userName },
+            invitationSeed: '',
+          }
+    ) as InitialContext
     const connection = {} as Record<string, Connection>
     const getState = (peer: string) => connection[peer].state
 

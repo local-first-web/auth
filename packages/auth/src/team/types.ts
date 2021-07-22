@@ -1,10 +1,22 @@
-import { TeamActionLink, TeamSignatureChain } from '@/chain'
 import { LocalDeviceContext, LocalUserContext, MemberContext } from '@/context'
+import { PublicDevice } from '@/device'
 import { Invitation, InvitationState } from '@/invitation/types'
-import { KeyMetadata } from '@/keyset'
+import {
+  Action,
+  ActionLink,
+  KeyMetadata,
+  Keyset,
+  Link,
+  LinkBody,
+  LinkMap,
+  NonMergeLink,
+  ROOT,
+  Sequence,
+  SignatureChain,
+} from 'crdx'
 import { Lockbox } from '@/lockbox'
 import { Member } from '@/member'
-import { Role } from '@/role'
+import { PermissionsMap, Role } from '@/role'
 import { Base58, Payload, ValidationResult } from '@/util'
 
 // TEAM CONSTRUCTOR
@@ -36,6 +48,163 @@ export type TeamOptions = (NewTeamOptions | ExistingTeamOptions) & {
 export const isNewTeam = (
   options: NewTeamOptions | ExistingTeamOptions
 ): options is NewTeamOptions => 'teamName' in options
+
+// TODO: the content of lockboxes needs to be validated
+// e.g. only an admin can add lockboxes for others
+
+interface BasePayload {
+  // Every action might include new lockboxes
+  lockboxes?: Lockbox[]
+}
+
+export interface RootAction extends Action {
+  type: typeof ROOT
+  payload: BasePayload & {
+    teamName: string
+    rootMember: Member
+    rootDevice: PublicDevice
+  }
+}
+
+export interface AddMemberAction extends Action {
+  type: 'ADD_MEMBER'
+  payload: BasePayload & {
+    member: Member
+    roles?: string[]
+  }
+}
+
+export interface RemoveMemberAction extends Action {
+  type: 'REMOVE_MEMBER'
+  payload: BasePayload & {
+    userName: string
+  }
+}
+
+export interface AddRoleAction extends Action {
+  type: 'ADD_ROLE'
+  payload: BasePayload & Role
+}
+
+export interface RemoveRoleAction extends Action {
+  type: 'REMOVE_ROLE'
+  payload: BasePayload & {
+    roleName: string
+  }
+}
+
+export interface AddMemberRoleAction extends Action {
+  type: 'ADD_MEMBER_ROLE'
+  payload: BasePayload & {
+    userName: string
+    roleName: string
+    permissions?: PermissionsMap
+  }
+}
+
+export interface RemoveMemberRoleAction extends Action {
+  type: 'REMOVE_MEMBER_ROLE'
+  payload: BasePayload & {
+    userName: string
+    roleName: string
+  }
+}
+
+export interface AddDeviceAction extends Action {
+  type: 'ADD_DEVICE'
+  payload: BasePayload & {
+    device: PublicDevice
+  }
+}
+
+export interface RemoveDeviceAction extends Action {
+  type: 'REMOVE_DEVICE'
+  payload: BasePayload & {
+    userName: string
+    deviceName: string
+  }
+}
+
+export interface InviteMemberAction extends Action {
+  type: 'INVITE_MEMBER'
+  payload: BasePayload & {
+    invitation: Invitation
+  }
+}
+
+export interface InviteDeviceAction extends Action {
+  type: 'INVITE_DEVICE'
+  payload: BasePayload & {
+    invitation: Invitation
+  }
+}
+
+export interface RevokeInvitationAction extends Action {
+  type: 'REVOKE_INVITATION'
+  payload: BasePayload & {
+    id: string // invitation ID
+  }
+}
+
+export interface AdmitMemberAction extends Action {
+  type: 'ADMIT_MEMBER'
+  payload: BasePayload & {
+    id: string // invitation ID
+    memberKeys: Keyset // member keys provided by the new member
+  }
+}
+
+export interface AdmitDeviceAction extends Action {
+  type: 'ADMIT_DEVICE'
+  payload: BasePayload & {
+    id: string // invitation ID
+    userName: string // user name of the device's owner
+    deviceKeys: Keyset // device keys provided by the new device
+  }
+}
+
+export interface ChangeMemberKeysAction extends Action {
+  type: 'CHANGE_MEMBER_KEYS'
+  payload: BasePayload & {
+    keys: Keyset
+  }
+}
+
+export interface ChangeDeviceKeysAction extends Action {
+  type: 'CHANGE_DEVICE_KEYS'
+  payload: BasePayload & {
+    keys: Keyset
+  }
+}
+
+export type TeamAction =
+  | RootAction
+  | AddMemberAction
+  | AddDeviceAction
+  | AddRoleAction
+  | AddMemberRoleAction
+  | RemoveMemberAction
+  | RemoveDeviceAction
+  | RemoveRoleAction
+  | RemoveMemberRoleAction
+  | InviteMemberAction
+  | InviteDeviceAction
+  | RevokeInvitationAction
+  | AdmitMemberAction
+  | AdmitDeviceAction
+  | ChangeMemberKeysAction
+  | ChangeDeviceKeysAction
+
+export type TeamLinkBody = LinkBody<TeamAction>
+export type TeamLink = Link<TeamAction>
+export type TeamActionLink = ActionLink<TeamAction>
+export type TeamNonMergeLink = NonMergeLink<TeamAction>
+export type TeamLinkMap = LinkMap<TeamAction>
+export type TeamSignatureChain = SignatureChain<TeamAction>
+export type Branch = Sequence<TeamAction>
+export type TwoBranches = [Branch, Branch]
+export type ActionFilter = (link: NonMergeLink<TeamAction>) => boolean
+export type ActionFilterFactory = (branches: TwoBranches, chain: TeamSignatureChain) => ActionFilter
 
 // TEAM STATE
 

@@ -1,7 +1,7 @@
-﻿import { randomKey } from '@herbcaudill/crypto'
-import { getDeviceId } from '@/device/getDeviceId'
+﻿import { getDeviceId } from '@/device/getDeviceId'
 import { DeviceWithSecrets } from '@/device/types'
-import * as keyset from '@/keyset'
+import { randomKey } from '@herbcaudill/crypto'
+import { createKeyset, KeyType } from 'crdx'
 
 export const create = (
   userName: string,
@@ -9,6 +9,6 @@ export const create = (
   seed: string = randomKey()
 ): DeviceWithSecrets => {
   const deviceId = getDeviceId({ userName, deviceName })
-  const keys = keyset.create({ type: keyset.KeyType.DEVICE, name: deviceId }, seed)
+  const keys = createKeyset({ type: KeyType.DEVICE, name: deviceId }, seed)
   return { userName, deviceName, keys }
 }

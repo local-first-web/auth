@@ -1,5 +1,5 @@
-﻿import { PublicKeyset, KeysetWithSecrets, KeyMetadata, KeyType } from '@/keyset'
-import { Base58 } from '@/util'
+﻿import { Base58 } from '@/util'
+import { KeyMetadata, Keyset, KeysetWithSecrets } from 'crdx'
 
 export type KeyManifest = KeyMetadata & {
   publicKey: Base58
@@ -7,7 +7,7 @@ export type KeyManifest = KeyMetadata & {
 
 // type guard
 export const isKeyManifest = (
-  keys: PublicKeyset | KeysetWithSecrets | KeyManifest
+  keys: Keyset | KeysetWithSecrets | KeyManifest
 ): keys is KeyManifest => {
   return keys.hasOwnProperty('publicKey')
 }
@@ -15,7 +15,7 @@ export const isKeyManifest = (
 export interface Lockbox {
   /** The public key of the keypair used to encrypt this lockbox  */
   encryptionKey: {
-    type: KeyType.EPHEMERAL
+    type: 'EPHEMERAL'
     publicKey: Base58
   }
 

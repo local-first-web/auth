@@ -1,7 +1,7 @@
 ﻿import { Challenge } from '@/connection/types'
-import { TeamAction, TeamLink } from '@/chain'
+import { KeyScope, TeamAction, TeamLink } from '@/team'
 import { ProofOfInvitation } from '@/invitation'
-import { KeyScope, PublicKeyset } from '@/keyset'
+import { Keyset } from 'crdx'
 import { Base58, Hash } from '@/util'
 import { SyncPayload } from '@/sync/types'
 
@@ -24,8 +24,8 @@ export type HelloMessage = {
     | {
         // I have an invitation
         proofOfInvitation: ProofOfInvitation
-        userKeys?: PublicKeyset // only for new member (not for new device)
-        deviceKeys: PublicKeyset
+        userKeys?: Keyset // only for new member (not for new device)
+        deviceKeys: Keyset
       }
 }
 

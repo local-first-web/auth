@@ -1,4 +1,4 @@
-import { Action, LinkMap } from '@/chain'
+import { Action, LinkMap } from 'crdx'
 import { Hash } from '@/util'
 
 export type EncodedFilter = Uint8Array // the encoded output of a probabilistic filter

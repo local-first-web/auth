@@ -1,42 +1,39 @@
-﻿import * as chains from '@/chain'
-import { membershipResolver, TeamAction, TeamActionLink, TeamSignatureChain } from '@/chain'
-import { membershipSequencer } from '@/chain/membershipSequencer'
-import * as identity from '@/connection/identity'
+﻿import * as identity from '@/connection/identity'
 import { Challenge } from '@/connection/types'
-import { LocalDeviceContext, LocalUserContext } from '@/context'
+import { LocalDeviceContext } from '@/context'
 import * as devices from '@/device'
 import { getDeviceId, parseDeviceId, PublicDevice, redactDevice } from '@/device'
 import * as invitations from '@/invitation'
 import { ProofOfInvitation } from '@/invitation'
 import { normalize } from '@/invitation/normalize'
-import * as keysets from '@/keyset'
-import {
-  ADMIN_SCOPE,
-  isKeyset,
-  KeyScope,
-  KeysetWithSecrets,
-  KeyType,
-  PublicKeyset,
-  redactKeys,
-  TEAM_SCOPE,
-} from '@/keyset'
-import { getScope } from '@/keyset/getScope'
-import { scopesMatch } from '@/keyset/scopesMatch'
 import * as lockbox from '@/lockbox'
 import { Member } from '@/member'
 import { ADMIN, Role } from '@/role'
-import { ALL, initialState } from '@/team/constants'
-import { reducer } from '@/team/reducer'
-import * as select from '@/team/selectors'
-import { getVisibleScopes } from '@/team/selectors'
-import { EncryptedEnvelope, isNewTeam, SignedEnvelope, TeamOptions, TeamState } from '@/team/types'
-import * as users from '@/user'
-import { User } from '@/user'
-import { assert, debug, Hash, Payload, UnixTimestamp, VALID } from '@/util'
+import { TeamAction } from '@/team'
+import { assert, debug, getScope, Hash, Payload, scopesMatch, UnixTimestamp, VALID } from '@/util'
 import { Base58, randomKey, signatures, symmetric } from '@herbcaudill/crypto'
+import crdx, {
+  deserialize,
+  isKeyset,
+  KeyScope,
+  Keyset,
+  KeysetWithSecrets,
+  KeyType,
+  redactKeys,
+} from 'crdx'
 import { EventEmitter } from 'events'
-
-const { DEVICE, ROLE, MEMBER } = KeyType
+import { ADMIN_SCOPE, ALL, initialState, TEAM_SCOPE } from './constants'
+import { reducer } from './reducer'
+import * as select from './selectors'
+import { getVisibleScopes } from './selectors'
+import {
+  EncryptedEnvelope,
+  isNewTeam,
+  SignedEnvelope,
+  TeamOptions,
+  TeamSignatureChain,
+  TeamState,
+} from './types'
 
 /**
  * The `Team` class wraps a `TeamSignatureChain` and exposes methods for adding and removing
@@ -44,7 +41,7 @@ const { DEVICE, ROLE, MEMBER } = KeyType
  * individuals, for the team, or for members of specific roles.
  */
 export class Team extends EventEmitter {
-  public chain: TeamSignatureChain
+  private store: crdx.Store<TeamState, TeamAction>
   private context: LocalDeviceContext
   private state: TeamState = initialState // derived from chain, only updated by running chain through reducer
   private log: (o: any, ...args: any[]) => void
@@ -68,24 +65,40 @@ export class Team extends EventEmitter {
       const localUser = options.context.user
 
       // Team & role secrets are never stored in plaintext, only encrypted into individual lockboxes.
-      // Here we create new lockboxes with the team & admin keys for the founding member
-      const teamLockbox = lockbox.create(keysets.create(TEAM_SCOPE, this.seed), localUser.keys)
-      const adminLockbox = lockbox.create(keysets.create(ADMIN_SCOPE, this.seed), localUser.keys)
+      // Here we create new lockboxes with the team   & admin keys for the founding member
+
+      const teamLockbox = lockbox.create(crdx.createKeyset(TEAM_SCOPE, this.seed), localUser.keys)
+      const adminLockbox = lockbox.create(crdx.createKeyset(ADMIN_SCOPE, this.seed), localUser.keys)
       const deviceLockbox = lockbox.create(localUser.keys, this.context.device.keys)
 
       // Post root link to signature chain
       const rootPayload = {
-        teamName: options.teamName,
-        rootMember: users.redactUser(localUser),
+        name: options.teamName,
+        rootMember: crdx.redactUser(localUser),
         rootDevice: devices.redactDevice(localDevice),
         lockboxes: [teamLockbox, adminLockbox, deviceLockbox],
       }
-      this.chain = chains.create<TeamAction>(rootPayload, options.context)
+
+      this.store = crdx.createStore({
+        user: localUser,
+        rootPayload,
+        reducer,
+      })
+      // this.chain = chains.create<TeamAction>(rootPayload, options.context)
     } else {
       // Load a team from an existing chain
-      this.chain = maybeDeserialize(options.source)
+      const chain = maybeDeserialize(options.source)
+      // TODO: we might not have a user yet
+      // this.store = crdx.createStore({
+      //   user: options.context.user,
+      // })
     }
-    this.updateState()
+    // TODO: are we sure this is happening?
+    // this.storeupdateState()
+  }
+
+  public get chain() {
+    return this.store.getChain()
   }
 
   /**************** TEAM STATE
@@ -107,45 +120,21 @@ export class Team extends EventEmitter {
     return this.state.teamName
   }
 
-  public save = () => chains.serialize(this.chain)
+  public save = () => this.store.save()
 
-  /** Add a link to the chain, then recompute team state from the new chain */
-  public dispatch(action: TeamAction) {
-    this.chain = chains.append(this.chain, action, this.context as LocalUserContext)
-    // get the newly appended link
-    const head = chains.getHead(this.chain) as TeamActionLink
-
-    // we don't need to pass the whole chain through the reducer, just the current state + the new head
-    this.state = reducer(this.state, head)
-
-    this.emit('updated', { head: this.chain.head })
-  }
-
-  /** Run the reducer on the entire chain to reconstruct the current team state. */
-  private updateState = () => {
-    // Validate the chain's integrity.
-    // (This does not enforce team rules - that is done in the reducer as it progresses through each link.)
-    const validation = chains.validate(this.chain)
-    if (!validation.isValid) throw validation.error
-
-    // Run the chain through the reducer to calculate the current team state
-    const resolver = membershipResolver
-    const sequencer = membershipSequencer
-    const sequence = chains.getSequence({ chain: this.chain, resolver, sequencer })
-
-    this.state = sequence.reduce(reducer, initialState)
-
-    this.emit('updated', { head: this.chain.head })
-  }
-
-  public merge = (theirChain: TeamSignatureChain) => {
-    this.chain = chains.merge(this.chain, theirChain)
-    this.updateState()
+  public merge = (chain: TeamSignatureChain) => {
+    this.store.merge(chain)
     return this
   }
 
+  /** Add a link to the chain, then recompute team state from the new chain */
+  public dispatch(action: TeamAction) {
+    this.store.dispatch(action)
+    this.emit('updated', { head: this.chain.head })
+  }
+
   public lookupIdentity = (identityClaim: KeyScope): LookupIdentityResult => {
-    assert(identityClaim.type === DEVICE) // we always authenticate as devices
+    assert(identityClaim.type === KeyType.DEVICE) // we always authenticate as devices
     const deviceId = identityClaim.name
     const { userName, deviceName } = parseDeviceId(deviceId)
     if (this.memberWasRemoved(userName)) return 'MEMBER_REMOVED'
@@ -156,7 +145,7 @@ export class Team extends EventEmitter {
   }
 
   public verifyIdentityProof = (challenge: Challenge, proof: Base58) => {
-    assert(challenge.type === DEVICE) // we always authenticate as devices
+    assert(challenge.type === KeyType.DEVICE) // we always authenticate as devices
     const deviceId = challenge.name
     const { userName, deviceName } = parseDeviceId(deviceId)
     const device = this.device(userName, deviceName)
@@ -187,8 +176,8 @@ export class Team extends EventEmitter {
    * In real-world scenarios, you'll need to use the `team.invite` workflow
    * to add members without relying on some kind of public key infrastructure.
    */
-  public add = (user: User, roles: string[] = [], device?: PublicDevice) => {
-    const member = { ...users.redactUser(user), roles }
+  public add = (user: crdx.User, roles: string[] = [], device?: PublicDevice) => {
+    const member = { ...crdx.redactUser(user), roles }
 
     // make lockboxes for the new member
     const lockboxes = this.createMemberLockboxes(member)
@@ -212,7 +201,7 @@ export class Team extends EventEmitter {
   /** Remove a member from the team */
   public remove = (userName: string) => {
     // create new keys & lockboxes for any keys this person had access to
-    const lockboxes = this.generateNewLockboxes({ type: MEMBER, name: userName })
+    const lockboxes = this.generateNewLockboxes({ type: KeyType.USER, name: userName })
 
     // post the removal to the signature chain
     this.dispatch({
@@ -269,7 +258,7 @@ export class Team extends EventEmitter {
     if (typeof role === 'string') role = { roleName: role }
 
     // we're creating this role so we need to generate new keys
-    const roleKeys = keysets.create({ type: ROLE, name: role.roleName }, this.seed)
+    const roleKeys = crdx.createKeyset({ type: KeyType.ROLE, name: role.roleName }, this.seed)
 
     // make a lockbox for the admin role, so that all admins can access this role's keys
     const lockboxForAdmin = lockbox.create(roleKeys, this.adminKeys())
@@ -311,7 +300,7 @@ export class Team extends EventEmitter {
     }
 
     // create new keys & lockboxes for any keys this person had access to via this role
-    const lockboxes = this.generateNewLockboxes({ type: ROLE, name: roleName })
+    const lockboxes = this.generateNewLockboxes({ type: KeyType.ROLE, name: roleName })
 
     // post the removal to the signature chain
     this.dispatch({
@@ -339,7 +328,7 @@ export class Team extends EventEmitter {
     )
     // create new keys & lockboxes for any keys this device had access to
     const deviceId = getDeviceId({ userName, deviceName })
-    const lockboxes = this.generateNewLockboxes({ type: DEVICE, name: deviceId })
+    const lockboxes = this.generateNewLockboxes({ type: KeyType.DEVICE, name: deviceId })
 
     // post the removal to the signature chain
     this.dispatch({
@@ -498,7 +487,7 @@ export class Team extends EventEmitter {
   /** An existing team member calls this to admit a new member & their device to the team based on proof of invitation */
   public admitMember = (
     proof: ProofOfInvitation,
-    memberKeys: PublicKeyset | KeysetWithSecrets // we accept KeysetWithSecrets here to simplify testing - in practice we'll only receive PublicKeyset
+    memberKeys: Keyset | KeysetWithSecrets // we accept KeysetWithSecrets here to simplify testing - in practice we'll only receive Keyset
   ) => {
     const validation = this.validateInvitation(proof)
     if (validation.isValid === false) throw validation.error
@@ -517,7 +506,7 @@ export class Team extends EventEmitter {
       type: 'ADMIT_MEMBER',
       payload: {
         id,
-        memberKeys: keysets.redactKeys(memberKeys),
+        memberKeys: redactKeys(memberKeys),
         lockboxes: [teamKeysLockbox],
       },
     })
@@ -527,7 +516,7 @@ export class Team extends EventEmitter {
   public admitDevice = (
     proof: ProofOfInvitation,
     userName: string,
-    deviceKeys: PublicKeyset | KeysetWithSecrets
+    deviceKeys: Keyset | KeysetWithSecrets
   ) => {
     const validation = this.validateInvitation(proof)
     if (validation.isValid === false) throw validation.error
@@ -544,7 +533,7 @@ export class Team extends EventEmitter {
       payload: {
         id,
         userName: this.userName,
-        deviceKeys: keysets.redactKeys(deviceKeys),
+        deviceKeys: redactKeys(deviceKeys),
         lockboxes: [deviceLockbox],
       },
     })
@@ -567,7 +556,7 @@ export class Team extends EventEmitter {
   public joinAsDevice = (userName: string) => {
     this.context.user = {
       userName,
-      keys: this.keys({ type: MEMBER, name: userName }),
+      keys: this.keys({ type: KeyType.USER, name: userName }),
     }
     return this.context.user
   }
@@ -583,7 +572,7 @@ export class Team extends EventEmitter {
    * to). If we need to encrypt asymmetrically, we use the functions in the crypto module directly.
    */
   public encrypt = (payload: Payload, roleName?: string): EncryptedEnvelope => {
-    const scope = roleName ? { type: ROLE, name: roleName } : TEAM_SCOPE
+    const scope = roleName ? { type: KeyType.ROLE, name: roleName } : TEAM_SCOPE
     const { secretKey, generation } = this.keys(scope)
     return {
       contents: symmetric.encrypt(payload, secretKey),
@@ -604,7 +593,7 @@ export class Team extends EventEmitter {
       contents: payload,
       signature: signatures.sign(payload, this.context.user.keys.signature.secretKey),
       author: {
-        type: MEMBER,
+        type: KeyType.USER,
         name: this.userName,
         generation: this.context.user.keys.generation,
       },
@@ -635,7 +624,7 @@ export class Team extends EventEmitter {
   public teamKeys = () => this.keys(TEAM_SCOPE)
 
   /** Returns the keys for the given role. */
-  public roleKeys = (roleName: string) => this.keys({ type: ROLE, name: roleName })
+  public roleKeys = (roleName: string) => this.keys({ type: KeyType.ROLE, name: roleName })
 
   /** Returns the admin keyset. */
   public adminKeys = () => this.roleKeys(ADMIN)
@@ -644,7 +633,7 @@ export class Team extends EventEmitter {
    * (This can also be used by an admin to change another user's secret keyset.)
    */
   public changeKeys = (newKeys: KeysetWithSecrets) => {
-    const changingDeviceKeys = newKeys.type === DEVICE
+    const changingDeviceKeys = newKeys.type === KeyType.DEVICE
 
     // make sure we're allowed to change these keys
     if (!changingDeviceKeys) {
@@ -698,11 +687,11 @@ export class Team extends EventEmitter {
   private generateNewLockboxes = (compromised: KeyScope | KeysetWithSecrets) => {
     const newKeyset = isKeyset(compromised)
       ? compromised // we're given a keyset - use it as the new keys
-      : keysets.create(compromised) // we're just given a scope - generate new keys for it
+      : crdx.createKeyset(compromised) // we're just given a scope - generate new keys for it
 
     // identify all the keys that are indirectly compromised
     const visibleScopes = getVisibleScopes(this.state, compromised)
-    const otherNewKeysets = visibleScopes.map(scope => keysets.create(scope))
+    const otherNewKeysets = visibleScopes.map(scope => crdx.createKeyset(scope))
 
     // generate new keys for each one
     const newKeysets = [newKeyset, ...otherNewKeysets]
@@ -729,7 +718,7 @@ export class Team extends EventEmitter {
 }
 
 const maybeDeserialize = (source: string | TeamSignatureChain): TeamSignatureChain =>
-  typeof source === 'string' ? chains.deserialize(source) : source
+  typeof source === 'string' ? deserialize(source) : source
 
 type InviteResult = {
   /** The unique identifier for this invitation. */

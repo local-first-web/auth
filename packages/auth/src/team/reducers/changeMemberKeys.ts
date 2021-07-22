@@ -1,8 +1,8 @@
-﻿import { PublicKeyset } from '@/keyset'
+﻿import { Keyset } from 'crdx'
 import { Reducer } from '@/team/reducers/index'
 
 export const changeMemberKeys =
-  (keys: PublicKeyset): Reducer =>
+  (keys: Keyset): Reducer =>
   state => {
     return {
       ...state,

@@ -1,4 +1,4 @@
-﻿import { KeysetWithSecrets, PublicKeyset } from '@/keyset'
+﻿import { Keyset, KeysetWithSecrets } from 'crdx'
 
 export interface DeviceInfo {
   userName: string
@@ -10,5 +10,5 @@ export interface DeviceWithSecrets extends DeviceInfo {
 }
 
 export interface PublicDevice extends DeviceInfo {
-  keys: PublicKeyset
+  keys: Keyset
 }
