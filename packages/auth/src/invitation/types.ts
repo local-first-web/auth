@@ -1,4 +1,4 @@
-import { Base64, UnixTimestamp } from '@/util'
+import { Base58, UnixTimestamp } from '@/util'
 
 /**
  * The public record of the invitation that Alice adds to the signature chain after inviting Bob
@@ -6,10 +6,10 @@ import { Base64, UnixTimestamp } from '@/util'
  * */
 export interface Invitation {
   /** Public, unique identifier for the invitation */
-  id: Base64
+  id: Base58
 
   /** The public signing key derived from the secret invitation key */
-  publicKey: Base64
+  publicKey: Base58
 
   /** Time when the invitation expires. If 0, the invitation does not expire. */
   expiration: UnixTimestamp
@@ -39,8 +39,8 @@ export interface InvitationState extends Invitation {
  * */
 export interface ProofOfInvitation {
   /** Public, unique identifier for the invitation */
-  id: Base64
+  id: Base58
 
   /** Signature of userName and id, using the private signing key derived from the secret invitation key */
-  signature: Base64
+  signature: Base58
 }

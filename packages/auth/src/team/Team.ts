@@ -33,7 +33,7 @@ import { EncryptedEnvelope, isNewTeam, SignedEnvelope, TeamOptions, TeamState } 
 import * as users from '@/user'
 import { User } from '@/user'
 import { assert, debug, Hash, Payload, UnixTimestamp, VALID } from '@/util'
-import { Base64, randomKey, signatures, symmetric } from '@herbcaudill/crypto'
+import { Base58, randomKey, signatures, symmetric } from '@herbcaudill/crypto'
 import { EventEmitter } from 'events'
 
 const { DEVICE, ROLE, MEMBER } = KeyType
@@ -155,7 +155,7 @@ export class Team extends EventEmitter {
     return 'VALID_DEVICE'
   }
 
-  public verifyIdentityProof = (challenge: Challenge, proof: Base64) => {
+  public verifyIdentityProof = (challenge: Challenge, proof: Base58) => {
     assert(challenge.type === DEVICE) // we always authenticate as devices
     const deviceId = challenge.name
     const { userName, deviceName } = parseDeviceId(deviceId)

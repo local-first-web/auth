@@ -5,7 +5,7 @@ import { PublicKeyset } from '@/keyset'
 import { Lockbox } from '@/lockbox'
 import { Member } from '@/member'
 import { PermissionsMap, Role } from '@/role'
-import { Base64, Hash, UnixTimestamp, ValidationResult } from '@/util/types'
+import { Base58, Hash, UnixTimestamp, ValidationResult } from '@/util/types'
 
 export const ROOT = 'ROOT'
 export const MERGE = 'MERGE'
@@ -49,8 +49,8 @@ export type SignedLink<B extends LinkBody<A>, A extends Action> = {
 
   /** The signature block (signature, name, and key) */
   signed: {
-    /** NaCL-generated base64 signature of the link's body */
-    signature: Base64
+    /** NaCL-generated base58 signature of the link's body */
+    signature: Base58
 
     /** The username (or ID or email) of the person signing the link */
     userName: string
@@ -58,8 +58,8 @@ export type SignedLink<B extends LinkBody<A>, A extends Action> = {
     /** The name of the device in use when signing the link */
     deviceName: string
 
-    /** The public half of the key used to sign the link, in base64 encoding */
-    key: Base64
+    /** The public half of the key used to sign the link, in base58 encoding */
+    key: Base58
   }
 }
 

@@ -1,4 +1,4 @@
-﻿import { asymmetric, base64, hash, Key, signatures, stretch } from '@herbcaudill/crypto'
+﻿import { asymmetric, base58, hash, Key, signatures, stretch } from '@herbcaudill/crypto'
 import { randomKey } from '@/keyset/randomKey'
 import { KeyScope, KeysetWithSecrets } from '@/keyset/types'
 import { HashPurpose, Optional } from '@/util'
@@ -35,16 +35,16 @@ export function create(
 // private
 
 const deriveSignatureKeys = (secretKey: Key) => {
-  const derivedSeed = base64.encode(hash(SIGNATURE, secretKey).slice(0, 32))
+  const derivedSeed = hash(SIGNATURE, secretKey).slice(0, 32)
   return signatures.keyPair(derivedSeed)
 }
 
 const deriveEncryptionKeys = (secretKey: Key) => {
-  const derivedSecretKey = base64.encode(hash(ENCRYPTION, secretKey).slice(0, 32))
+  const derivedSecretKey = hash(ENCRYPTION, secretKey).slice(0, 32)
   return asymmetric.keyPair(derivedSecretKey)
 }
 
 const deriveSymmetricKey = (secretKey: Key) => {
   const derivedKey = hash(SYMMETRIC, secretKey)
-  return base64.encode(derivedKey)
+  return base58.encode(derivedKey)
 }

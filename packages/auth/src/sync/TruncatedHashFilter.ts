@@ -1,5 +1,5 @@
 import { Hash } from '@/util'
-import { base64 } from '@herbcaudill/crypto'
+import { base58 } from '@herbcaudill/crypto'
 import { ProbabilisticFilter } from './ProbabilisticFilter'
 
 interface TruncatedHashFilterOptions {
@@ -63,7 +63,7 @@ export class TruncatedHashFilter extends ProbabilisticFilter {
   }
 
   private truncateHash(hash: Hash): Hash {
-    const bytes = Buffer.from(base64.decode(hash))
+    const bytes = Buffer.from(base58.decode(hash))
     return bytes.slice(0, this.resolution).toString('hex')
   }
 }

@@ -5,7 +5,7 @@ import { KeyMetadata } from '@/keyset'
 import { Lockbox } from '@/lockbox'
 import { Member } from '@/member'
 import { Role } from '@/role'
-import { Base64, Payload, ValidationResult } from '@/util'
+import { Base58, Payload, ValidationResult } from '@/util'
 
 // TEAM CONSTRUCTOR
 
@@ -75,12 +75,12 @@ export type ValidationArgs = [TeamState, TeamActionLink]
 // CRYPTO
 
 export interface EncryptedEnvelope {
-  contents: Base64
+  contents: Base58
   recipient: KeyMetadata
 }
 
 export interface SignedEnvelope {
   contents: Payload
-  signature: Base64
+  signature: Base58
   author: KeyMetadata
 }
