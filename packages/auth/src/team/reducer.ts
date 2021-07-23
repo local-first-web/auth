@@ -72,9 +72,9 @@ export const reducer = (state: TeamState, link: TeamActionLink) => {
 const getTransforms = (action: TeamAction): Reducer[] => {
   switch (action.type) {
     case ROOT:
-      const { teamName, rootMember, rootDevice } = action.payload
+      const { name, rootMember, rootDevice } = action.payload
       return [
-        setTeamName(teamName),
+        setTeamName(name),
         addRole({ roleName: ADMIN }), // create the admin role
         addMember(rootMember), // add the founding member
         addDevice(rootDevice), // add the founding member's device

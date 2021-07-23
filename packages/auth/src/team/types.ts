@@ -67,7 +67,7 @@ interface BasePayload {
 export interface RootAction extends Action {
   type: typeof ROOT
   payload: BasePayload & {
-    teamName: string
+    name: string
     rootMember: Member
     rootDevice: PublicDevice
   }
