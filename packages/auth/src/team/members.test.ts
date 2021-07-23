@@ -6,6 +6,7 @@ describe('Team', () => {
   describe('members', () => {
     it('has Alice as a root member', () => {
       const { alice } = setup('alice')
+
       expect(alice.team.members().length).toBe(1)
       const A = alice.team.members('alice')
       expect(A.userName).toBe('alice')

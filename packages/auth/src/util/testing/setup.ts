@@ -88,9 +88,11 @@ export const setup = (
     const device = laptops[userName]
     const phone = phones[userName]
     const localContext = { user, device }
+
     const team = member
       ? teams.load(chain, localContext) // members get a copy of the source team
       : teams.createTeam(userName, localContext, randomSeed) // non-members get a dummy empty placeholder team
+
     const context = (
       member
         ? { user, device, team }
@@ -101,6 +103,7 @@ export const setup = (
             invitationSeed: '',
           }
     ) as InitialContext
+
     const connection = {} as Record<string, Connection>
     const getState = (peer: string) => connection[peer].state
 

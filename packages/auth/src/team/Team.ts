@@ -47,7 +47,7 @@ import {
 export class Team extends EventEmitter {
   private store: Store<TeamState, TeamAction>
   private context: LocalDeviceContext
-  private state: TeamState = initialState // derived from chain, only updated by running chain through reducer
+  private state: TeamState = initialState
   private log: (o: any, ...args: any[]) => void
   private seed: string
 
@@ -65,40 +65,29 @@ export class Team extends EventEmitter {
 
     if (isNewTeam(options)) {
       // Create a new team with the current user as founding member
-      const localDevice = options.context.device
-      const localUser = options.context.user
+      const { device, user } = options.context
 
       // Team & role secrets are never stored in plaintext, only encrypted into individual lockboxes.
-      // Here we create new lockboxes with the team   & admin keys for the founding member
+      // Here we create new lockboxes with the team & admin keys for the founding member
+      const teamLockbox = lockbox.create(createKeyset(TEAM_SCOPE, this.seed), user.keys)
+      const adminLockbox = lockbox.create(createKeyset(ADMIN_SCOPE, this.seed), user.keys)
+      const deviceLockbox = lockbox.create(user.keys, this.context.device.keys)
 
-      const teamLockbox = lockbox.create(createKeyset(TEAM_SCOPE, this.seed), localUser.keys)
-      const adminLockbox = lockbox.create(createKeyset(ADMIN_SCOPE, this.seed), localUser.keys)
-      const deviceLockbox = lockbox.create(localUser.keys, this.context.device.keys)
-
-      // Post root link to signature chain
+      // We're creating a new chain; this information is to be added to the root link
       const rootPayload = {
         name: options.teamName,
-        rootMember: redactUser(localUser),
-        rootDevice: devices.redactDevice(localDevice),
+        rootMember: redactUser(user),
+        rootDevice: devices.redactDevice(device),
         lockboxes: [teamLockbox, adminLockbox, deviceLockbox],
       }
-
-      this.store = createStore({
-        user: localUser,
-        rootPayload,
-        reducer,
-      })
-      // this.chain = chains.create<TeamAction>(rootPayload, options.context)
+      this.store = createStore({ user, rootPayload, reducer, initialState })
     } else {
       // Load a team from an existing chain
       const chain = maybeDeserialize(options.source)
-      // TODO: we might not have a user yet
-      // this.store = createStore({
-      //   user: options.context.user,
-      // })
+      const { user } = options.context
+      this.store = createStore({ user, chain, reducer, initialState })
     }
-    // TODO: are we sure this is happening?
-    // this.storeupdateState()
+    this.state = this.store.getState()
   }
 
   public get chain() {
@@ -134,6 +123,7 @@ export class Team extends EventEmitter {
   /** Add a link to the chain, then recompute team state from the new chain */
   public dispatch(action: TeamAction) {
     this.store.dispatch(action)
+    this.state = this.store.getState()
     this.emit('updated', { head: this.chain.head })
   }
 
