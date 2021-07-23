@@ -1,16 +1,16 @@
 ﻿import { DeviceWithSecrets, PublicDevice } from '@/device'
-import { Member } from '@/member'
-import { Keyset, User } from 'crdx'
+import { Member } from '@/team'
 import { SemVer } from '@/util'
+import { UserWithSecrets } from 'crdx'
 
 export interface LocalDeviceContext {
   client?: Client
-  user?: User // not required when initializing a team (because a device joining with an invitation doesn't have a user yet)
+  user?: UserWithSecrets // not required when initializing a team (because a device joining with an invitation doesn't have a user yet)
   device: DeviceWithSecrets
 }
 
 export interface LocalUserContext extends LocalDeviceContext {
-  user: User // required in all other cases
+  user: UserWithSecrets // required in all other cases
 }
 
 export interface MemberContext {

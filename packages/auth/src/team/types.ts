@@ -15,9 +15,16 @@ import {
   SignatureChain,
 } from 'crdx'
 import { Lockbox } from '@/lockbox'
-import { Member } from '@/member'
 import { PermissionsMap, Role } from '@/role'
 import { Base58, Payload, ValidationResult } from '@/util'
+
+export interface Member {
+  userName: string
+  keys: Keyset
+  roles: string[]
+  devices?: PublicDevice[]
+  keyHistory?: Keyset[]
+}
 
 // TEAM CONSTRUCTOR
 

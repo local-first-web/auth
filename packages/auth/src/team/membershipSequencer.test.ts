@@ -1,10 +1,9 @@
-import { setup as userSetup } from '@/util/testing'
-import { TeamAction, TeamSignatureChain } from '@/team'
-import { append, createChain, merge } from 'crdx'
 import { ADMIN } from '@/role'
-import { redactUser } from 'crdx'
-import { clone } from '@/util'
-import { chainSummary } from '@/util'
+import { chainSummary, clone } from '@/util'
+import { setup as userSetup } from '@/util/testing'
+import { append, createChain, merge } from 'crdx'
+import { redactUser } from './redactUser'
+import { TeamAction, TeamSignatureChain } from './types'
 
 describe('chains', () => {
   describe('membershipSequencer', () => {

@@ -1,9 +1,7 @@
-﻿const { pathsToModuleNameMapper } = require('ts-jest/utils')
-const { compilerOptions } = require('./tsconfig.build.json')
-
-const { paths } = compilerOptions
-
-module.exports = {
+﻿module.exports = {
+  testEnvironment: 'jsdom',
   preset: 'ts-jest',
-  moduleNameMapper: pathsToModuleNameMapper(paths, { prefix: '<rootDir>/' }),
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
 }

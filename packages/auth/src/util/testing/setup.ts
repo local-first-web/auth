@@ -6,7 +6,7 @@ import { ADMIN } from '@/role'
 import * as teams from '@/team'
 import { Team } from '@/team'
 import { arrayToMap, assert } from '@/util'
-import { createUser, KeyType, User } from 'crdx'
+import { createUser, KeyType, User, UserWithSecrets } from 'crdx'
 import { cache } from './cache'
 
 // ignore file coverage
@@ -39,7 +39,7 @@ export const setup = (
   const cacheKey = 'setup-' + JSON.stringify(config)
   const { testUsers, laptops, phones, chain } = cache(cacheKey, () => {
     // Create users
-    const testUsers: Record<string, User> = userNames
+    const testUsers: Record<string, UserWithSecrets> = userNames
       .map((userName: string) => {
         const randomSeed = userName // make these predictable
         return createUser(userName, randomSeed)
@@ -49,7 +49,7 @@ export const setup = (
     const makeDevice = (userName: string, deviceName: string) => {
       const key = `${userName}-${deviceName}`
       const randomSeed = key
-      const device = devices.create(userName, deviceName, randomSeed)
+      const device = devices.createDevice(userName, deviceName, randomSeed)
       return device
     }
 
@@ -124,7 +124,7 @@ export type TestUserSettings = {
 
 export interface UserStuff {
   userName: string
-  user: User
+  user: UserWithSecrets
   team: Team
   device: DeviceWithSecrets
   phone: DeviceWithSecrets

@@ -1,7 +1,8 @@
 import { createTeam } from './createTeam'
+import { redactUser } from './redactUser'
 import { TeamAction, TeamSignatureChain } from './types'
 import { ADMIN } from '@/role'
-import { append, merge, redactUser } from 'crdx'
+import { append, merge } from 'crdx'
 import { chainSummary, clone } from '@/util'
 import { setup as userSetup } from '@/util/testing'
 

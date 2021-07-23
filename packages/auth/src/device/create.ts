@@ -1,9 +1,9 @@
-﻿import { getDeviceId } from '@/device/getDeviceId'
-import { DeviceWithSecrets } from '@/device/types'
-import { randomKey } from '@herbcaudill/crypto'
+﻿import { randomKey } from '@herbcaudill/crypto'
 import { createKeyset, KeyType } from 'crdx'
+import { getDeviceId } from './getDeviceId'
+import { DeviceWithSecrets } from './types'
 
-export const create = (
+export const createDevice = (
   userName: string,
   deviceName: string,
   seed: string = randomKey()

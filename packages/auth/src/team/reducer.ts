@@ -1,14 +1,14 @@
-﻿import { clone, debug } from '@/util'
-import { ROOT } from 'crdx'
-import { TeamAction, TeamActionLink } from './types'
+﻿import { PublicDevice } from '@/device'
 import { ADMIN } from '@/role'
+import { clone } from '@/util'
+import { ROOT } from 'crdx'
 import {
   addDevice,
   addMember,
   addMemberRoles,
   addRole,
-  changeMemberKeys,
   changeDeviceKeys,
+  changeMemberKeys,
   collectLockboxes,
   compose,
   postInvitation,
@@ -20,11 +20,9 @@ import {
   revokeInvitation,
   setTeamName,
   useInvitation,
-} from '@/team/reducers'
-import { TeamState } from '@/team/types'
-import { validate } from '@/team/validate'
-import { Member } from '@/member'
-import { PublicDevice } from '@/device'
+} from './reducers'
+import { Member, TeamAction, TeamActionLink, TeamState } from './types'
+import { validate } from './validate'
 
 export const setHead =
   (link: TeamActionLink): Reducer =>

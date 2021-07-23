@@ -29,7 +29,7 @@
   "dependencies": {
     "@herbcaudill/crypto": "1",
     "buffer": "6",
-    "crdx": "^0.1.3",
+    "crdx": "^0.1.5",
     "debug": "4",
     "events": "3",
     "fast-memoize": "2",

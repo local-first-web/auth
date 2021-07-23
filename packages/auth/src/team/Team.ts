@@ -7,12 +7,12 @@ import * as invitations from '@/invitation'
 import { ProofOfInvitation } from '@/invitation'
 import { normalize } from '@/invitation/normalize'
 import * as lockbox from '@/lockbox'
-import { Member } from '@/member'
 import { ADMIN, Role } from '@/role'
-import { TeamAction } from '@/team'
 import { assert, debug, getScope, Hash, Payload, scopesMatch, UnixTimestamp, VALID } from '@/util'
 import { Base58, randomKey, signatures, symmetric } from '@herbcaudill/crypto'
-import crdx, {
+import {
+  createKeyset,
+  createStore,
   deserialize,
   isKeyset,
   KeyScope,
@@ -20,16 +20,20 @@ import crdx, {
   KeysetWithSecrets,
   KeyType,
   redactKeys,
+  Store,
+  UserWithSecrets,
 } from 'crdx'
 import { EventEmitter } from 'events'
 import { ADMIN_SCOPE, ALL, initialState, TEAM_SCOPE } from './constants'
+import { redactUser } from './redactUser'
 import { reducer } from './reducer'
 import * as select from './selectors'
-import { getVisibleScopes } from './selectors'
 import {
   EncryptedEnvelope,
   isNewTeam,
+  Member,
   SignedEnvelope,
+  TeamAction,
   TeamOptions,
   TeamSignatureChain,
   TeamState,
@@ -41,7 +45,7 @@ import {
  * individuals, for the team, or for members of specific roles.
  */
 export class Team extends EventEmitter {
-  private store: crdx.Store<TeamState, TeamAction>
+  private store: Store<TeamState, TeamAction>
   private context: LocalDeviceContext
   private state: TeamState = initialState // derived from chain, only updated by running chain through reducer
   private log: (o: any, ...args: any[]) => void
@@ -67,19 +71,19 @@ export class Team extends EventEmitter {
       // Team & role secrets are never stored in plaintext, only encrypted into individual lockboxes.
       // Here we create new lockboxes with the team   & admin keys for the founding member
 
-      const teamLockbox = lockbox.create(crdx.createKeyset(TEAM_SCOPE, this.seed), localUser.keys)
-      const adminLockbox = lockbox.create(crdx.createKeyset(ADMIN_SCOPE, this.seed), localUser.keys)
+      const teamLockbox = lockbox.create(createKeyset(TEAM_SCOPE, this.seed), localUser.keys)
+      const adminLockbox = lockbox.create(createKeyset(ADMIN_SCOPE, this.seed), localUser.keys)
       const deviceLockbox = lockbox.create(localUser.keys, this.context.device.keys)
 
       // Post root link to signature chain
       const rootPayload = {
         name: options.teamName,
-        rootMember: crdx.redactUser(localUser),
+        rootMember: redactUser(localUser),
         rootDevice: devices.redactDevice(localDevice),
         lockboxes: [teamLockbox, adminLockbox, deviceLockbox],
       }
 
-      this.store = crdx.createStore({
+      this.store = createStore({
         user: localUser,
         rootPayload,
         reducer,
@@ -89,7 +93,7 @@ export class Team extends EventEmitter {
       // Load a team from an existing chain
       const chain = maybeDeserialize(options.source)
       // TODO: we might not have a user yet
-      // this.store = crdx.createStore({
+      // this.store = createStore({
       //   user: options.context.user,
       // })
     }
@@ -176,8 +180,8 @@ export class Team extends EventEmitter {
    * In real-world scenarios, you'll need to use the `team.invite` workflow
    * to add members without relying on some kind of public key infrastructure.
    */
-  public add = (user: crdx.User, roles: string[] = [], device?: PublicDevice) => {
-    const member = { ...crdx.redactUser(user), roles }
+  public add = (user: UserWithSecrets, roles: string[] = [], device?: PublicDevice) => {
+    const member = { ...redactUser(user), roles }
 
     // make lockboxes for the new member
     const lockboxes = this.createMemberLockboxes(member)
@@ -258,7 +262,7 @@ export class Team extends EventEmitter {
     if (typeof role === 'string') role = { roleName: role }
 
     // we're creating this role so we need to generate new keys
-    const roleKeys = crdx.createKeyset({ type: KeyType.ROLE, name: role.roleName }, this.seed)
+    const roleKeys = createKeyset({ type: KeyType.ROLE, name: role.roleName }, this.seed)
 
     // make a lockbox for the admin role, so that all admins can access this role's keys
     const lockboxForAdmin = lockbox.create(roleKeys, this.adminKeys())
@@ -687,11 +691,11 @@ export class Team extends EventEmitter {
   private generateNewLockboxes = (compromised: KeyScope | KeysetWithSecrets) => {
     const newKeyset = isKeyset(compromised)
       ? compromised // we're given a keyset - use it as the new keys
-      : crdx.createKeyset(compromised) // we're just given a scope - generate new keys for it
+      : createKeyset(compromised) // we're just given a scope - generate new keys for it
 
     // identify all the keys that are indirectly compromised
-    const visibleScopes = getVisibleScopes(this.state, compromised)
-    const otherNewKeysets = visibleScopes.map(scope => crdx.createKeyset(scope))
+    const visibleScopes = select.getVisibleScopes(this.state, compromised)
+    const otherNewKeysets = visibleScopes.map(scope => createKeyset(scope))
 
     // generate new keys for each one
     const newKeysets = [newKeyset, ...otherNewKeysets]

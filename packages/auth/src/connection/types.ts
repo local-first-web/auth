@@ -1,12 +1,11 @@
-import { ConnectionMessage } from '@/connection/message'
 import { DeviceWithSecrets } from '@/device'
 import { ProofOfInvitation } from '@/invitation'
-import { Member } from '@/member'
 import { SyncState } from '@/sync/types'
-import { Team } from '@/team'
+import { Member, Team } from '@/team'
 import { Base58, Hash, UnixTimestamp } from '@/util'
-import { KeyScope, Keyset, User } from 'crdx'
+import { KeyScope, Keyset, UserWithSecrets } from 'crdx'
 import { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
+import { ConnectionMessage } from './message'
 
 // Identity
 
@@ -20,13 +19,13 @@ export type Challenge = KeyScope & {
 export type SendFunction = <T extends ConnectionMessage>(message: T) => void
 
 export type MemberInitialContext = {
-  user: User
+  user: UserWithSecrets
   device: DeviceWithSecrets
   team: Team
 }
 
 export type InviteeMemberInitialContext = {
-  user: User
+  user: UserWithSecrets
   device: DeviceWithSecrets
   invitationSeed: string
 }

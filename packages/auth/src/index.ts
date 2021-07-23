@@ -1,5 +1,5 @@
 ﻿export { createTeam as createTeam, load as loadTeam, Team } from './team'
-export { create as createDevice } from './device'
+export { createDevice as createDevice } from './device'
 export { Connection } from './connection'
 export { generateProof } from './invitation'
 

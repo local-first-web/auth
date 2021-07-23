@@ -1,6 +1,6 @@
-import { TeamAction, TeamActionLink, TeamNonMergeLink } from '@/team/types'
-import { isRootLink } from 'crdx'
 import { getDeviceId } from '@/device'
+import { TeamAction, TeamNonMergeLink } from '@/team/types'
+import { isRootLink } from 'crdx'
 
 /** Identifies a unique action for the purpose of detecting duplicates;
  * e.g. ADD_MEMBER:bob
