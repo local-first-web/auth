@@ -13,12 +13,14 @@ export const cache = <T>(fileName: string, generateAsset: () => T): T => {
   fileName = fileSystemSafe(fileName)
   const filePath = path.join(__dirname, `./assets/${fileName}.json`)
 
+  // TODO: re-enable caching - commented out for debugging
+
   // return cached object from assets folder if it exists
-  if (fs.existsSync(filePath)) return parseCacheFile(filePath) as T
+  // if (fs.existsSync(filePath)) return parseCacheFile(filePath) as T
 
   // otherwise generate the asset
   const result = generateAsset()
-  fs.writeFileSync(filePath, JSON.stringify(result))
+  // fs.writeFileSync(filePath, JSON.stringify(result))
   return result as T
 }
 
