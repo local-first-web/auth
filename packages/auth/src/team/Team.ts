@@ -1,6 +1,6 @@
 ﻿import * as identity from '@/connection/identity'
 import { Challenge } from '@/connection/types'
-import { LocalDeviceContext } from '@/context'
+import { LocalUserContext } from '@/context'
 import * as devices from '@/device'
 import { getDeviceId, parseDeviceId, PublicDevice, redactDevice } from '@/device'
 import * as invitations from '@/invitation'
@@ -46,7 +46,7 @@ import {
  */
 export class Team extends EventEmitter {
   private store: Store<TeamState, TeamAction>
-  private context: LocalDeviceContext
+  private context: LocalUserContext
   private state: TeamState = initialState
   private log: (o: any, ...args: any[]) => void
   private seed: string

@@ -1,9 +1,8 @@
 ﻿import { challenge, prove, verify } from '@/connection/identity'
-import { ADMIN_SCOPE, KeyScope, KeyType, TEAM_SCOPE } from '@/team'
+import { ADMIN_SCOPE, TEAM_SCOPE } from '@/team'
 import { setup } from '@/util/testing'
-import { createKeyset, redactKeys } from 'crdx'
-
 import '@/util/testing/expect/toBeValid'
+import { createKeyset, KeyScope, KeyType, redactKeys } from 'crdx'
 
 const { bob, eve } = setup('alice', 'bob', 'eve')
 

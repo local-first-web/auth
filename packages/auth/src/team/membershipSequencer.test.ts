@@ -3,7 +3,7 @@ import { chainSummary, clone } from '@/util'
 import { setup as userSetup } from '@/util/testing'
 import { append, createChain, merge } from 'crdx'
 import { redactUser } from './redactUser'
-import { TeamAction, TeamSignatureChain } from './types'
+import { TeamAction, TeamContext, TeamSignatureChain } from './types'
 
 describe('chains', () => {
   describe('membershipSequencer', () => {
@@ -14,11 +14,21 @@ describe('chains', () => {
       // 🔌❌ Now Alice and Bob are disconnected
 
       // 👨🏻‍🦲 Bob adds Charlie
-      bChain = append(bChain, ADD_CHARLIE, bob.localContext)
+      bChain = append({
+        chain: bChain,
+        action: ADD_CHARLIE,
+        user: bob.user,
+        context: bob.chainContext,
+      })
       expect(sequence(bChain)).toEqual('ROOT, ADD:bob, ADD:charlie')
 
       // 👩🏾 concurrently, Alice also adds Charlie
-      aChain = append(aChain, ADD_CHARLIE, alice.localContext)
+      aChain = append({
+        chain: aChain,
+        action: ADD_CHARLIE,
+        user: alice.user,
+        context: alice.chainContext,
+      })
       expect(sequence(aChain)).toEqual('ROOT, ADD:bob, ADD:charlie')
 
       // 🔌✔ Alice and Bob reconnect and synchronize chains
@@ -30,7 +40,12 @@ describe('chains', () => {
     it('discards duplicate removals', () => {
       // 👩🏾 Alice creates a chain and adds Charlie
       let { aChain } = setup()
-      aChain = append(aChain, ADD_CHARLIE, alice.localContext)
+      aChain = append({
+        chain: aChain,
+        action: ADD_CHARLIE,
+        user: alice.user,
+        context: alice.chainContext,
+      })
 
       // 👩🏾 🡒 👨🏻‍🦲 Alice shares the chain with Bob
       let bChain = clone(aChain)
@@ -38,11 +53,21 @@ describe('chains', () => {
       // 🔌❌ Now Alice and Bob are disconnected
 
       // 👨🏻‍🦲 Bob removes Charlie
-      bChain = append(bChain, REMOVE_CHARLIE, bob.localContext)
+      bChain = append({
+        chain: bChain,
+        action: REMOVE_CHARLIE,
+        user: alice.user,
+        context: bob.chainContext,
+      })
       expect(sequence(bChain)).toEqual('ROOT, ADD:bob, ADD:charlie, REMOVE:charlie')
 
       // 👩🏾 concurrently, Alice also removes Charlie
-      aChain = append(aChain, REMOVE_CHARLIE, alice.localContext)
+      aChain = append({
+        chain: aChain,
+        action: REMOVE_CHARLIE,
+        user: alice.user,
+        context: alice.chainContext,
+      })
       expect(sequence(aChain)).toEqual('ROOT, ADD:bob, ADD:charlie, REMOVE:charlie')
 
       // 🔌✔ Alice and Bob reconnect and synchronize chains
@@ -52,7 +77,6 @@ describe('chains', () => {
     })
 
     // TODO simulate this situation from connection.test
-
     // 20201229 OK. What's happening here is that sometimes (50% of the time?) when we eliminate duplicate
     // ADD_MEMBERs, we're eliminating one that would have needed to have come BEFORE something else,
     // in this case the CHANGE_MEMBER_KEYs action that happens after that person is admitted.
@@ -98,13 +122,33 @@ describe('chains', () => {
       // 🔌❌ Now Alice and Bob are disconnected
 
       // 👨🏻‍🦲 Bob adds Charlie
-      bChain = append(bChain, ADD_CHARLIE, bob.localContext)
+      bChain = append({
+        chain: bChain,
+        action: ADD_CHARLIE,
+        user: bob.user,
+        context: bob.chainContext,
+      })
       expect(sequence(bChain)).toEqual('ROOT, ADD:bob, ADD:charlie')
 
       // 👩🏾 concurrently, Alice also adds Charlie and makes him a manager
-      aChain = append(aChain, ADD_ROLE_MANAGERS, alice.localContext)
-      aChain = append(aChain, ADD_CHARLIE, alice.localContext)
-      aChain = append(aChain, ADD_CHARLIE_TO_MANAGERS, alice.localContext)
+      aChain = append({
+        chain: aChain,
+        action: ADD_ROLE_MANAGERS,
+        user: alice.user,
+        context: alice.chainContext,
+      })
+      aChain = append({
+        chain: aChain,
+        action: ADD_CHARLIE,
+        user: alice.user,
+        context: alice.chainContext,
+      })
+      aChain = append({
+        chain: aChain,
+        action: ADD_CHARLIE_TO_MANAGERS,
+        user: alice.user,
+        context: alice.chainContext,
+      })
       expect(sequence(aChain)).toEqual(
         'ROOT, ADD:bob, ADD:managers, ADD:charlie, ADD:managers:charlie'
       )
@@ -121,13 +165,18 @@ describe('chains', () => {
 
     const setup = () => {
       // 👩🏾 Alice creates a chain
-      let aChain = createChain<TeamAction>({
-        user: alice.localContext.user,
+      let aChain = createChain<TeamAction, TeamContext>({
+        user: alice.user,
         name: 'Spies Я Us',
         rootPayload: { ...redactUser(alice.user) },
       })
       // 👩🏾 Alice adds 👨🏻‍🦲 Bob as admin
-      aChain = append(aChain, ADD_BOB_AS_ADMIN, alice.localContext)
+      aChain = append({
+        chain: aChain,
+        action: ADD_BOB_AS_ADMIN,
+        user: alice.user,
+        context: alice.chainContext,
+      })
 
       // 👩🏾 🡒 👨🏻‍🦲 Alice shares the chain with Bob
       let bChain = clone(aChain)

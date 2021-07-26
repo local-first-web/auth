@@ -1,10 +1,10 @@
 ﻿import { Connection, InitialContext } from '@/connection'
 import { LocalUserContext } from '@/context'
 import * as devices from '@/device'
-import { DeviceWithSecrets } from '@/device'
+import { DeviceWithSecrets, getDeviceId } from '@/device'
 import { ADMIN } from '@/role'
 import * as teams from '@/team'
-import { Team } from '@/team'
+import { Team, TeamContext } from '@/team'
 import { arrayToMap, assert } from '@/util'
 import { createUser, KeyType, User, UserWithSecrets } from 'crdx'
 import { cache } from './cache'
@@ -87,8 +87,9 @@ export const setup = (
     const randomSeed = userName
     const device = laptops[userName]
     const phone = phones[userName]
-    const localContext = { user, device }
 
+    const localContext = { user, device }
+    const chainContext = { deviceId: getDeviceId(device) }
     const team = member
       ? teams.load(chain, localContext) // members get a copy of the source team
       : teams.createTeam(userName, localContext, randomSeed) // non-members get a dummy empty placeholder team
@@ -107,7 +108,18 @@ export const setup = (
     const connection = {} as Record<string, Connection>
     const getState = (peer: string) => connection[peer].state
 
-    return { userName, user, team, device, localContext, phone, context, connection, getState }
+    return {
+      userName,
+      user,
+      team,
+      device,
+      localContext,
+      chainContext,
+      phone,
+      context,
+      connection,
+      getState,
+    }
   }
 
   const testUserStuff: Record<string, UserStuff> = config
@@ -132,6 +144,7 @@ export interface UserStuff {
   device: DeviceWithSecrets
   phone: DeviceWithSecrets
   localContext: LocalUserContext
+  chainContext: TeamContext
   context: InitialContext
   connection: Record<string, Connection>
   getState: (peer: string) => any

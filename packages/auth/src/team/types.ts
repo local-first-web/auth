@@ -1,5 +1,5 @@
-import { Client, LocalDeviceContext, LocalUserContext, MemberContext } from '@/context'
-import { PublicDevice } from '@/device'
+import { Client, Context, LocalUserContext } from '@/context'
+import { DeviceWithSecrets, PublicDevice } from '@/device'
 import { Invitation, InvitationState } from '@/invitation/types'
 import {
   Action,
@@ -13,6 +13,7 @@ import {
   ROOT,
   Sequence,
   SignatureChain,
+  UserWithSecrets,
 } from 'crdx'
 import { Lockbox } from '@/lockbox'
 import { PermissionsMap, Role } from '@/role'
@@ -33,7 +34,6 @@ export interface NewTeamOptions {
   /** The team's human-facing name */
   teamName: string
 
-  /** The context of the local user */
   context: LocalUserContext
 }
 
@@ -42,8 +42,7 @@ export interface ExistingTeamOptions {
   /** The `TeamSignatureChain` representing the team's state. Can be serialized or not. */
   source: string | TeamSignatureChain
 
-  /** The context of the local user */
-  context: LocalDeviceContext
+  context: LocalUserContext
 }
 
 export type TeamOptions = (NewTeamOptions | ExistingTeamOptions) & {

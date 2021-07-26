@@ -11,7 +11,12 @@ describe('chains', () => {
     // 👩🏾 Alice creates a chain
     let aChain: TeamSignatureChain = createTeam('Spies Я Us', alice.localContext).chain
     // 👩🏾 Alice adds 👨🏻‍🦲 Bob as admin
-    aChain = append(aChain, ADD_BOB_AS_ADMIN, alice.localContext)
+    aChain = append({
+      chain: aChain,
+      action: ADD_BOB_AS_ADMIN,
+      user: alice.user,
+      context: alice.chainContext,
+    })
 
     // 👩🏾 🡒 👨🏻‍🦲 Alice shares the chain with Bob
     let bChain: TeamSignatureChain = clone(aChain)
@@ -26,11 +31,21 @@ describe('chains', () => {
       // 🔌❌ Now Alice and Bob are disconnected
 
       // 👨🏻‍🦲 Bob makes a change
-      bChain = append(bChain, ADD_ROLE_MANAGERS, bob.localContext)
+      bChain = append({
+        chain: bChain,
+        action: ADD_ROLE_MANAGERS,
+        user: bob.user,
+        context: bob.chainContext,
+      })
       expect(sequence(bChain)).toEqual('ROOT, ADD:bob, ADD:managers')
 
       // 👩🏾 Concurrently, Alice makes a change
-      aChain = append(aChain, ADD_CHARLIE, alice.localContext)
+      aChain = append({
+        chain: aChain,
+        action: ADD_CHARLIE,
+        user: alice.user,
+        context: alice.chainContext,
+      })
       expect(sequence(aChain)).toEqual('ROOT, ADD:bob, ADD:charlie')
 
       // 🔌✔ Alice and Bob reconnect and synchronize chains
@@ -49,11 +64,21 @@ describe('chains', () => {
       // 🔌❌ Now Alice and Bob are disconnected
 
       // 👨🏻‍🦲 Bob adds Charlie to the group
-      bChain = append(bChain, ADD_CHARLIE, bob.localContext)
+      bChain = append({
+        chain: bChain,
+        action: ADD_CHARLIE,
+        user: bob.user,
+        context: bob.chainContext,
+      })
       expect(sequence(bChain)).toEqual('ROOT, ADD:bob, ADD:charlie')
 
       // 👩🏾 but concurrently, Alice removes Bob from the group
-      aChain = append(aChain, REMOVE_BOB, alice.localContext)
+      aChain = append({
+        chain: aChain,
+        action: REMOVE_BOB,
+        user: alice.user,
+        context: alice.chainContext,
+      })
       expect(sequence(aChain)).toEqual('ROOT, ADD:bob, REMOVE:bob')
 
       // 🔌✔ Alice and Bob reconnect and synchronize chains
@@ -69,11 +94,21 @@ describe('chains', () => {
       // 🔌❌ Now Alice and Bob are disconnected
 
       // 👨🏻‍🦲 Bob adds Charlie to the group
-      bChain = append(bChain, ADD_CHARLIE, bob.localContext)
+      bChain = append({
+        chain: bChain,
+        action: ADD_CHARLIE,
+        user: bob.user,
+        context: bob.chainContext,
+      })
       expect(sequence(bChain)).toEqual('ROOT, ADD:bob, ADD:charlie')
 
       // 👩🏾 but concurrently, Alice removes Bob from the admin role
-      aChain = append(aChain, DEMOTE_BOB, alice.localContext)
+      aChain = append({
+        chain: aChain,
+        action: DEMOTE_BOB,
+        user: alice.user,
+        context: alice.chainContext,
+      })
       expect(sequence(aChain)).toEqual('ROOT, ADD:bob, REMOVE:admin:bob')
 
       // 🔌✔ Alice and Bob reconnect and synchronize chains
@@ -85,7 +120,12 @@ describe('chains', () => {
     it(`doesn't allow a member who is removed to be concurrently added back`, () => {
       // 👩🏾 Alice creates a chain and adds Charlie
       let { aChain } = setup()
-      aChain = append(aChain, ADD_CHARLIE, alice.localContext)
+      aChain = append({
+        chain: aChain,
+        action: ADD_CHARLIE,
+        user: alice.user,
+        context: alice.chainContext,
+      })
 
       // 👩🏾 🡒 👨🏻‍🦲 Alice shares the chain with Bob
       let bChain = clone(aChain)
@@ -93,12 +133,27 @@ describe('chains', () => {
       // 🔌❌ Now Alice and Bob are disconnected
 
       // 👩🏾 Alice removes Charlie
-      aChain = append(aChain, REMOVE_CHARLIE, alice.localContext)
+      aChain = append({
+        chain: aChain,
+        action: REMOVE_CHARLIE,
+        user: alice.user,
+        context: alice.chainContext,
+      })
       expect(sequence(aChain)).toEqual('ROOT, ADD:bob, ADD:charlie, REMOVE:charlie')
 
       // 👨🏻‍🦲 Bob removes Charlie then adds him back
-      bChain = append(bChain, REMOVE_CHARLIE, bob.localContext)
-      bChain = append(bChain, ADD_CHARLIE, bob.localContext)
+      bChain = append({
+        chain: bChain,
+        action: REMOVE_CHARLIE,
+        user: bob.user,
+        context: bob.chainContext,
+      })
+      bChain = append({
+        chain: bChain,
+        action: ADD_CHARLIE,
+        user: bob.user,
+        context: bob.chainContext,
+      })
       expect(sequence(bChain)).toEqual('ROOT, ADD:bob, ADD:charlie, REMOVE:charlie, ADD:charlie')
 
       // 🔌✔ Alice and Bob reconnect and synchronize chains
@@ -114,10 +169,20 @@ describe('chains', () => {
       // 🔌❌ Now Alice and Bob are disconnected
 
       // 👨🏻‍🦲 Bob removes Alice
-      bChain = append(bChain, REMOVE_ALICE, bob.localContext)
+      bChain = append({
+        chain: bChain,
+        action: REMOVE_ALICE,
+        user: bob.user,
+        context: bob.chainContext,
+      })
 
       // 👩🏾 Alice removes Bob
-      aChain = append(aChain, REMOVE_BOB, alice.localContext)
+      aChain = append({
+        chain: aChain,
+        action: REMOVE_BOB,
+        user: alice.user,
+        context: alice.chainContext,
+      })
 
       // 🔌✔ Alice and Bob reconnect and synchronize chains
 
@@ -128,7 +193,12 @@ describe('chains', () => {
     it('resolves mutual concurrent removals in favor of the senior member', () => {
       // 👩🏾 Alice creates a chain and adds Charlie
       let { aChain } = setup()
-      aChain = append(aChain, ADD_CHARLIE_AS_ADMIN, alice.localContext)
+      aChain = append({
+        chain: aChain,
+        action: ADD_CHARLIE_AS_ADMIN,
+        user: alice.user,
+        context: alice.chainContext,
+      })
 
       // 👩🏾 🡒 👨🏻‍🦲 👳🏽‍♂️ Alice shares the chain with Bob and Charlie
       let bChain = clone(aChain)
@@ -137,10 +207,20 @@ describe('chains', () => {
       // 🔌❌ Now Bob and Charlie are disconnected
 
       // 👨🏻‍🦲 Bob removes Charlie
-      bChain = append(bChain, REMOVE_CHARLIE, bob.localContext)
+      bChain = append({
+        chain: bChain,
+        action: REMOVE_CHARLIE,
+        user: bob.user,
+        context: bob.chainContext,
+      })
 
       // 👳🏽‍♂️ Charlie removes Bob
-      cChain = append(cChain, REMOVE_BOB, charlie.localContext)
+      cChain = append({
+        chain: cChain,
+        action: REMOVE_BOB,
+        user: charlie.user,
+        context: charlie.chainContext,
+      })
 
       // 🔌✔ Bob and Charlie reconnect and synchronize chains
 
@@ -155,10 +235,20 @@ describe('chains', () => {
       // 🔌❌ Now Alice and Bob are disconnected
 
       // 👨🏻‍🦲 Bob demotes Alice
-      bChain = append(bChain, DEMOTE_ALICE, bob.localContext)
+      bChain = append({
+        chain: bChain,
+        action: DEMOTE_ALICE,
+        user: bob.user,
+        context: bob.chainContext,
+      })
 
       // 👩🏾 Alice demotes Bob
-      aChain = append(aChain, DEMOTE_BOB, alice.localContext)
+      aChain = append({
+        chain: aChain,
+        action: DEMOTE_BOB,
+        user: alice.user,
+        context: alice.chainContext,
+      })
 
       // 🔌✔ Alice and Bob reconnect and synchronize chains
 
@@ -169,7 +259,12 @@ describe('chains', () => {
     it('resolves circular mutual concurrent demotions in favor of the team founder', () => {
       // 👩🏾 🡒 👨🏻‍🦲 Alice creates a chain and adds Charlie as admin
       let { aChain } = setup()
-      aChain = append(aChain, ADD_CHARLIE_AS_ADMIN, alice.localContext)
+      aChain = append({
+        chain: aChain,
+        action: ADD_CHARLIE_AS_ADMIN,
+        user: alice.user,
+        context: alice.chainContext,
+      })
 
       // 👩🏾 🡒 👨🏻‍🦲 Alice shares the chain with Bob and Charlie
       let bChain = clone(aChain)
@@ -178,13 +273,28 @@ describe('chains', () => {
       // 🔌❌ Now Alice and Bob are disconnected
 
       // 👨🏻‍🦲 Bob demotes Charlie
-      bChain = append(bChain, DEMOTE_CHARLIE, bob.localContext)
+      bChain = append({
+        chain: bChain,
+        action: DEMOTE_CHARLIE,
+        user: bob.user,
+        context: bob.chainContext,
+      })
 
       // 👳🏽‍♂️ Charlie demotes Alice
-      cChain = append(cChain, DEMOTE_ALICE, charlie.localContext)
+      cChain = append({
+        chain: cChain,
+        action: DEMOTE_ALICE,
+        user: charlie.user,
+        context: charlie.chainContext,
+      })
 
       // 👩🏾 Alice demotes Bob
-      aChain = append(aChain, DEMOTE_BOB, alice.localContext)
+      aChain = append({
+        chain: aChain,
+        action: DEMOTE_BOB,
+        user: alice.user,
+        context: alice.chainContext,
+      })
 
       // 🔌✔ All reconnect and synchronize chains
       // This could happen three different ways - make sure the result is the same in all cases
