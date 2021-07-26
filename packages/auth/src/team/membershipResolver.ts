@@ -9,6 +9,7 @@ import {
   RemoveMemberAction,
   RemoveMemberRoleAction,
   TeamAction,
+  TeamContext,
   TeamNonMergeLink,
   TeamSignatureChain,
   TwoBranches,
@@ -22,7 +23,7 @@ import { isAdminOnlyAction } from './isAdminOnlyAction'
  * ordered sequence. It mostly applies "strong-remove" rules to resolve tricky situations that can
  * arise with concurrency: mutual removals, duplicate actions, etc.
  */
-export const membershipResolver: Resolver<TeamAction> = (heads, chain) => {
+export const membershipResolver: Resolver<TeamAction, TeamContext> = (heads, chain) => {
   let branches: TwoBranches = baseResolver(heads, chain)
 
   // Consecutively apply each type of filter to the branches
@@ -126,10 +127,10 @@ const addedNotIn =
   (link: TeamNonMergeLink): boolean => {
     const addedUserName = (link: AddActionLink): string => {
       if (link.body.type === 'ADD_MEMBER') {
-        const addAction = link.body as LinkBody<AddMemberAction>
+        const addAction = link.body as LinkBody<AddMemberAction, TeamContext>
         return addAction.payload.member.userName
       } else if (link.body.type === 'ADD_MEMBER_ROLE') {
-        const addAction = link.body as LinkBody<AddMemberRoleAction>
+        const addAction = link.body as LinkBody<AddMemberRoleAction, TeamContext>
         return addAction.payload.userName
       }
       // ignore coverage
@@ -148,5 +149,5 @@ const noFilter: ActionFilter = (_: any) => true
 const isAddAction = (link: TeamNonMergeLink): link is AddActionLink =>
   link.body.type === 'ADD_MEMBER' || link.body.type === 'ADD_MEMBER_ROLE'
 
-type RemoveActionLink = ActionLink<RemoveMemberAction | RemoveMemberRoleAction>
-type AddActionLink = ActionLink<AddMemberAction | AddMemberRoleAction>
+type RemoveActionLink = ActionLink<RemoveMemberAction | RemoveMemberRoleAction, TeamContext>
+type AddActionLink = ActionLink<AddMemberAction | AddMemberRoleAction, TeamContext>

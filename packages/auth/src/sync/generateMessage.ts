@@ -1,23 +1,23 @@
 import { arrayToMap } from '@/util/arrayToMap'
 import { messageSummary } from '@/util/testing/messageSummary'
 import { unique } from '@/util/unique'
-import { getHead, getPredecessorHashes, isPredecessor, SignatureChain } from 'crdx'
+import { Action, getHead, getPredecessorHashes, isPredecessor, SignatureChain } from 'crdx'
 import debug from 'debug'
 import { TruncatedHashFilter } from './TruncatedHashFilter'
 import { SyncPayload, SyncState } from './types'
 
 const log = debug('lf:auth:sync')
 
-export const generateMessage = (
-  chain: SignatureChain<any>,
+export const generateMessage = <A extends Action, C>(
+  chain: SignatureChain<A, C>,
   state: SyncState
-): [SyncState, SyncPayload<any> | undefined] => {
+): [SyncState, SyncPayload<A, C> | undefined] => {
   const { theirHead, lastCommonHead, ourNeed, theirNeed } = state
   const { root, head } = chain
   const ourHead = head
 
   state = { ...state, ourHead }
-  let message: SyncPayload<any> | undefined
+  let message: SyncPayload<A, C> | undefined
 
   if (lastCommonHead === ourHead) {
     // CASE 1: We're already synced up, don't return a message

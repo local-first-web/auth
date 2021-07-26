@@ -26,10 +26,10 @@ export interface SyncState {
   /** All the links they've sent us*/
   theyHaveSent: Hash[]
 
-  pendingLinks: LinkMap<any>
+  pendingLinks: LinkMap<any, any>
 }
 
-export interface SyncPayload<A extends Action> {
+export interface SyncPayload<A extends Action, C> {
   /** Our root. We just send this as a sanity check - if our roots don't match we can't sync. */
   root: Hash
 
@@ -37,7 +37,7 @@ export interface SyncPayload<A extends Action> {
   head: Hash
 
   /** Any links we know they need. */
-  links?: LinkMap<A>
+  links?: LinkMap<A, C>
 
   /** Any hashes we know we need. */
   need?: Hash[]

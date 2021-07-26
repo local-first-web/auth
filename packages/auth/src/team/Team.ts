@@ -91,7 +91,7 @@ export class Team extends EventEmitter {
   }
 
   public get chain() {
-    return this.store.getChain()
+    return this.store.getChain() as TeamSignatureChain
   }
 
   /**************** TEAM STATE

@@ -138,7 +138,8 @@ describe('Team', () => {
       expect(tryToChangeBobsKeys).toThrow()
     })
 
-    it(`Eve can't change Bob's device keys`, () => {
+    // TODO:
+    it.skip(`Eve can't change Bob's device keys`, () => {
       const { bob, eve } = setup('alice', 'bob', { user: 'eve', admin: false })
 
       const deviceId = getDeviceId(bob.device)

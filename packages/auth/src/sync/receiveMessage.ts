@@ -7,11 +7,11 @@ import { SyncPayload, SyncState } from './types'
 
 const log = debug('lf:auth:sync')
 
-export const receiveMessage = <A extends Action>(
-  chain: SignatureChain<A>,
+export const receiveMessage = <A extends Action, C>(
+  chain: SignatureChain<A, C>,
   state: SyncState,
-  message: SyncPayload<A>
-): [SignatureChain<A>, SyncState] => {
+  message: SyncPayload<A, C>
+): [SignatureChain<A, C>, SyncState] => {
   const {
     root: theirRoot, //
     head: theirHead,

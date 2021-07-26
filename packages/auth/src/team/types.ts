@@ -1,4 +1,4 @@
-import { LocalDeviceContext, LocalUserContext, MemberContext } from '@/context'
+import { Client, LocalDeviceContext, LocalUserContext, MemberContext } from '@/context'
 import { PublicDevice } from '@/device'
 import { Invitation, InvitationState } from '@/invitation/types'
 import {
@@ -202,15 +202,20 @@ export type TeamAction =
   | ChangeMemberKeysAction
   | ChangeDeviceKeysAction
 
-export type TeamLinkBody = LinkBody<TeamAction>
-export type TeamLink = Link<TeamAction>
-export type TeamActionLink = ActionLink<TeamAction>
-export type TeamNonMergeLink = NonMergeLink<TeamAction>
-export type TeamLinkMap = LinkMap<TeamAction>
-export type TeamSignatureChain = SignatureChain<TeamAction>
-export type Branch = Sequence<TeamAction>
+export type TeamContext = {
+  deviceId: string
+  client?: Client
+}
+
+export type TeamLinkBody = LinkBody<TeamAction, TeamContext>
+export type TeamLink = Link<TeamAction, TeamContext>
+export type TeamActionLink = ActionLink<TeamAction, TeamContext>
+export type TeamNonMergeLink = NonMergeLink<TeamAction, TeamContext>
+export type TeamLinkMap = LinkMap<TeamAction, TeamContext>
+export type TeamSignatureChain = SignatureChain<TeamAction, TeamContext>
+export type Branch = Sequence<TeamAction, TeamContext>
 export type TwoBranches = [Branch, Branch]
-export type ActionFilter = (link: NonMergeLink<TeamAction>) => boolean
+export type ActionFilter = (link: NonMergeLink<TeamAction, TeamContext>) => boolean
 export type ActionFilterFactory = (branches: TwoBranches, chain: TeamSignatureChain) => ActionFilter
 
 // TEAM STATE

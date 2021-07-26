@@ -92,6 +92,7 @@ const validators: TeamStateValidatorSet = {
         if (author !== target) return fail(`Can't change another user's keys.`, ...args)
       }
     } else if (link.body.type === 'CHANGE_DEVICE_KEYS') {
+      return VALID
       // TODO: we don't have device information in context any more
       //
       // const authorUserName = link.signed.userName

@@ -8,7 +8,7 @@ import { truncateHashes } from '../truncateHashes'
 //   })
 // }
 
-export const messageSummary = (m: SyncPayload<any>) => {
+export const messageSummary = (m: SyncPayload<any, any>) => {
   const { head, encodedFilter, links, need } = m
   const body = { head } as any
   if (encodedFilter?.length) body.encodedFilter = encodedFilter.length

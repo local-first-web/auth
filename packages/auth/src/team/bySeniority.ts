@@ -1,5 +1,5 @@
-import { TeamAction, TeamLink, TeamSignatureChain } from '@/team/types'
-import { isActionLink, isMergeLink, isPredecessor, isRootLink, RootLink } from 'crdx'
+import { TeamContext, TeamLink, TeamSignatureChain } from '@/team/types'
+import { isMergeLink, isPredecessor, isRootLink, RootLink } from 'crdx'
 
 export const bySeniority = (chain: TeamSignatureChain) => (a: string, b: string) => {
   // if one of these created the chain, they win
@@ -21,6 +21,6 @@ export const bySeniority = (chain: TeamSignatureChain) => (a: string, b: string)
   else return 1
 }
 const isFounder = (chain: TeamSignatureChain, userName: string) => {
-  const rootLink = chain.links[chain.root] as RootLink
+  const rootLink = chain.links[chain.root] as RootLink<TeamContext>
   return rootLink.signed.userName === userName
 }
