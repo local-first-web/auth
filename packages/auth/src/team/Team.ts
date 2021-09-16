@@ -81,12 +81,12 @@ export class Team extends EventEmitter {
         rootDevice: devices.redactDevice(device),
         lockboxes: [teamLockbox, adminLockbox, deviceLockbox],
       }
-      this.store = createStore({ user, rootPayload, reducer, initialState })
+      this.store = createStore({ user, reducer, initialState, rootPayload })
     } else {
       // Load a team from an existing chain
       const chain = maybeDeserialize(options.source)
       const { user } = options.context
-      this.store = createStore({ user, chain, reducer, initialState })
+      this.store = createStore({ user, reducer, initialState, chain })
     }
     this.state = this.store.getState()
   }
@@ -97,16 +97,16 @@ export class Team extends EventEmitter {
 
   /**************** TEAM STATE
 
-  All the logic for reading from team state is in selectors.
+  All the logic for *reading* team state is in selectors.
 
-  Most of the logic for modifying team state is in reducers. To mutate team state, we dispatch
-  changes to the signature chain, and then run the chain through the reducer to recalculate team
-  state.
+  Most of the logic for *modifying* team state is in transforms, which are executed by the reducer.
+  To mutate team state, we dispatch changes to the signature chain, and then run the chain through
+  the reducer to recalculate team state.
 
   Any crypto operations involving the current user's secrets (for example, opening or creating
-  lockboxes, or signing links) are done here, not in the selectors or reducers. Only the
-  public-facing outputs (for example, the resulting lockboxesInScope, the signed links) are posted
-  on the chain.
+  lockboxes, or signing links) are done here, not in the selectors or in the reducer. Only the
+  public-facing outputs (for example, the resulting lockboxesInScope, or the signed links) are
+  posted on the chain.
 
   */
 
