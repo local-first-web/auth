@@ -1,8 +1,8 @@
 ﻿import { Transform } from '@/team/types'
-import { getDeviceId, PublicDevice } from '@/device'
+import { getDeviceId, Device } from '@/device'
 
 export const addDevice =
-  (device: PublicDevice): Transform =>
+  (device: Device): Transform =>
   state => {
     const { userName } = device
     return {

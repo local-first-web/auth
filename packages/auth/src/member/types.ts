@@ -1,2 +1,2 @@
 ﻿import { Keyset } from 'crdx'
-import { PublicDevice } from '@/device'
+import { Device } from '@/device'

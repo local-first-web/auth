@@ -9,6 +9,6 @@ export interface DeviceWithSecrets extends DeviceInfo {
   keys: KeysetWithSecrets
 }
 
-export interface PublicDevice extends DeviceInfo {
+export interface Device extends DeviceInfo {
   keys: Keyset
 }

@@ -1,4 +1,4 @@
-﻿import { PublicDevice } from '@/device'
+﻿import { Device } from '@/device'
 import { ADMIN } from '@/role'
 import { clone, composeTransforms } from '@/util'
 import { Reducer, ROOT } from 'crdx'
@@ -176,7 +176,7 @@ const getTransforms = (action: TeamAction): Transform[] => {
     case 'ADMIT_DEVICE': {
       const { id, userName, deviceKeys } = action.payload
 
-      const device: PublicDevice = {
+      const device: Device = {
         userName,
         deviceName: deviceKeys.name,
         keys: deviceKeys,

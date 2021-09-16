@@ -1,5 +1,5 @@
 import { Client, LocalUserContext } from '@/context'
-import { PublicDevice } from '@/device'
+import { Device } from '@/device'
 import { Invitation, InvitationState } from '@/invitation/types'
 import { Lockbox } from '@/lockbox'
 import { PermissionsMap, Role } from '@/role'
@@ -18,41 +18,57 @@ import {
   SignatureChain,
 } from 'crdx'
 
+// ********* MEMBER
+
+/** A member is a user that belongs to a team. */
 export interface Member {
   userName: string
+
+  /** The member's public keys */
   keys: Keyset
+
+  /** Array of role names that the member belongs to */
   roles: string[]
-  devices?: PublicDevice[]
+
+  /** Devices that the member has added, along with their public */
+  devices?: Device[]
+
+  // TODO: are we using this?
+  /** Array of all the public keys that the member has had, including the current ones */
   keyHistory?: Keyset[]
 }
 
-// TEAM CONSTRUCTOR
+// ********* TEAM CONSTRUCTOR
 
-// only when creating a new team
+/** Properties required when creating a new team */
 export interface NewTeamOptions {
   /** The team's human-facing name */
   teamName: string
-
-  context: LocalUserContext
 }
 
-// only when rehydrating from a chain
+/** Properties required when rehydrating from an existing chain  */
 export interface ExistingTeamOptions {
-  /** The `TeamSignatureChain` representing the team's state. Can be serialized or not. */
+  /** The `TeamSignatureChain` representing the team's state, to be rehydrated.
+   *  Can be serialized or not. */
   source: string | TeamSignatureChain
-
-  context: LocalUserContext
 }
 
-export type TeamOptions = (NewTeamOptions | ExistingTeamOptions) & {
+type NewOrExisting = NewTeamOptions | ExistingTeamOptions
+
+/** Options passed to the `Team` constructor */
+export type TeamOptions = NewOrExisting & {
   /** A seed for generating keys. This is typically only used for testing, to ensure predictable data. */
   seed?: string
+
+  /** Object containing the current user and device (and optionally information about the client & version) */
+  context: LocalUserContext
 }
 
 /** type guard for NewTeamOptions vs ExistingTeamOptions  */
-export const isNewTeam = (
-  options: NewTeamOptions | ExistingTeamOptions
-): options is NewTeamOptions => 'teamName' in options
+export const isNewTeam = (options: NewOrExisting): options is NewTeamOptions =>
+  'teamName' in options
+
+// ********* ACTIONS
 
 // TODO: the content of lockboxes needs to be validated
 // e.g. only an admin can add lockboxes for others
@@ -67,7 +83,7 @@ export interface RootAction extends Action {
   payload: BasePayload & {
     name: string
     rootMember: Member
-    rootDevice: PublicDevice
+    rootDevice: Device
   }
 }
 
@@ -118,7 +134,7 @@ export interface RemoveMemberRoleAction extends Action {
 export interface AddDeviceAction extends Action {
   type: 'ADD_DEVICE'
   payload: BasePayload & {
-    device: PublicDevice
+    device: Device
   }
 }
 
@@ -216,7 +232,7 @@ export type TwoBranches = [Branch, Branch]
 export type ActionFilter = (link: NonMergeLink<TeamAction, TeamContext>) => boolean
 export type ActionFilterFactory = (branches: TwoBranches, chain: TeamSignatureChain) => ActionFilter
 
-// TEAM STATE
+// ********* TEAM STATE
 
 export interface TeamState {
   teamName: string
@@ -241,7 +257,7 @@ export interface InvitationMap {
   [id: string]: InvitationState
 }
 
-// VALIDATION
+// ********* VALIDATION
 
 export type TeamStateValidator = (prevState: TeamState, link: TeamActionLink) => ValidationResult
 
@@ -251,7 +267,7 @@ export type TeamStateValidatorSet = {
 
 export type ValidationArgs = [TeamState, TeamActionLink]
 
-// CRYPTO
+// ********* CRYPTO
 
 export interface EncryptedEnvelope {
   contents: Base58

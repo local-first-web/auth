@@ -2,7 +2,7 @@
 import { Challenge } from '@/connection/types'
 import { LocalUserContext } from '@/context'
 import * as devices from '@/device'
-import { getDeviceId, parseDeviceId, PublicDevice, redactDevice } from '@/device'
+import { getDeviceId, parseDeviceId, Device, redactDevice } from '@/device'
 import * as invitations from '@/invitation'
 import { ProofOfInvitation } from '@/invitation'
 import { normalize } from '@/invitation/normalize'
@@ -64,30 +64,41 @@ export class Team extends EventEmitter {
 
     this.log = debug(`lf:auth:team:${this.userName}`)
 
+    // Initialize a CRDX store for the team
     if (isNewTeam(options)) {
       // Create a new team with the current user as founding member
       const { device, user } = options.context
 
-      // Team & role secrets are never stored in plaintext, only encrypted into individual lockboxes.
-      // Here we create new lockboxes with the team & admin keys for the founding member
-      const teamLockbox = lockbox.create(createKeyset(TEAM_SCOPE, this.seed), user.keys)
-      const adminLockbox = lockbox.create(createKeyset(ADMIN_SCOPE, this.seed), user.keys)
+      // Team & role secrets are never stored in plaintext, only encrypted into individual
+      // lockboxes. Here we generate new keysets for the team and for the admin role, and store
+      // these in new lockboxes for the founding member
+      const teamKeys = createKeyset(TEAM_SCOPE, this.seed)
+      const teamLockbox = lockbox.create(teamKeys, user.keys)
+      const adminKeys = createKeyset(ADMIN_SCOPE, this.seed)
+      const adminLockbox = lockbox.create(adminKeys, user.keys)
+
+      // We also store the user's keys in a lockbox for the user's device
       const deviceLockbox = lockbox.create(user.keys, this.context.device.keys)
 
-      // We're creating a new chain; this information is to be added to the root link
+      // We're creating a new chain; this information is to be recorded in the root link
       const rootPayload = {
         name: options.teamName,
         rootMember: redactUser(user),
         rootDevice: devices.redactDevice(device),
         lockboxes: [teamLockbox, adminLockbox, deviceLockbox],
       }
+
+      // Create CRDX store
       this.store = createStore({ user, reducer, initialState, rootPayload })
     } else {
-      // Load a team from an existing chain
+      // Rehydrate a team from an existing chain
       const chain = maybeDeserialize(options.source)
       const { user } = options.context
+
+      // Create CRDX store
       this.store = createStore({ user, reducer, initialState, chain })
     }
+
     this.state = this.store.getState()
   }
 
@@ -97,27 +108,32 @@ export class Team extends EventEmitter {
 
   /**************** TEAM STATE
 
-  All the logic for *reading* team state is in selectors.
+  All the logic for *reading* team state is in selectors (see `/team/selectors`).
 
-  Most of the logic for *modifying* team state is in transforms, which are executed by the reducer.
-  To mutate team state, we dispatch changes to the signature chain, and then run the chain through
-  the reducer to recalculate team state.
+  Most of the logic for *modifying* team state is in transforms (see `/team/transforms`), which are
+  executed by the reducer. To mutate team state, we dispatch changes to the signature chain, and
+  then run the chain through the reducer to recalculate team state.
 
   Any crypto operations involving the current user's secrets (for example, opening or creating
   lockboxes, or signing links) are done here, not in the selectors or in the reducer. Only the
   public-facing outputs (for example, the resulting lockboxesInScope, or the signed links) are
   posted on the chain.
-
   */
 
+  /** Returns this team's user-facing name. */
   public get teamName() {
     return this.state.teamName
   }
 
   public save = () => this.store.save()
 
-  public merge = (chain: TeamSignatureChain) => {
-    this.store.merge(chain)
+  /**
+   * Merges another chain (e.g. from a peer) with ours.
+   * @param theirChain The chain to merge with.
+   * @returns This `Team` instance.
+   */
+  public merge = (theirChain: TeamSignatureChain) => {
+    this.store.merge(theirChain)
     return this
   }
 
@@ -170,7 +186,7 @@ export class Team extends EventEmitter {
    * In real-world scenarios, you'll need to use the `team.invite` workflow
    * to add members without relying on some kind of public key infrastructure.
    */
-  public add = (user: UserWithSecrets, roles: string[] = [], device?: PublicDevice) => {
+  public add = (user: UserWithSecrets, roles: string[] = [], device?: Device) => {
     const member = { ...redactUser(user), roles }
 
     // make lockboxes for the new member
@@ -309,7 +325,7 @@ export class Team extends EventEmitter {
     select.hasDevice(this.state, userName, deviceName)
 
   /** Find a member's device by name */
-  public device = (userName: string, deviceName: string): PublicDevice =>
+  public device = (userName: string, deviceName: string): Device =>
     select.device(this.state, userName, deviceName)
 
   /** Remove a member's device */
