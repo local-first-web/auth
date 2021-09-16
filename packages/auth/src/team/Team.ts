@@ -34,7 +34,6 @@ import {
   Member,
   SignedEnvelope,
   TeamAction,
-  TeamContext,
   TeamOptions,
   TeamSignatureChain,
   TeamState,
@@ -58,6 +57,7 @@ export class Team extends EventEmitter {
    */
   constructor(options: TeamOptions) {
     super()
+
     // ignore coverage
     this.seed = options.seed ?? randomKey()
     this.context = options.context
@@ -148,8 +148,7 @@ export class Team extends EventEmitter {
     return validation.isValid
   }
 
-  /**************** MEMBERS
-   */
+  /**************** MEMBERS */
 
   /** Returns true if the team has a member with the given userName */
   public has = (userName: string) => select.hasMember(this.state, userName)
@@ -218,8 +217,7 @@ export class Team extends EventEmitter {
     return [...roleKeys, teamKeys].map(createLockbox)
   }
 
-  /**************** ROLES
-   */
+  /**************** ROLES */
 
   /** Returns all roles in the team */
   public roles(): Role[]
@@ -304,8 +302,7 @@ export class Team extends EventEmitter {
     })
   }
 
-  /**************** DEVICES
-   */
+  /**************** DEVICES */
 
   /** Returns true if the given member has a device by the given name */
   public hasDevice = (userName: string, deviceName: string): boolean =>
@@ -342,44 +339,26 @@ export class Team extends EventEmitter {
     return select.deviceWasRemoved(this.state, deviceId)
   }
 
-  /**************** INVITATIONS
+  /**************** INVITATIONS */
 
-  Inviting a new member: 
+  /**
+  To invite a new member: 
 
-    Alice generates an invitation using a secret seed. The seed an be randomly generated, or
-    selected by Alice. Alice sends the invitation to Bob using a trusted channel.
+  Alice generates an invitation using a secret seed. The seed an be randomly generated, or
+  selected by Alice. Alice sends the invitation to Bob using a trusted channel.
 
-    Meanwhile, Alice adds Bob to the signature chain as a new member, with appropriate roles (if
-    any) and any corresponding lockboxes. 
+  Meanwhile, Alice adds Bob to the signature chain as a new member, with appropriate roles (if
+  any) and any corresponding lockboxes. 
 
-    Bob can't authenticate directly as that member, since it has random temporary keys created by
-    Alice. Instead, Bob generates a proof of invitation, and when they try to connect to Alice or
-    Charlie they present that proof instead of authenticating.
+  Bob can't authenticate directly as that member, since it has random temporary keys created by
+  Alice. Instead, Bob generates a proof of invitation, and when they try to connect to Alice or
+  Charlie they present that proof instead of authenticating.
 
-    Once Alice or Charlie verifies Bob's proof, they send him the team chain. Bob uses that to
-    instantiate the team, then he updates the team with his real public keys and adds his current
-    device information. 
-
-  Inviting an existing member's device: 
-
-    On his laptop, Bob generates an invitation using a secret seed. He gets that seed to his phone
-    using a QR code or by typing it in. 
-
-    On his phone, Bob connects to his laptop (or to Alice or Charlie). Bob's phone presents its
-    proof of invitation. 
-
-    Once Bob's laptop or Alice or Charlie verifies Bob's phone's proof, they send it the team chain.
-    Using the chain, the phone instantiates the team, then adds itself as a device.
-
-    *Note:* A member can only invite their own devices. A non-admin member can only remove their own
-    device; an admin member can remove a device for anyone.
-  
+  Once Alice or Charlie verifies Bob's proof, they send him the team chain. Bob uses that to
+  instantiate the team, then he updates the team with his real public keys and adds his current
+  device information. 
   */
-
-  //
-
   public inviteMember({
-    // use their seed if provided, otherwise generate a random one
     seed = invitations.randomSeed(),
     expiration,
     maxUses,
@@ -410,6 +389,22 @@ export class Team extends EventEmitter {
     return { id, seed }
   }
 
+  /**
+   *  To invite an existing member's device:
+   *
+   *  On his laptop, Bob generates an invitation using a secret seed. He gets that seed to his phone
+   *  using a QR code or by typing it in.
+   *
+   *  On his phone, Bob connects to his laptop (or to Alice or Charlie). Bob's phone presents its
+   *  proof of invitation.
+   *
+   *  Once an existing device (Bob's laptop or Alice or Charlie) verifies Bob's phone's proof, they
+   *  send it the team chain. Using the chain, the phone instantiates the team, then adds itself as
+   *  a device.
+   *
+   *  Note: A member can only invite their own devices. A non-admin member can only remove their own
+   *  device; an admin member can remove a device for anyone.
+   */
   public inviteDevice({
     seed = invitations.randomSeed(),
     expiration = Date.now() + 30 * 60 * 1000, // 30 minutes
@@ -420,10 +415,10 @@ export class Team extends EventEmitter {
     /** Time when the invitation expires. Defaults to 30 minutes from now. */
     expiration?: UnixTimestamp
   } = {}): InviteResult {
-    // normalize the seed (all lower case, strip spaces & punctuation)
     seed = normalize(seed)
 
     // generate invitation
+
     const userName = this.userName
 
     const maxUses = 1 // can't invite multiple devices with the same invitation
@@ -556,8 +551,7 @@ export class Team extends EventEmitter {
     return this.context.user
   }
 
-  /**************** CRYPTO
-   */
+  /**************** CRYPTO */
 
   /**
    * Symmetrically encrypt a payload for the given scope using keys available to the current user.
