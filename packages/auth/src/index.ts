@@ -22,3 +22,4 @@ export * from './role/types'
 export * from './team/types'
 
 export { symmetric, asymmetric, signatures } from '@herbcaudill/crypto'
+export { isMergeLink, isRootLink, LinkBody } from 'crdx'

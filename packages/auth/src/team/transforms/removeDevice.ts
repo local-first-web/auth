@@ -1,9 +1,9 @@
-﻿import { Reducer } from '@/team/reducers/index'
+﻿import { Transform } from '@/team/types'
 import { KeyType } from 'crdx'
 import { getDeviceId } from '@/device'
 
 export const removeDevice =
-  (userName: string, deviceName: string): Reducer =>
+  (userName: string, deviceName: string): Transform =>
   state => {
     const deviceId = getDeviceId({ deviceName, userName })
     return {

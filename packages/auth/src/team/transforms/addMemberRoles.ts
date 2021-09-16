@@ -1,6 +1,6 @@
-﻿import { Reducer } from '@/team/reducers/index'
+﻿import { Transform } from '@/team/types'
 
-export const addMemberRoles = (userName: string, roles: string[] = []): Reducer[] =>
+export const addMemberRoles = (userName: string, roles: string[] = []): Transform[] =>
   roles.map(roleName => state => ({
     ...state,
     members: state.members.map(member => ({

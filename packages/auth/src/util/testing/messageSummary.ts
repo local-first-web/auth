@@ -8,12 +8,16 @@ import { truncateHashes } from '../truncateHashes'
 //   })
 // }
 
-export const messageSummary = (m: SyncPayload<any, any>) => {
-  const { head, encodedFilter, links, need } = m
-  const body = { head } as any
-  if (encodedFilter?.length) body.encodedFilter = encodedFilter.length
-  if (links) body.links = Object.keys(links).join(', ')
-  if (need) body.need = need.join(', ')
+export const syncMessageSummary = (m: SyncPayload<any, any> | undefined) => {
+  if (m === undefined) {
+    return 'DONE'
+  } else {
+    const { head, encodedFilter, links, need } = m
+    const body = { head } as any
+    if (encodedFilter?.length) body.encodedFilter = encodedFilter.length
+    if (links) body.links = Object.keys(links).join(', ')
+    if (need) body.need = need.join(', ')
 
-  return truncateHashes(body)
+    return truncateHashes(JSON.stringify(body))
+  }
 }

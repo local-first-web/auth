@@ -1,6 +1,9 @@
-import { Client, Context, LocalUserContext } from '@/context'
-import { DeviceWithSecrets, PublicDevice } from '@/device'
+import { Client, LocalUserContext } from '@/context'
+import { PublicDevice } from '@/device'
 import { Invitation, InvitationState } from '@/invitation/types'
+import { Lockbox } from '@/lockbox'
+import { PermissionsMap, Role } from '@/role'
+import { Base58, Payload, ValidationResult } from '@/util'
 import {
   Action,
   ActionLink,
@@ -13,11 +16,7 @@ import {
   ROOT,
   Sequence,
   SignatureChain,
-  UserWithSecrets,
 } from 'crdx'
-import { Lockbox } from '@/lockbox'
-import { PermissionsMap, Role } from '@/role'
-import { Base58, Payload, ValidationResult } from '@/util'
 
 export interface Member {
   userName: string
@@ -221,7 +220,7 @@ export type ActionFilterFactory = (branches: TwoBranches, chain: TeamSignatureCh
 
 export interface TeamState {
   teamName: string
-  rootContext?: MemberContext
+  rootContext?: TeamContext
   members: Member[]
   roles: Role[]
   lockboxes: Lockbox[]
@@ -264,3 +263,5 @@ export interface SignedEnvelope {
   signature: Base58
   author: KeyMetadata
 }
+
+export type Transform = (state: TeamState) => TeamState

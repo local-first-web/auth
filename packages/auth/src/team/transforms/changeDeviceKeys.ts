@@ -1,9 +1,9 @@
 ﻿import { parseDeviceId } from '@/device'
 import { Keyset } from 'crdx'
-import { Reducer } from '@/team/reducers/index'
+import { Transform } from '@/team/types'
 
 export const changeDeviceKeys =
-  (keys: Keyset): Reducer =>
+  (keys: Keyset): Transform =>
   state => {
     const { userName, deviceName } = parseDeviceId(keys.name)
     return {

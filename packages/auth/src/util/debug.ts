@@ -19,6 +19,6 @@ const substituteTokens = (s: string) => {
 export function debug(prefix: string) {
   const debug = originalDebug(prefix)
   debug.log = (s: string, ...args: any[]) =>
-    console.log(substituteTokens(s), ...args.map(truncateHashes))
+    originalDebug('lf:auth')(substituteTokens(s), ...args.map(truncateHashes))
   return debug
 }

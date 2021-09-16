@@ -1,8 +1,8 @@
 import { arrayToMap } from '@/util/arrayToMap'
-import { messageSummary } from '@/util/testing/messageSummary'
+import { syncMessageSummary } from '@/util/testing/messageSummary'
 import { unique } from '@/util/unique'
+import { debug } from '@/util/debug'
 import { Action, getHead, getPredecessorHashes, isPredecessor, SignatureChain } from 'crdx'
-import debug from 'debug'
 import { TruncatedHashFilter } from './TruncatedHashFilter'
 import { SyncPayload, SyncState } from './types'
 
@@ -77,6 +77,5 @@ export const generateMessage = <A extends Action, C>(
     state.weHaveSent = unique([...state.weHaveSent, ...sendingNow])
   }
 
-  log('generateMessage', message ? messageSummary(message) : 'DONE')
   return [state, message]
 }

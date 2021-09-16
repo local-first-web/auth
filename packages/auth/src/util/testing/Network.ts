@@ -29,7 +29,7 @@ export class Network {
   }
 
   // Enqueues one message to be sent from fromPeer to toPeer
-  sendMessage(from: string, to: string, body: SyncPayload<TeamAction>) {
+  sendMessage(from: string, to: string, body: SyncPayload<any, any>) {
     // log('network: sending %o', { from, to, body })
     this.queue.push({ from, to, body })
   }
@@ -96,7 +96,7 @@ class Peer {
   }
 
   // Called by Network when we receive a message from another peer
-  receiveMessage(sender: string, message: SyncPayload<TeamAction>) {
+  receiveMessage(sender: string, message: SyncPayload<any, any>) {
     const [chain, syncState] = receiveMessage(this.team.chain, this.syncStates[sender], message)
     this.team = this.team.merge(chain)
     this.syncStates[sender] = syncState
@@ -133,7 +133,7 @@ export interface UserStuffWithPeer extends UserStuff {
 export type NetworkMessage = {
   to: string
   from: string
-  body: SyncPayload<TeamAction>
+  body: SyncPayload<any, any>
 }
 
 export type MessageMutator = (msg: NetworkMessage) => NetworkMessage

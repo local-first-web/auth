@@ -243,7 +243,7 @@ describe('Team', () => {
 
         // 👍 The proof was good, so the laptop sends the phone the team's signature chain
         const savedTeam = alice.team.save()
-        const phoneTeam = teams.load(savedTeam, { device: alice.phone })
+        const phoneTeam = teams.load(savedTeam, alice.localContext)
 
         // 📱 Alice's phone joins the team
         phoneTeam.joinAsDevice('alice')
@@ -269,7 +269,7 @@ describe('Team', () => {
 
         // 👨🏻‍🦲 Bob syncs up with Alice
         const savedTeam = alice.team.save()
-        bob.team = teams.load(savedTeam, { user: bob.user, device: bob.device })
+        bob.team = teams.load(savedTeam, bob.localContext)
 
         // 📱 Alice's phone connects with 👨🏻‍🦲 Bob and she presents the proof
         const tryToAdmitPhone = () =>

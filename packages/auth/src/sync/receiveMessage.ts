@@ -1,7 +1,6 @@
-import { assert, Hash, truncateHashes } from '@/util'
-import { Action, getMissingLinks, merge, SignatureChain } from 'crdx'
-import debug from 'debug'
+import { assert, debug, Hash, truncateHashes } from '@/util'
 import { unique } from '@/util/unique'
+import { Action, getMissingLinks, merge, SignatureChain } from 'crdx'
 import { TruncatedHashFilter } from './TruncatedHashFilter'
 import { SyncPayload, SyncState } from './types'
 
@@ -69,9 +68,5 @@ export const receiveMessage = <A extends Action, C>(
   state.ourHead = chain.head
   state.theirHead = theirHead
 
-  log(
-    'receiveMessage',
-    truncateHashes(JSON.stringify({ chain: { head: chain.head, links: Object.keys(chain.links) } }))
-  )
   return [chain, state]
 }

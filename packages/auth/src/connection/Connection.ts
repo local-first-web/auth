@@ -1,4 +1,5 @@
-﻿import { deriveSharedKey } from '@/connection/deriveSharedKey'
+﻿import { syncMessageSummary as syncMessageSummary } from '@/util/testing/messageSummary'
+import { deriveSharedKey } from '@/connection/deriveSharedKey'
 import * as identity from '@/connection/identity'
 import {
   AcceptInvitationMessage,
@@ -27,11 +28,12 @@ import { getDeviceId, parseDeviceId } from '@/device'
 import * as invitations from '@/invitation'
 import { KeyType, randomKey, redactKeys } from 'crdx'
 import * as sync from '@/sync'
-import { Team } from '@/team'
+import { Team, TeamSignatureChain } from '@/team'
 import { assert, debug, EventEmitter, truncateHashes } from '@/util'
 import { asymmetric, Payload, symmetric } from '@herbcaudill/crypto'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
 import { protocolMachine } from './protocolMachine'
+import { SyncState } from '@/sync'
 
 const { DEVICE } = KeyType
 
@@ -169,6 +171,26 @@ export class Connection extends EventEmitter {
 
     const encryptedMessage = symmetric.encrypt(message, this.context.sessionKey)
     this.sendMessage({ type: 'ENCRYPTED_MESSAGE', payload: encryptedMessage })
+  }
+
+  public sendSyncMessage(
+    chain: TeamSignatureChain,
+    prevSyncState: SyncState = sync.initSyncState()
+  ) {
+    const [syncState, syncMessage] = sync.generateMessage(chain, prevSyncState)
+
+    // undefined message means we're already synced
+    if (syncMessage) {
+      this.log('*** SENDING SYNC MESSAGE')
+      this.sendMessage({ type: 'SYNC', payload: syncMessage })
+    } else {
+      this.log('*** SYNCED')
+    }
+
+    return {
+      synced: syncMessage === undefined,
+      syncState,
+    }
   }
 
   /** Passes an incoming message from the peer on to this protocol machine, guaranteeing that
@@ -446,34 +468,39 @@ export class Connection extends EventEmitter {
       })
     },
 
-    sendSyncMessage: context => {
+    sendSyncMessage: assign(context => {
       assert(context.team)
-      const syncState = context.syncState ?? sync.initSyncState()
-
-      const [newSyncState, syncMessage] = sync.generateMessage(context.team.chain, syncState)
-      context.syncState = newSyncState
-      if (syncMessage !== undefined) {
-        this.sendMessage({
-          type: 'SYNC',
-          payload: syncMessage,
-        })
-      }
-    },
-
-    receiveSyncMessage: assign((context, event) => {
-      assert(context.team)
-
-      const chain = context.team.chain
-      const oldSyncState = context.syncState ?? sync.initSyncState()
-      const syncMessage = (event as SyncMessage).payload
-
-      const [newChain, syncState] = sync.receiveMessage(chain, oldSyncState, syncMessage)
-      const team = context.team.merge(newChain)
-
+      const { syncState, synced } = this.sendSyncMessage(context.team.chain, context.syncState)
       return {
         ...context,
         syncState,
+        synced,
+      }
+    }),
+
+    receiveSyncMessage: assign((context, event) => {
+      assert(context.team)
+      const syncMessage = (event as SyncMessage).payload
+
+      const prevSyncState = context.syncState ?? sync.initSyncState()
+
+      const [newChain, tempSyncState] = sync.receiveMessage(
+        context.team.chain,
+        prevSyncState,
+        syncMessage
+      )
+      const team = context.team.merge(newChain)
+
+      const { syncState: newSyncState, synced } = this.sendSyncMessage(team.chain, tempSyncState)
+
+      const summary = JSON.stringify({ head: newChain.head, links: Object.keys(newChain.links) })
+      this.log(`*** RECEIVED SYNC MESSAGE; synced: ${synced}; new chain ${summary}`)
+
+      return {
+        ...context,
         team,
+        syncState: newSyncState,
+        synced,
       }
     }),
 
@@ -649,6 +676,15 @@ export class Connection extends EventEmitter {
     headsAreDifferent: (...args) => {
       return !this.guards.headsAreEqual(...args)
     },
+
+    synced: (context, ...args) => {
+      this.log('synced ? ', context.synced === true)
+      this.log('heads equal? ', this.guards.headsAreEqual(context, ...args))
+
+      return context.synced === true || this.guards.headsAreEqual(context, ...args)
+    },
+
+    notSynced: (...args) => !this.guards.synced(...args),
   }
 
   // helpers
@@ -674,8 +710,10 @@ export class Connection extends EventEmitter {
 // for debugging
 
 const messageSummary = (message: ConnectionMessage) =>
-  // @ts-ignore
-  `${message.type} ${message.payload?.head?.slice(0, 5) || message.payload?.message || ''}`
+  message.type === 'SYNC'
+    ? `SYNC ${syncMessageSummary(message.payload)}`
+    : // @ts-ignore
+      `${message.type} ${message.payload?.head?.slice(0, 5) || message.payload?.message || ''}`
 
 const isString = (state: any) => typeof state === 'string'
 

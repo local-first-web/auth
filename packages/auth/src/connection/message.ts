@@ -1,9 +1,9 @@
 ﻿import { Challenge } from '@/connection/types'
-import { KeyScope, TeamAction, TeamLink } from '@/team'
 import { ProofOfInvitation } from '@/invitation'
-import { Keyset } from 'crdx'
-import { Base58, Hash } from '@/util'
 import { SyncPayload } from '@/sync/types'
+import { TeamAction, TeamContext } from '@/team'
+import { Base58, Hash } from '@/util'
+import { KeyScope, Keyset } from 'crdx'
 
 export type ReadyMessage = {
   type: 'READY'
@@ -90,7 +90,7 @@ export type RejectIdentityMessage = {
 
 export type SyncMessage = {
   type: 'SYNC'
-  payload: SyncPayload<TeamAction>
+  payload: SyncPayload<TeamAction, TeamContext>
 }
 
 // triggered locally when we detect that team has changed

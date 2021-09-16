@@ -14,8 +14,9 @@ import {
   TeamSignatureChain,
   TwoBranches,
 } from '@/team/types'
+import { actionFingerprint } from '@/util'
 import { arraysAreEqual } from '@/util/arraysAreEqual'
-import { ActionLink, baseResolver, isRootLink, LinkBody, Resolver } from 'crdx'
+import { ActionLink, baseResolver, isRootLink, LinkBody, NonMergeLink, Resolver } from 'crdx'
 import { isAdminOnlyAction } from './isAdminOnlyAction'
 
 /**
@@ -23,18 +24,36 @@ import { isAdminOnlyAction } from './isAdminOnlyAction'
  * ordered sequence. It mostly applies "strong-remove" rules to resolve tricky situations that can
  * arise with concurrency: mutual removals, duplicate actions, etc.
  */
-export const membershipResolver: Resolver<TeamAction, TeamContext> = (heads, chain) => {
-  let branches: TwoBranches = baseResolver(heads, chain)
-
-  // Consecutively apply each type of filter to the branches
+export const membershipResolver: Resolver<TeamAction, TeamContext> = (sequences, chain) => {
+  // consecutively apply each type of filter to the branches
   for (const key in filterFactories) {
     const makeFilter = filterFactories[key]
-    const filter = makeFilter(branches, chain)
+    const filter = makeFilter(sequences, chain)
     const applyFilterToBranch = (branch: Branch) => branch.filter(filter)
-    branches = branches.map(applyFilterToBranch) as TwoBranches
+    sequences = sequences.map(applyFilterToBranch) as TwoBranches
   }
 
-  return branches
+  // concatenate the two sequences in an arbitrary but deterministic order
+  const sequence = baseResolver(sequences, chain)
+
+  const duplicates = getDuplicates(sequence)
+  return sequence.filter(linkNotIn(duplicates))
+}
+
+// TODO: an add->remove->add sequence on one side will result in add->remove, because the two adds are treated as duplicates
+
+const getDuplicates = (b: Branch): Branch => {
+  const seen = {} as Record<string, boolean>
+  const duplicates = b.filter(link => {
+    const fingerprint = actionFingerprint(link) // string summarizing the link, e.g. `ADD:bob`
+    if (seen[fingerprint]) {
+      return true
+    } else {
+      seen[fingerprint] = true
+      return false
+    }
+  })
+  return duplicates
 }
 
 const filterFactories: Record<string, ActionFilterFactory> = {
@@ -143,6 +162,11 @@ const addedNotIn =
   }
 
 const noFilter: ActionFilter = (_: any) => true
+
+const linkNotIn =
+  (excludeList: Branch) =>
+  (link: NonMergeLink<TeamAction, TeamContext>): boolean =>
+    !excludeList.includes(link)
 
 // type guards
 

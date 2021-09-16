@@ -9,20 +9,20 @@ import { TestChannel } from './TestChannel'
 export const tryToConnect = async (a: UserStuff, b: UserStuff) => {
   const join = joinTestChannel(new TestChannel())
 
-  a.connection[b.userName] = join(a.context).start()
-  b.connection[a.userName] = join(b.context).start()
+  a.connection[b.userName] = join(a.connectionContext).start()
+  b.connection[a.userName] = join(b.connectionContext).start()
 }
 
 /** Connects the two members and waits for them to be connected */
 export const connect = async (a: UserStuff, b: UserStuff) => {
   tryToConnect(a, b)
   await connection(a, b)
-  await updated(a, b)
+  // await updated(a, b)
 }
 
 /** Connects a (a member) with b (invited using the given seed). */
 export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: string) => {
-  b.context = {
+  b.connectionContext = {
     user: b.user,
     device: b.device,
     invitationSeed: seed,
@@ -43,7 +43,7 @@ export const connectPhoneWithInvitation = async (user: UserStuff, seed: string) 
 
   const join = joinTestChannel(new TestChannel())
 
-  const laptop = join(user.context).start()
+  const laptop = join(user.connectionContext).start()
   const phone = join(phoneContext).start()
 
   await all([laptop, phone], 'connected').then(() => {

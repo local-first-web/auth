@@ -7,7 +7,7 @@
     const obj = {} as any
     for (const prop in arg) {
       const value = arg[prop]
-      obj[prop] = truncateHashes(value)
+      obj[truncateHashes(prop)] = truncateHashes(value)
     }
     return obj
   } else {

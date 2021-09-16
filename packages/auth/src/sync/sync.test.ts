@@ -7,7 +7,7 @@ import {
 } from '@/util/testing'
 import { SignatureChain } from 'crdx'
 
-const getHashes = (chain: SignatureChain<any>) => Object.keys(chain.links)
+const getHashes = (chain: SignatureChain<any, any>) => Object.keys(chain.links)
 
 describe('sync', () => {
   const N = 10 // "many"

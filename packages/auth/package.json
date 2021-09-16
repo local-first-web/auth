@@ -1,6 +1,6 @@
 {
   "name": "@localfirst/auth",
-  "version": "1.0.1",
+  "version": "2.0.1",
   "author": {
     "name": "Herb Caudill",
     "email": "herb@devresults.com"
@@ -29,7 +29,7 @@
   "dependencies": {
     "@herbcaudill/crypto": "1",
     "buffer": "6",
-    "crdx": "^0.1.5",
+    "crdx": "0",
     "debug": "4",
     "events": "3",
     "fast-memoize": "2",

@@ -1,7 +1,7 @@
-﻿import { Reducer } from '@/team/reducers/index'
+﻿import { Transform } from '@/team/types'
 
 export const removeMember =
-  (userName: string): Reducer =>
+  (userName: string): Transform =>
   state => ({
     ...state,
 

@@ -1,8 +1,8 @@
-﻿import { Reducer } from '@/team/reducers/index'
+﻿import { Transform } from '@/team/types'
 import { Member } from '@/team'
 
 export const addMember =
-  (newMember: Member): Reducer =>
+  (newMember: Member): Transform =>
   state => ({
     ...state,
 

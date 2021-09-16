@@ -34,6 +34,7 @@ import {
   Member,
   SignedEnvelope,
   TeamAction,
+  TeamContext,
   TeamOptions,
   TeamSignatureChain,
   TeamState,

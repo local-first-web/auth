@@ -1,7 +1,7 @@
 ﻿import { PublicDevice } from '@/device'
 import { ADMIN } from '@/role'
-import { clone } from '@/util'
-import { ROOT } from 'crdx'
+import { clone, composeTransforms } from '@/util'
+import { Reducer, ROOT } from 'crdx'
 import {
   addDevice,
   addMember,
@@ -10,9 +10,7 @@ import {
   changeDeviceKeys,
   changeMemberKeys,
   collectLockboxes,
-  compose,
   postInvitation,
-  Reducer,
   removeDevice,
   removeMember,
   removeMemberRole,
@@ -20,12 +18,12 @@ import {
   revokeInvitation,
   setTeamName,
   useInvitation,
-} from './reducers'
-import { Member, TeamAction, TeamActionLink, TeamState } from './types'
+} from './transforms'
+import { Member, TeamAction, TeamActionLink, TeamContext, TeamState, Transform } from './types'
 import { validate } from './validate'
 
 export const setHead =
-  (link: TeamActionLink): Reducer =>
+  (link: TeamActionLink): Transform =>
   state => {
     return { ...state, __HEAD: link.hash }
   }
@@ -43,7 +41,7 @@ export const setHead =
  * @param state The team state as of the previous link in the signature chain.
  * @param link The current link being processed.
  */
-export const reducer = (state: TeamState, link: TeamActionLink) => {
+export const reducer: Reducer<TeamState, TeamAction, TeamContext> = ((state, link) => {
   state = clone(state)
 
   // make sure this link can be applied to the previous state & doesn't put us in an invalid state
@@ -54,7 +52,7 @@ export const reducer = (state: TeamState, link: TeamActionLink) => {
   const action = link.body as TeamAction
 
   // get all transforms and compose them into a single function
-  const applyTransforms = compose([
+  const applyTransforms = composeTransforms([
     setHead(link),
     collectLockboxes(action.payload.lockboxes), // any payload can include lockboxes
     ...getTransforms(action), // get the specific transforms indicated by this action
@@ -62,14 +60,14 @@ export const reducer = (state: TeamState, link: TeamActionLink) => {
   const newState = applyTransforms(state)
 
   return newState
-}
+}) as Reducer<TeamState, TeamAction, TeamContext>
 
 /**
  * Each action type generates one or more transforms (functions that take the old state and return a
  * new state). This returns an array of transforms that are then applied in order.
  * @param action The team action (type + payload) being processed
  */
-const getTransforms = (action: TeamAction): Reducer[] => {
+const getTransforms = (action: TeamAction): Transform[] => {
   switch (action.type) {
     case ROOT:
       const { name, rootMember, rootDevice } = action.payload

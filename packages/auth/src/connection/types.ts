@@ -79,6 +79,7 @@ export interface ConnectionContext
   device: DeviceWithSecrets
 
   syncState?: SyncState
+  synced?: boolean
 }
 
 export type StateMachineAction =

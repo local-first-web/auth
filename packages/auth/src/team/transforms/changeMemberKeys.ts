@@ -1,8 +1,8 @@
 ﻿import { Keyset } from 'crdx'
-import { Reducer } from '@/team/reducers/index'
+import { Transform } from '@/team/types'
 
 export const changeMemberKeys =
-  (keys: Keyset): Reducer =>
+  (keys: Keyset): Transform =>
   state => {
     return {
       ...state,

@@ -1,8 +1,8 @@
-﻿import { Reducer } from '@/team/reducers/index'
+﻿import { Transform } from '@/team/types'
 import { KeyType } from 'crdx'
 
 export const removeRole =
-  (roleName: string): Reducer =>
+  (roleName: string): Transform =>
   state => ({
     ...state,
 

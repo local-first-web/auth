@@ -116,7 +116,7 @@ export const setup = (
       localContext,
       chainContext,
       phone,
-      context,
+      connectionContext: context,
       connection,
       getState,
     }
@@ -145,7 +145,7 @@ export interface UserStuff {
   phone: DeviceWithSecrets
   localContext: LocalUserContext
   chainContext: TeamContext
-  context: InitialContext
+  connectionContext: InitialContext
   connection: Record<string, Connection>
   getState: (peer: string) => any
 }
