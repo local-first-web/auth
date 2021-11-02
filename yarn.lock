@@ -1252,6 +1252,18 @@
   dependencies:
     purgecss "^4.0.3"
 
+"@herbcaudill/crypto@0":
+  version "0.1.14"
+  resolved "https://registry.yarnpkg.com/@herbcaudill/crypto/-/crypto-0.1.14.tgz#5d70c25bd22443c458d38fab5cf7d837cd3888b2"
+  integrity sha512-6S4OEO4iB54jpAvPz5BU1qUpK5XXLAJxU0NNkSuZLmdIVHkaZTPAcJsdEnNC40tPQ2xjdJt57palGfsNqXAtMA==
+  dependencies:
+    "@stablelib/base64" "1"
+    "@stablelib/utf8" "1"
+    json-stable-stringify "1"
+    msgpack-lite "0"
+    scrypt-js "^3.0.1"
+    tweetnacl "1"
+
 "@herbcaudill/crypto@1":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@herbcaudill/crypto/-/crypto-1.0.1.tgz#4c7436f77402de87c7feb8985b0bc4a2c7ce02ad"
@@ -2324,6 +2336,18 @@
     npmlog "^4.1.2"
     write-file-atomic "^2.3.0"
 
+"@localfirst/auth@^1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@localfirst/auth/-/auth-1.0.1.tgz#fd81ffd9f119288946c86696de466742947270bd"
+  integrity sha512-1vqyFZAY+d/TNP+BSb14XTwllgWWJfahFtt7IvrkBzP4QiY2Dru7EvrD2OvS+CiA559B/Yq1N3kXCTyFnQym/g==
+  dependencies:
+    "@herbcaudill/crypto" "0"
+    debug "4"
+    fast-memoize "2"
+    msgpack-lite "0"
+    ramda "0"
+    xstate "4"
+
 "@localfirst/relay-client@3":
   version "3.5.0"
   resolved "https://registry.yarnpkg.com/@localfirst/relay-client/-/relay-client-3.5.0.tgz#5d266956753cf76cd307baccb633d464b2102550"
@@ -2594,6 +2618,11 @@
   integrity sha512-MZPUxrmFubI36XS1DI3qmI0YdN1gks62JtFZvxR67ljjSNCeK6U08Zx4msEWOXuofgqUt6zPHSi1H9fbjR/NRA==
   dependencies:
     "@sinonjs/commons" "^1.7.0"
+
+"@stablelib/base64@1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@stablelib/base64/-/base64-1.0.1.tgz#bdfc1c6d3a62d7a3b7bbc65b6cce1bb4561641be"
+  integrity sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ==
 
 "@stablelib/utf8@1":
   version "1.0.1"
@@ -4674,7 +4703,7 @@ cosmiconfig@^7.0.0:
     path-type "^4.0.0"
     yaml "^1.10.0"
 
-crdx@^0.1.5:
+crdx@0:
   version "0.1.5"
   resolved "https://registry.yarnpkg.com/crdx/-/crdx-0.1.5.tgz#0667771df6249e531d94ef9824376d4c219a05bb"
   integrity sha512-Tzq1vlKotkBTYwmtW8MwXLdRaoPBwcwzbchODClkv0tud/0nxb3rJOq2c3xbEHsQeTgdHp6ELuz3+nqntJYAAQ==
