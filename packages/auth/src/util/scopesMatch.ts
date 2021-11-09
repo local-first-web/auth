@@ -1,4 +1,4 @@
-import { assert } from '@/util/assert'
+import { assert } from '../util/assert'
 import { getScope } from '@/util/getScope'
 import { KeyScope } from 'crdx'
 
