@@ -2,7 +2,7 @@ import { Button, Label, Select } from '@windmill/react-ui'
 import ClipboardJS from 'clipboard'
 import React, { MutableRefObject, useEffect, useRef, useState } from 'react'
 import { useTeam } from '../hooks/useTeam'
-import { assert } from '@/util/assert'
+import { assert } from '../util/assert'
 
 /*
 TODO implement different levels of invitation security
