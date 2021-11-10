@@ -1,11 +1,10 @@
 import { getDeviceId } from '@/device'
-import { TeamAction, TeamNonMergeLink } from '@/team/types'
-import { isRootLink } from 'crdx'
+import { TeamAction, TeamLink } from '@/team/types'
 
 /** Identifies a unique action for the purpose of detecting duplicates;
  * e.g. ADD_MEMBER:bob
  */
-export const actionFingerprint = (link: TeamNonMergeLink) => {
+export const actionFingerprint = (link: TeamLink) => {
   const fingerprintPayload = (action: TeamAction) => {
     switch (action.type) {
       case 'ADD_MEMBER':
@@ -38,6 +37,6 @@ export const actionFingerprint = (link: TeamNonMergeLink) => {
     }
   }
 
-  if (isRootLink(link)) return 'ROOT'
+  if (link.body.type === 'ROOT') return 'ROOT'
   return `${link.body.type}:${fingerprintPayload(link.body)}`
 }

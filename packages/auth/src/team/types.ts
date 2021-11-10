@@ -6,13 +6,11 @@ import { PermissionsMap, Role } from '@/role'
 import { Base58, Payload, ValidationResult } from '@/util'
 import {
   Action,
-  ActionLink,
   KeyMetadata,
   Keyset,
   Link,
   LinkBody,
   LinkMap,
-  NonMergeLink,
   ROOT,
   Sequence,
   SignatureChain,
@@ -78,7 +76,7 @@ interface BasePayload {
   lockboxes?: Lockbox[]
 }
 
-export interface RootAction extends Action {
+export interface RootAction {
   type: typeof ROOT
   payload: BasePayload & {
     name: string
@@ -87,7 +85,7 @@ export interface RootAction extends Action {
   }
 }
 
-export interface AddMemberAction extends Action {
+export interface AddMemberAction {
   type: 'ADD_MEMBER'
   payload: BasePayload & {
     member: Member
@@ -95,26 +93,26 @@ export interface AddMemberAction extends Action {
   }
 }
 
-export interface RemoveMemberAction extends Action {
+export interface RemoveMemberAction {
   type: 'REMOVE_MEMBER'
   payload: BasePayload & {
     userName: string
   }
 }
 
-export interface AddRoleAction extends Action {
+export interface AddRoleAction {
   type: 'ADD_ROLE'
   payload: BasePayload & Role
 }
 
-export interface RemoveRoleAction extends Action {
+export interface RemoveRoleAction {
   type: 'REMOVE_ROLE'
   payload: BasePayload & {
     roleName: string
   }
 }
 
-export interface AddMemberRoleAction extends Action {
+export interface AddMemberRoleAction {
   type: 'ADD_MEMBER_ROLE'
   payload: BasePayload & {
     userName: string
@@ -123,7 +121,7 @@ export interface AddMemberRoleAction extends Action {
   }
 }
 
-export interface RemoveMemberRoleAction extends Action {
+export interface RemoveMemberRoleAction {
   type: 'REMOVE_MEMBER_ROLE'
   payload: BasePayload & {
     userName: string
@@ -131,14 +129,14 @@ export interface RemoveMemberRoleAction extends Action {
   }
 }
 
-export interface AddDeviceAction extends Action {
+export interface AddDeviceAction {
   type: 'ADD_DEVICE'
   payload: BasePayload & {
     device: Device
   }
 }
 
-export interface RemoveDeviceAction extends Action {
+export interface RemoveDeviceAction {
   type: 'REMOVE_DEVICE'
   payload: BasePayload & {
     userName: string
@@ -146,28 +144,28 @@ export interface RemoveDeviceAction extends Action {
   }
 }
 
-export interface InviteMemberAction extends Action {
+export interface InviteMemberAction {
   type: 'INVITE_MEMBER'
   payload: BasePayload & {
     invitation: Invitation
   }
 }
 
-export interface InviteDeviceAction extends Action {
+export interface InviteDeviceAction {
   type: 'INVITE_DEVICE'
   payload: BasePayload & {
     invitation: Invitation
   }
 }
 
-export interface RevokeInvitationAction extends Action {
+export interface RevokeInvitationAction {
   type: 'REVOKE_INVITATION'
   payload: BasePayload & {
     id: string // invitation ID
   }
 }
 
-export interface AdmitMemberAction extends Action {
+export interface AdmitMemberAction {
   type: 'ADMIT_MEMBER'
   payload: BasePayload & {
     id: string // invitation ID
@@ -175,7 +173,7 @@ export interface AdmitMemberAction extends Action {
   }
 }
 
-export interface AdmitDeviceAction extends Action {
+export interface AdmitDeviceAction {
   type: 'ADMIT_DEVICE'
   payload: BasePayload & {
     id: string // invitation ID
@@ -184,14 +182,14 @@ export interface AdmitDeviceAction extends Action {
   }
 }
 
-export interface ChangeMemberKeysAction extends Action {
+export interface ChangeMemberKeysAction {
   type: 'CHANGE_MEMBER_KEYS'
   payload: BasePayload & {
     keys: Keyset
   }
 }
 
-export interface ChangeDeviceKeysAction extends Action {
+export interface ChangeDeviceKeysAction {
   type: 'CHANGE_DEVICE_KEYS'
   payload: BasePayload & {
     keys: Keyset
@@ -223,13 +221,11 @@ export type TeamContext = {
 
 export type TeamLinkBody = LinkBody<TeamAction, TeamContext>
 export type TeamLink = Link<TeamAction, TeamContext>
-export type TeamActionLink = ActionLink<TeamAction, TeamContext>
-export type TeamNonMergeLink = NonMergeLink<TeamAction, TeamContext>
 export type TeamLinkMap = LinkMap<TeamAction, TeamContext>
 export type TeamSignatureChain = SignatureChain<TeamAction, TeamContext>
 export type Branch = Sequence<TeamAction, TeamContext>
 export type TwoBranches = [Branch, Branch]
-export type ActionFilter = (link: NonMergeLink<TeamAction, TeamContext>) => boolean
+export type ActionFilter = (link: Link<TeamAction, TeamContext>) => boolean
 export type ActionFilterFactory = (branches: TwoBranches, chain: TeamSignatureChain) => ActionFilter
 
 // ********* TEAM STATE
@@ -259,13 +255,13 @@ export interface InvitationMap {
 
 // ********* VALIDATION
 
-export type TeamStateValidator = (prevState: TeamState, link: TeamActionLink) => ValidationResult
+export type TeamStateValidator = (prevState: TeamState, link: TeamLink) => ValidationResult
 
 export type TeamStateValidatorSet = {
   [key: string]: TeamStateValidator
 }
 
-export type ValidationArgs = [TeamState, TeamActionLink]
+export type ValidationArgs = [TeamState, TeamLink]
 
 // ********* CRYPTO
 

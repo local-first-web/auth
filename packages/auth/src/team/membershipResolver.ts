@@ -10,37 +10,56 @@ import {
   RemoveMemberRoleAction,
   TeamAction,
   TeamContext,
-  TeamNonMergeLink,
+  TeamLink,
   TeamSignatureChain,
   TwoBranches,
 } from '@/team/types'
-import { actionFingerprint } from '@/util'
+import { actionFingerprint, Hash } from '@/util'
 import { arraysAreEqual } from '@/util/arraysAreEqual'
-import { ActionLink, baseResolver, isRootLink, LinkBody, NonMergeLink, Resolver } from 'crdx'
+import { byHash, calculateConcurrency, getConcurrentBubbles, Link, LinkBody, Resolver } from 'crdx'
 import { isAdminOnlyAction } from './isAdminOnlyAction'
+
+/*
+
+- To detect e.g. a 3-way mutual removal situation, we need to inspect the entire pool of concurrent
+  actions. 
+- Not sure how we'd implement strong removal in the case of mutual removals, since the reducer won't
+  allow a to remove b after b has removed a. 
+
+
+*/
 
 /**
  * This is a custom resolver, used to flatten a graph of team membership operations into a strictly
  * ordered sequence. It mostly applies "strong-remove" rules to resolve tricky situations that can
  * arise with concurrency: mutual removals, duplicate actions, etc.
  */
-export const membershipResolver: Resolver<TeamAction, TeamContext> = (sequences, chain) => {
-  // consecutively apply each type of filter to the branches
-  for (const key in filterFactories) {
-    const makeFilter = filterFactories[key]
-    const filter = makeFilter(sequences, chain)
-    const applyFilterToBranch = (branch: Branch) => branch.filter(filter)
-    sequences = sequences.map(applyFilterToBranch) as TwoBranches
+export const membershipResolver: Resolver<TeamAction, TeamContext> = chain => {
+  // get concurrent bubbles from the chain
+  // run each bubble through the filters
+
+  const pools = getConcurrentBubbles(chain)
+  const invalidLinks: Hash[] = pools.flatMap(links => {
+    // remove duplicates
+
+    // RULE: mutual and circular removals are resolved by seniority
+
+    // RULE: If A is removing C, B can't overcome this by concurrently removing C then adding C back
+    // RULE: If B is removed, anything they do concurrently is invalid
+    // RULE: If B is demoted, any admin-only actions they do concurrently are invalid
+
+    return []
+  })
+
+  return {
+    filter: link => !invalidLinks.includes(link.hash),
   }
-
-  // concatenate the two sequences in an arbitrary but deterministic order
-  const sequence = baseResolver(sequences, chain)
-
-  const duplicates = getDuplicates(sequence)
-  return sequence.filter(linkNotIn(duplicates))
 }
 
 // TODO: an add->remove->add sequence on one side will result in add->remove, because the two adds are treated as duplicates
+
+const isDuplicate = (a: TeamLink, b: TeamLink): boolean =>
+  actionFingerprint(a) === actionFingerprint(b)
 
 const getDuplicates = (b: Branch): Branch => {
   const seen = {} as Record<string, boolean>
@@ -95,9 +114,9 @@ const filterFactories: Record<string, ActionFilterFactory> = {
   // RULE: If B is demoted, any admin-only actions they do concurrently are omitted
   cantDoAdminActionsWhenDemoted: branches => {
     const demotedMembers = getDemotedMembers(branches)
-    return (link: TeamNonMergeLink) => {
+    return (link: TeamLink) => {
       const authorNotDemoted = authorNotIn(demotedMembers)
-      const notAdminOnly = (link: TeamNonMergeLink) => !isAdminOnlyAction(link.body)
+      const notAdminOnly = (link: TeamLink) => !isAdminOnlyAction(link.body)
       return authorNotDemoted(link) || notAdminOnly(link)
     }
   },
@@ -108,15 +127,13 @@ const filterFactories: Record<string, ActionFilterFactory> = {
 const leastSenior = (chain: TeamSignatureChain, userNames: string[]) =>
   userNames.sort(bySeniority(chain)).pop()!
 
-const isRemovalAction = (link: TeamNonMergeLink): boolean => link.body.type === 'REMOVE_MEMBER'
+const isRemovalAction = (link: TeamLink): boolean => link.body.type === 'REMOVE_MEMBER'
 
 const getRemovals = (branches: TwoBranches) =>
   branches.flatMap(branch => branch.filter(isRemovalAction)) as RemoveActionLink[]
 
-const isDemotionAction = (link: TeamNonMergeLink): boolean =>
-  !isRootLink(link) &&
-  link.body.type === 'REMOVE_MEMBER_ROLE' &&
-  link.body.payload.roleName === ADMIN
+const isDemotionAction = (link: TeamLink): boolean =>
+  link.body.type === 'REMOVE_MEMBER_ROLE' && link.body.payload.roleName === ADMIN
 
 const getDemotions = (branches: TwoBranches) =>
   branches.flatMap(branch => branch.filter(isDemotionAction)) as RemoveActionLink[]
@@ -132,18 +149,18 @@ const getDemotedMembers = (branches: TwoBranches) => getDemotions(branches).map(
 
 const getTarget = (link: RemoveActionLink): string => link.body.payload.userName
 
-const getAuthor = (link: TeamNonMergeLink): string => link.signed.userName
+const getAuthor = (link: TeamLink): string => link.signed.userName
 
-const authorIsNot = (author: string) => (link: TeamNonMergeLink) => getAuthor(link) !== author
+const authorIsNot = (author: string) => (link: TeamLink) => getAuthor(link) !== author
 
 const authorNotIn =
   (excludeList: string[]) =>
-  (link: TeamNonMergeLink): boolean =>
+  (link: TeamLink): boolean =>
     !excludeList.includes(getAuthor(link))
 
 const addedNotIn =
   (excludeList: string[]) =>
-  (link: TeamNonMergeLink): boolean => {
+  (link: TeamLink): boolean => {
     const addedUserName = (link: AddActionLink): string => {
       if (link.body.type === 'ADD_MEMBER') {
         const addAction = link.body as LinkBody<AddMemberAction, TeamContext>
@@ -165,13 +182,13 @@ const noFilter: ActionFilter = (_: any) => true
 
 const linkNotIn =
   (excludeList: Branch) =>
-  (link: NonMergeLink<TeamAction, TeamContext>): boolean =>
+  (link: TeamLink): boolean =>
     !excludeList.includes(link)
 
 // type guards
 
-const isAddAction = (link: TeamNonMergeLink): link is AddActionLink =>
+const isAddAction = (link: TeamLink): link is AddActionLink =>
   link.body.type === 'ADD_MEMBER' || link.body.type === 'ADD_MEMBER_ROLE'
 
-type RemoveActionLink = ActionLink<RemoveMemberAction | RemoveMemberRoleAction, TeamContext>
-type AddActionLink = ActionLink<AddMemberAction | AddMemberRoleAction, TeamContext>
+type RemoveActionLink = Link<RemoveMemberAction | RemoveMemberRoleAction, TeamContext>
+type AddActionLink = Link<AddMemberAction | AddMemberRoleAction, TeamContext>

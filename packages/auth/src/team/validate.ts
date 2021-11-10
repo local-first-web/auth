@@ -5,7 +5,7 @@ import { ROOT } from 'crdx'
 import { isAdminOnlyAction } from './isAdminOnlyAction'
 import * as select from './selectors'
 import {
-  TeamActionLink,
+  TeamLink,
   TeamState,
   TeamStateValidator,
   TeamStateValidatorSet,
@@ -131,7 +131,7 @@ const validators: TeamStateValidatorSet = {
   },
 }
 
-const fail = (message: string, prevState: TeamState, link: TeamActionLink) => {
+const fail = (message: string, prevState: TeamState, link: TeamLink) => {
   message = truncateHashes(`${actionFingerprint(link)} ${message}`)
   log(message)
   return {

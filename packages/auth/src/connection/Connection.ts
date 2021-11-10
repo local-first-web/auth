@@ -1,5 +1,4 @@
-﻿import { syncMessageSummary as syncMessageSummary } from '@/util/testing/messageSummary'
-import { deriveSharedKey } from '@/connection/deriveSharedKey'
+﻿import { deriveSharedKey } from '@/connection/deriveSharedKey'
 import * as identity from '@/connection/identity'
 import {
   AcceptInvitationMessage,
@@ -26,14 +25,22 @@ import {
 } from '@/connection/types'
 import { getDeviceId, parseDeviceId } from '@/device'
 import * as invitations from '@/invitation'
-import { KeyType, randomKey, redactKeys } from 'crdx'
-import * as sync from '@/sync'
 import { Team, TeamSignatureChain } from '@/team'
 import { assert, debug, EventEmitter, truncateHashes } from '@/util'
+import { arraysAreEqual } from '@/util/arraysAreEqual'
+import { syncMessageSummary as syncMessageSummary } from '@/util/testing/messageSummary'
 import { asymmetric, Payload, symmetric } from '@herbcaudill/crypto'
+import {
+  generateMessage,
+  initSyncState,
+  KeyType,
+  randomKey,
+  receiveMessage,
+  redactKeys,
+  SyncState,
+} from 'crdx'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
 import { protocolMachine } from './protocolMachine'
-import { SyncState } from '@/sync'
 
 const { DEVICE } = KeyType
 
@@ -173,11 +180,8 @@ export class Connection extends EventEmitter {
     this.sendMessage({ type: 'ENCRYPTED_MESSAGE', payload: encryptedMessage })
   }
 
-  public sendSyncMessage(
-    chain: TeamSignatureChain,
-    prevSyncState: SyncState = sync.initSyncState()
-  ) {
-    const [syncState, syncMessage] = sync.generateMessage(chain, prevSyncState)
+  public sendSyncMessage(chain: TeamSignatureChain, prevSyncState: SyncState = initSyncState()) {
+    const [syncState, syncMessage] = generateMessage(chain, prevSyncState)
 
     // undefined message means we're already synced
     if (syncMessage) {
@@ -482,9 +486,9 @@ export class Connection extends EventEmitter {
       assert(context.team)
       const syncMessage = (event as SyncMessage).payload
 
-      const prevSyncState = context.syncState ?? sync.initSyncState()
+      const prevSyncState = context.syncState ?? initSyncState()
 
-      const [newChain, tempSyncState] = sync.receiveMessage(
+      const [newChain, tempSyncState] = receiveMessage(
         context.team.chain,
         prevSyncState,
         syncMessage
@@ -665,7 +669,7 @@ export class Connection extends EventEmitter {
       const ourHead = context.team.chain.head
       if (event.type === 'SYNC') {
         const { head, need } = event.payload
-        if (head !== ourHead) return false
+        if (arraysAreEqual(head, ourHead)) return false
         if (need) return false
         return true
       } else {

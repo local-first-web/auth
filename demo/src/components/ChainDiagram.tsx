@@ -1,11 +1,4 @@
-import {
-  isMergeLink,
-  isRootLink,
-  LinkBody,
-  TeamAction,
-  TeamLink,
-  TeamSignatureChain,
-} from '@localfirst/auth'
+import { LinkBody, TeamAction, TeamLink, TeamLinkBody, TeamSignatureChain } from '@localfirst/auth'
 import React, { FC } from 'react'
 import { theme } from '../mermaid.theme'
 import { users } from '../users'
@@ -58,9 +51,7 @@ const replaceNamesWithEmoji = (s: string) => {
 }
 
 const mermaidNodeFromLink = (link: TeamLink) => {
-  if (isMergeLink(link)) {
-    return `{" "}:::merge` // {} = diamond node
-  } else {
+  {
     const author = link.signed.userName
     const type = link.body.type
     const summary = actionSummary(link.body)
@@ -78,16 +69,14 @@ const mermaidNodeFromLink = (link: TeamLink) => {
 }
 
 const mermaidEdgeFromLink = (link: TeamLink) => {
-  if (isRootLink(link)) {
+  if (link.body.type === 'ROOT') {
     return ''
-  } else if (isMergeLink(link)) {
-    return link.body.map(hash => `${getId(hash)} --> ${getId(link.hash)}`)
   } else {
-    return `${getId(link.body.prev)} --> ${getId(link.hash)}`
+    return link.body.prev.map(hash => `${getId(hash)} --> ${getId(link.hash)}`)
   }
 }
 
-const actionSummary = (action: LinkBody<TeamAction>) => {
+const actionSummary = (action: TeamLinkBody) => {
   switch (action.type) {
     case 'ADD_MEMBER':
       return action.payload.member.userName

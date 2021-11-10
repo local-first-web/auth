@@ -1,6 +1,6 @@
 ﻿import { Challenge } from '@/connection/types'
 import { ProofOfInvitation } from '@/invitation'
-import { SyncPayload } from '@/sync/types'
+import { SyncMessage as SyncPayload } from 'crdx'
 import { TeamAction, TeamContext } from '@/team'
 import { Base58, Hash } from '@/util'
 import { KeyScope, Keyset } from 'crdx'
@@ -96,7 +96,7 @@ export type SyncMessage = {
 // triggered locally when we detect that team has changed
 export type LocalUpdateMessage = {
   type: 'LOCAL_UPDATE'
-  payload: { head: Hash }
+  payload: { head: Hash[] }
 }
 
 // Negotiation

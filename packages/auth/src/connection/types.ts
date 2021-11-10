@@ -1,6 +1,6 @@
 import { DeviceWithSecrets } from '@/device'
 import { ProofOfInvitation } from '@/invitation'
-import { SyncState } from '@/sync/types'
+import { SyncState } from 'crdx'
 import { Member, Team } from '@/team'
 import { Base58, Hash, UnixTimestamp } from '@/util'
 import { KeyScope, Keyset, UserWithSecrets } from 'crdx'

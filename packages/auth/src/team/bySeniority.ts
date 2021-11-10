@@ -1,5 +1,5 @@
 import { TeamContext, TeamLink, TeamSignatureChain } from '@/team/types'
-import { isMergeLink, isPredecessor, isRootLink, RootLink } from 'crdx'
+import { isPredecessor } from 'crdx'
 
 export const bySeniority = (chain: TeamSignatureChain) => (a: string, b: string) => {
   // if one of these created the chain, they win
@@ -8,10 +8,7 @@ export const bySeniority = (chain: TeamSignatureChain) => (a: string, b: string)
 
   const linkThatAddedMember = (userName: string) => {
     const addedMember = (link: TeamLink) =>
-      !isMergeLink(link) &&
-      !isRootLink(link) &&
-      link.body.type === 'ADD_MEMBER' &&
-      link.body.payload.member.userName === userName
+      link.body.type === 'ADD_MEMBER' && link.body.payload.member.userName === userName
     return Object.values(chain.links).find(addedMember)
   }
   const [addedA, addedB] = [a, b].map(linkThatAddedMember)
@@ -21,6 +18,6 @@ export const bySeniority = (chain: TeamSignatureChain) => (a: string, b: string)
   else return 1
 }
 const isFounder = (chain: TeamSignatureChain, userName: string) => {
-  const rootLink = chain.links[chain.root] as RootLink<TeamContext>
+  const rootLink = chain.links[chain.root]
   return rootLink.signed.userName === userName
 }

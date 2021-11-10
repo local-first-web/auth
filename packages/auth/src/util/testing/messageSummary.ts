@@ -1,4 +1,4 @@
-import { SyncPayload } from '@/sync/types'
+import { SyncMessage } from 'crdx'
 import { truncateHashes } from '../truncateHashes'
 
 // export const logMessages = (msgs: NetworkMessage[]) => {
@@ -8,7 +8,7 @@ import { truncateHashes } from '../truncateHashes'
 //   })
 // }
 
-export const syncMessageSummary = (m: SyncPayload<any, any> | undefined) => {
+export const syncMessageSummary = (m: SyncMessage<any, any> | undefined) => {
   if (m === undefined) {
     return 'DONE'
   } else {

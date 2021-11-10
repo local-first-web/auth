@@ -1,9 +1,5 @@
-import { generateMessage } from '@/sync/generateMessage'
-import { initSyncState } from '@/sync/initSyncState'
-import { receiveMessage } from '@/sync/receiveMessage'
-import { SyncPayload, SyncState } from '@/sync/types'
 import { Team } from '@/team'
-import { TeamAction } from '@/team/types'
+import { generateMessage, initSyncState, receiveMessage, SyncMessage, SyncState } from 'crdx'
 import { setup, UserStuff } from './setup'
 
 // Simulates a peer-to-peer network
@@ -29,7 +25,7 @@ export class Network {
   }
 
   // Enqueues one message to be sent from fromPeer to toPeer
-  sendMessage(from: string, to: string, body: SyncPayload<any, any>) {
+  sendMessage(from: string, to: string, body: SyncMessage<any, any>) {
     // log('network: sending %o', { from, to, body })
     this.queue.push({ from, to, body })
   }
@@ -96,7 +92,7 @@ class Peer {
   }
 
   // Called by Network when we receive a message from another peer
-  receiveMessage(sender: string, message: SyncPayload<any, any>) {
+  receiveMessage(sender: string, message: SyncMessage<any, any>) {
     const [chain, syncState] = receiveMessage(this.team.chain, this.syncStates[sender], message)
     this.team = this.team.merge(chain)
     this.syncStates[sender] = syncState
@@ -133,7 +129,7 @@ export interface UserStuffWithPeer extends UserStuff {
 export type NetworkMessage = {
   to: string
   from: string
-  body: SyncPayload<any, any>
+  body: SyncMessage<any, any>
 }
 
 export type MessageMutator = (msg: NetworkMessage) => NetworkMessage

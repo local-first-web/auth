@@ -19,11 +19,11 @@ import {
   setTeamName,
   useInvitation,
 } from './transforms'
-import { Member, TeamAction, TeamActionLink, TeamContext, TeamState, Transform } from './types'
+import { Member, TeamAction, TeamLink, TeamContext, TeamState, Transform } from './types'
 import { validate } from './validate'
 
 export const setHead =
-  (link: TeamActionLink): Transform =>
+  (link: TeamLink): Transform =>
   state => {
     return { ...state, __HEAD: link.hash }
   }
