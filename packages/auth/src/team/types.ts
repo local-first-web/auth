@@ -225,8 +225,7 @@ export type TeamLinkMap = LinkMap<TeamAction, TeamContext>
 export type TeamSignatureChain = SignatureChain<TeamAction, TeamContext>
 export type Branch = Sequence<TeamAction, TeamContext>
 export type TwoBranches = [Branch, Branch]
-export type ActionFilter = (link: Link<TeamAction, TeamContext>) => boolean
-export type ActionFilterFactory = (branches: TwoBranches, chain: TeamSignatureChain) => ActionFilter
+export type MembershipRuleEnforcer = (links: TeamLink[], chain: TeamSignatureChain) => TeamLink[]
 
 // ********* TEAM STATE
 

@@ -1,22 +1,19 @@
 ﻿import { ADMIN } from '@/role'
 import { bySeniority } from '@/team/bySeniority'
 import {
-  ActionFilter,
-  ActionFilterFactory,
+  MembershipRuleEnforcer,
   AddMemberAction,
   AddMemberRoleAction,
-  Branch,
   RemoveMemberAction,
   RemoveMemberRoleAction,
   TeamAction,
   TeamContext,
   TeamLink,
   TeamSignatureChain,
-  TwoBranches,
 } from '@/team/types'
-import { actionFingerprint, Hash } from '@/util'
+import { actionFingerprint } from '@/util'
 import { arraysAreEqual } from '@/util/arraysAreEqual'
-import { byHash, calculateConcurrency, getConcurrentBubbles, Link, LinkBody, Resolver } from 'crdx'
+import { getConcurrentBubbles, Link, LinkBody, Resolver } from 'crdx'
 import { isAdminOnlyAction } from './isAdminOnlyAction'
 
 /*
@@ -35,56 +32,46 @@ import { isAdminOnlyAction } from './isAdminOnlyAction'
  * arise with concurrency: mutual removals, duplicate actions, etc.
  */
 export const membershipResolver: Resolver<TeamAction, TeamContext> = chain => {
-  // get concurrent bubbles from the chain
-  // run each bubble through the filters
-
-  const pools = getConcurrentBubbles(chain)
-  const invalidLinks: Hash[] = pools.flatMap(links => {
-    // remove duplicates
-
-    // RULE: mutual and circular removals are resolved by seniority
-
-    // RULE: If A is removing C, B can't overcome this by concurrently removing C then adding C back
-    // RULE: If B is removed, anything they do concurrently is invalid
-    // RULE: If B is demoted, any admin-only actions they do concurrently are invalid
-
-    return []
-  })
-
+  const pools = getConcurrentBubbles(chain).map(hashes => hashes.map(hash => chain.links[hash]))
+  const invalidLinks: TeamLink[] = []
+  for (var pool of pools) {
+    for (const rule of Object.keys(membershipRules)) {
+      const invalid = membershipRules[rule](pool, chain)
+      invalidLinks.push(...invalid)
+      pool = pool.filter(link => !invalid.includes(link))
+    }
+  }
   return {
-    filter: link => !invalidLinks.includes(link.hash),
+    filter: link => !invalidLinks.includes(link),
   }
 }
 
-// TODO: an add->remove->add sequence on one side will result in add->remove, because the two adds are treated as duplicates
+const membershipRules: Record<string, MembershipRuleEnforcer> = {
+  // TODO: an add->remove->add sequence on one side will result in add->remove, because the two adds are treated as duplicates
+  // RULE: no duplicates
+  noDuplicates: links => {
+    const seen = {} as Record<string, boolean>
+    const duplicates = links.filter(link => {
+      const fingerprint = actionFingerprint(link) // string summarizing the link, e.g. `ADD:bob`
+      if (seen[fingerprint]) {
+        return true
+      } else {
+        seen[fingerprint] = true
+        return false
+      }
+    })
+    return duplicates
+  },
 
-const isDuplicate = (a: TeamLink, b: TeamLink): boolean =>
-  actionFingerprint(a) === actionFingerprint(b)
-
-const getDuplicates = (b: Branch): Branch => {
-  const seen = {} as Record<string, boolean>
-  const duplicates = b.filter(link => {
-    const fingerprint = actionFingerprint(link) // string summarizing the link, e.g. `ADD:bob`
-    if (seen[fingerprint]) {
-      return true
-    } else {
-      seen[fingerprint] = true
-      return false
-    }
-  })
-  return duplicates
-}
-
-const filterFactories: Record<string, ActionFilterFactory> = {
   // RULE: mutual and circular removals are resolved by seniority
   // - If A removes B and concurrently B removes A, then the *least senior* of the two's actions
   //   will be omitted: so only B will be removed
   // - If A removes B; B removes C; C removes A, then the *least senior* of the three's actions
   //   will be omitted: A will not be removed, B will be removed, and C will not be removed
   //   (because C was removed by B, and B was concurrently removed).
-  resolveMutualRemovals: (branches, chain) => {
-    const removedMembers = getRemovedAndDemotedMembers(branches)
-    const memberRemovers = getRemovalsAndDemotions(branches).map(getAuthor)
+  resolveMutualRemovals: (links, chain) => {
+    const removedMembers = getRemovedAndDemotedMembers(links)
+    const memberRemovers = getRemovalsAndDemotions(links).map(getAuthor)
 
     // is this a mutual or circular removal?
     const isCircularRemoval =
@@ -93,32 +80,39 @@ const filterFactories: Record<string, ActionFilterFactory> = {
       // figure out which member has been around for the shortest amount of time
       const mostRecentMember = leastSenior(chain, memberRemovers)
       // omit any actions by that member
-      return authorIsNot(mostRecentMember)
+      return links.filter(authorIs(mostRecentMember))
     }
     // otherwise don't omit anything
-    return noFilter
+    return []
   },
 
+  // TODO: an add->remove->add sequence on one side will result in add->remove, because the two adds are treated as duplicates
   // RULE: If A is removing C, B can't overcome this by concurrently removing C then adding C back
-  cantAddBackRemovedMember: branches => {
-    const removedMembers = getRemovedAndDemotedMembers(branches)
-    return addedNotIn(removedMembers)
+  cantAddBackRemovedMember: links => {
+    const removedMembers = getRemovedAndDemotedMembers(links)
+
+    return links
+      .filter(isAddAction) //
+      .filter(link => {
+        const added = addedUserName(link)
+        return removedMembers.includes(added)
+      })
   },
 
   // RULE: If B is removed, anything they do concurrently is omitted
-  cantDoAnythingWhenRemoved: branches => {
-    const removedMembers = getRemovedMembers(branches)
-    return authorNotIn(removedMembers)
+  cantDoAnythingWhenRemoved: links => {
+    const removedMembers = getRemovedMembers(links)
+    return links.filter(authorIn(removedMembers))
   },
 
   // RULE: If B is demoted, any admin-only actions they do concurrently are omitted
-  cantDoAdminActionsWhenDemoted: branches => {
-    const demotedMembers = getDemotedMembers(branches)
-    return (link: TeamLink) => {
+  cantDoAdminActionsWhenDemoted: links => {
+    const demotedMembers = getDemotedMembers(links)
+    return links.filter(link => {
       const authorNotDemoted = authorNotIn(demotedMembers)
       const notAdminOnly = (link: TeamLink) => !isAdminOnlyAction(link.body)
-      return authorNotDemoted(link) || notAdminOnly(link)
-    }
+      return !(authorNotDemoted(link) || notAdminOnly(link))
+    })
   },
 }
 
@@ -129,61 +123,49 @@ const leastSenior = (chain: TeamSignatureChain, userNames: string[]) =>
 
 const isRemovalAction = (link: TeamLink): boolean => link.body.type === 'REMOVE_MEMBER'
 
-const getRemovals = (branches: TwoBranches) =>
-  branches.flatMap(branch => branch.filter(isRemovalAction)) as RemoveActionLink[]
+const getRemovals = (links: TeamLink[]) => links.filter(isRemovalAction) as RemoveActionLink[]
 
 const isDemotionAction = (link: TeamLink): boolean =>
   link.body.type === 'REMOVE_MEMBER_ROLE' && link.body.payload.roleName === ADMIN
 
-const getDemotions = (branches: TwoBranches) =>
-  branches.flatMap(branch => branch.filter(isDemotionAction)) as RemoveActionLink[]
+const getDemotions = (links: TeamLink[]) => links.filter(isDemotionAction) as RemoveActionLink[]
 
-const getRemovalsAndDemotions = (branches: TwoBranches) =>
-  getRemovals(branches).concat(getDemotions(branches))
+const getRemovalsAndDemotions = (links: TeamLink[]) =>
+  getRemovals(links).concat(getDemotions(links))
 
-const getRemovedAndDemotedMembers = (branches: TwoBranches) =>
-  getRemovalsAndDemotions(branches).map(getTarget)
+const getRemovedAndDemotedMembers = (links: TeamLink[]) =>
+  getRemovalsAndDemotions(links).map(getTarget)
 
-const getRemovedMembers = (branches: TwoBranches) => getRemovals(branches).map(getTarget)
-const getDemotedMembers = (branches: TwoBranches) => getDemotions(branches).map(getTarget)
+const getRemovedMembers = (links: TeamLink[]) => getRemovals(links).map(getTarget)
+const getDemotedMembers = (links: TeamLink[]) => getDemotions(links).map(getTarget)
 
 const getTarget = (link: RemoveActionLink): string => link.body.payload.userName
 
 const getAuthor = (link: TeamLink): string => link.signed.userName
 
-const authorIsNot = (author: string) => (link: TeamLink) => getAuthor(link) !== author
+const authorIs = (author: string) => (link: TeamLink) => getAuthor(link) === author
+
+const authorIn =
+  (excludeList: string[]) =>
+  (link: TeamLink): boolean =>
+    excludeList.includes(getAuthor(link))
 
 const authorNotIn =
   (excludeList: string[]) =>
   (link: TeamLink): boolean =>
     !excludeList.includes(getAuthor(link))
 
-const addedNotIn =
-  (excludeList: string[]) =>
-  (link: TeamLink): boolean => {
-    const addedUserName = (link: AddActionLink): string => {
-      if (link.body.type === 'ADD_MEMBER') {
-        const addAction = link.body as LinkBody<AddMemberAction, TeamContext>
-        return addAction.payload.member.userName
-      } else if (link.body.type === 'ADD_MEMBER_ROLE') {
-        const addAction = link.body as LinkBody<AddMemberRoleAction, TeamContext>
-        return addAction.payload.userName
-      }
-      // ignore coverage
-      else throw new Error()
-    }
-
-    if (!isAddAction(link)) return true // only concerned with add actions
-    const added = addedUserName(link)
-    return !excludeList.includes(added)
+const addedUserName = (link: AddActionLink): string => {
+  if (link.body.type === 'ADD_MEMBER') {
+    const addAction = link.body as LinkBody<AddMemberAction, TeamContext>
+    return addAction.payload.member.userName
+  } else if (link.body.type === 'ADD_MEMBER_ROLE') {
+    const addAction = link.body as LinkBody<AddMemberRoleAction, TeamContext>
+    return addAction.payload.userName
   }
-
-const noFilter: ActionFilter = (_: any) => true
-
-const linkNotIn =
-  (excludeList: Branch) =>
-  (link: TeamLink): boolean =>
-    !excludeList.includes(link)
+  // ignore coverage
+  else throw new Error()
+}
 
 // type guards
 
