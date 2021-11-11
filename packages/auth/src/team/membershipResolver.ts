@@ -16,16 +16,6 @@ import { arraysAreEqual } from '@/util/arraysAreEqual'
 import { getConcurrentBubbles, Link, LinkBody, Resolver } from 'crdx'
 import { isAdminOnlyAction } from './isAdminOnlyAction'
 
-/*
-
-- To detect e.g. a 3-way mutual removal situation, we need to inspect the entire pool of concurrent
-  actions. 
-- Not sure how we'd implement strong removal in the case of mutual removals, since the reducer won't
-  allow a to remove b after b has removed a. 
-
-
-*/
-
 /**
  * This is a custom resolver, used to flatten a graph of team membership operations into a strictly
  * ordered sequence. It mostly applies "strong-remove" rules to resolve tricky situations that can
@@ -35,14 +25,14 @@ export const membershipResolver: Resolver<TeamAction, TeamContext> = chain => {
   const pools = getConcurrentBubbles(chain).map(hashes => hashes.map(hash => chain.links[hash]))
   const invalidLinks: TeamLink[] = []
   for (var pool of pools) {
-    for (const rule of Object.keys(membershipRules)) {
-      const invalid = membershipRules[rule](pool, chain)
-      invalidLinks.push(...invalid)
-      pool = pool.filter(link => !invalid.includes(link))
+    for (const rule of Object.values(membershipRules)) {
+      const invalid = rule(pool, chain)
+      invalid.forEach(link => invalidLinks.push(link))
+      pool = pool.filter(linkNotIn(invalidLinks))
     }
   }
   return {
-    filter: link => !invalidLinks.includes(link),
+    filter: linkNotIn(invalidLinks),
   }
 }
 
@@ -51,24 +41,24 @@ const membershipRules: Record<string, MembershipRuleEnforcer> = {
   // RULE: no duplicates
   noDuplicates: links => {
     const seen = {} as Record<string, boolean>
-    const duplicates = links.filter(link => {
+    return links.filter(link => {
       const fingerprint = actionFingerprint(link) // string summarizing the link, e.g. `ADD:bob`
-      if (seen[fingerprint]) {
-        return true
-      } else {
-        seen[fingerprint] = true
-        return false
-      }
+      if (seen[fingerprint]) return true
+      seen[fingerprint] = true
+      return false
     })
-    return duplicates
   },
 
   // RULE: mutual and circular removals are resolved by seniority
   // - If A removes B and concurrently B removes A, then the *least senior* of the two's actions
   //   will be omitted: so only B will be removed
-  // - If A removes B; B removes C; C removes A, then the *least senior* of the three's actions
-  //   will be omitted: A will not be removed, B will be removed, and C will not be removed
-  //   (because C was removed by B, and B was concurrently removed).
+  // - If A removes B; B removes C; C removes A, then the *least senior* of the three's actions will
+  //   be omitted: A will not be removed, B will be removed, and C will not be removed (because C
+  //   was removed by B, and B was concurrently removed).
+  //
+  // I'd like to actually implement full strong-remove — e.g. remove everyone in a mutual remove
+  // scenario — but not sure how to do that, since the reducer won't allow a to remove b after b has
+  // removed a.
   resolveMutualRemovals: (links, chain) => {
     const removedMembers = getRemovedAndDemotedMembers(links)
     const memberRemovers = getRemovalsAndDemotions(links).map(getAuthor)
@@ -86,7 +76,6 @@ const membershipRules: Record<string, MembershipRuleEnforcer> = {
     return []
   },
 
-  // TODO: an add->remove->add sequence on one side will result in add->remove, because the two adds are treated as duplicates
   // RULE: If A is removing C, B can't overcome this by concurrently removing C then adding C back
   cantAddBackRemovedMember: links => {
     const removedMembers = getRemovedAndDemotedMembers(links)
@@ -166,6 +155,19 @@ const addedUserName = (link: AddActionLink): string => {
   // ignore coverage
   else throw new Error()
 }
+
+const addedNotIn =
+  (excludeList: string[]) =>
+  (link: TeamLink): boolean => {
+    if (!isAddAction(link)) return true // only concerned with add actions
+    const added = addedUserName(link)
+    return !excludeList.includes(added)
+  }
+
+const linkNotIn =
+  (excludeList: TeamLink[]) =>
+  (link: TeamLink): boolean =>
+    !excludeList.includes(link)
 
 // type guards
 
