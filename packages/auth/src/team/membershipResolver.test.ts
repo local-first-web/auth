@@ -130,7 +130,8 @@ describe('chains', () => {
     // TODO: This test is poorly labeled. What we're actually trying to prevent is ending up with
     // actions in the wrong order after removing a duplicate.
     //
-    // I think a better solution to this might be to just be OK with duplicates, & disregard in the resolver e.g. when you try to add someone who's already been added
+    // I think a better solution to this might be to just be OK with duplicates, & disregard in the
+    // resolver e.g. when you try to add someone who's already been added
     it.skip('keeps the earliest instance in case of duplicates', () => {
       for (let i = 0; i < 10; i++) {
         //  👩🏾 🡒 👨🏻‍🦲 Alice creates a chain and shares it with Bob
