@@ -29,12 +29,11 @@ import { Team, TeamSignatureChain } from '@/team'
 import { assert, debug, EventEmitter, truncateHashes } from '@/util'
 import { arraysAreEqual } from '@/util/arraysAreEqual'
 import { syncMessageSummary as syncMessageSummary } from '@/util/testing/messageSummary'
-import { asymmetric, Payload, symmetric } from '@herbcaudill/crypto'
+import { asymmetric, Payload, symmetric, randomKey } from '@herbcaudill/crypto'
 import {
   generateMessage,
   initSyncState,
   KeyType,
-  randomKey,
   receiveMessage,
   redactKeys,
   SyncState,
