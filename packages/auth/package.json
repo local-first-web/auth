@@ -15,8 +15,8 @@
     "node": ">=14"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "postbuild": "tscpaths -p tsconfig.json -s ./src -o ./dist --silent",
+    "build": "tsc -p tsconfig.build.json",
+    "postbuild": "tscpaths -p tsconfig.build.json -s ./src -o ./dist --silent",
     "test": "node --no-warnings --experimental-vm-modules ../../node_modules/jest/bin/jest.js",
     "test:log": "cross-env DEBUG='lf*' DEBUG_COLORS=1 yarn test",
     "prepublish": "yarn build"
