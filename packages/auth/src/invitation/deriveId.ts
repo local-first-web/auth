@@ -11,5 +11,5 @@ export function deriveId(seed: string) {
   // The invitation id is derived from the stretched iKey, so Bob can generate it independently.
   // This will be visible in the signature chain and serves to uniquely identify the invitation.
   // (Keybase docs: `inviteID`)
-  return base58.encode(hash(HashPurpose.INVITATION, stretchedKey)).slice(0, 15)
+  return hash(HashPurpose.INVITATION, stretchedKey).slice(0, 15)
 }
