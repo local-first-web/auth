@@ -11,10 +11,7 @@
     "activityBar.inactiveForeground": "#e7e7e799",
     "activityBarBadge.background": "#000000",
     "activityBarBadge.foreground": "#e7e7e7",
-    "editorGroup.border": "#243e87",
-    "panel.border": "#243e87",
     "sash.hoverBorder": "#243e87",
-    "sideBar.border": "#243e87",
     "statusBarItem.remoteBackground": "#243e87",
     "statusBarItem.remoteForeground": "#e7e7e7"
   },
