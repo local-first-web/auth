@@ -7,7 +7,6 @@ import * as teams from '@/team'
 import { Team, TeamContext } from '@/team'
 import { arrayToMap, assert } from '@/util'
 import { createUser, KeyType, User, UserWithSecrets } from 'crdx'
-import { cache } from './cache'
 
 // ignore file coverage
 
@@ -36,51 +35,46 @@ export const setup = (
   // Get a list of just user names
   const userNames = config.map(user => user.user)
 
-  const cacheKey = 'setup-' + JSON.stringify(config)
-  const { testUsers, laptops, phones, chain } = cache(cacheKey, () => {
-    // Create users
-    const testUsers: Record<string, UserWithSecrets> = userNames
-      .map((userName: string) => {
-        const randomSeed = userName // make these predictable
-        return createUser(userName, randomSeed)
-      })
-      .reduce(arrayToMap('userName'), {})
+  // Create users
+  const testUsers: Record<string, UserWithSecrets> = userNames
+    .map((userName: string) => {
+      const randomSeed = userName // make these predictable
+      return createUser(userName, randomSeed)
+    })
+    .reduce(arrayToMap('userName'), {})
 
-    const makeDevice = (userName: string, deviceName: string) => {
-      const key = `${userName}-${deviceName}`
-      const randomSeed = key
-      const device = devices.createDevice(userName, deviceName, randomSeed)
-      return device
+  const makeDevice = (userName: string, deviceName: string) => {
+    const key = `${userName}-${deviceName}`
+    const randomSeed = key
+    const device = devices.createDevice(userName, deviceName, randomSeed)
+    return device
+  }
+
+  const laptops: Record<string, DeviceWithSecrets> = userNames
+    .map((userName: string) => makeDevice(userName, 'laptop'))
+    .reduce(arrayToMap('userName'), {})
+
+  const phones: Record<string, DeviceWithSecrets> = userNames
+    .map((userName: string) => makeDevice(userName, 'phone'))
+    .reduce(arrayToMap('userName'), {})
+
+  // Create team
+  const founder = userNames[0] // e.g. alice
+  const founderContext = { user: testUsers[founder], device: laptops[founder] }
+  const teamName = 'Spies Я Us'
+  const randomSeed = teamName
+  const team = teams.createTeam(teamName, founderContext, randomSeed)
+
+  // Add members
+  for (const { user: userName, admin = true, member = true } of config) {
+    if (member && !team.has(userName)) {
+      const user = testUsers[userName]
+      const roles = admin ? [ADMIN] : []
+      const device = devices.redactDevice(laptops[userName])
+      team.add(user, roles, device)
     }
-
-    const laptops: Record<string, DeviceWithSecrets> = userNames
-      .map((userName: string) => makeDevice(userName, 'laptop'))
-      .reduce(arrayToMap('userName'), {})
-
-    const phones: Record<string, DeviceWithSecrets> = userNames
-      .map((userName: string) => makeDevice(userName, 'phone'))
-      .reduce(arrayToMap('userName'), {})
-
-    // Create team
-    const founder = userNames[0] // e.g. alice
-    const founderContext = { user: testUsers[founder], device: laptops[founder] }
-    const teamName = 'Spies Я Us'
-    const randomSeed = teamName
-    const team = teams.createTeam(teamName, founderContext, randomSeed)
-
-    // Add members
-    for (const { user: userName, admin = true, member = true } of config) {
-      if (member && !team.has(userName)) {
-        const user = testUsers[userName]
-        const roles = admin ? [ADMIN] : []
-        const device = devices.redactDevice(laptops[userName])
-        team.add(user, roles, device)
-      }
-    }
-    const chain = team.chain
-
-    return { testUsers, laptops, phones, chain }
-  })
+  }
+  const chain = team.chain
 
   const makeUserStuff = ({ user: userName, member = true }: TestUserSettings): UserStuff => {
     const user = testUsers[userName]
