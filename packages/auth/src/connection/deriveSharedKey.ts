@@ -10,5 +10,5 @@ export const deriveSharedKey = (seed1: Base58, seed2: Base58): Base58 => {
   const sortedSeeds = [seed1, seed2].sort() // ensure that the seeds are in a deterministic order
   const concatenatedSeeds = sortedSeeds.join('')
   const sharedKey = hash(HashPurpose.SHARED_KEY, concatenatedSeeds)
-  return base58.encode(sharedKey)
+  return sharedKey
 }
