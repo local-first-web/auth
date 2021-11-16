@@ -8,26 +8,25 @@
   "description": "Decentralized authentication and authorization for team collaboration",
   "repository": "http://github.com/local-first-web/auth",
   "license": "MIT",
-  "module": "dist/auth.esm.js",
+  "type": "module",
   "main": "dist/index.js",
-  "typings": "dist/index.d.ts",
-  "files": [
-    "dist",
-    "src"
-  ],
+  "types": "dist/index.d.ts",
   "engines": {
-    "node": ">=10"
+    "node": ">=14"
   },
   "scripts": {
-    "watch": "tsdx watch --tsconfig tsconfig.build.json --verbose --noClean",
-    "build": "tsdx build",
-    "postbuild": "tscpaths -p tsconfig.build.json -s ./src -o ./dist --silent",
-    "test": "jest",
+    "build": "tsc -p tsconfig.json",
+    "postbuild": "tscpaths -p tsconfig.json -s ./src -o ./dist --silent",
+    "test": "node --no-warnings --experimental-vm-modules ../../node_modules/jest/bin/jest.js",
     "test:log": "cross-env DEBUG='lf*' DEBUG_COLORS=1 yarn test",
     "prepublish": "yarn build"
   },
   "dependencies": {
-    "@herbcaudill/crypto": "1",
+    "@changesets/changelog-github": "0",
+    "@changesets/cli": "2",
+    "@herbcaudill/crypto": "2",
+    "@types/react": "17",
+    "@types/react-dom": "17",
     "buffer": "6",
     "crdx": "0",
     "debug": "4",
@@ -35,22 +34,19 @@
     "fast-memoize": "2",
     "msgpack-lite": "0",
     "ramda": "0",
-    "tsdx": "0.14",
     "typescript": "4",
     "xstate": "4"
   },
   "devDependencies": {
-    "@babel/core": "7",
     "@herbcaudill/tscpaths": "0",
     "@types/debug": "4",
     "@types/msgpack-lite": "0",
     "@types/ramda": "0",
     "cross-env": "6",
-    "jest": "26",
+    "jest": "27",
     "prettier": "2",
-    "ts-jest": "26",
-    "typescript": "4",
-    "v8-profiler-node8": "6"
+    "ts-jest": "27",
+    "typescript": "4"
   },
   "prettier": {
     "printWidth": 100,
@@ -58,5 +54,18 @@
     "singleQuote": true,
     "trailingComma": "es5",
     "arrowParens": "avoid"
+  },
+  "jest": {
+    "transform": {},
+    "preset": "ts-jest/presets/default-esm",
+    "globals": {
+      "ts-jest": {
+        "useESM": true
+      }
+    },
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1"
+    },
+    "testEnvironment": "node"
   }
 }
