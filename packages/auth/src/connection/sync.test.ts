@@ -18,9 +18,7 @@ import { InviteeDeviceInitialContext } from './types'
 
 const log = debug('lf:auth:test')
 
-// TODO: not working
-
-describe.skip('connection', () => {
+describe('connection', () => {
   describe('sync', () => {
     describe('two peers', () => {
       it('updates remote user after connecting', async () => {
@@ -37,7 +35,8 @@ describe.skip('connection', () => {
         expect(bob.team.memberHasRole('bob', 'managers')).toBe(false)
 
         // 👩🏾 👨🏻‍🦲 Alice and Bob connect
-        await connect(alice, bob)
+        connect(alice, bob)
+        await updated(alice, bob)
 
         // ✅ 👨🏻‍🦲 Bob is up to date with Alice's changes
         expect(bob.team.hasRole('managers')).toBe(true)
