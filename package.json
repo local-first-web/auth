@@ -9,6 +9,7 @@
   "repository": "http://github.com/local-first-web/auth",
   "license": "MIT",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "lerna run build",
     "lerna": "lerna",
@@ -18,7 +19,7 @@
     "dev:cy:debug": "cross-env CYPRESS_REMOTE_DEBUGGING_PORT=9222 yarn dev:cy",
     "dev": "run-p watch dev:demo",
     "dev:relay": "yarn --cwd demo dev:relay",
-    "test": "yarn --cwd packages/auth test",
+    "test": "node --no-warnings --experimental-vm-modules ./node_modules/jest/bin/jest.js",
     "test:log": "yarn --cwd packages/auth test:log",
     "watch": "lerna run watch --stream --parallel",
     "prepublish": "lerna run prepublish",
@@ -39,13 +40,24 @@
     "packages/*",
     "demo"
   ],
+  "jest": {
+    "projects": [
+      "packages/auth"
+    ]
+  },
   "wallaby": {
     "autoDetect": true,
     "runMode": "onsave",
     "slowTestThreshold": 1000,
     "lowCoverageThreshold": 99,
     "hints": {
-      "ignoreCoverageForFile": "/ignore file coverage/"
+      "ignoreCoverageForFile": "ignore file coverage"
+    },
+    "env": {
+      "type": "node",
+      "params": {
+        "runner": "--no-warnings --experimental-vm-modules"
+      }
     }
   }
 }
