@@ -79,7 +79,6 @@ export interface ConnectionContext
   device: DeviceWithSecrets
 
   syncState?: SyncState
-  synced?: boolean
 }
 
 export type StateMachineAction =
@@ -91,38 +90,36 @@ export type Condition = ConditionPredicate<ConnectionContext, ConnectionMessage>
 
 export interface ConnectionState {
   states: {
-    idle: {}
+    awaitingIdentityClaim: {}
 
-    disconnected: {}
-
-    connecting: {
+    authenticating: {
       states: {
-        invitation: {
+        checkingInvitations: {
           states: {
-            initializing: {}
-            waiting: {}
-            validating: {}
+            checkingForInvitations: {}
+            awaitingInvitationAcceptance: {}
+            validatingInvitation: {}
           }
         }
-        authenticating: {
+        checkingIdentity: {
           states: {
-            proving: {
+            provingMyIdentity: {
               states: {
-                awaitingChallenge: {}
-                awaitingAcceptance: {}
-                done: {}
+                awaitingIdentityChallenge: {}
+                awaitingIdentityAcceptance: {}
+                doneProvingMyIdentity: {}
               }
             }
-            verifying: {
+            verifyingTheirIdentity: {
               states: {
-                challenging: {}
-                waiting: {}
-                done: {}
+                challengingIdentity: {}
+                awaitingIdentityProof: {}
+                doneVerifyingTheirIdentity: {}
               }
             }
           }
         }
-        done: {}
+        doneAuthenticating: {}
       }
     }
 
@@ -130,23 +127,13 @@ export interface ConnectionState {
 
     negotiating: {
       states: {
-        sendingSeed: {
-          states: {
-            sending: {}
-            done: {}
-          }
-        }
-        receivingSeed: {
-          states: {
-            waiting: {}
-            done: {}
-          }
-        }
+        awaitingSeed: {}
+        doneNegotiating: {}
       }
     }
 
     connected: {}
 
-    failure: {}
+    disconnected: {}
   }
 }
