@@ -2,18 +2,20 @@
 import { truncateHashes } from './truncateHashes'
 
 const substituteTokens = (s: string) => {
-  return truncateHashes(s)
-    .replace(/"/g, '')
-    .replace('::', '')
+  return (
+    truncateHashes(s)
+      .replace(/"/g, '')
+      .replace('::', '')
 
-    .replace(/alice/gi, '👩🏾')
-    .replace(/bob/gi, '👨🏻‍🦲')
-    .replace(/charlie/gi, '👳🏽‍♂️')
-    .replace(/dwight/gi, '👴')
-    .replace(/eve/gi, '🦹‍♀️')
+      .replace(/alice/gi, '👩🏾')
+      .replace(/bob/gi, '👨🏻‍🦲')
+      .replace(/charlie/gi, '👳🏽‍♂️')
+      .replace(/dwight/gi, '👴')
+      // .replace(/eve/gi, '🦹‍♀️')
 
-    .replace(/laptop/gi, '💻')
-    .replace(/phone/gi, '📱')
+      .replace(/laptop/gi, '💻')
+      .replace(/phone/gi, '📱')
+  )
 }
 
 export function debug(prefix: string) {
