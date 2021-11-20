@@ -61,26 +61,6 @@ const validators: TeamStateValidatorSet = {
     return VALID
   },
 
-  cantAddExistingMember: (...args) => {
-    const [prevState, link] = args
-    if (link.body.type === 'ADD_MEMBER') {
-      const { userName: name } = link.body.payload.member
-      if (select.hasMember(prevState, name))
-        return fail(`There is already a member called '${name}'`, ...args)
-    }
-    return VALID
-  },
-
-  cantRemoveNonexistentMember: (...args) => {
-    const [prevState, link] = args
-    if (link.body.type === 'REMOVE_MEMBER') {
-      const { userName } = link.body.payload
-      if (!select.hasMember(prevState, userName))
-        return fail(`A member named '${userName}' was not found`, ...args)
-    }
-    return VALID
-  },
-
   canOnlyChangeYourOwnKeys: (...args) => {
     const [prevState, link] = args
     if (link.body.type === 'CHANGE_MEMBER_KEYS') {
@@ -101,20 +81,6 @@ const validators: TeamStateValidatorSet = {
       // const target = parseDeviceId(link.body.payload.keys.name)
       // if (authorUserName !== target.userName || authorDeviceName !== target.deviceName)
       //   return fail(`Can't change another device's keys.`, ...args)
-    }
-    return VALID
-  },
-
-  cantAddExistingDevice: (...args) => {
-    const [prevState, link] = args
-    if (link.body.type === 'ADD_DEVICE') {
-      const { device } = link.body.payload
-      const { deviceName, userName } = device
-      const member = select.member(prevState, userName)
-      const { devices = [] } = member
-      // TODO: test this case
-      if (devices.find(d => d.deviceName === deviceName))
-        return fail(`The member ${userName} already has a device named '${deviceName}'`, ...args)
     }
     return VALID
   },
