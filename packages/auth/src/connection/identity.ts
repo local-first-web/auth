@@ -1,6 +1,6 @@
-﻿import { signatures } from '@herbcaudill/crypto'
+﻿import { signatures, randomKey } from '@herbcaudill/crypto'
 import { Challenge } from '@/connection/types'
-import { KeyScope, KeysetWithSecrets, Keyset, randomKey } from 'crdx'
+import { KeyScope, KeysetWithSecrets, Keyset } from 'crdx'
 import { Base58, VALID, ValidationResult } from '@/util'
 
 export const challenge = (identityClaim: KeyScope): Challenge => ({
