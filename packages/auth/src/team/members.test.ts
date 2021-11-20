@@ -49,7 +49,7 @@ describe('Team', () => {
       expect(adminKeyset).toLookLikeKeyset()
     })
 
-    it('does not add a member that is already present', () => {
+    it(`doesn't care if you add a member twice`, () => {
       const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
       const addBob = () => alice.team.add(bob.user)
@@ -57,7 +57,7 @@ describe('Team', () => {
 
       // try adding bob again
       const addBobAgain = () => alice.team.add(bob.user)
-      expect(addBobAgain).toThrow(/already a member/)
+      expect(addBobAgain).not.toThrow()
     })
 
     it('removes a member', () => {
@@ -90,12 +90,12 @@ describe('Team', () => {
       expect(alice.team.adminKeys().generation).toBe(1)
     })
 
-    it('throws if asked to remove a nonexistent member', () => {
+    it(`doesn't do anything if asked to remove a nonexistent member`, () => {
       const { alice } = setup('alice')
 
       // try removing bob although he hasn't been added
       const removeBob = () => alice.team.remove('bob')
-      expect(removeBob).toThrow(/not found/)
+      expect(removeBob).not.toThrow()
     })
 
     it('gets an individual member', () => {
