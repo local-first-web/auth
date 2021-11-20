@@ -7,7 +7,7 @@ import {
   DisconnectMessage,
   EncryptedMessage,
   ErrorMessage,
-  HelloMessage,
+  ClaimIdentityMessage,
   NumberedConnectionMessage,
   ProveIdentityMessage,
   SeedMessage,
@@ -96,7 +96,7 @@ export class Connection extends EventEmitter {
     if (!this.started) {
       this.machine.start()
       this.started = true
-      this.sendMessage({ type: 'READY' })
+      this.sendMessage({ type: 'REQUEST_IDENTITY' })
 
       // deliver any stored messages we might have received before starting
       storedMessages.forEach(m => this.deliver(JSON.parse(m)))
@@ -184,16 +184,13 @@ export class Connection extends EventEmitter {
 
     // undefined message means we're already synced
     if (syncMessage) {
-      this.log('*** SENDING SYNC MESSAGE')
+      this.log('sending sync message', syncMessageSummary(syncMessage))
       this.sendMessage({ type: 'SYNC', payload: syncMessage })
     } else {
-      this.log('*** SYNCED')
+      this.log('no sync message to send')
     }
 
-    return {
-      synced: syncMessage === undefined,
-      syncState,
-    }
+    return syncState
   }
 
   /** Passes an incoming message from the peer on to this protocol machine, guaranteeing that
@@ -232,10 +229,10 @@ export class Connection extends EventEmitter {
       error: () => this.createError(message, details),
     })
 
-  /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendHello'`) */
+  /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendIdentityClaim'`) */
   private readonly actions: Record<string, StateMachineAction> = {
-    sendHello: async context => {
-      const payload: HelloMessage['payload'] =
+    sendIdentityClaim: async context => {
+      const payload: ClaimIdentityMessage['payload'] =
         'team' in context
           ? {
               identityClaim: {
@@ -252,16 +249,16 @@ export class Connection extends EventEmitter {
                 : {}),
             }
 
-      this.log('sending HELLO', payload)
+      this.log('sending CLAIM_IDENTITY', payload)
       this.sendMessage({
-        type: 'HELLO',
+        type: 'CLAIM_IDENTITY',
         payload,
       })
     },
 
-    receiveHello: assign({
+    receiveIdentityClaim: assign({
       theirIdentityClaim: (context, event) => {
-        event = event as HelloMessage
+        event = event as ClaimIdentityMessage
         if ('identityClaim' in event.payload) {
           // update peer user name
           const deviceId = event.payload.identityClaim.name
@@ -275,7 +272,7 @@ export class Connection extends EventEmitter {
       },
 
       theyHaveInvitation: (_, event) => {
-        event = event as HelloMessage
+        event = event as ClaimIdentityMessage
         if ('proofOfInvitation' in event.payload) {
           return true
         } else {
@@ -284,7 +281,7 @@ export class Connection extends EventEmitter {
       },
 
       theirProofOfInvitation: (_, event) => {
-        event = event as HelloMessage
+        event = event as ClaimIdentityMessage
         if ('proofOfInvitation' in event.payload) {
           return event.payload.proofOfInvitation
         } else {
@@ -293,7 +290,7 @@ export class Connection extends EventEmitter {
       },
 
       theirUserKeys: (_, event) => {
-        event = event as HelloMessage
+        event = event as ClaimIdentityMessage
         if ('userKeys' in event.payload) {
           return event.payload.userKeys
         } else {
@@ -302,7 +299,7 @@ export class Connection extends EventEmitter {
       },
 
       theirDeviceKeys: (context, event) => {
-        event = event as HelloMessage
+        event = event as ClaimIdentityMessage
         if ('deviceKeys' in event.payload) {
           // update peer user name
           const deviceId = event.payload.deviceKeys.name
@@ -379,7 +376,7 @@ export class Connection extends EventEmitter {
     confirmIdentityExists: (context, event) => {
       // if we're not on the team yet, we don't have a way of knowing if the peer is
       if (context.team === undefined) return
-      event = event as HelloMessage
+      event = event as ClaimIdentityMessage
 
       // if no identity claim is being made, there's nothing to confirm
       if (!('identityClaim' in event.payload)) return
@@ -471,14 +468,12 @@ export class Connection extends EventEmitter {
       })
     },
 
-    sendSyncMessage: assign(context => {
-      assert(context.team)
-      const { syncState, synced } = this.sendSyncMessage(context.team.chain, context.syncState)
-      return {
-        ...context,
-        syncState,
-        synced,
-      }
+    sendSyncMessage: assign({
+      syncState: context => {
+        assert(context.team)
+        const syncState = this.sendSyncMessage(context.team.chain, context.syncState)
+        return syncState
+      },
     }),
 
     receiveSyncMessage: assign((context, event) => {
@@ -487,24 +482,16 @@ export class Connection extends EventEmitter {
 
       const prevSyncState = context.syncState ?? initSyncState()
 
-      const [newChain, tempSyncState] = receiveMessage(
-        context.team.chain,
-        prevSyncState,
-        syncMessage
-      )
+      const [newChain, syncState] = receiveMessage(context.team.chain, prevSyncState, syncMessage)
       const team = context.team.merge(newChain)
 
-      const { syncState: newSyncState, synced } = this.sendSyncMessage(team.chain, tempSyncState)
+      const summary = JSON.stringify({
+        head: team.chain.head,
+        links: Object.keys(team.chain.links),
+      })
+      this.log(`received sync message; new chain ${summary}`)
 
-      const summary = JSON.stringify({ head: newChain.head, links: Object.keys(newChain.links) })
-      this.log(`*** RECEIVED SYNC MESSAGE; synced: ${synced}; new chain ${summary}`)
-
-      return {
-        ...context,
-        team,
-        syncState: newSyncState,
-        synced,
-      }
+      return { team, syncState }
     }),
 
     // negotiating
@@ -666,28 +653,13 @@ export class Connection extends EventEmitter {
     headsAreEqual: (context, event) => {
       assert(context.team)
       const ourHead = context.team.chain.head
-      if (event.type === 'SYNC') {
-        const { head, need } = event.payload
-        if (arraysAreEqual(head, ourHead)) return false
-        if (need) return false
-        return true
-      } else {
-        return ourHead === context.syncState?.lastCommonHead
-      }
+      const lastCommonHead = context.syncState?.lastCommonHead
+      return arraysAreEqual(ourHead, lastCommonHead)
     },
 
     headsAreDifferent: (...args) => {
       return !this.guards.headsAreEqual(...args)
     },
-
-    synced: (context, ...args) => {
-      this.log('synced ? ', context.synced === true)
-      this.log('heads equal? ', this.guards.headsAreEqual(context, ...args))
-
-      return context.synced === true || this.guards.headsAreEqual(context, ...args)
-    },
-
-    notSynced: (...args) => !this.guards.synced(...args),
   }
 
   // helpers
