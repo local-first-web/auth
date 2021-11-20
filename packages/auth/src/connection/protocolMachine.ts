@@ -4,60 +4,55 @@ import { ConnectionMessage } from '@/connection/message'
 
 // common timeout settings
 const TIMEOUT_DELAY = 7000
-const timeout = { after: { [TIMEOUT_DELAY]: { actions: 'failTimeout', target: '#failure' } } }
+const timeout = { after: { [TIMEOUT_DELAY]: { actions: 'failTimeout', target: '#disconnected' } } }
 
 export const protocolMachine: MachineConfig<ConnectionContext, ConnectionState, ConnectionMessage> =
   {
     id: 'connection',
-    initial: 'idle',
+    initial: 'awaitingIdentityClaim',
 
     on: {
-      // TODO rename READY to REQUEST_IDENTITY
-      // TODO rename sendHello to claimIdentity
-      READY: { actions: 'sendHello', target: 'idle' },
-      ERROR: { actions: 'receiveError', target: '#failure' },
-      // SYNC: [{ actions: ['receiveSyncMessage', 'sendSyncMessage'] }],
+      REQUEST_IDENTITY: { actions: 'sendIdentityClaim', target: 'awaitingIdentityClaim' },
+      ERROR: { actions: 'receiveError', target: '#disconnected' },
     },
 
     states: {
-      // TODO rename idle to awaitingIdentityClaim
-      idle: {
-        id: 'idle',
+      awaitingIdentityClaim: {
+        id: 'awaitingIdentityClaim',
         on: {
-          // TODO rename HELLO to CLAIM_IDENTITY
-          HELLO: { actions: ['receiveHello'], target: 'connecting' },
+          CLAIM_IDENTITY: { actions: ['receiveIdentityClaim'], target: 'authenticating' },
         },
       },
 
-      connecting: {
-        id: 'connecting',
-        initial: 'invitation',
+      authenticating: {
+        id: 'authenticating',
+        initial: 'checkingInvitations',
 
         states: {
-          invitation: {
-            initial: 'initializing',
+          checkingInvitations: {
+            initial: 'checkingForInvitations',
             states: {
-              initializing: {
+              checkingForInvitations: {
                 always: [
                   // we can't both present invitations - someone has to be a member
                   {
                     cond: 'bothHaveInvitation',
                     actions: 'failNeitherIsMember',
-                    target: '#failure',
+                    target: '#disconnected',
                   },
 
                   // if I have an invitation, wait for acceptance
-                  { cond: 'iHaveInvitation', target: 'waiting' },
+                  { cond: 'iHaveInvitation', target: 'awaitingInvitationAcceptance' },
 
                   // if they have an invitation, validate it
-                  { cond: 'theyHaveInvitation', target: 'validating' },
+                  { cond: 'theyHaveInvitation', target: 'validatingInvitation' },
 
                   // otherwise, we can proceed directly to authentication
-                  { target: '#authenticating' },
+                  { target: '#checkingIdentity' },
                 ],
               },
 
-              waiting: {
+              awaitingInvitationAcceptance: {
                 // wait for them to validate the invitation we've shown
                 on: {
                   ACCEPT_INVITATION: [
@@ -65,35 +60,35 @@ export const protocolMachine: MachineConfig<ConnectionContext, ConnectionState, 
                     {
                       cond: 'joinedTheRightTeam',
                       actions: ['joinTeam', 'onJoined'],
-                      target: '#authenticating',
+                      target: '#checkingIdentity',
                     },
 
                     // if it's not, disconnect with error
-                    { actions: 'rejectTeam', target: '#failure' },
+                    { actions: 'rejectTeam', target: '#disconnected' },
                   ],
                 },
                 ...timeout,
               },
 
-              validating: {
+              validatingInvitation: {
                 always: [
-                  // if the proof succeeds, add them to the team and send a welcome message,
+                  // if the proof succeeds, add them to the team and send an acceptance message,
                   // then proceed to the standard identity claim & challenge process
                   {
                     cond: 'invitationProofIsValid',
                     actions: 'acceptInvitation',
-                    target: '#authenticating',
+                    target: '#checkingIdentity',
                   },
 
                   // if the proof fails, disconnect with error
-                  { actions: 'rejectInvitation', target: '#failure' },
+                  { actions: 'rejectInvitation', target: '#disconnected' },
                 ],
               },
             },
           },
 
-          authenticating: {
-            id: 'authenticating',
+          checkingIdentity: {
+            id: 'checkingIdentity',
 
             // peers mutually authenticate to each other, so we have to complete two parallel processes:
             // 1. prove our identity
@@ -102,82 +97,79 @@ export const protocolMachine: MachineConfig<ConnectionContext, ConnectionState, 
 
             states: {
               // 1. prove our identity
-              proving: {
-                initial: 'awaitingChallenge',
+              provingMyIdentity: {
+                initial: 'awaitingIdentityChallenge',
                 states: {
-                  awaitingChallenge: {
-                    // if we just presented an invitation, we can skip this
-                    always: { cond: 'iHaveInvitation', target: 'done' },
+                  awaitingIdentityChallenge: {
+                    // if we just presented an invitation, they already know who we are
+                    always: { cond: 'iHaveInvitation', target: 'doneProvingMyIdentity' },
 
                     on: {
                       CHALLENGE_IDENTITY: {
-                        // we claimed our identity already, in our HELLO message; now we wait for a challenge
                         // when we receive a challenge, respond with proof
                         actions: ['proveIdentity'],
-                        target: 'awaitingAcceptance',
+                        target: 'awaitingIdentityAcceptance',
                       },
                     },
                     ...timeout,
                   },
 
                   // wait for a message confirming that they've validated our proof of identity
-                  awaitingAcceptance: {
-                    on: {
-                      ACCEPT_IDENTITY: { target: 'done' },
-                    },
+                  awaitingIdentityAcceptance: {
+                    on: { ACCEPT_IDENTITY: { target: 'doneProvingMyIdentity' } },
                     ...timeout,
                   },
 
-                  done: {
-                    type: 'final',
-                  },
+                  doneProvingMyIdentity: { type: 'final' },
                 },
               },
 
               // 2. verify their identity
-              verifying: {
-                initial: 'challenging',
+              verifyingTheirIdentity: {
+                initial: 'challengingIdentity',
                 states: {
-                  challenging: {
+                  challengingIdentity: {
                     always: [
                       // if they just presented an invitation, they've already proven their identity - we can move on
-                      { cond: 'theyHaveInvitation', target: 'done' },
+                      { cond: 'theyHaveInvitation', target: 'doneVerifyingTheirIdentity' },
 
-                      // we received their identity claim in their HELLO message
+                      // we received their identity claim in their CLAIM_IDENTITY message
                       // if we have a member & device by that name on the team, send a challenge
                       {
                         actions: ['confirmIdentityExists', 'challengeIdentity'],
-                        target: 'waiting',
+                        target: 'awaitingIdentityProof',
                       },
                     ],
                   },
 
                   // then wait for them to respond to the challenge with proof
-                  waiting: {
+                  awaitingIdentityProof: {
                     on: {
                       PROVE_IDENTITY: [
                         // if the proof succeeds, we're done on our side
-                        { cond: 'identityProofIsValid', actions: 'acceptIdentity', target: 'done' },
+                        {
+                          cond: 'identityProofIsValid',
+                          actions: 'acceptIdentity',
+                          target: 'doneVerifyingTheirIdentity',
+                        },
 
                         // if the proof fails, disconnect with error
-                        { actions: 'rejectIdentityProof', target: '#failure' },
+                        { actions: 'rejectIdentityProof', target: '#disconnected' },
                       ],
                     },
                     ...timeout,
                   },
 
-                  done: { type: 'final' },
+                  doneVerifyingTheirIdentity: { type: 'final' },
                 },
               },
             },
 
             // Once BOTH processes complete, we continue
-            onDone: { actions: 'storePeer', target: '#connecting.done' },
+            onDone: { actions: 'storePeer', target: 'doneAuthenticating' },
           },
 
-          done: {
-            type: 'final',
-          },
+          doneAuthenticating: { type: 'final' },
         },
 
         onDone: { actions: ['listenForTeamUpdates'], target: '#negotiating' },
@@ -185,45 +177,35 @@ export const protocolMachine: MachineConfig<ConnectionContext, ConnectionState, 
 
       negotiating: {
         id: 'negotiating',
-        type: 'parallel',
-        entry: 'generateSeed',
+        entry: ['generateSeed'],
+        initial: 'awaitingSeed',
         states: {
-          sendingSeed: {
-            initial: 'sending',
-            states: {
-              sending: { entry: 'sendSeed', always: 'done' },
-              done: { type: 'final' },
-            },
+          awaitingSeed: {
+            entry: ['sendSeed'],
+            on: { SEED: { actions: 'receiveSeed', target: 'doneNegotiating' } },
+            ...timeout,
           },
-          receivingSeed: {
-            initial: 'waiting',
-            on: {
-              SEED: { actions: 'receiveSeed', target: 'receivingSeed.done' },
-            },
-            states: {
-              waiting: { ...timeout },
-              done: { type: 'final' },
-            },
-          },
+          doneNegotiating: { entry: 'deriveSharedKey', type: 'final' },
         },
+
         onDone: {
-          actions: ['deriveSharedKey', 'sendSyncMessage'],
+          actions: ['sendSyncMessage'],
           target: '#synchronizing',
         },
       },
 
       synchronizing: {
         id: 'synchronizing',
-        always: [{ cond: 'synced', target: '#connected' }],
+
+        always: [{ cond: 'headsAreEqual', actions: 'onUpdated', target: '#connected' }],
 
         on: {
-          SYNC: [{ actions: 'receiveSyncMessage' }],
+          SYNC: { actions: ['receiveSyncMessage', 'sendSyncMessage'], target: '#synchronizing' },
         },
       },
 
       connected: {
         id: 'connected',
-
         entry: 'onConnected',
 
         always: [
@@ -233,7 +215,7 @@ export const protocolMachine: MachineConfig<ConnectionContext, ConnectionState, 
 
         on: {
           // if something changes locally, send them a sync message
-          LOCAL_UPDATE: { actions: ['sendSyncMessage'], target: '#synchronizing' },
+          LOCAL_UPDATE: { actions: ['sendSyncMessage'], target: '#connected' },
 
           // if they send a sync message, process it
           SYNC: { actions: ['receiveSyncMessage'], target: '#synchronizing' },
@@ -243,11 +225,6 @@ export const protocolMachine: MachineConfig<ConnectionContext, ConnectionState, 
 
           DISCONNECT: '#disconnected',
         },
-      },
-
-      failure: {
-        id: 'failure',
-        always: '#disconnected',
       },
 
       disconnected: {
