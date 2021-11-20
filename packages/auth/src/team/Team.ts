@@ -134,6 +134,8 @@ export class Team extends EventEmitter {
    */
   public merge = (theirChain: TeamSignatureChain) => {
     this.store.merge(theirChain)
+    this.state = this.store.getState()
+    this.emit('updated', { head: this.chain.head })
     return this
   }
 
