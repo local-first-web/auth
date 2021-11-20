@@ -27,7 +27,8 @@ export const membershipResolver: Resolver<TeamAction, TeamContext> = chain => {
   const pools = getConcurrentBubbles(chain).map(hashes => hashes.map(hash => chain.links[hash]))
   const invalidLinks: TeamLink[] = []
   for (var pool of pools) {
-    for (const rule of Object.values(membershipRules)) {
+    for (const ruleName in membershipRules) {
+      const rule = membershipRules[ruleName]
       const invalid = rule(pool, chain)
       invalid.forEach(link => invalidLinks.push(link))
       pool = pool.filter(linkNotIn(invalidLinks))
@@ -39,18 +40,6 @@ export const membershipResolver: Resolver<TeamAction, TeamContext> = chain => {
 }
 
 const membershipRules: Record<string, MembershipRuleEnforcer> = {
-  // TODO: an add->remove->add sequence on one side will result in add->remove, because the two adds are treated as duplicates
-  // RULE: no duplicates
-  noDuplicates: links => {
-    const seen = {} as Record<string, boolean>
-    return links.filter(link => {
-      const fingerprint = actionFingerprint(link) // string summarizing the link, e.g. `ADD:bob`
-      if (seen[fingerprint]) return true
-      seen[fingerprint] = true
-      return false
-    })
-  },
-
   // RULE: mutual and circular removals are resolved by seniority
   //
   // I'd like to actually implement full strong-remove — e.g. remove everyone in a mutual remove
