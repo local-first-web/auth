@@ -66,6 +66,9 @@
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/src/$1"
     },
+    "testMatch": [
+      "**/*.test.ts"
+    ],
     "testEnvironment": "node"
   }
 }
