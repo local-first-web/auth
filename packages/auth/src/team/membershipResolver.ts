@@ -11,7 +11,6 @@ import {
   TeamLink,
   TeamSignatureChain,
 } from '@/team/types'
-import { actionFingerprint } from '@/util'
 import { arraysAreEqual } from '@/util/arraysAreEqual'
 import { getConcurrentBubbles, Link, LinkBody, Resolver } from 'crdx'
 import { isAdminOnlyAction } from './isAdminOnlyAction'

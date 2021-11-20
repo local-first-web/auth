@@ -25,6 +25,7 @@ import {
 } from 'crdx'
 import { EventEmitter } from 'events'
 import { ADMIN_SCOPE, ALL, initialState, TEAM_SCOPE } from './constants'
+import { membershipResolver as resolver } from './membershipResolver'
 import { redactUser } from './redactUser'
 import { reducer } from './reducer'
 import * as select from './selectors'
@@ -89,14 +90,14 @@ export class Team extends EventEmitter {
       }
 
       // Create CRDX store
-      this.store = createStore({ user, reducer, initialState, rootPayload })
+      this.store = createStore({ user, reducer, resolver, initialState, rootPayload })
     } else {
       // Rehydrate a team from an existing chain
       const chain = maybeDeserialize(options.source)
       const { user } = options.context
 
       // Create CRDX store
-      this.store = createStore({ user, reducer, initialState, chain })
+      this.store = createStore({ user, reducer, resolver, initialState, chain })
     }
 
     this.state = this.store.getState()
