@@ -3,6 +3,7 @@ import { debug } from '@/util'
 import {
   all,
   connect,
+  connection,
   connectPhoneWithInvitation,
   connectWithInvitation,
   disconnect,
@@ -21,6 +22,14 @@ const log = debug('lf:auth:test')
 describe('connection', () => {
   describe('sync', () => {
     describe('two peers', () => {
+      it('knows when users are up to date', async () => {
+        const { alice, bob } = setup('alice', 'bob')
+
+        // 👩🏾 👨🏻‍🦲 Alice and Bob connect
+        connect(alice, bob)
+        await updated(alice, bob)
+      })
+
       it('updates remote user after connecting', async () => {
         const { alice, bob } = setup('alice', 'bob')
 
@@ -30,13 +39,15 @@ describe('connection', () => {
         alice.team.addRole('managers')
         alice.team.addMemberRole('bob', 'managers')
 
+        expect(alice.team.hasRole('managers')).toBe(true)
+        expect(alice.team.memberHasRole('bob', 'managers')).toBe(true)
+
         // 👨🏻‍🦲 Bob hasn't connected, so he doesn't have Alice's changes
         expect(bob.team.hasRole('managers')).toBe(false)
         expect(bob.team.memberHasRole('bob', 'managers')).toBe(false)
 
         // 👩🏾 👨🏻‍🦲 Alice and Bob connect
-        connect(alice, bob)
-        await updated(alice, bob)
+        await connect(alice, bob)
 
         // ✅ 👨🏻‍🦲 Bob is up to date with Alice's changes
         expect(bob.team.hasRole('managers')).toBe(true)
@@ -68,14 +79,13 @@ describe('connection', () => {
 
         // at this point, Alice and Bob have the same signature chain
 
-        // 👨🏻‍🦲 now Bob does some stuff
+        // 👨🏻‍🦲 now Alice does some stuff
         alice.team.addRole('managers')
         alice.team.addMemberRole('bob', 'managers')
 
         await updated(alice, bob)
-        await updated(alice, bob)
 
-        // ✅ 👩🏾 Alice is up to date with Bob's changes
+        // ✅ 👩🏾 Bob is up to date with Alice's changes
         expect(bob.team.hasRole('managers')).toBe(true)
         expect(bob.team.memberHasRole('bob', 'managers')).toBe(true)
       })
@@ -92,7 +102,6 @@ describe('connection', () => {
         bob.team.addRole('managers')
         bob.team.addMemberRole('bob', 'managers')
 
-        await updated(alice, bob)
         await updated(alice, bob)
 
         // ✅ 👩🏾 Alice is up to date with Bob's changes
@@ -152,32 +161,28 @@ describe('connection', () => {
       it('sends updates across multiple hops', async () => {
         const { alice, bob, charlie } = setup('alice', 'bob', 'charlie')
 
-        // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
+        // 👩🏾 👨🏻‍🦲 Alice and Bob connect
         await connect(alice, bob)
-        // 👨🏻‍🦲<->👳🏽‍♂️ Bob and Charlie connect
         await connect(bob, charlie)
 
-        // 👩🏾 Alice creates a new role
-        alice.team.addRole('MANAGERS')
+        // at this point, Alice and Bob have the same signature chain
 
-        await Promise.all([
-          updated(alice, bob), //
-          updated(bob, charlie),
-        ])
+        // 👨🏻‍🦲 now Alice does some stuff
+        alice.team.addRole('managers')
+        alice.team.addMemberRole('bob', 'managers')
+
+        // TODO: is there a better way to wait for everyone to be synced up?
+        await pause()
+
+        // ✅ 👩🏾 Bob is up to date with Alice's changes
+        expect(bob.team.hasRole('managers')).toBe(true)
 
         // ✅ Charlie sees the new role, even though he's not connected directly to Alice 👳🏽‍♂️💭
-        expect(charlie.team.hasRole('MANAGERS')).toEqual(true)
+        expect(charlie.team.hasRole('managers')).toBe(true)
       })
 
       it('syncs up three ways - changes made after connecting', async () => {
         const { alice, bob, charlie } = setup('alice', 'bob', 'charlie')
-
-        const allUpdated = () =>
-          Promise.all([
-            updated(alice, bob), //
-            updated(bob, charlie),
-            updated(alice, charlie),
-          ])
 
         // 👩🏾<->👨🏻‍🦲<->👳🏽‍♂️ Alice, Bob, and Charlie all connect to each other
         await connect(alice, bob)
@@ -196,7 +201,7 @@ describe('connection', () => {
         // 👳🏽‍♂️ Charlie adds a new role
         // charlie.team.addRole('CHARLIES_FRIENDS')
 
-        await allUpdated()
+        await pause()
 
         // ✅ All three get the three new roles
         expect(bob.team.hasRole('ALICES_FRIENDS')).toBe(true)
@@ -262,6 +267,8 @@ describe('connection', () => {
     })
 
     describe('removals and demotions', () => {
+      // NEXT: duplicate removal is throwing an error
+
       it('resolves concurrent duplicate removals', async () => {
         const { alice, bob } = setup('alice', 'bob', 'charlie')
 
@@ -271,12 +278,18 @@ describe('connection', () => {
 
         // 👨🏻‍🦲 Bob removes 👳🏽‍♂️ Charlie
         bob.team.remove('charlie')
+        expect(alice.team.has('charlie')).toBe(true)
+        expect(bob.team.has('charlie')).toBe(false)
 
         // 👩🏾 concurrently, Alice also removes 👳🏽‍♂️ Charlie
         alice.team.remove('charlie')
+        expect(alice.team.has('charlie')).toBe(false)
+        expect(bob.team.has('charlie')).toBe(false)
 
         // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
         await connect(alice, bob)
+
+        await pause()
 
         // ✅ nothing blew up, and Charlie has been removed on both sides 🚫👳🏽‍♂️
         expect(alice.team.has('charlie')).toBe(false)
@@ -358,8 +371,6 @@ describe('connection', () => {
         // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
         log('Alice and Bob connect')
         await connect(alice, bob)
-
-        await updated(alice, bob)
 
         // ✅ No problemo
         log('No problemo')
