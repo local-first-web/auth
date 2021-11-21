@@ -88,6 +88,11 @@ export const updated = (a: UserStuff, b: UserStuff) => {
   return all(connections, 'updated')
 }
 
+export const anyUpdated = (a: UserStuff, b: UserStuff) => {
+  const connections = [a.connection[b.userName], b.connection[a.userName]]
+  return any(connections, 'updated')
+}
+
 export const disconnection = async (a: UserStuff, b: UserStuff, message?: string) => {
   const connections = [a.connection[b.userName], b.connection[a.userName]]
   const activeConnections = connections.filter(c => c.state !== 'disconnected')
@@ -104,6 +109,15 @@ export const disconnection = async (a: UserStuff, b: UserStuff, message?: string
 
 export const all = (connections: Connection[], event: string) =>
   Promise.all(
+    connections.map(connection => {
+      if (event === 'disconnect' && connection.state === 'disconnected') return true
+      if (event === 'connected' && connection.state === 'connected') return true
+      else return new Promise(resolve => connection.on(event, () => resolve(true)))
+    })
+  )
+
+export const any = (connections: Connection[], event: string) =>
+  Promise.any(
     connections.map(connection => {
       if (event === 'disconnect' && connection.state === 'disconnected') return true
       if (event === 'connected' && connection.state === 'connected') return true

@@ -38,6 +38,7 @@ import {
   redactKeys,
   SyncState,
 } from 'crdx'
+import { headsAreEqual } from 'crdx/dist/util'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
 import { protocolMachine } from './protocolMachine'
 
@@ -478,18 +479,22 @@ export class Connection extends EventEmitter {
 
     receiveSyncMessage: assign((context, event) => {
       assert(context.team)
-      const syncMessage = (event as SyncMessage).payload
+      var { team } = context
 
       const prevSyncState = context.syncState ?? initSyncState()
-
+      const syncMessage = (event as SyncMessage).payload
       const [newChain, syncState] = receiveMessage(context.team.chain, prevSyncState, syncMessage)
-      const team = context.team.merge(newChain)
 
-      const summary = JSON.stringify({
-        head: team.chain.head,
-        links: Object.keys(team.chain.links),
-      })
-      this.log(`received sync message; new chain ${summary}`)
+      if (!headsAreEqual(newChain.head, team.chain.head)) {
+        team = context.team.merge(newChain)
+
+        const summary = JSON.stringify({
+          head: team.chain.head,
+          links: Object.keys(team.chain.links),
+        })
+        this.log(`received sync message; new chain ${summary}`)
+        this.emit('updated')
+      }
 
       return { team, syncState }
     }),

@@ -197,7 +197,7 @@ export const protocolMachine: MachineConfig<ConnectionContext, ConnectionState, 
       synchronizing: {
         id: 'synchronizing',
 
-        always: [{ cond: 'headsAreEqual', actions: 'onUpdated', target: '#connected' }],
+        always: [{ cond: 'headsAreEqual', actions: 'onConnected', target: '#connected' }],
 
         on: {
           SYNC: { actions: ['receiveSyncMessage', 'sendSyncMessage'], target: '#synchronizing' },
@@ -206,7 +206,6 @@ export const protocolMachine: MachineConfig<ConnectionContext, ConnectionState, 
 
       connected: {
         id: 'connected',
-        entry: 'onConnected',
 
         always: [
           // if the peer is no longer on the team, disconnect
@@ -218,10 +217,10 @@ export const protocolMachine: MachineConfig<ConnectionContext, ConnectionState, 
           LOCAL_UPDATE: { actions: ['sendSyncMessage'], target: '#connected' },
 
           // if they send a sync message, process it
-          SYNC: { actions: ['receiveSyncMessage'], target: '#synchronizing' },
+          SYNC: { actions: ['receiveSyncMessage', 'sendSyncMessage'], target: '#connected' },
 
           // deliver any encrypted messages
-          ENCRYPTED_MESSAGE: { actions: 'receiveEncryptedMessage', target: 'connected' },
+          ENCRYPTED_MESSAGE: { actions: 'receiveEncryptedMessage', target: '#connected' },
 
           DISCONNECT: '#disconnected',
         },
