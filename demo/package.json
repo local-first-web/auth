@@ -10,7 +10,7 @@
   "license": "MIT",
   "private": false,
   "scripts": {
-    "xxxbuild": "cross-env NODE_ENV=production && tsc && vite build",
+    "build": "cross-env NODE_ENV=production && tsc && vite build",
     "dev:relay": "cross-env DEBUG='lf*' DEBUG_COLORS=1 node ./scripts/start-relay-server.js",
     "dev:serve": "vite --port 3000",
     "dev": "run-p dev:relay dev:serve",
@@ -41,7 +41,7 @@
     "clipboard": "2",
     "cross-env": "7",
     "cuid": "2",
-    "cypress": "7",
+    "cypress": "9",
     "debug": "4",
     "events": "3",
     "friendly-words": "1",
