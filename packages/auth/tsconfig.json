@@ -16,11 +16,12 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "outDir": "dist",
+    "outDir": "./dist",
     "sourceMap": true,
     "strict": true,
     "strictPropertyInitialization": false,
+    "strictNullChecks": false,
     "target": "esnext"
   },
-  "include": ["src", "@types", "../../types"]
+  "include": ["src", "@types"]
 }
