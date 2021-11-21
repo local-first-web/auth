@@ -49,8 +49,6 @@ const { DEVICE } = KeyType
  * implements the connection protocol. The XState configuration is in `protocolMachine`.
  */
 export class Connection extends EventEmitter {
-  public log: debug.Debugger
-
   private sendMessage: SendFunction
   private peerUserName: string = '?'
 
@@ -624,7 +622,7 @@ export class Connection extends EventEmitter {
       assert(context.theirProofOfInvitation)
       const validation = context.team.validateInvitation(context.theirProofOfInvitation)
       this.log(`invitation validation: %o`, validation)
-      if (validation.isValid) {
+      if (validation.isValid === true) {
         return true
       } else {
         this.context.error = validation.error
