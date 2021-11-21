@@ -46,7 +46,7 @@ export const reducer: Reducer<TeamState, TeamAction, TeamContext> = ((state, lin
 
   // make sure this link can be applied to the previous state & doesn't put us in an invalid state
   const validation = validate(state, link)
-  if (!validation.isValid) throw validation.error
+  if (validation.isValid === false) throw validation.error
 
   // recast as TeamAction so we get type enforcement on payloads
   const action = link.body as TeamAction
