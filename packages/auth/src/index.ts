@@ -22,4 +22,4 @@ export * from './role/types'
 export * from './team/types'
 
 export { symmetric, asymmetric, signatures } from '@herbcaudill/crypto'
-export { LinkBody } from 'crdx'
+export { LinkBody, createUser, User, UserWithSecrets, createKeyset } from 'crdx'
