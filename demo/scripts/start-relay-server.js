@@ -1,4 +1,4 @@
-﻿const { Server } = require('@localfirst/relay/dist')
+﻿import { Server } from '@localfirst/relay/dist/index.js'
 
 const DEFAULT_PORT = 8080
 const port = Number(process.env.PORT) || DEFAULT_PORT

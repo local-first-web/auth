@@ -644,13 +644,31 @@
     unique-filename "^1.1.1"
     which "^1.3.1"
 
-"@herbcaudill/crypto@2":
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/@herbcaudill/crypto/-/crypto-2.0.1.tgz#0d20cbc05028b71e429816e9538f2d9d9e86bfb9"
-  integrity sha512-7hoM4pNHJ9EojJyNg4YNC5aiBRbQftwelyKtDojYLuHuzP/a14HfD0EMuyEzI5WTrJ1ETNNkcAbnMdOeDmixzg==
+"@herbcaudill/base-x@4":
+  version "4.0.6"
+  resolved "https://registry.yarnpkg.com/@herbcaudill/base-x/-/base-x-4.0.6.tgz#681a5921ea55b61a431c49ade9955322b02337cd"
+  integrity sha512-9BaPxLhtOGn5Os1gnG223StA8BvOm2vm8Unatj6nLoEV1lL8PVDyhsZV1yJXSSWEc8aHnQAJG5+NbvGMveaqeQ==
+
+"@herbcaudill/crypto@2.1":
+  version "2.1.3"
+  resolved "https://registry.yarnpkg.com/@herbcaudill/crypto/-/crypto-2.1.3.tgz#212d5c35a710ea80310b09603430bb9b76983dbf"
+  integrity sha512-+NFdwhUWAzTS8z7uhATkye2okJSEncKQvrhCSTolPE+skVtn9eaU+cs6fAms0LtRqhmwtMEAa4X7IvXd0y2sNw==
   dependencies:
+    "@herbcaudill/base-x" "4"
     "@stablelib/utf8" "1"
-    base-x "3"
+    fast-memoize "2"
+    json-stable-stringify "1"
+    libsodium-wrappers "0"
+    msgpack-lite "0"
+
+"@herbcaudill/crypto@2.1.5":
+  version "2.1.5"
+  resolved "https://registry.yarnpkg.com/@herbcaudill/crypto/-/crypto-2.1.5.tgz#5c92ef23fd6f978949318d01988cb89deec37ac1"
+  integrity sha512-h/BACqLfvI5AmW7A3htPdGzKDTSKv6quTefuo1dYVGWIPvTzOntPXj5sABX3zAx+r6cLXG160zwVBd0xebcoQA==
+  dependencies:
+    "@herbcaudill/base-x" "4"
+    "@stablelib/utf8" "1"
+    fast-memoize "2"
     json-stable-stringify "1"
     libsodium-wrappers "0"
     msgpack-lite "0"
@@ -1733,6 +1751,24 @@
   dependencies:
     "@octokit/openapi-types" "^11.2.0"
 
+"@rollup/plugin-inject@^4.0.3":
+  version "4.0.3"
+  resolved "https://registry.yarnpkg.com/@rollup/plugin-inject/-/plugin-inject-4.0.3.tgz#6f04ebc14790a8bf892286fe9b8c0eb1ddf4d5ce"
+  integrity sha512-lzMXmj0LZjd67MI+M8H9dk/oCxR0TYqYAdZ6ZOejWQLSUtud+FUPu4NCMAO8KyWWAalFo8ean7yFHCMvCNsCZw==
+  dependencies:
+    "@rollup/pluginutils" "^3.1.0"
+    estree-walker "^2.0.1"
+    magic-string "^0.25.7"
+
+"@rollup/pluginutils@^3.1.0":
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/@rollup/pluginutils/-/pluginutils-3.1.0.tgz#706b4524ee6dc8b103b3c995533e5ad680c02b9b"
+  integrity sha512-GksZ6pr6TpIjHm8h9lSQ8pi8BE9VeubNT0OMJ3B5uZJ8pz73NPiqOtCog/x2/QzM1ENChPKxMDhiQuRHsqc+lg==
+  dependencies:
+    "@types/estree" "0.0.39"
+    estree-walker "^1.0.1"
+    picomatch "^2.2.2"
+
 "@rollup/pluginutils@^4.1.1":
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/@rollup/pluginutils/-/pluginutils-4.1.1.tgz#1d4da86dd4eded15656a57d933fda2b9a08d47ec"
@@ -1881,6 +1917,11 @@
   dependencies:
     "@types/ms" "*"
 
+"@types/estree@0.0.39":
+  version "0.0.39"
+  resolved "https://registry.yarnpkg.com/@types/estree/-/estree-0.0.39.tgz#e177e699ee1b8c22d23174caaa7422644389509f"
+  integrity sha512-EYNwp3bU+98cpU4lAWYYL7Zz+2gryWH1qbdDTidVd6hkiR6weksdbMadyXKXNPEkQFhXM+hVO9ZygomHXp+AIw==
+
 "@types/glob@^7.1.1":
   version "7.2.0"
   resolved "https://registry.yarnpkg.com/@types/glob/-/glob-7.2.0.tgz#bc1b5bf3aa92f25bd5dd39f35c57361bdce5b2eb"
@@ -1922,6 +1963,16 @@
   dependencies:
     jest-diff "^27.0.0"
     pretty-format "^27.0.0"
+
+"@types/libsodium-wrappers@0":
+  version "0.7.9"
+  resolved "https://registry.yarnpkg.com/@types/libsodium-wrappers/-/libsodium-wrappers-0.7.9.tgz#89c3ad2156d5143e64bce86cfeb0045a983aeccc"
+  integrity sha512-LisgKLlYQk19baQwjkBZZXdJL0KbeTpdEnrAfz5hQACbklCY0gVFnsKUyjfNWF1UQsCSjw93Sj5jSbiO8RPfdw==
+
+"@types/lodash@4":
+  version "4.14.177"
+  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.177.tgz#f70c0d19c30fab101cad46b52be60363c43c4578"
+  integrity sha512-0fDwydE2clKe9MNfvXHBHF9WEahRuj+msTuQqOmAApNORFvhMYZKNGGJdCzuhheVjMps/ti0Ak/iJPACMaevvw==
 
 "@types/mermaid@8":
   version "8.2.7"
@@ -2539,13 +2590,6 @@ balanced-match@^1.0.0:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/balanced-match/-/balanced-match-1.0.2.tgz#e83e3a7e3f300b34cb9d87f615fa0cbf357690ee"
   integrity sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==
-
-base-x@3:
-  version "3.0.9"
-  resolved "https://registry.yarnpkg.com/base-x/-/base-x-3.0.9.tgz#6349aaabb58526332de9f60995e548a53fe21320"
-  integrity sha512-H7JU6iBHTal1gp56aKoaa//YUxEaAOUiydvrV/pILqIHXTtqxSkATOnDA2u+jZ/61sD+L/412+7kzXRtWukhpQ==
-  dependencies:
-    safe-buffer "^5.0.1"
 
 base64-js@^1.3.1:
   version "1.5.1"
@@ -3459,12 +3503,12 @@ cosmiconfig@^7.0.1:
     path-type "^4.0.0"
     yaml "^1.10.0"
 
-crdx@1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/crdx/-/crdx-1.0.1.tgz#24e7317f9685d4486c2471911d10824deab3f1db"
-  integrity sha512-dzHMDLckaztNkVqqHvIqL6RUJaqWhHbj32HHqvBWTfRSPKe7hgZD/i+Nhj+ZLo+kDVL+XsS7AmEKoEQkRPo6IQ==
+crdx@1.0.6:
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/crdx/-/crdx-1.0.6.tgz#57de01a386c384128f707a24d2abc63979bcd6b2"
+  integrity sha512-EEOv2tcIL3JYpLrZ3iWRMjlDTJN9gnBWxBaOd9o2gI+tbVAPNW204zRS3ru1X96SfyRBZSip3smVbjz+gD6X+Q==
   dependencies:
-    "@herbcaudill/crypto" "2"
+    "@herbcaudill/crypto" "2.1.5"
     "@herbcaudill/random" "0"
     cuid "2"
     debug "4"
@@ -4786,6 +4830,11 @@ estraverse@^5.2.0:
   version "5.3.0"
   resolved "https://registry.yarnpkg.com/estraverse/-/estraverse-5.3.0.tgz#2eea5290702f26ab8fe5370370ff86c965d21123"
   integrity sha512-MMdARuVEQziNTeJD8DgMqmhwR11BRQ/cBP+pLtYdSTnf3MIO8fFeiINEbX36ZdNlfU/7A9f3gUw49B3oQsvwBA==
+
+estree-walker@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/estree-walker/-/estree-walker-1.0.1.tgz#31bc5d612c96b704106b477e6dd5d8aa138cb700"
+  integrity sha512-1fMXF3YP4pZZVozF8j/ZLfvnR8NSIljt56UhbZ5PeeDmmGHpgpdwQt7ITlGvYaQukCvuBRMLEiKiYC+oeIg4cg==
 
 estree-walker@^2.0.1:
   version "2.0.2"
@@ -7415,6 +7464,13 @@ macos-release@^2.2.0:
   resolved "https://registry.yarnpkg.com/macos-release/-/macos-release-2.5.0.tgz#067c2c88b5f3fb3c56a375b2ec93826220fa1ff2"
   integrity sha512-EIgv+QZ9r+814gjJj0Bt5vSLJLzswGmSUbUpbi9AIr/fsN2IWFBl2NucV9PAiek+U1STK468tEkxmVYUtuAN3g==
 
+magic-string@^0.25.7:
+  version "0.25.7"
+  resolved "https://registry.yarnpkg.com/magic-string/-/magic-string-0.25.7.tgz#3f497d6fd34c669c6798dcb821f2ef31f5445051"
+  integrity sha512-4CrMT5DOHTDk4HYDlzmwu4FVCcIYI8gauveasrdCu2IKIFOJ3f0v/8MDGJCDL9oD2ppz/Av1b0Nj345H9M+XIA==
+  dependencies:
+    sourcemap-codec "^1.4.4"
+
 make-dir@^1.0.0:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/make-dir/-/make-dir-1.3.0.tgz#79c1033b80515bd6d24ec9933e860ca75ee27f0c"
@@ -9762,6 +9818,11 @@ source-map@^0.7.3:
   resolved "https://registry.yarnpkg.com/source-map/-/source-map-0.7.3.tgz#5302f8169031735226544092e64981f751750383"
   integrity sha512-CkCj6giN3S+n9qrYiBTX5gystlENnRW5jZeNLHpe6aue+SrHcG5VYwujhW9s4dY31mEGsxBDrHR6oI69fTXsaQ==
 
+sourcemap-codec@^1.4.4:
+  version "1.4.8"
+  resolved "https://registry.yarnpkg.com/sourcemap-codec/-/sourcemap-codec-1.4.8.tgz#ea804bd94857402e6992d05a38ef1ae35a9ab4c4"
+  integrity sha512-9NykojV5Uih4lgo5So5dtw+f0JgJX30KCNI8gwhz2J9A15wD0Ml6tjHKwf6fTSa6fAdVBdZeNOs9eJ71qCk8vA==
+
 spawndamnit@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/spawndamnit/-/spawndamnit-2.0.0.tgz#9f762ac5c3476abb994b42ad592b5ad22bb4b0ad"
@@ -10518,10 +10579,10 @@ typedarray@^0.0.6:
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
   integrity sha1-hnrHTjhkGHsdPUfZlqeOxciDB3c=
 
-typescript@4:
-  version "4.5.2"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.5.2.tgz#8ac1fba9f52256fdb06fb89e4122fa6a346c2998"
-  integrity sha512-5BlMof9H1yGt0P8/WF+wPNw6GfctgGjXp5hkblpyT+8rkASSmkUKMXrxR0Xg8ThVCi/JnHQiKXeBaEwCeQwMFw==
+typescript@4, typescript@4.4:
+  version "4.4.4"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.4.4.tgz#2cd01a1a1f160704d3101fd5a58ff0f9fcb8030c"
+  integrity sha512-DqGhF5IKoBl8WNf8C1gu8q0xZSInh9j1kJJMqT3a94w1JzVaBU4EXOSMrz9yDqMT0xt3selp83fuFMQ0uzv6qA==
 
 uglify-js@^3.1.4:
   version "3.14.3"

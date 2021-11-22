@@ -1,5 +1,7 @@
-const windmill = require('@windmill/react-ui/config')
-const { colors, fontSize } = require('tailwindcss/defaultTheme')
+import windmill from '@windmill/react-ui/config.js'
+import defaultTheme from 'tailwindcss/defaultTheme.js'
+
+const { colors, fontSize } = defaultTheme
 
 const emoji = 'Segoe UI Emoji'
 const mono = 'IBM Plex Mono'
@@ -7,7 +9,7 @@ const sans = 'IBM Plex Sans'
 const condensed = 'IBM Plex Sans Condensed'
 const serif = 'IBM Plex Serif'
 
-module.exports = windmill({
+export default windmill({
   mode: 'jit',
   purge: ['./src/**/*.{js,jsx,ts,tsx}', './index.html'],
   theme: {

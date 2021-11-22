@@ -9,6 +9,7 @@
   "repository": "http://github.com/local-first-web/auth",
   "license": "MIT",
   "private": false,
+  "type": "module",
   "scripts": {
     "build": "cross-env NODE_ENV=production && tsc && vite build",
     "dev:relay": "cross-env DEBUG='lf*' DEBUG_COLORS=1 node ./scripts/start-relay-server.js",
@@ -23,6 +24,7 @@
     "@localfirst/auth": "2",
     "@localfirst/relay": "3",
     "@localfirst/relay-client": "3",
+    "@rollup/plugin-inject": "^4.0.3",
     "@testing-library/cypress": "8",
     "@testing-library/jest-dom": "5",
     "@testing-library/react": "12",
@@ -55,5 +57,11 @@
     "tailwindcss": "2",
     "typescript": "4",
     "vite": "2"
+  },
+  "postcss": {
+    "plugins": {
+      "tailwindcss": {},
+      "autoprefixer": {}
+    }
   }
 }

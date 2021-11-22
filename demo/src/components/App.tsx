@@ -1,5 +1,4 @@
 import * as auth from '@localfirst/auth'
-import { Buffer } from 'buffer'
 import React from 'react'
 import { PeerInfo, peers as allPeers } from '../peers'
 import { PeerState, Storage, StoredPeerState } from '../types'
@@ -7,8 +6,11 @@ import { Chooser } from './Chooser'
 import { Peer } from './Peer'
 import { TeamProvider } from './TeamProvider'
 
+import { Buffer } from 'buffer'
+
 // @ts-ignore
-globalThis.Buffer = Buffer
+globalThis.Buffer =
+  typeof window !== 'undefined' && typeof window.Buffer !== 'undefined' ? window.Buffer : Buffer
 
 // 👩🏾💻 Add Alice's laptop by default
 allPeers['Alice:laptop'].show = true
