@@ -3,11 +3,11 @@ import * as identity from '@/connection/identity'
 import {
   AcceptInvitationMessage,
   ChallengeIdentityMessage,
+  ClaimIdentityMessage,
   ConnectionMessage,
   DisconnectMessage,
   EncryptedMessage,
   ErrorMessage,
-  ClaimIdentityMessage,
   NumberedConnectionMessage,
   ProveIdentityMessage,
   SeedMessage,
@@ -29,16 +29,16 @@ import { Team, TeamSignatureChain } from '@/team'
 import { assert, debug, EventEmitter, truncateHashes } from '@/util'
 import { arraysAreEqual } from '@/util/arraysAreEqual'
 import { syncMessageSummary as syncMessageSummary } from '@/util/testing/messageSummary'
-import { asymmetric, Payload, symmetric, randomKey } from '@herbcaudill/crypto'
+import { asymmetric, Payload, randomKey, symmetric } from '@herbcaudill/crypto'
 import {
   generateMessage,
+  headsAreEqual,
   initSyncState,
   KeyType,
   receiveMessage,
   redactKeys,
   SyncState,
 } from 'crdx'
-import { headsAreEqual } from 'crdx/dist/util'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
 import { protocolMachine } from './protocolMachine'
 
