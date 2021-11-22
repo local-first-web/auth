@@ -24,7 +24,6 @@
     "@localfirst/auth": "2",
     "@localfirst/relay": "3",
     "@localfirst/relay-client": "3",
-    "@rollup/plugin-inject": "^4.0.3",
     "@testing-library/cypress": "8",
     "@testing-library/jest-dom": "5",
     "@testing-library/react": "12",
