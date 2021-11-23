@@ -169,10 +169,10 @@ describe('taco-chat', () => {
     // Alice disconnects
     alice().toggleOnline()
 
-    // // Alice is disconnected
-    // alice()
-    //   .peerConnectionStatus('Bob')
-    //   .should('equal', 'disconnected')
+    // Alice is disconnected
+    alice()
+      .peerConnectionStatus('Bob')
+      .should('equal', 'disconnected')
 
     // Alice promotes Bob
     alice().promote('Bob')
@@ -226,7 +226,7 @@ describe('taco-chat', () => {
       .should('not.be.admin')
   })
 
-  it.only(`Alice and Bob demote each other concurrently`, () => {
+  it(`Alice and Bob demote each other concurrently`, () => {
     show('Bob:laptop')
     alice().addToTeam('Bob')
     alice().promote('Bob')
