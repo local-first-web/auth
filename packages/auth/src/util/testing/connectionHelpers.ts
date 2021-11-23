@@ -17,7 +17,6 @@ export const tryToConnect = async (a: UserStuff, b: UserStuff) => {
 export const connect = async (a: UserStuff, b: UserStuff) => {
   tryToConnect(a, b)
   await connection(a, b)
-  // await updated(a, b)
 }
 
 /** Connects a (a member) with b (invited using the given seed). */
