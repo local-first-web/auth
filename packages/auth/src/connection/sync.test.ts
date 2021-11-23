@@ -547,7 +547,7 @@ describe('connection', () => {
 
       it('rotates keys after a member is removed', async () => {
         const { alice, bob } = setup('alice', 'bob')
-        connect(alice, bob)
+        await connect(alice, bob)
 
         // 👨🏻‍🦲 Bob has admin keys
         expect(() => bob.team.adminKeys()).not.toThrow()
@@ -630,8 +630,8 @@ describe('connection', () => {
 
         const join = joinTestChannel(new TestChannel())
 
-        const eveOnBobsPhone = join(phoneContext).start()
-        const heyCharlie = join(charlie.connectionContext).start()
+        const eveOnBobsPhone = await join(phoneContext).start()
+        const heyCharlie = await join(charlie.connectionContext).start()
 
         // GRRR foiled again
         await all([eveOnBobsPhone, heyCharlie], 'disconnected')
@@ -673,8 +673,8 @@ describe('connection', () => {
 
       //   const join = joinTestChannel(new TestChannel())
 
-      //   const aliceBobPhone = join(alice.connectionContext).start()
-      //   const bobPhone = join(phoneContext).start()
+      //   const aliceBobPhone = await join(alice.connectionContext).start()
+      //   const bobPhone = await join(phoneContext).start()
 
       //   await all([aliceBobPhone, bobPhone], 'connected')
 
