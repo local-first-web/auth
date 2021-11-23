@@ -4,6 +4,7 @@
     "baseUrl": ".",
     "declaration": true,
     "esModuleInterop": true,
+    "incremental": true,
     "importHelpers": true,
     "jsx": "react",
     "lib": ["dom", "esnext"],
