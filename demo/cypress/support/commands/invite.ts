@@ -1,6 +1,6 @@
-import { commandFn } from '../'
+import { CommandFn } from '../'
 
-export const invite: commandFn = subject => {
+export const invite: CommandFn = subject => {
   const s = () => cy.wrap(subject)
   // click invite button
   s()

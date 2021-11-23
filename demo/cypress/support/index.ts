@@ -60,7 +60,7 @@ declare global {
   }
 }
 
-export type commandFn = (...args: any[]) => void | Cypress.Chainable | Promise<unknown>
+export type CommandFn = (...args: any[]) => Cypress.Chainable
 
 export const show = (id: string) => cy.get('.Chooser select').select(id)
 

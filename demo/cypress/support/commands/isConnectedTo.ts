@@ -1,6 +1,6 @@
-import { commandFn } from '..'
+import { CommandFn } from '..'
 
-export const isConnectedTo: commandFn = (subject, userName: string) => {
+export const isConnectedTo: CommandFn = (subject, userName: string) => {
   cy.wrap(subject)
     .peerConnectionStatus(userName)
     .should('equal', 'connected')

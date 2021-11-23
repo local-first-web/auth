@@ -1,6 +1,6 @@
-import { commandFn } from '..'
+import { CommandFn } from '..'
 
-export const peerConnectionStatus: commandFn = (subject, userName: string) => {
+export const peerConnectionStatus: CommandFn = (subject, userName: string) => {
   const connCell = cy
     .wrap(subject)
     .teamMember(userName)

@@ -1,4 +1,7 @@
-﻿import { commandFn } from '..'
+﻿import { CommandFn } from '..'
 
-export const adminButton: commandFn = (subject, userName: string) =>
-  cy.wrap(subject).teamMember(userName).findByText('👑')
+export const adminButton: CommandFn = (subject, userName: string) =>
+  cy
+    .wrap(subject)
+    .teamMember(userName)
+    .findByText('👑')

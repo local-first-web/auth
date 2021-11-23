@@ -1,6 +1,6 @@
-﻿import { commandFn } from '..'
+﻿import { CommandFn } from '..'
 
-export const toggleOnline: commandFn = subject => {
+export const toggleOnline: CommandFn = subject => {
   const s = () => cy.wrap(subject)
   s()
     .find('.OnlineToggle')
