@@ -1,6 +1,8 @@
-﻿import * as teams from '@/team'
+﻿import { ADMIN } from '@/role'
+import * as teams from '@/team'
 import {
   all,
+  anyUpdated,
   connect,
   connectPhoneWithInvitation,
   connectWithInvitation,
@@ -80,6 +82,34 @@ describe('connection', () => {
         expectEveryoneToKnowEveryone(alice, bob)
       })
 
+      it('alice invites bob then bob invites charlie', async () => {
+        const { alice, bob, charlie } = setup(
+          'alice',
+          { user: 'bob', member: false },
+          { user: 'charlie', member: false }
+        )
+
+        // 👩🏾📧👨🏻‍🦲 Alice invites Bob
+        const { seed: bobSeed } = alice.team.inviteMember()
+
+        // 👨🏻‍🦲📧<->👩🏾 Bob connects to Alice and uses his invitation to join
+        await connectWithInvitation(alice, bob, bobSeed)
+        expectEveryoneToKnowEveryone(alice, bob)
+
+        // Alice promotes Bob
+        alice.team.addMemberRole('bob', ADMIN)
+        await anyUpdated(alice, bob)
+
+        // Bob invites Charlie
+        const { seed: charlieSeed } = bob.team.inviteMember()
+
+        // Charlie connects to Alice and uses his invitation to join
+        await connectWithInvitation(alice, charlie, charlieSeed)
+
+        // ✅
+        expectEveryoneToKnowEveryone(alice, bob, charlie)
+      })
+
       it('after being admitted, invitee has team keys', async () => {
         const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
@@ -125,14 +155,10 @@ describe('connection', () => {
         await disconnection(charlie, dwight, 'neither one is a member')
       })
 
-      // TODO: not working
-
-      it.skip('lets a member use an invitation to add a device', async () => {
+      it('lets a member use an invitation to add a device', async () => {
         const { alice, bob } = setup('alice', 'bob')
 
-        // TODO: This should work if Alice and Bob connect here -- so they're already connected when the invitation is handled
-        // await connect(alice, bob)
-        // It doesn't work, because after Bob's laptop connects to his phone, Bob's laptop doesn't update Alice
+        await connect(alice, bob)
 
         expect(bob.team.members('bob').devices).toHaveLength(1)
 
@@ -144,9 +170,6 @@ describe('connection', () => {
 
         // 👨🏻‍🦲👍📱 Bob's phone is added to his list of devices
         expect(bob.team.members('bob').devices).toHaveLength(2)
-
-        // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
-        await connect(alice, bob)
 
         // ✅ 👩🏾👍📱 Alice knows about Bob's phone
         expect(alice.team.members('bob').devices).toHaveLength(2)
