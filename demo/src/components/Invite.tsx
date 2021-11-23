@@ -4,21 +4,6 @@ import React, { MutableRefObject, useEffect, useRef, useState } from 'react'
 import { useTeam } from '../hooks/useTeam'
 import { assert } from '../util/assert'
 
-/*
-TODO implement different levels of invitation security
-
-From most secure to least secure:
-
-- named invitation with unique secret code
-
-- named invitation with shared secret code
-
-- anyone who has shared secret code can join
-- named invitation, no secret code
-
-- anyone who knows team name can join
-
-*/
 export const Invite = () => {
   type State = 'inactive' | 'configuring' | 'done'
 
@@ -54,7 +39,8 @@ export const Invite = () => {
     setState('done')
   }
 
-  const userIsAdmin = team?.memberIsAdmin(user.userName)
+  const userBelongsToTeam = team?.has(user.userName)
+  const userIsAdmin = userBelongsToTeam && team?.memberIsAdmin(user.userName)
 
   switch (state) {
     case 'inactive':
