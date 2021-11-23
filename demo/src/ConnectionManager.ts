@@ -1,16 +1,15 @@
 ﻿import * as auth from '@localfirst/auth'
 import { InviteeMemberInitialContext, MemberInitialContext } from '@localfirst/auth'
-import { Client } from '@localfirst/relay-client'
+import { Client, PeerEventPayload } from '@localfirst/relay-client'
 import { Mutex, withTimeout } from 'async-mutex'
-import { PeerEventPayload } from '../../../relay/packages/client/dist/src/types'
+import debug from 'debug'
 import { Connection } from './Connection'
 import { EventEmitter } from './EventEmitter'
 import { ConnectionStatus, UserName } from './types'
-import debug from 'debug'
 
 // It shouldn't take longer than this to present an invitation and have it accepted. If this time
 // expires, we'll try presenting the invitation to someone else.
-const INVITATION_TIMEOUT = 10 * 1000 // in ms
+const INVITATION_TIMEOUT = 20 * 1000 // in ms
 
 /**
  * Wraps a Relay client and creates a Connection instance for each peer we connect to.
@@ -38,7 +37,6 @@ export class ConnectionManager extends EventEmitter {
 
     this.log = debug(`lf:auth:demo:connection-manager:${context.device.userName}`)
 
-    // connect to relay server
     this.client = this.connectServer(urls[0])
   }
 
@@ -51,7 +49,7 @@ export class ConnectionManager extends EventEmitter {
         client.join(this.teamName)
         this.emit('server.connect')
       })
-      .on('peer.connect', ({ userName: peerUserName, socket }: PeerEventPayload) => {
+      .on('peer.connect', async ({ userName: peerUserName, socket }: PeerEventPayload) => {
         // in case we're not able to start the connection immediately (e.g. because there's a mutex
         // lock), store any messages we receive, so we can deliver them when we start it
         const storedMessages: string[] = []
@@ -61,9 +59,9 @@ export class ConnectionManager extends EventEmitter {
         // both might admit us concurrently and that complicates things unnecessarily. So we need to
         // make sure that we go through the connection process with one other peer at a time.
         if ('invitationSeed' in this.context && this.context.invitationSeed) {
-          this.connectingMutex.runExclusive(() => {
+          await this.connectingMutex.runExclusive(async () => {
             this.log('connecting with mutex')
-            this.connectPeer(socket, peerUserName, storedMessages)
+            await this.connectPeer(socket, peerUserName, storedMessages)
           })
         } else {
           this.log('connecting without mutex')
