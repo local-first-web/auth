@@ -22,7 +22,8 @@
     "strict": true,
     "strictPropertyInitialization": false,
     "strictNullChecks": false,
-    "target": "esnext"
+    "target": "esnext",
+    "useUnknownInCatchVariables": false
   },
   "include": ["src", "@types"]
 }
