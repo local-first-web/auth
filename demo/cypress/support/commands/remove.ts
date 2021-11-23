@@ -1,6 +1,6 @@
-import { commandFn } from '..'
+import { CommandFn } from '..'
 
-export const remove: commandFn = (subject, userName: string) => {
+export const remove: CommandFn = (subject, userName: string) => {
   const s = () => cy.wrap(subject)
   s()
     .teamMember(userName)

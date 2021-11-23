@@ -1,7 +1,8 @@
 import React from 'react'
+import { forwardRef, HTMLAttributes } from 'react'
 import classNames from 'classnames'
 
-export const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(function Avatar(props, ref) {
+export const Avatar = forwardRef<HTMLDivElement, AvatarProps>(function Avatar(props, ref) {
   const { size = 'md', className, children } = props
   const sizeStyles = {
     lg: 'w-12 h-12 text-2xl',
@@ -17,6 +18,6 @@ export const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(function Ava
     </div>
   )
 })
-interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
+interface AvatarProps extends HTMLAttributes<HTMLDivElement> {
   size?: 'lg' | 'md' | 'sm'
 }

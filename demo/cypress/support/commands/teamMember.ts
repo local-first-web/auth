@@ -1,5 +1,9 @@
-import { commandFn } from '..'
+import { CommandFn } from '..'
 
-export const teamMember: commandFn = (subject, userName: string) => {
-  return cy.wrap(subject).find('.MemberTable').findByText(userName).parents('tr')
+export const teamMember: CommandFn = (subject, userName: string) => {
+  return cy
+    .wrap(subject)
+    .find('.MemberTable')
+    .findByText(userName)
+    .parents('tr')
 }

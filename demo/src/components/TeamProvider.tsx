@@ -1,7 +1,5 @@
-﻿import * as React from 'react'
-import { PeerInfo } from '../peers'
+﻿import React from 'react'
 import { PeerState, StoredPeerState, TeamContextPayload } from '../types'
-import debug from 'debug'
 
 export const TeamProvider = ({ initialState, onUpdate, children }: TeamProviderProps) => {
   const [peerState, setPeerState] = React.useState<PeerState>(initialState)

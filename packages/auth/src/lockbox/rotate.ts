@@ -1,7 +1,7 @@
-﻿import { assertScopesMatch } from '../keyset/scopesMatch'
-import { KeysetWithSecrets, PublicKeyset } from '@/keyset'
-import { create } from '@/lockbox/create'
+﻿import { create } from '@/lockbox/create'
 import { Lockbox } from '@/lockbox/types'
+import { Keyset, KeysetWithSecrets } from 'crdx'
+import { assertScopesMatch } from '@/util'
 
 /**
  * "Rotating" a lockbox means replacing the keys it contains with new ones.
@@ -11,7 +11,7 @@ import { Lockbox } from '@/lockbox/types'
  * for each one, containing the new keys.
  *
  * ```js
- * const newAdminKeys = keyset.create({ type: ROLE, name: ADMIN })
+ * const newAdminKeys = createKeyset({ type: ROLE, name: ADMIN })
  * const newAdminLockboxForAlice = lockbox.rotate(adminLockboxForAlice, newAdminKeys)
  * ```
  */
@@ -38,5 +38,5 @@ export const rotate = ({
 type rotateParams = {
   oldLockbox: Lockbox
   newContents: KeysetWithSecrets
-  updatedRecipientKeys?: PublicKeyset
+  updatedRecipientKeys?: Keyset
 }

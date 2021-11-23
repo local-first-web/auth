@@ -1,17 +1,16 @@
-﻿import { clone, debug } from '@/util'
-import { ROOT, TeamAction, TeamActionLink } from '@/chain'
+﻿import { Device } from '@/device'
 import { ADMIN } from '@/role'
+import { clone, composeTransforms } from '@/util'
+import { Reducer, ROOT } from 'crdx'
 import {
   addDevice,
   addMember,
   addMemberRoles,
   addRole,
-  changeMemberKeys,
   changeDeviceKeys,
+  changeMemberKeys,
   collectLockboxes,
-  compose,
   postInvitation,
-  Reducer,
   removeDevice,
   removeMember,
   removeMemberRole,
@@ -19,13 +18,15 @@ import {
   revokeInvitation,
   setTeamName,
   useInvitation,
-} from '@/team/reducers'
-import { TeamState } from '@/team/types'
-import { validate } from '@/team/validate'
+} from './transforms'
+import { Member, TeamAction, TeamLink, TeamContext, TeamState, Transform } from './types'
+import { validate } from './validate'
 
-export const setHead = (link: TeamActionLink): Reducer => state => {
-  return { ...state, __HEAD: link.hash }
-}
+export const setHead =
+  (link: TeamLink): Transform =>
+  state => {
+    return { ...state, __HEAD: link.hash }
+  }
 
 /**
  * Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `TeamState`
@@ -40,18 +41,18 @@ export const setHead = (link: TeamActionLink): Reducer => state => {
  * @param state The team state as of the previous link in the signature chain.
  * @param link The current link being processed.
  */
-export const reducer = (state: TeamState, link: TeamActionLink) => {
+export const reducer: Reducer<TeamState, TeamAction, TeamContext> = ((state, link) => {
   state = clone(state)
 
   // make sure this link can be applied to the previous state & doesn't put us in an invalid state
   const validation = validate(state, link)
-  if (!validation.isValid) throw validation.error
+  if (validation.isValid === false) throw validation.error
 
   // recast as TeamAction so we get type enforcement on payloads
   const action = link.body as TeamAction
 
   // get all transforms and compose them into a single function
-  const applyTransforms = compose([
+  const applyTransforms = composeTransforms([
     setHead(link),
     collectLockboxes(action.payload.lockboxes), // any payload can include lockboxes
     ...getTransforms(action), // get the specific transforms indicated by this action
@@ -59,19 +60,19 @@ export const reducer = (state: TeamState, link: TeamActionLink) => {
   const newState = applyTransforms(state)
 
   return newState
-}
+}) as Reducer<TeamState, TeamAction, TeamContext>
 
 /**
  * Each action type generates one or more transforms (functions that take the old state and return a
  * new state). This returns an array of transforms that are then applied in order.
  * @param action The team action (type + payload) being processed
  */
-const getTransforms = (action: TeamAction): Reducer[] => {
+const getTransforms = (action: TeamAction): Transform[] => {
   switch (action.type) {
     case ROOT:
-      const { teamName, rootMember, rootDevice } = action.payload
+      const { name, rootMember, rootDevice } = action.payload
       return [
-        setTeamName(teamName),
+        setTeamName(name),
         addRole({ roleName: ADMIN }), // create the admin role
         addMember(rootMember), // add the founding member
         addDevice(rootDevice), // add the founding member's device
@@ -79,10 +80,10 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       ]
 
     case 'ADD_MEMBER': {
-      const { member: user, roles } = action.payload
+      const { member, roles } = action.payload
       return [
-        addMember(user), // add this member to the team
-        ...addMemberRoles(user.userName, roles), // add each of these roles to the member's list of roles
+        addMember(member), // add this member to the team
+        ...addMemberRoles(member.userName, roles), // add each of these roles to the member's list of roles
       ]
     }
 
@@ -135,7 +136,14 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       ]
     }
 
-    case 'INVITE': {
+    case 'INVITE_MEMBER': {
+      const { invitation } = action.payload
+      return [
+        postInvitation(invitation), // add the invitation to the list of open invitations.
+      ]
+    }
+
+    case 'INVITE_DEVICE': {
       const { invitation } = action.payload
       return [
         postInvitation(invitation), // add the invitation to the list of open invitations.
@@ -149,10 +157,34 @@ const getTransforms = (action: TeamAction): Reducer[] => {
       ]
     }
 
-    case 'ADMIT': {
-      const { id } = action.payload
+    case 'ADMIT_MEMBER': {
+      const { id, memberKeys } = action.payload
+      const userName = memberKeys.name
+
+      const member: Member = {
+        userName,
+        keys: memberKeys,
+        roles: [],
+      }
+
       return [
-        useInvitation(id), // mark the invitation used so it can't be used a second time
+        useInvitation(id), // mark the invitation as used
+        addMember(member), // add this member to the team
+      ]
+    }
+
+    case 'ADMIT_DEVICE': {
+      const { id, userName, deviceKeys } = action.payload
+
+      const device: Device = {
+        userName,
+        deviceName: deviceKeys.name,
+        keys: deviceKeys,
+      }
+
+      return [
+        useInvitation(id), // mark the invitation as used
+        addDevice(device), // add this device
       ]
     }
 

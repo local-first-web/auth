@@ -1,17 +1,16 @@
-import { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
-import { ConnectionMessage } from '@/connection/message'
 import { DeviceWithSecrets } from '@/device'
-import { Invitee, ProofOfInvitation } from '@/invitation'
-import { KeyScope } from '@/keyset'
-import { Member } from '@/member'
-import { Team } from '@/team'
-import { User } from '@/user'
-import { Base64, Hash, UnixTimestamp } from '@/util'
+import { ProofOfInvitation } from '@/invitation'
+import { SyncState } from 'crdx'
+import { Member, Team } from '@/team'
+import { Base58, Hash, UnixTimestamp } from '@/util'
+import { KeyScope, Keyset, UserWithSecrets } from 'crdx'
+import { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
+import { ConnectionMessage } from './message'
 
 // Identity
 
 export type Challenge = KeyScope & {
-  nonce: Base64
+  nonce: Base58
   timestamp: UnixTimestamp
 }
 
@@ -19,40 +18,33 @@ export type Challenge = KeyScope & {
 
 export type SendFunction = <T extends ConnectionMessage>(message: T) => void
 
+export type MemberInitialContext = {
+  user: UserWithSecrets
+  device: DeviceWithSecrets
+  team: Team
+}
+
+export type InviteeMemberInitialContext = {
+  user: UserWithSecrets
+  device: DeviceWithSecrets
+  invitationSeed: string
+}
+
+export type InviteeDeviceInitialContext = {
+  userName: string
+  device: DeviceWithSecrets
+  invitationSeed: string
+}
+
+export type InviteeInitialContext = InviteeMemberInitialContext | InviteeDeviceInitialContext
+
 /** The type of the initial context depends on whether we are already a member, or we've just been
  * invited and are connecting to the team for the first time. */
 export type InitialContext = MemberInitialContext | InviteeInitialContext
 
-export type MemberInitialContext = {
-  /** The local user, including their secret keys  */
-  user: User
-
-  /** Information about the local device, including secret keys */
-  device: DeviceWithSecrets
-
-  /** The team object we both belong to */
-  team: Team
-}
-
-export type InviteeInitialContext = {
-  /** The local user, including their secret keys (not available if this is a device joining) */
-  user?: User
-
-  /** Information about the local device, including secret keys */
-  device: DeviceWithSecrets
-
-  /** The type and name associated with the invitation
-   * (e.g. `{type: MEMBER, name: userName}` or `{type: DEVICE, name: deviceID}`) */
-  invitee: Invitee
-
-  /** The secret invitation seed that we've been given  */
-  invitationSeed: string
-}
-
 // type guard: MemberInitialContext vs InviteeInitialContext
-export const hasInvitee = (
-  c: MemberInitialContext | InviteeInitialContext | ConnectionContext
-): c is InviteeInitialContext => 'invitee' in c
+export const isInvitee = (c: InitialContext | ConnectionContext): c is InviteeInitialContext =>
+  !('team' in c)
 
 export interface ConnectionParams {
   /** A function to send messages to our peer. This how you hook this up to your network stack. */
@@ -68,18 +60,25 @@ export interface ErrorPayload {
 
 export interface ConnectionContext
   extends Partial<MemberInitialContext>,
-    Partial<InviteeInitialContext> {
+    Partial<InviteeMemberInitialContext>,
+    Partial<InviteeDeviceInitialContext> {
   theyHaveInvitation?: boolean
   theirIdentityClaim?: KeyScope
+
   theirProofOfInvitation?: ProofOfInvitation
+  theirUserKeys?: Keyset
+  theirDeviceKeys?: Keyset
+
   challenge?: Challenge
   peer?: Member
   theirHead?: Hash
-  seed?: Base64
-  theirEncryptedSeed?: Base64
-  sessionKey?: Base64
+  seed?: Base58
+  theirEncryptedSeed?: Base58
+  sessionKey?: Base58
   error?: ErrorPayload
   device: DeviceWithSecrets
+
+  syncState?: SyncState
 }
 
 export type StateMachineAction =
@@ -91,65 +90,50 @@ export type Condition = ConditionPredicate<ConnectionContext, ConnectionMessage>
 
 export interface ConnectionState {
   states: {
-    idle: {}
-    disconnected: {}
-    connecting: {
+    awaitingIdentityClaim: {}
+
+    authenticating: {
       states: {
-        invitation: {
+        checkingInvitations: {
           states: {
-            initializing: {}
-            waiting: {}
-            validating: {}
+            checkingForInvitations: {}
+            awaitingInvitationAcceptance: {}
+            validatingInvitation: {}
           }
         }
-        authenticating: {
+        checkingIdentity: {
           states: {
-            proving: {
+            provingMyIdentity: {
               states: {
-                awaitingChallenge: {}
-                awaitingAcceptance: {}
-                done: {}
+                awaitingIdentityChallenge: {}
+                awaitingIdentityAcceptance: {}
+                doneProvingMyIdentity: {}
               }
             }
-            verifying: {
+            verifyingTheirIdentity: {
               states: {
-                challenging: {}
-                waiting: {}
-                done: {}
+                challengingIdentity: {}
+                awaitingIdentityProof: {}
+                doneVerifyingTheirIdentity: {}
               }
             }
           }
         }
-        done: {}
+        doneAuthenticating: {}
       }
     }
-    synchronizing: {
-      states: {
-        sendingUpdate: {}
-        receivingUpdate: {}
-        sendingMissingLinks: {}
-        receivingMissingLinks: {}
-        waiting: {}
-        done: {}
-      }
-    }
+
+    synchronizing: {}
+
     negotiating: {
       states: {
-        sendingSeed: {
-          states: {
-            sending: {}
-            done: {}
-          }
-        }
-        receivingSeed: {
-          states: {
-            waiting: {}
-            done: {}
-          }
-        }
+        awaitingSeed: {}
+        doneNegotiating: {}
       }
     }
+
     connected: {}
-    failure: {}
+
+    disconnected: {}
   }
 }

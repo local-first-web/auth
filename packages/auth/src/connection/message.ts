@@ -1,19 +1,34 @@
 ﻿import { Challenge } from '@/connection/types'
-import { TeamLink } from '@/chain'
 import { ProofOfInvitation } from '@/invitation'
-import { KeyScope } from '@/keyset'
-import { Base64, Hash } from '@/util'
+import { SyncMessage as SyncPayload } from 'crdx'
+import { TeamAction, TeamContext } from '@/team'
+import { Base58, Hash } from '@/util'
+import { KeyScope, Keyset } from 'crdx'
 
 export type ReadyMessage = {
-  type: 'READY'
+  type: 'REQUEST_IDENTITY'
 }
 
-export type HelloMessage = {
-  type: 'HELLO'
-  payload: {
-    identityClaim: KeyScope
-    proofOfInvitation?: ProofOfInvitation
-  }
+/**
+ * - If we're a member, we just authorize as a device. So all we provide is an identity claim for a
+ *   device.
+ * - If we're a new member with an invitation, we want to give them our user's public keys and our
+ *   device's public keys.
+ * - If we're a new device with an invitation, we just want to give them our device public keys.
+ */
+export type ClaimIdentityMessage = {
+  type: 'CLAIM_IDENTITY'
+  payload:
+    | {
+        // I'm already a member
+        identityClaim: KeyScope
+      }
+    | {
+        // I have an invitation
+        proofOfInvitation: ProofOfInvitation
+        userKeys?: Keyset // only for new member (not for new device)
+        deviceKeys: Keyset
+      }
 }
 
 export type ErrorMessage = {
@@ -30,6 +45,7 @@ export type DisconnectMessage = {
     message: string
   }
 }
+
 export type ReconnectMessage = {
   type: 'RECONNECT'
 }
@@ -56,7 +72,7 @@ export type ProveIdentityMessage = {
   type: 'PROVE_IDENTITY'
   payload: {
     challenge: Challenge
-    proof: Base64 // this is a signature
+    proof: Base58 // this is a signature
   }
 }
 
@@ -74,29 +90,15 @@ export type RejectIdentityMessage = {
 
 // Update (synchronization)
 
-export type UpdateMessage = {
-  type: 'UPDATE'
-  payload: {
-    root: Hash
-    head: Hash
-    hashes: Hash[]
-  }
-}
-
-export type MissingLinksMessage = {
-  type: 'MISSING_LINKS'
-  payload: {
-    head: Hash
-    links: TeamLink[]
-  }
+export type SyncMessage = {
+  type: 'SYNC'
+  payload: SyncPayload<TeamAction, TeamContext>
 }
 
 // triggered locally when we detect that team has changed
 export type LocalUpdateMessage = {
   type: 'LOCAL_UPDATE'
-  payload: {
-    head: Hash
-  }
+  payload: { head: Hash[] }
 }
 
 // Negotiation
@@ -104,7 +106,7 @@ export type LocalUpdateMessage = {
 export type SeedMessage = {
   type: 'SEED'
   payload: {
-    encryptedSeed: Base64
+    encryptedSeed: Base58
   }
 }
 
@@ -112,12 +114,12 @@ export type SeedMessage = {
 
 export type EncryptedMessage = {
   type: 'ENCRYPTED_MESSAGE'
-  payload: Base64
+  payload: Base58
 }
 
 export type ConnectionMessage =
   | ReadyMessage
-  | HelloMessage
+  | ClaimIdentityMessage
   | AcceptInvitationMessage
   | ChallengeIdentityMessage
   | ProveIdentityMessage
@@ -125,9 +127,8 @@ export type ConnectionMessage =
   | ErrorMessage
   | DisconnectMessage
   | ReconnectMessage
-  | UpdateMessage
+  | SyncMessage
   | LocalUpdateMessage
-  | MissingLinksMessage
   | SeedMessage
   | EncryptedMessage
 

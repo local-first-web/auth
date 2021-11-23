@@ -9,72 +9,59 @@
   "repository": "http://github.com/local-first-web/auth",
   "license": "MIT",
   "private": false,
+  "type": "module",
   "scripts": {
-    "prebuild": "yarn build:css",
-    "build": "parcel build ./public/index.html",
-    "build:css": "postcss src/index.postcss -o public/index.css",
+    "build": "cross-env NODE_ENV=production && tsc && vite build",
     "dev:relay": "cross-env DEBUG='lf*' DEBUG_COLORS=1 node ./scripts/start-relay-server.js",
-    "dev:serve": "parcel ./public/index.html --port 3000",
-    "dev": "run-p watch:css dev:relay dev:serve",
-    "dev:cy": "cross-env BROWSER=none CYPRESS_REMOTE_DEBUGGING_PORT=9222 run-p dev test:cy",
+    "dev:serve": "vite --port 3000",
+    "dev": "run-p dev:relay dev:serve",
+    "dev:cy": "cross-env NODE_OPTIONS=--openssl-legacy-provider BROWSER=none CYPRESS_REMOTE_DEBUGGING_PORT=9222 run-p dev test:cy",
     "test:cy": "cypress open",
-    "watch:css": "nodemon -x yarn build:css"
-  },
-  "alias": {
-    "@localfirst/auth": "../packages/auth",
-    "react": "../node_modules/react",
-    "react-dom": "../node_modules/react-dom/profiling"
+    "serve": "vite preview"
   },
   "dependencies": {
     "@ibm/plex": "5",
-    "@localfirst/auth": "0",
-    "@localfirst/relay": "1",
-    "@localfirst/relay-client": "1",
-    "@testing-library/cypress": "7",
+    "@localfirst/auth": "2",
+    "@localfirst/relay": "3",
+    "@localfirst/relay-client": "3",
+    "@testing-library/cypress": "8",
     "@testing-library/jest-dom": "5",
-    "@testing-library/react": "11",
-    "@testing-library/user-event": "12",
-    "@types/classnames": "2",
-    "@types/clipboard": "2",
+    "@testing-library/react": "12",
+    "@testing-library/user-event": "13",
     "@types/debug": "4",
-    "@types/jest": "26",
+    "@types/jest": "27",
     "@types/mermaid": "8",
-    "@types/node": "12",
     "@types/react": "17",
     "@types/react-dom": "17",
+    "@vitejs/plugin-react-refresh": "1",
     "@windmill/react-ui": "0",
     "async-mutex": "0",
-    "autoprefixer": "9",
+    "autoprefixer": "10",
+    "buffer": "6",
     "classnames": "2",
     "clipboard": "2",
     "cross-env": "7",
     "cuid": "2",
-    "cypress": "6",
+    "cypress": "9",
     "debug": "4",
+    "events": "3",
     "friendly-words": "1",
     "keycode": "2",
-    "mermaid": "8.9",
+    "mermaid": "8",
     "nodemon": "2",
     "npm-run-all": "4",
-    "parcel": "1.12.3",
-    "postcss": "7",
-    "postcss-cli": "7",
-    "tailwindcss": "1",
-    "typescript": "4"
+    "postcss": "8",
+    "react": "17",
+    "react-dom": "17",
+    "tailwindcss": "2",
+    "typescript": "4",
+    "vite-tsconfig-paths": "3",
+    "vite": "2"
   },
-  "nodemonConfig": {
-    "watch": [
-      "postcss.config.js",
-      "tailwind.config.js",
-      "src/index.postcss",
-      "src/theme.ts"
-    ]
-  },
-  "prettier": {
-    "printWidth": 100,
-    "semi": false,
-    "singleQuote": true,
-    "trailingComma": "es5",
-    "arrowParens": "avoid"
+  "postcss": {
+    "plugins": {
+      "tailwindcss": {},
+      "autoprefixer": {}
+    }
   }
 }

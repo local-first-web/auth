@@ -1,10 +1,10 @@
-import { commandFn } from '..'
+import { CommandFn } from '..'
 import { peer } from '..'
 
-export const addToTeam: commandFn = (subject, userName: string) => {
+export const addToTeam: CommandFn = (subject, userName: string) => {
   const s = () => cy.wrap(subject)
-  s()
-    .invite(userName)
+  return s()
+    .invite()
     .then(code => {
       peer(userName).join(code)
     })

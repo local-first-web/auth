@@ -1,47 +1,237 @@
-import { TeamActionLink, TeamSignatureChain } from '@/chain'
-import { LocalDeviceContext, LocalUserContext, MemberContext } from '@/context'
-import { Invitation } from '@/invitation/types'
-import { KeyMetadata } from '@/keyset'
+import { Client, LocalUserContext } from '@/context'
+import { Device } from '@/device'
+import { Invitation, InvitationState } from '@/invitation/types'
 import { Lockbox } from '@/lockbox'
-import { Member } from '@/member'
-import { Role } from '@/role'
-import { Base64, Payload, ValidationResult } from '@/util'
+import { PermissionsMap, Role } from '@/role'
+import { Base58, Payload, ValidationResult } from '@/util'
+import {
+  Action,
+  KeyMetadata,
+  Keyset,
+  Link,
+  LinkBody,
+  LinkMap,
+  ROOT,
+  Sequence,
+  SignatureChain,
+} from 'crdx'
 
-// TEAM CONSTRUCTOR
+// ********* MEMBER
 
-// only when creating a new team
+/** A member is a user that belongs to a team. */
+export interface Member {
+  userName: string
+
+  /** The member's public keys */
+  keys: Keyset
+
+  /** Array of role names that the member belongs to */
+  roles: string[]
+
+  /** Devices that the member has added, along with their public */
+  devices?: Device[]
+
+  // TODO: are we using this?
+  /** Array of all the public keys that the member has had, including the current ones */
+  keyHistory?: Keyset[]
+}
+
+// ********* TEAM CONSTRUCTOR
+
+/** Properties required when creating a new team */
 export interface NewTeamOptions {
   /** The team's human-facing name */
   teamName: string
+}
 
-  /** The context of the local user */
+/** Properties required when rehydrating from an existing chain  */
+export interface ExistingTeamOptions {
+  /** The `TeamSignatureChain` representing the team's state, to be rehydrated.
+   *  Can be serialized or not. */
+  source: string | TeamSignatureChain
+}
+
+type NewOrExisting = NewTeamOptions | ExistingTeamOptions
+
+/** Options passed to the `Team` constructor */
+export type TeamOptions = NewOrExisting & {
+  /** A seed for generating keys. This is typically only used for testing, to ensure predictable data. */
+  seed?: string
+
+  /** Object containing the current user and device (and optionally information about the client & version) */
   context: LocalUserContext
 }
 
-// only when rehydrating from a chain
-export interface ExistingTeamOptions {
-  /** The `TeamSignatureChain` representing the team's state. Can be serialized or not. */
-  source: string | TeamSignatureChain
-
-  /** The context of the local user */
-  context: LocalDeviceContext
-}
-
-export type TeamOptions = (NewTeamOptions | ExistingTeamOptions) & {
-  /** A seed for generating keys. This is typically only used for testing, to ensure predictable data. */
-  seed?: string
-}
-
 /** type guard for NewTeamOptions vs ExistingTeamOptions  */
-export const isNewTeam = (
-  options: NewTeamOptions | ExistingTeamOptions
-): options is NewTeamOptions => 'teamName' in options
+export const isNewTeam = (options: NewOrExisting): options is NewTeamOptions =>
+  'teamName' in options
 
-// TEAM STATE
+// ********* ACTIONS
+
+// TODO: the content of lockboxes needs to be validated
+// e.g. only an admin can add lockboxes for others
+
+interface BasePayload {
+  // Every action might include new lockboxes
+  lockboxes?: Lockbox[]
+}
+
+export interface RootAction {
+  type: typeof ROOT
+  payload: BasePayload & {
+    name: string
+    rootMember: Member
+    rootDevice: Device
+  }
+}
+
+export interface AddMemberAction {
+  type: 'ADD_MEMBER'
+  payload: BasePayload & {
+    member: Member
+    roles?: string[]
+  }
+}
+
+export interface RemoveMemberAction {
+  type: 'REMOVE_MEMBER'
+  payload: BasePayload & {
+    userName: string
+  }
+}
+
+export interface AddRoleAction {
+  type: 'ADD_ROLE'
+  payload: BasePayload & Role
+}
+
+export interface RemoveRoleAction {
+  type: 'REMOVE_ROLE'
+  payload: BasePayload & {
+    roleName: string
+  }
+}
+
+export interface AddMemberRoleAction {
+  type: 'ADD_MEMBER_ROLE'
+  payload: BasePayload & {
+    userName: string
+    roleName: string
+    permissions?: PermissionsMap
+  }
+}
+
+export interface RemoveMemberRoleAction {
+  type: 'REMOVE_MEMBER_ROLE'
+  payload: BasePayload & {
+    userName: string
+    roleName: string
+  }
+}
+
+export interface AddDeviceAction {
+  type: 'ADD_DEVICE'
+  payload: BasePayload & {
+    device: Device
+  }
+}
+
+export interface RemoveDeviceAction {
+  type: 'REMOVE_DEVICE'
+  payload: BasePayload & {
+    userName: string
+    deviceName: string
+  }
+}
+
+export interface InviteMemberAction {
+  type: 'INVITE_MEMBER'
+  payload: BasePayload & {
+    invitation: Invitation
+  }
+}
+
+export interface InviteDeviceAction {
+  type: 'INVITE_DEVICE'
+  payload: BasePayload & {
+    invitation: Invitation
+  }
+}
+
+export interface RevokeInvitationAction {
+  type: 'REVOKE_INVITATION'
+  payload: BasePayload & {
+    id: string // invitation ID
+  }
+}
+
+export interface AdmitMemberAction {
+  type: 'ADMIT_MEMBER'
+  payload: BasePayload & {
+    id: string // invitation ID
+    memberKeys: Keyset // member keys provided by the new member
+  }
+}
+
+export interface AdmitDeviceAction {
+  type: 'ADMIT_DEVICE'
+  payload: BasePayload & {
+    id: string // invitation ID
+    userName: string // user name of the device's owner
+    deviceKeys: Keyset // device keys provided by the new device
+  }
+}
+
+export interface ChangeMemberKeysAction {
+  type: 'CHANGE_MEMBER_KEYS'
+  payload: BasePayload & {
+    keys: Keyset
+  }
+}
+
+export interface ChangeDeviceKeysAction {
+  type: 'CHANGE_DEVICE_KEYS'
+  payload: BasePayload & {
+    keys: Keyset
+  }
+}
+
+export type TeamAction =
+  | RootAction
+  | AddMemberAction
+  | AddDeviceAction
+  | AddRoleAction
+  | AddMemberRoleAction
+  | RemoveMemberAction
+  | RemoveDeviceAction
+  | RemoveRoleAction
+  | RemoveMemberRoleAction
+  | InviteMemberAction
+  | InviteDeviceAction
+  | RevokeInvitationAction
+  | AdmitMemberAction
+  | AdmitDeviceAction
+  | ChangeMemberKeysAction
+  | ChangeDeviceKeysAction
+
+export type TeamContext = {
+  deviceId: string
+  client?: Client
+}
+
+export type TeamLinkBody = LinkBody<TeamAction, TeamContext>
+export type TeamLink = Link<TeamAction, TeamContext>
+export type TeamLinkMap = LinkMap<TeamAction, TeamContext>
+export type TeamSignatureChain = SignatureChain<TeamAction, TeamContext>
+export type Branch = Sequence<TeamAction, TeamContext>
+export type TwoBranches = [Branch, Branch]
+export type MembershipRuleEnforcer = (links: TeamLink[], chain: TeamSignatureChain) => TeamLink[]
+
+// ********* TEAM STATE
 
 export interface TeamState {
   teamName: string
-  rootContext?: MemberContext
+  rootContext?: TeamContext
   members: Member[]
   roles: Role[]
   lockboxes: Lockbox[]
@@ -59,28 +249,30 @@ export interface UserLockboxMap {
 }
 
 export interface InvitationMap {
-  [id: string]: Invitation
+  [id: string]: InvitationState
 }
 
-// VALIDATION
+// ********* VALIDATION
 
-export type TeamStateValidator = (prevState: TeamState, link: TeamActionLink) => ValidationResult
+export type TeamStateValidator = (prevState: TeamState, link: TeamLink) => ValidationResult
 
 export type TeamStateValidatorSet = {
   [key: string]: TeamStateValidator
 }
 
-export type ValidationArgs = [TeamState, TeamActionLink]
+export type ValidationArgs = [TeamState, TeamLink]
 
-// CRYPTO
+// ********* CRYPTO
 
 export interface EncryptedEnvelope {
-  contents: Base64
+  contents: Base58
   recipient: KeyMetadata
 }
 
 export interface SignedEnvelope {
   contents: Payload
-  signature: Base64
+  signature: Base58
   author: KeyMetadata
 }
+
+export type Transform = (state: TeamState) => TeamState

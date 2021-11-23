@@ -1,8 +1,8 @@
-﻿import { DeviceWithSecrets, PublicDevice } from '@/device/types'
-import * as keyset from '@/keyset'
+﻿import { DeviceWithSecrets, Device } from '@/device/types'
+import { redactKeys } from 'crdx'
 
-export const redactDevice = (device: DeviceWithSecrets): PublicDevice => ({
+export const redactDevice = (device: DeviceWithSecrets): Device => ({
   userName: device.userName,
   deviceName: device.deviceName,
-  keys: keyset.redactKeys(device.keys),
+  keys: redactKeys(device.keys),
 })

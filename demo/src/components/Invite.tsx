@@ -1,38 +1,23 @@
-import { Button, Select } from '@windmill/react-ui'
+import { Button, Label, Select } from '@windmill/react-ui'
 import ClipboardJS from 'clipboard'
-import React from 'react'
+import React, { MutableRefObject, useEffect, useRef, useState } from 'react'
 import { useTeam } from '../hooks/useTeam'
-import { UserInfo, users } from '../users'
 import { assert } from '../util/assert'
 
-/*
-TODO implement different levels of invitation security
-
-From most secure to least secure:
-
-- named invitation with unique secret code
-
-- named invitation with shared secret code
-
-- anyone who has shared secret code can join
-- named invitation, no secret code
-
-- anyone who knows team name can join
-
-*/
 export const Invite = () => {
-  type State = 'inactive' | 'requestingName' | 'done'
+  type State = 'inactive' | 'configuring' | 'done'
 
-  const [state, setState] = React.useState<State>('inactive')
-  const [seed, setSeed] = React.useState<string>()
-  const [userName, setUserName] = React.useState<string>()
+  const [state, setState] = useState<State>('inactive')
+  const [seed, setSeed] = useState<string>()
+
+  const maxUses = useRef() as MutableRefObject<HTMLSelectElement>
+  const expiration = useRef() as MutableRefObject<HTMLSelectElement>
 
   const { team, user } = useTeam()
 
-  const select = React.useRef() as React.MutableRefObject<HTMLSelectElement>
-  const copyInvitationSeedButton = React.useRef() as React.MutableRefObject<HTMLButtonElement>
+  const copyInvitationSeedButton = useRef() as MutableRefObject<HTMLButtonElement>
 
-  React.useEffect(() => {
+  useEffect(() => {
     let c: ClipboardJS
     if (copyInvitationSeedButton?.current && seed) {
       c = new ClipboardJS(copyInvitationSeedButton.current)
@@ -44,84 +29,90 @@ export const Invite = () => {
 
   const invite = () => {
     assert(team)
-    const userName = select.current.value
-    setUserName(userName)
 
     const seed = `${team.teamName}-${randomSeed()}`
     setSeed(seed)
 
     // TODO we're storing id so we can revoke - wire that up
-    const { id } = team.invite({ userName, seed })
+    const { id } = team.inviteMember({ seed })
 
     setState('done')
   }
 
-  const userIsAdmin = team?.memberIsAdmin(user.userName)
+  const userBelongsToTeam = team?.has(user.userName)
+  const userIsAdmin = userBelongsToTeam && team?.memberIsAdmin(user.userName)
 
   switch (state) {
     case 'inactive':
       return (
-        <div className="Invite flex gap-2">
-          {/* anyone can "invite" a device*/}
-          <Button size="small" className="my-2 mr-2">
-            Add a device
-          </Button>
-
-          {/* only admins can invite users */}
-          {userIsAdmin ? (
-            <Button
-              size="small"
-              className="my-2 mr-2"
-              onClick={() => {
-                setState('requestingName')
-              }}
-            >
-              Invite someone
+        <div>
+          <div className="Invite flex gap-2">
+            {/* anyone can "invite" a device*/}
+            <Button size="small" className="my-2 mr-2">
+              Add a device
             </Button>
-          ) : null}
+            {/* only admins can invite users */}
+            {userIsAdmin ? (
+              <Button
+                size="small"
+                className="my-2 mr-2"
+                onClick={() => {
+                  setState('configuring')
+                }}
+              >
+                Invite members
+              </Button>
+            ) : null}
+          </div>
         </div>
       )
 
-    case 'requestingName':
-      const isMember = (user: UserInfo) =>
-        team
-          ? team
-              .members()
-              .map(m => m.userName)
-              .includes(user.name)
-          : false
-
-      const nonMembers = Object.values(users).filter(u => !isMember(u))
-
+    case 'configuring':
       return (
         <>
-          <p>Who do you want to invite?</p>
+          <h3>Invite members</h3>
+          <div className="flex flex-col gap-4 mt-4">
+            <Label>
+              <span>How many people can use this invitation code?</span>
+              <Select ref={maxUses} className="MaxUses mt-1 w-full" css="">
+                <option value={1}>1 person</option>
+                <option value={5}>5 people</option>
+                <option value={10}>10 people</option>
+                <option value={0}>No limit</option>
+              </Select>
+            </Label>
+            <Label>
+              <span>When does this invitation code expire?</span>
+              <Select ref={expiration} defaultValue={60} className="Expiration mt-1 w-full" css="">
+                <option value={1}>in 1 second</option>
+                <option value={60}>in 1 minute</option>
+                <option value={60 * 60}>in 1 hour</option>
+                <option value={24 * 60 * 60}>in 1 day</option>
+                <option value={7 * 24 * 60 * 60}>in 1 week</option>
+                <option value={0}>Never</option>
+              </Select>
+            </Label>
 
-          <div className="flex gap-2">
-            {/* Dropdown with names & emoji */}
-            <Select ref={select} className="InviteWho mt-1 w-full" css="">
-              {nonMembers.map(u => (
-                <option key={u.name} value={u.name}>
-                  {u.emoji} {u.name}
-                </option>
-              ))}
-            </Select>
-
-            <Button className="InviteButton mt-1 w-full" onClick={invite}>
-              Invite
-            </Button>
+            <div className="flex gap-12">
+              <div className="flex-grow">
+                <Button
+                  size="small"
+                  layout="outline"
+                  className="CancelButton mt-1"
+                  onClick={() => {
+                    setState('inactive')
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+              <div>
+                <Button className="InviteButton mt-1" onClick={invite}>
+                  Invite
+                </Button>
+              </div>
+            </div>
           </div>
-
-          <Button
-            size="small"
-            layout="outline"
-            className="CancelButton mt-1"
-            onClick={() => {
-              setState('inactive')
-            }}
-          >
-            Cancel
-          </Button>
         </>
       )
 
@@ -129,7 +120,7 @@ export const Invite = () => {
       return (
         <>
           <p className="my-2 font-bold">Here's the invite!</p>
-          <p className="my-2">Copy this code and send it to {userName}:</p>
+          <p className="my-2">Copy this code and send it to whoever you want to invite:</p>
           <pre
             className="InvitationCode my-2 p-3 
               border border-gray-200 rounded-md bg-gray-100 

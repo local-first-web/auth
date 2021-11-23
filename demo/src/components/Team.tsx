@@ -1,7 +1,7 @@
 import * as auth from '@localfirst/auth'
 import { Button, CardBody } from '@windmill/react-ui'
 import debug from 'debug'
-import { useEffect, useState } from 'react'
+import React from 'react'
 import { useTeam } from '../hooks/useTeam'
 import { users } from '../users'
 import { assert } from '../util/assert'
@@ -15,30 +15,23 @@ export const Team = () => {
   const { team, user, device, online, connect, disconnect, connectionStatus } = useTeam()
   assert(team) // we know we're on a team if we're showing this component
 
-  const [members, setMembers] = useState(team?.members())
-  const log = debug(`lf:tc:Team:${user.userName}`)
-
-  useEffect(() => {
-    setMembers(team.members())
-    team.on('updated', () => setMembers(team.members()))
-    return () => {
-      team.removeAllListeners()
-    }
-  }, [team])
+  const log = debug(`lf:auth:demo:Team:${user.userName}`)
 
   const userBelongsToTeam = team.has(user.userName)
   const userIsAdmin = userBelongsToTeam && team.memberIsAdmin(user.userName)
-  const adminCount = () => members.filter(m => team.memberIsAdmin(m.userName)).length
+  const adminCount = () => team.members().filter(m => team.memberIsAdmin(m.userName)).length
 
   return (
     <>
       <CardBody className="Team">
+        {/* Team name */}
         <div className="flex">
           <div className="flex-grow">
-            {/* Team name */}
             <CardLabel>Team</CardLabel>
             <p className="TeamName">{team.teamName}</p>
           </div>
+
+          {/* Online/offline switch */}
           <div className="text-right">
             <OnlineToggle
               isOnline={online}
@@ -59,7 +52,7 @@ export const Team = () => {
         <table className="MemberTable w-full border-collapse text-sm my-3">
           <tbody>
             {/* One row per member */}
-            {members?.map(m => {
+            {team.members()?.map(m => {
               const isAdmin = team.memberIsAdmin(m.userName)
               const isOnlyAdmin = isAdmin && adminCount() === 1
               const status = connectionStatus[m.userName] || 'disconnected'
@@ -114,12 +107,12 @@ export const Team = () => {
                     {userIsAdmin && !isOnlyAdmin ? (
                       <button
                         title="Remove member from team"
-                        className="hover:opacity-100 opacity-25 font-bold"
+                        className="hover:opacity-100 opacity-10 font-bold"
                         onClick={() => {
                           // TODO: need to handle this gracefully - what should Bob see after he is removed?
                           team.remove(m.userName)
                         }}
-                        children="🚫"
+                        children="⛔"
                       />
                     ) : null}
                   </td>

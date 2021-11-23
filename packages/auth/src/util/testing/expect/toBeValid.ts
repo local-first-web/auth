@@ -3,7 +3,7 @@
 // ignore coverage
 expect.extend({
   toBeValid(validation: ValidationResult) {
-    if (validation.isValid)
+    if (validation.isValid === true)
       return {
         message: () => 'expected validation not to pass',
         pass: true,

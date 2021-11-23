@@ -1,15 +1,12 @@
-﻿import { cache } from './cache'
-import { InitialContext, Connection } from '@/connection'
+﻿import { Connection, InitialContext } from '@/connection'
 import { LocalUserContext } from '@/context'
 import * as devices from '@/device'
-import { DeviceWithSecrets } from '@/device'
-import { KeyType } from '@/keyset'
+import { DeviceWithSecrets, getDeviceId } from '@/device'
 import { ADMIN } from '@/role'
 import * as teams from '@/team'
-import { Team } from '@/team'
-import * as users from '@/user'
-import { User } from '@/user'
+import { Team, TeamContext } from '@/team'
 import { arrayToMap, assert } from '@/util'
+import { createUser, KeyType, User, UserWithSecrets } from 'crdx'
 
 // ignore file coverage
 
@@ -38,73 +35,85 @@ export const setup = (
   // Get a list of just user names
   const userNames = config.map(user => user.user)
 
-  const cacheKey = 'setup-' + JSON.stringify(config)
-  const { testUsers, laptops, phones, chain } = cache(cacheKey, () => {
-    // Create users
-    const testUsers: Record<string, User> = userNames
-      .map((userName: string) => {
-        const randomSeed = userName // make these predictable
-        return users.create(userName, randomSeed)
-      })
-      .reduce(arrayToMap('userName'), {})
+  // Create users
+  const testUsers: Record<string, UserWithSecrets> = userNames
+    .map((userName: string) => {
+      const randomSeed = userName // make these predictable
+      return createUser(userName, randomSeed)
+    })
+    .reduce(arrayToMap('userName'), {})
 
-    const makeDevice = (userName: string, deviceName: string) => {
-      const key = `${userName}-${deviceName}`
-      const randomSeed = key
-      const device = devices.create(userName, deviceName, randomSeed)
-      return device
+  const makeDevice = (userName: string, deviceName: string) => {
+    const key = `${userName}-${deviceName}`
+    const randomSeed = key
+    const device = devices.createDevice(userName, deviceName, randomSeed)
+    return device
+  }
+
+  const laptops: Record<string, DeviceWithSecrets> = userNames
+    .map((userName: string) => makeDevice(userName, 'laptop'))
+    .reduce(arrayToMap('userName'), {})
+
+  const phones: Record<string, DeviceWithSecrets> = userNames
+    .map((userName: string) => makeDevice(userName, 'phone'))
+    .reduce(arrayToMap('userName'), {})
+
+  // Create team
+  const founder = userNames[0] // e.g. alice
+  const founderContext = { user: testUsers[founder], device: laptops[founder] }
+  const teamName = 'Spies Я Us'
+  const randomSeed = teamName
+  const team = teams.createTeam(teamName, founderContext, randomSeed)
+
+  // Add members
+  for (const { user: userName, admin = true, member = true } of config) {
+    if (member && !team.has(userName)) {
+      const user = testUsers[userName]
+      const roles = admin ? [ADMIN] : []
+      const device = devices.redactDevice(laptops[userName])
+      team.add(user, roles, device)
     }
-
-    const laptops: Record<string, DeviceWithSecrets> = userNames
-      .map((userName: string) => makeDevice(userName, 'laptop'))
-      .reduce(arrayToMap('userName'), {})
-
-    const phones: Record<string, DeviceWithSecrets> = userNames
-      .map((userName: string) => makeDevice(userName, 'phone'))
-      .reduce(arrayToMap('userName'), {})
-
-    // Create team
-    const founder = userNames[0] // e.g. alice
-    const founderContext = { user: testUsers[founder], device: laptops[founder] }
-    const teamName = 'Spies Я Us'
-    const randomSeed = teamName
-    const team = teams.create(teamName, founderContext, randomSeed)
-
-    // Add members
-    for (const { user: userName, admin = true, member = true } of config) {
-      if (member && !team.has(userName)) {
-        const user = testUsers[userName]
-        const roles = admin ? [ADMIN] : []
-        const device = devices.redactDevice(laptops[userName])
-        team.add(user, roles, device)
-      }
-    }
-    const chain = team.chain
-
-    return { testUsers, laptops, phones, chain }
-  })
+  }
+  const chain = team.chain
 
   const makeUserStuff = ({ user: userName, member = true }: TestUserSettings): UserStuff => {
     const user = testUsers[userName]
     const randomSeed = userName
     const device = laptops[userName]
     const phone = phones[userName]
+
     const localContext = { user, device }
+    const chainContext = { deviceId: getDeviceId(device) }
     const team = member
       ? teams.load(chain, localContext) // members get a copy of the source team
-      : teams.create(userName, localContext, randomSeed) // non-members get a dummy empty placeholder team
-    const context = (member
-      ? { user, device, team }
-      : {
-          user,
-          device,
-          invitee: { type: KeyType.MEMBER, name: userName },
-          invitationSeed: '',
-        }) as InitialContext
+      : teams.createTeam(userName, localContext, randomSeed) // non-members get a dummy empty placeholder team
+
+    const context = (
+      member
+        ? { user, device, team }
+        : {
+            user,
+            device,
+            invitee: { type: KeyType.USER, name: userName },
+            invitationSeed: '',
+          }
+    ) as InitialContext
+
     const connection = {} as Record<string, Connection>
     const getState = (peer: string) => connection[peer].state
 
-    return { userName, user, team, device, localContext, phone, context, connection, getState }
+    return {
+      userName,
+      user,
+      team,
+      device,
+      localContext,
+      chainContext,
+      phone,
+      connectionContext: context,
+      connection,
+      getState,
+    }
   }
 
   const testUserStuff: Record<string, UserStuff> = config
@@ -116,7 +125,7 @@ export const setup = (
 
 // TYPES
 
-type TestUserSettings = {
+export type TestUserSettings = {
   user: string
   admin?: boolean
   member?: boolean
@@ -124,12 +133,13 @@ type TestUserSettings = {
 
 export interface UserStuff {
   userName: string
-  user: User
+  user: UserWithSecrets
   team: Team
   device: DeviceWithSecrets
   phone: DeviceWithSecrets
   localContext: LocalUserContext
-  context: InitialContext
+  chainContext: TeamContext
+  connectionContext: InitialContext
   connection: Record<string, Connection>
   getState: (peer: string) => any
 }

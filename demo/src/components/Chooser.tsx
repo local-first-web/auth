@@ -1,18 +1,24 @@
 import { Select } from '@windmill/react-ui'
-import { useRef } from 'react'
+import React, { useRef } from 'react'
 import { PeerMap } from '../peers'
 
 export const Chooser = ({ onAdd, peers }: ChooserProps) => {
   const peerSelect = useRef() as React.MutableRefObject<HTMLSelectElement>
 
-  const onChange = () => onAdd(peerSelect.current.value)
-
   return (
     <div className="Chooser group flex-grow">
       <Select
         ref={peerSelect}
-        className="opacity-25 w-64 group-hover:opacity-100 h-10 font-normal text-lg"
-        onChange={onChange}
+        className={`
+          bg-color-none opacity-25
+          group-hover:opacity-100 group-hover:bg-color-white
+          focus:opacity-100 focus:bg-color-white
+          border-none rounded-lg focus:rounded-b-none
+          h-10 font-normal text-lg`}
+        onChange={() => {
+          peerSelect.current.blur()
+          onAdd(peerSelect.current.value)
+        }}
         css=""
       >
         <option>Show device...</option>

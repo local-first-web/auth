@@ -3,17 +3,15 @@ import * as identity from '@/connection/identity'
 import {
   AcceptInvitationMessage,
   ChallengeIdentityMessage,
+  ClaimIdentityMessage,
   ConnectionMessage,
   DisconnectMessage,
   EncryptedMessage,
   ErrorMessage,
-  HelloMessage,
-  LocalUpdateMessage,
-  MissingLinksMessage,
   NumberedConnectionMessage,
   ProveIdentityMessage,
   SeedMessage,
-  UpdateMessage,
+  SyncMessage,
 } from '@/connection/message'
 import { orderedDelivery } from '@/connection/orderedDelivery'
 import {
@@ -21,18 +19,26 @@ import {
   ConnectionContext,
   ConnectionParams,
   ConnectionState,
-  hasInvitee,
+  isInvitee,
   SendFunction,
   StateMachineAction,
 } from '@/connection/types'
 import { getDeviceId, parseDeviceId } from '@/device'
 import * as invitations from '@/invitation'
-import { generateStarterKeys } from '@/invitation/generateStarterKeys'
-import { KeyType, randomKey } from '@/keyset'
-import { Team } from '@/team'
-import { assert, debug } from '@/util'
-import { asymmetric, Payload, symmetric } from '@herbcaudill/crypto'
-import { EventEmitter } from 'events'
+import { Team, TeamSignatureChain } from '@/team'
+import { assert, debug, EventEmitter, truncateHashes } from '@/util'
+import { arraysAreEqual } from '@/util/arraysAreEqual'
+import { syncMessageSummary as syncMessageSummary } from '@/util/testing/messageSummary'
+import { asymmetric, Payload, randomKey, symmetric } from '@herbcaudill/crypto'
+import {
+  generateMessage,
+  headsAreEqual,
+  initSyncState,
+  KeyType,
+  receiveMessage,
+  redactKeys,
+  SyncState,
+} from 'crdx'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
 import { protocolMachine } from './protocolMachine'
 
@@ -43,10 +49,9 @@ const { DEVICE } = KeyType
  * implements the connection protocol. The XState configuration is in `protocolMachine`.
  */
 export class Connection extends EventEmitter {
-  public log: debug.Debugger
-
   private sendMessage: SendFunction
-  private peerUserName?: string
+  private peerUserName: string = '?'
+
   private machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
   private incomingMessageQueue: Record<number, NumberedConnectionMessage> = {}
   private outgoingMessageIndex: number = 0
@@ -55,18 +60,11 @@ export class Connection extends EventEmitter {
   constructor({ sendMessage, context, peerUserName }: ConnectionParams) {
     super()
 
-    this.peerUserName = peerUserName
-
-    const name = hasInvitee(context) ? context.invitee.name : context.user.userName
-    this.log = debug(`lf:auth:connection:${name}`)
-
-    // If we're a user connecting with an invitation, we need to use the starter keys derived from
-    // our invitation seed
-    if (!isMember(context) && hasInvitee(context) && context.user) {
-      const starterKeys = generateStarterKeys(context.invitee, context.invitationSeed)
-      context.user.keys = starterKeys
-      this.log(`starter public encryption key: ${starterKeys.encryption.publicKey}`)
+    if (peerUserName) {
+      this.peerUserName = peerUserName
     }
+
+    this.log = debug(`lf:auth:connection:${context.device.userName}:${this.peerUserName}`)
 
     this.sendMessage = (message: ConnectionMessage) => {
       // add a sequential index to any outgoing messages
@@ -97,7 +95,7 @@ export class Connection extends EventEmitter {
     if (!this.started) {
       this.machine.start()
       this.started = true
-      this.sendMessage({ type: 'READY' })
+      this.sendMessage({ type: 'REQUEST_IDENTITY' })
 
       // deliver any stored messages we might have received before starting
       storedMessages.forEach(m => this.deliver(JSON.parse(m)))
@@ -124,10 +122,10 @@ export class Connection extends EventEmitter {
   /** Returns the local user's name. */
   get userName() {
     if (!this.started) return '(not started)'
-    return this.context.user !== undefined
+    return 'user' in this.context && this.context.user !== undefined
       ? this.context.user.userName
-      : hasInvitee(this.context)
-      ? this.context.invitee.name
+      : 'userName' in this.context && this.context.userName !== undefined
+      ? this.context.userName
       : 'unknown'
   }
 
@@ -169,13 +167,7 @@ export class Connection extends EventEmitter {
 
   get peerName() {
     if (!this.started) return '(not started)'
-    return (
-      this.peerUserName ??
-      this.context.peer?.userName ??
-      this.context.theirIdentityClaim?.name ??
-      this.context.theirProofOfInvitation?.invitee.name ??
-      '?'
-    )
+    return this.context.peer?.userName ?? this.context.theirIdentityClaim?.name ?? '?'
   }
 
   /** Sends an encrypted message to the peer we're connected with */
@@ -184,6 +176,20 @@ export class Connection extends EventEmitter {
 
     const encryptedMessage = symmetric.encrypt(message, this.context.sessionKey)
     this.sendMessage({ type: 'ENCRYPTED_MESSAGE', payload: encryptedMessage })
+  }
+
+  public sendSyncMessage(chain: TeamSignatureChain, prevSyncState: SyncState = initSyncState()) {
+    const [syncState, syncMessage] = generateMessage(chain, prevSyncState)
+
+    // undefined message means we're already synced
+    if (syncMessage) {
+      this.log('sending sync message', syncMessageSummary(syncMessage))
+      this.sendMessage({ type: 'SYNC', payload: syncMessage })
+    } else {
+      this.log('no sync message to send')
+    }
+
+    return syncState
   }
 
   /** Passes an incoming message from the peer on to this protocol machine, guaranteeing that
@@ -222,45 +228,51 @@ export class Connection extends EventEmitter {
       error: () => this.createError(message, details),
     })
 
-  /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendHello'`) */
+  /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendIdentityClaim'`) */
   private readonly actions: Record<string, StateMachineAction> = {
-    //
-    // initializing
+    sendIdentityClaim: async context => {
+      const payload: ClaimIdentityMessage['payload'] =
+        'team' in context
+          ? {
+              identityClaim: {
+                type: DEVICE,
+                name: getDeviceId(context.device),
+              },
+            }
+          : {
+              proofOfInvitation: this.myProofOfInvitation(context),
+              deviceKeys: redactKeys(context.device.keys),
+              // TODO make this more readable
+              ...('user' in context && context.user !== undefined
+                ? { userKeys: redactKeys(context.user.keys) }
+                : {}),
+            }
 
-    sendHello: async context => {
+      this.log('sending CLAIM_IDENTITY', payload)
       this.sendMessage({
-        type: 'HELLO',
-        payload: {
-          identityClaim: {
-            type: DEVICE,
-            name: getDeviceId(context.device),
-          },
-          proofOfInvitation:
-            hasInvitee(context) && this.team === undefined // we only attach proof of invitation if we haven't already joined
-              ? this.myProofOfInvitation(context)
-              : undefined,
-        },
-      } as HelloMessage)
+        type: 'CLAIM_IDENTITY',
+        payload,
+      })
     },
 
-    receiveHello: assign({
-      theirIdentityClaim: (_, event) => {
-        event = event as HelloMessage
+    receiveIdentityClaim: assign({
+      theirIdentityClaim: (context, event) => {
+        event = event as ClaimIdentityMessage
         if ('identityClaim' in event.payload) {
-          this.log = debug(`lf:auth:protocol:${this.userName}:${event.payload.identityClaim.name}`)
+          // update peer user name
+          const deviceId = event.payload.identityClaim.name
+          this.peerUserName = parseDeviceId(deviceId).userName
+          this.log = debug(`lf:auth:connection:${context.device.userName}:${this.peerUserName}`)
+
           return event.payload.identityClaim
         } else {
-          console.error('no identity claim in HELLO message')
           return undefined
         }
       },
 
       theyHaveInvitation: (_, event) => {
-        event = event as HelloMessage
-        if (event.payload.proofOfInvitation) {
-          this.log = debug(
-            `lf:auth:protocol:${this.userName}:${event.payload.proofOfInvitation.invitee.name}`
-          )
+        event = event as ClaimIdentityMessage
+        if ('proofOfInvitation' in event.payload) {
           return true
         } else {
           return false
@@ -268,8 +280,35 @@ export class Connection extends EventEmitter {
       },
 
       theirProofOfInvitation: (_, event) => {
-        event = event as HelloMessage
-        return event.payload.proofOfInvitation
+        event = event as ClaimIdentityMessage
+        if ('proofOfInvitation' in event.payload) {
+          return event.payload.proofOfInvitation
+        } else {
+          return undefined
+        }
+      },
+
+      theirUserKeys: (_, event) => {
+        event = event as ClaimIdentityMessage
+        if ('userKeys' in event.payload) {
+          return event.payload.userKeys
+        } else {
+          return undefined
+        }
+      },
+
+      theirDeviceKeys: (context, event) => {
+        event = event as ClaimIdentityMessage
+        if ('deviceKeys' in event.payload) {
+          // update peer user name
+          const deviceId = event.payload.deviceKeys.name
+          this.peerUserName = parseDeviceId(deviceId).userName
+          this.log = debug(`lf:auth:connection:${context.device.userName}:${this.peerUserName}`)
+
+          return event.payload.deviceKeys
+        } else {
+          return undefined
+        }
       },
     }),
 
@@ -278,9 +317,21 @@ export class Connection extends EventEmitter {
     acceptInvitation: context => {
       assert(context.team)
       assert(context.theirProofOfInvitation)
+      assert(context.theirDeviceKeys)
 
       // admit them to the team
-      context.team.admit(context.theirProofOfInvitation)
+      if ('theirUserKeys' in context && context.theirUserKeys !== undefined) {
+        // new member
+        context.team.admitMember(context.theirProofOfInvitation, context.theirUserKeys)
+      } else {
+        // new device for existing member
+        const userName = parseDeviceId(context.theirDeviceKeys.name).userName
+        context.team.admitDevice(
+          context.theirProofOfInvitation, //
+          userName,
+          context.theirDeviceKeys
+        )
+      }
 
       // welcome them by sending the team's signature chain, so they can reconstruct team membership state
       this.sendMessage({
@@ -290,16 +341,23 @@ export class Connection extends EventEmitter {
     },
 
     joinTeam: (context, event) => {
+      assert(this.context.invitationSeed)
+
       // we've just received the team's signature chain; reconstruct team
       const team = this.rehydrateTeam(context, event)
 
-      // join the team
-      const proof = this.myProofOfInvitation(context)
-      const { user, device } = team.join(proof, this.context.invitationSeed!)
+      // TODO: replace all these `'foo' in context` checks with proper type guards
 
-      // put the updated user, device, and team on our context
-      this.context.user = user
-      this.context.device = device
+      // join the team
+      if ('userName' in context && context.userName) {
+        // we get the user's keys from the team and rehydrate our user that way
+        this.context.user = team.joinAsDevice(context.userName)
+      } else {
+        // we add our current device to the team chain
+        team.joinAsMember()
+      }
+
+      // put the updated team on our context
       this.context.team = team
     },
 
@@ -317,10 +375,13 @@ export class Connection extends EventEmitter {
     confirmIdentityExists: (context, event) => {
       // if we're not on the team yet, we don't have a way of knowing if the peer is
       if (context.team === undefined) return
-
-      const { identityClaim } = (event as HelloMessage).payload
+      event = event as ClaimIdentityMessage
 
       // if no identity claim is being made, there's nothing to confirm
+      if (!('identityClaim' in event.payload)) return
+
+      const { identityClaim } = event.payload
+
       if (identityClaim === undefined) return
 
       const deviceId = identityClaim.name
@@ -377,12 +438,10 @@ export class Connection extends EventEmitter {
     storePeer: assign({
       peer: context => {
         assert(context.team)
-        assert(context.theirIdentityClaim)
-        const deviceId = context.theirIdentityClaim.name
-        const { userName } = parseDeviceId(deviceId)
-        if (context.team.has(userName)) {
+        assert(this.peerUserName)
+        if (context.team.has(this.peerUserName)) {
           // peer still on the team
-          return context.team.members(userName)
+          return context.team.members(this.peerUserName)
         } else {
           // peer was removed from team
           return undefined
@@ -390,12 +449,7 @@ export class Connection extends EventEmitter {
       },
     }),
 
-    acceptIdentity: context => {
-      assert(context.user)
-      this.log(
-        `${context.user.userName}'s public encryption key: ${context.user.keys.encryption.publicKey}`
-      )
-
+    acceptIdentity: () => {
       this.sendMessage({
         type: 'ACCEPT_IDENTITY',
         payload: {},
@@ -404,52 +458,44 @@ export class Connection extends EventEmitter {
 
     // updating
 
-    sendUpdate: context => {
-      assert(context.team)
-      const { root, head, links } = context.team.chain
-      const hashes = Object.keys(links)
-      this.sendMessage({
-        type: 'UPDATE',
-        payload: { root, head, hashes },
-      })
-    },
-
-    recordTheirHead: assign({
-      theirHead: (_, event) => {
-        const { payload } = event as UpdateMessage | MissingLinksMessage
-        return payload.head
-      },
-    }),
-
-    sendMissingLinks: (context, event) => {
-      assert(context.team)
-      const { payload } = event as UpdateMessage
-      const links = context.team.getMissingLinks(payload)
-      if (links.length > 0) {
-        this.sendMessage({
-          type: 'MISSING_LINKS',
-          payload: { head: context.team.chain.head, links },
-        })
-      }
-    },
-
-    receiveMissingLinks: assign({
-      team: (context, event) => {
-        assert(context.team)
-        const { payload } = event as MissingLinksMessage
-        return context.team.receiveMissingLinks(payload)
-      },
-    }),
-
     listenForTeamUpdates: context => {
       assert(context.team)
       context.team.addListener('updated', ({ head }) => {
         if (!this.machine.state.done) {
-          this.log(`LOCAL_UPDATE ${head}`)
           this.machine.send({ type: 'LOCAL_UPDATE', payload: { head } }) // send update event to local machine
         }
       })
     },
+
+    sendSyncMessage: assign({
+      syncState: context => {
+        assert(context.team)
+        const syncState = this.sendSyncMessage(context.team.chain, context.syncState)
+        return syncState
+      },
+    }),
+
+    receiveSyncMessage: assign((context, event) => {
+      assert(context.team)
+      var { team } = context
+
+      const prevSyncState = context.syncState ?? initSyncState()
+      const syncMessage = (event as SyncMessage).payload
+      const [newChain, syncState] = receiveMessage(context.team.chain, prevSyncState, syncMessage)
+
+      if (!headsAreEqual(newChain.head, team.chain.head)) {
+        team = context.team.merge(newChain)
+
+        const summary = JSON.stringify({
+          head: team.chain.head,
+          links: Object.keys(team.chain.links),
+        })
+        this.log(`received sync message; new chain ${summary}`)
+        this.emit('updated')
+      }
+
+      return { team, syncState }
+    }),
 
     // negotiating
 
@@ -496,7 +542,7 @@ export class Connection extends EventEmitter {
         const senderPublicKey = context.peer.keys.encryption
         const recipientPublicKey = context.user.keys.encryption.publicKey
         const recipientSecretKey = context.user.keys.encryption.secretKey
-        this.log(`decrypting %o`, { senderPublicKey, recipientPublicKey })
+        this.log(`decrypting %o`, truncateHashes({ senderPublicKey, recipientPublicKey }))
         try {
           const theirSeed = asymmetric.decrypt({
             cipher: context.theirEncryptedSeed,
@@ -507,7 +553,7 @@ export class Connection extends EventEmitter {
           // with the two keys, we derive a shared key
           return deriveSharedKey(ourSeed, theirSeed)
         } catch (e) {
-          this.log(`decryption failed %o`, { senderPublicKey, recipientPublicKey })
+          this.log(`decryption failed %o`, truncateHashes({ senderPublicKey, recipientPublicKey }))
           throw e
         }
       },
@@ -537,7 +583,7 @@ export class Connection extends EventEmitter {
     ),
 
     rejectInvitation: this.fail(
-      () => `${this.peerName}'s invitation didn't work. ${this.context.error?.message}`
+      () => `This invitation didn't work. ${this.context.error?.message}`
     ),
 
     rejectTeam: this.fail(
@@ -564,7 +610,7 @@ export class Connection extends EventEmitter {
     //
     // INVITATIONS
 
-    iHaveInvitation: context => hasInvitee(context) && !isMember(context),
+    iHaveInvitation: context => isInvitee(context) && !isMember(context),
 
     theyHaveInvitation: context => context.theyHaveInvitation === true,
 
@@ -576,7 +622,7 @@ export class Connection extends EventEmitter {
       assert(context.theirProofOfInvitation)
       const validation = context.team.validateInvitation(context.theirProofOfInvitation)
       this.log(`invitation validation: %o`, validation)
-      if (validation.isValid) {
+      if (validation.isValid === true) {
         return true
       } else {
         this.context.error = validation.error
@@ -609,22 +655,14 @@ export class Connection extends EventEmitter {
 
     headsAreEqual: (context, event) => {
       assert(context.team)
-
-      // If their message includes a head, use that; otherwise use the last head we had recorded
-      const { type, payload } = event as UpdateMessage | MissingLinksMessage | LocalUpdateMessage
-      const theirHead =
-        type === 'UPDATE' || type === 'MISSING_LINKS'
-          ? payload.head // take from message
-          : context.theirHead // use what we already have in context
-
       const ourHead = context.team.chain.head
-
-      return ourHead === theirHead
+      const lastCommonHead = context.syncState?.lastCommonHead
+      return arraysAreEqual(ourHead, lastCommonHead)
     },
 
-    headsAreDifferent: (...args) => !this.guards.headsAreEqual(...args),
-
-    dontHaveSessionkey: context => context.sessionKey === undefined,
+    headsAreDifferent: (...args) => {
+      return !this.guards.headsAreEqual(...args)
+    },
   }
 
   // helpers
@@ -643,16 +681,17 @@ export class Connection extends EventEmitter {
 
   private myProofOfInvitation = (context: ConnectionContext) => {
     assert(context.invitationSeed)
-    assert(context.invitee)
-    return invitations.generateProof(context.invitationSeed, context.invitee)
+    return invitations.generateProof(context.invitationSeed)
   }
 }
 
 // for debugging
 
 const messageSummary = (message: ConnectionMessage) =>
-  // @ts-ignore
-  `${message.type} ${message.payload?.head?.slice(0, 5) || message.payload?.message || ''}`
+  message.type === 'SYNC'
+    ? `SYNC ${syncMessageSummary(message.payload)}`
+    : // @ts-ignore
+      `${message.type} ${message.payload?.head?.slice(0, 5) || message.payload?.message || ''}`
 
 const isString = (state: any) => typeof state === 'string'
 

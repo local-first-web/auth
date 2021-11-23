@@ -1,6 +1,6 @@
-import { commandFn } from '../'
+import { CommandFn } from '../'
 
-export const join: commandFn = (subject, code: string) => {
+export const join: CommandFn = (subject, code: string) => {
   const s = () => cy.wrap(subject)
   s()
     .wait(100)

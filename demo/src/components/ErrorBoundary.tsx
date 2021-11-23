@@ -1,8 +1,8 @@
-import React from 'react'
+import React, { ReactNode } from 'react'
 import Catch from './Catch'
 
 type Props = {
-  children: React.ReactNode
+  children: ReactNode
 }
 
 export const ErrorBoundary = Catch(function ErrorBoundary(props: Props, error?: Error) {

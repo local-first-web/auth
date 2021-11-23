@@ -1,10 +1,17 @@
-﻿import { isAdminOnlyAction } from '../chain/isAdminOnlyAction'
-import { actionFingerprint, ActionLink, ROOT, TeamActionLink } from '@/chain'
-import { parseDeviceId } from '@/device'
-import * as select from '@/team/selectors'
-import { TeamState, TeamStateValidator, TeamStateValidatorSet, ValidationArgs } from '@/team/types'
-import { truncateHashes, VALID, ValidationError } from '@/util'
-import { debug } from '@/util'
+﻿import { parseDeviceId } from '@/device'
+import { invitationCanBeUsed } from '@/invitation'
+import { actionFingerprint, debug, truncateHashes, VALID, ValidationError } from '@/util'
+import { ROOT } from 'crdx'
+import { isAdminOnlyAction } from './isAdminOnlyAction'
+import * as select from './selectors'
+import {
+  TeamLink,
+  TeamState,
+  TeamStateValidator,
+  TeamStateValidatorSet,
+  ValidationArgs,
+} from './types'
+
 const log = debug('lf:auth:validate')
 
 export const validate: TeamStateValidator = (...args: ValidationArgs) => {
@@ -21,8 +28,8 @@ const validators: TeamStateValidatorSet = {
   mustBeAdmin: (...args) => {
     const [prevState, link] = args
     const action = link.body
-    const { type, context } = action
-    const { userName } = context.member
+    const { type, user } = action
+    const { userName } = user
 
     // at root link, team doesn't yet have members
     if (type === ROOT) return VALID
@@ -54,26 +61,6 @@ const validators: TeamStateValidatorSet = {
     return VALID
   },
 
-  cantAddExistingMember: (...args) => {
-    const [prevState, link] = args
-    if (link.body.type === 'ADD_MEMBER') {
-      const { userName: name } = link.body.payload.member
-      if (select.hasMember(prevState, name))
-        return fail(`There is already a member called '${name}'`, ...args)
-    }
-    return VALID
-  },
-
-  cantRemoveNonexistentMember: (...args) => {
-    const [prevState, link] = args
-    if (link.body.type === 'REMOVE_MEMBER') {
-      const { userName } = link.body.payload
-      if (!select.hasMember(prevState, userName))
-        return fail(`A member named '${userName}' was not found`, ...args)
-    }
-    return VALID
-  },
-
   canOnlyChangeYourOwnKeys: (...args) => {
     const [prevState, link] = args
     if (link.body.type === 'CHANGE_MEMBER_KEYS') {
@@ -85,32 +72,32 @@ const validators: TeamStateValidatorSet = {
         if (author !== target) return fail(`Can't change another user's keys.`, ...args)
       }
     } else if (link.body.type === 'CHANGE_DEVICE_KEYS') {
-      const authorUserName = link.signed.userName
-      const authorDeviceName = link.body.context.device.deviceName
-      // Devices can only change their own keys
-      const target = parseDeviceId(link.body.payload.keys.name)
-      if (authorUserName !== target.userName || authorDeviceName !== target.deviceName)
-        return fail(`Can't change another device's keys.`, ...args)
+      return VALID
+      // TODO: we don't have device information in context any more
+      //
+      // const authorUserName = link.signed.userName
+      // const authorDeviceName = link.body.context.device.deviceName
+      // // Devices can only change their own keys
+      // const target = parseDeviceId(link.body.payload.keys.name)
+      // if (authorUserName !== target.userName || authorDeviceName !== target.deviceName)
+      //   return fail(`Can't change another device's keys.`, ...args)
     }
     return VALID
   },
 
-  cantAddExistingDevice: (...args) => {
+  // check for ADMIT with invitations that are revoked OR have been used more than maxUses OR are expired
+  cantAdmitWithInvalidInvitation: (...args) => {
     const [prevState, link] = args
-    if (link.body.type === 'ADD_DEVICE') {
-      const { device } = link.body.payload
-      const { deviceName, userName } = device
-      const member = select.member(prevState, userName)
-      const { devices = [] } = member
-      // TODO: test this case
-      if (devices.find(d => d.deviceName === deviceName))
-        return fail(`The member ${userName} already has a device named '${deviceName}'`, ...args)
+    if (link.body.type === 'ADMIT_MEMBER' || link.body.type === 'ADMIT_DEVICE') {
+      const { id } = link.body.payload
+      const invitation = select.getInvitation(prevState, id)
+      return invitationCanBeUsed(invitation, link.body.timestamp)
     }
     return VALID
   },
 }
 
-const fail = (message: string, prevState: TeamState, link: TeamActionLink) => {
+const fail = (message: string, prevState: TeamState, link: TeamLink) => {
   message = truncateHashes(`${actionFingerprint(link)} ${message}`)
   log(message)
   return {

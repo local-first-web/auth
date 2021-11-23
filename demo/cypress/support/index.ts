@@ -46,7 +46,7 @@ declare global {
       adminButton(userName: string): Chainable<Element>
       demote(userName: string): Chainable<Element>
       hide(): Chainable<Element>
-      invite(userName: string): Chainable<string>
+      invite(): Chainable<string>
       isConnectedTo(userName: string): Chainable<string>
       join(code: string): Chainable<Element>
       peerConnectionStatus(userName: string): Chainable<string>
@@ -60,7 +60,7 @@ declare global {
   }
 }
 
-export type commandFn = (...args: any[]) => void | Cypress.Chainable | Promise<unknown>
+export type CommandFn = (...args: any[]) => Cypress.Chainable
 
 export const show = (id: string) => cy.get('.Chooser select').select(id)
 

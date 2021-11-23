@@ -1,4 +1,4 @@
-﻿import { KeyScope } from '@/keyset'
+﻿import { KeyScope } from 'crdx'
 import { TeamState } from '@/team/types'
 
 export const scopesToRotate = (state: TeamState, compromisedScope: KeyScope) => {

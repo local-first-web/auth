@@ -1,6 +1,6 @@
-import { commandFn } from '..'
+import { CommandFn } from '..'
 
-export const hide: commandFn = subject => {
+export const hide: CommandFn = subject => {
   const s = () => cy.wrap(subject)
   return s()
     .find('.HideButton button')

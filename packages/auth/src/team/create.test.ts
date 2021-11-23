@@ -24,8 +24,8 @@ describe('Team', () => {
       savedChain = savedChain.replace(/alice/gi, 'eve')
 
       // 👩🏾 Alice reloads the team and is not fooled
-      const restoreTampered = () => load(savedChain, alice.localContext)
-      expect(restoreTampered).toThrow(/not valid/)
+      const attemptToRestoreTamperedChain = () => load(savedChain, alice.localContext)
+      expect(attemptToRestoreTamperedChain).toThrow()
     })
   })
 })

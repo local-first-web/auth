@@ -1,5 +1,4 @@
-﻿import * as keyset from '@/keyset'
-import { KeyType } from '@/keyset'
+﻿import { createKeyset, KeyType } from 'crdx'
 import { create, open, rotate } from '@/lockbox'
 import { ADMIN } from '@/role'
 
@@ -10,7 +9,7 @@ const MANAGERS = 'managers'
 
 describe('lockbox', () => {
   it('can be opened by the intended recipient', () => {
-    const adminKeys = keyset.create({ type: KeyType.ROLE, name: ADMIN })
+    const adminKeys = createKeyset({ type: KeyType.ROLE, name: ADMIN })
 
     // Alice creates a lockbox for Bob containing the admin keys
     const lockbox = create(adminKeys, bob.user.keys)
@@ -21,7 +20,7 @@ describe('lockbox', () => {
   })
 
   it(`can't be opened by anyone else`, () => {
-    const adminKeys = keyset.create({ type: KeyType.ROLE, name: ADMIN })
+    const adminKeys = createKeyset({ type: KeyType.ROLE, name: ADMIN })
 
     // Alice creates a lockbox for Bob containing the admin keys
     const lockbox = create(adminKeys, bob.user.keys)
@@ -32,12 +31,12 @@ describe('lockbox', () => {
   })
 
   it(`can only be rotated with a keyset of the same type`, () => {
-    const adminKeys = keyset.create({ type: KeyType.ROLE, name: ADMIN })
+    const adminKeys = createKeyset({ type: KeyType.ROLE, name: ADMIN })
 
     // Alice creates a lockbox for Bob containing the admin keys
     const lockbox = create(adminKeys, bob.user.keys)
 
-    const newKeys = keyset.create({ type: KeyType.ROLE, name: MANAGERS })
+    const newKeys = createKeyset({ type: KeyType.ROLE, name: MANAGERS })
     const tryToRotate = () => rotate({ oldLockbox: lockbox, newContents: newKeys })
     expect(tryToRotate).toThrow()
   })

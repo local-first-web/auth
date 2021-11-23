@@ -1,45 +1,46 @@
-import { KeyScope, KeyType } from '@/keyset'
-import { Base64, Encrypted } from '@/util'
+import { Base58, UnixTimestamp } from '@/util'
 
-// INVITATION
-
-export interface InvitationBody {
-  /** The user or device to invite (e.g. `{type: MEMBER, name: userName}` or `{type: DEVICE, name: deviceId}` */
-  invitee: Invitee
-  publicKey: Base64 // public half of the ephemeral signature key
-}
-
+/**
+ * The public record of the invitation that Alice adds to the signature chain after inviting Bob
+ * (or, that Bob's laptop adds after inviting Bob's phone).
+ * */
 export interface Invitation {
   /** Public, unique identifier for the invitation */
-  id: Base64
+  id: Base58
 
-  encryptedBody: Encrypted<InvitationBody>
+  /** The public signing key derived from the secret invitation key */
+  publicKey: Base58
 
-  /** Generation # of the team keyset */
-  generation: number
+  /** Time when the invitation expires. If 0, the invitation does not expire. */
+  expiration: UnixTimestamp
 
-  /** If true, this invitation has already been used to admin a member or device */
-  used?: Boolean
+  /** Number of times the invitation can be used. If 0, the invitation can be used any number of times. */
+  maxUses: number
+
+  /** (Device invitations only) User name the device will be associated with. */
+  userName?: string
+}
+
+/**
+ * The current state of the invitation; appears in the Team state. These properties are populated
+ * by the reducer.
+ * */
+export interface InvitationState extends Invitation {
+  /** Number of times the invitation has been used */
+  uses: number
 
   /** If true, this invitation was revoked at some point after it was created (but before it was used) */
-  revoked?: Boolean
+  revoked: Boolean
 }
 
-// PROOF OF INVITATION
-
-/** This is what Bob takes to the team so they'll let him in */
+/**
+ * The document an invitee presents the first time they connect to an admin, to prove that they've
+ * been invited.
+ * */
 export interface ProofOfInvitation {
   /** Public, unique identifier for the invitation */
-  id: Base64
+  id: Base58
 
-  /** The user or device that was invited */
-  invitee: Invitee
-
-  /** Signature of userName and id, using the signing keys derived from the secret invitation key */
-  signature: Base64
-}
-
-export interface Invitee extends KeyScope {
-  type: typeof KeyType.MEMBER | typeof KeyType.DEVICE
-  name: string
+  /** Signature of userName and id, using the private signing key derived from the secret invitation key */
+  signature: Base58
 }

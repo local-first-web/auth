@@ -16,13 +16,10 @@ export const orderedDelivery = <M extends Indexed>(queue: Queue<M>, message: M) 
   const nextMessages = [] as M[]
   let nextIndex = firstGap(queue)
 
-  // console.log({ highestIndex, nextIndex })
   while (nextIndex in updatedQueue && nextIndex <= highestIndex) {
     nextMessages.push(updatedQueue[nextIndex])
     nextIndex += 1
   }
-
-  // console.log({ updatedQueue, nextMessages })
 
   return { queue: updatedQueue, nextMessages }
 }

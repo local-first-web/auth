@@ -49,7 +49,7 @@ describe('taco-chat', () => {
       )
   })
 
-  it.only('Alice adds Bob to team', () => {
+  it('Alice adds Bob to team', () => {
     show('Bob:laptop')
     alice().addToTeam('Bob')
 
@@ -69,33 +69,6 @@ describe('taco-chat', () => {
     bob()
       .peerConnectionStatus('Alice')
       .should('equal', 'connected')
-  })
-
-  it(`Alice promotes Bob before he joins`, () => {
-    show('Bob:laptop')
-    alice()
-      // Alice invites Bob
-      .invite('Bob')
-      .then(code => {
-        // Alice promotes Bob
-        alice().promote('Bob')
-
-        // Alice sees that Bob is an admin
-        alice()
-          .teamMember('Bob')
-          .findByTitle('Team admin (click to remove)')
-          .should('have.length', '1')
-
-        // Bob joins
-        bob().join(code) // This kicks off the connection protocol.
-        alice()
-          .teamName()
-          .then(teamName =>
-            bob()
-              .teamName()
-              .should('equal', teamName)
-          )
-      })
   })
 
   it(`Alice promotes Bob after he joins`, () => {
@@ -159,6 +132,100 @@ describe('taco-chat', () => {
       .should('not.be.admin')
   })
 
+  it('Alice disconnects and reconnects', () => {
+    show('Bob:laptop')
+    alice().addToTeam('Bob')
+
+    // Alice is connected to the server
+    alice().should('be.online')
+
+    // she disconnects
+    alice().toggleOnline()
+
+    // she is not connected to the server
+    alice().should('not.be.online')
+
+    // she is not connected to Bob
+    alice()
+      .peerConnectionStatus('Bob')
+      .should('not.equal', 'connected')
+
+    // she reconnects
+    alice().toggleOnline()
+
+    // she is connected again to the server
+    alice().should('be.online')
+
+    // she is connected again to Bob
+    alice()
+      .peerConnectionStatus('Bob')
+      .should('equal', 'connected')
+  })
+
+  it(`Alice disconnects, promotes Bob then reconnects`, () => {
+    show('Bob:laptop')
+    alice().addToTeam('Bob')
+
+    // Alice disconnects
+    alice().toggleOnline()
+
+    // Alice is disconnected
+    alice()
+      .peerConnectionStatus('Bob')
+      .should('equal', 'disconnected')
+
+    // Alice promotes Bob
+    alice().promote('Bob')
+
+    // Alice reconnects
+    alice().toggleOnline()
+
+    // Alice is connected again to Bob
+    alice()
+      .peerConnectionStatus('Bob')
+      .should('equal', 'connected')
+
+    // Alice sees that Bob is admin
+    alice()
+      .teamMember('Bob')
+      .should('be.admin')
+
+    // Bob sees that Bob is admin
+    bob()
+      .teamMember('Bob')
+      .should('be.admin')
+  })
+
+  it(`Alice disconnects, demotes Bob then reconnects`, () => {
+    show('Bob:laptop')
+    alice().addToTeam('Bob')
+    alice().promote('Bob')
+
+    // Alice disconnects
+
+    alice().toggleOnline()
+    alice().should('not.be.online')
+
+    // Alice demotes Bob
+
+    alice().demote('Bob')
+
+    // Alice reconnects
+
+    alice()
+      .toggleOnline()
+      .should('be.online')
+
+    // Bob sees that he is no longer admin
+
+    alice()
+      .teamMember('Bob')
+      .should('not.be.admin')
+    bob()
+      .teamMember('Bob')
+      .should('not.be.admin')
+  })
+
   it(`Alice and Bob demote each other concurrently`, () => {
     show('Bob:laptop')
     alice().addToTeam('Bob')
@@ -200,60 +267,6 @@ describe('taco-chat', () => {
       .should('be.admin')
     bob()
       .teamMember('Alice')
-      .should('be.admin')
-  })
-
-  it('Alice disconnects and reconnects', () => {
-    show('Bob:laptop')
-    alice().addToTeam('Bob')
-
-    // Alice is connected to the server
-    alice().should('be.online')
-
-    // she disconnects
-    alice().toggleOnline()
-
-    // she is not connected to the server
-    alice().should('not.be.online')
-
-    // she is not connected to Bob
-    alice()
-      .peerConnectionStatus('Bob')
-      .should('not.equal', 'connected')
-
-    // she reconnects
-    alice().toggleOnline()
-
-    // she is connected again to the server
-    alice().should('be.online')
-
-    // she is connected again to Bob
-    alice()
-      .peerConnectionStatus('Bob')
-      .should('equal', 'connected')
-  })
-
-  it(`Alice disconnects, promotes Bob then reconnects`, () => {
-    show('Bob:laptop')
-    alice().addToTeam('Bob')
-
-    // Alice disconnects
-    alice().toggleOnline()
-
-    // Alice promotes Bob
-    alice().promote('Bob')
-
-    // Alice reconnects
-    alice().toggleOnline()
-
-    // Alice sees that Bob is admin
-    alice()
-      .teamMember('Bob')
-      .should('be.admin')
-
-    // Bob sees that Bob is admin
-    bob()
-      .teamMember('Bob')
       .should('be.admin')
   })
 
@@ -346,7 +359,7 @@ describe('taco-chat', () => {
     alice().addToTeam('Bob')
 
     // we hide Bob's device
-    bob().remove()
+    bob().hide()
 
     // we show Bob's device again
     show('Bob:laptop')

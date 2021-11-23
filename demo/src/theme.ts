@@ -146,10 +146,10 @@
       'align-bottom inline-flex items-center justify-center cursor-pointer leading-5 transition-colors duration-150 font-medium focus:outline-none',
     block: 'w-full',
     size: {
-      larger: 'px-10 py-4 rounded-lg',
-      large: 'px-5 py-3 rounded-lg',
-      regular: 'px-3 py-1 rounded-md text-sm',
-      small: 'px-2 py-1 rounded-md text-xs',
+      larger: 'px-16 py-4 rounded-lg',
+      large: 'px-12 py-3 rounded-lg',
+      regular: 'px-8 py-1 rounded-md text-sm',
+      small: 'px-5 py-1 rounded-md text-xs',
       icon: {
         larger: 'p-4 rounded-lg',
         large: 'p-3 rounded-lg',

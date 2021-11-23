@@ -1,6 +1,5 @@
 import * as auth from '@localfirst/auth'
 import cuid from 'cuid'
-import debug from 'debug'
 import * as React from 'react'
 import { teamContext } from '../components/TeamProvider'
 import { ConnectionManager } from '../ConnectionManager'
@@ -72,7 +71,6 @@ export const useTeam = () => {
     const context = {
       user,
       device,
-      invitee: { type: 'MEMBER', name: user.userName } as auth.Invitee,
       invitationSeed,
     }
     connect(teamName, context)

@@ -1,12 +1,5 @@
-import {
-  isMergeLink,
-  isRootLink,
-  LinkBody,
-  TeamAction,
-  TeamLink,
-  TeamSignatureChain,
-} from '@localfirst/auth'
-import { FC } from 'react'
+import { LinkBody, TeamAction, TeamLink, TeamLinkBody, TeamSignatureChain } from '@localfirst/auth'
+import React, { FC } from 'react'
 import { theme } from '../mermaid.theme'
 import { users } from '../users'
 import { Mermaid } from './Mermaid'
@@ -36,7 +29,10 @@ export const ChainDiagram: FC<{ chain: TeamSignatureChain; id: string }> = ({ ch
     return mermaidEdgeFromLink(link)
   })
 
-  const chart = chartHeader.concat(chartNodes).concat(chartEdges).join(LINE_BREAK)
+  const chart = chartHeader
+    .concat(chartNodes)
+    .concat(chartEdges)
+    .join(LINE_BREAK)
 
   return (
     <div className="ChainDiagram">
@@ -55,9 +51,7 @@ const replaceNamesWithEmoji = (s: string) => {
 }
 
 const mermaidNodeFromLink = (link: TeamLink) => {
-  if (isMergeLink(link)) {
-    return `{" "}:::merge` // {} = diamond node
-  } else {
+  {
     const author = link.signed.userName
     const type = link.body.type
     const summary = actionSummary(link.body)
@@ -75,16 +69,14 @@ const mermaidNodeFromLink = (link: TeamLink) => {
 }
 
 const mermaidEdgeFromLink = (link: TeamLink) => {
-  if (isRootLink(link)) {
+  if (link.body.type === 'ROOT') {
     return ''
-  } else if (isMergeLink(link)) {
-    return link.body.map(hash => `${getId(hash)} --> ${getId(link.hash)}`)
   } else {
-    return `${getId(link.body.prev)} --> ${getId(link.hash)}`
+    return link.body.prev.map(hash => `${getId(hash)} --> ${getId(link.hash)}`)
   }
 }
 
-const actionSummary = (action: LinkBody<TeamAction>) => {
+const actionSummary = (action: TeamLinkBody) => {
   switch (action.type) {
     case 'ADD_MEMBER':
       return action.payload.member.userName
@@ -100,12 +92,14 @@ const actionSummary = (action: LinkBody<TeamAction>) => {
       return `${action.payload.device.userName}::${action.payload.device.deviceName}`
     case 'REMOVE_DEVICE':
       return `${action.payload.userName}::${action.payload.deviceName}`
-    case 'INVITE':
+    case 'INVITE_MEMBER':
+    case 'INVITE_DEVICE':
       return action.payload.invitation.id
     case 'REVOKE_INVITATION':
       return action.payload.id
-    case 'ADMIT':
-      return `${action.payload.invitee.name} (${action.payload.id})`
+    case 'ADMIT_DEVICE':
+    case 'ADMIT_MEMBER':
+      return action.payload.id
     case 'CHANGE_MEMBER_KEYS':
     case 'CHANGE_DEVICE_KEYS':
       return action.payload.keys.name

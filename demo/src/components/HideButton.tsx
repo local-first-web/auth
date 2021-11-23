@@ -1,3 +1,5 @@
+import React from 'react'
+
 export const HideButton = ({ onClick }: HideButtonProps) => (
   <div className="HideButton opacity-0 group-hover:opacity-100">
     <button
