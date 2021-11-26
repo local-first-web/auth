@@ -1,7 +1,7 @@
 import { LinkBody, TeamAction, TeamLink, TeamLinkBody, TeamSignatureChain } from '@localfirst/auth'
 import React, { FC } from 'react'
 import { theme } from '../mermaid.theme'
-import { users } from '../users'
+import { users } from '../peers'
 import { Mermaid } from './Mermaid'
 
 const LINE_BREAK = '\n'
