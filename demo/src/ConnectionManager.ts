@@ -41,8 +41,8 @@ export class ConnectionManager extends EventEmitter {
   }
 
   private connectServer(url: string): Client {
-    const { userName } = this.context.device
-    const client = new Client({ userName, url })
+    const deviceId = auth.device.getDeviceId(this.context.device)
+    const client = new Client({ userName: deviceId, url })
 
     client
       .on('server.connect', () => {
@@ -129,6 +129,7 @@ export class ConnectionManager extends EventEmitter {
   }
 
   private updateStatus = (userName: UserName, state: string) => {
+    this.log('updating status', userName, state)
     // we recreate the whole object so that react reacts
     this.connectionStatus = {
       ...this.connectionStatus,
