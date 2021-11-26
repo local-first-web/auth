@@ -1,9 +1,8 @@
 import * as auth from '@localfirst/auth'
 import { Button, CardBody } from '@windmill/react-ui'
-import debug from 'debug'
 import React from 'react'
 import { useTeam } from '../hooks/useTeam'
-import { users } from '../users'
+import { devices, users } from '../peers'
 import { assert } from '../util/assert'
 import { CardLabel } from './CardLabel'
 import { ChainDiagram } from './ChainDiagram'
@@ -15,11 +14,11 @@ export const Team = () => {
   const { team, user, device, online, connect, disconnect, connectionStatus } = useTeam()
   assert(team) // we know we're on a team if we're showing this component
 
-  const log = debug(`lf:auth:demo:Team:${user.userName}`)
-
   const userBelongsToTeam = team.has(user.userName)
   const userIsAdmin = userBelongsToTeam && team.memberIsAdmin(user.userName)
   const adminCount = () => team.members().filter(m => team.memberIsAdmin(m.userName)).length
+
+  console.log('connectionStatus', connectionStatus)
 
   return (
     <>
@@ -38,7 +37,6 @@ export const Team = () => {
               onChange={isConnected => {
                 if (isConnected) {
                   const context = { user, device, team }
-                  log(`reconnecting, public encryption key: ${user.keys.encryption.publicKey}`)
                   connect(team.teamName, context)
                 } else {
                   disconnect()
@@ -52,10 +50,9 @@ export const Team = () => {
         <table className="MemberTable w-full border-collapse text-sm my-3">
           <tbody>
             {/* One row per member */}
-            {team.members()?.map(m => {
+            {team.members()?.map((m, index) => {
               const isAdmin = team.memberIsAdmin(m.userName)
               const isOnlyAdmin = isAdmin && adminCount() === 1
-              const status = connectionStatus[m.userName] || 'disconnected'
 
               const adminToggleTitle = userIsAdmin
                 ? isOnlyAdmin
@@ -68,7 +65,7 @@ export const Team = () => {
                 : 'Not admin'
 
               return (
-                <tr key={m.userName} className="border-t border-b border-gray-200 group">
+                <tr key={index} className="border-t border-b border-gray-200 group">
                   {/* Admin icon */}
                   <td className="w-2">
                     <Button
@@ -92,14 +89,24 @@ export const Team = () => {
                     {users[m.userName].emoji} <span className="UserName">{m.userName}</span>
                   </td>
 
-                  {/* Connection status: Laptop */}
-                  <td title={status}>
-                    {m.userName === user.userName ? null : (
-                      <div className="flex items-center">
-                        <span className="mr-2">💻</span>
-                        <StatusIndicator status={status} />
-                      </div>
-                    )}
+                  {/* Connection status */}
+
+                  <td>
+                    {m.devices?.map(d => {
+                      const emoji = devices[d.deviceName].emoji
+                      const status = connectionStatus[auth.device.getDeviceId(d)] || 'disconnected'
+                      return (
+                        <span>
+                          {m.userName === user.userName &&
+                          d.deviceName === device.deviceName ? null : (
+                            <div title={status} className="flex items-center">
+                              <span className="mr-2">{emoji}</span>
+                              <StatusIndicator status={status} />
+                            </div>
+                          )}
+                        </span>
+                      )
+                    })}
                   </td>
 
                   {/* Remove button */}
@@ -109,7 +116,6 @@ export const Team = () => {
                         title="Remove member from team"
                         className="hover:opacity-100 opacity-10 font-bold"
                         onClick={() => {
-                          // TODO: need to handle this gracefully - what should Bob see after he is removed?
                           team.remove(m.userName)
                         }}
                         children="⛔"
