@@ -1,12 +1,20 @@
 ﻿import { arrayToMap } from './util/arrayToMap'
-import { DeviceInfo, devices as deviceMap } from './devices'
-import { UserInfo, users as userMap } from './users'
 
-const users = Object.values(userMap)
-const devices = Object.values(deviceMap)
+export const devices = {
+  laptop: { name: 'laptop', emoji: '💻' },
+  phone: { name: 'phone', emoji: '📱' },
+} as Record<string, DeviceInfo>
 
-const peerArray = devices.flatMap(device =>
-  users.map(
+export const users = {
+  Alice: { name: 'Alice', emoji: '👩🏾' },
+  Bob: { name: 'Bob', emoji: '👨🏻‍🦲' },
+  Charlie: { name: 'Charlie', emoji: '👳🏽‍♂️' },
+  Dwight: { name: 'Dwight', emoji: '👴' },
+  Eve: { name: 'Eve', emoji: '🦹‍♀️' },
+} as Record<string, UserInfo>
+
+const peerArray = Object.values(devices).flatMap(device =>
+  Object.values(users).map(
     user =>
       ({
         user,
@@ -27,3 +35,13 @@ export interface PeerInfo {
 }
 
 export type PeerMap = Record<string, PeerInfo>
+
+export type DeviceInfo = {
+  name: string
+  emoji: string
+}
+
+export type UserInfo = {
+  name: string
+  emoji: string
+}
