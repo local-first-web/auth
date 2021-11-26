@@ -4,8 +4,14 @@ import React, { MutableRefObject, useEffect, useRef, useState } from 'react'
 import { useTeam } from '../hooks/useTeam'
 import { assert } from '../util/assert'
 
+const SECOND = 1
+const MINUTE = 60 * SECOND
+const HOUR = 60 * MINUTE
+const DAY = 24 * HOUR
+const WEEK = 7 * DAY
+
 export const Invite = () => {
-  type State = 'inactive' | 'configuring' | 'done'
+  type State = 'inactive' | 'adding_device' | 'inviting_members' | 'showing_member_invite'
 
   const [state, setState] = useState<State>('inactive')
   const [seed, setSeed] = useState<string>()
@@ -14,6 +20,7 @@ export const Invite = () => {
   const expiration = useRef() as MutableRefObject<HTMLSelectElement>
 
   const { team, user } = useTeam()
+  assert(team)
 
   const copyInvitationSeedButton = useRef() as MutableRefObject<HTMLButtonElement>
 
@@ -27,16 +34,24 @@ export const Invite = () => {
     }
   }, [copyInvitationSeedButton, seed])
 
-  const invite = () => {
-    assert(team)
-
+  const inviteMembers = () => {
     const seed = `${team.teamName}-${randomSeed()}`
     setSeed(seed)
 
     // TODO we're storing id so we can revoke - wire that up
     const { id } = team.inviteMember({ seed })
 
-    setState('done')
+    setState('showing_member_invite')
+  }
+
+  const inviteDevice = () => {
+    const seed = `${team.teamName}-${randomSeed()}`
+    setSeed(seed)
+
+    // TODO we're storing id so we can revoke - wire that up
+    const { id } = team.inviteDevice({ seed })
+
+    setState('adding_device')
   }
 
   const userBelongsToTeam = team?.has(user.userName)
@@ -48,7 +63,7 @@ export const Invite = () => {
         <div>
           <div className="Invite flex gap-2">
             {/* anyone can "invite" a device*/}
-            <Button size="small" className="my-2 mr-2">
+            <Button size="small" className="my-2 mr-2" onClick={inviteDevice}>
               Add a device
             </Button>
             {/* only admins can invite users */}
@@ -57,7 +72,7 @@ export const Invite = () => {
                 size="small"
                 className="my-2 mr-2"
                 onClick={() => {
-                  setState('configuring')
+                  setState('inviting_members')
                 }}
               >
                 Invite members
@@ -67,7 +82,32 @@ export const Invite = () => {
         </div>
       )
 
-    case 'configuring':
+    case 'adding_device':
+      return (
+        <>
+          <h3>Add a device</h3>
+          <Label>
+            Enter this code on your device to join the team.
+            <pre
+              className="InvitationCode my-2 p-3 
+              border border-gray-200 rounded-md bg-gray-100 
+              text-xs whitespace-pre-wrap"
+              children={seed}
+            />
+            <div className="mt-1 text-right">
+              <Button
+                ref={copyInvitationSeedButton}
+                onClick={() => setState('inactive')}
+                data-clipboard-text={seed}
+              >
+                Copy
+              </Button>
+            </div>
+          </Label>
+        </>
+      )
+
+    case 'inviting_members':
       return (
         <>
           <h3>Invite members</h3>
@@ -83,12 +123,17 @@ export const Invite = () => {
             </Label>
             <Label>
               <span>When does this invitation code expire?</span>
-              <Select ref={expiration} defaultValue={60} className="Expiration mt-1 w-full" css="">
-                <option value={1}>in 1 second</option>
-                <option value={60}>in 1 minute</option>
-                <option value={60 * 60}>in 1 hour</option>
-                <option value={24 * 60 * 60}>in 1 day</option>
-                <option value={7 * 24 * 60 * 60}>in 1 week</option>
+              <Select
+                ref={expiration}
+                defaultValue={MINUTE}
+                className="Expiration mt-1 w-full"
+                css=""
+              >
+                <option value={SECOND}>in 1 second</option>
+                <option value={MINUTE}>in 1 minute</option>
+                <option value={HOUR}>in 1 hour</option>
+                <option value={DAY}>in 1 day</option>
+                <option value={WEEK}>in 1 week</option>
                 <option value={0}>Never</option>
               </Select>
             </Label>
@@ -107,7 +152,7 @@ export const Invite = () => {
                 </Button>
               </div>
               <div>
-                <Button className="InviteButton mt-1" onClick={invite}>
+                <Button className="InviteButton mt-1" onClick={inviteMembers}>
                   Invite
                 </Button>
               </div>
@@ -116,26 +161,28 @@ export const Invite = () => {
         </>
       )
 
-    case 'done':
+    case 'showing_member_invite':
       return (
         <>
           <p className="my-2 font-bold">Here's the invite!</p>
-          <p className="my-2">Copy this code and send it to whoever you want to invite:</p>
-          <pre
-            className="InvitationCode my-2 p-3 
+          <Label>
+            Copy this code and send it to whoever you want to invite:
+            <pre
+              className="InvitationCode my-2 p-3 
               border border-gray-200 rounded-md bg-gray-100 
               text-xs whitespace-pre-wrap"
-            children={seed}
-          />
-          <div className="mt-1 text-right">
-            <Button
-              ref={copyInvitationSeedButton}
-              onClick={() => setState('inactive')}
-              data-clipboard-text={seed}
-            >
-              Copy
-            </Button>
-          </div>
+              children={seed}
+            />
+            <div className="mt-1 text-right">
+              <Button
+                ref={copyInvitationSeedButton}
+                onClick={() => setState('inactive')}
+                data-clipboard-text={seed}
+              >
+                Copy
+              </Button>
+            </div>
+          </Label>
         </>
       )
   }
