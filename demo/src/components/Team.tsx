@@ -10,15 +10,18 @@ import { Invite } from './Invite'
 import { OnlineToggle } from './OnlineToggle'
 import { StatusIndicator } from './StatusIndicator'
 
+import debug from 'debug'
+
 export const Team = () => {
   const { team, user, device, online, connect, disconnect, connectionStatus } = useTeam()
   assert(team) // we know we're on a team if we're showing this component
+  assert(user)
+
+  const log = debug(`lf:auth:demo:team:${user.userName}`)
 
   const userBelongsToTeam = team.has(user.userName)
   const userIsAdmin = userBelongsToTeam && team.memberIsAdmin(user.userName)
   const adminCount = () => team.members().filter(m => team.memberIsAdmin(m.userName)).length
-
-  console.log('connectionStatus', connectionStatus)
 
   return (
     <>
@@ -50,7 +53,7 @@ export const Team = () => {
         <table className="MemberTable w-full border-collapse text-sm my-3">
           <tbody>
             {/* One row per member */}
-            {team.members()?.map((m, index) => {
+            {team.members()?.map(m => {
               const isAdmin = team.memberIsAdmin(m.userName)
               const isOnlyAdmin = isAdmin && adminCount() === 1
 
@@ -64,8 +67,10 @@ export const Team = () => {
                 ? 'Team admin'
                 : 'Not admin'
 
+              log('***', m.devices?.map(d => d.deviceName).join())
+
               return (
-                <tr key={index} className="border-t border-b border-gray-200 group">
+                <tr key={m.userName} className="border-t border-b border-gray-200 group">
                   {/* Admin icon */}
                   <td className="w-2">
                     <Button
@@ -95,16 +100,12 @@ export const Team = () => {
                     {m.devices?.map(d => {
                       const emoji = devices[d.deviceName].emoji
                       const status = connectionStatus[auth.device.getDeviceId(d)] || 'disconnected'
-                      return (
-                        <span>
-                          {m.userName === user.userName &&
-                          d.deviceName === device.deviceName ? null : (
-                            <div title={status} className="flex items-center">
-                              <span className="mr-2">{emoji}</span>
-                              <StatusIndicator status={status} />
-                            </div>
-                          )}
-                        </span>
+                      return m.userName === user.userName &&
+                        d.deviceName === device.deviceName ? null : (
+                        <div key={device.keys.name} title={status} className="flex items-center">
+                          <span className="mr-2">{emoji}</span>
+                          <StatusIndicator status={status} />
+                        </div>
                       )
                     })}
                   </td>
