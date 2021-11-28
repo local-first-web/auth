@@ -5,7 +5,7 @@ export const peerConnectionStatus: CommandFn = (subject, userName: string) => {
     .wrap(subject)
     .teamMember(userName)
     .findByText('💻')
-    .parents('td')
+    .parents('div')
     .first()
   return connCell.invoke('attr', 'title')
 }
