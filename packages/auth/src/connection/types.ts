@@ -49,7 +49,11 @@ export const isInvitee = (c: InitialContext | ConnectionContext): c is InviteeIn
 export interface ConnectionParams {
   /** A function to send messages to our peer. This how you hook this up to your network stack. */
   sendMessage: SendFunction
+
+  /** The initial context. */
   context: InitialContext
+
+  /** The peer's user name, if we know it */
   peerUserName?: string
 }
 
