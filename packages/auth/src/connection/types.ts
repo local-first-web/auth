@@ -19,12 +19,14 @@ export type Challenge = KeyScope & {
 export type SendFunction = <T extends ConnectionMessage>(message: T) => void
 
 export type MemberInitialContext = {
+  userName: string
   user: UserWithSecrets
   device: DeviceWithSecrets
   team: Team
 }
 
 export type InviteeMemberInitialContext = {
+  userName: string
   user: UserWithSecrets
   device: DeviceWithSecrets
   invitationSeed: string
