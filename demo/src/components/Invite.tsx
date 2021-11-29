@@ -21,6 +21,7 @@ export const Invite = () => {
 
   const { team, user } = useTeam()
   assert(team)
+  assert(user)
 
   const copyInvitationSeedButton = useRef() as MutableRefObject<HTMLButtonElement>
 
