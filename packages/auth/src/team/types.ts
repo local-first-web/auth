@@ -178,6 +178,7 @@ export interface AdmitDeviceAction {
   payload: BasePayload & {
     id: string // invitation ID
     userName: string // user name of the device's owner
+    deviceName: string // name given to the device by the owner
     deviceKeys: Keyset // device keys provided by the new device
   }
 }
