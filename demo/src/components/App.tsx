@@ -24,22 +24,35 @@ export const App = () => {
     setPeers(peers => ({ ...peers, [id]: { ...peers[id], show: v } }))
 
   const onUpdate = (s: StoredPeerState) => {
-    const peerId = s.user.userName + ':' + s.device.deviceName
-    setStorage(prev => ({ ...prev, [peerId]: s }))
+    if (s.user) {
+      const peerId = `${s.user.userName}:${s.device.deviceName}`
+      setStorage(prev => ({ ...prev, [peerId]: s }))
+    }
   }
 
   const getInitialState = (peerInfo: PeerInfo): PeerState => {
     const peerId = `${peerInfo.user.name}:${peerInfo.device.name}`
     const storedState = storage[peerId]
     if (storedState) {
-      const { user, device, teamChain } = storedState
-      const team = teamChain ? auth.loadTeam(teamChain, { user, device }) : undefined
-      return { ...defaults, user, device, team }
+      // we're re-showing a peer that was previously hidden - we still have its state
+      const { user, teamChain } = storedState
+      const team =
+        user && teamChain ? auth.loadTeam(teamChain, { ...storedState, user }) : undefined
+      return { ...defaults, ...storedState, team }
     } else {
-      const user = auth.createUser(peerInfo.user.name)
-      const device = auth.createDevice(peerInfo.user.name, peerInfo.device.name)
-      setStorage(prev => ({ ...prev, [peerId]: { user, device } }))
-      return { ...defaults, user, device }
+      // we're showing a peer for the first time
+      const userName = peerInfo.user.name
+
+      const device = auth.createDevice(userName, peerInfo.device.name)
+
+      // For the purposes of this demo, we're using the laptop as each user's "primary" device --
+      // that's where their user keys are created. On the phone, we only know the user's name. We
+      // don't have any user keys yet, we'll get them once the device joins the team.
+      const user = peerInfo.device.name === 'laptop' ? auth.createUser(userName) : undefined
+
+      const state = { userName, user, device }
+      setStorage(prev => ({ ...prev, [peerId]: state }))
+      return { ...defaults, ...state }
     }
   }
 
