@@ -2,7 +2,7 @@
 import { Challenge } from '@/connection/types'
 import { LocalUserContext } from '@/context'
 import * as devices from '@/device'
-import { getDeviceId, parseDeviceId, Device, redactDevice } from '@/device'
+import { getDeviceId, parseDeviceId, Device, redactDevice, DeviceWithSecrets } from '@/device'
 import * as invitations from '@/invitation'
 import { ProofOfInvitation } from '@/invitation'
 import { normalize } from '@/invitation/normalize'
@@ -522,27 +522,25 @@ export class Team extends EventEmitter {
   }
 
   /** A member calls this to admit a new device for themselves based on proof of invitation */
-  public admitDevice = (
-    proof: ProofOfInvitation,
-    userName: string,
-    deviceKeys: Keyset | KeysetWithSecrets
-  ) => {
+  public admitDevice = (proof: ProofOfInvitation, device: DeviceWithSecrets | Device) => {
     const validation = this.validateInvitation(proof)
     if (validation.isValid === false) throw validation.error
     const { id } = proof
+    const { userName, deviceName, keys } = device
 
     assert(this.context.user)
     assert(this.userName === userName, `Can't admit someone else's device`)
 
-    const deviceLockbox = lockbox.create(this.context.user.keys, deviceKeys)
+    const deviceLockbox = lockbox.create(this.context.user.keys, keys)
 
     // post admission to the signature chain
     this.dispatch({
       type: 'ADMIT_DEVICE',
       payload: {
         id,
-        userName: this.userName,
-        deviceKeys: redactKeys(deviceKeys),
+        userName,
+        deviceName,
+        deviceKeys: redactKeys(keys),
         lockboxes: [deviceLockbox],
       },
     })
