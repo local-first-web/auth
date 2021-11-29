@@ -174,11 +174,11 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     case 'ADMIT_DEVICE': {
-      const { id, userName, deviceKeys } = action.payload
+      const { id, userName, deviceName, deviceKeys } = action.payload
 
       const device: Device = {
         userName,
-        deviceName: deviceKeys.name,
+        deviceName,
         keys: deviceKeys,
       }
 
