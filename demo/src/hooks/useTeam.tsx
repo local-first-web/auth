@@ -15,7 +15,7 @@ export const useTeam = () => {
   assert(context, `useTeam must be used within a TeamProvider`)
 
   const [peerState, setPeerState] = context
-  const { user, device } = peerState
+  const { userName, user, device } = peerState
 
   const clearTeam = () => {
     setPeerState((prev: PeerState) => {
@@ -53,8 +53,8 @@ export const useTeam = () => {
   }
 
   const createTeam = () => {
+    assert(user)
     const team = auth.createTeam(randomTeamName(), { user, device })
-
     setPeerState((prev: PeerState) => {
       return {
         ...prev,
@@ -63,16 +63,12 @@ export const useTeam = () => {
     })
 
     const { teamName } = team
-    const context = { user, device, team }
+    const context = { userName, user, device, team }
     connect(teamName, context)
   }
 
   const joinTeam = (teamName: string, invitationSeed: string) => {
-    const context = {
-      user,
-      device,
-      invitationSeed,
-    }
+    const context = { userName, user, device, invitationSeed }
     connect(teamName, context)
   }
 
@@ -123,7 +119,7 @@ export const useTeam = () => {
 
   React.useEffect(() => {
     // clear the team if the user is no longer a member
-    if (!peerState.team?.has(user.userName)) clearTeam()
+    if (user && !peerState.team?.has(user.userName)) clearTeam()
   }, [peerState.team?.chain.head])
 
   return { ...peerState, addAlert, clearAlert, createTeam, joinTeam, connect, disconnect }
