@@ -614,7 +614,7 @@ describe('connection', () => {
         // Eve steals Bob's phone.
 
         // From his laptop, Bob removes his phone from the team
-        bob.team.removeDevice('bob', 'bob::phone')
+        bob.team.removeDevice('bob', 'phone')
         expect(bob.team.members('bob').devices).toHaveLength(1)
 
         // Alice can see that Bob only has one device
