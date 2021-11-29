@@ -239,7 +239,7 @@ describe('Team', () => {
         const proofOfInvitation = generateProof(seed)
 
         // 📱 Alice's phone connects with 💻 her laptop and presents the proof
-        alice.team.admitDevice(proofOfInvitation, 'alice', alice.phone.keys)
+        alice.team.admitDevice(proofOfInvitation, alice.phone)
 
         // 👍 The proof was good, so the laptop sends the phone the team's signature chain
         const savedTeam = alice.team.save()
@@ -272,8 +272,7 @@ describe('Team', () => {
         bob.team = teams.load(savedTeam, bob.localContext)
 
         // 📱 Alice's phone connects with 👨🏻‍🦲 Bob and she presents the proof
-        const tryToAdmitPhone = () =>
-          bob.team.admitDevice(proofOfInvitation, 'alice', alice.phone.keys)
+        const tryToAdmitPhone = () => bob.team.admitDevice(proofOfInvitation, alice.phone)
 
         // ❌ Alice's phone can only present its invitation to one of Alice's other devices
         expect(tryToAdmitPhone).toThrow(`Can't admit someone else's device`)
