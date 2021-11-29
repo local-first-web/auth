@@ -366,5 +366,16 @@ describe('taco-chat', () => {
     cy.get('.Peer').should('have.length', 2)
     bob().toggleOnline()
     // Bob rejoins the team
+
+    // Alice sees that Bob is reconnected
+    alice()
+      .peerConnectionStatus('Bob')
+      .should('equal', 'connected')
+  })
+
+  it.only(`Alice adds her phone`, () => {
+    show('Alice:phone')
+
+    alice().addDevice('phone')
   })
 })
