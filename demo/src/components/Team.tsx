@@ -14,9 +14,12 @@ import debug from 'debug'
 
 export const Team = () => {
   const { team, user, device, online, connect, disconnect, connectionStatus } = useTeam()
-  assert(team) // we know we're on a team if we're showing this component
-  assert(user)
 
+  if (team === undefined || user === undefined) return null
+  // assert(team) // we know we're on a team if we're showing this component
+  // assert(user)
+
+  const { userName } = user
   const log = debug(`lf:auth:demo:team:${user.userName}`)
 
   const userBelongsToTeam = team.has(user.userName)
@@ -39,7 +42,7 @@ export const Team = () => {
               isOnline={online}
               onChange={isConnected => {
                 if (isConnected) {
-                  const context = { user, device, team }
+                  const context = { userName, user, device, team }
                   connect(team.teamName, context)
                 } else {
                   disconnect()
@@ -66,8 +69,6 @@ export const Team = () => {
                 : isAdmin
                 ? 'Team admin'
                 : 'Not admin'
-
-              log('***', m.devices?.map(d => d.deviceName).join())
 
               return (
                 <tr key={m.userName} className="border-t border-b border-gray-200 group">
