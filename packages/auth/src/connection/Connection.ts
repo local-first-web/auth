@@ -23,7 +23,7 @@ import {
   SendFunction,
   StateMachineAction,
 } from '@/connection/types'
-import { getDeviceId, parseDeviceId } from '@/device'
+import { Device, getDeviceId, parseDeviceId } from '@/device'
 import * as invitations from '@/invitation'
 import { Team, TeamSignatureChain } from '@/team'
 import { assert, debug, EventEmitter, truncateHashes } from '@/util'
@@ -317,7 +317,6 @@ export class Connection extends EventEmitter {
     acceptInvitation: context => {
       assert(context.team)
       assert(context.theirProofOfInvitation)
-      assert(context.theirDeviceKeys)
 
       // admit them to the team
       if ('theirUserKeys' in context && context.theirUserKeys !== undefined) {
@@ -325,12 +324,11 @@ export class Connection extends EventEmitter {
         context.team.admitMember(context.theirProofOfInvitation, context.theirUserKeys)
       } else {
         // new device for existing member
-        const userName = parseDeviceId(context.theirDeviceKeys.name).userName
-        context.team.admitDevice(
-          context.theirProofOfInvitation, //
-          userName,
-          context.theirDeviceKeys
-        )
+        assert(context.theirDeviceKeys)
+        const keys = context.theirDeviceKeys
+        const { userName, deviceName } = parseDeviceId(context.theirDeviceKeys.name)
+        const device: Device = { userName, deviceName, keys }
+        context.team.admitDevice(context.theirProofOfInvitation, device)
       }
 
       // welcome them by sending the team's signature chain, so they can reconstruct team membership state
@@ -349,10 +347,12 @@ export class Connection extends EventEmitter {
       // TODO: replace all these `'foo' in context` checks with proper type guards
 
       // join the team
-      if ('userName' in context && context.userName) {
+      if (this.context.user === undefined) {
+        // joining as a new device for an existing member
         // we get the user's keys from the team and rehydrate our user that way
         this.context.user = team.joinAsDevice(context.userName)
       } else {
+        // joining as a new member
         // we add our current device to the team chain
         team.joinAsMember()
       }
