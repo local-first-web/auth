@@ -5,7 +5,8 @@ export type UserName = string
 export type ConnectionStatus = string
 
 export type PeerState = {
-  user: auth.UserWithSecrets
+  userName: UserName
+  user?: auth.UserWithSecrets
   device: auth.DeviceWithSecrets
   team?: auth.Team
   connectionManager?: ConnectionManager
@@ -15,7 +16,8 @@ export type PeerState = {
 }
 
 export type StoredPeerState = {
-  user: auth.UserWithSecrets
+  userName: UserName
+  user?: auth.UserWithSecrets
   device: auth.DeviceWithSecrets
   teamChain?: string
 }
