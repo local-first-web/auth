@@ -8,7 +8,7 @@ export const addToTeam: CommandFn = (subject, userName: string) => {
     .then(code => {
       peer(userName).join(code)
     })
-    .then(() =>
+    .then(() => {
       s()
         .teamName()
         .then(teamName =>
@@ -16,5 +16,8 @@ export const addToTeam: CommandFn = (subject, userName: string) => {
             .teamName()
             .should('equal', teamName)
         )
-    )
+      s()
+        .peerConnectionStatus(userName)
+        .should('equal', 'connected')
+    })
 }
