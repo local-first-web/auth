@@ -15,12 +15,10 @@ import debug from 'debug'
 export const Team = () => {
   const { team, user, device, online, connect, disconnect, connectionStatus } = useTeam()
 
-  if (team === undefined || user === undefined) return null
-  // assert(team) // we know we're on a team if we're showing this component
-  // assert(user)
+  assert(team) // we know we're on a team if we're showing this component
+  assert(user)
 
   const { userName } = user
-  const log = debug(`lf:auth:demo:team:${user.userName}`)
 
   const userBelongsToTeam = team.has(user.userName)
   const userIsAdmin = userBelongsToTeam && team.memberIsAdmin(user.userName)
@@ -57,37 +55,37 @@ export const Team = () => {
           <tbody>
             {/* One row per member */}
             {team.members()?.map(m => {
-              const isAdmin = team.memberIsAdmin(m.userName)
-              const isOnlyAdmin = isAdmin && adminCount() === 1
+              const memberIsAdmin = team.memberIsAdmin(m.userName)
+              const memberIsOnlyAdmin = memberIsAdmin && adminCount() === 1
 
-              const adminToggleTitle = userIsAdmin
-                ? isOnlyAdmin
-                  ? `Can't remove the only admin`
-                  : isAdmin
-                  ? 'Team admin (click to remove)'
-                  : 'Click to make team admin'
-                : isAdmin
-                ? 'Team admin'
-                : 'Not admin'
+              const adminToggleTitle = memberIsOnlyAdmin
+                ? `Can't remove the only admin`
+                : memberIsAdmin
+                ? 'Team admin (click to remove)'
+                : 'Click to make team admin'
 
               return (
                 <tr key={m.userName} className="border-t border-b border-gray-200 group">
                   {/* Admin icon */}
                   <td className="w-2">
-                    <Button
-                      layout="link"
-                      size="small"
-                      disabled={!userIsAdmin || isOnlyAdmin}
-                      onClick={() => {
-                        if (isAdmin) team.removeMemberRole(m.userName, auth.ADMIN)
-                        else team.addMemberRole(m.userName, auth.ADMIN)
-                      }}
-                      title={adminToggleTitle}
-                      className={`px-1 m-1 hover:opacity-25  ${
-                        isAdmin ? 'opacity-100' : 'opacity-0 disabled:opacity-0 '
-                      }`}
-                      children="👑"
-                    />
+                    {userIsAdmin ? (
+                      <Button
+                        layout="link"
+                        size="small"
+                        disabled={!userIsAdmin || memberIsOnlyAdmin}
+                        onClick={() => {
+                          if (memberIsAdmin) team.removeMemberRole(m.userName, auth.ADMIN)
+                          else team.addMemberRole(m.userName, auth.ADMIN)
+                        }}
+                        title={adminToggleTitle}
+                        className={`px-1 m-1 hover:opacity-25  ${
+                          memberIsAdmin ? 'opacity-100' : 'opacity-0 disabled:opacity-0'
+                        }`}
+                        children="👑"
+                      />
+                    ) : memberIsAdmin ? (
+                      <span title="Member is admin">👑</span>
+                    ) : null}
                   </td>
 
                   {/* Name & emoji */}
@@ -97,23 +95,27 @@ export const Team = () => {
 
                   {/* Connection status */}
 
-                  <td>
+                  <td className="flex py-2">
                     {m.devices?.map(d => {
                       const emoji = devices[d.deviceName].emoji
                       const status = connectionStatus[auth.device.getDeviceId(d)] || 'disconnected'
-                      return m.userName === user.userName &&
-                        d.deviceName === device.deviceName ? null : (
-                        <div key={device.keys.name} title={status} className="flex items-center">
-                          <span className="mr-2">{emoji}</span>
+                      const isThisDevice = d.keys.name === device.keys.name
+                      return !isThisDevice ? (
+                        <div
+                          key={`${d.keys.name}`}
+                          title={status}
+                          className="flex items-center pr-3"
+                        >
+                          <span className="mr-1">{emoji}</span>
                           <StatusIndicator status={status} />
                         </div>
-                      )
+                      ) : null
                     })}
                   </td>
 
                   {/* Remove button */}
                   <td>
-                    {userIsAdmin && !isOnlyAdmin ? (
+                    {userIsAdmin && !memberIsOnlyAdmin ? (
                       <button
                         title="Remove member from team"
                         className="hover:opacity-100 opacity-10 font-bold"
@@ -137,7 +139,7 @@ export const Team = () => {
       {/* Chain visualization */}
       <CardBody className="border-t">
         <CardLabel>Signature chain</CardLabel>
-        <ChainDiagram chain={team.chain} id={user.userName} />
+        <ChainDiagram chain={team.chain} id={device.keys.name.replace(/::/, '-')} />
       </CardBody>
     </>
   )
