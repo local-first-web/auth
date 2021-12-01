@@ -44,6 +44,7 @@ describe('connection', () => {
 
         charlie.connectionContext = {
           team: teams.createTeam(`team charlie`, { device: charlie.device, user: charlie.user }),
+          userName: 'charlie',
           user: charlie.user,
           device: charlie.device,
         }
