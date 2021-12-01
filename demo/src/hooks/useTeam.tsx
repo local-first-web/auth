@@ -8,7 +8,7 @@ import { assert } from '../util/assert'
 import { randomTeamName } from '../util/randomTeamName'
 
 // TODO: make this an environment var
-const urls = ['ws://localhost:8080']
+const relayUrls = ['ws://localhost:8080']
 
 export const useTeam = () => {
   const context = React.useContext(teamContext)
@@ -45,9 +45,10 @@ export const useTeam = () => {
   const setTeam = (newTeam: auth.Team) => {
     setPeerState((prev: PeerState) => {
       const oldTeam = prev.team
-      const team = !oldTeam
-        ? { ...prev, team: newTeam }
-        : { ...prev, team: oldTeam.merge(newTeam.chain) }
+      const team =
+        oldTeam === undefined
+          ? { ...prev, team: newTeam }
+          : { ...prev, team: oldTeam.merge(newTeam.chain) }
       return team
     })
   }
@@ -73,7 +74,7 @@ export const useTeam = () => {
   }
 
   const connect = (teamName: string, context: auth.InitialContext) => {
-    const connectionManager = new ConnectionManager({ teamName, urls, context })
+    const connectionManager = new ConnectionManager({ teamName, urls: relayUrls, context })
       .on('server.connect', () => {
         setPeerState(prev => ({
           ...prev,
@@ -86,6 +87,13 @@ export const useTeam = () => {
           ...prev,
           online: false,
           connectionStatus: {},
+        }))
+      })
+      .on('joined', ({ team, user }) => {
+        setPeerState(prev => ({
+          ...prev,
+          team,
+          user,
         }))
       })
       .on('change', () => {
