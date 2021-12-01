@@ -52,8 +52,10 @@ export class ConnectionManager extends EventEmitter {
       .on('peer.connect', async ({ userName: peerUserName, socket }: PeerEventPayload) => {
         // in case we're not able to start the connection immediately (e.g. because there's a mutex
         // lock), store any messages we receive, so we can deliver them when we start it
-        const storedMessages: string[] = []
-        socket.addEventListener('message', ({ data: message }) => storedMessages.push(message))
+        const storedMessages: auth.connection.NumberedConnectionMessage[] = []
+        socket.addEventListener('message', ({ data: message }) =>
+          storedMessages.push(JSON.parse(message))
+        )
 
         // We don't want to present invitations to multiple people simultaneously, because then they
         // both might admit us concurrently and that complicates things unnecessarily. So we need to
@@ -79,7 +81,11 @@ export class ConnectionManager extends EventEmitter {
     this.emit('server.disconnect')
   }
 
-  private connectPeer = async (socket: WebSocket, peerUserName: string, storedMessages: string[]) =>
+  private connectPeer = async (
+    socket: WebSocket,
+    peerUserName: string,
+    storedMessages: auth.connection.NumberedConnectionMessage[]
+  ) =>
     new Promise<void>((resolve, reject) => {
       this.log('connecting with context', this.context)
       // connect with a new peer

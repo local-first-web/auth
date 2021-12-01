@@ -90,7 +90,7 @@ export class Connection extends EventEmitter {
   }
 
   /** Starts (or restarts) the protocol machine. Returns this Protocol object. */
-  public start = (storedMessages: string[] = []) => {
+  public start = (storedMessages: NumberedConnectionMessage[] = []) => {
     this.log('starting')
     if (!this.started) {
       this.machine.start()
@@ -98,7 +98,9 @@ export class Connection extends EventEmitter {
       this.sendMessage({ type: 'REQUEST_IDENTITY' })
 
       // deliver any stored messages we might have received before starting
-      storedMessages.forEach(m => this.deliver(JSON.parse(m)))
+      storedMessages.forEach(m => {
+        this.deliver(m)
+      })
     } else {
       this.machine.send({ type: 'RECONNECT' })
     }
@@ -665,6 +667,7 @@ export class Connection extends EventEmitter {
 
   private logMessage = (direction: 'in' | 'out', message: ConnectionMessage, index: number) => {
     const arrow = direction === 'in' ? '<-' : '->'
+    if (index === undefined || index.toString() === 'undefined') debugger
     this.log(`${this.userName}${arrow}${this.peerName} #${index} ${messageSummary(message)}`)
   }
 

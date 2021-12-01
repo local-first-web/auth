@@ -54,5 +54,5 @@ type ConnectionParams = {
   socket: WebSocket
   context: auth.InitialContext
   peerUserName: string
-  storedMessages?: string[]
+  storedMessages?: auth.connection.NumberedConnectionMessage[]
 }
