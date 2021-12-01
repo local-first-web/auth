@@ -333,10 +333,8 @@ export class Team extends EventEmitter {
 
   /** Remove a member's device */
   public removeDevice = (userName: string, deviceName: string) => {
-    assert(
-      this.hasDevice(userName, deviceName),
-      `Member ${userName} does not have a device called ${deviceName}`
-    )
+    if (!this.hasDevice(userName, deviceName)) return
+
     // create new keys & lockboxes for any keys this device had access to
     const deviceId = getDeviceId({ userName, deviceName })
     const lockboxes = this.generateNewLockboxes({ type: KeyType.DEVICE, name: deviceId })
@@ -560,12 +558,16 @@ export class Team extends EventEmitter {
     })
   }
 
+  /** Once a new device has received the chain and can instantiate the team, they call this to get the user keys */
   public joinAsDevice = (userName: string) => {
-    this.context.user = {
+    const user = {
       userName,
       keys: this.keys({ type: KeyType.USER, name: userName }),
     }
-    return this.context.user
+    this.store = createStore({ user, reducer, resolver, initialState, chain: this.chain })
+    this.context.user = user
+
+    return user
   }
 
   /**************** CRYPTO */
@@ -670,7 +672,7 @@ export class Team extends EventEmitter {
     userOrDevice.keys = newKeys
   }
 
-  private get userName() {
+  public get userName() {
     if (this.context.user) return this.context.user.userName
     else return this.context.device.userName // device is always known
   }
