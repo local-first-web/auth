@@ -630,8 +630,8 @@ describe('connection', () => {
 
         const join = joinTestChannel(new TestChannel())
 
-        const eveOnBobsPhone = await join(phoneContext).start()
-        const heyCharlie = await join(charlie.connectionContext).start()
+        const eveOnBobsPhone = join(phoneContext).start()
+        const heyCharlie = join(charlie.connectionContext).start()
 
         // GRRR foiled again
         await all([eveOnBobsPhone, heyCharlie], 'disconnected')
