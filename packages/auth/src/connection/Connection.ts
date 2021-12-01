@@ -64,7 +64,7 @@ export class Connection extends EventEmitter {
       this.peerUserName = peerUserName
     }
 
-    this.log = debug(`lf:auth:connection:${context.device.userName}:${this.peerUserName}`)
+    this.log = debug(`lf:auth:connection:${context.device.keys.name}:${this.peerUserName}`)
 
     this.sendMessage = (message: ConnectionMessage) => {
       // add a sequential index to any outgoing messages
@@ -262,7 +262,7 @@ export class Connection extends EventEmitter {
           // update peer user name
           const deviceId = event.payload.identityClaim.name
           this.peerUserName = parseDeviceId(deviceId).userName
-          this.log = debug(`lf:auth:connection:${context.device.userName}:${this.peerUserName}`)
+          this.log = debug(`lf:auth:connection:${context.device.keys.name}:${this.peerUserName}`)
 
           return event.payload.identityClaim
         } else {
@@ -303,8 +303,7 @@ export class Connection extends EventEmitter {
           // update peer user name
           const deviceId = event.payload.deviceKeys.name
           this.peerUserName = parseDeviceId(deviceId).userName
-          this.log = debug(`lf:auth:connection:${context.device.userName}:${this.peerUserName}`)
-
+          this.log = debug(`lf:auth:connection:${context.device.keys.name}:${deviceId}`)
           return event.payload.deviceKeys
         } else {
           return undefined
@@ -344,13 +343,11 @@ export class Connection extends EventEmitter {
       // we've just received the team's signature chain; reconstruct team
       const team = this.rehydrateTeam(context, event)
 
-      // TODO: replace all these `'foo' in context` checks with proper type guards
-
       // join the team
-      if (this.context.user === undefined) {
+      if (context.user === undefined) {
         // joining as a new device for an existing member
         // we get the user's keys from the team and rehydrate our user that way
-        this.context.user = team.joinAsDevice(context.userName)
+        context.user = team.joinAsDevice(context.userName)
       } else {
         // joining as a new member
         // we add our current device to the team chain
@@ -358,7 +355,7 @@ export class Connection extends EventEmitter {
       }
 
       // put the updated team on our context
-      this.context.team = team
+      context.team = team
     },
 
     // authenticating
@@ -390,7 +387,6 @@ export class Connection extends EventEmitter {
       const identityLookupResult = context.team.lookupIdentity(identityClaim)
 
       const fail = (msg: string) => {
-        debugger
         context.error = this.createError(() => msg)
       }
 
@@ -598,7 +594,7 @@ export class Connection extends EventEmitter {
     // events for external listeners
 
     onConnected: () => this.emit('connected'),
-    onJoined: () => this.emit('joined', this.team),
+    onJoined: () => this.emit('joined', { team: this.team, user: this.user }),
     onUpdated: () => this.emit('updated'),
     onDisconnected: (_, event) => this.emit('disconnected', event),
   }
