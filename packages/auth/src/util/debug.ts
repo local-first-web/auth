@@ -5,7 +5,7 @@ const substituteTokens = (s: string) => {
   return (
     truncateHashes(s)
       .replace(/"/g, '')
-      .replace('::', '')
+      .replace(/::/g, '')
 
       .replace(/alice/gi, '👩🏾')
       .replace(/bob/gi, '👨🏻‍🦲')
