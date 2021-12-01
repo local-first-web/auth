@@ -12,7 +12,7 @@ import { Team } from './Team'
 const AUTO_CREATE_ALICE_TEAM = true
 
 export const Peer = ({ peerInfo, onHide }: PeerProps) => {
-  const { team, createTeam, disconnect } = useTeam()
+  const { team, user, createTeam, disconnect } = useTeam()
 
   React.useEffect(() => {
     // set up Alice on first load
@@ -43,12 +43,12 @@ export const Peer = ({ peerInfo, onHide }: PeerProps) => {
           </div>
         </div>
         <Alerts />
-        {!team ? (
-          // Not on a team; show Create team / Join team buttons
-          <CreateOrJoinTeam />
-        ) : (
+        {team && user ? (
           // Team members, sig chain, etc.
           <Team />
+        ) : (
+          // Not on a team; show Create team / Join team buttons
+          <CreateOrJoinTeam />
         )}
       </Card>
     </ErrorBoundary>
