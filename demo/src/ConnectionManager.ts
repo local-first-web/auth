@@ -90,11 +90,11 @@ export class ConnectionManager extends EventEmitter {
         storedMessages,
       })
       connection
-        .on('joined', team => {
+        .on('joined', ({ team, user }) => {
           // no longer an invitee - update our context for future connections
-          const { device, user } = this.context as InviteeMemberInitialContext
+          const { device } = this.context as InviteeMemberInitialContext
           this.context = { device, user, team } as MemberInitialContext
-          this.emit('joined', team)
+          this.emit('joined', { team, user })
         })
         .on('connected', () => {
           this.emit('connected', connection)
