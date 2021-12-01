@@ -1,4 +1,4 @@
-import { show, alice, bob, charlie } from '../support'
+import { show, alice, bob, charlie, alicePhone } from '../support'
 
 describe('taco-chat', () => {
   beforeEach(() => {
@@ -226,10 +226,40 @@ describe('taco-chat', () => {
       .should('not.be.admin')
   })
 
-  it(`Alice and Bob demote each other concurrently`, () => {
+  it.only(`Alice and Bob demote each other concurrently`, () => {
     show('Bob:laptop')
     alice().addToTeam('Bob')
+
+    // Only Alice is admin
+    alice()
+      .teamMember('Alice')
+      .should('be.admin')
+    alice()
+      .teamMember('Bob')
+      .should('not.be.admin')
+    bob()
+      .teamMember('Alice')
+      .should('be.admin')
+    bob()
+      .teamMember('Bob')
+      .should('not.be.admin')
+
+    // Alice promotes Bob
     alice().promote('Bob')
+
+    // Now both are admins
+    alice()
+      .teamMember('Alice')
+      .should('be.admin')
+    alice()
+      .teamMember('Bob')
+      .should('be.admin')
+    bob()
+      .teamMember('Alice')
+      .should('be.admin')
+    bob()
+      .teamMember('Bob')
+      .should('be.admin')
 
     // Alice and Bob both disconnect
 
@@ -373,9 +403,24 @@ describe('taco-chat', () => {
       .should('equal', 'connected')
   })
 
-  it.only(`Alice adds her phone`, () => {
+  it(`Alice adds her phone`, () => {
     show('Alice:phone')
-
     alice().addDevice('phone')
+  })
+
+  it(`Alice's phone invites Bob`, () => {
+    show('Alice:phone')
+    alice().addDevice('phone')
+
+    show('Bob:laptop')
+    alicePhone().addToTeam('Bob')
+
+    // both peers have 'connected' status
+    alicePhone()
+      .peerConnectionStatus('Bob')
+      .should('equal', 'connected')
+    bob()
+      .peerConnectionStatus('Alice', 'phone')
+      .should('equal', 'connected')
   })
 })
