@@ -9,18 +9,19 @@ export class Connection extends EventEmitter {
     super()
     this.peerSocket = socket
 
-    // TODO probably the relay client should take care of this (checking if socket is ready, queuing
-    // messages if not, etc.)
+    // pass outgoing messages from the auth connection to the socket
     const sendMessage: auth.SendFunction = message => {
+      // TODO probably the relay client should take care of this (checking if socket is ready, queuing
+      // messages if not, etc.)
       if (socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify(message))
+        socket.send(message)
       }
     }
     this.authConnection = new auth.Connection({ context, sendMessage, peerUserName })
 
     // listen for incoming messages and pass them to the auth connection
     socket.addEventListener('message', ({ data: message }) => {
-      this.authConnection.deliver(JSON.parse(message))
+      this.authConnection.deliver(message)
     })
 
     // if the remote peer closes the connection, close up here as well
@@ -54,5 +55,5 @@ type ConnectionParams = {
   socket: WebSocket
   context: auth.InitialContext
   peerUserName: string
-  storedMessages?: auth.connection.NumberedConnectionMessage[]
+  storedMessages?: string[]
 }
