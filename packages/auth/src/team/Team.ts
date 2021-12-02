@@ -48,10 +48,10 @@ import {
 export class Team extends EventEmitter {
   private store: Store<TeamState, TeamAction>
   private context: LocalUserContext
-  private state: TeamState = initialState
   private log: (o: any, ...args: any[]) => void
   private seed: string
 
+  public state: TeamState = initialState
   /**
    * We can make a team instance either by creating a brand-new team, or restoring one from a stored
    * signature chain.
