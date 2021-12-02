@@ -1,22 +1,21 @@
 import { EventEmitter } from 'events'
-import { ConnectionMessage } from '@/connection/message'
 
 export class TestChannel extends EventEmitter {
   private peers: number = 0
-  private buffer: { senderId: string; msg: ConnectionMessage }[] = []
+  private buffer: { senderId: string; msg: string }[] = []
 
   addPeer() {
     this.peers += 1
     if (this.peers > 1) {
       // someone was already connected, emit any buffered messages
       while (this.buffer.length > 0) {
-        const { senderId, msg } = this.buffer.pop() as { senderId: string; msg: ConnectionMessage }
+        const { senderId, msg } = this.buffer.pop() as { senderId: string; msg: string }
         this.emit('data', senderId, msg)
       }
     }
   }
 
-  write(senderId: string, msg: any) {
+  write(senderId: string, msg: string) {
     if (this.peers > 1) {
       // at least one peer besides us connected
       this.emit('data', senderId, msg)

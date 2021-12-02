@@ -16,7 +16,7 @@ export type Challenge = KeyScope & {
 
 // Context schema
 
-export type SendFunction = <T extends ConnectionMessage>(message: T) => void
+export type SendFunction = (message: string) => void
 
 export type MemberInitialContext = {
   user: UserWithSecrets

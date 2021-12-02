@@ -15,7 +15,7 @@ export const joinTestChannel = (channel: TestChannel) => (context: InitialContex
 
   // hook up receive
   channel.addListener('data', async (senderId, msg) => {
-    if (senderId === id) return // I can ignore messages that I sent
+    if (senderId === id) return // ignore messages that I sent
 
     // simulate a random delay, then deliver the message
     const delay = 1 //Math.floor(Math.random() * 100)

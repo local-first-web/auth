@@ -8,6 +8,7 @@ import {
   DisconnectMessage,
   EncryptedMessage,
   ErrorMessage,
+  isNumberedConnectionMessage,
   NumberedConnectionMessage,
   ProveIdentityMessage,
   SeedMessage,
@@ -49,9 +50,9 @@ const { DEVICE } = KeyType
  * implements the connection protocol. The XState configuration is in `protocolMachine`.
  */
 export class Connection extends EventEmitter {
-  private sendMessage: SendFunction
   private peerUserName: string = '?'
 
+  private sendFn: SendFunction
   private machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
   private incomingMessageQueue: Record<number, NumberedConnectionMessage> = {}
   private outgoingMessageIndex: number = 0
@@ -60,19 +61,10 @@ export class Connection extends EventEmitter {
   constructor({ sendMessage, context, peerUserName }: ConnectionParams) {
     super()
 
-    if (peerUserName) {
-      this.peerUserName = peerUserName
-    }
+    if (peerUserName) this.peerUserName = peerUserName
+    this.sendFn = sendMessage
 
     this.log = debug(`lf:auth:connection:${context.device.keys.name}:${this.peerUserName}`)
-
-    this.sendMessage = (message: ConnectionMessage) => {
-      // add a sequential index to any outgoing messages
-      const index = this.outgoingMessageIndex++
-      const messageWithIndex = { ...message, index }
-      this.logMessage('out', message, index)
-      sendMessage(messageWithIndex)
-    }
 
     // define state machine
     const machineConfig = { actions: this.actions, guards: this.guards }
@@ -90,7 +82,7 @@ export class Connection extends EventEmitter {
   }
 
   /** Starts (or restarts) the protocol machine. Returns this Protocol object. */
-  public start = (storedMessages: NumberedConnectionMessage[] = []) => {
+  public start = (storedMessages: string[] = []) => {
     this.log('starting')
     if (!this.started) {
       this.machine.start()
@@ -172,6 +164,14 @@ export class Connection extends EventEmitter {
     return this.context.peer?.userName ?? this.context.theirIdentityClaim?.name ?? '?'
   }
 
+  private sendMessage = (message: ConnectionMessage) => {
+    // add a sequential index to any outgoing messages
+    const index = this.outgoingMessageIndex++
+    const messageWithIndex = { ...message, index }
+    this.logMessage('out', message, index)
+    this.sendFn(JSON.stringify(messageWithIndex))
+  }
+
   /** Sends an encrypted message to the peer we're connected with */
   public send = (message: Payload) => {
     assert(this.context.sessionKey)
@@ -196,10 +196,17 @@ export class Connection extends EventEmitter {
 
   /** Passes an incoming message from the peer on to this protocol machine, guaranteeing that
    *  messages will be delivered in the intended order (according to the `index` field on the message) */
-  public async deliver(incomingMessage: NumberedConnectionMessage) {
-    this.logMessage('in', incomingMessage, incomingMessage.index)
+  public async deliver(serializedMessage: string) {
+    const message = insistentlyParseJson(serializedMessage)
+    assert(
+      isNumberedConnectionMessage(message),
+      `Can only deliver numbered connection messages; received 
+${JSON.stringify(message, null, 2)}`
+    )
 
-    const { queue, nextMessages } = orderedDelivery(this.incomingMessageQueue, incomingMessage)
+    this.logMessage('in', message, message.index)
+
+    const { queue, nextMessages } = orderedDelivery(this.incomingMessageQueue, message)
 
     // update queue
     this.incomingMessageQueue = queue
@@ -705,3 +712,11 @@ const stateSummary = (state: any = 'disconnected'): string =>
         .join(',')
 
 const isMember = (context: ConnectionContext) => context.team !== undefined
+
+const insistentlyParseJson = (json: any) => {
+  let result = json
+  while (typeof result === 'string') {
+    result = JSON.parse(result)
+  }
+  return result
+}
