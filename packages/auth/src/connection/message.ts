@@ -135,3 +135,25 @@ export type ConnectionMessage =
 export type NumberedConnectionMessage = ConnectionMessage & {
   index: number
 }
+
+export function isNumberedConnectionMessage(msg: any): msg is NumberedConnectionMessage {
+  const msgTypes = [
+    'ACCEPT_IDENTITY',
+    'ACCEPT_INVITATION',
+    'CHALLENGE_IDENTITY',
+    'CLAIM_IDENTITY',
+    'DISCONNECT',
+    'ENCRYPTED_MESSAGE',
+    'ERROR',
+    'LOCAL_UPDATE',
+    'PROVE_IDENTITY',
+    'RECONNECT',
+    'REJECT_IDENTITY',
+    'REQUEST_IDENTITY',
+    'SEED',
+    'SYNC',
+  ]
+  return (
+    'index' in msg && typeof msg.index === 'number' && 'type' in msg && msgTypes.includes(msg.type)
+  )
+}
