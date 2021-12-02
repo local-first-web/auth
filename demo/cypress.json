@@ -1,5 +1,5 @@
 {
-  "projectId": "taco-chat",
+  "projectId": "demo",
   "baseUrl": "http://localhost:3000",
   "fixturesFolder": false,
   "video": false,
