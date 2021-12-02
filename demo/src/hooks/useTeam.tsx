@@ -31,7 +31,7 @@ export const useTeam = () => {
   React.useEffect(() => {
     // clear the team if the user is no longer a member
     if (user && team && !team.has(user.userName)) {
-      setPeerState((prev: PeerState) => {
+      setPeerState(prev => {
         const { team, ...stateMinusTeam } = prev
         return stateMinusTeam
       })
@@ -49,18 +49,16 @@ export const useTeam = () => {
   }
 
   const clearAlert = (id: string) => {
-    setPeerState(prev => {
-      return {
-        ...prev,
-        alerts: prev.alerts.filter(alert => alert.id !== id),
-      }
-    })
+    setPeerState(prev => ({
+      ...prev,
+      alerts: prev.alerts.filter(alert => alert.id !== id),
+    }))
   }
 
   const setTeam = (newTeam: auth.Team) => {
-    setPeerState((prev: PeerState) => {
+    setPeerState(prev => {
       return {
-        ...peerState,
+        ...prev,
         team: newTeam,
         teamState: newTeam.state,
       }
