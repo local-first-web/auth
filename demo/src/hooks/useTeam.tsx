@@ -15,14 +15,29 @@ export const useTeam = () => {
   assert(context, `useTeam must be used within a TeamProvider`)
 
   const [peerState, setPeerState] = context
-  const { userName, user, device } = peerState
+  const { userName, user, team, device } = peerState
+  const head = team?.chain?.head
 
-  const clearTeam = () => {
-    setPeerState((prev: PeerState) => {
-      const { team, ...stateWithoutTeam } = prev
-      return stateWithoutTeam
-    })
-  }
+  React.useEffect(() => {
+    if (team) {
+      const updateTeamState = () => setPeerState(prev => ({ ...prev, state: team.state }))
+      team.addListener('updated', updateTeamState)
+      return () => {
+        team.removeListener('updated', updateTeamState)
+      }
+    }
+  }, [team])
+
+  React.useEffect(() => {
+    // clear the team if the user is no longer a member
+    if (user && team && !team.has(user.userName)) {
+      setPeerState((prev: PeerState) => {
+        const { team, ...stateMinusTeam } = prev
+        return stateMinusTeam
+      })
+    }
+  }, [head])
+
   const addAlert = (message: string, type: AlertInfo['type'] = 'info') => {
     setPeerState(prev => {
       const alert = { id: cuid(), message, type }
@@ -44,12 +59,11 @@ export const useTeam = () => {
 
   const setTeam = (newTeam: auth.Team) => {
     setPeerState((prev: PeerState) => {
-      const oldTeam = prev.team
-      const team =
-        oldTeam === undefined
-          ? { ...prev, team: newTeam }
-          : { ...prev, team: oldTeam.merge(newTeam.chain) }
-      return team
+      return {
+        ...peerState,
+        team: newTeam,
+        teamState: newTeam.state,
+      }
     })
   }
 
@@ -60,6 +74,7 @@ export const useTeam = () => {
       return {
         ...prev,
         team,
+        teamState: team.state,
       }
     })
 
@@ -124,11 +139,6 @@ export const useTeam = () => {
     if (!peerState.connectionManager) return
     peerState.connectionManager.disconnectServer()
   }
-
-  React.useEffect(() => {
-    // clear the team if the user is no longer a member
-    if (user && !peerState.team?.has(user.userName)) clearTeam()
-  }, [peerState.team?.chain.head])
 
   return { ...peerState, addAlert, clearAlert, createTeam, joinTeam, connect, disconnect }
 }
