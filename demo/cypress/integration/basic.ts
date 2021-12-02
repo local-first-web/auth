@@ -1,6 +1,16 @@
-import { show, alice, bob, charlie, alicePhone } from '../support'
+import {
+  show,
+  alice,
+  bob,
+  charlie,
+  alicePhone,
+  aliceToAlice,
+  aliceToBob,
+  bobToAlice,
+  bobToBob,
+} from '../support'
 
-describe('taco-chat', () => {
+describe('demo', () => {
   beforeEach(() => {
     cy.visit('/')
     localStorage.setItem('debug', 'lf:*')
@@ -13,9 +23,9 @@ describe('taco-chat', () => {
       .userName()
       .should('equal', 'Alice')
 
-    // we see the signature chain
-    cy.get('.ChainDiagram')
-      .get('svg')
+    // we see Alice's Chain
+    alice()
+      .chain()
       // has just one link
       .should('have.length', 1)
       // it's the ROOT
@@ -49,18 +59,21 @@ describe('taco-chat', () => {
       )
   })
 
+  it('Alice creates an invitation', () => {
+    alice()
+      .chain()
+      .should('have.length', 1)
+
+    alice().invite()
+
+    alice()
+      .chain()
+      .should('have.length', 2)
+  })
+
   it('Alice adds Bob to team', () => {
     show('Bob:laptop')
     alice().addToTeam('Bob')
-
-    // alice and bob see the same team name
-    alice()
-      .teamName()
-      .then(aliceTeamName =>
-        bob()
-          .teamName()
-          .should('equal', aliceTeamName)
-      )
 
     // both peers have 'connected' status
     alice()
@@ -73,24 +86,20 @@ describe('taco-chat', () => {
 
   it(`Alice promotes Bob after he joins`, () => {
     show('Bob:laptop')
-    alice().addToTeam('Bob')
-
-    // Alice promotes Bob to admin
-    alice().promote('Bob')
+    alice()
+      .addToTeam('Bob')
+      .promote('Bob')
 
     // Alice and Bob see that Bob is admin
-    alice()
-      .teamMember('Bob')
-      .should('be.admin')
-    bob()
-      .teamMember('Bob')
-      .should('be.admin')
+    bobToAlice().should('be.admin')
+    bobToBob().should('be.admin')
   })
 
   it(`Bob adds Charlie to the team`, () => {
     show('Bob:laptop')
-    alice().addToTeam('Bob')
-    alice().promote('Bob')
+    alice()
+      .addToTeam('Bob')
+      .promote('Bob')
 
     // show Charlie's device
     show('Charlie:laptop')
@@ -113,23 +122,15 @@ describe('taco-chat', () => {
     alice().promote('Bob')
 
     // Alice and Bob see that Bob is admin
-    alice()
-      .teamMember('Bob')
-      .should('be.admin')
-    bob()
-      .teamMember('Bob')
-      .should('be.admin')
+    bobToAlice().should('be.admin')
+    bobToBob().should('be.admin')
 
     // Alice demotes Bob
     alice().demote('Bob')
 
     // neither one sees Bob as admin
-    alice()
-      .teamMember('Bob')
-      .should('not.be.admin')
-    bob()
-      .teamMember('Bob')
-      .should('not.be.admin')
+    bobToAlice().should('not.be.admin')
+    bobToBob().should('not.be.admin')
   })
 
   it('Alice disconnects and reconnects', () => {
@@ -140,10 +141,9 @@ describe('taco-chat', () => {
     alice().should('be.online')
 
     // she disconnects
-    alice().toggleOnline()
-
-    // she is not connected to the server
-    alice().should('not.be.online')
+    alice()
+      .toggleOnline()
+      .should('not.be.online')
 
     // she is not connected to Bob
     alice()
@@ -151,10 +151,9 @@ describe('taco-chat', () => {
       .should('not.equal', 'connected')
 
     // she reconnects
-    alice().toggleOnline()
-
-    // she is connected again to the server
-    alice().should('be.online')
+    alice()
+      .toggleOnline()
+      .should('be.online')
 
     // she is connected again to Bob
     alice()
@@ -167,18 +166,20 @@ describe('taco-chat', () => {
     alice().addToTeam('Bob')
 
     // Alice disconnects
-    alice().toggleOnline()
-
-    // Alice is disconnected
     alice()
-      .peerConnectionStatus('Bob')
-      .should('equal', 'disconnected')
+      .toggleOnline()
+      .should('not.be.online')
 
     // Alice promotes Bob
     alice().promote('Bob')
 
+    // Alice sees that Bob is admin
+    bobToAlice().should('be.admin')
+
     // Alice reconnects
-    alice().toggleOnline()
+    alice()
+      .toggleOnline()
+      .should('be.online')
 
     // Alice is connected again to Bob
     alice()
@@ -186,118 +187,74 @@ describe('taco-chat', () => {
       .should('equal', 'connected')
 
     // Alice sees that Bob is admin
-    alice()
-      .teamMember('Bob')
-      .should('be.admin')
+    bobToAlice().should('be.admin')
 
     // Bob sees that Bob is admin
-    bob()
-      .teamMember('Bob')
-      .should('be.admin')
+    bobToBob().should('be.admin')
   })
 
   it(`Alice disconnects, demotes Bob then reconnects`, () => {
     show('Bob:laptop')
-    alice().addToTeam('Bob')
-    alice().promote('Bob')
+    alice()
+      .addToTeam('Bob')
+      .promote('Bob')
 
     // Alice disconnects
-
-    alice().toggleOnline()
-    alice().should('not.be.online')
+    alice()
+      .toggleOnline()
+      .should('not.be.online')
 
     // Alice demotes Bob
-
     alice().demote('Bob')
 
     // Alice reconnects
-
     alice()
       .toggleOnline()
       .should('be.online')
 
-    // Bob sees that he is no longer admin
+    // Alice sees that Bob is no longer admin
+    bobToAlice().should('not.be.admin')
 
-    alice()
-      .teamMember('Bob')
-      .should('not.be.admin')
-    bob()
-      .teamMember('Bob')
-      .should('not.be.admin')
+    // Bob sees that he is no longer admin
+    bobToBob().should('not.be.admin')
   })
 
-  it.only(`Alice and Bob demote each other concurrently`, () => {
+  it(`Alice and Bob demote each other concurrently`, () => {
     show('Bob:laptop')
     alice().addToTeam('Bob')
 
     // Only Alice is admin
-    alice()
-      .teamMember('Alice')
-      .should('be.admin')
-    alice()
-      .teamMember('Bob')
-      .should('not.be.admin')
-    bob()
-      .teamMember('Alice')
-      .should('be.admin')
-    bob()
-      .teamMember('Bob')
-      .should('not.be.admin')
+    aliceToAlice().should('be.admin')
+    bobToAlice().should('not.be.admin')
+    aliceToBob().should('be.admin')
+    bobToBob().should('not.be.admin')
 
     // Alice promotes Bob
     alice().promote('Bob')
 
     // Now both are admins
-    alice()
-      .teamMember('Alice')
-      .should('be.admin')
-    alice()
-      .teamMember('Bob')
-      .should('be.admin')
-    bob()
-      .teamMember('Alice')
-      .should('be.admin')
-    bob()
-      .teamMember('Bob')
-      .should('be.admin')
+    aliceToAlice().should('be.admin')
+    bobToAlice().should('be.admin')
+    aliceToBob().should('be.admin')
+    bobToBob().should('be.admin')
 
     // Alice and Bob both disconnect
-
     alice().toggleOnline()
-    alice().should('not.be.online')
-
     bob().toggleOnline()
-    bob().should('not.be.online')
 
     // They demote each other
-
     alice().demote('Bob')
     bob().demote('Alice')
 
     // They both reconnect
-
-    alice()
-      .toggleOnline()
-      .should('be.online')
-
-    bob()
-      .toggleOnline()
-      .should('be.online')
+    alice().toggleOnline()
+    bob().toggleOnline()
 
     // Alice is admin, Bob is not
-
-    alice()
-      .teamMember('Bob')
-      .should('not.be.admin')
-    bob()
-      .teamMember('Bob')
-      .should('not.be.admin')
-    alice()
-      .teamMember('Alice')
-      .should('be.admin')
-    bob()
-      .teamMember('Alice')
-      .should('be.admin')
+    aliceToAlice().should('be.admin')
+    bobToAlice().should('not.be.admin')
+    aliceToBob().should('be.admin')
+    bobToBob().should('not.be.admin')
   })
 
   it('Fun with disconnecting and reconnecting', () => {
@@ -422,5 +379,35 @@ describe('taco-chat', () => {
     bob()
       .peerConnectionStatus('Alice', 'phone')
       .should('equal', 'connected')
+  })
+
+  // NEXT: we currently won't connect with someone who has been removed. We should go ahead and
+  // connect with them, sync with their chain, and then disconnect with them if they're still
+  // removed.
+
+  it(`Alice and Bob remove each other concurrently; Charlie sorts it out`, () => {
+    show('Bob:laptop')
+    show('Charlie:laptop')
+    alice()
+      .addToTeam('Bob')
+      .addToTeam('Charlie')
+      .promote('Bob')
+
+    // both Alice and Bob go offline
+    alice().toggleOnline()
+    bob().toggleOnline()
+
+    // they remove each other
+    bob().remove('Alice')
+    alice().remove('Bob')
+
+    // Bob reconnects first
+    bob().toggleOnline()
+
+    // Charlie sees that Alice was removed
+
+    // Alice reconnects
+
+    // Charlie gets Alice's side of the story, so he concludes that Bob should be removed
   })
 })
