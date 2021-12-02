@@ -9,6 +9,7 @@ export type PeerState = {
   user?: auth.UserWithSecrets
   device: auth.DeviceWithSecrets
   team?: auth.Team
+  teamState?: auth.TeamState
   connectionManager?: ConnectionManager
   online: boolean
   connectionStatus: Record<UserName, ConnectionStatus>
