@@ -19,6 +19,7 @@ export const invite: CommandFn = subject => {
       s()
         .findByText('Copy')
         .click()
-      return cy.wrap(pre).invoke('text')
+      const code = cy.wrap(pre).invoke('text')
+      return code
     })
 }

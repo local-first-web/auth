@@ -20,4 +20,5 @@ export const addToTeam: CommandFn = (subject, userName: string) => {
         .peerConnectionStatus(userName)
         .should('equal', 'connected')
     })
+    .then(() => s())
 }

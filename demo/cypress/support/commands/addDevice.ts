@@ -21,4 +21,5 @@ export const addDevice: CommandFn = (subject, deviceName: string) => {
             .should('equal', teamName)
         )
     )
+    .then(() => s())
 }
