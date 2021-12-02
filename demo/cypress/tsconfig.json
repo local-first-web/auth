@@ -3,7 +3,7 @@
   "compilerOptions": {
     "noEmit": true,
     "allowJs": true,
-    "types": ["cypress", "@testing-library/cypress"]
+    "types": ["cypress", "node", "@testing-library/cypress"]
   },
   "include": ["../node_modules/cypress", "index.d.ts", "**/*.js", "**/*.ts"]
 }
