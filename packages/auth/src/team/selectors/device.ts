@@ -31,7 +31,10 @@ const getDevice = (
   options = { includeRemoved: false }
 ) => {
   const memberDevices = member(state, userName).devices ?? []
-  return memberDevices.find(d => d.deviceName === deviceName) ?? options.includeRemoved
-    ? state.removedDevices.find(d => d.deviceName === deviceName && d.userName === userName)
-    : undefined
+  return (
+    memberDevices.find(d => d.deviceName === deviceName) ??
+    (options.includeRemoved
+      ? state.removedDevices.find(d => d.deviceName === deviceName && d.userName === userName)
+      : undefined)
+  )
 }
