@@ -237,8 +237,8 @@ export interface TeamState {
   roles: Role[]
   lockboxes: Lockbox[]
   invitations: InvitationMap
-  removedMembers: string[]
-  removedDevices: string[]
+  removedMembers: Member[]
+  removedDevices: Device[]
 }
 
 export interface TeamLockboxMap {

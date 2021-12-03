@@ -10,8 +10,8 @@ export const initialState: TeamState = {
   roles: [],
   lockboxes: [],
   invitations: {},
-  removedMembers: [], // this is a list of userNames
-  removedDevices: [], // this is a list of deviceIds
+  removedMembers: [],
+  removedDevices: [],
 }
 
 export const TEAM_SCOPE = { type: KeyType.TEAM, name: KeyType.TEAM } as KeyScope

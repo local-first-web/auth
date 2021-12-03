@@ -1,4 +1,4 @@
 ﻿import { TeamState } from '@/team/types'
 
 export const memberWasRemoved = (state: TeamState, userName: string) =>
-  state.removedMembers.includes(userName)
+  state.removedMembers.some(m => m.userName === userName)
