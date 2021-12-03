@@ -400,21 +400,17 @@ ${JSON.stringify(message, null, 2)}`
       }
 
       switch (identityLookupResult) {
+        // if a member or a device was removed, we still connect with it in order to sync
+        case 'MEMBER_REMOVED':
+        case 'DEVICE_REMOVED':
+        case 'VALID_DEVICE':
+          return
+
         case 'MEMBER_UNKNOWN':
           return fail(`${userName} is not a member of this team.`)
 
-        case 'MEMBER_REMOVED':
-          return fail(`${userName} was removed from this team.`)
-
         case 'DEVICE_UNKNOWN':
           return fail(`${userName} does not have a device '${deviceName}'.`)
-
-        case 'DEVICE_REMOVED':
-          return fail(`${userName}'s device '${deviceName}' was removed.`)
-
-        case 'VALID_DEVICE':
-          // 👍 continue
-          return
       }
     },
 
@@ -647,7 +643,7 @@ ${JSON.stringify(message, null, 2)}`
     peerWasRemoved: context => {
       assert(context.team)
       assert(context.peer)
-      return context.team.has(context.peer.userName) === false
+      return context.team.memberWasRemoved(context.peer.userName) === false
     },
 
     identityProofIsValid: (context, event) => {
