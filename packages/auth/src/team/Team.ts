@@ -162,7 +162,10 @@ export class Team extends EventEmitter {
     assert(challenge.type === KeyType.DEVICE) // we always authenticate as devices
     const deviceId = challenge.name
     const { userName, deviceName } = parseDeviceId(deviceId)
-    const device = this.device(userName, deviceName)
+
+    // TODO: This lookup needs to include removed devices and members as well
+    const device = this.device(userName, deviceName, { includeRemoved: true })
+
     const validation = identity.verify(challenge, proof, device.keys)
     return validation.isValid
   }
@@ -185,9 +188,9 @@ export class Team extends EventEmitter {
 
   /** Add a member to the team.
    *
-   * **Note:** In most cases this won't be used other than for unit tests.
-   * In real-world scenarios, you'll need to use the `team.invite` workflow
-   * to add members without relying on some kind of public key infrastructure.
+   * **Note:** As far as I can imagine this wouldn't be used other than for unit tests. In
+   * real-world scenarios, you'll need to use the `team.invite` workflow to add members without
+   * relying on some kind of public key infrastructure.
    */
   public add = (user: UserWithSecrets, roles: string[] = [], device?: Device) => {
     const member = { ...redactUser(user), roles }
@@ -328,8 +331,11 @@ export class Team extends EventEmitter {
     select.hasDevice(this.state, userName, deviceName)
 
   /** Find a member's device by name */
-  public device = (userName: string, deviceName: string): Device =>
-    select.device(this.state, userName, deviceName)
+  public device = (
+    userName: string,
+    deviceName: string,
+    options = { includeRemoved: false }
+  ): Device => select.device(this.state, userName, deviceName, options)
 
   /** Remove a member's device */
   public removeDevice = (userName: string, deviceName: string) => {
