@@ -37,6 +37,15 @@ describe('Team', () => {
       expect(getDevice).toThrow()
     })
 
+    it(`doesn't throw when deliberately trying to access a removed device`, () => {
+      const { alice } = setup()
+      const bobDevice = alice.team.members('bob').devices![0].deviceName
+      alice.team.removeDevice('bob', bobDevice)
+
+      const getDevice = () => alice.team.device('bob', bobDevice, { includeRemoved: true })
+      expect(getDevice).not.toThrow()
+    })
+
     it(`Bob cannot remove Alice's device`, () => {
       const { bob } = setup()
       const aliceDevice = bob.team.members('alice').devices![0].deviceName
