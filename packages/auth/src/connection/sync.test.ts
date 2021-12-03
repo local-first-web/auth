@@ -444,6 +444,34 @@ describe('connection', () => {
         await disconnection(bob, charlie)
       })
 
+      it('gets both sides of the story in the case of mutual removals', async () => {
+        const { alice, bob, charlie } = setup('alice', 'bob', 'charlie')
+
+        // 👨🏻‍🦲 Bob removes 👩🏾 Alice
+        bob.team.remove('alice')
+
+        // 👩🏾 Alice concurrently removes 👨🏻‍🦲 Bob
+        alice.team.remove('bob')
+
+        // 👳🏽‍♂️<->👨🏻‍🦲 Charlie and Bob connect
+        await connect(bob, charlie)
+
+        // 👳🏽‍♂️💭 Charlie now knows that Bob has removed Alice
+        expect(charlie.team.has('alice')).toBe(false)
+
+        await disconnect(bob, charlie)
+
+        // 👳🏽‍♂️<->👩🏾 Charlie and Alice connect even though Charlie now thinks Alice has been
+        // removed, he still syncs with her because she might have more information
+        await connect(charlie, alice)
+
+        expect(charlie.team.has('alice')).toBe(true)
+        expect(charlie.team.has('bob')).toBe(false)
+
+        // // ✅ Charlie is disconnected from Bob because Bob is no longer a member 👳🏽‍♂️🔌👨🏻‍🦲
+        // await disconnection(bob, charlie)
+      })
+
       it(`when a member is demoted and makes concurrent admin-only changes, discards those changes`, async () => {
         const { alice, bob } = setup('alice', 'bob', { user: 'charlie', admin: false })
 
