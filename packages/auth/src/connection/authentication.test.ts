@@ -36,7 +36,7 @@ describe('connection', () => {
 
         // ❌ They can't connect because Bob was removed
         connect(alice, bob)
-        await disconnection(alice, bob, 'bob was removed from this team')
+        await disconnection(alice, bob, 'not a member of this team')
       })
 
       it(`doesn't connect with someone who doesn't belong to the team`, async () => {
