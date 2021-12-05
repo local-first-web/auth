@@ -1,7 +1,8 @@
 // register assertions
 
-import './assertions/admin'
-import './assertions/online'
+import './assertions/be.admin'
+import './assertions/be.online'
+import './assertions/have.member'
 
 declare global {
   namespace Cypress {
