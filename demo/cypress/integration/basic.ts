@@ -388,11 +388,7 @@ describe('demo', () => {
       .should('equal', 'connected')
   })
 
-  // NEXT: we currently won't connect with someone who has been removed. We should go ahead and
-  // connect with them, sync with their chain, and then disconnect with them if they're still
-  // removed.
-
-  it(`Alice and Bob remove each other concurrently; Charlie sorts it out`, () => {
+  it.only(`Alice and Bob remove each other concurrently; Charlie is able to get both sides of the story`, () => {
     show('Bob:laptop')
     show('Charlie:laptop')
     alice()
@@ -411,10 +407,15 @@ describe('demo', () => {
     // Bob reconnects first
     bob().toggleOnline()
 
-    // Charlie sees that Alice was removed
+    // Charlie now believes that Alice was removed
+    charlie().should('not.have.member', 'Alice')
+    charlie().should('have.member', 'Bob')
 
     // Alice reconnects
+    alice().toggleOnline()
 
     // Charlie gets Alice's side of the story, so he concludes that Bob should be removed
+    charlie().should('have.member', 'Alice')
+    charlie().should('not.have.member', 'Bob')
   })
 })
