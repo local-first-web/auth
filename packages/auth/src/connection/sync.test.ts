@@ -461,15 +461,17 @@ describe('connection', () => {
 
         await disconnect(bob, charlie)
 
-        // 👳🏽‍♂️<->👩🏾 Charlie and Alice connect even though Charlie now thinks Alice has been
-        // removed, he still syncs with her because she might have more information
+        // 👳🏽‍♂️<->👩🏾 Charlie and Alice connect
+
+        // Even though Charlie now thinks Alice has been removed, he still syncs with her because
+        // she might have more information, e.g. that Bob (who removed her) was concurrently removed
         await connect(charlie, alice)
 
         expect(charlie.team.has('alice')).toBe(true)
         expect(charlie.team.has('bob')).toBe(false)
 
-        // // ✅ Charlie is disconnected from Bob because Bob is no longer a member 👳🏽‍♂️🔌👨🏻‍🦲
-        // await disconnection(bob, charlie)
+        // ✅ Charlie is disconnected from Bob because Bob is no longer a member 👳🏽‍♂️🔌👨🏻‍🦲
+        await disconnection(bob, charlie)
       })
 
       it(`when a member is demoted and makes concurrent admin-only changes, discards those changes`, async () => {
@@ -648,6 +650,9 @@ describe('connection', () => {
         // Alice can see that Bob only has one device
         await anyUpdated(alice, bob)
         expect(alice.team.members('bob').devices).toHaveLength(1)
+
+        await anyUpdated(bob, charlie)
+        expect(charlie.team.members('bob').devices).toHaveLength(1)
 
         // Eve tries to connect to Charlie from Bob's phone, but she can't
         const phoneContext = {
