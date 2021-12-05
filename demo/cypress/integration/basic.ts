@@ -73,6 +73,10 @@ describe('demo', () => {
 
   it('Alice adds Bob to team', () => {
     show('Bob:laptop')
+
+    alice().should('not.have.member', 'Bob')
+    bob().should('not.have.member', 'Alice')
+
     alice().addToTeam('Bob')
 
     // both peers have 'connected' status
@@ -82,6 +86,9 @@ describe('demo', () => {
     bob()
       .peerConnectionStatus('Alice')
       .should('equal', 'connected')
+
+    alice().should('have.member', 'Bob')
+    bob().should('have.member', 'Alice')
   })
 
   it(`Alice promotes Bob after he joins`, () => {
