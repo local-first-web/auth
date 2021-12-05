@@ -440,13 +440,7 @@ ${JSON.stringify(message, null, 2)}`
       peer: context => {
         assert(context.team)
         assert(this.peerUserName)
-        if (context.team.has(this.peerUserName)) {
-          // peer still on the team
-          return context.team.members(this.peerUserName)
-        } else {
-          // peer was removed from team
-          return undefined
-        }
+        return context.team.members(this.peerUserName, { includeRemoved: true })
       },
     }),
 
@@ -467,6 +461,10 @@ ${JSON.stringify(message, null, 2)}`
         }
       })
     },
+
+    // TODO: when we're syncing with someone who may have been removed, we want to receive any
+    // additional information they might have, but we don't want to provide them any information
+    // until we're sure they're still on the team
 
     sendSyncMessage: assign({
       syncState: context => {
@@ -642,8 +640,11 @@ ${JSON.stringify(message, null, 2)}`
 
     peerWasRemoved: context => {
       assert(context.team)
-      assert(context.peer)
-      return context.team.memberWasRemoved(context.peer.userName) === false
+      assert(context.device)
+      return (
+        context.team.memberWasRemoved(context.device.userName) ||
+        context.team.deviceWasRemoved(context.device.userName, context.device.deviceName)
+      )
     },
 
     identityProofIsValid: (context, event) => {
