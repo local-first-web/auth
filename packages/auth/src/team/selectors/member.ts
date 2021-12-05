@@ -7,6 +7,6 @@ export const member = (state: TeamState, userName: string, options = { includeRe
   ]
   const member = membersToSearch.find(m => m.userName === userName)
 
-  if (!member) throw new Error(`A member named '${userName}' was not found`)
+  if (member === undefined) throw new Error(`A member named '${userName}' was not found`)
   return member
 }
