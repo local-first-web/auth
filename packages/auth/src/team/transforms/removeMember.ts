@@ -5,7 +5,10 @@ export const removeMember =
   state => {
     const remainingMembers = state.members.filter(m => m.userName !== userName)
     const removedMember = state.members.find(m => m.userName === userName) // the member that was removed
-    const removedMembers = [...state.removedMembers, removedMember]
+
+    const removedMembers = [...state.removedMembers]
+    if (removedMember) removedMembers.push(removedMember)
+
     const remainingLockboxes = state.lockboxes.filter(
       lockbox => lockbox.recipient.name !== userName
     )
