@@ -163,7 +163,6 @@ export class Team extends EventEmitter {
     const deviceId = challenge.name
     const { userName, deviceName } = parseDeviceId(deviceId)
 
-    // TODO: This lookup needs to include removed devices and members as well
     const device = this.device(userName, deviceName, { includeRemoved: true })
 
     const validation = identity.verify(challenge, proof, device.keys)
@@ -178,12 +177,12 @@ export class Team extends EventEmitter {
   /** Returns a list of all members on the team */
   public members(): Member[] // overload: all members
   /** Returns the member with the given user name*/
-  public members(userName: string): Member // overload: one member
+  public members(userName: string, options?: { includeRemoved: boolean }): Member // overload: one member
   //
-  public members(userName: string = ALL): Member | Member[] {
+  public members(userName: string = ALL, options = { includeRemoved: true }): Member | Member[] {
     return userName === ALL //
       ? this.state.members // all members
-      : select.member(this.state, userName) // one member
+      : select.member(this.state, userName, options) // one member
   }
 
   /** Add a member to the team.
