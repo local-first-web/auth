@@ -641,10 +641,11 @@ ${JSON.stringify(message, null, 2)}`
     peerWasRemoved: context => {
       assert(context.team)
       assert(context.device)
-      return (
-        context.team.memberWasRemoved(context.device.userName) ||
-        context.team.deviceWasRemoved(context.device.userName, context.device.deviceName)
-      )
+      const { team, device } = context
+      const { userName, deviceName } = device
+      const memberWasRemoved = team.memberWasRemoved(userName)
+      const deviceWasRemoved = team.deviceWasRemoved(userName, deviceName)
+      return memberWasRemoved || deviceWasRemoved
     },
 
     identityProofIsValid: (context, event) => {
