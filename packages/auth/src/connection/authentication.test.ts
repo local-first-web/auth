@@ -2,6 +2,7 @@
 import * as teams from '@/team'
 import {
   all,
+  anyDisconnected,
   anyUpdated,
   connect,
   connectPhoneWithInvitation,
@@ -36,7 +37,7 @@ describe('connection', () => {
 
         // ❌ They can't connect because Bob was removed
         tryToConnect(alice, bob)
-        await disconnection(alice, bob, 'alice was removed from the team')
+        await anyDisconnected(alice, bob)
       })
 
       it(`doesn't connect with someone who doesn't belong to the team`, async () => {
@@ -51,7 +52,7 @@ describe('connection', () => {
 
         // ❌ Alice and Charlie can't connect because they're on different teams
         tryToConnect(alice, charlie)
-        await disconnection(alice, charlie, `not a member of this team`)
+        await anyDisconnected(alice, charlie)
       })
 
       it(`can reconnect after disconnecting`, async () => {

@@ -92,6 +92,11 @@ export const anyUpdated = (a: UserStuff, b: UserStuff) => {
   return any(connections, 'updated')
 }
 
+export const anyDisconnected = (a: UserStuff, b: UserStuff) => {
+  const connections = [a.connection[b.userName], b.connection[a.userName]]
+  return any(connections, 'disconnected')
+}
+
 export const disconnection = async (a: UserStuff, b: UserStuff, message?: string) => {
   const connections = [a.connection[b.userName], b.connection[a.userName]]
   const activeConnections = connections.filter(c => c.state !== 'disconnected')
