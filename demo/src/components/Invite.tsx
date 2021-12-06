@@ -114,7 +114,7 @@ export const Invite = () => {
           <h3>Invite members</h3>
           <div className="flex flex-col gap-4 mt-4">
             <Label>
-              <span>How many people can use this invitation code?</span>
+              How many people can use this invitation code?
               <Select ref={maxUses} className="MaxUses mt-1 w-full" css="">
                 <option value={1}>1 person</option>
                 <option value={5}>5 people</option>
@@ -123,7 +123,7 @@ export const Invite = () => {
               </Select>
             </Label>
             <Label>
-              <span>When does this invitation code expire?</span>
+              When does this invitation code expire?
               <Select
                 ref={expiration}
                 defaultValue={MINUTE}
