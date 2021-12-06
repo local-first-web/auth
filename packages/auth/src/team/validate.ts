@@ -1,5 +1,4 @@
-﻿import { parseDeviceId } from '@/device'
-import { invitationCanBeUsed } from '@/invitation'
+﻿import { invitationCanBeUsed } from '@/invitation'
 import { actionFingerprint, debug, truncateHashes, VALID, ValidationError } from '@/util'
 import { ROOT } from 'crdx'
 import { isAdminOnlyAction } from './isAdminOnlyAction'
