@@ -49,6 +49,8 @@ export const charlie = () => peer('Charlie')
 export const alicePhone = () => peer('Alice', 'phone')
 export const bobPhone = () => peer('bob', 'phone')
 export const charliePhone = () => peer('charlie', 'phone')
+export const eve = () => peer('Eve')
+export const evePhone = () => peer('Eve', 'phone')
 
 export const aliceToAlice = () => alice().teamMember('Alice')
 export const aliceToBob = () => bob().teamMember('Alice')
