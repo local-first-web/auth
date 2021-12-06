@@ -1,4 +1,4 @@
-import { Invitation, InvitationState, ProofOfInvitation } from '@/invitation/types'
+﻿import { Invitation, InvitationState, ProofOfInvitation } from '@/invitation/types'
 import { memoize, VALID, ValidationResult } from '@/util'
 import { signatures } from '@herbcaudill/crypto'
 
@@ -28,7 +28,7 @@ export const validate = memoize(
   }
 )
 
-export const fail = (message: string, details: any = null) =>
+export const fail = (message: string, details?: any) =>
   ({
     isValid: false,
     error: new InvitationValidationError(message, details),
@@ -38,7 +38,7 @@ export class InvitationValidationError extends Error {
   constructor(message: string, details?: any) {
     super()
     this.name = 'Invitation validation failed'
-    this.message = message + '\n' + JSON.stringify(details, null, 2).replace(/\"/g, '')
+    this.message = message
     this.details = details
   }
   public index?: number
