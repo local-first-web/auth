@@ -1,4 +1,4 @@
-import { CommandFn } from '..'
+import { CommandFn } from '../types'
 import { devices } from '../../../src/peers'
 
 export const peerConnectionStatus: CommandFn = (

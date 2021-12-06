@@ -7,12 +7,7 @@ import {
   bobToBob,
   charlie,
   show,
-} from '../support'
-
-beforeEach(() => {
-  cy.visit('/')
-  localStorage.setItem('debug', 'lf:*')
-})
+} from '../support/helpers'
 
 it(`Alice and Bob demote each other concurrently`, () => {
   show('Bob:laptop')

@@ -1,4 +1,4 @@
-import { CommandFn } from '..'
+import { CommandFn } from '../types'
 
 export const hide: CommandFn = subject => {
   const s = () => cy.wrap(subject)

@@ -1,4 +1,4 @@
-import { CommandFn } from '..'
+import { CommandFn } from '../types'
 
 export const remove: CommandFn = (subject, userName: string) => {
   const s = () => cy.wrap(subject)

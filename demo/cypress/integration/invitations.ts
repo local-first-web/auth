@@ -1,10 +1,5 @@
-import { alice, alicePhone, bob, charlie, eve, show } from '../support'
-import { hide } from '../support/commands'
-
-beforeEach(() => {
-  cy.visit('/')
-  localStorage.setItem('debug', 'lf:*')
-})
+import { alice, alicePhone, bob, charlie, eve, show } from '../support/helpers'
+import { SECOND } from '../support/commands/invite'
 
 it('Alice invites Bob', () => {
   show('Bob:laptop')
@@ -26,7 +21,7 @@ it('Alice invites Bob', () => {
   bob().should('have.member', 'Alice')
 })
 
-it.only('Alice invites Bob and Charlie with a single code', () => {
+it('Alice invites Bob and Charlie with a single code', () => {
   alice().should('not.have.member', 'Bob')
   alice().should('not.have.member', 'Charlie')
 
@@ -37,6 +32,19 @@ it.only('Alice invites Bob and Charlie with a single code', () => {
       bob().join(code)
       show('Charlie:laptop')
       charlie().join(code)
+    })
+})
+
+it(`Bob's invitation expires`, () => {
+  show('Bob:laptop')
+  alice()
+    .invite({ expiration: 1 * SECOND })
+    .then(code => {
+      cy.wait(2 * SECOND).then(() => bob().join(code, { expectToFail: true }))
+
+      bob()
+        .find('.Alerts')
+        .should('contain', 'expired')
     })
 })
 

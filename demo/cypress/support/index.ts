@@ -15,8 +15,6 @@ declare global {
   }
 }
 
-export type CommandKey = keyof Cypress.Chainable<any>
-export type CommandFn = (...args: any[]) => Cypress.Chainable
 export type CustomCommands = typeof commands
 
 // register assertions
@@ -24,6 +22,7 @@ export type CustomCommands = typeof commands
 import './assertions/be.admin'
 import './assertions/be.online'
 import './assertions/have.member'
+import { CommandFn } from './types'
 
 declare global {
   namespace Cypress {
@@ -36,23 +35,7 @@ declare global {
   }
 }
 
-// utilities
-
-export const show = (id: string) => cy.get('.Chooser select').select(id)
-
-export const peer = (userName: string, deviceName: string = 'laptop') =>
-  cy.root().findByTitle(`${userName}:${deviceName}`)
-
-export const alice = () => peer('Alice')
-export const bob = () => peer('Bob')
-export const charlie = () => peer('Charlie')
-export const alicePhone = () => peer('Alice', 'phone')
-export const bobPhone = () => peer('bob', 'phone')
-export const charliePhone = () => peer('charlie', 'phone')
-export const eve = () => peer('Eve')
-export const evePhone = () => peer('Eve', 'phone')
-
-export const aliceToAlice = () => alice().teamMember('Alice')
-export const aliceToBob = () => bob().teamMember('Alice')
-export const bobToAlice = () => alice().teamMember('Bob')
-export const bobToBob = () => bob().teamMember('Bob')
+beforeEach(() => {
+  cy.visit('/')
+  localStorage.setItem('debug', 'lf:*')
+})

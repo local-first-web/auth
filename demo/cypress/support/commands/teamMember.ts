@@ -1,4 +1,4 @@
-import { CommandFn } from '..'
+import { CommandFn } from '../types'
 
 export const teamMember: CommandFn = (subject, userName: string) => {
   return cy

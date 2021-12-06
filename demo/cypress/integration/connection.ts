@@ -1,9 +1,4 @@
-import { alice, bob, bobToAlice, bobToBob, show } from '../support'
-
-beforeEach(() => {
-  cy.visit('/')
-  localStorage.setItem('debug', 'lf:*')
-})
+import { alice, bob, bobToAlice, bobToBob, show } from '../support/helpers'
 
 it('Alice disconnects and reconnects', () => {
   show('Bob:laptop')

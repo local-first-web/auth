@@ -1,4 +1,4 @@
-import { CommandFn } from '../'
+import { CommandFn } from '../types'
 
 export const demote: CommandFn = (subject, userName: string) =>
   cy

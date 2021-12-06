@@ -1,4 +1,4 @@
-import { CommandFn } from '../'
+import { CommandFn } from '../types'
 
 export const join: CommandFn = (subject, code: string, options = { expectToFail: false }) => {
   const { expectToFail } = options

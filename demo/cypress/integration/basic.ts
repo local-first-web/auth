@@ -1,9 +1,4 @@
-import { alice, bob, show } from '../support'
-
-beforeEach(() => {
-  cy.visit('/')
-  localStorage.setItem('debug', 'lf:*')
-})
+import { alice, bob, show } from '../support/helpers'
 
 it('We load the page', () => {
   // we see just one peer, Alice
