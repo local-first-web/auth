@@ -63,6 +63,7 @@ export class ConnectionManager extends EventEmitter {
         if ('invitationSeed' in this.context && this.context.invitationSeed) {
           await this.connectingMutex.runExclusive(async () => {
             this.log('connecting with mutex')
+
             await this.connectPeer(socket, peerUserName, storedMessages)
           })
         } else {
@@ -108,7 +109,7 @@ export class ConnectionManager extends EventEmitter {
         })
         .on('disconnected', event => {
           this.disconnectPeer(peerUserName, event)
-          reject()
+          resolve()
         })
 
       this.connections[peerUserName] = connection
