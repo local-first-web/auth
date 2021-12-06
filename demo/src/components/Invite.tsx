@@ -16,8 +16,8 @@ export const Invite = () => {
   const [state, setState] = useState<State>('inactive')
   const [seed, setSeed] = useState<string>()
 
-  const maxUses = useRef() as MutableRefObject<HTMLSelectElement>
-  const expiration = useRef() as MutableRefObject<HTMLSelectElement>
+  const maxUsesSelect = useRef() as MutableRefObject<HTMLSelectElement>
+  const expirationSelect = useRef() as MutableRefObject<HTMLSelectElement>
 
   const { team, user } = useTeam()
   assert(team)
@@ -39,8 +39,13 @@ export const Invite = () => {
     const seed = `${team.teamName}-${randomSeed()}`
     setSeed(seed)
 
+    const maxUses = +maxUsesSelect.current.value
+    const now = new Date().getTime()
+    const expirationMs = +expirationSelect.current.value * 1000
+    const expiration = now + expirationMs
+
     // TODO we're storing id so we can revoke - wire that up
-    const { id } = team.inviteMember({ seed })
+    const { id } = team.inviteMember({ seed, maxUses, expiration })
 
     setState('showing_member_invite')
   }
@@ -115,7 +120,7 @@ export const Invite = () => {
           <div className="flex flex-col gap-4 mt-4">
             <Label>
               How many people can use this invitation code?
-              <Select ref={maxUses} className="MaxUses mt-1 w-full" css="">
+              <Select ref={maxUsesSelect} className="MaxUses mt-1 w-full" css="">
                 <option value={1}>1 person</option>
                 <option value={5}>5 people</option>
                 <option value={10}>10 people</option>
@@ -125,7 +130,7 @@ export const Invite = () => {
             <Label>
               When does this invitation code expire?
               <Select
-                ref={expiration}
+                ref={expirationSelect}
                 defaultValue={MINUTE}
                 className="Expiration mt-1 w-full"
                 css=""
