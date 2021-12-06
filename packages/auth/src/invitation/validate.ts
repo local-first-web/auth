@@ -1,21 +1,12 @@
-﻿import { Invitation, InvitationState, ProofOfInvitation } from '@/invitation/types'
+import { Invitation, InvitationState, ProofOfInvitation } from '@/invitation/types'
 import { memoize, VALID, ValidationResult } from '@/util'
 import { signatures } from '@herbcaudill/crypto'
 
-// TODO consistent naming (invitationCanBeUsed vs validate)
-
 export const invitationCanBeUsed = (invitation: InvitationState, timeOfUse: number) => {
-  if (invitation.revoked) {
-    return fail(`This invitation has been revoked.`)
-  }
-
-  if (invitation.maxUses > 0 && invitation.uses >= invitation.maxUses) {
-    return fail(`This invitation cannot be used again.`)
-  }
-
-  if (invitation.expiration > 0 && invitation.expiration < timeOfUse) {
-    return fail(`This invitation has expired.`)
-  }
+  const { revoked, maxUses, uses, expiration } = invitation
+  if (revoked) return fail(`This invitation has been revoked.`)
+  if (maxUses > 0 && uses >= maxUses) return fail(`This invitation cannot be used again.`)
+  if (expiration > 0 && expiration < timeOfUse) return fail(`This invitation has expired.`)
 
   return VALID
 }
@@ -30,8 +21,8 @@ export const validate = memoize(
     const { signature } = proof
     const { publicKey } = invitation
     const payload = { id }
-    if (!signatures.verify({ payload, signature, publicKey }))
-      return fail(`Signature provided is not valid`, { proof, invitation })
+    const signatureIsValid = signatures.verify({ payload, signature, publicKey })
+    if (!signatureIsValid) return fail(`Signature provided is not valid`, { proof, invitation })
 
     return VALID
   }
