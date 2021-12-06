@@ -482,7 +482,7 @@ export class Team extends EventEmitter {
     return select.getInvitation(this.state, id)
   }
 
-  /** Check whether a proof of invitation matches a valid invitation  */
+  /** Check whether (1) the invitation is still valid, and (2) the proof of invitation checks out. */
   public validateInvitation = (proof: ProofOfInvitation) => {
     const { id } = proof
     if (!this.hasInvitation(id)) return invitations.fail(`No invitation with id '${id}' found.`)
