@@ -4,24 +4,23 @@ import { signatures } from '@herbcaudill/crypto'
 
 export const invitationCanBeUsed = (invitation: InvitationState, timeOfUse: number) => {
   const { revoked, maxUses, uses, expiration } = invitation
-  if (revoked) return fail(`This invitation has been revoked.`)
-  if (maxUses > 0 && uses >= maxUses) return fail(`This invitation cannot be used again.`)
-  if (expiration > 0 && expiration < timeOfUse) return fail(`This invitation has expired.`)
+  if (revoked) return fail(`The invitation has been revoked.`)
+  if (maxUses > 0 && uses >= maxUses) return fail(`The invitation cannot be used again.`)
+  if (expiration > 0 && expiration < timeOfUse) return fail(`The invitation has expired.`)
 
   return VALID
 }
 
 export const validate = memoize(
   (proof: ProofOfInvitation, invitation: Invitation): ValidationResult => {
+    const { id, signature } = proof
+
     // Check that id from proof matches invitation
-    const { id } = proof
     if (id !== invitation.id) return fail(`IDs don't match`, { proof, invitation })
 
     // Check signature on proof against public key from invitation
-    const { signature } = proof
     const { publicKey } = invitation
-    const payload = { id }
-    const signatureIsValid = signatures.verify({ payload, signature, publicKey })
+    const signatureIsValid = signatures.verify({ payload: { id }, signature, publicKey })
     if (!signatureIsValid) return fail(`Signature provided is not valid`, { proof, invitation })
 
     return VALID
