@@ -15,11 +15,21 @@
     "node": ">=14"
   },
   "scripts": {
-    "watch": "yarn build --watch",
+    "watch": "npm-watch",
     "build": "tsc -p tsconfig.build.json",
     "postbuild": "tscpaths -p tsconfig.build.json -s src -o dist --silent",
     "test": "node --no-warnings --experimental-vm-modules ../../node_modules/jest/bin/jest.js",
     "test:log": "cross-env DEBUG='lf*' DEBUG_COLORS=1 yarn test"
+  },
+  "watch": {
+    "build": {
+      "patterns": "./src/**/*",
+      "extensions": [
+        ".ts",
+        ".tsx"
+      ]
+    },
+    "postbuild": "./dist/**/*"
   },
   "dependencies": {
     "@changesets/changelog-github": "0",
@@ -33,6 +43,7 @@
     "events": "3",
     "fast-memoize": "2",
     "msgpack-lite": "0",
+    "npm-watch": "^0.11.0",
     "ramda": "0",
     "typescript": "4",
     "xstate": "4"
