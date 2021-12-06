@@ -8,7 +8,6 @@ export const postInvitation =
       ...invitation,
       uses: 0,
       revoked: false,
-      expired: false,
     }
 
     return {
