@@ -1,6 +1,6 @@
 import { CommandFn } from '../'
 
-export const join: CommandFn = (subject, code: string, options = { expectToFail: true }) => {
+export const join: CommandFn = (subject, code: string, options = { expectToFail: false }) => {
   const { expectToFail } = options
   const s = () => cy.wrap(subject)
   s()
