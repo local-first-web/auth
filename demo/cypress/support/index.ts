@@ -1,20 +1,3 @@
-// register assertions
-
-import './assertions/be.admin'
-import './assertions/be.online'
-import './assertions/have.member'
-
-declare global {
-  namespace Cypress {
-    interface Chainer<Subject> {
-      (chainer: 'be.admin'): Chainable<Subject>
-      (chainer: 'not.be.admin'): Chainable<Subject>
-      (chainer: 'be.online'): Chainable<Subject>
-      (chainer: 'not.be.online'): Chainable<Subject>
-    }
-  }
-}
-
 // register commands
 
 import '@testing-library/cypress/add-commands'
@@ -35,6 +18,23 @@ declare global {
 export type CommandKey = keyof Cypress.Chainable<any>
 export type CommandFn = (...args: any[]) => Cypress.Chainable
 export type CustomCommands = typeof commands
+
+// register assertions
+
+import './assertions/be.admin'
+import './assertions/be.online'
+import './assertions/have.member'
+
+declare global {
+  namespace Cypress {
+    interface Chainer<Subject> {
+      (chainer: 'be.admin'): Chainable<Subject>
+      (chainer: 'not.be.admin'): Chainable<Subject>
+      (chainer: 'be.online'): Chainable<Subject>
+      (chainer: 'not.be.online'): Chainable<Subject>
+    }
+  }
+}
 
 // utilities
 
