@@ -118,6 +118,8 @@ describe('chains', () => {
       expectMergedResult(aChain, bChain, 'ROOT,ADD:bob,REMOVE:admin:bob')
     })
 
+    // TODO: This doesn't really tell us anything since it doesn't cover INVITE_MEMBER, which is how
+    // members are actually added
     it(`doesn't allow a member who is removed to be concurrently added back`, () => {
       // 👩🏾 Alice creates a chain and adds Charlie
       let { aChain } = setup()
