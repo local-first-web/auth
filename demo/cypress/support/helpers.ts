@@ -14,5 +14,12 @@ export const evePhone = () => peer('Eve', 'phone')
 
 export const aliceToAlice = () => alice().teamMember('Alice')
 export const aliceToBob = () => bob().teamMember('Alice')
+export const aliceToCharlie = () => charlie().teamMember('Alice')
+
 export const bobToAlice = () => alice().teamMember('Bob')
 export const bobToBob = () => bob().teamMember('Bob')
+export const bobToCharlie = () => charlie().teamMember('Bob')
+
+export const charlieToAlice = () => alice().teamMember('Charlie')
+export const charlieToBob = () => bob().teamMember('Charlie')
+export const charlieToCharlie = () => charlie().teamMember('Charlie')
