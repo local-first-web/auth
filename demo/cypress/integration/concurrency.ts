@@ -6,6 +6,8 @@ import {
   bobToAlice,
   bobToBob,
   charlie,
+  charlieToAlice,
+  charlieToBob,
   show,
 } from '../support/helpers'
 
@@ -76,4 +78,39 @@ it(`Alice and Bob remove each other concurrently; Charlie is able to get both si
   // Charlie gets Alice's side of the story, so he concludes that Bob should be removed
   charlie().should('have.member', 'Alice')
   charlie().should('not.have.member', 'Bob')
+})
+
+it('Bob promotes Charlie but is concurrently demoted. Charlie is not an admin.', () => {
+  show('Bob:laptop')
+  show('Charlie:laptop')
+  alice()
+    .addToTeam('Bob')
+    .addToTeam('Charlie')
+    .promote('Bob')
+
+  // Alice goes offline
+  alice().toggleOnline()
+
+  // Bob promotes Charlie
+  bob().promote('Charlie')
+
+  // Bob and Charlie go offline
+  bob().toggleOnline()
+  charlie().toggleOnline()
+
+  // Alice reconnects and demotes Bob
+  alice().toggleOnline()
+  alice().demote('Bob')
+
+  // Bob and Charlie reconnect
+  bob().toggleOnline()
+  charlie().toggleOnline()
+
+  // Bob is no longer an admin
+  bobToBob().should('not.be.admin')
+  bobToAlice().should('not.be.admin')
+
+  // Charlie is no longer an admin
+  charlieToBob().should('not.be.admin')
+  charlieToAlice().should('not.be.admin')
 })
