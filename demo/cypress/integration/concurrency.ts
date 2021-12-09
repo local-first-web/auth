@@ -8,6 +8,7 @@ import {
   charlie,
   charlieToAlice,
   charlieToBob,
+  charlieToCharlie,
   show,
 } from '../support/helpers'
 
@@ -113,4 +114,72 @@ it('Bob promotes Charlie but is concurrently demoted. Charlie is not an admin.',
   // Charlie is no longer an admin
   charlieToBob().should('not.be.admin')
   charlieToAlice().should('not.be.admin')
+})
+
+it.only('Bob promotes Charlie but is concurrently removed. Charlie is not an admin.', () => {
+  show('Bob:laptop')
+  show('Charlie:laptop')
+  alice()
+    .addToTeam('Bob')
+    .addToTeam('Charlie')
+    .promote('Bob')
+
+  // Alice goes offline
+  alice().toggleOnline()
+
+  // Bob promotes Charlie
+  bob().promote('Charlie')
+
+  // Bob and Charlie go offline
+  bob().toggleOnline()
+  charlie().toggleOnline()
+
+  // Alice reconnects and removes Bob
+  alice().toggleOnline()
+  alice().remove('Bob')
+
+  // Bob and Charlie reconnect
+  bob().toggleOnline()
+  charlie().toggleOnline()
+
+  // Bob is no longer on the team
+  alice().should('not.have.member', 'Bob')
+  charlie().should('not.have.member', 'Bob')
+
+  // Charlie is no longer an admin
+  charlieToAlice().should('not.be.admin')
+  charlieToCharlie().should('not.be.admin')
+})
+
+it.skip('Bob adds Charlie but is concurrently demoted. Charlie is not on the team.', () => {
+  show('Bob:laptop')
+  alice()
+    .addToTeam('Bob')
+    .promote('Bob')
+
+  // Alice goes offline
+  alice().toggleOnline()
+
+  show('Charlie:laptop')
+  bob().addToTeam('Charlie')
+
+  // Bob and Charlie go offline
+  bob().toggleOnline()
+  charlie().toggleOnline()
+
+  // Alice reconnects and demotes Bob
+  alice().toggleOnline()
+  alice().demote('Bob')
+
+  // Bob and Charlie reconnect
+  bob().toggleOnline()
+  charlie().toggleOnline()
+
+  // Bob is no longer an admin
+  bobToBob().should('not.be.admin')
+  bobToAlice().should('not.be.admin')
+
+  // Charlie is not on the team
+  alice().should('not.have.member', 'Charlie')
+  bob().should('not.have.member', 'Charlie')
 })
