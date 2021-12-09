@@ -519,6 +519,26 @@ describe('connection', () => {
         expect(alice.team.members('bob').devices).toHaveLength(2)
       })
 
+      it('when an invitation is discarded, also discard related admittance actions', async () => {
+        const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+
+        // 👩🏾 Alice removes 👨🏻‍🦲 Bob from admin role
+        alice.team.removeMemberRole('bob', ADMIN)
+
+        // 👨🏻‍🦲 concurrently, Bob invites 👳🏽‍♂️ Charlie and admits him to the team
+        const { seed } = bob.team.inviteMember()
+        await connectWithInvitation(bob, charlie, seed)
+
+        expect(bob.team.has('charlie')).toBe(true)
+
+        // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
+        await connect(alice, bob)
+
+        // ✅ Bob's invitation is discarded, because Bob concurrently lost admin privileges
+        expect(alice.team.has('charlie')).toBe(false)
+        expect(bob.team.has('charlie')).toBe(false)
+      })
+
       it('resolves circular concurrent demotions ', async () => {
         const { alice, bob, charlie, dwight } = setup('alice', 'bob', 'charlie', 'dwight')
 
