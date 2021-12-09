@@ -1,4 +1,4 @@
-import { LinkBody, TeamAction, TeamLink, TeamLinkBody, TeamSignatureChain } from '@localfirst/auth'
+import { TeamLink, TeamLinkBody, TeamSignatureChain } from '@localfirst/auth'
 import React, { FC } from 'react'
 import { theme } from '../mermaid.theme'
 import { devices, users } from '../peers'
