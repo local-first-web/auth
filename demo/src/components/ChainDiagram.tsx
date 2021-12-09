@@ -1,7 +1,7 @@
 import { LinkBody, TeamAction, TeamLink, TeamLinkBody, TeamSignatureChain } from '@localfirst/auth'
 import React, { FC } from 'react'
 import { theme } from '../mermaid.theme'
-import { users } from '../peers'
+import { devices, users } from '../peers'
 import { Mermaid } from './Mermaid'
 
 const LINE_BREAK = '\n'
@@ -47,6 +47,12 @@ const replaceNamesWithEmoji = (s: string) => {
     const rx = new RegExp(userName, 'gi')
     s = s.replace(rx, emoji)
   }
+  for (const deviceName in devices) {
+    const { emoji } = devices[deviceName]
+    const rx = new RegExp(deviceName, 'gi')
+    s = s.replace(rx, emoji)
+  }
+  s = s.replace(/::/g, '')
   return s
 }
 
@@ -98,8 +104,9 @@ const actionSummary = (action: TeamLinkBody) => {
     case 'REVOKE_INVITATION':
       return action.payload.id
     case 'ADMIT_DEVICE':
+      return action.payload.deviceName
     case 'ADMIT_MEMBER':
-      return action.payload.id
+      return action.payload.memberKeys.name
     case 'CHANGE_MEMBER_KEYS':
     case 'CHANGE_DEVICE_KEYS':
       return action.payload.keys.name
