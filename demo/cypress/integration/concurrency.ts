@@ -1,5 +1,7 @@
+import { hide } from '../support/commands'
 import {
   alice,
+  alicePhone,
   aliceToAlice,
   aliceToBob,
   bob,
@@ -11,6 +13,36 @@ import {
   charlieToCharlie,
   show,
 } from '../support/helpers'
+
+it(`Alice and Bob concurrently make non-conflicting changes`, () => {
+  show('Bob:laptop')
+  show('Charlie:laptop')
+
+  alice()
+    .addToTeam('Bob')
+    .promote('Bob')
+
+  // Alice disconnects
+  alice().toggleOnline()
+
+  // Bob adds Charlie to the team
+  bob().addToTeam('Charlie')
+
+  // Bob and Charlie disconnect
+  bob().toggleOnline()
+  charlie().hide()
+
+  // Alice reconnects
+  alice().toggleOnline()
+
+  // Alice adds her phone
+  show('Alice:phone')
+  alice().addDevice('phone')
+  // alicePhone().hide()
+
+  // Bob reconnects
+  bob().toggleOnline()
+})
 
 it(`Alice and Bob demote each other concurrently`, () => {
   show('Bob:laptop')
@@ -116,7 +148,7 @@ it('Bob promotes Charlie but is concurrently demoted. Charlie is not an admin.',
   charlieToAlice().should('not.be.admin')
 })
 
-it.only('Bob promotes Charlie but is concurrently removed. Charlie is not an admin.', () => {
+it('Bob promotes Charlie but is concurrently removed. Charlie is not an admin.', () => {
   show('Bob:laptop')
   show('Charlie:laptop')
   alice()
@@ -151,7 +183,7 @@ it.only('Bob promotes Charlie but is concurrently removed. Charlie is not an adm
   charlieToCharlie().should('not.be.admin')
 })
 
-it.skip('Bob adds Charlie but is concurrently demoted. Charlie is not on the team.', () => {
+it('Bob adds Charlie but is concurrently demoted. Charlie is not on the team.', () => {
   show('Bob:laptop')
   alice()
     .addToTeam('Bob')
@@ -182,4 +214,10 @@ it.skip('Bob adds Charlie but is concurrently demoted. Charlie is not on the tea
   // Charlie is not on the team
   alice().should('not.have.member', 'Charlie')
   bob().should('not.have.member', 'Charlie')
+
+  // TODO: This isn't exactly the outcome we want -- Charlie really needs to go through the same
+  // process as someone who is actively removed, instead he's in this weird position of having his
+  // invite and admittance annulled; he doesn't know he's been removed, and more importantly we
+  // haven't rotated his keys...
+  // see https://github.com/local-first-web/auth/issues/25#issuecomment-990099702
 })
