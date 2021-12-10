@@ -1,4 +1,5 @@
-﻿import { ADMIN } from '@/role'
+﻿import { Invitation } from '@/invitation'
+import { ADMIN } from '@/role'
 import { bySeniority } from '@/team/bySeniority'
 import {
   MembershipRuleEnforcer,
@@ -15,27 +16,50 @@ import { arraysAreEqual } from '@/util/arraysAreEqual'
 import { getConcurrentBubbles, Link, LinkBody, Resolver } from 'crdx'
 import { isAdminOnlyAction } from './isAdminOnlyAction'
 
-// TODO this could use some more thorough testing
-
 /**
  * This is a custom resolver, used to flatten a graph of team membership operations into a strictly
  * ordered sequence. It mostly applies "strong-remove" rules to resolve tricky situations that can
  * arise with concurrency: mutual removals, duplicate actions, etc.
  */
 export const membershipResolver: Resolver<TeamAction, TeamContext> = chain => {
-  const pools = getConcurrentBubbles(chain).map(hashes => hashes.map(hash => chain.links[hash]))
+  const bubbles = getConcurrentBubbles(chain).map(hashes => hashes.map(hash => chain.links[hash]))
   const invalidLinks: TeamLink[] = []
-  for (var pool of pools) {
+  for (var bubble of bubbles) {
     for (const ruleName in membershipRules) {
       const rule = membershipRules[ruleName]
-      const invalid = rule(pool, chain)
-      invalid.forEach(link => invalidLinks.push(link))
-      pool = pool.filter(linkNotIn(invalidLinks))
+      const invalidLinksByThisRule = rule(bubble, chain)
+      const alsoInvalid = invalidLinksByThisRule.flatMap(link => findDependentLinks(bubble, link))
+      invalidLinks.push(...invalidLinksByThisRule, ...alsoInvalid)
+      bubble = bubble.filter(linkNotIn(invalidLinks))
     }
   }
   return {
     filter: linkNotIn(invalidLinks),
   }
+}
+
+const findDependentLinks = (bubble: TeamLink[], link: TeamLink): TeamLink[] => {
+  const dependentLinks = [] as TeamLink[]
+  switch (link.body.type) {
+    case 'INVITE_MEMBER':
+    case 'INVITE_DEVICE':
+      // invalidate ADMIT actions that used this invitation
+      const { invitation } = link.body.payload
+      dependentLinks.push(...bubble.filter(usesInvitation(invitation)))
+      break
+
+    case 'ADMIT_MEMBER':
+      // invalidate anything the admitted member did
+      const userName = link.body.payload.memberKeys.name
+      dependentLinks.push(...bubble.filter(authorIs(userName)))
+      break
+
+    default:
+      break
+  }
+
+  const alsoInvalid = dependentLinks.flatMap(l => findDependentLinks(bubble, l))
+  return dependentLinks.concat(alsoInvalid)
 }
 
 const membershipRules: Record<string, MembershipRuleEnforcer> = {
@@ -132,6 +156,10 @@ const linkNotIn =
   (excludeList: TeamLink[]) =>
   (link: TeamLink): boolean =>
     !excludeList.includes(link)
+
+const usesInvitation = (invitation: Invitation) => (l: TeamLink) =>
+  (l.body.type === 'ADMIT_MEMBER' || l.body.type === 'ADMIT_DEVICE') &&
+  l.body.payload.id === invitation.id
 
 type RemoveActionLink = Link<RemoveMemberAction | RemoveMemberRoleAction, TeamContext>
 type AddActionLink = Link<AddMemberAction | AddMemberRoleAction, TeamContext>
