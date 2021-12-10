@@ -301,7 +301,7 @@ describe('connection', () => {
         await anyDisconnected(alice, bob)
 
         // ✅ Alice is no longer on the team 👩🏾👎
-        // expect(bob.team.has('alice')).toBe(false)
+        expect(bob.team.has('alice')).toBe(false)
       })
 
       it('eventually updates disconnected members when someone uses an invitation to join', async () => {
