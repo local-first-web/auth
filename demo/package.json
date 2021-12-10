@@ -59,6 +59,13 @@
     "vite": "2",
     "vite-tsconfig-paths": "3"
   },
+  "resolutions": {
+    "json-schema": "^0.4",
+    "trim-newlines": "^3.0.1",
+    "glob-parent": "^5.1.2",
+    "postcss": "^8.2.10",
+    "mermaid": "^8.2.3"
+  },
   "postcss": {
     "plugins": {
       "tailwindcss": {},
