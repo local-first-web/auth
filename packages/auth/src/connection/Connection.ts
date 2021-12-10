@@ -648,6 +648,11 @@ ${JSON.stringify(message, null, 2)}`
       return memberWasRemoved || deviceWasRemoved
     },
 
+    weWereRemoved: context => {
+      assert(context.team)
+      return !context.team.has(context.user.userName)
+    },
+
     identityProofIsValid: (context, event) => {
       assert(context.team)
       const { challenge, proof } = (event as ProveIdentityMessage).payload
