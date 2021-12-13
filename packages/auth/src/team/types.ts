@@ -7,6 +7,7 @@ import { Base58, Payload, ValidationResult } from '@/util'
 import {
   Action,
   KeyMetadata,
+  KeyScope,
   Keyset,
   Link,
   LinkBody,
@@ -241,8 +242,15 @@ export interface TeamState {
   roles: Role[]
   lockboxes: Lockbox[]
   invitations: InvitationMap
+
+  // we keep track of removed members and devices primarily so that we deliver the correct message
+  // to them when we refuse to connect
   removedMembers: Member[]
   removedDevices: Device[]
+
+  // if a member's admission is reversed, we need to flag any keys they've seen so an admin can
+  // rotate them at the first opportunity
+  pendingKeyRotations: Record<string, KeyScope[]> // userName -> [keyScopes]
 }
 
 export interface TeamLockboxMap {
