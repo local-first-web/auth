@@ -221,7 +221,11 @@ export type TeamContext = {
 }
 
 export type TeamLinkBody = LinkBody<TeamAction, TeamContext>
-export type TeamLink = Link<TeamAction, TeamContext>
+
+export type TeamLink = Link<TeamAction, TeamContext> & {
+  isInvalid?: boolean
+}
+
 export type TeamLinkMap = LinkMap<TeamAction, TeamContext>
 export type TeamSignatureChain = SignatureChain<TeamAction, TeamContext>
 export type Branch = Sequence<TeamAction, TeamContext>
