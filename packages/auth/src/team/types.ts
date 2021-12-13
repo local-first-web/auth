@@ -5,7 +5,6 @@ import { Lockbox } from '@/lockbox'
 import { PermissionsMap, Role } from '@/role'
 import { Base58, Payload, ValidationResult } from '@/util'
 import {
-  Action,
   KeyMetadata,
   KeyScope,
   Keyset,
