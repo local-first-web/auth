@@ -1,7 +1,5 @@
-import { hide } from '../support/commands'
 import {
   alice,
-  alicePhone,
   aliceToAlice,
   aliceToBob,
   bob,
