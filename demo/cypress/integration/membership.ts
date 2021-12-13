@@ -30,19 +30,14 @@ it(`Alice demotes Bob`, () => {
 
 it('Alice removes Bob from the team', () => {
   show('Bob:laptop')
+  bob().should('be.onStartScreen')
+
   alice().addToTeam('Bob')
+  bob().should('not.be.onStartScreen')
 
   // Alice removes Bob
   alice().remove('Bob')
 
   // Bob is no longer on the team - he is returned to the start screen
-  bob()
-    .findByText('Create team')
-    .should('exist')
-  bob()
-    .findByText('Join team')
-    .should('exist')
-  bob()
-    .find('.TeamName')
-    .should('not.exist')
+  bob().should('be.onStartScreen')
 })
