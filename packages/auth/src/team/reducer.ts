@@ -42,6 +42,8 @@ export const setHead =
  * @param link The current link being processed.
  */
 export const reducer: Reducer<TeamState, TeamAction, TeamContext> = ((state, link) => {
+  if (link.isInvalid === true) return state
+
   state = clone(state)
 
   // make sure this link can be applied to the previous state & doesn't put us in an invalid state
