@@ -19,17 +19,21 @@ import { isAdminOnlyAction } from './isAdminOnlyAction'
 /**
  * This is a custom resolver, used to flatten a graph of team membership operations into a strictly
  * ordered sequence. It mostly applies "strong-remove" rules to resolve tricky situations that can
- * arise with concurrency: mutual removals, duplicate actions, etc.
+ * arise with concurrency: actions done while being removed, mutual removals, etc.
  */
 export const membershipResolver: Resolver<TeamAction, TeamContext> = chain => {
   const bubbles = getConcurrentBubbles(chain).map(hashes => hashes.map(hash => chain.links[hash]))
   const invalidLinks: TeamLink[] = []
   for (var bubble of bubbles) {
     for (const ruleName in membershipRules) {
+      // apply this rule to find any links that need to be invalidated
       const rule = membershipRules[ruleName]
       const invalidLinksByThisRule = rule(bubble, chain)
+
+      // expand this list to include any links that depend on invalid links we've already found
       const alsoInvalid = invalidLinksByThisRule.flatMap(link => findDependentLinks(bubble, link))
       invalidLinks.push(...invalidLinksByThisRule, ...alsoInvalid)
+
       bubble = bubble.filter(linkNotIn(invalidLinks))
     }
   }
@@ -38,19 +42,24 @@ export const membershipResolver: Resolver<TeamAction, TeamContext> = chain => {
   }
 }
 
-const findDependentLinks = (bubble: TeamLink[], link: TeamLink): TeamLink[] => {
+/**
+ * If we invalidate a link, we need to invalidate all links that depend on it. For example, if
+ * someone joins the group but their invitation turns out to be invalid, then anything they do needs
+ * to be invalidated, including if _they_ invited someone else — and so on recursively.
+ */
+const findDependentLinks = (bubble: TeamLink[], invalidLink: TeamLink): TeamLink[] => {
   const dependentLinks = [] as TeamLink[]
-  switch (link.body.type) {
+  switch (invalidLink.body.type) {
     case 'INVITE_MEMBER':
     case 'INVITE_DEVICE':
       // invalidate ADMIT actions that used this invitation
-      const { invitation } = link.body.payload
+      const { invitation } = invalidLink.body.payload
       dependentLinks.push(...bubble.filter(usesInvitation(invitation)))
       break
 
     case 'ADMIT_MEMBER':
       // invalidate anything the admitted member did
-      const userName = link.body.payload.memberKeys.name
+      const userName = invalidLink.body.payload.memberKeys.name
       dependentLinks.push(...bubble.filter(authorIs(userName)))
       break
 
@@ -58,6 +67,7 @@ const findDependentLinks = (bubble: TeamLink[], link: TeamLink): TeamLink[] => {
       break
   }
 
+  // recursively find any links that depend on the ones we've just found to be invalid
   const alsoInvalid = dependentLinks.flatMap(l => findDependentLinks(bubble, l))
   return dependentLinks.concat(alsoInvalid)
 }
