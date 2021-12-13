@@ -3534,10 +3534,10 @@ cosmiconfig@^7.0.1:
     path-type "^4.0.0"
     yaml "^1.10.0"
 
-crdx@1:
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/crdx/-/crdx-1.1.1.tgz#a9d8659a159406ab78b81728c2f688799c46a3d1"
-  integrity sha512-r17lse8tvMx4ASi6fe9lW0zeUEGoNI/iID4ZGzVguEKClPaYlvnJTyNWMPPJLEyFWzpe1R4dkQ93ZxmX31c6cw==
+crdx@2:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/crdx/-/crdx-2.0.1.tgz#eef54c2813c4b588fb2ac7a066e347c2ad21be82"
+  integrity sha512-vVZlTBY03TByBepDqWXXcdrBLbj3fJlEgvqurIRa8tGTBsxPeDrhtlgyCQsKmjyv5ROY3rel4T3LfPQIbJmMYg==
   dependencies:
     "@herbcaudill/crypto" "2"
     "@herbcaudill/random" "0"
