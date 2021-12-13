@@ -5,6 +5,7 @@ import { membershipResolver as resolver } from '@/team/membershipResolver'
 
 export const chainSummary = (chain: TeamSignatureChain) => {
   const links = getSequence<TeamAction, TeamContext>(chain, resolver)
+    .filter(l => l.isInvalid !== true)
     .map(l => actionFingerprint(l))
     .join(',')
   return links //`${chain.head.slice(0, 5)}:${links}`
