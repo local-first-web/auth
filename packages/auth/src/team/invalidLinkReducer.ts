@@ -2,6 +2,9 @@ import { Member, TEAM_SCOPE } from '.'
 import { TeamLink, TeamState } from './types'
 
 /**
+ * This function is used as an alternative reducer for invalid links; the normal reducer just
+ * returns the result of this function.
+ *
  * Invalid links are actions that were flagged to be discarded by the MembershipResolver when
  * dealing with conflicting concurrent actions.
  *
@@ -10,8 +13,8 @@ import { TeamLink, TeamState } from './types'
  * admitted, Charlie does stuff, etc.)
  *
  * Normally we just ignore these links and they don't affect state at all. However, there are some
- * situations where we need to pay attention. In the above example, we need to act as if
- * Charlie was removed from the team.
+ * situations where we need to pay attention. In the above example, we need to act as if Charlie was
+ * removed from the team, and do some cleanup.
  */
 export const invalidLinkReducer = (state: TeamState, link: TeamLink): TeamState => {
   switch (link.body.type) {
@@ -31,9 +34,10 @@ export const invalidLinkReducer = (state: TeamState, link: TeamLink): TeamState 
         [userName]: [...scopesToRotate, TEAM_SCOPE],
       }
 
-      // Note that we don't need to alter the list of members, because they're never added
       return {
         ...state,
+        // Note that we don't need to alter the list of members, because this member is never added
+
         removedMembers,
         pendingKeyRotations,
       }
