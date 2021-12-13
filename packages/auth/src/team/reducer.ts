@@ -2,6 +2,8 @@
 import { ADMIN } from '@/role'
 import { clone, composeTransforms } from '@/util'
 import { Reducer, ROOT } from 'crdx'
+import { invalidLinkReducer } from './invalidLinkReducer'
+import { setHead } from './setHead'
 import {
   addDevice,
   addMember,
@@ -19,14 +21,8 @@ import {
   setTeamName,
   useInvitation,
 } from './transforms'
-import { Member, TeamAction, TeamLink, TeamContext, TeamState, Transform } from './types'
+import { Member, TeamAction, TeamContext, TeamState, Transform } from './types'
 import { validate } from './validate'
-
-export const setHead =
-  (link: TeamLink): Transform =>
-  state => {
-    return { ...state, __HEAD: link.hash }
-  }
 
 /**
  * Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `TeamState`
@@ -42,7 +38,7 @@ export const setHead =
  * @param link The current link being processed.
  */
 export const reducer: Reducer<TeamState, TeamAction, TeamContext> = ((state, link) => {
-  if (link.isInvalid === true) return state
+  if (link.isInvalid === true) return invalidLinkReducer(state, link)
 
   state = clone(state)
 
