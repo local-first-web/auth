@@ -21,7 +21,13 @@ export const App = () => {
   const [storage, setStorage] = React.useState<Storage>({})
 
   const setShow = (v: boolean) => (id: string) =>
-    setPeers(peers => ({ ...peers, [id]: { ...peers[id], show: v } }))
+    setPeers(peers => ({
+      ...peers,
+      [id]: {
+        ...peers[id],
+        show: v,
+      },
+    }))
 
   const onUpdate = (s: StoredPeerState) => {
     if (s.user) {
@@ -45,10 +51,14 @@ export const App = () => {
 
       const device = auth.createDevice(userName, peerInfo.device.name)
 
-      // For the purposes of this demo, we're using the laptop as each user's "primary" device --
-      // that's where their user keys are created. On the phone, we only know the user's name. We
-      // don't have any user keys yet, we'll get them once the device joins the team.
-      const user = peerInfo.device.name === 'laptop' ? auth.createUser(userName) : undefined
+      const user =
+        peerInfo.device.name === 'laptop'
+          ? // For the purposes of this demo, we're using the laptop as each user's "primary" device --
+            // that's where their user keys are created.
+            auth.createUser(userName)
+          : // On the phone, we only know the user's name. We don't have any user keys yet,
+            // we'll get them once the device joins the team.
+            undefined
 
       const state = { userName, user, device }
       setStorage(prev => ({ ...prev, [peerId]: state }))

@@ -29,7 +29,6 @@ export default windmill({
         warning: colors.orange,
         danger: colors.red,
       },
-      fontSize: {},
       fontWeight: {
         thin: 200,
         normal: 500,

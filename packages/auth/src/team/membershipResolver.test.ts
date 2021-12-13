@@ -58,129 +58,6 @@ describe('chains', () => {
       ])
     })
 
-    it.skip('discards duplicate changes', () => {
-      // 👩🏾 🡒 👨🏻‍🦲 Alice creates a chain and shares it with Bob
-      let { aChain, bChain } = setup()
-
-      // 🔌❌ Now Alice and Bob are disconnected
-
-      // 👨🏻‍🦲 Bob adds Charlie
-      bChain = append({
-        chain: bChain,
-        action: ADD_CHARLIE,
-        user: bob.user,
-        context: bob.chainContext,
-      })
-      expect(summary(bChain)).toEqual('ROOT,ADD:bob,ADD:charlie')
-
-      // 👩🏾 concurrently,Alice also adds Charlie
-      aChain = append({
-        chain: aChain,
-        action: ADD_CHARLIE,
-        user: alice.user,
-        context: alice.chainContext,
-      })
-      expect(summary(aChain)).toEqual('ROOT,ADD:bob,ADD:charlie')
-
-      // 🔌✔ Alice and Bob reconnect and synchronize chains
-
-      // ✅ Only one of the add actions is kept (we don't care which)
-      expectMergedResult(aChain, bChain, 'ROOT,ADD:bob,ADD:charlie')
-    })
-
-    it.skip('discards duplicate removals', () => {
-      // 👩🏾 Alice creates a chain and adds Charlie
-      let { aChain } = setup()
-      aChain = append({
-        chain: aChain,
-        action: ADD_CHARLIE,
-        user: alice.user,
-        context: alice.chainContext,
-      })
-
-      // 👩🏾 🡒 👨🏻‍🦲 Alice shares the chain with Bob
-      let bChain = clone(aChain)
-
-      // 🔌❌ Now Alice and Bob are disconnected
-
-      // 👨🏻‍🦲 Bob removes Charlie
-      bChain = append({
-        chain: bChain,
-        action: REMOVE_CHARLIE,
-        user: alice.user,
-        context: bob.chainContext,
-      })
-      expect(summary(bChain)).toEqual('ROOT,ADD:bob,ADD:charlie,REMOVE:charlie')
-
-      // 👩🏾 concurrently,Alice also removes Charlie
-      aChain = append({
-        chain: aChain,
-        action: REMOVE_CHARLIE,
-        user: alice.user,
-        context: alice.chainContext,
-      })
-      expect(summary(aChain)).toEqual('ROOT,ADD:bob,ADD:charlie,REMOVE:charlie')
-
-      // 🔌✔ Alice and Bob reconnect and synchronize chains
-
-      // ✅ Only one of the add actions is kept (we don't care which)
-      expectMergedResult(aChain, bChain, 'ROOT,ADD:bob,ADD:charlie,REMOVE:charlie')
-    })
-
-    // TODO: This test is poorly labeled. What we're actually trying to prevent is ending up with
-    // actions in the wrong order after removing a duplicate.
-    //
-    // I think a better solution to this might be to just be OK with duplicates, & disregard in the
-    // resolver e.g. when you try to add someone who's already been added
-    it.skip('keeps the earliest instance in case of duplicates', () => {
-      for (let i = 0; i < 10; i++) {
-        //  👩🏾 🡒 👨🏻‍🦲 Alice creates a chain and shares it with Bob
-        let { aChain, bChain } = setup()
-
-        // 🔌❌ Now Alice and Bob are disconnected
-
-        // 👨🏻‍🦲 Bob adds Charlie
-        bChain = append({
-          chain: bChain,
-          action: ADD_CHARLIE,
-          user: bob.user,
-          context: bob.chainContext,
-        })
-        expect(summary(bChain)).toEqual('ROOT,ADD:bob,ADD:charlie')
-
-        // 👩🏾 concurrently,Alice also adds Charlie and makes him a manager
-        aChain = append({
-          chain: aChain,
-          action: ADD_ROLE_MANAGERS,
-          user: alice.user,
-          context: alice.chainContext,
-        })
-        aChain = append({
-          chain: aChain,
-          action: ADD_CHARLIE,
-          user: alice.user,
-          context: alice.chainContext,
-        })
-        aChain = append({
-          chain: aChain,
-          action: ADD_CHARLIE_TO_MANAGERS,
-          user: alice.user,
-          context: alice.chainContext,
-        })
-        expect(summary(aChain)).toEqual(
-          'ROOT,ADD:bob,ADD:managers,ADD:charlie,ADD:managers:charlie'
-        )
-
-        // 🔌✔ Alice and Bob reconnect and synchronize chains
-
-        // ✅ Only the first add action is kept; Charlie is never added *after* he is made manager
-        expectMergedResult(aChain, bChain, [
-          'ROOT,ADD:bob,ADD:charlie,ADD:managers,ADD:managers:charlie',
-          'ROOT,ADD:bob,ADD:managers,ADD:charlie,ADD:managers:charlie',
-        ])
-      }
-    })
-
     it('discards changes made by a member who is concurrently removed', () => {
       // 👩🏾 🡒 👨🏻‍🦲 Alice creates a chain and shares it with Bob
       let { aChain, bChain } = setup()
@@ -241,6 +118,8 @@ describe('chains', () => {
       expectMergedResult(aChain, bChain, 'ROOT,ADD:bob,REMOVE:admin:bob')
     })
 
+    // TODO: This doesn't really tell us anything since it doesn't cover INVITE_MEMBER, which is how
+    // members are actually added
     it(`doesn't allow a member who is removed to be concurrently added back`, () => {
       // 👩🏾 Alice creates a chain and adds Charlie
       let { aChain } = setup()

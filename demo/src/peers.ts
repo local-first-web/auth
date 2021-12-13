@@ -13,9 +13,9 @@ export const users = {
   Eve: { name: 'Eve', emoji: '🦹‍♀️' },
 } as Record<string, UserInfo>
 
-const peerArray = Object.values(devices).flatMap(device =>
-  Object.values(users).map(
-    user =>
+const peerArray = Object.values(users).flatMap(user =>
+  Object.values(devices).map(
+    device =>
       ({
         user,
         device,

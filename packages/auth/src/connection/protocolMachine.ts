@@ -210,6 +210,8 @@ export const protocolMachine: MachineConfig<ConnectionContext, ConnectionState, 
         always: [
           // if the peer is no longer on the team (or no longer has device), disconnect
           { cond: 'peerWasRemoved', target: 'disconnected' },
+          // if we've been removed from the team, disconnect
+          { cond: 'weWereRemoved', target: 'disconnected' },
         ],
 
         on: {

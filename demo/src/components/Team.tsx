@@ -118,11 +118,11 @@ export const Team = () => {
                     {userIsAdmin && !memberIsOnlyAdmin ? (
                       <button
                         title="Remove member from team"
-                        className="hover:opacity-100 opacity-10 font-bold"
+                        className="hover:opacity-100 opacity-10 font-bold text-xs text-white bg-red-500 rounded-full w-4 h-4 "
                         onClick={() => {
                           team.remove(m.userName)
                         }}
-                        children="⛔"
+                        children="⨉"
                       />
                     ) : null}
                   </td>
