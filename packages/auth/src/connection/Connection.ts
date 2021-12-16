@@ -225,20 +225,26 @@ export class Connection extends EventEmitter {
   // ACTIONS
 
   private throwError = (type: ConnectionErrorType, details?: any) => {
+    const detailedMessage = details && 'message' in details ? details.message : undefined
     // force error state locally
-    const localMessage = buildError(type, details, 'LOCAL')
+    const localMessage = buildError(type, detailedMessage, 'LOCAL')
     this.machine.send(localMessage)
 
     // send error to peer
-    const remoteMessage = buildError(type, details, 'REMOTE')
+    const remoteMessage = buildError(type, detailedMessage, 'REMOTE')
     this.sendMessage(remoteMessage)
 
     return localMessage.payload
   }
 
-  private fail = (type: ConnectionErrorType, details?: any) =>
+  // TODO: This business with storing the error in context and then retrieving it and using it as details and storing something else in context.error is pretty gross
+
+  private fail = (type: ConnectionErrorType) =>
     assign<ConnectionContext, ConnectionMessage>({
-      error: () => this.throwError(type, details),
+      error: context => {
+        const details = context.error
+        return this.throwError(type, details)
+      },
     })
 
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendIdentityClaim'`) */
@@ -577,40 +583,21 @@ export class Connection extends EventEmitter {
       error: (_, event) => {
         const error = (event as ErrorMessage).payload
         this.log('receiveError', error)
+
+        // bubble the error up
         this.emit('remoteError', error)
+
+        // store the error in context
         return error
       },
     }),
 
-    rejectIdentityProof: this.fail('IDENTITY_PROOF_INVALID', () => {
-      return `${this.userName} can't verify ${this.peerName}'s proof of identity.`
-    }),
-
-    failNeitherIsMember: this.fail(
-      'NEITHER_IS_MEMBER',
-      () => `${this.userName} can't connect with ${this.peerName} because neither one is a member.`
-    ),
-
-    rejectInvitation: this.fail(
-      'INVITATION_PROOF_INVALID',
-      () => `This invitation didn't work. ${this.context.error?.message}`
-    ),
-
-    rejectTeam: this.fail(
-      'JOINED_WRONG_TEAM',
-      () =>
-        `${this.userName} was admitted to a team by ${this.peerName}, but it isn't the team ${this.userName} was invited to.`
-    ),
-
-    failPeerWasRemoved: this.fail(
-      'MEMBER_REMOVED',
-      () => `${this.peerName} was removed from the team.`
-    ),
-
-    failTimeout: this.fail(
-      'TIMEOUT',
-      () => `${this.userName}'s connection to ${this.peerName} timed out.`
-    ),
+    rejectIdentityProof: this.fail('IDENTITY_PROOF_INVALID'),
+    failNeitherIsMember: this.fail('NEITHER_IS_MEMBER'),
+    rejectInvitation: this.fail('INVITATION_PROOF_INVALID'),
+    rejectTeam: this.fail('JOINED_WRONG_TEAM'),
+    failPeerWasRemoved: this.fail('MEMBER_REMOVED'),
+    failTimeout: this.fail('TIMEOUT'),
 
     // events for external listeners
 
@@ -642,7 +629,7 @@ export class Connection extends EventEmitter {
       if (validation.isValid === true) {
         return true
       } else {
-        this.context.error = validation.error
+        context.error = validation.error
         return false
       }
     },
