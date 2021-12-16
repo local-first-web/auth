@@ -13,7 +13,9 @@ export const protocolMachine: MachineConfig<ConnectionContext, ConnectionState, 
 
     on: {
       REQUEST_IDENTITY: { actions: 'sendIdentityClaim', target: 'awaitingIdentityClaim' },
+
       ERROR: { actions: 'receiveError', target: '#disconnected' },
+      LOCAL_ERROR: { actions: 'sendError', target: '#disconnected' },
     },
 
     states: {
@@ -209,9 +211,7 @@ export const protocolMachine: MachineConfig<ConnectionContext, ConnectionState, 
 
         always: [
           // if the peer is no longer on the team (or no longer has device), disconnect
-          { cond: 'peerWasRemoved', target: 'disconnected' },
-          // if we've been removed from the team, disconnect
-          { cond: 'weWereRemoved', target: 'disconnected' },
+          { cond: 'peerWasRemoved', actions: 'failPeerWasRemoved', target: 'disconnected' },
         ],
 
         on: {
