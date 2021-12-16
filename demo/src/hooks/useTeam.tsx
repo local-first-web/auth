@@ -30,14 +30,17 @@ export const useTeam = () => {
 
   React.useEffect(() => {
     // clear the team if the user is no longer a member
-    if (user && team && !team.has(user.userName)) {
-      setPeerState(prev => {
-        const { team, ...stateMinusTeam } = prev
-        return stateMinusTeam
-      })
+    if (!team?.has(userName)) {
+      clearTeam()
     }
-  }, [head])
+  }, [team, head])
 
+  const clearTeam = () => {
+    setPeerState(prev => {
+      const { team, ...stateMinusTeam } = prev
+      return stateMinusTeam
+    })
+  }
   const addAlert = (message: string, type: AlertInfo['type'] = 'info') => {
     setPeerState(prev => {
       const alert = { id: cuid(), message, type }
@@ -88,6 +91,8 @@ export const useTeam = () => {
 
   const connect = (teamName: string, context: auth.InitialContext) => {
     const connectionManager = new ConnectionManager({ teamName, urls: relayUrls, context })
+
+      // when we connect to the relay, set our online status to true and expose our connection status
       .on('server.connect', () => {
         setPeerState(prev => ({
           ...prev,
@@ -95,6 +100,16 @@ export const useTeam = () => {
           connectionStatus: connectionManager.connectionStatus,
         }))
       })
+
+      // when our connection status changes, update it
+      .on('change', () => {
+        setPeerState((prev: PeerState) => ({
+          ...prev,
+          connectionStatus: connectionManager.connectionStatus,
+        }))
+      })
+
+      // when we disconnect from the relay, set our online status to false and clear our connection status
       .on('server.disconnect', () => {
         setPeerState(prev => ({
           ...prev,
@@ -102,6 +117,8 @@ export const useTeam = () => {
           connectionStatus: {},
         }))
       })
+
+      // when we join a team, expose it to the app (and update our user, in case it has new info)
       .on('joined', ({ team, user }) => {
         setPeerState(prev => ({
           ...prev,
@@ -109,18 +126,27 @@ export const useTeam = () => {
           user,
         }))
       })
-      .on('change', () => {
-        setPeerState((prev: PeerState) => ({
-          ...prev,
-          connectionStatus: connectionManager.connectionStatus,
-        }))
-      })
+
+      // when we connect to a peer, expose the latest team info from the connection
       .on('connected', (connection: auth.Connection) => {
-        // get the latest team info from the connection
         setTeam(connection.team!)
       })
+
+      .on('remoteError', (error: auth.connection.ConnectionErrorPayload) => {
+        switch (error.type) {
+          case 'MEMBER_UNKNOWN':
+          case 'MEMBER_REMOVED':
+            clearTeam()
+            break
+        }
+
+        // if we have a detailed error message, use that
+        const message = error.details ?? error.message
+        addAlert(message)
+      })
+
+      // when we disconnect from a peer, update our connection status
       .on('disconnected', (_id, event) => {
-        if (event?.type === 'ERROR') addAlert(event.payload.message)
         setPeerState((prev: PeerState) => ({
           ...prev,
           connectionStatus: connectionManager.connectionStatus,
