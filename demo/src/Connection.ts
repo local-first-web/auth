@@ -28,7 +28,14 @@ export class Connection extends EventEmitter {
     socket.addEventListener('close', () => this.disconnect())
 
     // pass through events from the auth connection
-    pipeEvents(this.authConnection, this, ['connected', 'joined', 'disconnected', 'change'])
+    pipeEvents(this.authConnection, this, [
+      'connected',
+      'joined',
+      'disconnected',
+      'change',
+      'remoteError',
+      'localError',
+    ])
 
     // start the connection with any stored messages
     this.authConnection.start(storedMessages)
