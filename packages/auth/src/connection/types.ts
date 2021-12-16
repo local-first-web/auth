@@ -91,6 +91,7 @@ export type StateMachineAction =
 export type Condition = ConditionPredicate<ConnectionContext, ConnectionMessage>
 
 // State schema
+// This is the schema for protocolMachine.ts
 
 export interface ConnectionState {
   states: {
