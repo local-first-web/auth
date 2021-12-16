@@ -27,8 +27,8 @@ export class Connection extends EventEmitter {
     // if the remote peer closes the connection, close up here as well
     socket.addEventListener('close', () => this.disconnect())
 
-    // pass through events from the auth connection
-    pipeEvents(this.authConnection, this, [
+    // bubble up events from the auth connection
+    bubbleEvents(this.authConnection, this, [
       'connected',
       'joined',
       'disconnected',
@@ -55,7 +55,7 @@ export class Connection extends EventEmitter {
   }
 }
 
-const pipeEvents = (source: EventEmitter, target: EventEmitter, events: string[]) =>
+const bubbleEvents = (source: EventEmitter, target: EventEmitter, events: string[]) =>
   events.forEach(event => source.on(event, payload => target.emit(event, payload)))
 
 type ConnectionParams = {
