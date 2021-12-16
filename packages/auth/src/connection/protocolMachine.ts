@@ -13,9 +13,8 @@ export const protocolMachine: MachineConfig<ConnectionContext, ConnectionState, 
 
     on: {
       REQUEST_IDENTITY: { actions: 'sendIdentityClaim', target: 'awaitingIdentityClaim' },
-
-      ERROR: { actions: 'receiveError', target: '#disconnected' },
-      LOCAL_ERROR: { actions: 'sendError', target: '#disconnected' },
+      ERROR: { actions: 'receiveError', target: '#disconnected' }, // remote error (sent by peer)
+      LOCAL_ERROR: { actions: 'sendError', target: '#disconnected' }, // local error (detected by us, sent to peer)
     },
 
     states: {
