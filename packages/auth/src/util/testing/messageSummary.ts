@@ -1,13 +1,6 @@
 import { SyncMessage } from 'crdx'
 import { truncateHashes } from '../truncateHashes'
 
-// export const logMessages = (msgs: NetworkMessage[]) => {
-//   msgs.forEach(m => {
-//     const summary = truncateHashes(util.inspect(messageSummary(m.body), { depth: 1, colors: true }))
-//     console.log(`from ${m.from} to ${m.to}: ${summary}`)
-//   })
-// }
-
 export const syncMessageSummary = (m: SyncMessage<any, any> | undefined) => {
   if (m === undefined) {
     return 'DONE'
