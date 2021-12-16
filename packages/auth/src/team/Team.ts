@@ -485,7 +485,8 @@ export class Team extends EventEmitter {
   /** Check whether (1) the invitation is still valid, and (2) the proof of invitation checks out. */
   public validateInvitation = (proof: ProofOfInvitation) => {
     const { id } = proof
-    if (!this.hasInvitation(id)) return invitations.fail(`No invitation with id '${id}' found.`)
+    // TODO: These invitation errors really should be structured & instead of returning messages we should return codes
+    if (!this.hasInvitation(id)) return invitations.fail(`This invitation code doesn't match.`)
     const invitation = this.getInvitation(id)
 
     // make sure the invitation hasn't already been used, hasn't expired, and hasn't been revoked
