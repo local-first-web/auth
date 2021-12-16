@@ -24,8 +24,8 @@ export const connectionErrors: Record<string, ErrorDefinition> = {
     remoteMessage: `Your proof of identity isn't valid`,
   },
   INVITATION_PROOF_INVALID: {
-    localMessage: `The peer's proof of invitation is not valid`,
-    remoteMessage: `Your proof of invitation isn't valid`,
+    localMessage: `The peer's invitation wasn't accepted`,
+    remoteMessage: `Your invitation wasn't accepted`,
   },
   JOINED_WRONG_TEAM: {
     localMessage: `This isn't the team you were invited to`,
@@ -42,10 +42,11 @@ export const buildError = (
   type: ConnectionErrorType,
   details?: any,
   destination: 'LOCAL' | 'REMOTE' = 'LOCAL'
-): ErrorMessage => {
+): ErrorMessage | LocalErrorMessage => {
   const { localMessage, remoteMessage } = connectionErrors[type]
   const message = destination === 'LOCAL' ? localMessage : remoteMessage
-  return { type: 'ERROR', payload: { type, details, message } }
+  const messageType = destination === 'LOCAL' ? 'LOCAL_ERROR' : 'ERROR'
+  return { type: messageType, payload: { type, message, details } }
 }
 
 // types
@@ -57,7 +58,7 @@ export interface ErrorDefinition {
 
 export type ConnectionErrorType = keyof typeof connectionErrors
 
-type ConnectionErrorPayload = {
+export type ConnectionErrorPayload = {
   type: ConnectionErrorType
   message: string
   details?: any
