@@ -26,7 +26,6 @@ export class Network {
 
   // Enqueues one message to be sent from fromPeer to toPeer
   sendMessage(from: string, to: string, body: SyncMessage<any, any>) {
-    // log('network: sending %o', { from, to, body })
     this.queue.push({ from, to, body })
   }
 
@@ -44,7 +43,6 @@ export class Network {
       const message = messageMutator(originalMessage)
       const { to, from, body } = message
 
-      // log('network: receiving %o', { from, body })
       this.peers[to].receiveMessage(from, body)
 
       // log the message for the results of this delivery run
@@ -52,13 +50,9 @@ export class Network {
 
       // catch failure to converge
       if (messageCount++ > maxMessages) {
-        // return delivered
-        // const recentlyDelivered = delivered.slice(delivered.length - 10)
-        // console.log(logMessages(recentlyDelivered))
         throw truncateStack(new Error('loop detected'))
       }
     }
-    // console.log(`${Object.keys(this.peers).length} peers, required ${messageCount} messages`)
     return delivered
   }
 }
