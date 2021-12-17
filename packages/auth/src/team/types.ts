@@ -6,7 +6,7 @@ import { PermissionsMap, Role } from '@/role'
 import { Base58, Payload, ValidationResult } from '@/util'
 import {
   KeyMetadata,
-  KeyScope,
+  KeyType,
   Keyset,
   Link,
   LinkBody,
@@ -197,6 +197,13 @@ export interface ChangeDeviceKeysAction {
   }
 }
 
+export interface RotateKeysAction {
+  type: 'ROTATE_KEYS'
+  payload: BasePayload & {
+    userName: string
+  }
+}
+
 export type TeamAction =
   | RootAction
   | AddMemberAction
@@ -214,6 +221,7 @@ export type TeamAction =
   | AdmitDeviceAction
   | ChangeMemberKeysAction
   | ChangeDeviceKeysAction
+  | RotateKeysAction
 
 export type TeamContext = {
   deviceId: string
@@ -247,17 +255,9 @@ export interface TeamState {
   removedMembers: Member[]
   removedDevices: Device[]
 
-  // if a member's admission is reversed, we need to flag any keys they've seen so an admin can
-  // rotate them at the first opportunity
-  pendingKeyRotations: Record<string, KeyScope[]> // userName -> [keyScopes]
-}
-
-export interface TeamLockboxMap {
-  [userName: string]: UserLockboxMap
-}
-
-export interface UserLockboxMap {
-  [publicKey: string]: Lockbox[]
+  // if a member's admission is reversed, we need to flag them as compromised so an admin can
+  // rotate any keys they had access to at the first opportunity
+  pendingKeyRotations: string[]
 }
 
 export interface InvitationMap {
