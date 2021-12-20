@@ -1,9 +1,10 @@
 ﻿import { ADMIN } from '@/role'
-import { member as selectMember } from '@/team/selectors/member'
+import * as select from '@/team/selectors'
 import { TeamState } from '@/team/types'
 
 export const memberHasRole = (state: TeamState, userName: string, role: string) => {
-  const member = selectMember(state, userName)
+  if (!select.hasMember(state, userName)) return false
+  const member = select.member(state, userName)
   const { roles = [] } = member
   return roles.includes(role)
 }
