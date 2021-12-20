@@ -13,7 +13,12 @@ import {
   SeedMessage,
   SyncMessage,
 } from '@/connection/message'
-import { ErrorMessage, buildError, ConnectionErrorType } from '@/connection/errors'
+import {
+  ErrorMessage,
+  buildError,
+  ConnectionErrorType,
+  LocalErrorMessage,
+} from '@/connection/errors'
 import { orderedDelivery } from '@/connection/orderedDelivery'
 import {
   Condition,
@@ -229,10 +234,6 @@ export class Connection extends EventEmitter {
     // force error state locally
     const localMessage = buildError(type, detailedMessage, 'LOCAL')
     this.machine.send(localMessage)
-
-    // send error to peer
-    const remoteMessage = buildError(type, detailedMessage, 'REMOTE')
-    this.sendMessage(remoteMessage)
 
     return localMessage.payload
   }
@@ -586,6 +587,23 @@ export class Connection extends EventEmitter {
 
         // bubble the error up
         this.emit('remoteError', error)
+
+        // store the error in context
+        return error
+      },
+    }),
+
+    sendError: assign({
+      error: (_, event) => {
+        const error = (event as LocalErrorMessage).payload
+        this.log('sendError', error)
+
+        // send error to peer
+        const remoteMessage = buildError(error.type, error.details, 'REMOTE')
+        this.sendMessage(remoteMessage)
+
+        // bubble the error up
+        this.emit('localError', error)
 
         // store the error in context
         return error
