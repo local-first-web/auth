@@ -8,7 +8,17 @@ import { ProofOfInvitation } from '@/invitation'
 import { normalize } from '@/invitation/normalize'
 import * as lockbox from '@/lockbox'
 import { ADMIN, Role } from '@/role'
-import { assert, debug, getScope, Hash, Payload, scopesMatch, UnixTimestamp, VALID } from '@/util'
+import {
+  assert,
+  debug,
+  getScope,
+  Hash,
+  lockboxSummary,
+  Payload,
+  scopesMatch,
+  UnixTimestamp,
+  VALID,
+} from '@/util'
 import { Base58, randomKey, signatures, symmetric } from '@herbcaudill/crypto'
 import {
   createKeyset,
@@ -101,6 +111,28 @@ export class Team extends EventEmitter {
     }
 
     this.state = this.store.getState()
+
+    // Wire up event listeners
+    this.on('updated', () => {
+      // if we're admin, check for pending key rotations
+      this.checkForPendingKeyRotations()
+    })
+  }
+
+  private checkForPendingKeyRotations() {
+    // only admins can rotate keys
+    if (!this.memberIsAdmin(this.userName)) return
+
+    // TODO: should we introduce a random delay here, so these don't pile up?
+    for (const userName of this.state.pendingKeyRotations) {
+      // We don't know if the user was added to any other roles, so for now we're just preemptively
+      // rotating all lockboxes *we* can see (since we're an admin, we have access to all keys)
+
+      // TODO: we could be more surgical about this, but we'd have to replay everything that was
+      // invalidated in that bubble to see what roles the invalidated user was added to
+      const lockboxes = this.generateNewLockboxes({ type: KeyType.USER, name: this.userName })
+      this.dispatch({ type: 'ROTATE_KEYS', payload: { userName, lockboxes } })
+    }
   }
 
   public get chain() {
@@ -601,16 +633,21 @@ export class Team extends EventEmitter {
   }
 
   /** Sign a message using the current user's keys. */
-  public sign = (payload: Payload): SignedEnvelope => {
+  public sign = (contents: Payload): SignedEnvelope => {
     assert(this.context.user)
-    return {
-      contents: payload,
-      signature: signatures.sign(payload, this.context.user.keys.signature.secretKey),
-      author: {
-        type: KeyType.USER,
-        name: this.userName,
-        generation: this.context.user.keys.generation,
+    const {
+      keys: {
+        type,
+        name,
+        generation,
+        signature: { secretKey },
       },
+    } = this.context.user
+
+    return {
+      contents,
+      signature: signatures.sign(contents, secretKey),
+      author: { type, name, generation },
     }
   }
 
@@ -647,22 +684,22 @@ export class Team extends EventEmitter {
    * (This can also be used by an admin to change another user's secret keyset.)
    */
   public changeKeys = (newKeys: KeysetWithSecrets) => {
-    const changingDeviceKeys = newKeys.type === KeyType.DEVICE
+    const isDeviceKeyset = newKeys.type === KeyType.DEVICE
 
     // make sure we're allowed to change these keys
-    if (!changingDeviceKeys) {
+    if (isDeviceKeyset) {
+      // device keys
+      const changingMyOwnKeys = newKeys.name === this.deviceId
+      assert(changingMyOwnKeys, `Can't change another device's secret keys`)
+    } else {
       // user keys
       assert(this.context.user)
       const changingMyOwnKeys = newKeys.name === this.userName
       const iAmAdmin = this.memberIsAdmin(this.userName)
       assert(changingMyOwnKeys || iAmAdmin, `Can't change another user's secret keys`)
-    } else {
-      // device keys
-      const changingMyOwnKeys = newKeys.name === this.deviceId
-      assert(changingMyOwnKeys, `Can't change another device's secret keys`)
     }
 
-    const userOrDevice = changingDeviceKeys ? this.context.device : this.context.user!
+    const userOrDevice = isDeviceKeyset ? this.context.device : this.context.user!
     const oldKeys = userOrDevice.keys
     newKeys.generation = oldKeys.generation + 1
 
@@ -670,7 +707,7 @@ export class Team extends EventEmitter {
     const lockboxes = this.generateNewLockboxes(newKeys)
 
     // post our new public keys to the signature chain
-    const type = changingDeviceKeys ? 'CHANGE_DEVICE_KEYS' : 'CHANGE_MEMBER_KEYS'
+    const type = isDeviceKeyset ? 'CHANGE_DEVICE_KEYS' : 'CHANGE_MEMBER_KEYS'
     const keys = redactKeys(newKeys)
     this.dispatch({ type, payload: { keys, lockboxes } })
 
@@ -705,6 +742,7 @@ export class Team extends EventEmitter {
 
     // identify all the keys that are indirectly compromised
     const visibleScopes = select.getVisibleScopes(this.state, compromised)
+
     const otherNewKeysets = visibleScopes.map(scope => createKeyset(scope))
 
     // generate new keys for each one
@@ -713,6 +751,7 @@ export class Team extends EventEmitter {
     // create new lockboxes for each of these
     const newLockboxes = newKeysets.flatMap(newKeyset => {
       const scope = getScope(newKeyset)
+
       const oldLockboxes = select.lockboxesInScope(this.state, scope)
 
       return oldLockboxes.map(oldLockbox => {
