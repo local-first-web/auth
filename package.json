@@ -19,7 +19,7 @@
     "dev:cy:debug": "cross-env CYPRESS_REMOTE_DEBUGGING_PORT=9222 yarn dev:cy",
     "dev": "run-p watch dev:demo",
     "dev:relay": "yarn --cwd demo dev:relay",
-    "test": "node --no-warnings --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+    "test": "yarn --cwd packages/auth test",
     "test:log": "yarn --cwd packages/auth test:log",
     "watch": "lerna run watch --stream --parallel",
     "pub": "lerna publish --yes"
