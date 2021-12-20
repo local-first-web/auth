@@ -87,6 +87,21 @@ describe('Team', () => {
       expect(tryToChangeBobsKeys).not.toThrow()
     })
 
+    it(`Every time Alice changes her keys, the admin keys are rotated`, () => {
+      const { alice } = setup('alice')
+      const changeKeys = () =>
+        alice.team.changeKeys(createKeyset({ type: KeyType.USER, name: 'alice' }))
+
+      expect(alice.team.adminKeys().generation).toBe(0)
+      expect(alice.team.state.lockboxes.length).toBe(3) // team keys for alice, admin keys for alice, alice user keys for alice's laptop
+
+      changeKeys()
+      changeKeys()
+      changeKeys()
+      expect(alice.team.adminKeys().generation).toBe(3)
+      expect(alice.team.state.lockboxes.length).toBe(12) // the number of lockboxes shouldn't grow exponentially
+    })
+
     it(`Alice can't change Bob's device keys`, () => {
       const { alice, bob } = setup('alice', { user: 'bob', admin: false })
 
