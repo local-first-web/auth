@@ -3,7 +3,7 @@ import { Device } from '@/device'
 import { Invitation, InvitationState } from '@/invitation/types'
 import { Lockbox } from '@/lockbox'
 import { PermissionsMap, Role } from '@/role'
-import { Base58, Payload, ValidationResult } from '@/util'
+import { Base58, Hash, Payload, ValidationResult } from '@/util'
 import {
   KeyMetadata,
   KeyType,
@@ -243,6 +243,8 @@ export type MembershipRuleEnforcer = (links: TeamLink[], chain: TeamSignatureCha
 // ********* TEAM STATE
 
 export interface TeamState {
+  head: Hash[]
+
   teamName: string
   rootContext?: TeamContext
   members: Member[]
