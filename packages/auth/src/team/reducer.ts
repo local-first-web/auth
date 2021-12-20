@@ -14,6 +14,7 @@ import {
   collectLockboxes,
   postInvitation,
   removeDevice,
+  rotateKeys,
   removeMember,
   removeMemberRole,
   removeRole,
@@ -38,6 +39,10 @@ import { validate } from './validate'
  * @param link The current link being processed.
  */
 export const reducer: Reducer<TeamState, TeamAction, TeamContext> = ((state, link) => {
+  // Invalid links are marked to be discarded by the MembershipResolver due to conflicting
+  // concurrent actions. In most cases we just ignore these links and they don't affect state at
+  // all; but in some cases we need to clean up, for example when someone's admission is reversed
+  // but they already joined and had access to the chain.
   if (link.isInvalid === true) return invalidLinkReducer(state, link)
 
   state = clone(state)
@@ -197,6 +202,13 @@ const getTransforms = (action: TeamAction): Transform[] => {
       const { keys } = action.payload
       return [
         changeDeviceKeys(keys), // replace this device's public keys with the ones provided
+      ]
+    }
+
+    case 'ROTATE_KEYS': {
+      const { userName } = action.payload
+      return [
+        rotateKeys(userName), // mark this member's keys as having been rotated (the rotated keys themselves are in the lockboxes)
       ]
     }
 
