@@ -6,6 +6,8 @@ export const peer = (userName: string, deviceName: string = 'laptop') =>
 export const alice = () => peer('Alice')
 export const bob = () => peer('Bob')
 export const charlie = () => peer('Charlie')
+export const dwight = () => peer('Dwight')
+
 export const alicePhone = () => peer('Alice', 'phone')
 export const bobPhone = () => peer('bob', 'phone')
 export const charliePhone = () => peer('charlie', 'phone')
