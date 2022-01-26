@@ -3,7 +3,7 @@
   "baseUrl": "http://localhost:3000",
   "fixturesFolder": false,
   "video": false,
-  "viewportWidth": 1200,
+  "viewportWidth": 1600,
   "viewportHeight": 1200,
   "defaultCommandTimeout": 10000
 }
