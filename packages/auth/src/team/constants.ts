@@ -5,6 +5,7 @@ import { TeamState } from './types'
 export const ALL = 'ALL'
 
 export const initialState: TeamState = {
+  head: [],
   teamName: '',
   members: [],
   roles: [],
