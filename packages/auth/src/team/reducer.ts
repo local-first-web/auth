@@ -2,6 +2,8 @@
 import { ADMIN } from '@/role'
 import { clone, composeTransforms } from '@/util'
 import { Reducer, ROOT } from 'crdx'
+import { invalidLinkReducer } from './invalidLinkReducer'
+import { setHead } from './setHead'
 import {
   addDevice,
   addMember,
@@ -16,17 +18,12 @@ import {
   removeMemberRole,
   removeRole,
   revokeInvitation,
+  rotateKeys,
   setTeamName,
   useInvitation,
 } from './transforms'
-import { Member, TeamAction, TeamLink, TeamContext, TeamState, Transform } from './types'
+import { Member, TeamAction, TeamContext, TeamState, Transform } from './types'
 import { validate } from './validate'
-
-export const setHead =
-  (link: TeamLink): Transform =>
-  state => {
-    return { ...state, __HEAD: link.hash }
-  }
 
 /**
  * Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `TeamState`
@@ -42,7 +39,11 @@ export const setHead =
  * @param link The current link being processed.
  */
 export const reducer: Reducer<TeamState, TeamAction, TeamContext> = ((state, link) => {
-  if (link.isInvalid === true) return state
+  // Invalid links are marked to be discarded by the MembershipResolver due to conflicting
+  // concurrent actions. In most cases we just ignore these links and they don't affect state at
+  // all; but in some cases we need to clean up, for example when someone's admission is reversed
+  // but they already joined and had access to the chain.
+  if (link.isInvalid) return invalidLinkReducer(state, link)
 
   state = clone(state)
 
@@ -201,6 +202,13 @@ const getTransforms = (action: TeamAction): Transform[] => {
       const { keys } = action.payload
       return [
         changeDeviceKeys(keys), // replace this device's public keys with the ones provided
+      ]
+    }
+
+    case 'ROTATE_KEYS': {
+      const { userName } = action.payload
+      return [
+        rotateKeys(userName), // mark this member's keys as having been rotated (the rotated keys themselves are in the lockboxes)
       ]
     }
 

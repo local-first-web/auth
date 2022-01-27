@@ -15,6 +15,7 @@ import {
   TestChannel,
   updated,
 } from '@/util/testing'
+import { pause } from '@/util/testing/pause'
 
 describe('connection', () => {
   describe('sync', () => {
@@ -640,6 +641,34 @@ describe('connection', () => {
 
         // The team keys haven't been rotated because Bob wasn't removed from the team
         expect(alice.team.teamKeys().generation).toBe(0)
+      })
+
+      it('unwinds an invalidated admission', async () => {
+        const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+        expect(alice.team.adminKeys().generation).toBe(0)
+
+        // while disconnected...
+        // Alice demotes Bob
+        alice.team.removeMemberRole('bob', ADMIN)
+        // the admin keys are rotated
+        expect(alice.team.adminKeys().generation).toBe(1)
+
+        // Bob invites Charlie & Charlie joins
+        const { seed } = bob.team.inviteMember()
+        await connectWithInvitation(bob, charlie, seed)
+
+        // then...
+        // Alice and Bob connect
+        await connect(alice, bob)
+
+        // Charlie's admission is invalidated
+        expect(alice.team.has('charlie')).toBe(false)
+        expect(bob.team.has('charlie')).toBe(false)
+
+        // Alice rotates the team keys
+        expect(alice.team.teamKeys().generation).toBe(1)
+        // and all other keys, for good measure
+        expect(alice.team.adminKeys().generation).toBe(2)
       })
     })
 

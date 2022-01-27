@@ -7,13 +7,18 @@ import {
   ConnectionMessage,
   DisconnectMessage,
   EncryptedMessage,
-  ErrorMessage,
   isNumberedConnectionMessage,
   NumberedConnectionMessage,
   ProveIdentityMessage,
   SeedMessage,
   SyncMessage,
 } from '@/connection/message'
+import {
+  ErrorMessage,
+  buildError,
+  ConnectionErrorType,
+  LocalErrorMessage,
+} from '@/connection/errors'
 import { orderedDelivery } from '@/connection/orderedDelivery'
 import {
   Condition,
@@ -201,7 +206,7 @@ export class Connection extends EventEmitter {
     assert(
       isNumberedConnectionMessage(message),
       `Can only deliver numbered connection messages; received 
-${JSON.stringify(message, null, 2)}`
+      ${JSON.stringify(message, null, 2)}`
     )
 
     this.logMessage('in', message, message.index)
@@ -224,17 +229,23 @@ ${JSON.stringify(message, null, 2)}`
 
   // ACTIONS
 
-  private createError = (message: () => string, details?: any) => {
-    const errorPayload = { message: message(), details }
-    const errorMessage: ErrorMessage = { type: 'ERROR', payload: errorPayload }
-    this.machine.send(errorMessage) // force error state locally
-    this.sendMessage(errorMessage) // send error to peer
-    return errorPayload
+  private throwError = (type: ConnectionErrorType, details?: any) => {
+    const detailedMessage = details && 'message' in details ? details.message : undefined
+    // force error state locally
+    const localMessage = buildError(type, detailedMessage, 'LOCAL')
+    this.machine.send(localMessage)
+
+    return localMessage.payload
   }
 
-  private fail = (message: () => string, details?: any) =>
+  // TODO: This business with storing the error in context and then retrieving it and using it as details and storing something else in context.error is pretty gross
+
+  private fail = (type: ConnectionErrorType) =>
     assign<ConnectionContext, ConnectionMessage>({
-      error: () => this.createError(message, details),
+      error: context => {
+        const details = context.error
+        return this.throwError(type, details)
+      },
     })
 
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendIdentityClaim'`) */
@@ -257,7 +268,6 @@ ${JSON.stringify(message, null, 2)}`
                 : {}),
             }
 
-      this.log('sending CLAIM_IDENTITY', payload)
       this.sendMessage({
         type: 'CLAIM_IDENTITY',
         payload,
@@ -395,8 +405,8 @@ ${JSON.stringify(message, null, 2)}`
 
       const identityLookupResult = context.team.lookupIdentity(identityClaim)
 
-      const fail = (msg: string) => {
-        context.error = this.createError(() => msg)
+      const fail = (type: ConnectionErrorType, msg: string) => {
+        context.error = this.throwError(type, () => msg)
       }
 
       switch (identityLookupResult) {
@@ -407,15 +417,16 @@ ${JSON.stringify(message, null, 2)}`
           return
 
         case 'MEMBER_UNKNOWN':
-          return fail(`${userName} is not a member of this team.`)
+          return fail('MEMBER_UNKNOWN', `${userName} is not a member of this team.`)
 
         case 'DEVICE_UNKNOWN':
-          return fail(`${userName} does not have a device '${deviceName}'.`)
+          return fail('DEVICE_UNKNOWN', `${userName} does not have a device '${deviceName}'.`)
       }
     },
 
     challengeIdentity: assign({
       challenge: context => {
+        this.log('challengeIdentity')
         const identityClaim = context.theirIdentityClaim!
         const challenge = identity.challenge(identityClaim)
         this.sendMessage({
@@ -570,29 +581,41 @@ ${JSON.stringify(message, null, 2)}`
     // failure
 
     receiveError: assign({
-      error: (_, event) => (event as ErrorMessage).payload,
+      error: (_, event) => {
+        const error = (event as ErrorMessage).payload
+        this.log('receiveError', error)
+
+        // bubble the error up
+        this.emit('remoteError', error)
+
+        // store the error in context
+        return error
+      },
     }),
 
-    rejectIdentityProof: this.fail(() => {
-      return `${this.userName} can't verify ${this.peerName}'s proof of identity.`
+    sendError: assign({
+      error: (_, event) => {
+        const error = (event as LocalErrorMessage).payload
+        this.log('sendError', error)
+
+        // send error to peer
+        const remoteMessage = buildError(error.type, error.details, 'REMOTE')
+        this.sendMessage(remoteMessage)
+
+        // bubble the error up
+        this.emit('localError', error)
+
+        // store the error in context
+        return error
+      },
     }),
 
-    failNeitherIsMember: this.fail(
-      () => `${this.userName} can't connect with ${this.peerName} because neither one is a member.`
-    ),
-
-    rejectInvitation: this.fail(
-      () => `This invitation didn't work. ${this.context.error?.message}`
-    ),
-
-    rejectTeam: this.fail(
-      () =>
-        `${this.userName} was admitted to a team by ${this.peerName}, but it isn't the team ${this.userName} was invited to.`
-    ),
-
-    failPeerWasRemoved: this.fail(() => `${this.peerName} was removed from the team.`),
-
-    failTimeout: this.fail(() => `${this.userName}'s connection to ${this.peerName} timed out.`),
+    rejectIdentityProof: this.fail('IDENTITY_PROOF_INVALID'),
+    failNeitherIsMember: this.fail('NEITHER_IS_MEMBER'),
+    rejectInvitation: this.fail('INVITATION_PROOF_INVALID'),
+    rejectTeam: this.fail('JOINED_WRONG_TEAM'),
+    failPeerWasRemoved: this.fail('MEMBER_REMOVED'),
+    failTimeout: this.fail('TIMEOUT'),
 
     // events for external listeners
 
@@ -624,7 +647,7 @@ ${JSON.stringify(message, null, 2)}`
       if (validation.isValid === true) {
         return true
       } else {
-        this.context.error = validation.error
+        context.error = validation.error
         return false
       }
     },
@@ -646,11 +669,6 @@ ${JSON.stringify(message, null, 2)}`
       const memberWasRemoved = team.memberWasRemoved(userName)
       const deviceWasRemoved = team.deviceWasRemoved(userName, deviceName)
       return memberWasRemoved || deviceWasRemoved
-    },
-
-    weWereRemoved: context => {
-      assert(context.team)
-      return !context.team.has(context.user.userName)
     },
 
     identityProofIsValid: (context, event) => {

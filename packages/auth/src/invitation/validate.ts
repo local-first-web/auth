@@ -4,9 +4,9 @@ import { signatures } from '@herbcaudill/crypto'
 
 export const invitationCanBeUsed = (invitation: InvitationState, timeOfUse: number) => {
   const { revoked, maxUses, uses, expiration } = invitation
-  if (revoked) return fail(`The invitation has been revoked.`)
-  if (maxUses > 0 && uses >= maxUses) return fail(`The invitation cannot be used again.`)
-  if (expiration > 0 && expiration < timeOfUse) return fail(`The invitation has expired.`)
+  if (revoked) return fail(`The invitation has been revoked`)
+  if (maxUses > 0 && uses >= maxUses) return fail(`The invitation cannot be used again`)
+  if (expiration > 0 && expiration < timeOfUse) return fail(`The invitation has expired`)
 
   return VALID
 }

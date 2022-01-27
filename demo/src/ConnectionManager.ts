@@ -23,8 +23,7 @@ export class ConnectionManager extends EventEmitter {
   /**
    * A dictionary of strings describing the connection status of each of our peers.
    * e.g.
-   *
-   *       {alice: 'connected', bob: 'connecting', charlie: 'disconnected'}
+   *    {alice: 'connected', bob: 'connecting', charlie: 'disconnected'}
    */
   public connectionStatus: Record<UserName, ConnectionStatus> = {}
 
@@ -60,10 +59,9 @@ export class ConnectionManager extends EventEmitter {
         // We don't want to present invitations to multiple people simultaneously, because then they
         // both might admit us concurrently and that complicates things unnecessarily. So we need to
         // make sure that we go through the connection process with one other peer at a time.
-        if ('invitationSeed' in this.context && this.context.invitationSeed) {
+        const iHaveInvitation = 'invitationSeed' in this.context && this.context.invitationSeed
+        if (iHaveInvitation) {
           await this.connectingMutex.runExclusive(async () => {
-            this.log('connecting with mutex')
-
             await this.connectPeer(socket, peerUserName, storedMessages)
           })
         } else {
@@ -106,6 +104,12 @@ export class ConnectionManager extends EventEmitter {
         .on('change', state => {
           this.updateStatus(peerUserName, state)
           this.emit('change', { userName: peerUserName, state })
+        })
+        .on('localError', type => {
+          this.emit('localError', type)
+        })
+        .on('remoteError', type => {
+          this.emit('remoteError', type)
         })
         .on('disconnected', event => {
           this.disconnectPeer(peerUserName, event)

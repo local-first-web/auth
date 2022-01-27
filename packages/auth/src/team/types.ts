@@ -3,10 +3,10 @@ import { Device } from '@/device'
 import { Invitation, InvitationState } from '@/invitation/types'
 import { Lockbox } from '@/lockbox'
 import { PermissionsMap, Role } from '@/role'
-import { Base58, Payload, ValidationResult } from '@/util'
+import { Base58, Hash, Payload, ValidationResult } from '@/util'
 import {
-  Action,
   KeyMetadata,
+  KeyType,
   Keyset,
   Link,
   LinkBody,
@@ -197,6 +197,13 @@ export interface ChangeDeviceKeysAction {
   }
 }
 
+export interface RotateKeysAction {
+  type: 'ROTATE_KEYS'
+  payload: BasePayload & {
+    userName: string
+  }
+}
+
 export type TeamAction =
   | RootAction
   | AddMemberAction
@@ -214,6 +221,7 @@ export type TeamAction =
   | AdmitDeviceAction
   | ChangeMemberKeysAction
   | ChangeDeviceKeysAction
+  | RotateKeysAction
 
 export type TeamContext = {
   deviceId: string
@@ -235,22 +243,23 @@ export type MembershipRuleEnforcer = (links: TeamLink[], chain: TeamSignatureCha
 // ********* TEAM STATE
 
 export interface TeamState {
+  head: Hash[]
+
   teamName: string
   rootContext?: TeamContext
   members: Member[]
   roles: Role[]
   lockboxes: Lockbox[]
   invitations: InvitationMap
+
+  // we keep track of removed members and devices primarily so that we deliver the correct message
+  // to them when we refuse to connect
   removedMembers: Member[]
   removedDevices: Device[]
-}
 
-export interface TeamLockboxMap {
-  [userName: string]: UserLockboxMap
-}
-
-export interface UserLockboxMap {
-  [publicKey: string]: Lockbox[]
+  // if a member's admission is reversed, we need to flag them as compromised so an admin can
+  // rotate any keys they had access to at the first opportunity
+  pendingKeyRotations: string[]
 }
 
 export interface InvitationMap {

@@ -22,6 +22,8 @@ export type CustomCommands = typeof commands
 import './assertions/be.admin'
 import './assertions/be.online'
 import './assertions/have.member'
+import './assertions/be.onStartScreen'
+
 import { CommandFn } from './types'
 
 declare global {

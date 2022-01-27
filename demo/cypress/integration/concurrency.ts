@@ -1,3 +1,4 @@
+import { should } from 'chai'
 import {
   alice,
   aliceToAlice,
@@ -9,6 +10,7 @@ import {
   charlieToAlice,
   charlieToBob,
   charlieToCharlie,
+  dwight,
   show,
 } from '../support/helpers'
 
@@ -183,27 +185,31 @@ it('Bob promotes Charlie but is concurrently removed. Charlie is not an admin.',
 
 it('Bob adds Charlie but is concurrently demoted. Charlie is not on the team.', () => {
   show('Bob:laptop')
+  show('Charlie:laptop')
+  show('Dwight:laptop')
+
+  // Bob and Dwight are admins
   alice()
     .addToTeam('Bob')
     .promote('Bob')
 
-  // Alice goes offline
+  alice()
+    .addToTeam('Dwight')
+    .promote('Dwight')
+
+  // Dwight and Alice go offline
+  dwight().toggleOnline()
   alice().toggleOnline()
 
-  show('Charlie:laptop')
-  bob().addToTeam('Charlie')
-
-  // Bob and Charlie go offline
-  bob().toggleOnline()
-  charlie().toggleOnline()
-
-  // Alice reconnects and demotes Bob
-  alice().toggleOnline()
+  // While disconnected, Alice demotes Bob
   alice().demote('Bob')
 
-  // Bob and Charlie reconnect
-  bob().toggleOnline()
-  charlie().toggleOnline()
+  // Bob invites Charlie and Charlie joins
+  bob().addToTeam('Charlie')
+
+  // Everyone reconnects
+  alice().toggleOnline()
+  dwight().toggleOnline()
 
   // Bob is no longer an admin
   bobToBob().should('not.be.admin')
@@ -213,9 +219,10 @@ it('Bob adds Charlie but is concurrently demoted. Charlie is not on the team.', 
   alice().should('not.have.member', 'Charlie')
   bob().should('not.have.member', 'Charlie')
 
-  // TODO: This isn't exactly the outcome we want -- Charlie really needs to go through the same
-  // process as someone who is actively removed, instead he's in this weird position of having his
-  // invite and admittance annulled; he doesn't know he's been removed, and more importantly we
-  // haven't rotated his keys...
-  // see https://github.com/local-first-web/auth/issues/25#issuecomment-990099702
+  // Charlie goes back to the start screen
+  charlie().should('be.onStartScreen')
+
+  // Alice and Bob are still on the team
+  alice().should('not.be.onStartScreen')
+  bob().should('not.be.onStartScreen')
 })
