@@ -183,7 +183,7 @@ it('Bob promotes Charlie but is concurrently removed. Charlie is not an admin.',
   charlieToCharlie().should('not.be.admin')
 })
 
-it.only('Bob adds Charlie but is concurrently demoted. Charlie is not on the team.', () => {
+it('Bob adds Charlie but is concurrently demoted. Charlie is not on the team.', () => {
   show('Bob:laptop')
   show('Charlie:laptop')
   show('Dwight:laptop')
@@ -193,12 +193,12 @@ it.only('Bob adds Charlie but is concurrently demoted. Charlie is not on the tea
     .addToTeam('Bob')
     .promote('Bob')
 
-  // alice()
-  //   .addToTeam('Dwight')
-  //   .promote('Dwight')
+  alice()
+    .addToTeam('Dwight')
+    .promote('Dwight')
 
   // Dwight and Alice go offline
-  // dwight().toggleOnline()
+  dwight().toggleOnline()
   alice().toggleOnline()
 
   // While disconnected, Alice demotes Bob
@@ -209,7 +209,7 @@ it.only('Bob adds Charlie but is concurrently demoted. Charlie is not on the tea
 
   // Everyone reconnects
   alice().toggleOnline()
-  // dwight().toggleOnline()
+  dwight().toggleOnline()
 
   // Bob is no longer an admin
   bobToBob().should('not.be.admin')
