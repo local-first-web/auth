@@ -14,11 +14,11 @@ import {
   collectLockboxes,
   postInvitation,
   removeDevice,
-  rotateKeys,
   removeMember,
   removeMemberRole,
   removeRole,
   revokeInvitation,
+  rotateKeys,
   setTeamName,
   useInvitation,
 } from './transforms'
@@ -43,7 +43,7 @@ export const reducer: Reducer<TeamState, TeamAction, TeamContext> = ((state, lin
   // concurrent actions. In most cases we just ignore these links and they don't affect state at
   // all; but in some cases we need to clean up, for example when someone's admission is reversed
   // but they already joined and had access to the chain.
-  if (link.isInvalid === true) return invalidLinkReducer(state, link)
+  if (link.isInvalid) return invalidLinkReducer(state, link)
 
   state = clone(state)
 
