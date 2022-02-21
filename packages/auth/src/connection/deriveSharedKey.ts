@@ -3,12 +3,14 @@ import { HashPurpose } from '@/util'
 
 /**
  * Takes two seeds (in this case, provided by each of two peers that are connecting) and
- * @param seed1 one of the seeds to combine
- * @param seed2 the other seed to combine
+ * deterministically derives a shared key.
  */
 export const deriveSharedKey = (seed1: Base58, seed2: Base58): Base58 => {
-  const sortedSeeds = [seed1, seed2].sort() // ensure that the seeds are in a deterministic order
-  const concatenatedSeeds = sortedSeeds.join('')
+  const concatenatedSeeds = [seed1, seed2]
+    .sort() // ensure that the seeds are in a predictable order
+    .map(s => base58.decode(s)) // convert to byte arrays
+    .reduce((a, b) => new Uint8Array([...a, ...b]), new Uint8Array()) // concatenate
+
   const sharedKey = hash(HashPurpose.SHARED_KEY, concatenatedSeeds)
   return sharedKey
 }
