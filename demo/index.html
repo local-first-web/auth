@@ -8,8 +8,9 @@
     <!-- uncomment for react dev tools -->
     <!-- <script src="http://localhost:8097"></script> -->
 
-    <script>
-      window.global = window
+    <script type="module">
+      import { Buffer } from 'buffer'
+      window.Buffer = Buffer
     </script>
   </head>
   <body class="bg-blue-50">
