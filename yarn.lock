@@ -679,14 +679,6 @@
   dependencies:
     seed-random "2"
 
-"@herbcaudill/tscpaths@0":
-  version "0.0.17"
-  resolved "https://registry.yarnpkg.com/@herbcaudill/tscpaths/-/tscpaths-0.0.17.tgz#c29370fdc2d9d187548a6d92e388968f4c79e8bd"
-  integrity sha512-yBKz3S9RwDUq1LAr9lrHUDBwtsaFuX+6WLgnUq9tkTlu5wsoofxCYfhbwFeNXVRVFeCMLpBp+lhMFQ5/11w3Cw==
-  dependencies:
-    commander "^2.20.0"
-    globby "^9.2.0"
-
 "@ibm/plex@5":
   version "5.2.1"
   resolved "https://registry.yarnpkg.com/@ibm/plex/-/plex-5.2.1.tgz#c454506b38f69bd97bcb71f1810e5c007593a3d2"
@@ -10811,6 +10803,14 @@ tsconfig-paths@^3.9.0:
     json5 "^1.0.1"
     minimist "^1.2.0"
     strip-bom "^3.0.0"
+
+tscpaths@0:
+  version "0.0.9"
+  resolved "https://registry.yarnpkg.com/tscpaths/-/tscpaths-0.0.9.tgz#c77abfde6820920f10c64f83c27753b9505814ab"
+  integrity sha512-tz4qimSJTCjYtHVsoY7pvxLcxhmhgmwzm7fyMEiL3/kPFFVyUuZOwuwcWwjkAsIrSUKJK22A7fNuJUwxzQ+H+w==
+  dependencies:
+    commander "^2.20.0"
+    globby "^9.2.0"
 
 tslib@^1.9.0, tslib@^1.9.3:
   version "1.14.1"
