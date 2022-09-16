@@ -1,4 +1,4 @@
-import { TeamLink, TeamLinkBody, TeamSignatureChain } from '@localfirst/auth'
+import { TeamLink, TeamLinkBody, TeamGraph } from '@localfirst/auth'
 import React, { FC } from 'react'
 import { theme } from '../mermaid.theme'
 import { devices, users } from '../peers'
@@ -12,7 +12,7 @@ const getId = (s: string) =>
     .replace(/\W/g, '') // remove non alphanumeric chars
     .slice(0, 5) // truncate
 
-export const ChainDiagram: FC<{ chain: TeamSignatureChain; id: string }> = ({ chain, id }) => {
+export const ChainDiagram: FC<{ chain: TeamGraph; id: string }> = ({ chain, id }) => {
   const chartHeader = [
     `graph TD`, // TD = top-down
     `classDef merge fill:#fc3,font-weight:bold,stroke-width:3px,text-align:center`, // css for merge nodes

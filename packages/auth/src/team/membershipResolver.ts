@@ -10,7 +10,7 @@ import {
   TeamAction,
   TeamContext,
   TeamLink,
-  TeamSignatureChain,
+  TeamGraph,
 } from '@/team/types'
 import { arraysAreEqual } from '@/util/arraysAreEqual'
 import { getConcurrentBubbles, Link, LinkBody, Resolver } from 'crdx'
@@ -59,8 +59,8 @@ const findDependentLinks = (bubble: TeamLink[], invalidLink: TeamLink): TeamLink
 
     case 'ADMIT_MEMBER':
       // invalidate anything the admitted member did
-      const userName = invalidLink.body.payload.memberKeys.name
-      dependentLinks.push(...bubble.filter(authorIs(userName)))
+      const userId = invalidLink.body.payload.memberKeys.name
+      dependentLinks.push(...bubble.filter(authorIs(userId)))
       break
 
     default:
@@ -93,7 +93,7 @@ const membershipRules: Record<string, MembershipRuleEnforcer> = {
   // RULE: If A is removing C, B can't overcome this by concurrently removing C then adding C back
   cantAddBackRemovedMember: links => {
     const removedMembers = getRemovedAndDemotedMembers(links)
-    return getAdditions(links).filter(link => removedMembers.includes(addedUserName(link)))
+    return getAdditions(links).filter(link => removedMembers.includes(addedUserId(link)))
   },
 
   // RULE: If B is removed, anything they do concurrently is omitted
@@ -113,7 +113,7 @@ const membershipRules: Record<string, MembershipRuleEnforcer> = {
 
 // Helpers
 
-const leastSenior = (chain: TeamSignatureChain, userNames: string[]) =>
+const leastSenior = (chain: TeamGraph, userNames: string[]) =>
   userNames.sort(bySeniority(chain)).pop()!
 
 const isAddAction = (link: TeamLink): link is AddActionLink =>
@@ -139,9 +139,9 @@ const getRemovedAndDemotedMembers = (links: TeamLink[]) =>
 const getRemovedMembers = (links: TeamLink[]) => getRemovals(links).map(getTarget)
 const getDemotedMembers = (links: TeamLink[]) => getDemotions(links).map(getTarget)
 
-const getTarget = (link: RemoveActionLink): string => link.body.payload.userName
+const getTarget = (link: RemoveActionLink): string => link.body.payload.userId
 
-const getAuthor = (link: TeamLink): string => link.signed.userName
+const getAuthor = (link: TeamLink): string => link.body.userId
 
 const authorIs = (author: string) => (link: TeamLink) => getAuthor(link) === author
 
@@ -150,13 +150,13 @@ const authorIn =
   (link: TeamLink): boolean =>
     excludeList.includes(getAuthor(link))
 
-const addedUserName = (link: AddActionLink): string => {
+const addedUserId = (link: AddActionLink): string => {
   if (link.body.type === 'ADD_MEMBER') {
     const addAction = link.body as LinkBody<AddMemberAction, TeamContext>
-    return addAction.payload.member.userName
+    return addAction.payload.member.userId
   } else if (link.body.type === 'ADD_MEMBER_ROLE') {
     const addAction = link.body as LinkBody<AddMemberRoleAction, TeamContext>
-    return addAction.payload.userName
+    return addAction.payload.userId
   }
   // ignore coverage
   else throw new Error()

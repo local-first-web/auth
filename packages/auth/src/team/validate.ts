@@ -27,43 +27,42 @@ const validators: TeamStateValidatorSet = {
   mustBeAdmin: (...args) => {
     const [prevState, link] = args
     const action = link.body
-    const { type, user } = action
-    const { userName } = user
+    const { type, userId } = action
 
     // at root link, team doesn't yet have members
     if (type === ROOT) return VALID
 
     if (isAdminOnlyAction(action)) {
-      const isntAdmin = !select.memberIsAdmin(prevState, userName)
-      if (isntAdmin) return fail(`Member '${userName}' is not an admin`, ...args)
+      const isntAdmin = !select.memberIsAdmin(prevState, userId)
+      if (isntAdmin) return fail(`Member '${userId}' is not an admin`, ...args)
     }
 
     return VALID
   },
 
-  /** the key that the link is signed with must be the author's signature key at that time */
-  signatureKeyIsCorrect: (...args) => {
-    const [prevState, link] = args
-    const action = link.body
-    const { type } = action
+  // /** the key that the link is signed with must be the author's signature key at that time */
+  // signatureKeyIsCorrect: (...args) => {
+  //   const [prevState, link] = args
+  //   const action = link.body
+  //   const { type } = action
 
-    // at root link, team doesn't yet have members
-    if (type === ROOT) return VALID
+  //   // at root link, team doesn't yet have members
+  //   if (type === ROOT) return VALID
 
-    const { userName } = link.signed
-    const author = select.member(prevState, userName)
-    // TODO: test this case
-    if (link.signed.key !== author.keys.signature) {
-      const msg = `Wrong signature key. Link is signed with ${link.signed.key}, but ${userName}'s signature key is ${author.keys.signature}`
-      return fail(msg, ...args)
-    }
-    return VALID
-  },
+  //   const { userId } = link.signed
+  //   const author = select.member(prevState, userId)
+  //   // TODO: test this case
+  //   if (link.signed.key !== author.keys.signature) {
+  //     const msg = `Wrong signature key. Link is signed with ${link.signed.key}, but ${userId}'s signature key is ${author.keys.signature}`
+  //     return fail(msg, ...args)
+  //   }
+  //   return VALID
+  // },
 
   canOnlyChangeYourOwnKeys: (...args) => {
     const [prevState, link] = args
     if (link.body.type === 'CHANGE_MEMBER_KEYS') {
-      const author = link.signed.userName
+      const author = link.body.userId
       const authorIsAdmin = select.memberIsAdmin(prevState, author)
       if (!authorIsAdmin) {
         // Only admins can change another user's keys
@@ -74,11 +73,11 @@ const validators: TeamStateValidatorSet = {
       return VALID
       // TODO: we don't have device information in context any more
       //
-      // const authorUserName = link.signed.userName
+      // const authoruserId = link.signed.userId
       // const authorDeviceName = link.body.context.device.deviceName
       // // Devices can only change their own keys
       // const target = parseDeviceId(link.body.payload.keys.name)
-      // if (authorUserName !== target.userName || authorDeviceName !== target.deviceName)
+      // if (authoruserId !== target.userId || authorDeviceName !== target.deviceName)
       //   return fail(`Can't change another device's keys.`, ...args)
     }
     return VALID

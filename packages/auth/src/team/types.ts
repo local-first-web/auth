@@ -3,24 +3,30 @@ import { Device } from '@/device'
 import { Invitation, InvitationState } from '@/invitation/types'
 import { Lockbox } from '@/lockbox'
 import { PermissionsMap, Role } from '@/role'
-import { Base58, Hash, Payload, ValidationResult } from '@/util'
+import { Base58, Hash, Payload, UUID, ValidationResult } from '@/util'
 import {
+  HashGraph,
   KeyMetadata,
-  KeyType,
   Keyset,
+  KeysetWithSecrets,
   Link,
   LinkBody,
-  LinkMap,
   ROOT,
   Sequence,
-  SignatureChain,
 } from 'crdx'
 
 // ********* MEMBER
 
 /** A member is a user that belongs to a team. */
 export interface Member {
-  userName: string
+  // TODO enforce uniqueness
+  /** Unique ID populated on creation. */
+  userId: UUID
+
+  // TODO enforce uniqueness
+  /** Username (or email). Must be unique but is not used for lookups. Only provided to connect
+   * human identities with other systems. */
+  userName?: string
 
   /** The member's public keys */
   keys: Keyset
@@ -44,21 +50,24 @@ export interface NewTeamOptions {
   teamName: string
 }
 
-/** Properties required when rehydrating from an existing chain  */
+/** Properties required when rehydrating from an existing graph  */
 export interface ExistingTeamOptions {
-  /** The `TeamSignatureChain` representing the team's state, to be rehydrated.
+  /** The `TeamGraph` representing the team's state, to be rehydrated.
    *  Can be serialized or not. */
-  source: string | TeamSignatureChain
+  source: string | TeamGraph
 }
 
 type NewOrExisting = NewTeamOptions | ExistingTeamOptions
 
 /** Options passed to the `Team` constructor */
 export type TeamOptions = NewOrExisting & {
+  /** The team keys need to be provided for encryption and decryption. It's up to the application to persist these somewhere.  */
+  teamKeys: KeysetWithSecrets
+
   /** A seed for generating keys. This is typically only used for testing, to ensure predictable data. */
   seed?: string
 
-  /** Object containing the current user and device (and optionally information about the client & version) */
+  /** Object containing the current user and device (and optionally information about the client & version). */
   context: LocalUserContext
 }
 
@@ -96,7 +105,7 @@ export interface AddMemberAction {
 export interface RemoveMemberAction {
   type: 'REMOVE_MEMBER'
   payload: BasePayload & {
-    userName: string
+    userId: string
   }
 }
 
@@ -115,7 +124,7 @@ export interface RemoveRoleAction {
 export interface AddMemberRoleAction {
   type: 'ADD_MEMBER_ROLE'
   payload: BasePayload & {
-    userName: string
+    userId: string
     roleName: string
     permissions?: PermissionsMap
   }
@@ -124,7 +133,7 @@ export interface AddMemberRoleAction {
 export interface RemoveMemberRoleAction {
   type: 'REMOVE_MEMBER_ROLE'
   payload: BasePayload & {
-    userName: string
+    userId: string
     roleName: string
   }
 }
@@ -139,7 +148,7 @@ export interface AddDeviceAction {
 export interface RemoveDeviceAction {
   type: 'REMOVE_DEVICE'
   payload: BasePayload & {
-    userName: string
+    userId: string
     deviceName: string
   }
 }
@@ -169,6 +178,7 @@ export interface AdmitMemberAction {
   type: 'ADMIT_MEMBER'
   payload: BasePayload & {
     id: string // invitation ID
+    // TODO: member provides their username?
     memberKeys: Keyset // member keys provided by the new member
   }
 }
@@ -177,7 +187,7 @@ export interface AdmitDeviceAction {
   type: 'ADMIT_DEVICE'
   payload: BasePayload & {
     id: string // invitation ID
-    userName: string // user name of the device's owner
+    userId: string // user name of the device's owner
     deviceName: string // name given to the device by the owner
     deviceKeys: Keyset // device keys provided by the new device
   }
@@ -200,7 +210,7 @@ export interface ChangeDeviceKeysAction {
 export interface RotateKeysAction {
   type: 'ROTATE_KEYS'
   payload: BasePayload & {
-    userName: string
+    userId: string
   }
 }
 
@@ -234,11 +244,11 @@ export type TeamLink = Link<TeamAction, TeamContext> & {
   isInvalid?: boolean
 }
 
-export type TeamLinkMap = LinkMap<TeamAction, TeamContext>
-export type TeamSignatureChain = SignatureChain<TeamAction, TeamContext>
+export type TeamLinkMap = Record<Hash, TeamLink>
+export type TeamGraph = HashGraph<TeamAction, TeamContext>
 export type Branch = Sequence<TeamAction, TeamContext>
 export type TwoBranches = [Branch, Branch]
-export type MembershipRuleEnforcer = (links: TeamLink[], chain: TeamSignatureChain) => TeamLink[]
+export type MembershipRuleEnforcer = (links: TeamLink[], graph: TeamGraph) => TeamLink[]
 
 // ********* TEAM STATE
 

@@ -9,7 +9,7 @@ describe('Team', () => {
 
       expect(alice.team.members().length).toBe(1)
       const A = alice.team.members('alice')
-      expect(A.userName).toBe('alice')
+      expect(A.userId).toBe('alice')
     })
 
     it('has lockboxes for Alice containing the admin and team secrets', () => {
@@ -24,7 +24,7 @@ describe('Team', () => {
     it('adds a member', () => {
       const { alice } = setup('alice', 'bob')
       expect(alice.team.members().length).toBe(2)
-      expect(alice.team.members('bob').userName).toBe('bob')
+      expect(alice.team.members('bob').userId).toBe('bob')
     })
 
     it('makes lockboxes for added members', () => {
@@ -101,7 +101,7 @@ describe('Team', () => {
     it('gets an individual member', () => {
       const { alice } = setup('alice', 'bob')
       const member = alice.team.members('bob')
-      expect(member.userName).toBe('bob')
+      expect(member.userId).toBe('bob')
     })
 
     it('throws if asked to get a nonexistent member', () => {
@@ -119,12 +119,12 @@ describe('Team', () => {
       ])
 
       expect(alice.team.members()).toHaveLength(1)
-      expect(alice.team.members().map(m => m.userName)).toEqual(['alice'])
+      expect(alice.team.members().map(m => m.userId)).toEqual(['alice'])
 
       alice.team.add(bob.user)
       alice.team.add(charlie.user)
       expect(alice.team.members()).toHaveLength(3)
-      expect(alice.team.members().map(m => m.userName)).toEqual(['alice', 'bob', 'charlie'])
+      expect(alice.team.members().map(m => m.userId)).toEqual(['alice', 'bob', 'charlie'])
     })
   })
 })

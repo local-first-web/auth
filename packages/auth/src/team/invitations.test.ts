@@ -71,7 +71,7 @@ describe('Team', () => {
 
         // later, 👩🏾 Alice is no longer around, but 👨🏻‍🦲 Bob is online
         let persistedTeam = alice.team.save()
-        const bobsTeam = teams.load(persistedTeam, bob.localContext)
+        const bobsTeam = teams.load(persistedTeam, bob.localContext, alice.team.teamKeys())
 
         // just to confirm: 👨🏻‍🦲 Bob isn't an admin
         expect(bobsTeam.memberIsAdmin('bob')).toBe(false)
@@ -84,7 +84,7 @@ describe('Team', () => {
 
         // ✅ 👩🏾 Alice can now see that 👳🏽‍♂️ Charlie is on the team. Congratulations, Charlie!
         persistedTeam = bobsTeam.save()
-        alice.team = teams.load(persistedTeam, alice.localContext)
+        alice.team = teams.load(persistedTeam, alice.localContext, alice.team.teamKeys())
         expect(alice.team.has('charlie')).toBe(true)
       })
 
@@ -154,14 +154,14 @@ describe('Team', () => {
             rainbow, steve, thad, uriah, vanessa, wade, xerxes, yazmin, zelda`
           .replace(/\s/g, '')
           .split(',')
-        for (const userName of invitees) {
-          const userKeys = createKeyset({ type: USER, name: userName })
-          const deviceKeys = createKeyset({ type: DEVICE, name: `${userName}'s laptop` })
+        for (const userId of invitees) {
+          const userKeys = createKeyset({ type: USER, name: userId })
+          const deviceKeys = createKeyset({ type: DEVICE, name: `${userId}'s laptop` })
           alice.team.admitMember(proofOfInvitation, userKeys)
         }
 
         // ✅ they're all on the team
-        for (const userName of invitees) expect(alice.team.has(userName)).toBe(true)
+        for (const userId of invitees) expect(alice.team.has(userId)).toBe(true)
       })
 
       it(`won't use an invitation more than the maximum uses defined`, () => {
@@ -210,7 +210,7 @@ describe('Team', () => {
 
         // later, 👩🏾 Alice is no longer around, but 👨🏻‍🦲 Bob is online
         const persistedTeam = alice.team.save()
-        bob.team = teams.load(persistedTeam, bob.localContext)
+        bob.team = teams.load(persistedTeam, bob.localContext, alice.team.teamKeys())
 
         // 👳🏽‍♂️ Charlie shows 👨🏻‍🦲 Bob his proof of invitation
         const tryToAdmitCharlie = () => bob.team.admitMember(proofOfInvitation, charlie.user.keys)
@@ -243,10 +243,10 @@ describe('Team', () => {
 
         // 👍 The proof was good, so the laptop sends the phone the team's signature chain
         const savedTeam = alice.team.save()
-        const phoneTeam = teams.load(savedTeam, alice.localContext)
+        const phoneTeam = teams.load(savedTeam, alice.localContext, alice.team.teamKeys())
 
         // 📱 Alice's phone joins the team
-        phoneTeam.joinAsDevice('alice')
+        phoneTeam.joinAsDevice('alice', 'alice')
 
         // ✅ Now Alice has 💻📱 two devices on the signature chain
         expect(phoneTeam.members('alice').devices).toHaveLength(2)
@@ -269,7 +269,7 @@ describe('Team', () => {
 
         // 👨🏻‍🦲 Bob syncs up with Alice
         const savedTeam = alice.team.save()
-        bob.team = teams.load(savedTeam, bob.localContext)
+        bob.team = teams.load(savedTeam, bob.localContext, alice.team.teamKeys())
 
         // 📱 Alice's phone connects with 👨🏻‍🦲 Bob and she presents the proof
         const tryToAdmitPhone = () => bob.team.admitDevice(proofOfInvitation, alice.phone)

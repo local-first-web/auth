@@ -1,5 +1,6 @@
 ﻿import { ADMIN } from '@/role'
 import * as teams from '@/team'
+import { TEAM_SCOPE } from '@/team'
 import {
   all,
   anyDisconnected,
@@ -15,6 +16,7 @@ import {
   TestChannel,
   tryToConnect,
 } from '@/util/testing'
+import { createKeyset } from 'crdx'
 
 describe('connection', () => {
   describe('authentication', () => {
@@ -48,6 +50,7 @@ describe('connection', () => {
           userName: 'charlie',
           user: charlie.user,
           device: charlie.device,
+          teamKeys: createKeyset(TEAM_SCOPE),
         }
 
         // ❌ Alice and Charlie can't connect because they're on different teams

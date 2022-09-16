@@ -14,8 +14,8 @@ export const keys = (
 ) => {
   const { type, name, generation: maybeGeneration } = scope
 
-  const { userName, deviceName } = currentDevice
-  const deviceId = getDeviceId({ userName, deviceName })
+  const { userId, deviceName } = currentDevice
+  const deviceId = getDeviceId({ userId, deviceName })
   const secretKey = currentDevice.keys.secretKey.slice(0, 5)
 
   const keysFromLockboxes = getKeyMap(state, currentDevice)

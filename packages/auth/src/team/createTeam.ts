@@ -1,6 +1,10 @@
 ﻿import { LocalUserContext } from '@/context'
 import { Team } from '@/team/Team'
+import { createKeyset } from 'crdx'
+import { TEAM_SCOPE } from './constants'
 
 export function createTeam(teamName: string, context: LocalUserContext, seed?: string) {
-  return new Team({ teamName, context, seed })
+  const teamKeys = createKeyset(TEAM_SCOPE, seed)
+
+  return new Team({ teamName, context, teamKeys })
 }

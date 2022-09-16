@@ -25,13 +25,13 @@ server](http://medium.com/all-the-things/a-web-application-with-no-web-server-61
 This library uses a conflict-free replicated state container based on a **signature chain**
 (provided by the [CRDX](https://github.com/herbcaudill/crdx) library) to manage team membership, permissions, and authentication.
 
-All changes to the team's membership and permissions are recorded on the signature chain as a
-sequence of signed and hash-chained actions.
+**All** changes to the team's membership and permissions are recorded on the signature chain as a
+sequence of **signed** and **hash-chained** actions.
 
-![](docs/img/sigchain-med.png)
+![](./docs/img/sigchain-med.png)
 
 Every team member keeps a complete replica of the signature chain and can validate other members'
-actions independently. All **authorizations** can be traced back to the team's founding member. The chain
+actions independently. All **authorizations** can be traced back to the root action, created by the team's founding member. The chain
 thereby builds a **tamper-proof, distributed web of trust**.
 
 The team's signature chain also acts as a self-contained certificate authority or **public key

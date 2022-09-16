@@ -29,64 +29,65 @@ export const setup = (
   // accept `setup(['a', 'b'])` or `setup('a','b')`
   if (Array.isArray(_config[0])) _config = _config[0] as (TestUserSettings | string)[]
 
-  // Coerce string userNames into TestUserSettings objects
+  // Coerce string userIds into TestUserSettings objects
   const config = _config.map(u => (typeof u === 'string' ? { user: u } : u)) as TestUserSettings[]
 
   // Get a list of just user names
-  const userNames = config.map(user => user.user)
+  const userIds = config.map(user => user.user)
 
   // Create users
-  const testUsers: Record<string, UserWithSecrets> = userNames
-    .map((userName: string) => {
-      const randomSeed = userName // make these predictable
-      return createUser(userName, randomSeed)
+  const testUsers: Record<string, UserWithSecrets> = userIds
+    .map((userId: string) => {
+      const randomSeed = userId // make these predictable
+      return createUser(userId, userId, randomSeed)
     })
-    .reduce(arrayToMap('userName'), {})
+    .reduce(arrayToMap('userId'), {})
 
-  const makeDevice = (userName: string, deviceName: string) => {
-    const key = `${userName}-${deviceName}`
+  const makeDevice = (userId: string, deviceName: string) => {
+    const key = `${userId}-${deviceName}`
     const randomSeed = key
-    const device = devices.createDevice(userName, deviceName, randomSeed)
+    const device = devices.createDevice(userId, deviceName, randomSeed)
     return device
   }
 
-  const laptops: Record<string, DeviceWithSecrets> = userNames
-    .map((userName: string) => makeDevice(userName, 'laptop'))
-    .reduce(arrayToMap('userName'), {})
+  const laptops: Record<string, DeviceWithSecrets> = userIds
+    .map((userId: string) => makeDevice(userId, 'laptop'))
+    .reduce(arrayToMap('userId'), {})
 
-  const phones: Record<string, DeviceWithSecrets> = userNames
-    .map((userName: string) => makeDevice(userName, 'phone'))
-    .reduce(arrayToMap('userName'), {})
+  const phones: Record<string, DeviceWithSecrets> = userIds
+    .map((userId: string) => makeDevice(userId, 'phone'))
+    .reduce(arrayToMap('userId'), {})
 
   // Create team
-  const founder = userNames[0] // e.g. alice
+  const founder = userIds[0] // e.g. alice
   const founderContext = { user: testUsers[founder], device: laptops[founder] }
   const teamName = 'Spies Я Us'
   const randomSeed = teamName
   const team = teams.createTeam(teamName, founderContext, randomSeed)
+  const teamKeys = team.teamKeys()
 
   // Add members
-  for (const { user: userName, admin = true, member = true } of config) {
-    if (member && !team.has(userName)) {
-      const user = testUsers[userName]
+  for (const { user: userId, admin = true, member = true } of config) {
+    if (member && !team.has(userId)) {
+      const user = testUsers[userId]
       const roles = admin ? [ADMIN] : []
-      const device = devices.redactDevice(laptops[userName])
+      const device = devices.redactDevice(laptops[userId])
       team.add(user, roles, device)
     }
   }
-  const chain = team.chain
+  const graph = team.graph
 
-  const makeUserStuff = ({ user: userName, member = true }: TestUserSettings): UserStuff => {
-    const user = testUsers[userName]
-    const randomSeed = userName
-    const device = laptops[userName]
-    const phone = phones[userName]
+  const makeUserStuff = ({ user: userId, member = true }: TestUserSettings): UserStuff => {
+    const user = testUsers[userId]
+    const randomSeed = userId
+    const device = laptops[userId]
+    const phone = phones[userId]
 
     const localContext = { user, device }
-    const chainContext = { deviceId: getDeviceId(device) }
+    const graphContext = { deviceId: getDeviceId(device) }
     const team = member
-      ? teams.load(chain, localContext) // members get a copy of the source team
-      : teams.createTeam(userName, localContext, randomSeed) // non-members get a dummy empty placeholder team
+      ? teams.load(graph, localContext, teamKeys) // members get a copy of the source team
+      : teams.createTeam(userId, localContext, randomSeed) // non-members get a dummy empty placeholder team
 
     const context = (
       member
@@ -94,7 +95,7 @@ export const setup = (
         : {
             user,
             device,
-            invitee: { type: KeyType.USER, name: userName },
+            invitee: { type: KeyType.USER, name: userId },
             invitationSeed: '',
           }
     ) as InitialContext
@@ -103,12 +104,12 @@ export const setup = (
     const getState = (peer: string) => connection[peer].state
 
     return {
-      userName,
+      userId,
       user,
       team,
       device,
       localContext,
-      chainContext,
+      graphContext,
       phone,
       connectionContext: context,
       connection,
@@ -118,7 +119,7 @@ export const setup = (
 
   const testUserStuff: Record<string, UserStuff> = config
     .map(makeUserStuff)
-    .reduce(arrayToMap('userName'), {})
+    .reduce(arrayToMap('userId'), {})
 
   return testUserStuff
 }
@@ -132,13 +133,13 @@ export type TestUserSettings = {
 }
 
 export interface UserStuff {
-  userName: string
+  userId: string
   user: UserWithSecrets
   team: Team
   device: DeviceWithSecrets
   phone: DeviceWithSecrets
   localContext: LocalUserContext
-  chainContext: TeamContext
+  graphContext: TeamContext
   connectionContext: InitialContext
   connection: Record<string, Connection>
   getState: (peer: string) => any

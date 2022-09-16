@@ -8,7 +8,7 @@ export const createDevice = (
   deviceName: string,
   seed: string = randomKey()
 ): DeviceWithSecrets => {
-  const deviceId = getDeviceId({ userName, deviceName })
+  const deviceId = getDeviceId({ userId: userName, deviceName })
   const keys = createKeyset({ type: KeyType.DEVICE, name: deviceId }, seed)
-  return { userName, deviceName, keys }
+  return { userId: userName, deviceName, keys }
 }

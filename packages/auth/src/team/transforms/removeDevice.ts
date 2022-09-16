@@ -3,12 +3,12 @@ import { Member, Transform } from '@/team/types'
 import { KeyType } from 'crdx'
 
 export const removeDevice =
-  (userName: string, deviceName: string): Transform =>
+  (userId: string, deviceName: string): Transform =>
   state => {
-    const removedDevice = select.device(state, userName, deviceName)
+    const removedDevice = select.device(state, userId, deviceName)
 
     const removeDeviceFromMember = (member: Member) =>
-      member.userName !== userName
+      member.userId !== userId
         ? member
         : {
             ...member,
@@ -22,7 +22,7 @@ export const removeDevice =
       lockbox =>
         !(
           lockbox.recipient.type === KeyType.DEVICE &&
-          lockbox.recipient.name === userName &&
+          lockbox.recipient.name === userId &&
           lockbox.contents.name === deviceName
         )
     )

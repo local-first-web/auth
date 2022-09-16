@@ -79,14 +79,14 @@ const getTransforms = (action: TeamAction): Transform[] => {
         addRole({ roleName: ADMIN }), // create the admin role
         addMember(rootMember), // add the founding member
         addDevice(rootDevice), // add the founding member's device
-        ...addMemberRoles(rootMember.userName, [ADMIN]), // make the founding member an admin
+        ...addMemberRoles(rootMember.userId, [ADMIN]), // make the founding member an admin
       ]
 
     case 'ADD_MEMBER': {
       const { member, roles } = action.payload
       return [
         addMember(member), // add this member to the team
-        ...addMemberRoles(member.userName, roles), // add each of these roles to the member's list of roles
+        ...addMemberRoles(member.userId, roles), // add each of these roles to the member's list of roles
       ]
     }
 
@@ -98,16 +98,16 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     case 'ADD_MEMBER_ROLE': {
-      const { userName, roleName } = action.payload
+      const { userId, roleName } = action.payload
       return [
-        ...addMemberRoles(userName, [roleName]), // add this role to the member's list of roles
+        ...addMemberRoles(userId, [roleName]), // add this role to the member's list of roles
       ]
     }
 
     case 'REMOVE_MEMBER': {
-      const { userName } = action.payload
+      const { userId } = action.payload
       return [
-        removeMember(userName), // remove this member from the team
+        removeMember(userId), // remove this member from the team
       ]
     }
 
@@ -119,9 +119,9 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     case 'REMOVE_DEVICE': {
-      const { userName, deviceName } = action.payload
+      const { userId, deviceName } = action.payload
       return [
-        removeDevice(userName, deviceName), // remove this device from the member's list of devices
+        removeDevice(userId, deviceName), // remove this device from the member's list of devices
       ]
     }
 
@@ -133,9 +133,9 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     case 'REMOVE_MEMBER_ROLE': {
-      const { userName, roleName } = action.payload
+      const { userId, roleName } = action.payload
       return [
-        removeMemberRole(userName, roleName), // remove this role from the member's list of roles
+        removeMemberRole(userId, roleName), // remove this role from the member's list of roles
       ]
     }
 
@@ -162,10 +162,10 @@ const getTransforms = (action: TeamAction): Transform[] => {
 
     case 'ADMIT_MEMBER': {
       const { id, memberKeys } = action.payload
-      const userName = memberKeys.name
+      const userId = memberKeys.name
 
       const member: Member = {
-        userName,
+        userId,
         keys: memberKeys,
         roles: [],
       }
@@ -177,10 +177,10 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     case 'ADMIT_DEVICE': {
-      const { id, userName, deviceName, deviceKeys } = action.payload
+      const { id, userId, deviceName, deviceKeys } = action.payload
 
       const device: Device = {
-        userName,
+        userId: userId,
         deviceName,
         keys: deviceKeys,
       }
@@ -206,9 +206,9 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     case 'ROTATE_KEYS': {
-      const { userName } = action.payload
+      const { userId } = action.payload
       return [
-        rotateKeys(userName), // mark this member's keys as having been rotated (the rotated keys themselves are in the lockboxes)
+        rotateKeys(userId), // mark this member's keys as having been rotated (the rotated keys themselves are in the lockboxes)
       ]
     }
 

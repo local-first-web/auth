@@ -1,7 +1,7 @@
 ﻿import { Keyset, KeysetWithSecrets } from 'crdx'
 
 export interface DeviceInfo {
-  userName: string
+  userId: string
   deviceName: string
 }
 
