@@ -12,7 +12,7 @@ const getId = (s: string) =>
     .replace(/\W/g, '') // remove non alphanumeric chars
     .slice(0, 5) // truncate
 
-export const ChainDiagram: FC<{ chain: TeamGraph; id: string }> = ({ chain, id }) => {
+export const GraphDiagram: FC<{ graph: TeamGraph; id: string }> = ({ graph: chain, id }) => {
   const chartHeader = [
     `graph TD`, // TD = top-down
     `classDef merge fill:#fc3,font-weight:bold,stroke-width:3px,text-align:center`, // css for merge nodes
@@ -58,8 +58,9 @@ const replaceNamesWithEmoji = (s: string) => {
 
 const mermaidNodeFromLink = (link: TeamLink) => {
   {
-    const author = link.signed.userName
-    const type = link.body.type
+    const { userId, type } = link.body
+
+    const author = getUserName(userId)
     const summary = actionSummary(link.body)
 
     let node = `("
@@ -87,17 +88,17 @@ const actionSummary = (action: TeamLinkBody) => {
     case 'ADD_MEMBER':
       return action.payload.member.userName
     case 'REMOVE_MEMBER':
-      return action.payload.userName
+      return action.payload.userId
     case 'ADD_ROLE':
       return action.payload.roleName
     case 'ADD_MEMBER_ROLE':
-      return `${action.payload.userName} ${action.payload.roleName}`
+      return `${action.payload.userId} ${action.payload.roleName}`
     case 'REMOVE_MEMBER_ROLE':
-      return `${action.payload.userName} ${action.payload.roleName}`
+      return `${action.payload.userId} ${action.payload.roleName}`
     case 'ADD_DEVICE':
-      return `${action.payload.device.userName}::${action.payload.device.deviceName}`
+      return `${action.payload.device.userId}::${action.payload.device.deviceName}`
     case 'REMOVE_DEVICE':
-      return `${action.payload.userName}::${action.payload.deviceName}`
+      return `${action.payload.userId}::${action.payload.deviceName}`
     case 'INVITE_MEMBER':
     case 'INVITE_DEVICE':
       return action.payload.invitation.id
@@ -118,3 +119,7 @@ const actionSummary = (action: TeamLinkBody) => {
 
 const truncateHashes = (s: string) => s.replace(hashRx, getId)
 const hashRx = /(?:[A-Za-z0-9+/=]{12,100})?/gm
+
+function getUserName(userId: string) {
+  return userId.split('-')[0]
+}

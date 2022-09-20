@@ -161,11 +161,12 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     case 'ADMIT_MEMBER': {
-      const { id, memberKeys } = action.payload
+      const { id, memberKeys, userName } = action.payload
       const userId = memberKeys.name
 
       const member: Member = {
         userId,
+        userName,
         keys: memberKeys,
         roles: [],
       }

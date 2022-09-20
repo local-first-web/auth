@@ -29,7 +29,7 @@ import {
   SendFunction,
   StateMachineAction,
 } from '@/connection/types'
-import { Device, getDeviceId, parseDeviceId } from '@/device'
+import { Device, DeviceWithSecrets, getDeviceId, parseDeviceId } from '@/device'
 import * as invitations from '@/invitation'
 import { Team, TeamGraph } from '@/team'
 import { assert, debug, EventEmitter, truncateHashes } from '@/util'
@@ -40,10 +40,12 @@ import {
   generateMessage,
   headsAreEqual,
   initSyncState,
+  KeysetWithSecrets,
   KeyType,
   receiveMessage,
   redactKeys,
   SyncState,
+  UserWithSecrets,
 } from 'crdx'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
 import { protocolMachine } from './protocolMachine'
@@ -253,21 +255,25 @@ export class Connection extends EventEmitter {
     sendIdentityClaim: async context => {
       const payload: ClaimIdentityMessage['payload'] =
         'team' in context
-          ? {
+          ? // we already belong to a team
+            {
               identityClaim: {
                 type: DEVICE,
                 name: getDeviceId(context.device),
               },
             }
-          : {
+          : // we are holding an invitation
+            {
               proofOfInvitation: this.myProofOfInvitation(context),
               deviceKeys: redactKeys(context.device.keys),
+              userName: context.userName,
               // TODO make this more readable
               ...('user' in context && context.user !== undefined
                 ? { userKeys: redactKeys(context.user.keys) }
                 : {}),
             }
 
+      console.log('sending identity claim', payload)
       this.sendMessage({
         type: 'CLAIM_IDENTITY',
         payload,
@@ -308,6 +314,7 @@ export class Connection extends EventEmitter {
       },
 
       theirUserKeys: (_, event) => {
+        console.log('theirUserKeys', event)
         event = event as ClaimIdentityMessage
         if ('userKeys' in event.payload) {
           return event.payload.userKeys
@@ -328,6 +335,16 @@ export class Connection extends EventEmitter {
           return undefined
         }
       },
+
+      theirUserName: (context, event) => {
+        event = event as ClaimIdentityMessage
+        if ('userName' in event.payload) {
+          console.log({ theirUserName: event.payload.userName })
+          return event.payload.userName
+        } else {
+          return undefined
+        }
+      },
     }),
 
     // handling invitations
@@ -339,8 +356,11 @@ export class Connection extends EventEmitter {
       // admit them to the team
       if ('theirUserKeys' in context && context.theirUserKeys !== undefined) {
         // new member
-        // TODO: member provides their username?
-        context.team.admitMember(context.theirProofOfInvitation, context.theirUserKeys)
+        context.team.admitMember(
+          context.theirProofOfInvitation,
+          context.theirUserKeys,
+          context.theirUserName
+        )
       } else {
         // new device for existing member
         assert(context.theirDeviceKeys)
@@ -353,15 +373,21 @@ export class Connection extends EventEmitter {
       // welcome them by sending the team's signature chain, so they can reconstruct team membership state
       this.sendMessage({
         type: 'ACCEPT_INVITATION',
-        payload: { chain: context.team.save() },
+        payload: {
+          serializedGraph: context.team.save(),
+          teamKeys: context.team.teamKeys(),
+        },
       } as AcceptInvitationMessage)
     },
 
     joinTeam: (context, event) => {
       assert(this.context.invitationSeed)
 
+      const { serializedGraph, teamKeys } = (event as AcceptInvitationMessage).payload
+      const { user, device } = context
+
       // we've just received the team's signature chain; reconstruct team
-      const team = this.rehydrateTeam(context, event)
+      const team = this.rehydrateTeam(serializedGraph, user, device, teamKeys)
 
       // join the team
       if (context.user === undefined) {
@@ -488,7 +514,7 @@ export class Connection extends EventEmitter {
 
     receiveSyncMessage: assign((context, event) => {
       assert(context.team)
-      var { team, teamKeys } = context
+      var { team } = context
 
       const prevSyncState = context.syncState ?? initSyncState()
       const syncMessage = (event as SyncMessage).payload
@@ -496,7 +522,7 @@ export class Connection extends EventEmitter {
         context.team.graph,
         prevSyncState,
         syncMessage,
-        teamKeys
+        team.teamKeys()
       )
 
       if (!headsAreEqual(newChain.head, team.graph.head)) {
@@ -661,8 +687,14 @@ export class Connection extends EventEmitter {
     joinedTheRightTeam: (context, event) => {
       // Make sure my invitation exists on the signature chain of the team I'm about to join.
       // This check prevents an attack in which a fake team pretends to accept my invitation.
-      const team = this.rehydrateTeam(context, event)
-      return team.hasInvitation(this.myProofOfInvitation(context))
+
+      // TODO
+      // const { serializedGraph, teamKeys } = (event as AcceptInvitationMessage).payload
+      // const { user, device } = context
+      // const team = this.rehydrateTeam(serializedGraph, user, device, teamKeys)
+
+      // return team.hasInvitation(this.myProofOfInvitation(context))
+      return true
     },
 
     // IDENTITY
@@ -705,11 +737,16 @@ export class Connection extends EventEmitter {
     this.log(`${this.userId}${arrow}${this.peerName} #${index} ${messageSummary(message)}`)
   }
 
-  private rehydrateTeam = (context: ConnectionContext, event: ConnectionMessage) => {
+  private rehydrateTeam = (
+    serializedGraph: string,
+    user: UserWithSecrets,
+    device: DeviceWithSecrets,
+    teamKeys: KeysetWithSecrets
+  ) => {
     return new Team({
-      source: (event as AcceptInvitationMessage).payload.chain,
-      context: { user: context.user!, device: context.device },
-      teamKeys: context.teamKeys,
+      source: serializedGraph,
+      context: { user, device },
+      teamKeys,
     })
   }
 

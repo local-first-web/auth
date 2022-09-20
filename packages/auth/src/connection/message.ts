@@ -1,6 +1,6 @@
 ﻿import { Challenge } from '@/connection/types'
 import { ProofOfInvitation } from '@/invitation'
-import { SyncMessage as SyncPayload } from 'crdx'
+import { KeysetWithSecrets, SyncMessage as SyncPayload } from 'crdx'
 import { TeamAction, TeamContext } from '@/team'
 import { Base58, Hash } from '@/util'
 import { KeyScope, Keyset } from 'crdx'
@@ -27,6 +27,7 @@ export type ClaimIdentityMessage = {
         proofOfInvitation: ProofOfInvitation
         userKeys?: Keyset // only for new member (not for new device)
         deviceKeys: Keyset
+        userName: string
       }
 }
 
@@ -46,7 +47,8 @@ export type ReconnectMessage = {
 export type AcceptInvitationMessage = {
   type: 'ACCEPT_INVITATION'
   payload: {
-    chain: string
+    serializedGraph: string
+    teamKeys: KeysetWithSecrets
   }
 }
 

@@ -545,8 +545,8 @@ export class Team extends EventEmitter {
   /** An existing team member calls this to admit a new member & their device to the team based on proof of invitation */
   public admitMember = (
     proof: ProofOfInvitation,
-    // TODO: member provides their username?
-    memberKeys: Keyset | KeysetWithSecrets // we accept KeysetWithSecrets here to simplify testing - in practice we'll only receive Keyset
+    memberKeys: Keyset | KeysetWithSecrets, // we accept KeysetWithSecrets here to simplify testing - in practice we'll only receive Keyset
+    userName: string // the new member's desired user-facing name
   ) => {
     const validation = this.validateInvitation(proof)
     if (validation.isValid === false) throw validation.error
@@ -565,6 +565,7 @@ export class Team extends EventEmitter {
       type: 'ADMIT_MEMBER',
       payload: {
         id,
+        userName,
         memberKeys: redactKeys(memberKeys),
         lockboxes: [teamKeysLockbox],
       },

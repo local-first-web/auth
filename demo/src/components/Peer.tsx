@@ -36,7 +36,7 @@ export const Peer = ({ peerInfo, onHide }: PeerProps) => {
           </div>
           <h1
             className="text-white text-2xl font-extrabold flex-grow"
-            children={peerInfo.user.name}
+            children={peerInfo.user.userName}
           />
           <div style={{ fontSize: '5rem' }} className="pt-4">
             {peerInfo.device.emoji}

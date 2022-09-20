@@ -178,7 +178,7 @@ export interface AdmitMemberAction {
   type: 'ADMIT_MEMBER'
   payload: BasePayload & {
     id: string // invitation ID
-    // TODO: member provides their username?
+    userName: string
     memberKeys: Keyset // member keys provided by the new member
   }
 }

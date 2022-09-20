@@ -22,7 +22,6 @@ export type MemberInitialContext = {
   user: UserWithSecrets
   device: DeviceWithSecrets
   team: Team
-  teamKeys: KeysetWithSecrets
 }
 
 export type InviteeMemberInitialContext = {
@@ -70,6 +69,7 @@ export interface ConnectionContext
     Partial<InviteeDeviceInitialContext> {
   theyHaveInvitation?: boolean
   theirIdentityClaim?: KeyScope
+  theirUserName?: string
 
   theirProofOfInvitation?: ProofOfInvitation
   theirUserKeys?: Keyset
