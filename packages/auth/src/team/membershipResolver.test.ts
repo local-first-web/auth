@@ -343,13 +343,15 @@ describe('membershipResolver', () => {
     bGraph: TeamGraph,
     expected: string[] | string
   ) => {
-    if (!Array.isArray(expected)) expected = [expected] as string[] // coerce to array
-
     // 👩🏾 ⇄ 👨🏻‍🦲 They synchronize graphs
     const mergedGraph = merge(aGraph, bGraph)
 
-    // The resolved sequence should match one of the provided options
-    expect(expected).toContain(summary(mergedGraph))
+    if (!Array.isArray(expected)) {
+      expect(summary(mergedGraph)).toBe(expected)
+    } else {
+      // The resolved sequence should match one of the provided options
+      expect(expected).toContain(summary(mergedGraph))
+    }
   }
 
   const summary = (graph: TeamGraph) =>
