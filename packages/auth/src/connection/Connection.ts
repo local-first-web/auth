@@ -1,4 +1,10 @@
 ﻿import { deriveSharedKey } from '@/connection/deriveSharedKey'
+import {
+  buildError,
+  ConnectionErrorType,
+  ErrorMessage,
+  LocalErrorMessage,
+} from '@/connection/errors'
 import * as identity from '@/connection/identity'
 import {
   AcceptInvitationMessage,
@@ -13,12 +19,6 @@ import {
   SeedMessage,
   SyncMessage,
 } from '@/connection/message'
-import {
-  ErrorMessage,
-  buildError,
-  ConnectionErrorType,
-  LocalErrorMessage,
-} from '@/connection/errors'
 import { orderedDelivery } from '@/connection/orderedDelivery'
 import {
   Condition,
@@ -34,23 +34,13 @@ import * as invitations from '@/invitation'
 import { Team, TeamGraph } from '@/team'
 import { assert, debug, EventEmitter, truncateHashes } from '@/util'
 import { arraysAreEqual } from '@/util/arraysAreEqual'
-import { syncMessageSummary as syncMessageSummary } from '@/util/testing/messageSummary'
+import { syncMessageSummary } from '@/util/testing/messageSummary'
 import { asymmetric, Payload, randomKey, symmetric } from '@herbcaudill/crypto'
-import {
-  generateMessage,
-  headsAreEqual,
-  initSyncState,
-  KeysetWithSecrets,
-  KeyType,
-  receiveMessage,
-  redactKeys,
-  SyncState,
-  UserWithSecrets,
-} from 'crdx'
+import crdx from 'crdx'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
 import { protocolMachine } from './protocolMachine'
 
-const { DEVICE } = KeyType
+const { DEVICE } = crdx.KeyType
 
 /**
  * Wraps a state machine (using [XState](https://xstate.js.org/docs/)) that
@@ -71,7 +61,7 @@ export class Connection extends EventEmitter {
     if (peerUserId) this.peerUserId = peerUserId
     this.sendFn = sendMessage
 
-    this.log = debug(`lf:auth:connection:${context.device.keys.name}:${this.peerUserId}`)
+    this.setLogPrefix(context)
 
     // define state machine
     const machineConfig = { actions: this.actions, guards: this.guards }
@@ -168,7 +158,8 @@ export class Connection extends EventEmitter {
 
   get peerName() {
     if (!this.started) return '(not started)'
-    return this.context.peer?.userId ?? this.context.theirIdentityClaim?.name ?? '?'
+    const peerUserId = this.context.peer?.userId ?? this.context.theirIdentityClaim?.name ?? '?'
+    return trimUserId(peerUserId)
   }
 
   private sendMessage = (message: ConnectionMessage) => {
@@ -187,8 +178,8 @@ export class Connection extends EventEmitter {
     this.sendMessage({ type: 'ENCRYPTED_MESSAGE', payload: encryptedMessage })
   }
 
-  public sendSyncMessage(chain: TeamGraph, prevSyncState: SyncState = initSyncState()) {
-    const [syncState, syncMessage] = generateMessage(chain, prevSyncState)
+  public sendSyncMessage(chain: TeamGraph, prevSyncState: crdx.SyncState = crdx.initSyncState()) {
+    const [syncState, syncMessage] = crdx.generateMessage(chain, prevSyncState)
 
     // undefined message means we're already synced
     if (syncMessage) {
@@ -265,15 +256,15 @@ export class Connection extends EventEmitter {
           : // we are holding an invitation
             {
               proofOfInvitation: this.myProofOfInvitation(context),
-              deviceKeys: redactKeys(context.device.keys),
+              deviceKeys: crdx.redactKeys(context.device.keys),
               userName: context.userName,
               // TODO make this more readable
               ...('user' in context && context.user !== undefined
-                ? { userKeys: redactKeys(context.user.keys) }
+                ? { userKeys: crdx.redactKeys(context.user.keys) }
                 : {}),
             }
 
-      console.log('sending identity claim', payload)
+      // console.log('sending identity claim', payload)
       this.sendMessage({
         type: 'CLAIM_IDENTITY',
         payload,
@@ -287,7 +278,7 @@ export class Connection extends EventEmitter {
           // update peer user name
           const deviceId = event.payload.identityClaim.name
           this.peerUserId = parseDeviceId(deviceId).userId
-          this.log = debug(`lf:auth:connection:${context.device.keys.name}:${this.peerUserId}`)
+          this.setLogPrefix(context)
 
           return event.payload.identityClaim
         } else {
@@ -314,7 +305,7 @@ export class Connection extends EventEmitter {
       },
 
       theirUserKeys: (_, event) => {
-        console.log('theirUserKeys', event)
+        // console.log('theirUserKeys', event)
         event = event as ClaimIdentityMessage
         if ('userKeys' in event.payload) {
           return event.payload.userKeys
@@ -329,7 +320,7 @@ export class Connection extends EventEmitter {
           // update peer user name
           const deviceId = event.payload.deviceKeys.name
           this.peerUserId = parseDeviceId(deviceId).userId
-          this.log = debug(`lf:auth:connection:${context.device.keys.name}:${deviceId}`)
+          this.setLogPrefix(context)
           return event.payload.deviceKeys
         } else {
           return undefined
@@ -339,7 +330,7 @@ export class Connection extends EventEmitter {
       theirUserName: (context, event) => {
         event = event as ClaimIdentityMessage
         if ('userName' in event.payload) {
-          console.log({ theirUserName: event.payload.userName })
+          // console.log({ theirUserName: event.payload.userName })
           return event.payload.userName
         } else {
           return undefined
@@ -516,16 +507,16 @@ export class Connection extends EventEmitter {
       assert(context.team)
       var { team } = context
 
-      const prevSyncState = context.syncState ?? initSyncState()
+      const prevSyncState = context.syncState ?? crdx.initSyncState()
       const syncMessage = (event as SyncMessage).payload
-      const [newChain, syncState] = receiveMessage(
+      const [newChain, syncState] = crdx.receiveMessage(
         context.team.graph,
         prevSyncState,
         syncMessage,
         team.teamKeys()
       )
 
-      if (!headsAreEqual(newChain.head, team.graph.head)) {
+      if (!crdx.headsAreEqual(newChain.head, team.graph.head)) {
         team = context.team.merge(newChain)
 
         const summary = JSON.stringify({
@@ -734,14 +725,15 @@ export class Connection extends EventEmitter {
   private logMessage = (direction: 'in' | 'out', message: ConnectionMessage, index: number) => {
     const arrow = direction === 'in' ? '<-' : '->'
     if (index === undefined || index.toString() === 'undefined') debugger
-    this.log(`${this.userId}${arrow}${this.peerName} #${index} ${messageSummary(message)}`)
+    const userName = trimUserId(this.userId)
+    this.log(`${userName}${arrow}${this.peerName} #${index} ${messageSummary(message)}`)
   }
 
   private rehydrateTeam = (
     serializedGraph: string,
-    user: UserWithSecrets,
+    user: crdx.UserWithSecrets,
     device: DeviceWithSecrets,
-    teamKeys: KeysetWithSecrets
+    teamKeys: crdx.KeysetWithSecrets
   ) => {
     return new Team({
       source: serializedGraph,
@@ -753,6 +745,12 @@ export class Connection extends EventEmitter {
   private myProofOfInvitation = (context: ConnectionContext) => {
     assert(context.invitationSeed)
     return invitations.generateProof(context.invitationSeed)
+  }
+
+  private setLogPrefix(context: ConnectionContext) {
+    const userName = trimUserId(context.device.keys.name)
+    const peerUserName = trimUserId(this.peerUserId)
+    this.log = debug(`lf:auth:connection:${userName}:${peerUserName}`)
   }
 }
 
@@ -785,3 +783,5 @@ const insistentlyParseJson = (json: any) => {
   }
   return result
 }
+
+const trimUserId = (userId?: string) => userId.split('-')[0]
