@@ -28,9 +28,6 @@ it(`We show Bob's device`, () => {
 
 it(`We hide Bob's device`, () => {
   show('Bob:laptop')
-  alice().addToTeam('Bob')
-
-  // we hide Bob's device
   bob().hide()
 
   // we don't see Bob any more
@@ -38,30 +35,15 @@ it(`We hide Bob's device`, () => {
   cy.get('.Peer')
     .userName()
     .should('equal', 'Alice')
-
-  // Alice sees that Bob is disconnected
-  alice()
-    .peerConnectionStatus('Bob')
-    .should('equal', 'disconnected')
 })
 
 it(`We show Bob's device again`, () => {
   show('Bob:laptop')
-  alice().addToTeam('Bob')
-
-  // we hide Bob's device
   bob().hide()
 
   // we show Bob's device again
   show('Bob:laptop')
   cy.get('.Peer').should('have.length', 2)
-  bob().toggleOnline()
-  // Bob rejoins the team
-
-  // Alice sees that Bob is reconnected
-  alice()
-    .peerConnectionStatus('Bob')
-    .should('equal', 'connected')
 })
 
 it('Bob creates another team', () => {
