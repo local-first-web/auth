@@ -1,6 +1,5 @@
 ﻿import { ADMIN } from '@/role'
 import {
-  all,
   any,
   anyDisconnected,
   anyUpdated,
@@ -15,7 +14,6 @@ import {
   TestChannel,
   updated,
 } from '@/util/testing'
-import { pause } from '@/util/testing/pause'
 
 describe('connection', () => {
   describe('sync', () => {
@@ -264,7 +262,7 @@ describe('connection', () => {
     })
 
     describe('removals and demotions', () => {
-      it('resolves concurrent duplicate removals', async () => {
+      it.only('resolves concurrent duplicate removals', async () => {
         const { alice, bob } = setup('alice', 'bob', 'charlie')
 
         // 👳🏽‍♂️ Charlie is a member
@@ -707,6 +705,8 @@ describe('connection', () => {
           device: bob.phone,
           user: bob.user,
           team: bob.team,
+          teamKeys: bob.team.teamKeys(),
+          // TODO why are we passing teamkeys if we can just get them from team
         }
 
         const join = joinTestChannel(new TestChannel())
@@ -722,7 +722,6 @@ describe('connection', () => {
       //   const { alice, bob, charlie } = setup('alice', 'bob', 'charlie')
       //   await connect(alice, bob)
       //   await connect(alice, charlie)
-
       //   expect(alice.team.adminKeys().generation).toBe(0)
       //   expect(alice.team.teamKeys().generation).toBe(0)
 
