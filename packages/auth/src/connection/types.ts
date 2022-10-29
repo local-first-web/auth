@@ -22,6 +22,7 @@ export type MemberInitialContext = {
   user: UserWithSecrets
   device: DeviceWithSecrets
   team: Team
+  teamKeys: KeysetWithSecrets
 }
 
 export type InviteeMemberInitialContext = {

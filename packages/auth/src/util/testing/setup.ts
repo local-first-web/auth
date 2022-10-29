@@ -32,14 +32,15 @@ export const setup = (
   // Coerce string userIds into TestUserSettings objects
   const config = _config.map(u => (typeof u === 'string' ? { user: u } : u)) as TestUserSettings[]
 
-  // Get a list of just user names
+  // Get a list of just user ids
   const userIds = config.map(user => user.user)
 
   // Create users
   const testUsers: Record<string, UserWithSecrets> = userIds
     .map((userId: string) => {
       const randomSeed = userId // make these predictable
-      return createUser(userId, userId, randomSeed)
+      const userName = userId.replace(/^(.)/, (_, c) => c.toUpperCase()) + ' McUser'
+      return createUser(userName, userId, randomSeed)
     })
     .reduce(arrayToMap('userId'), {})
 
@@ -60,6 +61,7 @@ export const setup = (
 
   // Create team
   const founder = userIds[0] // e.g. alice
+
   const founderContext = { user: testUsers[founder], device: laptops[founder] }
   const teamName = 'Spies Я Us'
   const randomSeed = teamName
