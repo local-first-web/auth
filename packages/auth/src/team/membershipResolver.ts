@@ -11,6 +11,7 @@ import {
   TeamContext,
   TeamLink,
   TeamGraph,
+  AdmitMemberAction,
 } from '@/team/types'
 import { arraysAreEqual } from '@/util/arraysAreEqual'
 import { getConcurrentBubbles, Link, LinkBody, Resolver } from 'crdx'
@@ -117,7 +118,7 @@ const leastSenior = (chain: TeamGraph, userNames: string[]) =>
   userNames.sort(bySeniority(chain)).pop()!
 
 const isAddAction = (link: TeamLink): link is AddActionLink =>
-  link.body.type === 'ADD_MEMBER' || link.body.type === 'ADD_MEMBER_ROLE'
+  ['ADD_MEMBER', 'ADD_MEMBER_ROLE', 'ADMIT_MEMBER'].includes(link.body.type)
 
 const isRemovalAction = (link: TeamLink): boolean => link.body.type === 'REMOVE_MEMBER'
 
@@ -151,15 +152,24 @@ const authorIn =
     excludeList.includes(getAuthor(link))
 
 const addedUserId = (link: AddActionLink): string => {
-  if (link.body.type === 'ADD_MEMBER') {
-    const addAction = link.body as LinkBody<AddMemberAction, TeamContext>
-    return addAction.payload.member.userId
-  } else if (link.body.type === 'ADD_MEMBER_ROLE') {
-    const addAction = link.body as LinkBody<AddMemberRoleAction, TeamContext>
-    return addAction.payload.userId
+  switch (link.body.type) {
+    case 'ADD_MEMBER': {
+      const addAction = link.body as LinkBody<AddMemberAction, TeamContext>
+      return addAction.payload.member.userId
+    }
+    case 'ADD_MEMBER_ROLE': {
+      const addAction = link.body as LinkBody<AddMemberRoleAction, TeamContext>
+      return addAction.payload.userId
+    }
+    case 'ADMIT_MEMBER': {
+      const addAction = link.body as LinkBody<AdmitMemberAction, TeamContext>
+      return addAction.payload.memberKeys.name
+    }
+    default: {
+      // ignore coverage
+      throw new Error()
+    }
   }
-  // ignore coverage
-  else throw new Error()
 }
 
 const linkNotIn =
@@ -172,4 +182,4 @@ const usesInvitation = (invitation: Invitation) => (l: TeamLink) =>
   l.body.payload.id === invitation.id
 
 type RemoveActionLink = Link<RemoveMemberAction | RemoveMemberRoleAction, TeamContext>
-type AddActionLink = Link<AddMemberAction | AddMemberRoleAction, TeamContext>
+type AddActionLink = Link<AddMemberAction | AddMemberRoleAction | AdmitMemberAction, TeamContext>
