@@ -15,20 +15,22 @@ describe('Team', () => {
       expect(restoredTeam.teamName).toBe('Spies Я Us')
     })
 
-    // TODO can't really tamper with the encrypted chain
+    it('deserializes a team after key rotations', () => {
+      const { alice, bob } = setup('alice', 'bob')
 
-    // it('throws if saved chain is tampered with', () => {
-    //   // 👩🏾 Alice creates and persists a team
-    //   const { alice } = setup('alice')
-    //   let savedChain = alice.team.save()
+      expect(alice.team.teamKeys().generation).toBe(0)
 
-    //   // 🦹‍♀️ Eve tampers with the team in storage, replacing Alice's name with hers
-    //   savedChain = savedChain.replace(/alice/gi, 'eve')
+      // Alice removes Bob, triggering a key rotation
+      alice.team.remove('bob')
+      expect(alice.team.teamKeys().generation).toBe(1)
 
-    //   // 👩🏾 Alice reloads the team and is not fooled
-    //   const attemptToRestoreTamperedChain = () =>
-    //     load(savedChain, alice.localContext, alice.team.teamKeys())
-    //   expect(attemptToRestoreTamperedChain).toThrow()
-    // })
+      // Alice does some other stuff — say she adds a role
+      alice.team.addRole('managers')
+
+      // Alice saves the team
+      const savedChain = alice.team.save()
+      const restoredTeam = load(savedChain, alice.localContext, alice.team.teamKeys())
+      expect(restoredTeam.hasRole('managers')).toBe(true)
+    })
   })
 })
