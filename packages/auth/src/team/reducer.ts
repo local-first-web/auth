@@ -27,7 +27,7 @@ import { validate } from './validate'
 
 /**
  * Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `TeamState`
- * from a `TeamChain`, by applying a Redux-style reducer to the array of links. The reducer runs on
+ * from a `TeamGraph`, by applying a Redux-style reducer to the array of links. The reducer runs on
  * each link in sequence, accumulating a team state.
  *
  * > *Note:* Keep in mind that this reducer is a pure function that acts on the publicly available
