@@ -38,7 +38,7 @@ import { validate } from './validate'
  * @param state The team state as of the previous link in the signature chain.
  * @param link The current link being processed.
  */
-export const reducer: Reducer<TeamState, TeamAction, TeamContext> = ((state, link) => {
+export const reducer: Reducer<TeamState, TeamAction, TeamContext> = (state, link) => {
   // Invalid links are marked to be discarded by the MembershipResolver due to conflicting
   // concurrent actions. In most cases we just ignore these links and they don't affect state at
   // all; but in some cases we need to clean up, for example when someone's admission is reversed
@@ -63,7 +63,7 @@ export const reducer: Reducer<TeamState, TeamAction, TeamContext> = ((state, lin
   const newState = applyTransforms(state)
 
   return newState
-}) as Reducer<TeamState, TeamAction, TeamContext>
+}
 
 /**
  * Each action type generates one or more transforms (functions that take the old state and return a
