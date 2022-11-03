@@ -36,7 +36,7 @@ import { assert, debug, EventEmitter, truncateHashes } from '@/util'
 import { arraysAreEqual } from '@/util/arraysAreEqual'
 import { syncMessageSummary } from '@/util/testing/messageSummary'
 import { asymmetric, Payload, randomKey, symmetric } from '@herbcaudill/crypto'
-import crdx from 'crdx'
+import * as crdx from 'crdx'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
 import { protocolMachine } from './protocolMachine'
 
@@ -509,6 +509,11 @@ export class Connection extends EventEmitter {
 
       const prevSyncState = context.syncState ?? crdx.initSyncState()
       const syncMessage = (event as SyncMessage).payload
+
+      const teamKeys = team.teamKeys()
+
+      this.log(`receiving message with team keys generation ${teamKeys.generation}`)
+
       const [newChain, syncState] = crdx.receiveMessage(
         context.team.graph,
         prevSyncState,
