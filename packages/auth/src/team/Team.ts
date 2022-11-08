@@ -2,7 +2,7 @@
 import { Challenge } from '@/connection/types'
 import { LocalUserContext } from '@/context'
 import * as devices from '@/device'
-import { getDeviceId, parseDeviceId, Device, redactDevice, DeviceWithSecrets } from '@/device'
+import { Device, DeviceWithSecrets, getDeviceId, parseDeviceId, redactDevice } from '@/device'
 import * as invitations from '@/invitation'
 import { ProofOfInvitation } from '@/invitation'
 import { normalize } from '@/invitation/normalize'
@@ -13,9 +13,9 @@ import {
   debug,
   getScope,
   Hash,
-  lockboxSummary,
   Payload,
   scopesMatch,
+  truncateHashes,
   UnixTimestamp,
   VALID,
 } from '@/util'
@@ -23,7 +23,6 @@ import { Base58, randomKey, signatures, symmetric } from '@herbcaudill/crypto'
 import {
   createKeyset,
   createStore,
-  deserialize,
   isKeyset,
   KeyScope,
   Keyset,
@@ -39,6 +38,7 @@ import { membershipResolver as resolver } from './membershipResolver'
 import { redactUser } from './redactUser'
 import { reducer } from './reducer'
 import * as select from './selectors'
+import { deserializeTeamGraph, serializeTeamGraph } from './serialize'
 import {
   EncryptedEnvelope,
   isNewTeam,
@@ -46,8 +46,8 @@ import {
   SignedEnvelope,
   TeamAction,
   TeamContext,
+  TeamGraph,
   TeamOptions,
-  TeamGraph as TeamGraph,
   TeamState,
 } from './types'
 
@@ -109,7 +109,7 @@ export class Team extends EventEmitter {
       })
     } else {
       // Rehydrate a team from an existing graph
-      const graph = maybeDeserialize(options.source, options.teamKeys)
+      const graph = maybeDeserialize(options.source, options.teamKeys, options.context.user.keys)
       const { user } = options.context
 
       // Create CRDX store
@@ -171,7 +171,9 @@ export class Team extends EventEmitter {
     return this.state.teamName
   }
 
-  public save = () => this.store.save()
+  public save = () => {
+    return serializeTeamGraph(this.graph)
+  }
 
   /**
    * Merges another graph (e.g. from a peer) with ours.
@@ -378,7 +380,7 @@ export class Team extends EventEmitter {
   public device = (
     userId: string,
     deviceName: string,
-    options = { includeRemoved: false }
+    options = { includeRemoved: false },
   ): Device => select.device(this.state, userId, deviceName, options)
 
   /** Remove a member's device */
@@ -546,7 +548,7 @@ export class Team extends EventEmitter {
   public admitMember = (
     proof: ProofOfInvitation,
     memberKeys: Keyset | KeysetWithSecrets, // we accept KeysetWithSecrets here to simplify testing - in practice we'll only receive Keyset
-    userName: string // the new member's desired user-facing name
+    userName: string, // the new member's desired user-facing name
   ) => {
     const validation = this.validateInvitation(proof)
     if (validation.isValid === false) throw validation.error
@@ -797,8 +799,13 @@ export class Team extends EventEmitter {
   }
 }
 
-const maybeDeserialize = (source: string | TeamGraph, graphKeys: KeysetWithSecrets): TeamGraph =>
-  typeof source === 'string' ? deserialize(source, graphKeys) : source
+const maybeDeserialize = (
+  source: string | TeamGraph,
+  teamKeys: KeysetWithSecrets,
+  userKeys: KeysetWithSecrets,
+): TeamGraph => (isGraph(source) ? source : deserializeTeamGraph(source, teamKeys, userKeys))
+
+const isGraph = (source: string | TeamGraph): source is TeamGraph => source?.hasOwnProperty('root')
 
 type InviteResult = {
   /** The unique identifier for this invitation. */
