@@ -199,7 +199,7 @@ export class Connection extends EventEmitter {
     assert(
       isNumberedConnectionMessage(message),
       `Can only deliver numbered connection messages; received 
-      ${JSON.stringify(message, null, 2)}`
+      ${JSON.stringify(message, null, 2)}`,
     )
 
     this.logMessage('in', message, message.index)
@@ -350,7 +350,7 @@ export class Connection extends EventEmitter {
         context.team.admitMember(
           context.theirProofOfInvitation,
           context.theirUserKeys,
-          context.theirUserName
+          context.theirUserName,
         )
       } else {
         // new device for existing member
@@ -518,7 +518,7 @@ export class Connection extends EventEmitter {
         context.team.graph,
         prevSyncState,
         syncMessage,
-        team.teamKeys()
+        team.teamKeys(),
       )
 
       if (!crdx.headsAreEqual(newChain.head, team.graph.head)) {
@@ -738,7 +738,7 @@ export class Connection extends EventEmitter {
     serializedGraph: string,
     user: crdx.UserWithSecrets,
     device: DeviceWithSecrets,
-    teamKeys: crdx.KeysetWithSecrets
+    teamKeys: crdx.KeysetWithSecrets,
   ) => {
     return new Team({
       source: serializedGraph,

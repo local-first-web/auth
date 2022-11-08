@@ -6,5 +6,5 @@ import { KeysetWithSecrets } from 'crdx'
 export const load = (
   source: string | TeamGraph,
   context: LocalUserContext,
-  teamKeys: KeysetWithSecrets
+  teamKeys: KeysetWithSecrets,
 ) => new Team({ source, context, teamKeys })

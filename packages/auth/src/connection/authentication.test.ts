@@ -91,7 +91,7 @@ describe('connection', () => {
         const { alice, bob, charlie } = setup(
           'alice',
           { user: 'bob', member: false },
-          { user: 'charlie', member: false }
+          { user: 'charlie', member: false },
         )
 
         // 👩🏾📧👨🏻‍🦲 Alice invites Bob
