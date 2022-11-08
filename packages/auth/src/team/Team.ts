@@ -8,17 +8,7 @@ import { ProofOfInvitation } from '@/invitation'
 import { normalize } from '@/invitation/normalize'
 import * as lockbox from '@/lockbox'
 import { ADMIN, Role } from '@/role'
-import {
-  assert,
-  debug,
-  getScope,
-  Hash,
-  Payload,
-  scopesMatch,
-  truncateHashes,
-  UnixTimestamp,
-  VALID,
-} from '@/util'
+import { assert, debug, getScope, Hash, Payload, scopesMatch, UnixTimestamp, VALID } from '@/util'
 import { Base58, randomKey, signatures, symmetric } from '@herbcaudill/crypto'
 import {
   createKeyset,
