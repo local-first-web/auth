@@ -47,7 +47,7 @@ export type ReconnectMessage = {
 export type AcceptInvitationMessage = {
   type: 'ACCEPT_INVITATION'
   payload: {
-    serializedGraph: string
+    serializedGraph: Base58
     teamKeys: KeysetWithSecrets
   }
 }
