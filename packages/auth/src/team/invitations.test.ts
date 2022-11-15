@@ -60,7 +60,7 @@ describe('Team', () => {
         let { alice, bob, charlie } = setup(
           'alice',
           { user: 'bob', admin: false },
-          { user: 'charlie', member: false }
+          { user: 'charlie', member: false },
         )
 
         // 👩🏾 Alice invites 👳🏽‍♂️ Charlie by sending him a secret key
@@ -123,7 +123,7 @@ describe('Team', () => {
         const { alice, bob, charlie } = setup(
           'alice',
           { user: 'bob', member: false },
-          { user: 'charlie', member: false }
+          { user: 'charlie', member: false },
         )
 
         const { seed } = alice.team.inviteMember({ maxUses: 2 })
@@ -169,7 +169,7 @@ describe('Team', () => {
         const { alice, bob, charlie } = setup(
           'alice',
           { user: 'bob', member: false },
-          { user: 'charlie', member: false }
+          { user: 'charlie', member: false },
         )
 
         const { seed } = alice.team.inviteMember({ maxUses: 1 })
@@ -199,7 +199,7 @@ describe('Team', () => {
         const { alice, bob, charlie } = setup(
           'alice',
           { user: 'bob', admin: false },
-          { user: 'charlie', member: false }
+          { user: 'charlie', member: false },
         )
 
         // 👩🏾 Alice invites 👳🏽‍♂️ Charlie by sending him a secret key
