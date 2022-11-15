@@ -257,9 +257,11 @@ describe('Team', () => {
       alice.team.addMemberRole('bob', COOLKIDS)
       alice.team.addMemberRole('charlie', COOLKIDS)
 
+      const keys = alice.team.teamKeys()
+
       const savedTeam = alice.team.save()
-      bob.team = teams.load(savedTeam, bob.localContext, alice.team.teamKeys())
-      charlie.team = teams.load(savedTeam, charlie.localContext, alice.team.teamKeys())
+      bob.team = teams.load(savedTeam, bob.localContext, keys)
+      charlie.team = teams.load(savedTeam, charlie.localContext, keys)
 
       // 👨🏻‍🦲 Bob is currently in the cool kids
       expect(bob.team.memberHasRole('bob', COOLKIDS)).toBe(true)
@@ -270,8 +272,8 @@ describe('Team', () => {
       // 👩🏾 Alice encrypts something for the cool kids
       const message = `exclusive party at Alice's house tonight. cool kids only!!!`
       const encryptedMessage = alice.team.encrypt(message, COOLKIDS)
-
       // 👨🏻‍🦲 Bob and Charlie can both read the message
+
       expect(bob.team.decrypt(encryptedMessage)).toEqual(message)
       expect(charlie.team.decrypt(encryptedMessage)).toEqual(message)
 
@@ -303,7 +305,7 @@ describe('Team', () => {
       // However! the group's keys have been rotated
       expect(alice.team.roleKeys(COOLKIDS).generation).toBe(1)
 
-      // So 👩🏾 Alice encrypts a new message for admins
+      // So 👩🏾 Alice encrypts a new message for the cool kids
       const newMessage = `party moved to Charlie's place, don't tell Bob`
       const newEncryptedMessage = alice.team.encrypt(newMessage, COOLKIDS)
 
