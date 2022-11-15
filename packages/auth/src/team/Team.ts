@@ -14,6 +14,7 @@ import {
   createKeyset,
   createStore,
   isKeyset,
+  KeyMetadata,
   KeyScope,
   Keyset,
   KeysetWithSecrets,
@@ -99,7 +100,7 @@ export class Team extends EventEmitter {
       })
     } else {
       // Rehydrate a team from an existing graph
-      const graph = maybeDeserialize(options.source, options.teamKeys, options.context.user.keys)
+      const graph = maybeDeserialize(options.source, options.teamKeys, options.context.device.keys)
       const { user } = options.context
 
       // Create CRDX store
@@ -179,7 +180,7 @@ export class Team extends EventEmitter {
 
   /** Add a link to the graph, then recompute team state from the new graph */
   public dispatch(action: TeamAction) {
-    this.store.dispatch(action)
+    this.store.dispatch(action, this.teamKeys())
     this.state = this.store.getState()
 
     this.emit('updated', { head: this.graph.head })
@@ -684,15 +685,17 @@ export class Team extends EventEmitter {
    * Returns the secret keyset (if available to the current device) for the given type and name. To
    * get other members' public keys, look up the member - the `keys` property contains their public
    * keys.  */
-  public keys = (scope: KeyScope) => select.keys(this.state, this.context.device, scope)
+  public keys = (scope: KeyMetadata | KeyScope) =>
+    select.keys(this.state, this.context.device.keys, scope)
 
   /** Returns the keys for the given role. */
-  public roleKeys = (roleName: string) => this.keys({ type: KeyType.ROLE, name: roleName })
+  public roleKeys = (roleName: string, generation?: number) =>
+    this.keys({ type: KeyType.ROLE, name: roleName, generation })
 
-  public teamKeys = () => this.keys(TEAM_SCOPE)
+  public teamKeys = (generation?: number) => this.keys({ ...TEAM_SCOPE, generation })
 
   /** Returns the admin keyset. */
-  public adminKeys = () => this.roleKeys(ADMIN)
+  public adminKeys = (generation?: number) => this.roleKeys({ ...ADMIN, generation })
 
   /** Replaces the current user or device's secret keyset with the one provided.
    * (This can also be used by an admin to change another user's secret keyset.)
@@ -785,6 +788,9 @@ export class Team extends EventEmitter {
       })
     })
 
+    // TODO: update the store with the new team keys
+    // this.store.
+
     return newLockboxes
   }
 }
@@ -792,8 +798,8 @@ export class Team extends EventEmitter {
 const maybeDeserialize = (
   source: string | TeamGraph,
   teamKeys: KeysetWithSecrets,
-  userKeys: KeysetWithSecrets,
-): TeamGraph => (isGraph(source) ? source : deserializeTeamGraph(source, teamKeys, userKeys))
+  deviceKeys: KeysetWithSecrets,
+): TeamGraph => (isGraph(source) ? source : deserializeTeamGraph(source, teamKeys, deviceKeys))
 
 const isGraph = (source: string | TeamGraph): source is TeamGraph => source?.hasOwnProperty('root')
 
