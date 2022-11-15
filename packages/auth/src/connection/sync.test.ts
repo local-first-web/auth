@@ -262,31 +262,6 @@ describe('connection', () => {
     })
 
     describe('removals and demotions', () => {
-      it.only('resolves concurrent duplicate removals', async () => {
-        const { alice, bob } = setup('alice', 'bob', 'charlie')
-
-        // 👳🏽‍♂️ Charlie is a member
-        expect(alice.team.has('charlie')).toBe(true)
-        expect(bob.team.has('charlie')).toBe(true)
-
-        // 👨🏻‍🦲 Bob removes 👳🏽‍♂️ Charlie
-        bob.team.remove('charlie')
-        expect(alice.team.has('charlie')).toBe(true)
-        expect(bob.team.has('charlie')).toBe(false)
-
-        // 👩🏾 concurrently, Alice also removes 👳🏽‍♂️ Charlie
-        alice.team.remove('charlie')
-        expect(alice.team.has('charlie')).toBe(false)
-        expect(bob.team.has('charlie')).toBe(false)
-
-        // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
-        await connect(alice, bob)
-
-        // ✅ nothing blew up, and Charlie has been removed on both sides 🚫👳🏽‍♂️
-        expect(alice.team.has('charlie')).toBe(false)
-        expect(bob.team.has('charlie')).toBe(false)
-      })
-
       it('lets a member remove the founder', async () => {
         const { alice, bob } = setup('alice', 'bob')
 
@@ -366,6 +341,31 @@ describe('connection', () => {
 
         // ✅ No problemo
         expectEveryoneToKnowEveryone(alice, charlie, bob, dwight)
+      })
+
+      it('resolves concurrent duplicate removals', async () => {
+        const { alice, bob } = setup('alice', 'bob', 'charlie')
+
+        // 👳🏽‍♂️ Charlie is a member
+        expect(alice.team.has('charlie')).toBe(true)
+        expect(bob.team.has('charlie')).toBe(true)
+
+        // 👨🏻‍🦲 Bob removes 👳🏽‍♂️ Charlie
+        bob.team.remove('charlie')
+        expect(alice.team.has('charlie')).toBe(true)
+        expect(bob.team.has('charlie')).toBe(false)
+
+        // 👩🏾 concurrently, Alice also removes 👳🏽‍♂️ Charlie
+        alice.team.remove('charlie')
+        expect(alice.team.has('charlie')).toBe(false)
+        expect(bob.team.has('charlie')).toBe(false)
+
+        // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
+        await connect(alice, bob)
+
+        // ✅ nothing blew up, and Charlie has been removed on both sides 🚫👳🏽‍♂️
+        expect(alice.team.has('charlie')).toBe(false)
+        expect(bob.team.has('charlie')).toBe(false)
       })
 
       it('resolves mutual demotions in favor of the senior member', async () => {
@@ -639,6 +639,29 @@ describe('connection', () => {
 
         // The team keys haven't been rotated because Bob wasn't removed from the team
         expect(alice.team.teamKeys().generation).toBe(0)
+      })
+
+      it('decrypts new links received following a key rotation', async () => {
+        const { alice, bob, charlie } = setup('alice', 'bob', 'charlie')
+
+        await connect(alice, bob)
+        await connect(alice, charlie)
+
+        // 👩🏾 Alice removes Bob from the team
+        alice.team.remove('bob')
+        await anyDisconnected(alice, bob)
+
+        // The team keys have been rotated
+        expect(alice.team.teamKeys().generation).toBe(1)
+
+        // Alice does something else — say she creates a new role
+        // This will now be encrypted with the new team keys
+        alice.team.addRole('managers')
+
+        await updated(alice, charlie)
+
+        // Charlie can decrypt the last link Alice created
+        expect(charlie.team.hasRole('managers')).toBe(true)
       })
 
       it('unwinds an invalidated admission', async () => {
