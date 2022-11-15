@@ -11,7 +11,7 @@ describe('membershipResolver', () => {
     // 👩🏾 Alice creates a graph
     let aTeam = createTeam('Spies Я Us', alice.localContext)
     let aGraph = aTeam.graph
-    let teamKeys = aTeam.teamKeys()
+    let keys = aTeam.teamKeys()
 
     // 👩🏾 Alice adds 👨🏻‍🦲 Bob as admin
     aGraph = append({
@@ -19,17 +19,17 @@ describe('membershipResolver', () => {
       action: ADD_BOB_AS_ADMIN,
       user: alice.user,
       context: alice.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
 
     // 👩🏾 🡒 👨🏻‍🦲 Alice shares the graph with Bob
     let bGraph: TeamGraph = clone(aGraph)
-    return { aGraph, bGraph, teamKeys }
+    return { aGraph, bGraph, keys }
   }
 
   it('resolves two graphs with no conflicting membership changes', () => {
     // 👩🏾 🡒 👨🏻‍🦲 Alice creates a graph and shares it with Bob
-    let { aGraph, bGraph, teamKeys } = setup()
+    let { aGraph, bGraph, keys } = setup()
 
     // 🔌❌ Now Alice and Bob are disconnected
 
@@ -39,7 +39,7 @@ describe('membershipResolver', () => {
       action: ADD_ROLE_MANAGERS,
       user: bob.user,
       context: bob.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
     expect(summary(bGraph)).toEqual('ROOT,ADD:bob,ADD:managers')
 
@@ -49,7 +49,7 @@ describe('membershipResolver', () => {
       action: ADD_CHARLIE,
       user: alice.user,
       context: alice.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
     expect(summary(aGraph)).toEqual('ROOT,ADD:bob,ADD:charlie')
 
@@ -64,7 +64,7 @@ describe('membershipResolver', () => {
 
   it('discards changes made by a member who is concurrently removed', () => {
     // 👩🏾 🡒 👨🏻‍🦲 Alice creates a graph and shares it with Bob
-    let { aGraph, bGraph, teamKeys } = setup()
+    let { aGraph, bGraph, keys } = setup()
 
     // 🔌❌ Now Alice and Bob are disconnected
 
@@ -74,7 +74,7 @@ describe('membershipResolver', () => {
       action: ADD_CHARLIE,
       user: bob.user,
       context: bob.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
     expect(summary(bGraph)).toEqual('ROOT,ADD:bob,ADD:charlie')
 
@@ -84,7 +84,7 @@ describe('membershipResolver', () => {
       action: REMOVE_BOB,
       user: alice.user,
       context: alice.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
     expect(summary(aGraph)).toEqual('ROOT,ADD:bob,REMOVE:bob')
 
@@ -96,7 +96,7 @@ describe('membershipResolver', () => {
 
   it('discards changes made by a member who is concurrently demoted', () => {
     // 👩🏾 🡒 👨🏻‍🦲 Alice creates a graph and shares it with Bob
-    let { aGraph, bGraph, teamKeys } = setup()
+    let { aGraph, bGraph, keys } = setup()
 
     // 🔌❌ Now Alice and Bob are disconnected
 
@@ -106,7 +106,7 @@ describe('membershipResolver', () => {
       action: ADD_CHARLIE,
       user: bob.user,
       context: bob.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
     expect(summary(bGraph)).toEqual('ROOT,ADD:bob,ADD:charlie')
 
@@ -116,7 +116,7 @@ describe('membershipResolver', () => {
       action: DEMOTE_BOB,
       user: alice.user,
       context: alice.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
     expect(summary(aGraph)).toEqual('ROOT,ADD:bob,REMOVE:admin:bob')
 
@@ -130,14 +130,14 @@ describe('membershipResolver', () => {
   // members are actually added
   it(`doesn't allow a member who is removed to be concurrently added back`, () => {
     // 👩🏾 Alice creates a graph and adds Charlie
-    let { aGraph, teamKeys } = setup()
+    let { aGraph, keys } = setup()
 
     aGraph = append({
       graph: aGraph,
       action: ADD_CHARLIE,
       user: alice.user,
       context: alice.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
 
     // 👩🏾 🡒 👨🏻‍🦲 Alice shares the graph with Bob
@@ -151,7 +151,7 @@ describe('membershipResolver', () => {
       action: REMOVE_CHARLIE,
       user: alice.user,
       context: alice.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
     expect(summary(aGraph)).toEqual('ROOT,ADD:bob,ADD:charlie,REMOVE:charlie')
 
@@ -161,14 +161,14 @@ describe('membershipResolver', () => {
       action: REMOVE_CHARLIE,
       user: bob.user,
       context: bob.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
     bGraph = append({
       graph: bGraph,
       action: ADD_CHARLIE,
       user: bob.user,
       context: bob.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
     expect(summary(bGraph)).toEqual('ROOT,ADD:bob,ADD:charlie,REMOVE:charlie,ADD:charlie')
 
@@ -180,7 +180,7 @@ describe('membershipResolver', () => {
 
   it('resolves mutual concurrent removals in favor of the team founder', () => {
     // 👩🏾 🡒 👨🏻‍🦲 Alice creates a graph and shares it with Bob
-    let { aGraph, bGraph, teamKeys } = setup()
+    let { aGraph, bGraph, keys } = setup()
 
     // 🔌❌ Now Alice and Bob are disconnected
 
@@ -190,7 +190,7 @@ describe('membershipResolver', () => {
       action: REMOVE_ALICE,
       user: bob.user,
       context: bob.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
 
     // 👩🏾 Alice removes Bob
@@ -199,7 +199,7 @@ describe('membershipResolver', () => {
       action: REMOVE_BOB,
       user: alice.user,
       context: alice.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
 
     // 🔌✔ Alice and Bob reconnect and synchronize graphs
@@ -210,14 +210,14 @@ describe('membershipResolver', () => {
 
   it('resolves mutual concurrent removals in favor of the senior member', () => {
     // 👩🏾 Alice creates a graph and adds Charlie
-    let { aGraph, teamKeys } = setup()
+    let { aGraph, keys } = setup()
 
     aGraph = append({
       graph: aGraph,
       action: ADD_CHARLIE_AS_ADMIN,
       user: alice.user,
       context: alice.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
 
     // 👩🏾 🡒 👨🏻‍🦲 👳🏽‍♂️ Alice shares the graph with Bob and Charlie
@@ -232,7 +232,7 @@ describe('membershipResolver', () => {
       action: REMOVE_CHARLIE,
       user: bob.user,
       context: bob.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
 
     // 👳🏽‍♂️ Charlie removes Bob
@@ -241,7 +241,7 @@ describe('membershipResolver', () => {
       action: REMOVE_BOB,
       user: charlie.user,
       context: charlie.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
 
     // 🔌✔ Bob and Charlie reconnect and synchronize graphs
@@ -252,7 +252,7 @@ describe('membershipResolver', () => {
 
   it('resolves mutual concurrent demotions in favor of the team founder', () => {
     // 👩🏾 🡒 👨🏻‍🦲 Alice creates a graph and shares it with Bob
-    let { aGraph, bGraph, teamKeys } = setup()
+    let { aGraph, bGraph, keys } = setup()
 
     // 🔌❌ Now Alice and Bob are disconnected
 
@@ -262,7 +262,7 @@ describe('membershipResolver', () => {
       action: DEMOTE_ALICE,
       user: bob.user,
       context: bob.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
 
     // 👩🏾 Alice demotes Bob
@@ -271,7 +271,7 @@ describe('membershipResolver', () => {
       action: DEMOTE_BOB,
       user: alice.user,
       context: alice.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
 
     // 🔌✔ Alice and Bob reconnect and synchronize graphs
@@ -282,14 +282,14 @@ describe('membershipResolver', () => {
 
   it('resolves circular mutual concurrent demotions in favor of the team founder', () => {
     // 👩🏾 🡒 👨🏻‍🦲 Alice creates a graph and adds Charlie as admin
-    let { aGraph, teamKeys } = setup()
+    let { aGraph, keys } = setup()
 
     aGraph = append({
       graph: aGraph,
       action: ADD_CHARLIE_AS_ADMIN,
       user: alice.user,
       context: alice.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
 
     // 👩🏾 🡒 👨🏻‍🦲 Alice shares the graph with Bob and Charlie
@@ -304,7 +304,7 @@ describe('membershipResolver', () => {
       action: DEMOTE_CHARLIE,
       user: bob.user,
       context: bob.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
 
     // 👳🏽‍♂️ Charlie demotes Alice
@@ -313,7 +313,7 @@ describe('membershipResolver', () => {
       action: DEMOTE_ALICE,
       user: charlie.user,
       context: charlie.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
 
     // 👩🏾 Alice demotes Bob
@@ -322,7 +322,7 @@ describe('membershipResolver', () => {
       action: DEMOTE_BOB,
       user: alice.user,
       context: alice.graphContext,
-      graphKeys: teamKeys,
+      keys,
     })
 
     // 🔌✔ All reconnect and synchronize graphs
@@ -341,7 +341,7 @@ describe('membershipResolver', () => {
   const expectMergedResult = (
     aGraph: TeamGraph,
     bGraph: TeamGraph,
-    expected: string[] | string
+    expected: string[] | string,
   ) => {
     // 👩🏾 ⇄ 👨🏻‍🦲 They synchronize graphs
     const mergedGraph = merge(aGraph, bGraph)
