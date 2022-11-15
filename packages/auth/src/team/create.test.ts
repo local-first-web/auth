@@ -16,8 +16,9 @@ describe('Team', () => {
     })
 
     it('deserializes a team after key rotations', () => {
-      const { alice, bob } = setup('alice', 'bob')
+      const { alice } = setup('alice', 'bob')
 
+      // We start with generation 0 keys
       expect(alice.team.teamKeys().generation).toBe(0)
 
       // Alice removes Bob, triggering a key rotation
@@ -27,9 +28,16 @@ describe('Team', () => {
       // Alice does some other stuff — say she adds a role
       alice.team.addRole('managers')
 
+      // We now have generation 1 keys
+      expect(alice.team.teamKeys().generation).toBe(1)
+
       // Alice saves the team
       const savedChain = alice.team.save()
-      const restoredTeam = load(savedChain, alice.localContext, alice.team.teamKeys())
+
+      // Even though the team is saved with multiple generations of keys,
+      // we can still decrypt it starting with only the original keys
+      const originalTeamKeys = alice.team.teamKeys(0)
+      const restoredTeam = load(savedChain, alice.localContext, originalTeamKeys)
       expect(restoredTeam.hasRole('managers')).toBe(true)
     })
   })
