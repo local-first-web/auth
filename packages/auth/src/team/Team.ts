@@ -695,9 +695,10 @@ export class Team extends EventEmitter {
   public teamKeys = (generation?: number) => this.keys({ ...TEAM_SCOPE, generation })
 
   /** Returns the admin keyset. */
-  public adminKeys = (generation?: number) => this.roleKeys({ ...ADMIN, generation })
+  public adminKeys = (generation?: number) => this.roleKeys(ADMIN, generation)
 
-  /** Replaces the current user or device's secret keyset with the one provided.
+  /**
+   * Replaces the current user or device's secret keyset with the one provided.
    * (This can also be used by an admin to change another user's secret keyset.)
    */
   public changeKeys = (newKeys: KeysetWithSecrets) => {
