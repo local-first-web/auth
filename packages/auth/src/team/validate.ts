@@ -40,7 +40,7 @@ const validators: TeamStateValidatorSet = {
     return VALID
   },
 
-  // /** the key that the link is signed with must be the author's signature key at that time */
+  // TODO: the public key that this is encrypted with should be the author's public encryption key at that time.
   // signatureKeyIsCorrect: (...args) => {
   //   const [prevState, link] = args
   //   const action = link.body
