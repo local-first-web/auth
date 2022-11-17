@@ -388,7 +388,7 @@ export class Connection extends EventEmitter {
       } else {
         // joining as a new member
         // we add our current device to the team chain
-        team.joinAsMember()
+        team.joinAsMember(teamKeys)
       }
 
       // put the updated team on our context
