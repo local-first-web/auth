@@ -1,6 +1,5 @@
 export const EMPTY: LinkMap = {}
 import { Hash } from '@/util'
-import { base58 } from '@herbcaudill/crypto'
 import {
   decryptLink,
   EncryptedHashGraph,
@@ -22,7 +21,8 @@ export const serializeTeamGraph = (graph: TeamGraph): string => {
   // to decrypt the graph, we'll need to know its dependency structure
   const childMap = getChildMap(graph)
 
-  return base58.encode(msgpack.encode({ childMap, encryptedGraph }))
+  const serialized = JSON.stringify({ childMap, encryptedGraph })
+  return serialized
 }
 
 export const deserializeTeamGraph = (
@@ -30,7 +30,7 @@ export const deserializeTeamGraph = (
   teamKeys: KeysetWithSecrets,
   deviceKeys: KeysetWithSecrets,
 ): TeamGraph => {
-  const deserialized = msgpack.decode(base58.decode(serialized))
+  const deserialized = JSON.parse(serialized)
   const { encryptedGraph, childMap } = deserialized as {
     encryptedGraph: EncryptedHashGraph
     childMap: LinkMap
