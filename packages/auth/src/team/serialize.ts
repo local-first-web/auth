@@ -1,14 +1,6 @@
 export const EMPTY: LinkMap = {}
 import { Hash } from '@/util'
-import {
-  decryptLink,
-  EncryptedHashGraph,
-  getChildMap,
-  HashGraph,
-  KeysetWithSecrets,
-  LinkMap,
-} from 'crdx'
-import msgpack from 'msgpack-lite'
+import { decryptLink, EncryptedHashGraph, getChildMap, KeysetWithSecrets, LinkMap } from 'crdx'
 import { initialState, TEAM_SCOPE } from './constants'
 import { reducer } from './reducer'
 import { keys } from './selectors'
