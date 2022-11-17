@@ -11,8 +11,10 @@ export type ReadyMessage = {
 }
 
 /**
- * - If we're a member, we just authorize as a device. So all we provide is an identity claim for a device.
- * - If we're a new member with an invitation, we want to give them our user's public keys and our device's public keys.
+ * - If we're a member, we just authorize as a device. So all we provide is an identity claim for a
+ *   device.
+ * - If we're a new member with an invitation, we want to give them our user's public keys and our
+ *   device's public keys.
  * - If we're a new device with an invitation, we just want to give them our device public keys.
  */
 export type ClaimIdentityMessage = {
