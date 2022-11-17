@@ -96,7 +96,7 @@ export class Team extends EventEmitter {
         resolver,
         initialState,
         rootPayload,
-        graphKeys: options.teamKeys,
+        keys: options.teamKeys,
       })
     } else {
       // Rehydrate a team from an existing graph
@@ -110,7 +110,7 @@ export class Team extends EventEmitter {
         resolver,
         initialState,
         graph,
-        graphKeys: options.teamKeys,
+        keys: options.teamKeys,
       })
     }
 
@@ -179,8 +179,8 @@ export class Team extends EventEmitter {
   }
 
   /** Add a link to the graph, then recompute team state from the new graph */
-  public dispatch(action: TeamAction) {
-    this.store.dispatch(action, this.teamKeys())
+  public dispatch(action: TeamAction, teamKeys: KeysetWithSecrets = this.teamKeys()) {
+    this.store.dispatch(action, teamKeys)
     this.state = this.store.getState()
 
     this.emit('updated', { head: this.graph.head })
@@ -591,17 +591,20 @@ export class Team extends EventEmitter {
   }
 
   /** Once the new member has received the graph and can instantiate the team, they call this to add their device. */
-  public joinAsMember = () => {
+  public joinAsMember = (teamKeys: KeysetWithSecrets) => {
     assert(this.context.user)
     const deviceLockbox = lockbox.create(this.context.user.keys, this.context.device.keys)
     const device = redactDevice(this.context.device)
-    this.dispatch({
-      type: 'ADD_DEVICE',
-      payload: {
-        device,
-        lockboxes: [deviceLockbox],
+    this.dispatch(
+      {
+        type: 'ADD_DEVICE',
+        payload: {
+          device,
+          lockboxes: [deviceLockbox],
+        },
       },
-    })
+      teamKeys,
+    )
   }
 
   /** Once a new device has received the graph and can instantiate the team, they call this to get the user keys */
@@ -617,7 +620,7 @@ export class Team extends EventEmitter {
       resolver,
       initialState,
       graph: this.graph,
-      graphKeys: this.teamKeys(),
+      keys: this.teamKeys(),
     })
     this.context.user = user
 
