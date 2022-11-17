@@ -13,11 +13,12 @@ export const keys = (
   const { type, name } = scope
 
   const keysFromLockboxes = getKeyMap(state, deviceKeys)
-  const keys = keysFromLockboxes[type] && keysFromLockboxes[type][name]
+  const keys = keysFromLockboxes[type] ? keysFromLockboxes[type][name] : undefined
 
   assert(
     keys,
     `Couldn't find keys: ${type.toLowerCase()} ${name}.
+     Scope: ${JSON.stringify(scope)}
      Device: ${deviceKeys.name}
      Available lockboxes: \n- ${state.lockboxes.map(lockboxSummary).join('\n- ')} `,
   )
