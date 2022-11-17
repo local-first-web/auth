@@ -2,7 +2,6 @@
 import * as teams from '@/team'
 import { TEAM_SCOPE } from '@/team'
 import {
-  all,
   anyDisconnected,
   anyUpdated,
   connect,
@@ -11,9 +10,7 @@ import {
   disconnect,
   disconnection,
   expectEveryoneToKnowEveryone,
-  joinTestChannel,
   setup,
-  TestChannel,
   tryToConnect,
 } from '@/util/testing'
 import { createKeyset } from 'crdx'
