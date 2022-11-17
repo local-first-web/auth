@@ -1,4 +1,3 @@
-import { DeviceWithSecrets } from '@/device'
 import { TeamState } from '@/team/types'
 import { KeysetWithSecrets } from 'crdx'
 import { getVisibleKeys } from './getVisibleKeys'
