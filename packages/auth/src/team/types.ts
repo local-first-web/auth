@@ -12,7 +12,7 @@ import {
   Link,
   LinkBody,
   ROOT,
-  Sequence
+  Sequence,
 } from 'crdx'
 
 // ********* MEMBER
