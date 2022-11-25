@@ -2,15 +2,18 @@ import { TeamState } from '@/team/types'
 import { KeysetWithSecrets } from 'crdx'
 import { getVisibleKeys } from './getVisibleKeys'
 
-/** Returns all keysets from the current user's lockboxes in a structure that looks like this:
+/** Returns all keysets from the current device's lockboxes in a structure that looks like this:
  * ```js
  * {
  *    TEAM: {
- *      TEAM: Keyset[ gen0, gen1, gen2 ... ], // <- all keys starting with generation 0
+ *      TEAM: Keyset[ gen0, gen1, gen2, ... ], // <- all keys starting with generation 0
  *    ROLE: {
- *      admin: Keyset[ gen0 ... ]
- *      managers: Keyset[ gen0 ...]
+ *      admin: Keyset[ gen0, ... ]
+ *      managers: Keyset[ gen0, ...]
  *    },
+ *   USER: {
+ *    alice: Keyset[ gen0, ... ]
+ *   }
  * }
  * ```
  */
@@ -24,8 +27,8 @@ export const getKeyMap = (state: TeamState, deviceKeys: KeysetWithSecrets): KeyM
 
 const organizeKeysIntoMap = (result: KeyMap, keys: KeysetWithSecrets) => {
   const { type, name, generation } = keys
-  const keysetsForScope = result[type] || {}
-  const keysetHistory = keysetsForScope[name] || []
+  const keysetsForScope = result[type] ?? {}
+  const keysetHistory = keysetsForScope[name] ?? []
   keysetHistory[generation] = keys
   return {
     ...result,
