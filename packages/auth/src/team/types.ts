@@ -4,16 +4,7 @@ import { Invitation, InvitationState } from '@/invitation/types'
 import { Lockbox } from '@/lockbox'
 import { PermissionsMap, Role } from '@/role'
 import { Base58, Hash, Payload, UUID, ValidationResult } from '@/util'
-import {
-  HashGraph,
-  KeyMetadata,
-  Keyset,
-  KeysetWithSecrets,
-  Link,
-  LinkBody,
-  ROOT,
-  Sequence,
-} from 'crdx'
+import { Graph, KeyMetadata, Keyset, KeysetWithSecrets, Link, LinkBody, ROOT, Sequence } from 'crdx'
 
 // ********* MEMBER
 
@@ -245,7 +236,7 @@ export type TeamLink = Link<TeamAction, TeamContext> & {
 }
 
 export type TeamLinkMap = Record<Hash, TeamLink>
-export type TeamGraph = HashGraph<TeamAction, TeamContext>
+export type TeamGraph = Graph<TeamAction, TeamContext>
 export type Branch = Sequence<TeamAction, TeamContext>
 export type TwoBranches = [Branch, Branch]
 export type MembershipRuleEnforcer = (links: TeamLink[], graph: TeamGraph) => TeamLink[]
