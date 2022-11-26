@@ -1,6 +1,6 @@
 export const EMPTY: LinkMap = {}
 import { Hash } from '@/util'
-import { decryptLink, EncryptedHashGraph, getChildMap, KeysetWithSecrets, LinkMap } from 'crdx'
+import { decryptLink, EncryptedGraph, getChildMap, KeysetWithSecrets, LinkMap } from 'crdx'
 import { initialState, TEAM_SCOPE } from './constants'
 import { reducer } from './reducer'
 import { keys } from './selectors'
@@ -24,7 +24,7 @@ export const deserializeTeamGraph = (
 ): TeamGraph => {
   const deserialized = JSON.parse(serialized)
   const { encryptedGraph, childMap } = deserialized as {
-    encryptedGraph: EncryptedHashGraph
+    encryptedGraph: EncryptedGraph
     childMap: LinkMap
   }
   return decryptTeamGraph({ encryptedGraph, childMap, teamKeys, deviceKeys })
@@ -44,7 +44,7 @@ export const decryptTeamGraph = ({
   childMap,
   deviceKeys,
 }: {
-  encryptedGraph: EncryptedHashGraph
+  encryptedGraph: EncryptedGraph
   childMap: LinkMap
   teamKeys: KeysetWithSecrets
   deviceKeys: KeysetWithSecrets
