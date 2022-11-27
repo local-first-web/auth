@@ -1,5 +1,13 @@
 import { Hash } from '@/util'
-import { decryptLink, EncryptedGraph, KeysetWithSecrets, LinkMap } from 'crdx'
+import {
+  createKeyring,
+  decryptLink,
+  EncryptedGraph,
+  Keyring,
+  KeysetWithSecrets,
+  LinkMap,
+  MaybePartlyDecryptedGraph,
+} from 'crdx'
 import { initialState, TEAM_SCOPE } from './constants'
 import { reducer } from './reducer'
 import { keys } from './selectors'
@@ -15,23 +23,16 @@ import { TeamAction, TeamContext, TeamGraph, TeamLink, TeamState } from './types
  */
 export const decryptTeamGraph = ({
   encryptedGraph,
-  childMap,
   teamKeys,
   deviceKeys,
 }: {
-  encryptedGraph: EncryptedGraph
-
-  /**
-   * We need to know the parent/child structure of the graph in order to decrypt it properly,
-   * because we need to reduce as we go in order to get updated team keys.
-   */
-  childMap: LinkMap
+  encryptedGraph: MaybePartlyDecryptedGraph<TeamAction, TeamContext>
 
   /**
    * We need the first-generation team keys to get started. If the team keys have been rotated, we
    * will find them in lockboxes that we can get to with our device keys.
    */
-  teamKeys: KeysetWithSecrets
+  teamKeys: KeysetWithSecrets | KeysetWithSecrets[] | Keyring
 
   /**
    * We need our device keys so that we can get the latest team keys from the graph if they've been
@@ -39,7 +40,10 @@ export const decryptTeamGraph = ({
    */
   deviceKeys: KeysetWithSecrets
 }): TeamGraph => {
-  const { encryptedLinks, links = {}, root } = encryptedGraph as TeamGraph
+  const keyring = createKeyring(teamKeys)
+
+  const { encryptedLinks, childMap, root } = encryptedGraph
+  const links = encryptedGraph.links! ?? {}
 
   /** Recursively decrypts a link and its children. */
   const decrypt = (
@@ -62,6 +66,7 @@ export const decryptTeamGraph = ({
     var newKeys: KeysetWithSecrets | undefined
     try {
       newKeys = keys(newState, deviceKeys, TEAM_SCOPE)
+      keyring[newKeys.encryption.publicKey] = newKeys
     } catch (error) {
       newKeys = prevKeys
     }
@@ -78,7 +83,9 @@ export const decryptTeamGraph = ({
     return { ...prevDecryptedLinks, ...decryptedLinks }
   }
 
-  const decryptedLinks = decrypt(root, teamKeys)
+  const rootPublicKey = encryptedLinks[root]!.recipientPublicKey
+  const rootKeys = keyring[rootPublicKey]
+  const decryptedLinks = decrypt(root, rootKeys)
 
   return {
     ...encryptedGraph,

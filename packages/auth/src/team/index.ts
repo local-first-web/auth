@@ -1,5 +1,6 @@
 export * from './constants'
 export * from './createTeam'
+export * from './decryptTeamGraph'
 export * from './isAdminOnlyAction'
 export * from './load'
 export * from './membershipResolver'
