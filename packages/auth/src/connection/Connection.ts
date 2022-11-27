@@ -31,12 +31,13 @@ import {
 } from '@/connection/types'
 import { Device, DeviceWithSecrets, getDeviceId, parseDeviceId } from '@/device'
 import * as invitations from '@/invitation'
-import { Team, TeamGraph } from '@/team'
+import { decryptTeamGraph, Team, TeamAction, TeamContext, TeamGraph } from '@/team'
 import { assert, debug, EventEmitter, truncateHashes } from '@/util'
 import { arraysAreEqual } from '@/util/arraysAreEqual'
 import { syncMessageSummary } from '@/util/testing/messageSummary'
 import { asymmetric, Payload, randomKey, symmetric } from '@herbcaudill/crypto'
 import * as crdx from 'crdx'
+import { DecryptFn, DecryptFnParams } from 'crdx'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
 import { protocolMachine } from './protocolMachine'
 
@@ -514,11 +515,21 @@ export class Connection extends EventEmitter {
 
       this.log(`receiving message with team keys generation ${teamKeys.generation}`)
 
+      const decrypt = (({ encryptedGraph, keys }: DecryptFnParams<TeamAction, TeamContext>) => {
+        const graph = decryptTeamGraph({
+          encryptedGraph,
+          teamKeys: keys,
+          deviceKeys: context.device.keys,
+        })
+        return graph
+      }) as DecryptFn
+
       const [newChain, syncState] = crdx.receiveMessage(
         context.team.graph,
         prevSyncState,
         syncMessage,
         team.teamKeys(),
+        decrypt,
       )
 
       if (!crdx.headsAreEqual(newChain.head, team.graph.head)) {
