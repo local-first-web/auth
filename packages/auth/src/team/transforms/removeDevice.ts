@@ -13,6 +13,7 @@ export const removeDevice =
             ...member,
             devices: member.devices!.filter(d => d.deviceName !== deviceName),
           }
+
     const members = state.members.map(removeDeviceFromMember)
     const removedDevices = [...state.removedDevices, removedDevice]
 
