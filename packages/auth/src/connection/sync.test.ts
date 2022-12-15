@@ -641,7 +641,29 @@ describe('connection', () => {
         expect(alice.team.teamKeys().generation).toBe(0)
       })
 
-      it('decrypts new links received following a key rotation', async () => {
+      it('decrypts new links received following a key rotation (upon connecting)', async () => {
+        const { alice, bob, charlie } = setup('alice', 'bob', 'charlie')
+
+        await connect(alice, bob)
+
+        // 👩🏾 Alice removes Bob from the team
+        alice.team.remove('bob')
+        await anyDisconnected(alice, bob)
+
+        // The team keys have been rotated
+        expect(alice.team.teamKeys().generation).toBe(1)
+
+        // Alice does something else — say she creates a new role
+        // This will now be encrypted with the new team keys
+        alice.team.addRole('managers')
+
+        await connect(alice, charlie)
+
+        // Charlie can decrypt the last link Alice created
+        expect(charlie.team.hasRole('managers')).toBe(true)
+      })
+
+      it('decrypts new links received following a key rotation (while connected)', async () => {
         const { alice, bob, charlie } = setup('alice', 'bob', 'charlie')
 
         await connect(alice, bob)
@@ -658,7 +680,9 @@ describe('connection', () => {
         // This will now be encrypted with the new team keys
         alice.team.addRole('managers')
 
-        await updated(alice, charlie)
+        // HACK: this only works if we wait for two `updated` events - not sure why
+        await anyUpdated(alice, charlie)
+        await anyUpdated(alice, charlie)
 
         // Charlie can decrypt the last link Alice created
         expect(charlie.team.hasRole('managers')).toBe(true)
