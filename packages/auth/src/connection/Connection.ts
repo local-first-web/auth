@@ -36,12 +36,23 @@ import { assert, debug, EventEmitter, truncateHashes } from '@/util'
 import { arraysAreEqual } from '@/util/arraysAreEqual'
 import { syncMessageSummary } from '@/util/testing/messageSummary'
 import { asymmetric, Payload, randomKey, symmetric } from '@herbcaudill/crypto'
-import * as crdx from 'crdx'
-import { DecryptFn, DecryptFnParams } from 'crdx'
+import {
+  DecryptFn,
+  DecryptFnParams,
+  generateMessage,
+  headsAreEqual,
+  initSyncState,
+  KeysetWithSecrets,
+  KeyType,
+  receiveMessage,
+  redactKeys,
+  SyncState,
+  UserWithSecrets,
+} from 'crdx'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
 import { protocolMachine } from './protocolMachine'
 
-const { DEVICE } = crdx.KeyType
+const { DEVICE } = KeyType
 
 /**
  * Wraps a state machine (using [XState](https://xstate.js.org/docs/)) that
@@ -179,8 +190,8 @@ export class Connection extends EventEmitter {
     this.sendMessage({ type: 'ENCRYPTED_MESSAGE', payload: encryptedMessage })
   }
 
-  public sendSyncMessage(chain: TeamGraph, prevSyncState: crdx.SyncState = crdx.initSyncState()) {
-    const [syncState, syncMessage] = crdx.generateMessage(chain, prevSyncState)
+  public sendSyncMessage(chain: TeamGraph, prevSyncState: SyncState = initSyncState()) {
+    const [syncState, syncMessage] = generateMessage(chain, prevSyncState)
 
     // undefined message means we're already synced
     if (syncMessage) {
@@ -257,11 +268,11 @@ export class Connection extends EventEmitter {
           : // we are holding an invitation
             {
               proofOfInvitation: this.myProofOfInvitation(context),
-              deviceKeys: crdx.redactKeys(context.device.keys),
+              deviceKeys: redactKeys(context.device.keys),
               userName: context.userName,
               // TODO make this more readable
               ...('user' in context && context.user !== undefined
-                ? { userKeys: crdx.redactKeys(context.user.keys) }
+                ? { userKeys: redactKeys(context.user.keys) }
                 : {}),
             }
 
@@ -508,7 +519,7 @@ export class Connection extends EventEmitter {
       assert(context.team)
       var { team } = context
 
-      const prevSyncState = context.syncState ?? crdx.initSyncState()
+      const prevSyncState = context.syncState ?? initSyncState()
       const syncMessage = (event as SyncMessage).payload
 
       const teamKeys = team.teamKeys()
@@ -524,7 +535,7 @@ export class Connection extends EventEmitter {
         return graph
       }) as DecryptFn
 
-      const [newChain, syncState] = crdx.receiveMessage(
+      const [newChain, syncState] = receiveMessage(
         context.team.graph,
         prevSyncState,
         syncMessage,
@@ -532,7 +543,7 @@ export class Connection extends EventEmitter {
         decrypt,
       )
 
-      if (!crdx.headsAreEqual(newChain.head, team.graph.head)) {
+      if (!headsAreEqual(newChain.head, team.graph.head)) {
         team = context.team.merge(newChain)
 
         const summary = JSON.stringify({
@@ -747,9 +758,9 @@ export class Connection extends EventEmitter {
 
   private rehydrateTeam = (
     serializedGraph: string,
-    user: crdx.UserWithSecrets,
+    user: UserWithSecrets,
     device: DeviceWithSecrets,
-    teamKeys: crdx.KeysetWithSecrets,
+    teamKeys: KeysetWithSecrets,
   ) => {
     return new Team({
       source: serializedGraph,
