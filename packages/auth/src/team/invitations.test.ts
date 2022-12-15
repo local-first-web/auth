@@ -1,10 +1,10 @@
 import { generateProof } from '@/invitation'
-import * as keysets from 'crdx'
+
 import * as teams from '@/team'
 import { setup } from '@/util/testing'
-import { createKeyset } from 'crdx'
+import { createKeyset, KeyType } from 'crdx'
 
-const { USER, DEVICE } = keysets.KeyType
+const { USER, DEVICE } = KeyType
 
 describe('Team', () => {
   describe('invitations', () => {
