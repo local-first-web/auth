@@ -22,14 +22,14 @@ import { isAdminOnlyAction } from './isAdminOnlyAction'
  * ordered sequence. It mostly applies "strong-remove" rules to resolve tricky situations that can
  * arise with concurrency: actions done while being removed, mutual removals, etc.
  */
-export const membershipResolver: Resolver<TeamAction, TeamContext> = chain => {
-  const bubbles = getConcurrentBubbles(chain).map(hashes => hashes.map(hash => chain.links[hash]))
+export const membershipResolver: Resolver<TeamAction, TeamContext> = graph => {
+  const bubbles = getConcurrentBubbles(graph).map(hashes => hashes.map(hash => graph.links[hash]))
   const invalidLinks: TeamLink[] = []
   for (var bubble of bubbles) {
     for (const ruleName in membershipRules) {
       // apply this rule to find any links that need to be invalidated
       const rule = membershipRules[ruleName]
-      const invalidLinksByThisRule = rule(bubble, chain)
+      const invalidLinksByThisRule = rule(bubble, graph)
 
       // expand this list to include any links that depend on invalid links we've already found
       const alsoInvalid = invalidLinksByThisRule.flatMap(link => findDependentLinks(bubble, link))
