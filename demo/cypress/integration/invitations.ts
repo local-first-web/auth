@@ -21,38 +21,26 @@ it('Alice invites Bob', () => {
   bob().should('have.member', 'Alice')
 })
 
-it(`We hide Bob's device`, () => {
-  show('Bob:laptop')
-  alice().addToTeam('Bob')
+// TODO: test persistence separately
+// it(`We hide and show Bob's device`, () => {
+//   show('Bob:laptop')
+//   alice().addToTeam('Bob')
 
-  // we hide Bob's device
-  bob().hide()
+//   // we hide Bob's device
+//   bob().hide()
 
-  // Alice sees that Bob is disconnected
-  alice()
-    .peerConnectionStatus('Bob')
-    .should('equal', 'disconnected')
-})
+//   // we show Bob's device again
+//   show('Bob:laptop')
+//   cy.get('.Peer').should('have.length', 2)
+//   bob().toggleOnline()
 
-it(`We show Bob's device again`, () => {
-  show('Bob:laptop')
-  alice().addToTeam('Bob')
+//   // Bob rejoins the team
 
-  // we hide Bob's device
-  bob().hide()
-
-  // we show Bob's device again
-  show('Bob:laptop')
-  cy.get('.Peer').should('have.length', 2)
-  bob().toggleOnline()
-
-  // Bob rejoins the team
-
-  // Alice sees that Bob is reconnected
-  alice()
-    .peerConnectionStatus('Bob')
-    .should('equal', 'connected')
-})
+//   // Alice sees that Bob is reconnected
+//   alice()
+//     .peerConnectionStatus('Bob')
+//     .should('equal', 'connected')
+// })
 
 it('Alice invites Bob and Charlie with a single code', () => {
   alice().should('not.have.member', 'Bob')
