@@ -678,6 +678,17 @@
     libsodium-wrappers "0"
     msgpack-lite "0"
 
+"@herbcaudill/crypto@3":
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/@herbcaudill/crypto/-/crypto-3.0.2.tgz#1a770d9e57a5e4b10861fbaff110308bdb71f361"
+  integrity sha512-4OjXM8aYiAwnB0Bs3wGLJzGPnWa/4gZPssARgRoU0ZdLmnXa6/O1DyY2XqCJsMP1+imvZ1Mv2RNHke/SKCejyg==
+  dependencies:
+    "@herbcaudill/base-x" "4"
+    "@stablelib/utf8" "1"
+    fast-memoize "2"
+    libsodium-wrappers "0"
+    msgpack-lite "0"
+
 "@herbcaudill/random@0":
   version "0.3.0"
   resolved "https://registry.yarnpkg.com/@herbcaudill/random/-/random-0.3.0.tgz#211419d8e8be248cd45edd00e407731dec3879ea"
@@ -3537,12 +3548,12 @@ cosmiconfig@^7.0.1:
     path-type "^4.0.0"
     yaml "^1.10.0"
 
-crdx@2:
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/crdx/-/crdx-2.0.1.tgz#eef54c2813c4b588fb2ac7a066e347c2ad21be82"
-  integrity sha512-vVZlTBY03TByBepDqWXXcdrBLbj3fJlEgvqurIRa8tGTBsxPeDrhtlgyCQsKmjyv5ROY3rel4T3LfPQIbJmMYg==
+crdx@3:
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/crdx/-/crdx-3.0.2.tgz#c88b0d83f85cbed2728ebc5e8c9475e717989661"
+  integrity sha512-h7R746WTo0ShseFL0sPicOvXa3Jrt3QbfpP1UYK+YOS7170azKp7ymVaBY0NpyfJW+k/3Ium89agGR6SNwsJ6Q==
   dependencies:
-    "@herbcaudill/crypto" "2"
+    "@herbcaudill/crypto" "3"
     "@herbcaudill/random" "0"
     bloom-filters "1"
     cuid "2"
