@@ -1,3 +1,4 @@
+// ignore file coverage
 import { InviteeDeviceInitialContext, InviteeMemberInitialContext } from '@/connection/types'
 import { Connection } from '@/connection/Connection'
 import { joinTestChannel } from './joinTestChannel'
@@ -113,7 +114,7 @@ export const all = (connections: Connection[], event: string) =>
       if (event === 'disconnect' && connection.state === 'disconnected') return true
       if (event === 'connected' && connection.state === 'connected') return true
       else return new Promise(resolve => connection.on(event, () => resolve(true)))
-    })
+    }),
   )
 
 export const any = (connections: Connection[], event: string) =>
@@ -122,5 +123,5 @@ export const any = (connections: Connection[], event: string) =>
       if (event === 'disconnect' && connection.state === 'disconnected') return true
       if (event === 'connected' && connection.state === 'connected') return true
       else return new Promise(resolve => connection.on(event, () => resolve(true)))
-    })
+    }),
   )

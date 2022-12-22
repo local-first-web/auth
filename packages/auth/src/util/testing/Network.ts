@@ -1,3 +1,4 @@
+// ignore file coverage
 import { Team } from '@/team'
 import {
   generateMessage,
@@ -100,7 +101,7 @@ class Peer {
       this.team.graph,
       this.syncStates[sender],
       message,
-      teamKeys
+      teamKeys,
     )
     this.team = this.team.merge(chain)
     this.syncStates[sender] = syncState

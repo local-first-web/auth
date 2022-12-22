@@ -1,3 +1,4 @@
+// ignore file coverage
 import { SyncMessage } from 'crdx'
 import { truncateHashes } from '../truncateHashes'
 

@@ -1,3 +1,4 @@
+// ignore file coverage
 import { getDeviceId } from '@/device'
 import { TeamAction, TeamLink } from '@/team/types'
 
