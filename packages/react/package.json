@@ -5,7 +5,6 @@
   "author": "Herb Caudill",
   "license": "MIT",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
     "test": "jest",
     "prepublish": "npm run build"
   },
