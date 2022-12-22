@@ -6,11 +6,11 @@ export const devices = {
 } as Record<string, DeviceInfo>
 
 export const users = {
-  Alice: { userName: 'Alice', userId: 'alice-111', emoji: '👩🏾' },
-  Bob: { userName: 'Bob', userId: 'bob-222', emoji: '👨🏻‍🦲' },
-  Charlie: { userName: 'Charlie', userId: 'charlie-333', emoji: '👳🏽‍♂️' },
-  Dwight: { userName: 'Dwight', userId: 'dwight-444', emoji: '👴' },
-  Eve: { userName: 'Eve', userId: 'eve-555', emoji: '🦹‍♀️' },
+  Alice: { name: 'Alice', emoji: '👩🏾' },
+  Bob: { name: 'Bob', emoji: '👨🏻‍🦲' },
+  Charlie: { name: 'Charlie', emoji: '👳🏽‍♂️' },
+  Dwight: { name: 'Dwight', emoji: '👴' },
+  Eve: { name: 'Eve', emoji: '🦹‍♀️' },
 } as Record<string, UserInfo>
 
 const peerArray = Object.values(users).flatMap(user =>
@@ -19,7 +19,7 @@ const peerArray = Object.values(users).flatMap(user =>
       ({
         user,
         device,
-        id: `${user.userName}:${device.name}`,
+        id: `${user.name}:${device.name}`,
         show: false,
       } as PeerInfo)
   )
@@ -42,7 +42,6 @@ export type DeviceInfo = {
 }
 
 export type UserInfo = {
-  userId: string
-  userName: string
+  name: string
   emoji: string
 }

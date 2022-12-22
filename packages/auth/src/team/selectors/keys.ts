@@ -1,29 +1,33 @@
-﻿import { TeamState } from '@/team/types'
-import { assert } from '@/util'
+﻿import { DeviceWithSecrets, getDeviceId } from '@/device'
+import { TeamState } from '@/team/types'
+import { assert, Optional } from '@/util'
 import { lockboxSummary } from '@/util/lockboxSummary'
-import { KeyMetadata, KeyScope, KeysetWithSecrets } from 'crdx'
+import { KeyMetadata } from 'crdx'
 import { getKeyMap } from './getKeyMap'
 
-/** Returns the keys for the given scope, if they are in a lockbox that the current device has access to */
+/** Returns the keys for the given scope, if they are in a lockbox that the current device has
+ * access to. */
 export const keys = (
   state: TeamState,
-  deviceKeys: KeysetWithSecrets,
-  scope: KeyScope | KeyMetadata,
+  currentDevice: DeviceWithSecrets,
+  scope: Optional<KeyMetadata, 'generation'>
 ) => {
-  const { type, name } = scope
+  const { type, name, generation: maybeGeneration } = scope
 
-  const keysFromLockboxes = getKeyMap(state, deviceKeys)
-  const keys = keysFromLockboxes[type] ? keysFromLockboxes[type][name] : undefined
+  const { userName, deviceName } = currentDevice
+  const deviceId = getDeviceId({ userName, deviceName })
+  const secretKey = currentDevice.keys.secretKey.slice(0, 5)
+
+  const keysFromLockboxes = getKeyMap(state, currentDevice)
+  const keys = keysFromLockboxes[type] && keysFromLockboxes[type][name]
 
   assert(
     keys,
     `Couldn't find keys: ${type.toLowerCase()} ${name}.
-     Scope: ${JSON.stringify(scope)}
-     Device: ${deviceKeys.name}
-     Available lockboxes: \n- ${state.lockboxes.map(lockboxSummary).join('\n- ')} `,
+     Using device keys: ${deviceId}(${secretKey})
+     Available lockboxes: \n- ${state.lockboxes.map(lockboxSummary).join('\n- ')} `
   )
 
-  const generation =
-    'generation' in scope && scope.generation !== undefined ? scope.generation : keys.length - 1 // use latest generation by default
+  const generation = maybeGeneration === undefined ? keys.length - 1 : maybeGeneration // use latest generation by default
   return keys[generation]
 }

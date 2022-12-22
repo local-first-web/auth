@@ -1,4 +1,3 @@
-// ignore file coverage
 import { getDeviceId } from '@/device'
 import { TeamAction, TeamLink } from '@/team/types'
 
@@ -9,14 +8,14 @@ export const actionFingerprint = (link: TeamLink) => {
   const fingerprintPayload = (action: TeamAction) => {
     switch (action.type) {
       case 'ADD_MEMBER':
-        return action.payload.member.userId
+        return action.payload.member.userName
       case 'REMOVE_MEMBER':
-        return action.payload.userId
+        return action.payload.userName
       case 'ADD_ROLE':
         return action.payload.roleName
       case 'ADD_MEMBER_ROLE':
       case 'REMOVE_MEMBER_ROLE':
-        return `${action.payload.roleName}:${action.payload.userId}`
+        return `${action.payload.roleName}:${action.payload.userName}`
       case 'ADD_DEVICE':
         return getDeviceId(action.payload.device)
       case 'REMOVE_DEVICE':

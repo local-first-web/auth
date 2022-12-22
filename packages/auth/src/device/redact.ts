@@ -2,7 +2,7 @@
 import { redactKeys } from 'crdx'
 
 export const redactDevice = (device: DeviceWithSecrets): Device => ({
-  userId: device.userId,
+  userName: device.userName,
   deviceName: device.deviceName,
   keys: redactKeys(device.keys),
 })

@@ -7,7 +7,7 @@ export const changeMemberKeys =
     return {
       ...state,
       members: state.members.map(member => {
-        if (member.userId === keys.name) {
+        if (member.userName === keys.name) {
           return {
             ...member,
             keys, // 🡐 replace keys with new ones

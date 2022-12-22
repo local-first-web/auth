@@ -1,8 +1,8 @@
+import { symmetric } from '@herbcaudill/crypto'
 import { ADMIN } from '@/role'
 import * as teams from '@/team'
 import { setup } from '@/util/testing'
 import '@/util/testing/expect/toLookLikeKeyset'
-import { symmetric } from '@herbcaudill/crypto'
 
 const MANAGERS = 'managers'
 const managers = { roleName: MANAGERS }
@@ -40,7 +40,7 @@ describe('Team', () => {
 
       // 👩🏾 Alice adds 👨🏻‍🦲 Bob to the managers role
       alice.team.addMemberRole('bob', MANAGERS)
-      expect(alice.team.membersInRole(MANAGERS).map(m => m.userId)).toEqual(['bob'])
+      expect(alice.team.membersInRole(MANAGERS).map(m => m.userName)).toEqual(['bob'])
     })
 
     it('admins have access to all role keys', () => {
@@ -73,7 +73,7 @@ describe('Team', () => {
       const savedTeam = alice.team.save()
 
       // 👨🏻‍🦲 Bob loads the team
-      bob.team = teams.load(savedTeam, bob.localContext, alice.team.teamKeys())
+      bob.team = teams.load(savedTeam, bob.localContext)
 
       // 👨🏻‍🦲 Bob has admin keys
       const bobsAdminKeys = bob.team.roleKeys(ADMIN)
@@ -101,7 +101,7 @@ describe('Team', () => {
       const savedTeam = alice.team.save()
 
       // 👨🏻‍🦲 Bob loads the team
-      bob.team = teams.load(savedTeam, bob.localContext, alice.team.teamKeys())
+      bob.team = teams.load(savedTeam, bob.localContext)
 
       // On his side, 👨🏻‍🦲 Bob can see that he is no longer an admin
       expect(bob.team.memberIsAdmin('bob')).toBe(false)
@@ -158,15 +158,15 @@ describe('Team', () => {
       const { alice } = setup('alice', { user: 'bob', admin: true })
 
       // 👩🏾 Alice and 👨🏻‍🦲 Bob are members
-      expect(alice.team.membersInRole(ADMIN).map(m => m.userId)).toEqual(['alice', 'bob'])
-      expect(alice.team.admins().map(m => m.userId)).toEqual(['alice', 'bob'])
+      expect(alice.team.membersInRole(ADMIN).map(m => m.userName)).toEqual(['alice', 'bob'])
+      expect(alice.team.admins().map(m => m.userName)).toEqual(['alice', 'bob'])
     })
 
     it('allows an admin other than Alice to add a member', () => {
       const { bob, charlie } = setup(
         'alice',
         { user: 'bob', admin: true },
-        { user: 'charlie', member: false },
+        { user: 'charlie', member: false }
       )
 
       // 👨🏻‍🦲 Bob tries to add 👳🏽‍♂️ Charlie to the team
@@ -180,7 +180,7 @@ describe('Team', () => {
       const { bob, charlie } = setup(
         'alice',
         { user: 'bob', admin: false },
-        { user: 'charlie', member: false },
+        { user: 'charlie', member: false }
       )
 
       // 👨🏻‍🦲 Bob tries to add 👳🏽‍♂️ Charlie to the team
@@ -194,7 +194,7 @@ describe('Team', () => {
       const { bob } = setup(
         'alice',
         { user: 'bob', admin: false },
-        { user: 'charlie', admin: false },
+        { user: 'charlie', admin: false }
       )
 
       // 👨🏻‍🦲 Bob tries to remove 👳🏽‍♂️ Charlie
@@ -208,7 +208,7 @@ describe('Team', () => {
       const { bob } = setup(
         'alice',
         { user: 'bob', admin: false },
-        { user: 'charlie', admin: false },
+        { user: 'charlie', admin: false }
       )
 
       // 👨🏻‍🦲 Bob tries to make 👳🏽‍♂️ Charlie an admin
@@ -250,18 +250,16 @@ describe('Team', () => {
       const { alice, bob, charlie } = setup(
         'alice',
         { user: 'bob', admin: false },
-        { user: 'charlie', admin: false },
+        { user: 'charlie', admin: false }
       )
 
       alice.team.addRole(COOLKIDS)
       alice.team.addMemberRole('bob', COOLKIDS)
       alice.team.addMemberRole('charlie', COOLKIDS)
 
-      const keys = alice.team.teamKeys()
-
       const savedTeam = alice.team.save()
-      bob.team = teams.load(savedTeam, bob.localContext, keys)
-      charlie.team = teams.load(savedTeam, charlie.localContext, keys)
+      bob.team = teams.load(savedTeam, bob.localContext)
+      charlie.team = teams.load(savedTeam, charlie.localContext)
 
       // 👨🏻‍🦲 Bob is currently in the cool kids
       expect(bob.team.memberHasRole('bob', COOLKIDS)).toBe(true)
@@ -272,8 +270,8 @@ describe('Team', () => {
       // 👩🏾 Alice encrypts something for the cool kids
       const message = `exclusive party at Alice's house tonight. cool kids only!!!`
       const encryptedMessage = alice.team.encrypt(message, COOLKIDS)
-      // 👨🏻‍🦲 Bob and Charlie can both read the message
 
+      // 👨🏻‍🦲 Bob and Charlie can both read the message
       expect(bob.team.decrypt(encryptedMessage)).toEqual(message)
       expect(charlie.team.decrypt(encryptedMessage)).toEqual(message)
 
@@ -285,8 +283,8 @@ describe('Team', () => {
 
       // Everyone gets the latest team state
       const savedTeam2 = alice.team.save()
-      bob.team = teams.load(savedTeam2, bob.localContext, alice.team.teamKeys())
-      charlie.team = teams.load(savedTeam2, charlie.localContext, alice.team.teamKeys())
+      bob.team = teams.load(savedTeam2, bob.localContext)
+      charlie.team = teams.load(savedTeam2, charlie.localContext)
 
       // 👳🏽‍♂️ Charlie can still read the message
       expect(charlie.team.decrypt(encryptedMessage)).toEqual(message)
@@ -305,7 +303,7 @@ describe('Team', () => {
       // However! the group's keys have been rotated
       expect(alice.team.roleKeys(COOLKIDS).generation).toBe(1)
 
-      // So 👩🏾 Alice encrypts a new message for the cool kids
+      // So 👩🏾 Alice encrypts a new message for admins
       const newMessage = `party moved to Charlie's place, don't tell Bob`
       const newEncryptedMessage = alice.team.encrypt(newMessage, COOLKIDS)
 

@@ -1,6 +1,6 @@
 import { DeviceWithSecrets } from '@/device'
 import { ProofOfInvitation } from '@/invitation'
-import { KeysetWithSecrets, SyncState } from 'crdx'
+import { SyncState } from 'crdx'
 import { Member, Team } from '@/team'
 import { Base58, Hash, UnixTimestamp } from '@/util'
 import { KeyScope, Keyset, UserWithSecrets } from 'crdx'
@@ -22,7 +22,6 @@ export type MemberInitialContext = {
   user: UserWithSecrets
   device: DeviceWithSecrets
   team: Team
-  teamKeys: KeysetWithSecrets
 }
 
 export type InviteeMemberInitialContext = {
@@ -33,7 +32,6 @@ export type InviteeMemberInitialContext = {
 
 export type InviteeDeviceInitialContext = {
   userName: string
-  userId: string
   device: DeviceWithSecrets
   invitationSeed: string
 }
@@ -55,8 +53,8 @@ export interface ConnectionParams {
   /** The initial context. */
   context: InitialContext
 
-  /** The peer's user id, if we know it */
-  peerUserId?: string
+  /** The peer's user name, if we know it */
+  peerUserName?: string
 }
 
 export interface ErrorPayload {
@@ -70,7 +68,6 @@ export interface ConnectionContext
     Partial<InviteeDeviceInitialContext> {
   theyHaveInvitation?: boolean
   theirIdentityClaim?: KeyScope
-  theirUserName?: string
 
   theirProofOfInvitation?: ProofOfInvitation
   theirUserKeys?: Keyset

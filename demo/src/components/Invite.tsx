@@ -60,8 +60,8 @@ export const Invite = () => {
     setState('adding_device')
   }
 
-  const userBelongsToTeam = team?.has(user.userId)
-  const userIsAdmin = userBelongsToTeam && team?.memberIsAdmin(user.userId)
+  const userBelongsToTeam = team?.has(user.userName)
+  const userIsAdmin = userBelongsToTeam && team?.memberIsAdmin(user.userName)
 
   switch (state) {
     case 'inactive':

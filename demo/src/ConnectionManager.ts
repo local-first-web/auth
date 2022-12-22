@@ -34,7 +34,7 @@ export class ConnectionManager extends EventEmitter {
     this.context = context
     this.teamName = teamName
 
-    this.log = debug(`lf:auth:demo:connection-manager:${context.device.userId}`)
+    this.log = debug(`lf:auth:demo:connection-manager:${context.device.userName}`)
 
     this.client = this.connectServer(urls[0])
   }

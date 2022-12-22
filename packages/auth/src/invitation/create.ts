@@ -14,7 +14,7 @@ export const create = ({
   seed,
   maxUses = 1, // by default an invitation can only be used once
   expiration = 0, // by default an invitation never expires
-  userId,
+  userName,
 }: CreateOptions): Invitation => {
   seed = normalize(seed)
 
@@ -25,7 +25,7 @@ export const create = ({
   const starterKeys = generateStarterKeys(seed)
   const { publicKey } = starterKeys.signature
 
-  return { id, publicKey, expiration, maxUses, userId }
+  return { id, publicKey, expiration, maxUses, userName }
 }
 
 type CreateOptions = {
@@ -39,5 +39,5 @@ type CreateOptions = {
   maxUses?: number
 
   /** (Device invitations only) User name the device will be associated with. */
-  userId?: string
+  userName?: string
 }

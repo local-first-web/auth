@@ -23,14 +23,14 @@ export const invalidLinkReducer = (state: TeamState, link: TeamLink): TeamState 
       // `removedMembers`. This way their client will receive the appropriate error message when
       // trying to connect, and will know to self-destruct the chain they received.
       const keys = link.body.payload.memberKeys
-      const userId = keys.name
+      const userName = keys.name
 
-      const member: Member = { userId: userId, keys, roles: [] }
+      const member: Member = { userName, keys, roles: [] }
       const removedMembers = [...state.removedMembers, member]
 
       // We also need to flag the user as compromised, so that an admin can rotate all keys they had access to at the first opportunity.
       const pendingKeyRotations = [...state.pendingKeyRotations]
-      if (!pendingKeyRotations.includes(userId)) pendingKeyRotations.push(userId)
+      if (!pendingKeyRotations.includes(userName)) pendingKeyRotations.push(userName)
       return {
         ...state,
         // Note that we don't need to alter the list of members, because this member is never added

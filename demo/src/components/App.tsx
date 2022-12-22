@@ -31,38 +31,36 @@ export const App = () => {
 
   const onUpdate = (s: StoredPeerState) => {
     if (s.user) {
-      const peerId = `${s.user.userId}:${s.device.deviceName}`
+      const peerId = `${s.user.userName}:${s.device.deviceName}`
       setStorage(prev => ({ ...prev, [peerId]: s }))
     }
   }
 
   const getInitialState = (peerInfo: PeerInfo): PeerState => {
-    const peerId = `${peerInfo.user.userId}:${peerInfo.device.name}`
+    const peerId = `${peerInfo.user.name}:${peerInfo.device.name}`
     const storedState = storage[peerId]
     if (storedState) {
       // we're re-showing a peer that was previously hidden - we still have its state
-      const { user, teamGraph, teamKeys } = storedState
+      const { user, teamChain } = storedState
       const team =
-        user && teamGraph && teamKeys
-          ? auth.loadTeam(teamGraph, { ...storedState, user }, teamKeys)
-          : undefined
+        user && teamChain ? auth.loadTeam(teamChain, { ...storedState, user }) : undefined
       return { ...defaults, ...storedState, team }
     } else {
       // we're showing a peer for the first time
-      const { userId, userName } = peerInfo.user
+      const userName = peerInfo.user.name
 
-      const device = auth.createDevice(userId, peerInfo.device.name)
+      const device = auth.createDevice(userName, peerInfo.device.name)
 
       const user =
         peerInfo.device.name === 'laptop'
           ? // For the purposes of this demo, we're using the laptop as each user's "primary" device --
             // that's where their user keys are created.
-            auth.createUser(userName, userId)
+            auth.createUser(userName)
           : // On the phone, we only know the user's name. We don't have any user keys yet,
             // we'll get them once the device joins the team.
             undefined
 
-      const state = { userName, userId, user, device }
+      const state = { userName, user, device }
       setStorage(prev => ({ ...prev, [peerId]: state }))
       return { ...defaults, ...state }
     }

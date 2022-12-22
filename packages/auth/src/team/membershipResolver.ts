@@ -10,8 +10,7 @@ import {
   TeamAction,
   TeamContext,
   TeamLink,
-  TeamGraph,
-  AdmitMemberAction,
+  TeamSignatureChain,
 } from '@/team/types'
 import { arraysAreEqual } from '@/util/arraysAreEqual'
 import { getConcurrentBubbles, Link, LinkBody, Resolver } from 'crdx'
@@ -22,14 +21,14 @@ import { isAdminOnlyAction } from './isAdminOnlyAction'
  * ordered sequence. It mostly applies "strong-remove" rules to resolve tricky situations that can
  * arise with concurrency: actions done while being removed, mutual removals, etc.
  */
-export const membershipResolver: Resolver<TeamAction, TeamContext> = graph => {
-  const bubbles = getConcurrentBubbles(graph).map(hashes => hashes.map(hash => graph.links[hash]))
+export const membershipResolver: Resolver<TeamAction, TeamContext> = chain => {
+  const bubbles = getConcurrentBubbles(chain).map(hashes => hashes.map(hash => chain.links[hash]))
   const invalidLinks: TeamLink[] = []
   for (var bubble of bubbles) {
     for (const ruleName in membershipRules) {
       // apply this rule to find any links that need to be invalidated
       const rule = membershipRules[ruleName]
-      const invalidLinksByThisRule = rule(bubble, graph)
+      const invalidLinksByThisRule = rule(bubble, chain)
 
       // expand this list to include any links that depend on invalid links we've already found
       const alsoInvalid = invalidLinksByThisRule.flatMap(link => findDependentLinks(bubble, link))
@@ -60,8 +59,8 @@ const findDependentLinks = (bubble: TeamLink[], invalidLink: TeamLink): TeamLink
 
     case 'ADMIT_MEMBER':
       // invalidate anything the admitted member did
-      const userId = invalidLink.body.payload.memberKeys.name
-      dependentLinks.push(...bubble.filter(authorIs(userId)))
+      const userName = invalidLink.body.payload.memberKeys.name
+      dependentLinks.push(...bubble.filter(authorIs(userName)))
       break
 
     default:
@@ -94,7 +93,7 @@ const membershipRules: Record<string, MembershipRuleEnforcer> = {
   // RULE: If A is removing C, B can't overcome this by concurrently removing C then adding C back
   cantAddBackRemovedMember: links => {
     const removedMembers = getRemovedAndDemotedMembers(links)
-    return getAdditions(links).filter(link => removedMembers.includes(addedUserId(link)))
+    return getAdditions(links).filter(link => removedMembers.includes(addedUserName(link)))
   },
 
   // RULE: If B is removed, anything they do concurrently is omitted
@@ -114,11 +113,11 @@ const membershipRules: Record<string, MembershipRuleEnforcer> = {
 
 // Helpers
 
-const leastSenior = (chain: TeamGraph, userNames: string[]) =>
+const leastSenior = (chain: TeamSignatureChain, userNames: string[]) =>
   userNames.sort(bySeniority(chain)).pop()!
 
 const isAddAction = (link: TeamLink): link is AddActionLink =>
-  ['ADD_MEMBER', 'ADD_MEMBER_ROLE', 'ADMIT_MEMBER'].includes(link.body.type)
+  link.body.type === 'ADD_MEMBER' || link.body.type === 'ADD_MEMBER_ROLE'
 
 const isRemovalAction = (link: TeamLink): boolean => link.body.type === 'REMOVE_MEMBER'
 
@@ -140,9 +139,9 @@ const getRemovedAndDemotedMembers = (links: TeamLink[]) =>
 const getRemovedMembers = (links: TeamLink[]) => getRemovals(links).map(getTarget)
 const getDemotedMembers = (links: TeamLink[]) => getDemotions(links).map(getTarget)
 
-const getTarget = (link: RemoveActionLink): string => link.body.payload.userId
+const getTarget = (link: RemoveActionLink): string => link.body.payload.userName
 
-const getAuthor = (link: TeamLink): string => link.body.userId
+const getAuthor = (link: TeamLink): string => link.signed.userName
 
 const authorIs = (author: string) => (link: TeamLink) => getAuthor(link) === author
 
@@ -151,25 +150,16 @@ const authorIn =
   (link: TeamLink): boolean =>
     excludeList.includes(getAuthor(link))
 
-const addedUserId = (link: AddActionLink): string => {
-  switch (link.body.type) {
-    case 'ADD_MEMBER': {
-      const addAction = link.body as LinkBody<AddMemberAction, TeamContext>
-      return addAction.payload.member.userId
-    }
-    case 'ADD_MEMBER_ROLE': {
-      const addAction = link.body as LinkBody<AddMemberRoleAction, TeamContext>
-      return addAction.payload.userId
-    }
-    case 'ADMIT_MEMBER': {
-      const addAction = link.body as LinkBody<AdmitMemberAction, TeamContext>
-      return addAction.payload.memberKeys.name
-    }
-    default: {
-      // ignore coverage
-      throw new Error()
-    }
+const addedUserName = (link: AddActionLink): string => {
+  if (link.body.type === 'ADD_MEMBER') {
+    const addAction = link.body as LinkBody<AddMemberAction, TeamContext>
+    return addAction.payload.member.userName
+  } else if (link.body.type === 'ADD_MEMBER_ROLE') {
+    const addAction = link.body as LinkBody<AddMemberRoleAction, TeamContext>
+    return addAction.payload.userName
   }
+  // ignore coverage
+  else throw new Error()
 }
 
 const linkNotIn =
@@ -182,4 +172,4 @@ const usesInvitation = (invitation: Invitation) => (l: TeamLink) =>
   l.body.payload.id === invitation.id
 
 type RemoveActionLink = Link<RemoveMemberAction | RemoveMemberRoleAction, TeamContext>
-type AddActionLink = Link<AddMemberAction | AddMemberRoleAction | AdmitMemberAction, TeamContext>
+type AddActionLink = Link<AddMemberAction | AddMemberRoleAction, TeamContext>

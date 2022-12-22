@@ -27,7 +27,7 @@ import { validate } from './validate'
 
 /**
  * Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `TeamState`
- * from a `TeamGraph`, by applying a Redux-style reducer to the array of links. The reducer runs on
+ * from a `TeamChain`, by applying a Redux-style reducer to the array of links. The reducer runs on
  * each link in sequence, accumulating a team state.
  *
  * > *Note:* Keep in mind that this reducer is a pure function that acts on the publicly available
@@ -38,7 +38,7 @@ import { validate } from './validate'
  * @param state The team state as of the previous link in the signature chain.
  * @param link The current link being processed.
  */
-export const reducer: Reducer<TeamState, TeamAction, TeamContext> = (state, link) => {
+export const reducer: Reducer<TeamState, TeamAction, TeamContext> = ((state, link) => {
   // Invalid links are marked to be discarded by the MembershipResolver due to conflicting
   // concurrent actions. In most cases we just ignore these links and they don't affect state at
   // all; but in some cases we need to clean up, for example when someone's admission is reversed
@@ -63,7 +63,7 @@ export const reducer: Reducer<TeamState, TeamAction, TeamContext> = (state, link
   const newState = applyTransforms(state)
 
   return newState
-}
+}) as Reducer<TeamState, TeamAction, TeamContext>
 
 /**
  * Each action type generates one or more transforms (functions that take the old state and return a
@@ -79,14 +79,14 @@ const getTransforms = (action: TeamAction): Transform[] => {
         addRole({ roleName: ADMIN }), // create the admin role
         addMember(rootMember), // add the founding member
         addDevice(rootDevice), // add the founding member's device
-        ...addMemberRoles(rootMember.userId, [ADMIN]), // make the founding member an admin
+        ...addMemberRoles(rootMember.userName, [ADMIN]), // make the founding member an admin
       ]
 
     case 'ADD_MEMBER': {
       const { member, roles } = action.payload
       return [
         addMember(member), // add this member to the team
-        ...addMemberRoles(member.userId, roles), // add each of these roles to the member's list of roles
+        ...addMemberRoles(member.userName, roles), // add each of these roles to the member's list of roles
       ]
     }
 
@@ -98,16 +98,16 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     case 'ADD_MEMBER_ROLE': {
-      const { userId, roleName } = action.payload
+      const { userName, roleName } = action.payload
       return [
-        ...addMemberRoles(userId, [roleName]), // add this role to the member's list of roles
+        ...addMemberRoles(userName, [roleName]), // add this role to the member's list of roles
       ]
     }
 
     case 'REMOVE_MEMBER': {
-      const { userId } = action.payload
+      const { userName } = action.payload
       return [
-        removeMember(userId), // remove this member from the team
+        removeMember(userName), // remove this member from the team
       ]
     }
 
@@ -119,9 +119,9 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     case 'REMOVE_DEVICE': {
-      const { userId, deviceName } = action.payload
+      const { userName, deviceName } = action.payload
       return [
-        removeDevice(userId, deviceName), // remove this device from the member's list of devices
+        removeDevice(userName, deviceName), // remove this device from the member's list of devices
       ]
     }
 
@@ -133,9 +133,9 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     case 'REMOVE_MEMBER_ROLE': {
-      const { userId, roleName } = action.payload
+      const { userName, roleName } = action.payload
       return [
-        removeMemberRole(userId, roleName), // remove this role from the member's list of roles
+        removeMemberRole(userName, roleName), // remove this role from the member's list of roles
       ]
     }
 
@@ -161,11 +161,10 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     case 'ADMIT_MEMBER': {
-      const { id, memberKeys, userName } = action.payload
-      const userId = memberKeys.name
+      const { id, memberKeys } = action.payload
+      const userName = memberKeys.name
 
       const member: Member = {
-        userId,
         userName,
         keys: memberKeys,
         roles: [],
@@ -178,10 +177,10 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     case 'ADMIT_DEVICE': {
-      const { id, userId, deviceName, deviceKeys } = action.payload
+      const { id, userName, deviceName, deviceKeys } = action.payload
 
       const device: Device = {
-        userId: userId,
+        userName,
         deviceName,
         keys: deviceKeys,
       }
@@ -207,9 +206,9 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     case 'ROTATE_KEYS': {
-      const { userId } = action.payload
+      const { userName } = action.payload
       return [
-        rotateKeys(userId), // mark this member's keys as having been rotated (the rotated keys themselves are in the lockboxes)
+        rotateKeys(userName), // mark this member's keys as having been rotated (the rotated keys themselves are in the lockboxes)
       ]
     }
 

@@ -5,11 +5,11 @@ import { Transform } from '@/team/types'
 export const changeDeviceKeys =
   (keys: Keyset): Transform =>
   state => {
-    const { userId, deviceName } = parseDeviceId(keys.name)
+    const { userName, deviceName } = parseDeviceId(keys.name)
     return {
       ...state,
       members: state.members.map(member => {
-        if (member.userId === userId) {
+        if (member.userName === userName) {
           return {
             ...member,
             devices: member.devices?.map(device => {

@@ -15,8 +15,8 @@ export const useTeam = () => {
   assert(context, `useTeam must be used within a TeamProvider`)
 
   const [peerState, setPeerState] = context
-  const { userName, userId, user, team, device } = peerState
-  const head = team?.graph?.head
+  const { userName, user, team, device } = peerState
+  const head = team?.chain?.head
 
   React.useEffect(() => {
     if (team) {
@@ -30,7 +30,7 @@ export const useTeam = () => {
 
   React.useEffect(() => {
     // clear the team if the user is no longer a member
-    if (!team?.has(userId)) {
+    if (!team?.has(userName)) {
       clearTeam()
     }
   }, [team, head])
@@ -80,12 +80,12 @@ export const useTeam = () => {
     })
 
     const { teamName } = team
-    const context = { userName, user, device, team, teamKeys: team.teamKeys() }
+    const context = { userName, user, device, team }
     connect(teamName, context)
   }
 
   const joinTeam = (teamName: string, invitationSeed: string) => {
-    const context = { userName, userId, user, device, invitationSeed }
+    const context = { userName, user, device, invitationSeed }
     connect(teamName, context)
   }
 
