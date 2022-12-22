@@ -5,12 +5,13 @@ import { useTeam } from '../hooks/useTeam'
 import { devices, users } from '../peers'
 import { assert } from '../util/assert'
 import { CardLabel } from './CardLabel'
-import { ChainDiagram } from './ChainDiagram'
+import { GraphDiagram } from './GraphDiagram'
 import { Invite } from './Invite'
 import { OnlineToggle } from './OnlineToggle'
 import { StatusIndicator } from './StatusIndicator'
 
 import debug from 'debug'
+import { MemberInitialContext } from '@localfirst/auth'
 
 export const Team = () => {
   const { team, user, device, online, connect, disconnect, connectionStatus } = useTeam()
@@ -18,11 +19,11 @@ export const Team = () => {
   assert(team) // we know we're on a team if we're showing this component
   assert(user)
 
-  const { userName } = user
+  const { userId } = user
 
-  const userBelongsToTeam = team.has(user.userName)
-  const userIsAdmin = userBelongsToTeam && team.memberIsAdmin(user.userName)
-  const adminCount = () => team.members().filter(m => team.memberIsAdmin(m.userName)).length
+  const userBelongsToTeam = team.has(userId)
+  const userIsAdmin = userBelongsToTeam && team.memberIsAdmin(userId)
+  const adminCount = () => team.members().filter(m => team.memberIsAdmin(m.userId)).length
 
   return (
     <>
@@ -40,7 +41,7 @@ export const Team = () => {
               isOnline={online}
               onChange={isConnected => {
                 if (isConnected) {
-                  const context = { userName, user, device, team }
+                  const context = { user, device, team } as MemberInitialContext
                   connect(team.teamName, context)
                 } else {
                   disconnect()
@@ -55,7 +56,7 @@ export const Team = () => {
           <tbody>
             {/* One row per member */}
             {team.members()?.map(m => {
-              const memberIsAdmin = team.memberIsAdmin(m.userName)
+              const memberIsAdmin = team.memberIsAdmin(m.userId)
               const memberIsOnlyAdmin = memberIsAdmin && adminCount() === 1
 
               const adminToggleTitle = memberIsOnlyAdmin
@@ -74,8 +75,8 @@ export const Team = () => {
                         size="small"
                         disabled={!userIsAdmin || memberIsOnlyAdmin}
                         onClick={() => {
-                          if (memberIsAdmin) team.removeMemberRole(m.userName, auth.ADMIN)
-                          else team.addMemberRole(m.userName, auth.ADMIN)
+                          if (memberIsAdmin) team.removeMemberRole(m.userId, auth.ADMIN)
+                          else team.addMemberRole(m.userId, auth.ADMIN)
                         }}
                         title={adminToggleTitle}
                         className={`px-1 m-1 hover:opacity-25  ${
@@ -90,7 +91,8 @@ export const Team = () => {
 
                   {/* Name & emoji */}
                   <td className="p-2">
-                    {users[m.userName].emoji} <span className="UserName">{m.userName}</span>
+                    {users[m.userName!].emoji}
+                    <span className="UserName ml-1">{m.userName}</span>
                   </td>
 
                   {/* Connection status */}
@@ -120,7 +122,7 @@ export const Team = () => {
                         title="Remove member from team"
                         className="hover:opacity-100 opacity-10 font-bold text-xs text-white bg-red-500 rounded-full w-4 h-4 "
                         onClick={() => {
-                          team.remove(m.userName)
+                          team.remove(m.userId)
                         }}
                         children="⨉"
                       />
@@ -139,7 +141,7 @@ export const Team = () => {
       {/* Chain visualization */}
       <CardBody className="border-t">
         <CardLabel>Signature chain</CardLabel>
-        <ChainDiagram chain={team.chain} id={device.keys.name.replace(/::/, '-')} />
+        <GraphDiagram graph={team.graph} id={device.keys.name.replace(/::/, '-')} />
       </CardBody>
     </>
   )

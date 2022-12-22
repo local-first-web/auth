@@ -4,13 +4,13 @@ import { getDeviceId, Device } from '@/device'
 export const addDevice =
   (device: Device): Transform =>
   state => {
-    const { userName } = device
+    const { userId } = device
     return {
       ...state,
 
       // add device to the member's list of devices
       members: state.members.map(member => {
-        if (member.userName === userName) {
+        if (member.userId === userId) {
           const { devices = [] } = member
           return {
             ...member,

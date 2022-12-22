@@ -1,4 +1,5 @@
-﻿export type UnixTimestamp = number
+﻿export type UUID = string
+export type UnixTimestamp = number
 export type Utf8 = string
 export type Base58 = string
 export type Hash = Base58

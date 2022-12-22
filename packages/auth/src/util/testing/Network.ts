@@ -1,15 +1,25 @@
+// ignore file coverage
 import { Team } from '@/team'
-import { generateMessage, initSyncState, receiveMessage, SyncMessage, SyncState } from 'crdx'
+import {
+  generateMessage,
+  initSyncState,
+  KeysetWithSecrets,
+  receiveMessage,
+  SyncMessage,
+  SyncState,
+} from 'crdx'
 import { setup, UserStuff } from './setup'
 
 // Simulates a peer-to-peer network
 export class Network {
   peers: Record<string, Peer>
   queue: any[]
+  teamKeys: KeysetWithSecrets
 
-  constructor() {
+  constructor(teamKeys: KeysetWithSecrets) {
     this.peers = {}
     this.queue = []
+    this.teamKeys = teamKeys
   }
 
   registerPeer(peer: Peer) {
@@ -43,7 +53,7 @@ export class Network {
       const message = messageMutator(originalMessage)
       const { to, from, body } = message
 
-      this.peers[to].receiveMessage(from, body)
+      this.peers[to].receiveMessage(from, body, this.teamKeys)
 
       // log the message for the results of this delivery run
       delivered.push(message)
@@ -79,15 +89,20 @@ class Peer {
   // Generates and enqueues messages to all peers we're connected to (unless there is nothing to send)
   sync() {
     for (const [userName, prevSyncState] of Object.entries(this.syncStates)) {
-      const [syncState, message] = generateMessage(this.team.chain, prevSyncState)
+      const [syncState, message] = generateMessage(this.team.graph, prevSyncState)
       this.syncStates[userName] = syncState
       if (message) this.network.sendMessage(this.userName, userName, message)
     }
   }
 
   // Called by Network when we receive a message from another peer
-  receiveMessage(sender: string, message: SyncMessage<any, any>) {
-    const [chain, syncState] = receiveMessage(this.team.chain, this.syncStates[sender], message)
+  receiveMessage(sender: string, message: SyncMessage<any, any>, teamKeys: KeysetWithSecrets) {
+    const [chain, syncState] = receiveMessage(
+      this.team.graph,
+      this.syncStates[sender],
+      message,
+      teamKeys,
+    )
     this.team = this.team.merge(chain)
     this.syncStates[sender] = syncState
     this.sync()
@@ -103,18 +118,18 @@ function truncateStack(err: Error, lines = 5) {
   return err
 }
 
-export const setupWithNetwork = (...config: any): [Record<string, UserStuffWithPeer>, Network] => {
-  const users = setup(...config) as Record<string, UserStuffWithPeer>
+// export const setupWithNetwork = (...config: any): [Record<string, UserStuffWithPeer>, Network] => {
+//   const users = setup(...config) as Record<string, UserStuffWithPeer>
 
-  const network = new Network()
+//   const network = new Network(teamKeys)
 
-  for (const userName in users) {
-    const user = users[userName]
-    user.peer = new Peer(userName, user.team, network)
-  }
+//   for (const userName in users) {
+//     const user = users[userName]
+//     user.peer = new Peer(userName, user.team, network)
+//   }
 
-  return [users, network]
-}
+//   return [users, network]
+// }
 
 export interface UserStuffWithPeer extends UserStuff {
   peer: Peer

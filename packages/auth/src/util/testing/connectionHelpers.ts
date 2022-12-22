@@ -1,3 +1,4 @@
+// ignore file coverage
 import { InviteeDeviceInitialContext, InviteeMemberInitialContext } from '@/connection/types'
 import { Connection } from '@/connection/Connection'
 import { joinTestChannel } from './joinTestChannel'
@@ -9,8 +10,8 @@ import { TestChannel } from './TestChannel'
 export const tryToConnect = async (a: UserStuff, b: UserStuff) => {
   const join = joinTestChannel(new TestChannel())
 
-  a.connection[b.userName] = join(a.connectionContext).start()
-  b.connection[a.userName] = join(b.connectionContext).start()
+  a.connection[b.userId] = join(a.connectionContext).start()
+  b.connection[a.userId] = join(b.connectionContext).start()
 }
 
 /** Connects the two members and waits for them to be connected */
@@ -29,13 +30,13 @@ export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: st
 
   return connect(a, b).then(() => {
     // The connection now has the team object, so let's update our user stuff
-    b.team = b.connection[a.userName].team!
+    b.team = b.connection[a.userId].team!
   })
 }
 
 export const connectPhoneWithInvitation = async (user: UserStuff, seed: string) => {
   const phoneContext = {
-    userName: user.userName,
+    userId: user.userId,
     device: user.phone,
     invitationSeed: seed,
   } as InviteeDeviceInitialContext
@@ -54,22 +55,18 @@ export const connectPhoneWithInvitation = async (user: UserStuff, seed: string) 
 export const expectEveryoneToKnowEveryone = (...members: UserStuff[]) => {
   for (const a of members)
     for (const b of members) {
-      if (!a.team.has(b.userName))
-        throw new Error(`${a.userName} does not have ${b.userName} on their team`)
+      if (!a.team.has(b.userId))
+        throw new Error(`${a.userId} does not have ${b.userId} on their team`)
     }
 }
 
 /** Disconnects the two members and waits for them to be disconnected */
 export const disconnect = (a: UserStuff, b: UserStuff) =>
-  Promise.all([
-    disconnection(a, b),
-    a.connection[b.userName].stop(),
-    b.connection[a.userName].stop(),
-  ])
+  Promise.all([disconnection(a, b), a.connection[b.userId].stop(), b.connection[a.userId].stop()])
 
 // PROMISIFIED EVENTS
 export const connection = async (a: UserStuff, b: UserStuff) => {
-  const connections = [a.connection[b.userName], b.connection[a.userName]]
+  const connections = [a.connection[b.userId], b.connection[a.userId]]
 
   // ✅ They're both connected
   await all(connections, 'connected')
@@ -83,22 +80,22 @@ export const connection = async (a: UserStuff, b: UserStuff) => {
 }
 
 export const updated = (a: UserStuff, b: UserStuff) => {
-  const connections = [a.connection[b.userName], b.connection[a.userName]]
+  const connections = [a.connection[b.userId], b.connection[a.userId]]
   return all(connections, 'updated')
 }
 
 export const anyUpdated = (a: UserStuff, b: UserStuff) => {
-  const connections = [a.connection[b.userName], b.connection[a.userName]]
+  const connections = [a.connection[b.userId], b.connection[a.userId]]
   return any(connections, 'updated')
 }
 
 export const anyDisconnected = (a: UserStuff, b: UserStuff) => {
-  const connections = [a.connection[b.userName], b.connection[a.userName]]
+  const connections = [a.connection[b.userId], b.connection[a.userId]]
   return any(connections, 'disconnected')
 }
 
 export const disconnection = async (a: UserStuff, b: UserStuff, message?: string) => {
-  const connections = [a.connection[b.userName], b.connection[a.userName]]
+  const connections = [a.connection[b.userId], b.connection[a.userId]]
   const activeConnections = connections.filter(c => c.state !== 'disconnected')
 
   // ✅ They're both disconnected
@@ -117,7 +114,7 @@ export const all = (connections: Connection[], event: string) =>
       if (event === 'disconnect' && connection.state === 'disconnected') return true
       if (event === 'connected' && connection.state === 'connected') return true
       else return new Promise(resolve => connection.on(event, () => resolve(true)))
-    })
+    }),
   )
 
 export const any = (connections: Connection[], event: string) =>
@@ -126,5 +123,5 @@ export const any = (connections: Connection[], event: string) =>
       if (event === 'disconnect' && connection.state === 'disconnected') return true
       if (event === 'connected' && connection.state === 'connected') return true
       else return new Promise(resolve => connection.on(event, () => resolve(true)))
-    })
+    }),
   )
