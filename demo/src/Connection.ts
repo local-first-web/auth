@@ -5,7 +5,7 @@ export class Connection extends EventEmitter {
   private authConnection: auth.Connection
   private peerSocket: WebSocket
 
-  constructor({ socket, context, peerUserName: peerUserId, storedMessages }: ConnectionParams) {
+  constructor({ socket, context, peerUserName, storedMessages }: ConnectionParams) {
     super()
     this.peerSocket = socket
 
@@ -17,7 +17,7 @@ export class Connection extends EventEmitter {
         socket.send(message)
       }
     }
-    this.authConnection = new auth.Connection({ context, sendMessage, peerUserId })
+    this.authConnection = new auth.Connection({ context, sendMessage, peerUserName })
 
     // listen for incoming messages and pass them to the auth connection
     socket.addEventListener('message', ({ data: message }) => {

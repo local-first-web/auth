@@ -18,7 +18,7 @@ export interface Invitation {
   maxUses: number
 
   /** (Device invitations only) User name the device will be associated with. */
-  userId?: string
+  userName?: string
 }
 
 /**
@@ -41,6 +41,6 @@ export interface ProofOfInvitation {
   /** Public, unique identifier for the invitation */
   id: Base58
 
-  /** Signature of userId and invitation id, using the private signing key derived from the secret invitation key */
+  /** Signature of userName and id, using the private signing key derived from the secret invitation key */
   signature: Base58
 }

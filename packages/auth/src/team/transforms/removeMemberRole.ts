@@ -2,7 +2,7 @@
 import { KeyType } from 'crdx'
 
 export const removeMemberRole =
-  (userId: string, roleName: string): Transform =>
+  (userName: string, roleName: string): Transform =>
   state => ({
     ...state,
 
@@ -11,7 +11,7 @@ export const removeMemberRole =
       return {
         ...member,
         roles:
-          member.userId !== userId //
+          member.userName !== userName //
             ? member.roles // leave other members' roles alone
             : member.roles.filter(r => r !== roleName),
       }
@@ -21,7 +21,7 @@ export const removeMemberRole =
     lockboxes: state.lockboxes.filter(
       lockbox =>
         !(
-          lockbox.recipient.name === userId &&
+          lockbox.recipient.name === userName &&
           lockbox.contents.type === KeyType.ROLE &&
           lockbox.contents.name === roleName
         )

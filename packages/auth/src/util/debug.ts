@@ -1,5 +1,4 @@
-﻿// ignore file coverage
-import originalDebug from 'debug'
+﻿import originalDebug from 'debug'
 import { truncateHashes } from './truncateHashes'
 
 const substituteTokens = (s: string) => {

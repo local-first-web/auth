@@ -1,6 +1,6 @@
 ﻿import { Challenge } from '@/connection/types'
 import { ProofOfInvitation } from '@/invitation'
-import { KeysetWithSecrets, SyncMessage as SyncPayload } from 'crdx'
+import { SyncMessage as SyncPayload } from 'crdx'
 import { TeamAction, TeamContext } from '@/team'
 import { Base58, Hash } from '@/util'
 import { KeyScope, Keyset } from 'crdx'
@@ -11,10 +11,8 @@ export type ReadyMessage = {
 }
 
 /**
- * - If we're a member, we just authorize as a device. So all we provide is an identity claim for a
- *   device.
- * - If we're a new member with an invitation, we want to give them our user's public keys and our
- *   device's public keys.
+ * - If we're a member, we just authorize as a device. So all we provide is an identity claim for a device.
+ * - If we're a new member with an invitation, we want to give them our user's public keys and our device's public keys.
  * - If we're a new device with an invitation, we just want to give them our device public keys.
  */
 export type ClaimIdentityMessage = {
@@ -29,7 +27,6 @@ export type ClaimIdentityMessage = {
         proofOfInvitation: ProofOfInvitation
         userKeys?: Keyset // only for new member (not for new device)
         deviceKeys: Keyset
-        userName: string
       }
 }
 
@@ -49,8 +46,7 @@ export type ReconnectMessage = {
 export type AcceptInvitationMessage = {
   type: 'ACCEPT_INVITATION'
   payload: {
-    serializedGraph: Base58
-    teamKeys: KeysetWithSecrets
+    chain: string
   }
 }
 

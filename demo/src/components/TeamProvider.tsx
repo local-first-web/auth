@@ -6,9 +6,9 @@ export const TeamProvider = ({ initialState, onUpdate, children }: TeamProviderP
 
   React.useEffect(() => {
     // store state whenever it changes
-    const { team } = peerState
-    const teamGraph = team?.save()
-    onUpdate({ ...peerState, teamGraph })
+    const { userName, user, device, team } = peerState
+    const teamChain = team?.save()
+    onUpdate({ userName, user, device, teamChain })
   }, [peerState])
 
   return <teamContext.Provider value={[peerState, setPeerState]} children={children} />

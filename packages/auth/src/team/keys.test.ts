@@ -139,8 +139,8 @@ describe('Team', () => {
       const { eve } = setup('alice', 'bob', { user: 'eve', admin: false })
       const newKeys = createKeyset({ type: USER, name: 'bob' })
 
-      // @ts-ignore - rotateKeys is private
-      const lockboxes = eve.team.rotateKeys(newKeys)
+      // @ts-ignore - generateNewLockboxes is private
+      const lockboxes = eve.team.generateNewLockboxes(newKeys)
 
       const tryToChangeBobsKeys = () =>
         eve.team.dispatch({
@@ -160,8 +160,8 @@ describe('Team', () => {
       const deviceId = getDeviceId(bob.device)
       const newKeys = createKeyset({ type: DEVICE, name: deviceId })
 
-      // @ts-ignore - rotateKeys is private
-      const lockboxes = eve.team.rotateKeys(newKeys)
+      // @ts-ignore - generateNewLockboxes is private
+      const lockboxes = eve.team.generateNewLockboxes(newKeys)
 
       const tryToChangeBobsKeys = () =>
         eve.team.dispatch({

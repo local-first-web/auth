@@ -1,7 +1,7 @@
 ﻿import { ADMIN } from '@/role'
 import * as teams from '@/team'
-import { TEAM_SCOPE } from '@/team'
 import {
+  all,
   anyDisconnected,
   anyUpdated,
   connect,
@@ -10,10 +10,11 @@ import {
   disconnect,
   disconnection,
   expectEveryoneToKnowEveryone,
+  joinTestChannel,
   setup,
+  TestChannel,
   tryToConnect,
 } from '@/util/testing'
-import { createKeyset } from 'crdx'
 
 describe('connection', () => {
   describe('authentication', () => {
@@ -47,7 +48,6 @@ describe('connection', () => {
           userName: 'charlie',
           user: charlie.user,
           device: charlie.device,
-          teamKeys: createKeyset(TEAM_SCOPE),
         }
 
         // ❌ Alice and Charlie can't connect because they're on different teams
@@ -88,7 +88,7 @@ describe('connection', () => {
         const { alice, bob, charlie } = setup(
           'alice',
           { user: 'bob', member: false },
-          { user: 'charlie', member: false },
+          { user: 'charlie', member: false }
         )
 
         // 👩🏾📧👨🏻‍🦲 Alice invites Bob
@@ -175,6 +175,29 @@ describe('connection', () => {
 
         // ✅ 👩🏾👍📱 Alice knows about Bob's phone
         expect(alice.team.members('bob').devices).toHaveLength(2)
+      })
+
+      it('connects an invitee while simultaneously making other changes', async () => {
+        const { alice, bob } = setup('alice', { user: 'bob', member: false })
+
+        // 👩🏾📧👨🏻‍🦲 Alice invites Bob
+        const { seed } = alice.team.inviteMember()
+
+        // 👨🏻‍🦲📧<->👩🏾 Bob connects to Alice and uses his invitation to join
+        bob.connectionContext = { ...bob.connectionContext, invitationSeed: seed }
+
+        const join = joinTestChannel(new TestChannel())
+
+        const a = (alice.connection.bob = join(alice.connectionContext).start())
+        const b = (bob.connection.alice = join(bob.connectionContext).start())
+
+        await all([a, b], 'connected')
+        alice.team = a.team!
+        bob.team = b.team!
+
+        // ✅
+        expect(alice.team.has('bob')).toBe(true)
+        expect(bob.team.has('alice')).toBe(true)
       })
 
       it('connects an invitee after one failed attempt', async () => {
