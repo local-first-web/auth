@@ -9,11 +9,9 @@ export const removeMember =
     const removedMembers = [...state.removedMembers]
     if (removedMember) removedMembers.push(removedMember)
 
-    const remainingLockboxes = state.lockboxes.filter(lockbox => lockbox.recipient.name !== userId)
     return {
       ...state,
       members: remainingMembers,
       removedMembers,
-      lockboxes: remainingLockboxes,
     }
   }
