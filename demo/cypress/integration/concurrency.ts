@@ -1,4 +1,3 @@
-import { should } from 'chai'
 import {
   alice,
   aliceToAlice,
