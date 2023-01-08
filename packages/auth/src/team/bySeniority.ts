@@ -1,4 +1,4 @@
-import { TeamContext, TeamLink, TeamGraph } from '@/team/types'
+import { TeamGraph, TeamLink } from '@/team/types'
 import { isPredecessor } from 'crdx'
 
 export const bySeniority = (chain: TeamGraph) => (a: string, b: string) => {
@@ -13,10 +13,13 @@ export const bySeniority = (chain: TeamGraph) => (a: string, b: string) => {
   }
   const [addedA, addedB] = [a, b].map(linkThatAddedMember)
 
+  // TODO: if both users were added concurrently, need to have a default sort
+
   // if A was added first, A comes first in the sort
   if (isPredecessor(chain, addedA!, addedB!)) return -1
   else return 1
 }
+
 const isFounder = (chain: TeamGraph, userId: string) => {
   const rootLink = chain.links[chain.root]
   return rootLink.body.userId === userId
