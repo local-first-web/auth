@@ -4,6 +4,7 @@ import { getDeviceId } from '@/device'
 import { pause } from './pause'
 import { TestChannel } from './TestChannel'
 
+/** Returns a function that can be used to join a specific test channel */
 export const joinTestChannel = (channel: TestChannel) => (context: InitialContext) => {
   const id = getDeviceId(context.device)
 
