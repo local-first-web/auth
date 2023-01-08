@@ -14,6 +14,7 @@ import {
   TestChannel,
   updated,
 } from '@/util/testing'
+import { MemberInitialContext } from './types'
 
 describe('connection', () => {
   describe('sync', () => {
@@ -748,12 +749,10 @@ describe('connection', () => {
         expect(charlie.team.members('bob').devices).toHaveLength(1)
 
         // Eve tries to connect to Charlie from Bob's phone, but she can't
-        const phoneContext = {
+        const phoneContext: MemberInitialContext = {
           device: bob.phone,
           user: bob.user,
           team: bob.team,
-          teamKeys: bob.team.teamKeys(),
-          // TODO why are we passing teamkeys if we can just get them from team
         }
 
         const join = joinTestChannel(new TestChannel())
