@@ -244,7 +244,6 @@ export class Connection extends EventEmitter {
   }
 
   // TODO: This business with storing the error in context and then retrieving it and using it as details and storing something else in context.error is pretty gross
-
   private fail = (type: ConnectionErrorType) =>
     assign<ConnectionContext, ConnectionMessage>({
       error: context => {
