@@ -1,6 +1,6 @@
 {
   "name": "@localfirst/react",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Official React library for @localfirst",
   "author": "Herb Caudill",
   "license": "MIT",
@@ -16,6 +16,6 @@
     "react-dom": "17"
   },
   "dependencies": {
-    "@localfirst/auth": "*"
+    "@localfirst/auth": "^1.0.2"
   }
 }
