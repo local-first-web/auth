@@ -1,9 +1,8 @@
 import { DeviceWithSecrets } from '@/device'
 import { ProofOfInvitation } from '@/invitation'
-import { KeysetWithSecrets, SyncState } from 'crdx'
 import { Member, Team } from '@/team'
 import { Base58, Hash, UnixTimestamp } from '@/util'
-import { KeyScope, Keyset, UserWithSecrets } from 'crdx'
+import { KeyScope, Keyset, SyncState, UserWithSecrets } from 'crdx'
 import { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
 import { ConnectionMessage } from './message'
 
@@ -22,7 +21,6 @@ export type MemberInitialContext = {
   user: UserWithSecrets
   device: DeviceWithSecrets
   team: Team
-  teamKeys: KeysetWithSecrets
 }
 
 export type InviteeMemberInitialContext = {
