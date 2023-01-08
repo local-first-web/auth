@@ -129,11 +129,8 @@ export class Team extends EventEmitter {
 
     // TODO: should we introduce a random delay here, so these don't pile up?
     for (const userId of this.state.pendingKeyRotations) {
-      // We don't know if the user was added to any other roles, so for now we're just preemptively
-      // rotating all lockboxes *we* can see (since we're an admin, we have access to all keys)
-
-      // TODO: we could be more surgical about this, but we'd have to replay everything that was
-      // invalidated in that bubble to see what roles the invalidated user was added to
+      // We don't know if the user was added to any other roles, so we're just preemptively rotating
+      // all lockboxes *we* can see (since we're an admin, we have access to all keys)
       const lockboxes = this.rotateKeys({ type: KeyType.USER, name: this.userId })
       this.dispatch({ type: 'ROTATE_KEYS', payload: { userId, lockboxes } })
     }
