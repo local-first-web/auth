@@ -1,5 +1,5 @@
-﻿export { createTeam as createTeam, load as loadTeam, Team } from './team'
-export { createDevice as createDevice } from './device'
+﻿export { createTeam, load as loadTeam, Team } from './team'
+export { Device, createDevice, redactDevice } from './device'
 export { Connection } from './connection'
 export { generateProof } from './invitation'
 
@@ -22,4 +22,14 @@ export * from './role/types'
 export * from './team/types'
 
 export { symmetric, asymmetric, signatures } from '@herbcaudill/crypto'
-export { LinkBody, createUser, User, UserWithSecrets, KeysetWithSecrets, createKeyset } from 'crdx'
+export {
+  LinkBody,
+  createUser,
+  User,
+  UserWithSecrets,
+  redactUser,
+  Keyset,
+  KeysetWithSecrets,
+  redactKeys,
+  createKeyset,
+} from 'crdx'
