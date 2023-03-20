@@ -25,7 +25,7 @@ server](http://medium.com/all-the-things/a-web-application-with-no-web-server-61
 This library uses a conflict-free replicated state container based on a **signature chain**
 (provided by the [CRDX](https://github.com/herbcaudill/crdx) library) to manage team membership, permissions, and authentication.
 
-**All** changes to the team's membership and permissions are recorded on the signature chain as a
+All changes to the team's membership and permissions are recorded on the signature chain as a
 sequence of **signed** and **hash-chained** actions.
 
 ![](./docs/img/sigchain-med.png)
@@ -182,41 +182,3 @@ proposed as a more secure alternative to TOFU, or _**T**rust **O**n **F**irst **
 
 🌮 This library was originally called `taco-js`. TACO stands for _**T**rust **A**fter
 **C**onfirmation **O**f invitation_.
-
-<table>
-<tr>
-<td>
-<details>
-<summary><b>Q:</b> 🤔 <i>Is this a blockchain?</i></summary>
-
-<b>A:</b> That depends.
-
-<b>Q:</b> How do you feel about blockchains?
-
-<details>
-<summary><b>A:</b> 😎 <i>I think blockchains are the key to a beautiful decentralized future.</i></summary>
-
-A signature chain is **conceptually similar to a blockchain**: It's a distributed ledger, with
-hash-linked and signed operations.
-
-</details>
-
-<details>
-<summary><b>A:</b> 😟 <i>The word makes me nervous.</i></summary>
-
-If the very mention of a blockchain makes you worry you're about to get scammed, a signature chain
-is **not at all like a blockchain**.
-
-1. None of this has anything to do with cryptocurrency or any kind of money.
-
-2. Rather than resolving conflicts via proof of energy consumption, this system is a **CRDT**
-   ([conflict-free replicated
-   datatype](https://en.wikipedia.org/wiki/Conflict-free_replicated_data_type)): Conflicts are
-   resolved using deterministic rules.
-
-</details>
-</details>
-
-</td>
-</tr>
-</table>
