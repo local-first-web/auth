@@ -18,6 +18,7 @@ export const Avatar = forwardRef<HTMLDivElement, AvatarProps>(function Avatar(pr
     </div>
   )
 })
+
 interface AvatarProps extends HTMLAttributes<HTMLDivElement> {
   size?: 'lg' | 'md' | 'sm'
 }
