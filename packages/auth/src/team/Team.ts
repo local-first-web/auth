@@ -221,11 +221,9 @@ export class Team extends EventEmitter {
       : select.member(this.state, userId, options) // one member
   }
 
-  /** Add a member to the team.
-   *
-   * **Note:** As far as I can imagine this wouldn't be used other than for unit tests. In
-   * real-world scenarios, you'll need to use the `team.invite` workflow to add members without
-   * relying on some kind of public key infrastructure.
+  /**
+   * Add a member to the team. This would be used if you already have a user's public keys,
+   * for example because you've interacted with them in another team.
    */
   public add = (user: UserWithSecrets, roles: string[] = [], device?: Device) => {
     const member = { ...redactUser(user), roles }
