@@ -52,11 +52,11 @@ describe('Team', () => {
     it(`doesn't care if you add a member twice`, () => {
       const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
-      const addBob = () => alice.team.add(bob.user)
+      const addBob = () => alice.team.addForTesting(bob.user)
       expect(addBob).not.toThrow()
 
       // try adding bob again
-      const addBobAgain = () => alice.team.add(bob.user)
+      const addBobAgain = () => alice.team.addForTesting(bob.user)
       expect(addBobAgain).not.toThrow()
     })
 
@@ -121,8 +121,8 @@ describe('Team', () => {
       expect(alice.team.members()).toHaveLength(1)
       expect(alice.team.members().map(m => m.userId)).toEqual(['alice'])
 
-      alice.team.add(bob.user)
-      alice.team.add(charlie.user)
+      alice.team.addForTesting(bob.user)
+      alice.team.addForTesting(charlie.user)
       expect(alice.team.members()).toHaveLength(3)
       expect(alice.team.members().map(m => m.userId)).toEqual(['alice', 'bob', 'charlie'])
     })

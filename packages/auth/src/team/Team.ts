@@ -21,6 +21,7 @@ import {
   KeyType,
   redactKeys,
   Store,
+  User,
   UserWithSecrets,
 } from 'crdx'
 import EventEmitter from 'events'
@@ -222,10 +223,11 @@ export class Team extends EventEmitter {
   }
 
   /**
-   * Add a member to the team. This would be used if you already have a user's public keys,
-   * for example because you've interacted with them in another team.
+   * Add a member to the team. Since this method assumes that you know the member's secret keys, it
+   * only makes sense for unit tests. In real-world scenarios, you'll need to use the `team.invite`
+   * workflow to add members without relying on some kind of public key infrastructure.
    */
-  public add = (user: UserWithSecrets, roles: string[] = [], device?: Device) => {
+  public addForTesting = (user: UserWithSecrets, roles: string[] = [], device?: Device) => {
     const member = { ...redactUser(user), roles }
 
     // make lockboxes for the new member
@@ -245,6 +247,19 @@ export class Team extends EventEmitter {
         payload: { device, lockboxes: [deviceLockbox] },
       })
     }
+  }
+
+  public add = (user: User, roles: string[] = []) => {
+    const member = { ...user, roles }
+
+    // make lockboxes for the new member
+    const lockboxes = this.createMemberLockboxes(member)
+
+    // post the member to the graph
+    this.dispatch({
+      type: 'ADD_MEMBER',
+      payload: { member, roles, lockboxes },
+    })
   }
 
   /** Remove a member from the team */

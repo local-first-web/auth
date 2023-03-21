@@ -74,7 +74,7 @@ export const setup = (
       const user = testUsers[userId]
       const roles = admin ? [ADMIN] : []
       const device = devices.redactDevice(laptops[userId])
-      team.add(user, roles, device)
+      team.addForTesting(user, roles, device)
     }
   }
   const graph = team.graph

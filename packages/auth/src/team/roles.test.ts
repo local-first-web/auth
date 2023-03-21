@@ -170,7 +170,7 @@ describe('Team', () => {
       )
 
       // 👨🏻‍🦲 Bob tries to add 👳🏽‍♂️ Charlie to the team
-      const attemptToAddUser = () => bob.team.add(charlie.user)
+      const attemptToAddUser = () => bob.team.addForTesting(charlie.user)
 
       // 👨🏻‍🦲 Bob is allowed because he is an admin
       expect(attemptToAddUser).not.toThrow()
@@ -184,7 +184,7 @@ describe('Team', () => {
       )
 
       // 👨🏻‍🦲 Bob tries to add 👳🏽‍♂️ Charlie to the team
-      const addUser = () => bob.team.add(charlie.user)
+      const addUser = () => bob.team.addForTesting(charlie.user)
 
       // 👨🏻‍🦲 Bob can't because he is not an admin
       expect(addUser).toThrow()
