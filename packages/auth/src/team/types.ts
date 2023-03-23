@@ -265,6 +265,7 @@ export interface TeamState {
   rootContext?: TeamContext
   members: Member[]
   roles: Role[]
+  servers: Server[]
   lockboxes: Lockbox[]
   invitations: InvitationMap
 
@@ -272,6 +273,7 @@ export interface TeamState {
   // to them when we refuse to connect
   removedMembers: Member[]
   removedDevices: Device[]
+  removedServers: Server[]
 
   // if a member's admission is reversed, we need to flag them as compromised so an admin can
   // rotate any keys they had access to at the first opportunity

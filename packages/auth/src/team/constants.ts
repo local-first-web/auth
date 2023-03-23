@@ -8,11 +8,13 @@ export const initialState: TeamState = {
   head: [],
   teamName: '',
   members: [],
+  servers: [],
   roles: [],
   lockboxes: [],
   invitations: {},
   removedMembers: [],
   removedDevices: [],
+  removedServers: [],
   pendingKeyRotations: [],
 }
 
