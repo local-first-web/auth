@@ -226,7 +226,11 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     default:
-      // @ts-ignore (should never get here)
-      throw new Error(`Unrecognized link type: ${action.type}`)
+      throw unrecognizedLinkType(action)
   }
+}
+
+function unrecognizedLinkType(action: never) {
+  const { type } = action as TeamAction
+  return new Error(`Unrecognized link type: ${type}`)
 }
