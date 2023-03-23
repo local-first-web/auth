@@ -9,6 +9,7 @@ import {
   addMember,
   addMemberRoles,
   addRole,
+  addServer,
   changeDeviceKeys,
   changeMemberKeys,
   collectLockboxes,
@@ -17,6 +18,7 @@ import {
   removeMember,
   removeMemberRole,
   removeRole,
+  removeServer,
   revokeInvitation,
   rotateKeys,
   setTeamName,
@@ -211,6 +213,16 @@ const getTransforms = (action: TeamAction): Transform[] => {
       return [
         rotateKeys(userId), // mark this member's keys as having been rotated (the rotated keys themselves are in the lockboxes)
       ]
+    }
+
+    case 'ADD_SERVER': {
+      const { server } = action.payload
+      return [addServer(server)]
+    }
+
+    case 'REMOVE_SERVER': {
+      const { url } = action.payload
+      return [removeServer(url)]
     }
 
     default:

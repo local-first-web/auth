@@ -208,7 +208,9 @@ export interface RotateKeysAction {
 
 export interface AddServerAction {
   type: 'ADD_SERVER'
-  payload: BasePayload & Server
+  payload: BasePayload & {
+    server: Server
+  }
 }
 
 export interface RemoveServerAction {
