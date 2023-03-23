@@ -8,6 +8,7 @@ import { ProofOfInvitation } from '@/invitation'
 import { normalize } from '@/invitation/normalize'
 import * as lockbox from '@/lockbox'
 import { ADMIN, Role } from '@/role'
+import { Server } from '@/server/types'
 import { assert, debug, getScope, Hash, Payload, scopesMatch, UnixTimestamp, VALID } from '@/util'
 import { Base58, randomKey, signatures, symmetric } from '@herbcaudill/crypto'
 import {
@@ -640,6 +641,22 @@ export class Team extends EventEmitter {
     this.context.user = user
 
     return user
+  }
+
+  /**************** SERVERS */
+
+  public addServer = (server: Server) => {
+    this.dispatch({
+      type: 'ADD_SERVER',
+      payload: server,
+    })
+  }
+
+  public removeServer = (url: string) => {
+    this.dispatch({
+      type: 'REMOVE_SERVER',
+      payload: { url },
+    })
   }
 
   /**************** CRYPTO */

@@ -3,6 +3,7 @@ import { Device } from '@/device'
 import { Invitation, InvitationState } from '@/invitation/types'
 import { Lockbox } from '@/lockbox'
 import { PermissionsMap, Role } from '@/role'
+import { Server, Url } from '@/server'
 import { Base58, Hash, Payload, UUID, ValidationResult } from '@/util'
 import { Graph, KeyMetadata, Keyset, KeysetWithSecrets, Link, LinkBody, ROOT, Sequence } from 'crdx'
 
@@ -205,6 +206,18 @@ export interface RotateKeysAction {
   }
 }
 
+export interface AddServerAction {
+  type: 'ADD_SERVER'
+  payload: BasePayload & Server
+}
+
+export interface RemoveServerAction {
+  type: 'REMOVE_SERVER'
+  payload: BasePayload & {
+    url: Url
+  }
+}
+
 export type TeamAction =
   | RootAction
   | AddMemberAction
@@ -223,6 +236,8 @@ export type TeamAction =
   | ChangeMemberKeysAction
   | ChangeDeviceKeysAction
   | RotateKeysAction
+  | AddServerAction
+  | RemoveServerAction
 
 export type TeamContext = {
   deviceId: string
