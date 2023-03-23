@@ -664,15 +664,15 @@ export class Team extends EventEmitter {
   /** Returns a list of all servers on the team */
   public servers(): Server[] // overload: all servers
   /** Returns the server with the given url */
-  public servers(url: Url): Server // overload: one server
+  public servers(url: Url, options?: { includeRemoved: boolean }): Server // overload: one server
   //
-  public servers(url: Url = ALL) {
+  public servers(url: Url = ALL, options = { includeRemoved: true }) {
     return url === ALL //
       ? this.state.servers // all servers
-      : this.state.servers.find(s => s.url === url) // one server
+      : select.server(this.state, url, options) // one server
   }
   /** Returns true if the server was once on the team but was removed */
-  public serverWasRemoved = (url: Url) => this.state.removedServers.some(s => s.url === url)
+  public serverWasRemoved = (url: Url) => select.serverWasRemoved(this.state, url)
 
   /**************** CRYPTO */
 
