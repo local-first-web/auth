@@ -1,4 +1,4 @@
-﻿import * as identity from '@/connection/identity'
+import * as identity from '@/connection/identity'
 import { Challenge } from '@/connection/types'
 import { LocalUserContext } from '@/context'
 import * as devices from '@/device'
@@ -139,6 +139,11 @@ export class Team extends EventEmitter {
 
   public get graph() {
     return this.store.getGraph() as TeamGraph
+  }
+
+  /** We use the hash of the graph's root as a unique ID for the team. */
+  public get id() {
+    return this.graph.root
   }
 
   /**************** TEAM STATE
