@@ -8,7 +8,7 @@ import { ProofOfInvitation } from '@/invitation'
 import { normalize } from '@/invitation/normalize'
 import * as lockbox from '@/lockbox'
 import { ADMIN, Role } from '@/role'
-import { Server } from '@/server/types'
+import { Server, Url } from '@/server/types'
 import { assert, debug, getScope, Hash, Payload, scopesMatch, UnixTimestamp, VALID } from '@/util'
 import { Base58, randomKey, signatures, symmetric } from '@herbcaudill/crypto'
 import {
@@ -645,19 +645,34 @@ export class Team extends EventEmitter {
 
   /**************** SERVERS */
 
+  /** add a server to the team (it's given you public keys in a side channel) */
   public addServer = (server: Server) => {
     this.dispatch({
       type: 'ADD_SERVER',
-      payload: server,
+      payload: { server },
     })
   }
 
+  /** remove a server */
   public removeServer = (url: string) => {
     this.dispatch({
       type: 'REMOVE_SERVER',
-      payload: { url },
+      payload: { url: url },
     })
   }
+
+  /** Returns a list of all servers on the team */
+  public servers(): Server[] // overload: all servers
+  /** Returns the server with the given url */
+  public servers(url: Url): Server // overload: one server
+  //
+  public servers(url: Url = ALL) {
+    return url === ALL //
+      ? this.state.servers // all servers
+      : this.state.servers.find(s => s.url === url) // one server
+  }
+  /** Returns true if the server was once on the team but was removed */
+  public serverWasRemoved = (url: Url) => this.state.removedServers.some(s => s.url === url)
 
   /**************** CRYPTO */
 
