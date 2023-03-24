@@ -1,4 +1,4 @@
-import { deriveSharedKey } from '@/connection/deriveSharedKey'
+﻿import { deriveSharedKey } from '@/connection/deriveSharedKey'
 import {
   buildError,
   ConnectionErrorType,
@@ -31,6 +31,7 @@ import {
 } from '@/connection/types'
 import { Device, DeviceWithSecrets, getDeviceId, parseDeviceId } from '@/device'
 import * as invitations from '@/invitation'
+import { cast } from '@/server/cast'
 import { decryptTeamGraph, Team, TeamAction, TeamContext, TeamGraph } from '@/team'
 import { assert, debug, EventEmitter, truncateHashes } from '@/util'
 import { arraysAreEqual } from '@/util/arraysAreEqual'
@@ -480,7 +481,13 @@ export class Connection extends EventEmitter {
       peer: context => {
         assert(context.team)
         assert(this.peerUserId)
-        return context.team.members(this.peerUserId, { includeRemoved: true })
+        if (context.team.hasServer(this.peerUserId)) {
+          const server = context.team.servers(this.peerUserId)
+          // return synthetic member
+          return cast.toMember(server)
+        } else {
+          return context.team.members(this.peerUserId, { includeRemoved: true })
+        }
       },
     }),
 
