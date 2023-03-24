@@ -148,18 +148,18 @@ export class Team extends EventEmitter {
   }
 
   /**************** TEAM STATE
-
-  All the logic for *reading* team state is in selectors (see `/team/selectors`).
-
-  Most of the logic for *modifying* team state is in transforms (see `/team/transforms`), which are
-  executed by the reducer. To mutate team state, we dispatch changes to the graph, and
-  then run the graph through the reducer to recalculate team state.
-
-  Any crypto operations involving the current user's secrets (for example, opening or creating
-  lockboxes, or signing links) are done here, not in the selectors or in the reducer. Only the
-  public-facing outputs (for example, the resulting lockboxesInScope, or the signed links) are
-  posted on the graph.
-  */
+   *
+   * All the logic for *reading* team state is in selectors (see `/team/selectors`).
+   *
+   * Most of the logic for *modifying* team state is in transforms (see `/team/transforms`), which
+   * are executed by the reducer. To mutate team state, we dispatch changes to the graph, and then
+   * run the graph through the reducer to recalculate team state.
+   *
+   * Any crypto operations involving the current user's secrets (for example, opening or creating
+   * lockboxes, or signing links) are done here, not in the selectors or in the reducer. Only the
+   * public-facing outputs (for example, the resulting lockboxesInScope, or the signed links) are
+   * posted on the graph.
+   */
 
   /** Returns this team's user-facing name. */
   public get teamName() {
@@ -649,37 +649,26 @@ export class Team extends EventEmitter {
    * A server is an always-on, always-connected device that is available to the team but does not
    * belong to any one member. For example, `automerge-repo` calls this a "sync server".
    *
-   * The server needs to be able to read the team graph, so it has to have the team keys.
-   *
-   * The server can admit invited members and devices to the team. (This is necessary to support
-   * star-shaped networks where every device connects only to a server, rather than directly to each
-   * other.) So the only actions that a server can dispatch are `ADMIT_MEMBER` and `ADMIT_DEVICE`.
-   */
-
-  // TODO: If we wanted to restrict the server's read access to application data (as opposed to the
-  // team membership data), we would currently have to create a new role that is only for human
-  // members (and ensure that every member was added to it), and encrypt the application data with
-  // that role's keys. It might make more sense to separate out the **graph keys** (for encrypting
-  // the team graph) from the **team keys** (for encrypting data for human members of the team).
-
-  /**
-   * Adds a server to the team.
-   *
    * A server has a host name that uniquely identifies it (e.g. `example.com`, `localhost:8080`, or
-   * `188.26.221.135`). The host name is used to identify the server in the graph, and also to
-   * identify the server in the team's `servers` map.
-   *
-   * Prior to adding a server, the application should send it the latest graph and the team keys
-   * (including secrets). No invitation or authentication is necessary in this phase, as a TLS
-   * connection is sufficient to ensure the security of that connection. In response, the server
-   * should send back its public keys. The application should then add the server to the team using
-   * the `addServer` method, passing in the server's public keys.
-   *
-   * At that point the server will be able to authenticate with other devices using the same
-   * protocol as for members.
+   * `188.26.221.135`).
    *
    * The expected usage is for the application to add a server or servers immediately after the team
    * is created. However, the application can add or remove servers at any time.
+   *
+   * Just before adding a server, the application should send it the latest graph and the team keys
+   * (so it can decrypt the team graph). No invitation or authentication is necessary in this phase,
+   * as a TLS connection to a trusted address is sufficient to ensure the security of that
+   * connection. In response, the server should send back its public keys. This library is not
+   * involved in that process.
+   *
+   * The application should then add the server to the team using `addServer`, passing in the
+   * server's public keys. At that point the server will be able to authenticate with other devices
+   * using the same protocol as for members.
+   *
+   * The only actions that a server can dispatch to the graph are `ADMIT_MEMBER` and `ADMIT_DEVICE`.
+   * The server needs to be able to admit invited members and devices in order to support
+   * star-shaped networks where every device connects to a server, rather than directly to each
+   * other.)
    */
   public addServer = (server: Server) => {
     this.dispatch({
@@ -687,6 +676,12 @@ export class Team extends EventEmitter {
       payload: { server },
     })
   }
+
+  // TODO: If we wanted to restrict the server's read access to application data (as opposed to the
+  // team membership data), we would currently have to create a new role that is only for human
+  // members (and ensure that every member was added to it), and encrypt the application data with
+  // that role's keys. It might make more sense to separate out the **graph keys** (for encrypting
+  // the team graph) from the **team keys** (for encrypting data for human members of the team).
 
   /** Removes a server from the team. */
   public removeServer = (host: string) => {
@@ -762,10 +757,10 @@ export class Team extends EventEmitter {
     })
 
   /**************** KEYS
-
-  These methods all return keysets *with secrets* that are available to the local user. To get
-  other members' public keys, look up the member - the `keys` property contains their public keys.
-  */
+   *
+   * These methods all return keysets *with secrets* that are available to the local user. To get
+   * other members' public keys, look up the member - the `keys` property contains their public keys.
+   */
 
   /**
    * Returns the secret keyset (if available to the current device) for the given type and name. To
