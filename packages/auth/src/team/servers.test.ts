@@ -1,20 +1,16 @@
 import { Host, Server, ServerWithSecrets } from '@/server'
-import { setup } from '@/util/testing'
-import { createKeyset, createUser, redactKeys } from 'crdx'
-import { createDevice, createTeam, loadTeam } from '..'
+import { all, connection, joinTestChannel, setup, TestChannel } from '@/util/testing'
+import { createKeyset, createUser, KeyType, redactKeys } from 'crdx'
+import { Connection, createDevice, createTeam, loadTeam } from '..'
 
 describe('Team', () => {
   describe('a server', () => {
     const host = 'devresults.com'
 
     const createServer = (host: Host) => {
-      const serverKeys = createKeyset({ type: 'SERVER', name: host })
-      const serverWithSecrets: ServerWithSecrets = {
-        host,
-        keys: createKeyset({ type: 'SERVER', name: host }),
-      }
+      const serverKeys = createKeyset({ type: KeyType.SERVER, name: host })
+      const serverWithSecrets: ServerWithSecrets = { host, keys: serverKeys }
       const server: Server = { host, keys: redactKeys(serverKeys) }
-
       return { server, serverWithSecrets }
     }
 
@@ -65,10 +61,8 @@ describe('Team', () => {
 
       // add some stuff to the team graph
       alice.team.addRole('MANAGER')
-      const aliceNewKeys = createKeyset({ type: 'USER', name: alice.userId })
-      alice.team.changeKeys(aliceNewKeys)
-      alice.team.inviteMember()
-      alice.team.inviteDevice()
+      const { id: memberInviteId } = alice.team.inviteMember()
+      const { id: deviceInviteId } = alice.team.inviteDevice()
 
       const savedGraph = alice.team.save()
       const teamKeys = alice.team.teamKeys()
@@ -76,13 +70,73 @@ describe('Team', () => {
       // the server instantiates the team
       const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, teamKeys)
 
+      // all the stuff that should be on the graph is there
       expect(serverTeam.members().length).toBe(3)
+      expect(serverTeam.roles('MANAGER')).toBeDefined()
+      expect(serverTeam.getInvitation(memberInviteId)).toBeDefined()
+      expect(serverTeam.getInvitation(deviceInviteId)).toBeDefined()
     })
-    it.todo(`can sync with a member`)
+
+    it(`can sync with a member`, async () => {
+      const { alice } = setup('alice', 'bob', { user: 'charlie', admin: false })
+      const { server, serverWithSecrets } = createServer(host)
+      alice.team.addServer(server)
+      const savedGraph = alice.team.save()
+      const teamKeys = alice.team.teamKeys()
+      const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, teamKeys)
+
+      alice.team.addRole('MANAGER')
+
+      const join = joinTestChannel(new TestChannel())
+
+      const aliceConnectionContext = {
+        user: alice.user,
+        device: alice.device,
+        team: alice.team,
+      }
+      const serverConnectionContext = {
+        user: {
+          userName: host,
+          userId: host,
+          keys: serverWithSecrets.keys,
+        },
+        device: {
+          userId: host,
+          deviceName: host,
+          keys: serverWithSecrets.keys,
+        },
+        team: serverTeam,
+      }
+
+      const aliceConnection = join(aliceConnectionContext).start()
+      const serverConnection = join(serverConnectionContext).start()
+
+      await connectionPromise(aliceConnection, serverConnection)
+
+      expect(serverTeam.roles('MANAGER')).toBeDefined()
+    })
+
     it.todo(`can admit an invitee`)
+
+    it.todo(`can relay changes from one member to another asynchronously`)
+
     it.todo(`can't invite a member`)
     it.todo(`can't invite a device`)
     it.todo(`can't remove a member`)
     it.todo(`can change its own keys`)
   })
 })
+
+const connectionPromise = async (a: Connection, b: Connection) => {
+  const connections = [a, b]
+
+  // ✅ They're both connected
+  await all(connections, 'connected')
+
+  const sharedKey = connections[0].sessionKey
+  connections.forEach(connection => {
+    expect(connection.state).toEqual('connected')
+    // ✅ They've converged on a shared secret key
+    expect(connection.sessionKey).toEqual(sharedKey)
+  })
+}
