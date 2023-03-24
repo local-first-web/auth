@@ -12,7 +12,7 @@ export const open = memoize(
       senderPublicKey: encryptionKey.publicKey,
       recipientSecretKey: decryptionKeys.encryption.secretKey,
     })
-    const keys = decrypted
+    const keys = decrypted as unknown as KeysetWithSecrets
 
     return keys
   },
