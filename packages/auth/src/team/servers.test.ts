@@ -181,7 +181,64 @@ describe('Team', () => {
       expect(() => serverTeam.remove(bob.userId)).toThrow()
     })
 
-    it.todo(`can relay changes from one member to another asynchronously`)
+    it(`can relay changes from one member to another asynchronously`, async () => {
+      const { alice, bob } = setup('alice', 'bob')
+      const { server, serverWithSecrets } = createServer(host)
+      alice.team.addServer(server)
+      const savedGraph = alice.team.save()
+      const teamKeys = alice.team.teamKeys()
+      const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, teamKeys)
+      bob.team = loadTeam(savedGraph, bob, teamKeys)
+
+      alice.team.addRole('MANAGER')
+
+      const joinAandS = joinTestChannel(new TestChannel())
+
+      const aliceConnectionContext = {
+        user: alice.user,
+        device: alice.device,
+        team: alice.team,
+      }
+      const serverConnectionContext = {
+        user: {
+          userName: host,
+          userId: host,
+          keys: serverWithSecrets.keys,
+        },
+        device: {
+          userId: host,
+          deviceName: host,
+          keys: serverWithSecrets.keys,
+        },
+        team: serverTeam,
+      }
+
+      const aliceConnection = joinAandS(aliceConnectionContext).start()
+      const serverConnection = joinAandS(serverConnectionContext).start()
+
+      await connectionPromise(aliceConnection, serverConnection)
+
+      // alice told server about new role
+      expect(serverTeam.roles('MANAGER')).toBeDefined()
+
+      aliceConnection.stop()
+      serverConnection.stop()
+
+      const joinBandS = joinTestChannel(new TestChannel())
+
+      const bobConnectionContext = {
+        user: bob.user,
+        device: bob.device,
+        team: bob.team,
+      }
+      const bobConnection = joinBandS(bobConnectionContext).start()
+      const serverConnection2 = joinBandS(serverConnectionContext).start()
+
+      await connectionPromise(bobConnection, serverConnection2)
+
+      // server told bob about new role
+      expect(bob.team.roles('MANAGER')).toBeDefined()
+    })
 
     it.todo(`can change its own keys`)
   })
