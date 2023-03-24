@@ -159,9 +159,19 @@ describe('Team', () => {
       expect(serverTeam.members().length).toBe(2)
     })
 
+    it(`can't invite a device`, () => {
+      const { alice } = setup('alice')
+      const { server, serverWithSecrets } = createServer(host)
+      alice.team.addServer(server)
+      const savedGraph = alice.team.save()
+      const teamKeys = alice.team.teamKeys()
+      const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, teamKeys)
+
+      expect(() => serverTeam.inviteDevice()).toThrow()
+    })
+
     it.todo(`can relay changes from one member to another asynchronously`)
 
-    it.todo(`can't invite a device`)
     it.todo(`can't remove a member`)
     it.todo(`can change its own keys`)
   })

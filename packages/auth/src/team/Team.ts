@@ -530,6 +530,8 @@ export class Team extends EventEmitter {
     /** Time when the invitation expires. Defaults to 30 minutes from now. */
     expiration?: UnixTimestamp
   } = {}): InviteResult {
+    if (this.isServer) throw new Error("Server can't invite a device")
+
     seed = normalize(seed)
 
     // generate invitation
