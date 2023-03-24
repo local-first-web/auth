@@ -116,6 +116,24 @@ describe('Team', () => {
       expect(serverTeam.roles('MANAGER')).toBeDefined()
     })
 
+    it.skip(`can't create a team`, () => {
+      const { serverWithSecrets } = createServer(host)
+      expect(() => {
+        createTeam('team server', {
+          user: {
+            userName: host,
+            userId: host,
+            keys: serverWithSecrets.keys,
+          },
+          device: {
+            userId: host,
+            deviceName: host,
+            keys: serverWithSecrets.keys,
+          },
+        })
+      }).toThrow()
+    })
+
     it.todo(`can admit an invitee`)
 
     it.todo(`can relay changes from one member to another asynchronously`)
