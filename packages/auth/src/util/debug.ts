@@ -16,6 +16,7 @@ const substituteTokens = (s: string) => {
 
       .replace(/laptop/gi, '💻')
       .replace(/phone/gi, '📱')
+      .replace(/devresults.com/gi, '🌍')
   )
 }
 
