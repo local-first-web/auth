@@ -1,11 +1,11 @@
-﻿import { Url } from '@/server'
+﻿import { Host } from '@/server'
 import { Transform } from '@/team/types'
 
 export const removeServer =
-  (url: Url): Transform =>
+  (host: Host): Transform =>
   state => {
-    const remainingServers = state.servers.filter(m => m.url !== url)
-    const removedServer = state.servers.find(m => m.url === url) // the server that was removed
+    const remainingServers = state.servers.filter(m => m.host !== host)
+    const removedServer = state.servers.find(m => m.host === host) // the server that was removed
 
     const removedServers = [...state.removedServers]
     if (removedServer) removedServers.push(removedServer)

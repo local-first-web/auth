@@ -1,13 +1,13 @@
-﻿import { Url } from '@/server'
+﻿import { Host } from '@/server'
 import { TeamState } from '@/team/types'
 
-export const server = (state: TeamState, url: Url, options = { includeRemoved: false }) => {
+export const server = (state: TeamState, host: Host, options = { includeRemoved: false }) => {
   const serversToSearch = [
     ...state.servers,
     ...(options.includeRemoved ? state.removedServers : []),
   ]
-  const server = serversToSearch.find(s => s.url === url)
+  const server = serversToSearch.find(s => s.host === host)
 
-  if (server === undefined) throw new Error(`A server with url '${url}' was not found`)
+  if (server === undefined) throw new Error(`A server with host '${host}' was not found`)
   return server
 }

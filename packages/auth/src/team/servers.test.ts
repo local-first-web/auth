@@ -9,18 +9,18 @@ describe('Team', () => {
       const team = createTeam('team team', { user: alice, device: aliceDevice })
 
       const server = {
-        url: 'https://www.devresults.com',
+        host: 'www.devresults.com',
         keys: redactKeys(createKeyset({ type: KeyType.USER })), // maybe need a better way to create arbitrary public keys
       }
       team.addServer(server)
 
       expect(team.servers().length).toBe(1)
-      expect(team.servers(server.url).url).toBe(server.url)
+      expect(team.servers(server.host).host).toBe(server.host)
 
-      team.removeServer(server.url)
+      team.removeServer(server.host)
 
       expect(team.servers().length).toBe(0)
-      expect(team.serverWasRemoved(server.url)).toBe(true)
+      expect(team.serverWasRemoved(server.host)).toBe(true)
     })
   })
 })

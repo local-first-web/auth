@@ -221,8 +221,8 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     case 'REMOVE_SERVER': {
-      const { url } = action.payload
-      return [removeServer(url)]
+      const { host } = action.payload
+      return [removeServer(host)]
     }
 
     default:

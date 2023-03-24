@@ -8,7 +8,7 @@ import { ProofOfInvitation } from '@/invitation'
 import { normalize } from '@/invitation/normalize'
 import * as lockbox from '@/lockbox'
 import { ADMIN, Role } from '@/role'
-import { Server, Url } from '@/server/types'
+import { Server, Host } from '@/server/types'
 import { assert, debug, getScope, Hash, Payload, scopesMatch, UnixTimestamp, VALID } from '@/util'
 import { Base58, randomKey, signatures, symmetric } from '@herbcaudill/crypto'
 import {
@@ -654,25 +654,25 @@ export class Team extends EventEmitter {
   }
 
   /** remove a server */
-  public removeServer = (url: string) => {
+  public removeServer = (host: string) => {
     this.dispatch({
       type: 'REMOVE_SERVER',
-      payload: { url: url },
+      payload: { host: host },
     })
   }
 
   /** Returns a list of all servers on the team */
   public servers(): Server[] // overload: all servers
-  /** Returns the server with the given url */
-  public servers(url: Url, options?: { includeRemoved: boolean }): Server // overload: one server
+  /** Returns the server with the given host */
+  public servers(host: Host, options?: { includeRemoved: boolean }): Server // overload: one server
   //
-  public servers(url: Url = ALL, options = { includeRemoved: true }) {
-    return url === ALL //
+  public servers(host: Host = ALL, options = { includeRemoved: true }) {
+    return host === ALL //
       ? this.state.servers // all servers
-      : select.server(this.state, url, options) // one server
+      : select.server(this.state, host, options) // one server
   }
   /** Returns true if the server was once on the team but was removed */
-  public serverWasRemoved = (url: Url) => select.serverWasRemoved(this.state, url)
+  public serverWasRemoved = (host: Host) => select.serverWasRemoved(this.state, host)
 
   /**************** CRYPTO */
 
@@ -734,7 +734,8 @@ export class Team extends EventEmitter {
   /**
    * Returns the secret keyset (if available to the current device) for the given type and name. To
    * get other members' public keys, look up the member - the `keys` property contains their public
-   * keys.  */
+   * keys.
+   */
   public keys = (scope: KeyMetadata | KeyScope) =>
     select.keys(this.state, this.context.device.keys, scope)
 

@@ -1,13 +1,14 @@
 import { Keyset, KeysetWithSecrets } from 'crdx'
 
 export type ServerWithSecrets = {
-  url: Url
+  host: Host
   keys: KeysetWithSecrets
 }
 
 export type Server = {
-  url: Url
+  host: Host
   keys: Keyset
 }
 
-export type Url = string
+/** The hostname, possibly including a port number; e.g. `example.com`, `localhost:8080`, `188.26.221.135`  */
+export type Host = string

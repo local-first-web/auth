@@ -3,7 +3,7 @@ import { Device } from '@/device'
 import { Invitation, InvitationState } from '@/invitation/types'
 import { Lockbox } from '@/lockbox'
 import { PermissionsMap, Role } from '@/role'
-import { Server, Url } from '@/server'
+import { Server, Host } from '@/server'
 import { Base58, Hash, Payload, UUID, ValidationResult } from '@/util'
 import { Graph, KeyMetadata, Keyset, KeysetWithSecrets, Link, LinkBody, ROOT, Sequence } from 'crdx'
 
@@ -216,7 +216,7 @@ export interface AddServerAction {
 export interface RemoveServerAction {
   type: 'REMOVE_SERVER'
   payload: BasePayload & {
-    url: Url
+    host: Host
   }
 }
 

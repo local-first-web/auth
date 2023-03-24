@@ -1,5 +1,5 @@
-﻿import { Url } from '@/server'
+﻿import { Host } from '@/server'
 import { TeamState } from '@/team/types'
 
-export const serverWasRemoved = (state: TeamState, url: Url) =>
-  state.removedServers.some(s => s.url === url)
+export const serverWasRemoved = (state: TeamState, host: Host) =>
+  state.removedServers.some(s => s.host === host)
