@@ -28,14 +28,14 @@ describe('Team', () => {
       expect(alice.team.serverWasRemoved(host)).toBe(true)
     })
 
-    it(`can't be added by a non-admin member`, () => {})
-    it(`can't be removed by a non-admin member`, () => {})
-    it(`can decrypt a team graph`, () => {})
-    it(`can sync with a member`, () => {})
-    it(`can admit an invitee`, () => {})
-    it(`can't invite a member`, () => {})
-    it(`can't invite a device`, () => {})
-    it(`can't remove a member`, () => {})
-    it(`can change its own keys`, () => {})
+    it(`can't be added by a non-admin member`, () => {
+      const { bob } = setup('alice', { user: 'bob', admin: false })
+      const host = 'devresults.com'
+
+      const tryToAddServer = () => bob.team.addServer(createServer(host))
+
+      expect(tryToAddServer).toThrowError()
+    })
+
   })
 })
