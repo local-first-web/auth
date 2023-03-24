@@ -1,6 +1,6 @@
 import * as identity from '@/connection/identity'
 import { Challenge } from '@/connection/types'
-import { LocalUserContext } from '@/context'
+import { LocalContext, LocalUserContext } from '@/context'
 import * as devices from '@/device'
 import { Device, DeviceWithSecrets, getDeviceId, parseDeviceId, redactDevice } from '@/device'
 import * as invitations from '@/invitation'
@@ -8,6 +8,7 @@ import { ProofOfInvitation } from '@/invitation'
 import { normalize } from '@/invitation/normalize'
 import * as lockbox from '@/lockbox'
 import { ADMIN, Role } from '@/role'
+import { cast } from '@/server/cast'
 import { Server, Host } from '@/server/types'
 import { assert, debug, getScope, Hash, Payload, scopesMatch, UnixTimestamp, VALID } from '@/util'
 import { Base58, randomKey, signatures, symmetric } from '@herbcaudill/crypto'
@@ -64,14 +65,28 @@ export class Team extends EventEmitter {
 
     // ignore coverage
     this.seed = options.seed ?? randomKey()
-    this.context = options.context
+
+    if ('user' in options.context) {
+      this.context = options.context
+    } else {
+      // if we're on a server, we'll use the server's hostname for everything
+      // and the server's keys as both user keys and device keys
+      const { server } = options.context
+      this.context = {
+        ...options.context,
+        device: cast.toDevice(server),
+        user: cast.toUser(server),
+      }
+    }
 
     this.log = debug(`lf:auth:team:${this.userName}`)
 
     // Initialize a CRDX store for the team
     if (isNewTeam(options)) {
+      if (this.isServer) throw new Error('Cannot create a team on a server')
+
       // Create a new team with the current user as founding member
-      const { device, user } = options.context
+      const { device, user } = this.context
 
       // Team & role secrets are never stored in plaintext, only encrypted into individual
       // lockboxes. Here we generate new keysets for the team and for the admin role, and store
@@ -102,8 +117,8 @@ export class Team extends EventEmitter {
       })
     } else {
       // Rehydrate a team from an existing graph
-      const graph = maybeDeserialize(options.source, options.teamKeys, options.context.device.keys)
-      const { user } = options.context
+      const graph = maybeDeserialize(options.source, options.teamKeys, this.context.device.keys)
+      const { user } = this.context
 
       // Create CRDX store
       this.store = createStore({
@@ -145,6 +160,26 @@ export class Team extends EventEmitter {
   /** We use the hash of the graph's root as a unique ID for the team. */
   public get id() {
     return this.graph.root
+  }
+
+  /**************** CONTEXT */
+
+  private get isServer() {
+    return 'server' in this.context
+  }
+
+  public get userName() {
+    if (this.context.user) return this.context.user.userId
+    else return this.context.device.userId // device is always known
+  }
+
+  public get userId() {
+    if (this.context.user) return this.context.user.userId
+    else return this.context.device.userId // device is always known
+  }
+
+  private get deviceId() {
+    return getDeviceId(this.context.device)
   }
 
   /**************** TEAM STATE
@@ -194,10 +229,12 @@ export class Team extends EventEmitter {
     assert(identityClaim.type === KeyType.DEVICE) // we always authenticate as devices
     const deviceId = identityClaim.name
     const { userId, deviceName } = parseDeviceId(deviceId)
-    if (this.memberWasRemoved(userId)) return 'MEMBER_REMOVED'
-    if (!this.has(userId)) return 'MEMBER_UNKNOWN'
+    if (this.memberWasRemoved(userId) || this.serverWasRemoved(userId)) return 'MEMBER_REMOVED'
+    if (!this.has(userId) && !this.hasServer(userId)) {
+      return 'MEMBER_UNKNOWN'
+    }
     if (this.deviceWasRemoved(userId, deviceName)) return 'DEVICE_REMOVED'
-    if (!this.hasDevice(userId, deviceName)) return 'DEVICE_UNKNOWN'
+    if (!this.hasDevice(userId, deviceName) && !this.hasServer(userId)) return 'DEVICE_UNKNOWN'
     return 'VALID_DEVICE'
   }
 
@@ -206,7 +243,9 @@ export class Team extends EventEmitter {
     const deviceId = challenge.name
     const { userId, deviceName } = parseDeviceId(deviceId)
 
-    const device = this.device(userId, deviceName, { includeRemoved: true })
+    const device = this.hasServer(userId)
+      ? this.servers(userId)
+      : this.device(userId, deviceName, { includeRemoved: true })
 
     const validation = identity.verify(challenge, proof, device.keys)
     return validation.isValid
@@ -588,7 +627,6 @@ export class Team extends EventEmitter {
     const { id } = proof
     const { userId, deviceName, keys } = device
 
-    assert(this.context.user)
     assert(this.userId === userId, `Can't admit someone else's device`)
 
     const deviceLockbox = lockbox.create(this.context.user.keys, keys)
@@ -608,7 +646,7 @@ export class Team extends EventEmitter {
 
   /** Once the new member has received the graph and can instantiate the team, they call this to add their device. */
   public joinAsMember = (teamKeys: KeysetWithSecrets) => {
-    assert(this.context.user)
+    if (this.isServer) throw new Error(`Can't join as member on server`)
     const deviceLockbox = lockbox.create(this.context.user.keys, this.context.device.keys)
     const device = redactDevice(this.context.device)
     this.dispatch(
@@ -625,6 +663,7 @@ export class Team extends EventEmitter {
 
   /** Once a new device has received the graph and can instantiate the team, they call this to get the user keys */
   public joinAsDevice = (userName: string, userId: string) => {
+    if (this.isServer) throw new Error(`Can't join as device on server`)
     const user = {
       userName,
       userId,
@@ -671,9 +710,11 @@ export class Team extends EventEmitter {
    * other.)
    */
   public addServer = (server: Server) => {
+    const lockboxes = this.createMemberLockboxes(cast.toMember(server))
+
     this.dispatch({
       type: 'ADD_SERVER',
-      payload: { server },
+      payload: { server, lockboxes },
     })
   }
 
@@ -704,6 +745,8 @@ export class Team extends EventEmitter {
 
   /** Returns true if the server was once on the team but was removed */
   public serverWasRemoved = (host: Host) => select.serverWasRemoved(this.state, host)
+
+  public hasServer = (host: Host) => select.hasServer(this.state, host)
 
   /**************** CRYPTO */
 
@@ -793,7 +836,6 @@ export class Team extends EventEmitter {
       assert(changingMyOwnKeys, `Can't change another device's secret keys`)
     } else {
       // user keys
-      assert(this.context.user)
       const changingMyOwnKeys = newKeys.name === this.userId
       const iAmAdmin = this.memberIsAdmin(this.userId)
       assert(changingMyOwnKeys || iAmAdmin, `Can't change another user's secret keys`)
@@ -813,20 +855,6 @@ export class Team extends EventEmitter {
 
     // update our member or device keys in context
     userOrDevice.keys = newKeys
-  }
-
-  public get userName() {
-    if (this.context.user) return this.context.user.userId
-    else return this.context.device.userId // device is always known
-  }
-
-  public get userId() {
-    if (this.context.user) return this.context.user.userId
-    else return this.context.device.userId // device is always known
-  }
-
-  private get deviceId() {
-    return getDeviceId(this.context.device)
   }
 
   /**

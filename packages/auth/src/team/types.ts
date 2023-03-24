@@ -1,9 +1,9 @@
-import { Client, LocalUserContext } from '@/context'
+import { Client, LocalContext } from '@/context'
 import { Device } from '@/device'
 import { Invitation, InvitationState } from '@/invitation/types'
 import { Lockbox } from '@/lockbox'
 import { PermissionsMap, Role } from '@/role'
-import { Server, Host } from '@/server'
+import { Host, Server } from '@/server'
 import { Base58, Hash, Payload, UUID, ValidationResult } from '@/util'
 import { Graph, KeyMetadata, Keyset, KeysetWithSecrets, Link, LinkBody, ROOT, Sequence } from 'crdx'
 
@@ -60,7 +60,7 @@ export type TeamOptions = NewOrExisting & {
   seed?: string
 
   /** Object containing the current user and device (and optionally information about the client & version). */
-  context: LocalUserContext
+  context: LocalContext
 }
 
 /** type guard for NewTeamOptions vs ExistingTeamOptions  */

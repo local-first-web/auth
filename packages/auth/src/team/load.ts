@@ -1,10 +1,10 @@
-﻿import { TeamGraph } from './types'
-import { LocalUserContext } from '@/context'
+﻿import { LocalContext } from '@/context'
 import { Team } from '@/team/Team'
 import { KeysetWithSecrets } from 'crdx'
+import { TeamGraph } from './types'
 
 export const load = (
   source: string | TeamGraph,
-  context: LocalUserContext,
+  context: LocalContext,
   teamKeys: KeysetWithSecrets,
 ) => new Team({ source, context, teamKeys })
