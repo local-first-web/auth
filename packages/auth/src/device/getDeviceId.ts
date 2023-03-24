@@ -3,10 +3,16 @@
 const separator = '::'
 
 /** Unique identifier for a device = deviceName + userName */
-export const getDeviceId = ({ deviceName, userId }: DeviceInfo): string =>
-  `${userId}${separator}${deviceName}`
+export const getDeviceId = ({ deviceName, userId }: DeviceInfo): string => {
+  if (deviceName === userId) return deviceName
+  else return `${userId}${separator}${deviceName}`
+}
 
 export const parseDeviceId = (deviceId: string): DeviceInfo => {
-  const [userId, deviceName] = deviceId.split(separator)
-  return { userId: userId, deviceName }
+  if (deviceId.includes(separator)) {
+    const [userId, deviceName] = deviceId.split(separator)
+    return { userId: userId, deviceName }
+  } else {
+    return { userId: deviceId, deviceName: deviceId }
+  }
 }
