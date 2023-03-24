@@ -1,4 +1,4 @@
-﻿import { deriveSharedKey } from '@/connection/deriveSharedKey'
+import { deriveSharedKey } from '@/connection/deriveSharedKey'
 import {
   buildError,
   ConnectionErrorType,
@@ -632,7 +632,7 @@ export class Connection extends EventEmitter {
     receiveError: assign({
       error: (_, event) => {
         const error = (event as ErrorMessage).payload
-        this.log('receiveError', error)
+        this.log('receiveError %o', error)
 
         // bubble the error up
         this.emit('remoteError', error)
@@ -645,7 +645,7 @@ export class Connection extends EventEmitter {
     sendError: assign({
       error: (_, event) => {
         const error = (event as LocalErrorMessage).payload
-        this.log('sendError', error)
+        this.log('sendError %o', error)
 
         // send error to peer
         const remoteMessage = buildError(error.type, error.details, 'REMOTE')
