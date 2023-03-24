@@ -37,5 +37,13 @@ describe('Team', () => {
       expect(tryToAddServer).toThrowError()
     })
 
+    it.todo(`can't be removed by a non-admin member`)
+    it.todo(`can decrypt a team graph`)
+    it.todo(`can sync with a member`)
+    it.todo(`can admit an invitee`)
+    it.todo(`can't invite a member`)
+    it.todo(`can't invite a device`)
+    it.todo(`can't remove a member`)
+    it.todo(`can change its own keys`)
   })
 })
