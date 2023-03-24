@@ -9,6 +9,7 @@ import {
   addMember,
   addMemberRoles,
   addRole,
+  addServer,
   changeDeviceKeys,
   changeMemberKeys,
   collectLockboxes,
@@ -17,6 +18,7 @@ import {
   removeMember,
   removeMemberRole,
   removeRole,
+  removeServer,
   revokeInvitation,
   rotateKeys,
   setTeamName,
@@ -213,8 +215,22 @@ const getTransforms = (action: TeamAction): Transform[] => {
       ]
     }
 
+    case 'ADD_SERVER': {
+      const { server } = action.payload
+      return [addServer(server)]
+    }
+
+    case 'REMOVE_SERVER': {
+      const { url } = action.payload
+      return [removeServer(url)]
+    }
+
     default:
-      // @ts-ignore (should never get here)
-      throw new Error(`Unrecognized link type: ${action.type}`)
+      throw unrecognizedLinkType(action)
   }
+}
+
+function unrecognizedLinkType(action: never) {
+  const { type } = action as TeamAction
+  return new Error(`Unrecognized link type: ${type}`)
 }
