@@ -1,7 +1,7 @@
 import { Host, Server, ServerWithSecrets } from '@/server'
 import { all, connection, joinTestChannel, setup, TestChannel } from '@/util/testing'
 import { createKeyset, createUser, KeyType, redactKeys } from 'crdx'
-import { Connection, createDevice, createTeam, loadTeam } from '..'
+import { Connection, createDevice, createTeam, invitation, loadTeam } from '..'
 
 describe('Team', () => {
   describe('a server', () => {
@@ -144,7 +144,20 @@ describe('Team', () => {
 
       expect(() => serverTeam.inviteMember()).toThrow()
     })
-    it.todo(`can admit an invitee`)
+
+    it(`can admit an invitee`, () => {
+      const { alice, bob } = setup('alice', { user: 'bob', member: false })
+      const { server, serverWithSecrets } = createServer(host)
+      alice.team.addServer(server)
+      const { seed: bobInvite } = alice.team.inviteMember()
+
+      const savedGraph = alice.team.save()
+      const teamKeys = alice.team.teamKeys()
+      const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, teamKeys)
+
+      serverTeam.admitMember(invitation.generateProof(bobInvite), bob.user.keys, bob.userId)
+      expect(serverTeam.members().length).toBe(2)
+    })
 
     it.todo(`can relay changes from one member to another asynchronously`)
 
