@@ -7,14 +7,13 @@ export const open = memoize(
   (lockbox: Lockbox, decryptionKeys: KeysetWithSecrets): KeysetWithSecrets => {
     const { encryptionKey, encryptedPayload } = lockbox
 
-    const keys = JSON.parse(
-      asymmetric.decrypt({
-        cipher: encryptedPayload,
-        senderPublicKey: encryptionKey.publicKey,
-        recipientSecretKey: decryptionKeys.encryption.secretKey,
-      })
-    )
+    const decrypted = asymmetric.decrypt({
+      cipher: encryptedPayload,
+      senderPublicKey: encryptionKey.publicKey,
+      recipientSecretKey: decryptionKeys.encryption.secretKey,
+    })
+    const keys = decrypted
 
     return keys
-  }
+  },
 )
