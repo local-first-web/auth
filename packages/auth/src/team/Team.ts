@@ -418,22 +418,22 @@ export class Team extends EventEmitter {
   /**************** INVITATIONS */
 
   /**
-  To invite a new member: 
-
-  Alice generates an invitation using a secret seed. The seed an be randomly generated, or
-  selected by Alice. Alice sends the invitation to Bob using a trusted channel.
-
-  Meanwhile, Alice adds Bob to the graph as a new member, with appropriate roles (if
-  any) and any corresponding lockboxes. 
-
-  Bob can't authenticate directly as that member, since it has random temporary keys created by
-  Alice. Instead, Bob generates a proof of invitation, and when they try to connect to Alice or
-  Charlie they present that proof instead of authenticating.
-
-  Once Alice or Charlie verifies Bob's proof, they send him the team graph. Bob uses that to
-  instantiate the team, then he updates the team with his real public keys and adds his current
-  device information. 
-  */
+   * To invite a new member:
+   *
+   * Alice generates an invitation using a secret seed. The seed an be randomly generated, or
+   * selected by Alice. Alice sends the invitation to Bob using a trusted channel.
+   *
+   * Meanwhile, Alice adds Bob to the graph as a new member, with appropriate roles (if
+   * any) and any corresponding lockboxes.
+   *
+   * Bob can't authenticate directly as that member, since it has random temporary keys created by
+   * Alice. Instead, Bob generates a proof of invitation, and when they try to connect to Alice or
+   * Charlie they present that proof instead of authenticating.
+   *
+   * Once Alice or Charlie verifies Bob's proof, they send him the team graph. Bob uses that to
+   * instantiate the team, then he updates the team with his real public keys and adds his current
+   * device information.
+   */
   public inviteMember({
     seed = invitations.randomSeed(),
     expiration,
@@ -645,7 +645,42 @@ export class Team extends EventEmitter {
 
   /**************** SERVERS */
 
-  /** add a server to the team (it's given you public keys in a side channel) */
+  /**
+   * A server is an always-on, always-connected device that is available to the team but does not
+   * belong to any one member. For example, `automerge-repo` calls this a "sync server".
+   *
+   * The server needs to be able to read the team graph, so it has to have the team keys.
+   *
+   * The server can admit invited members and devices to the team. (This is necessary to support
+   * star-shaped networks where every device connects only to a server, rather than directly to each
+   * other.) So the only actions that a server can dispatch are `ADMIT_MEMBER` and `ADMIT_DEVICE`.
+   */
+
+  // TODO: If we wanted to restrict the server's read access to application data (as opposed to the
+  // team membership data), we would currently have to create a new role that is only for human
+  // members (and ensure that every member was added to it), and encrypt the application data with
+  // that role's keys. It might make more sense to separate out the **graph keys** (for encrypting
+  // the team graph) from the **team keys** (for encrypting data for human members of the team).
+
+  /**
+   * Adds a server to the team.
+   *
+   * A server has a host name that uniquely identifies it (e.g. `example.com`, `localhost:8080`, or
+   * `188.26.221.135`). The host name is used to identify the server in the graph, and also to
+   * identify the server in the team's `servers` map.
+   *
+   * Prior to adding a server, the application should send it the latest graph and the team keys
+   * (including secrets). No invitation or authentication is necessary in this phase, as a TLS
+   * connection is sufficient to ensure the security of that connection. In response, the server
+   * should send back its public keys. The application should then add the server to the team using
+   * the `addServer` method, passing in the server's public keys.
+   *
+   * At that point the server will be able to authenticate with other devices using the same
+   * protocol as for members.
+   *
+   * The expected usage is for the application to add a server or servers immediately after the team
+   * is created. However, the application can add or remove servers at any time.
+   */
   public addServer = (server: Server) => {
     this.dispatch({
       type: 'ADD_SERVER',
@@ -653,7 +688,7 @@ export class Team extends EventEmitter {
     })
   }
 
-  /** remove a server */
+  /** Removes a server from the team. */
   public removeServer = (host: string) => {
     this.dispatch({
       type: 'REMOVE_SERVER',
@@ -661,7 +696,7 @@ export class Team extends EventEmitter {
     })
   }
 
-  /** Returns a list of all servers on the team */
+  /** Returns a list of all servers on the team. */
   public servers(): Server[] // overload: all servers
   /** Returns the server with the given host */
   public servers(host: Host, options?: { includeRemoved: boolean }): Server // overload: one server
@@ -671,6 +706,7 @@ export class Team extends EventEmitter {
       ? this.state.servers // all servers
       : select.server(this.state, host, options) // one server
   }
+
   /** Returns true if the server was once on the team but was removed */
   public serverWasRemoved = (host: Host) => select.serverWasRemoved(this.state, host)
 
