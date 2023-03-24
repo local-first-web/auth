@@ -5,6 +5,8 @@ import { createDevice, createTeam } from '..'
 
 describe('Team', () => {
   describe('a server', () => {
+    const host = 'devresults.com'
+
     const createServer = (host: Host): Server => {
       const serverKeys = createKeyset({ type: 'SERVER', name: host })
       return { host, keys: redactKeys(serverKeys) }
@@ -12,7 +14,6 @@ describe('Team', () => {
 
     it('can be added and removed by an admin', () => {
       const { alice } = setup('alice')
-      const host = 'devresults.com'
 
       // add server
       alice.team.addServer(createServer(host))
@@ -30,14 +31,24 @@ describe('Team', () => {
 
     it(`can't be added by a non-admin member`, () => {
       const { bob } = setup('alice', { user: 'bob', admin: false })
-      const host = 'devresults.com'
 
       const tryToAddServer = () => bob.team.addServer(createServer(host))
 
       expect(tryToAddServer).toThrowError()
+      expect(bob.team.servers().length).toBe(0)
     })
 
-    it.todo(`can't be removed by a non-admin member`)
+    it(`can't be removed by a non-admin member`, () => {
+      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+
+      // add server
+      alice.team.addServer(createServer(host))
+      expect(alice.team.servers().length).toBe(1)
+
+      const tryToRemoveServer = () => bob.team.removeServer(host)
+      expect(tryToRemoveServer).toThrowError()
+    })
+
     it.todo(`can decrypt a team graph`)
     it.todo(`can sync with a member`)
     it.todo(`can admit an invitee`)
