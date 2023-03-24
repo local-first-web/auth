@@ -3,6 +3,8 @@ import { type ServerWithSecrets } from '@/server'
 import { type SemVer } from '@/util'
 import { type UserWithSecrets } from 'crdx'
 
+export type LocalContext = LocalUserContext | ServerContext
+
 export interface LocalUserContext {
   user: UserWithSecrets
   device: DeviceWithSecrets
