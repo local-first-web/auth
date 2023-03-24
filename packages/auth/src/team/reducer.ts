@@ -12,6 +12,7 @@ import {
   addServer,
   changeDeviceKeys,
   changeMemberKeys,
+  changeServerKeys,
   collectLockboxes,
   postInvitation,
   removeDevice,
@@ -223,6 +224,11 @@ const getTransforms = (action: TeamAction): Transform[] => {
     case 'REMOVE_SERVER': {
       const { host } = action.payload
       return [removeServer(host)]
+    }
+
+    case 'CHANGE_SERVER_KEYS': {
+      const { keys } = action.payload
+      return [changeServerKeys(keys)]
     }
 
     default:

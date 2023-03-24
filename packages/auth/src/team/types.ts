@@ -220,6 +220,13 @@ export interface RemoveServerAction {
   }
 }
 
+export interface ChangeServerKeysAction {
+  type: 'CHANGE_SERVER_KEYS'
+  payload: BasePayload & {
+    keys: Keyset
+  }
+}
+
 export type TeamAction =
   | RootAction
   | AddMemberAction
@@ -240,6 +247,7 @@ export type TeamAction =
   | RotateKeysAction
   | AddServerAction
   | RemoveServerAction
+  | ChangeServerKeysAction
 
 export type TeamContext = {
   deviceId: string
