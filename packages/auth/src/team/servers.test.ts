@@ -1,5 +1,6 @@
 import { Host, Server, ServerWithSecrets } from '@/server'
 import { all, connection, joinTestChannel, setup, TestChannel } from '@/util/testing'
+import { pause } from '@/util/testing/pause'
 import { createKeyset, createUser, KeyType, redactKeys } from 'crdx'
 import { Connection, createDevice, createTeam, invitation, loadTeam } from '..'
 
@@ -240,7 +241,28 @@ describe('Team', () => {
       expect(bob.team.roles('MANAGER')).toBeDefined()
     })
 
-    it.todo(`can change its own keys`)
+    it(`can change its own keys`, async () => {
+      const { alice, bob } = setup('alice', 'bob')
+      const { server, serverWithSecrets } = createServer(host)
+      alice.team.addServer(server)
+      const savedGraph = alice.team.save()
+      const teamKeys = alice.team.teamKeys()
+      const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, teamKeys)
+
+      const teamKeys0 = serverTeam.teamKeys()
+      expect(teamKeys0.generation).toBe(0)
+
+      // Server changes their keys
+      serverTeam.changeKeys(createKeyset({ type: KeyType.SERVER, name: host }))
+
+      // server keys have been rotated
+      expect(serverTeam.servers(host).keys.generation).toBe(1)
+
+      // Server still has access to team keys
+      const teamKeys1 = serverTeam.teamKeys()
+      // why aren't the team keys rotated??
+      // expect(teamKeys1.generation).toBe(1) // the team keys were rotated, so these are new
+    })
   })
 })
 

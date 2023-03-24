@@ -830,6 +830,7 @@ export class Team extends EventEmitter {
    */
   public changeKeys = (newKeys: KeysetWithSecrets) => {
     const isDeviceKeyset = newKeys.type === KeyType.DEVICE
+    const isServerKeyset = newKeys.type === KeyType.SERVER
 
     // make sure we're allowed to change these keys
     if (isDeviceKeyset) {
@@ -851,7 +852,11 @@ export class Team extends EventEmitter {
     const lockboxes = this.rotateKeys(newKeys)
 
     // post our new public keys to the graph
-    const type = isDeviceKeyset ? 'CHANGE_DEVICE_KEYS' : 'CHANGE_MEMBER_KEYS'
+    const type = isDeviceKeyset
+      ? 'CHANGE_DEVICE_KEYS'
+      : isServerKeyset
+      ? 'CHANGE_SERVER_KEYS'
+      : 'CHANGE_MEMBER_KEYS'
     const keys = redactKeys(newKeys)
     this.dispatch({ type, payload: { keys, lockboxes } })
 
