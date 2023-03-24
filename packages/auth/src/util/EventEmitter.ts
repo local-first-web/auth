@@ -11,7 +11,7 @@ export class EventEmitter extends _EventEmitter {
   log: debug.Debugger = debug(`EventEmitter`)
 
   public emit(event: string, ...args: any[]) {
-    this.log(`emit ${event}`, ...args)
+    this.log(`emit ${event} %o`, ...args)
     return super.emit(event, ...args)
   }
 }
