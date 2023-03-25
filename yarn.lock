@@ -471,16 +471,24 @@
   resolved "https://registry.yarnpkg.com/@herbcaudill/base-x/-/base-x-4.0.6.tgz#681a5921ea55b61a431c49ade9955322b02337cd"
   integrity sha512-9BaPxLhtOGn5Os1gnG223StA8BvOm2vm8Unatj6nLoEV1lL8PVDyhsZV1yJXSSWEc8aHnQAJG5+NbvGMveaqeQ==
 
-"@herbcaudill/crypto@^3.0.4":
-  version "3.0.4"
-  resolved "https://registry.yarnpkg.com/@herbcaudill/crypto/-/crypto-3.0.4.tgz#f70e608387e5faf3f096a5cec33ba1e0baf03a51"
-  integrity sha512-Xs8P3fLRqMr5BkbUh5cpzyVISf+8fSrl4q7r0WtJpDEtresGKjoytex7EKJxh/41uQw1UrBbN40jb5zmoC2YAA==
+"@herbcaudill/crypto@^3.0.8":
+  version "3.0.8"
+  resolved "https://registry.yarnpkg.com/@herbcaudill/crypto/-/crypto-3.0.8.tgz#1ca24a5a26ea47c1fab931858e90f01654de1c45"
+  integrity sha512-fcYgcr2WAt1FKWgUCIPIHmQv7NgoduPujjvotAB2vCZZs7kJerBu4sKmNb5QNe/fDQA3rF0K3JJlX7BaHifJVw==
   dependencies:
     "@herbcaudill/base-x" "4"
     "@stablelib/utf8" "1"
     fast-memoize "2"
-    libsodium-wrappers "0"
+    libsodium-wrappers-sumo "0.7.10"
     msgpack-lite "0"
+
+"@herbcaudill/tscpaths@0":
+  version "0.0.17"
+  resolved "https://registry.yarnpkg.com/@herbcaudill/tscpaths/-/tscpaths-0.0.17.tgz#c29370fdc2d9d187548a6d92e388968f4c79e8bd"
+  integrity sha512-yBKz3S9RwDUq1LAr9lrHUDBwtsaFuX+6WLgnUq9tkTlu5wsoofxCYfhbwFeNXVRVFeCMLpBp+lhMFQ5/11w3Cw==
+  dependencies:
+    commander "^2.20.0"
+    globby "^9.2.0"
 
 "@ibm/plex@5":
   version "5.2.1"
@@ -1807,11 +1815,6 @@
   dependencies:
     "@types/node" "*"
 
-"@types/libsodium-wrappers@0":
-  version "0.7.10"
-  resolved "https://registry.yarnpkg.com/@types/libsodium-wrappers/-/libsodium-wrappers-0.7.10.tgz#a6ebde70d3b4af960fd802af8d0e3c7cfe281eb2"
-  integrity sha512-BqI9B92u+cM3ccp8mpHf+HzJ8fBlRwdmyd6+fz3p99m3V6ifT5O3zmOMi612PGkpeFeG/G6loxUnzlDNhfjPSA==
-
 "@types/lodash@4":
   version "4.14.191"
   resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.191.tgz#09511e7f7cba275acd8b419ddac8da9a6a79e2fa"
@@ -1838,14 +1841,14 @@
   integrity sha512-iiUgKzV9AuaEkZqkOLDIvlQiL6ltuZd9tGcW3gwpnX8JbuiuhFlEGmmFXEXkN50Cvq7Os88IY2v0dkDqXYWVgA==
 
 "@types/node@*", "@types/node@>= 8":
-  version "18.15.7"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.15.7.tgz#33514fca9bdf136f77027358850c0fb9cd93c669"
-  integrity sha512-LFmUbFunqmBn26wJZgZPYZPrDR1RwGOu2v79Mgcka1ndO6V0/cwjivPTc4yoK6n9kmw4/ls1r8cLrvh2iMibFA==
+  version "18.15.9"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.15.9.tgz#a9b529d2a16ae73122b3875969e7db18c9f3e790"
+  integrity sha512-dUxhiNzBLr6IqlZXz6e/rN2YQXlFgOei/Dxy+e3cyXTJ4txSUbGT2/fmnD6zd/75jDMeW5bDee+YXxlFKHoV0A==
 
 "@types/node@16", "@types/node@^16.11.26":
-  version "16.18.19"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-16.18.19.tgz#5a2c0c2fdcfcf1ff96b8f43447c81b40aa65ba2f"
-  integrity sha512-Qd2EhjbjOKZuHMn+IJc2EUYwdkJw9kgsZ3k2zdyi2uIBH0hU00Yd9T5rpMq6KRiFvpscpXUQRjJSaJHH29ei8A==
+  version "16.18.20"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-16.18.20.tgz#8d69761aca4cf40a54dcd5c70ed313f393f8d6b5"
+  integrity sha512-9fH66vSJnF563exTu3y1g2IbDz1vCj01Lbqms97r8j0qzfFisT2biypSfybVv/eYrtTB74x9xQTdRU8RyMiRrg==
 
 "@types/node@^14.14.31":
   version "14.18.40"
@@ -3297,12 +3300,12 @@ cosmiconfig@^7.0.1:
     path-type "^4.0.0"
     yaml "^1.10.0"
 
-crdx@^3.0.4:
-  version "3.0.4"
-  resolved "https://registry.yarnpkg.com/crdx/-/crdx-3.0.4.tgz#7e807e7cc092822c0bbcd3ca29a20ba261aa7ce4"
-  integrity sha512-ED6pTsX94IkrirMhFAWhF+wPYvygzh9xjvJ4ZzYM7earGQlj6PmYQ7+qj1faVqWHe/RU5pO3v2ulJGcKSO9INQ==
+crdx@^3.0.8:
+  version "3.0.8"
+  resolved "https://registry.yarnpkg.com/crdx/-/crdx-3.0.8.tgz#26ac04f75b055e4074a5a59de2a051b9f07af5b1"
+  integrity sha512-lULKFUOtHpDENRnnABkURIJP1e039yeOxyXtidy/8zA4c2Bo48h65rtcGJgeZ+iDAsv3GbOJkA/OAs1kAVaU9w==
   dependencies:
-    "@herbcaudill/crypto" "^3.0.4"
+    "@herbcaudill/crypto" "^3.0.8"
     cuid "2"
     debug "4"
     events "3"
@@ -3519,9 +3522,9 @@ d3-contour@4:
     d3-array "^3.2.0"
 
 d3-delaunay@6:
-  version "6.0.2"
-  resolved "https://registry.yarnpkg.com/d3-delaunay/-/d3-delaunay-6.0.2.tgz#7fd3717ad0eade2fc9939f4260acfb503f984e92"
-  integrity sha512-IMLNldruDQScrcfT+MWnazhHbDJhcRJyOEBAJfwQnHle1RPh6WDuLvxNArUju2VSMSUuKlY5BGHRJ2cYyoFLQQ==
+  version "6.0.3"
+  resolved "https://registry.yarnpkg.com/d3-delaunay/-/d3-delaunay-6.0.3.tgz#d0824ba2012a5f6cd17d035653d0515d1c098257"
+  integrity sha512-1gPbiMuikAgU/rFcT6WMu17zx0aelw9Hh80go7/TwZQ+/uq8DqqmiNYy+EqPEvTSp/BkJFIpQxjac4Gk/w0zOg==
   dependencies:
     delaunator "5"
 
@@ -3685,9 +3688,9 @@ d3-zoom@3:
     d3-transition "2 - 3"
 
 d3@^7.4.0, d3@^7.8.2:
-  version "7.8.2"
-  resolved "https://registry.yarnpkg.com/d3/-/d3-7.8.2.tgz#2bdb3c178d095ae03b107a18837ae049838e372d"
-  integrity sha512-WXty7qOGSHb7HR7CfOzwN1Gw04MUOzN8qh9ZUsvwycIMb4DYMpY9xczZ6jUorGtO6bR9BPMPaueIKwiDxu9uiQ==
+  version "7.8.3"
+  resolved "https://registry.yarnpkg.com/d3/-/d3-7.8.3.tgz#b6c862d16368e15bf764c89e248a300a56f2ab40"
+  integrity sha512-cAa866AkPXtt4IzRx6nzGf50uerq6VYks7p/tTH94be4QfhUkyTfJfaxXGPOB5ZRVUZmUV1wcM1dism/Ua0lCw==
   dependencies:
     d3-array "3"
     d3-axis "3"
@@ -4067,9 +4070,9 @@ ee-first@1.1.1:
   integrity sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==
 
 electron-to-chromium@^1.4.284:
-  version "1.4.339"
-  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.4.339.tgz#bfa611a7707ca8bbb784e01fe247c18a35bd8d28"
-  integrity sha512-MSXHBJGcbBydq/DQDlpBeUKnJ6C7aTiNCTRpfDV5Iz0sNr/Ng6RJFloq82AAicp/SrmDq4zF6XsKG0B8Xwn1UQ==
+  version "1.4.340"
+  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.4.340.tgz#3a6d7414c1fc2dbf84b6f7af3ec24270606c85b8"
+  integrity sha512-zx8hqumOqltKsv/MF50yvdAlPF9S/4PXbyfzJS6ZGhbddGkRegdwImmfSVqCkEziYzrIGZ/TlrzBND4FysfkDg==
 
 electron@^23.1.2:
   version "23.2.0"
@@ -6765,17 +6768,17 @@ leven@^3.1.0:
   resolved "https://registry.yarnpkg.com/leven/-/leven-3.1.0.tgz#77891de834064cccba82ae7842bb6b14a13ed7f2"
   integrity sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==
 
-libsodium-wrappers@0:
+libsodium-sumo@^0.7.0:
   version "0.7.11"
-  resolved "https://registry.yarnpkg.com/libsodium-wrappers/-/libsodium-wrappers-0.7.11.tgz#53bd20606dffcc54ea2122133c7da38218f575f7"
-  integrity sha512-SrcLtXj7BM19vUKtQuyQKiQCRJPgbpauzl3s0rSwD+60wtHqSUuqcoawlMDheCJga85nKOQwxNYQxf/CKAvs6Q==
-  dependencies:
-    libsodium "^0.7.11"
+  resolved "https://registry.yarnpkg.com/libsodium-sumo/-/libsodium-sumo-0.7.11.tgz#ab0389e2424fca5c1dc8c4fd394906190da88a11"
+  integrity sha512-bY+7ph7xpk51Ez2GbE10lXAQ5sJma6NghcIDaSPbM/G9elfrjLa0COHl/7P6Wb/JizQzl5UQontOOP1z0VwbLA==
 
-libsodium@^0.7.11:
-  version "0.7.11"
-  resolved "https://registry.yarnpkg.com/libsodium/-/libsodium-0.7.11.tgz#cd10aae7bcc34a300cc6ad0ac88fcca674cfbc2e"
-  integrity sha512-WPfJ7sS53I2s4iM58QxY3Inb83/6mjlYgcmZs7DJsvDlnmVUwNinBCi5vBT43P6bHRy01O4zsMU2CoVR6xJ40A==
+libsodium-wrappers-sumo@0.7.10:
+  version "0.7.10"
+  resolved "https://registry.yarnpkg.com/libsodium-wrappers-sumo/-/libsodium-wrappers-sumo-0.7.10.tgz#592b0cc714ddf3954f93e2292ff3aadebd2b282b"
+  integrity sha512-1noz8Mcl/LUzO/iSO/FJzoJyIaPwxl+/+E4CoTIXtsPiEEXQx2sxalmrVWxteLpynqgX0ASo28ChB9NEVRh0Pg==
+  dependencies:
+    libsodium-sumo "^0.7.0"
 
 lilconfig@^2.0.5:
   version "2.1.0"
@@ -8500,24 +8503,24 @@ react-clientside-effect@^1.2.2:
   dependencies:
     "@babel/runtime" "^7.12.13"
 
-react-devtools-core@4.27.3:
-  version "4.27.3"
-  resolved "https://registry.yarnpkg.com/react-devtools-core/-/react-devtools-core-4.27.3.tgz#66145f0b765b60bd59ca622bf427770333c723b0"
-  integrity sha512-39mfD7VdF7mJm0+l9mrwluWPEZak700lgACGetqVmz5/FpcfThT53HNG8RoTd1UHybBPoDWUQTv0LW+0Hfbu6Q==
+react-devtools-core@4.27.4:
+  version "4.27.4"
+  resolved "https://registry.yarnpkg.com/react-devtools-core/-/react-devtools-core-4.27.4.tgz#987f678a0e6658fd6f8fa0b8b2be191cf6984b68"
+  integrity sha512-dvZjrAJjahd6NNl7dDwEk5TyHsWJxDpYL7VnD9jdEr98EEEsVhw9G8JDX54Nrb3XIIOBlJDpjo3AuBuychX9zg==
   dependencies:
     shell-quote "^1.6.1"
     ws "^7"
 
 react-devtools@^4.21.0:
-  version "4.27.3"
-  resolved "https://registry.yarnpkg.com/react-devtools/-/react-devtools-4.27.3.tgz#52fba8db7ad4e10473d087fbec75a1f914cefc4e"
-  integrity sha512-vY9s8jWR8hmkkvDVOADAmOOhXUjb8n6eRM05Cb6UM3OHCbtzirjveqjUgSVnVf7SLy/4cqVjdycDwc8zzh0siQ==
+  version "4.27.4"
+  resolved "https://registry.yarnpkg.com/react-devtools/-/react-devtools-4.27.4.tgz#694e2dff679bb2612fd76707a3ecbfc5a808ed53"
+  integrity sha512-j+T/grVhbMQpvLLUMJRmsE7TDCaQ4Tr8Y0MrF7AB4i24EpP2oEnZEnHwAaCSiAIKoXxsyoBvKY8PZcGVSEowWg==
   dependencies:
     cross-spawn "^5.0.1"
     electron "^23.1.2"
     ip "^1.1.4"
     minimist "^1.2.3"
-    react-devtools-core "4.27.3"
+    react-devtools-core "4.27.4"
     update-notifier "^2.1.0"
 
 react-dom@17:
@@ -10012,14 +10015,6 @@ tsconfig-paths@^4.0.0:
     json5 "^2.2.2"
     minimist "^1.2.6"
     strip-bom "^3.0.0"
-
-tscpaths@0:
-  version "0.0.9"
-  resolved "https://registry.yarnpkg.com/tscpaths/-/tscpaths-0.0.9.tgz#c77abfde6820920f10c64f83c27753b9505814ab"
-  integrity sha512-tz4qimSJTCjYtHVsoY7pvxLcxhmhgmwzm7fyMEiL3/kPFFVyUuZOwuwcWwjkAsIrSUKJK22A7fNuJUwxzQ+H+w==
-  dependencies:
-    commander "^2.20.0"
-    globby "^9.2.0"
 
 tslib@^1.9.0, tslib@^1.9.3:
   version "1.14.1"
