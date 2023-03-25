@@ -5,8 +5,8 @@ import { DeviceWithSecrets, getDeviceId } from '@/device'
 import { ADMIN } from '@/role'
 import * as teams from '@/team'
 import { Team, TeamContext } from '@/team'
-import { arrayToMap, assert } from '@/util'
-import { createUser, KeyType, User, UserWithSecrets } from 'crdx'
+import { arrayToMap, assert, KeyType } from '@/util'
+import { createUser, UserWithSecrets } from 'crdx'
 
 // ignore file coverage
 

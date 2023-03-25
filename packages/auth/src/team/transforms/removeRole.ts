@@ -1,5 +1,5 @@
 ﻿import { Transform } from '@/team/types'
-import { KeyType } from 'crdx'
+import { KeyType } from '@/util'
 
 export const removeRole =
   (roleName: string): Transform =>
@@ -11,6 +11,6 @@ export const removeRole =
 
     // remove any lockboxes for this role
     lockboxes: state.lockboxes.filter(
-      lockbox => !(lockbox.contents.type === KeyType.ROLE && lockbox.contents.name === roleName)
+      lockbox => !(lockbox.contents.type === KeyType.ROLE && lockbox.contents.name === roleName),
     ),
   })

@@ -1,4 +1,4 @@
-﻿import { hash, stretch, base58 } from '@herbcaudill/crypto'
+﻿import { Hash, hash, stretch } from '@herbcaudill/crypto'
 import { HashPurpose } from '@/util'
 
 export function deriveId(seed: string) {
@@ -11,5 +11,5 @@ export function deriveId(seed: string) {
   // The invitation id is derived from the stretched iKey, so Bob can generate it independently.
   // This will be visible in the signature chain and serves to uniquely identify the invitation.
   // (Keybase docs: `inviteID`)
-  return hash(HashPurpose.INVITATION, stretchedKey).slice(0, 15)
+  return hash(HashPurpose.INVITATION, stretchedKey).slice(0, 15) as Hash
 }

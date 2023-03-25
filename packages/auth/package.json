@@ -32,48 +32,27 @@
     "postbuild": "./dist/**/*"
   },
   "dependencies": {
-    "@changesets/changelog-github": "0",
-    "@changesets/cli": "2",
-    "@herbcaudill/crypto": "3",
-    "@types/react": "17",
-    "@types/react-dom": "17",
+    "@herbcaudill/crypto": "^3.0.6",
     "buffer": "6",
-    "crdx": "^3.0.3",
+    "crdx": "^3.0.6",
     "debug": "4",
     "events": "3",
     "fast-memoize": "2",
-    "msgpack-lite": "0",
+    "lodash": "4",
     "npm-watch": "^0.11.0",
-    "ramda": "0",
     "typescript": "4",
     "xstate": "4.26"
   },
-  "devDependencies": {
-    "@types/debug": "4",
-    "@types/msgpack-lite": "0",
-    "@types/ramda": "0",
-    "cross-env": "6",
-    "jest": "27",
-    "prettier": "2",
-    "ts-jest": "27",
-    "tscpaths": "0",
-    "typescript": "4"
-  },
-  "prettier": {
-    "printWidth": 100,
-    "semi": false,
-    "singleQuote": true,
-    "trailingComma": "all",
-    "arrowParens": "avoid"
-  },
   "jest": {
-    "transform": {},
-    "preset": "ts-jest/presets/default-esm",
-    "globals": {
-      "ts-jest": {
-        "useESM": true
-      }
+    "transform": {
+      "^.+\\.tsx?$": [
+        "ts-jest",
+        {
+          "useESM": true
+        }
+      ]
     },
+    "preset": "ts-jest/presets/default-esm",
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/src/$1"
     },

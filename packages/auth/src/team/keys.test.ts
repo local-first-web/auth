@@ -2,7 +2,8 @@ import { ADMIN } from '@/role'
 import { setup } from '@/util/testing'
 import '@/util/testing/expect/toLookLikeKeyset'
 import { getDeviceId } from '@/device'
-import { KeyType, createKeyset, redactKeys } from 'crdx'
+import { createKeyset, redactKeys } from 'crdx'
+import { KeyType } from '@/util'
 
 const { USER, DEVICE } = KeyType
 

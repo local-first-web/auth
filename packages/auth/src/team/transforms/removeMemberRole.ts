@@ -1,5 +1,5 @@
 ﻿import { Transform } from '@/team/types'
-import { KeyType } from 'crdx'
+import { KeyType } from '@/util'
 
 export const removeMemberRole =
   (userId: string, roleName: string): Transform =>
@@ -24,6 +24,6 @@ export const removeMemberRole =
           lockbox.recipient.name === userId &&
           lockbox.contents.type === KeyType.ROLE &&
           lockbox.contents.name === roleName
-        )
+        ),
     ),
   })

@@ -1,8 +1,9 @@
-﻿import { createKeyset, KeyType } from 'crdx'
+﻿import { createKeyset } from 'crdx'
 import { create, open, rotate } from '@/lockbox'
 import { ADMIN } from '@/role'
 
 import { setup } from '@/util/testing'
+import { KeyType } from '@/util'
 
 const { bob, eve } = setup('alice', 'bob', { user: 'eve', member: false })
 const MANAGERS = 'managers'

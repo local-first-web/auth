@@ -1,4 +1,4 @@
-import { TeamLink, TeamLinkBody, TeamGraph } from '@localfirst/auth'
+import { TeamLink, TeamLinkBody, TeamGraph, Hash } from '@localfirst/auth'
 import React, { FC } from 'react'
 import { theme } from '../mermaid.theme'
 import { devices, users } from '../peers'
@@ -17,22 +17,18 @@ export const GraphDiagram: FC<{ graph: TeamGraph; id: string }> = ({ graph: chai
     `graph TD`, // TD = top-down
     `classDef merge fill:#fc3,font-weight:bold,stroke-width:3px,text-align:center`, // css for merge nodes
   ]
-
-  const chartNodes = Object.keys(chain.links).map(hash => {
+  const keys = Object.keys(chain.links) as Hash[]
+  const chartNodes = keys.map(hash => {
     const link = chain.links[hash]
     const id = getId(hash)
     return `${id}${mermaidNodeFromLink(link)}`
   })
-
-  const chartEdges = Object.keys(chain.links).flatMap(hash => {
+  const chartEdges = keys.flatMap(hash => {
     const link = chain.links[hash]
     return mermaidEdgeFromLink(link)
   })
 
-  const chart = chartHeader
-    .concat(chartNodes)
-    .concat(chartEdges)
-    .join(LINE_BREAK)
+  const chart = chartHeader.concat(chartNodes).concat(chartEdges).join(LINE_BREAK)
 
   return (
     <div className="ChainDiagram">

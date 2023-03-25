@@ -1,3 +1,4 @@
+import { UnixTimestamp } from '@localfirst/auth'
 import { Button, Label, Select } from '@windmill/react-ui'
 import ClipboardJS from 'clipboard'
 import React, { MutableRefObject, useEffect, useRef, useState } from 'react'
@@ -42,7 +43,7 @@ export const Invite = () => {
     const maxUses = +maxUsesSelect.current.value
     const now = new Date().getTime()
     const expirationMs = +expirationSelect.current.value * 1000
-    const expiration = now + expirationMs
+    const expiration = (now + expirationMs) as UnixTimestamp
 
     // TODO we're storing id so we can revoke - wire that up
     const { id } = team.inviteMember({ seed, maxUses, expiration })

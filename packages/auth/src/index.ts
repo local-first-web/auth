@@ -23,13 +23,16 @@ export * from './team/types'
 
 export { symmetric, asymmetric, signatures } from '@herbcaudill/crypto'
 export {
-  LinkBody,
+  Base58,
+  createKeyset,
   createUser,
-  User,
-  UserWithSecrets,
-  redactUser,
+  Hash,
   Keyset,
   KeysetWithSecrets,
+  LinkBody,
   redactKeys,
-  createKeyset,
+  redactUser,
+  UnixTimestamp,
+  User,
+  UserWithSecrets,
 } from 'crdx'

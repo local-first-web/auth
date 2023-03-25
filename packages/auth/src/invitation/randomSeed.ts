@@ -1,6 +1,5 @@
-﻿import { randomKey } from '@herbcaudill/crypto'
-import { IKEY_LENGTH } from '@/invitation/create'
-import { base30 } from '@/util'
+﻿import { IKEY_LENGTH } from '@/invitation/create'
+import { randomKey } from '@herbcaudill/crypto'
 
 /**
  * Randomly generates a 16-character base30 string, for example `4kgd5mwq5z4fmfwq`, to be used as
@@ -10,7 +9,7 @@ import { base30 } from '@/util'
  * inviting Bob, only Alice and Bob will ever have this key. (Keybase docs refer to this as `iKey`.)
  *
  * > Note: Alternatively, you can come up with your own method of generating the secret key. The
- * > length of the key specified in the protocol makes it quite strong, and the choice of the base30
+ * > length of the key specified in the protocol makes it quite strong, and the choice of the base58
  * > character set omits confusing characters like `1` and `l`.
  * >
  * > Depending on the security context, it might make sense to strike a different balance between
@@ -23,4 +22,4 @@ import { base30 } from '@/util'
  * > all invitations and just hard-code that into your application so that the user never sees it.
  * >
  */
-export const randomSeed = (length = IKEY_LENGTH) => randomKey(length, base30.encode)
+export const randomSeed = (length = IKEY_LENGTH) => randomKey(length)

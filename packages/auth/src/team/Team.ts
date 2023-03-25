@@ -1,6 +1,6 @@
 import * as identity from '@/connection/identity'
 import { Challenge } from '@/connection/types'
-import { LocalContext, LocalUserContext } from '@/context'
+import { LocalUserContext } from '@/context'
 import * as devices from '@/device'
 import { Device, DeviceWithSecrets, getDeviceId, parseDeviceId, redactDevice } from '@/device'
 import * as invitations from '@/invitation'
@@ -9,20 +9,22 @@ import { normalize } from '@/invitation/normalize'
 import * as lockbox from '@/lockbox'
 import { ADMIN, Role } from '@/role'
 import { cast } from '@/server/cast'
-import { Server, Host } from '@/server/types'
-import { assert, debug, getScope, Hash, Payload, scopesMatch, UnixTimestamp, VALID } from '@/util'
+import { Host, Server } from '@/server/types'
+import { assert, debug, getScope, KeyType, scopesMatch, VALID } from '@/util'
 import { Base58, randomKey, signatures, symmetric } from '@herbcaudill/crypto'
 import {
   createKeyset,
   createStore,
+  Hash,
   isKeyset,
   KeyMetadata,
   KeyScope,
   Keyset,
   KeysetWithSecrets,
-  KeyType,
+  Payload,
   redactKeys,
   Store,
+  UnixTimestamp,
   User,
   UserWithSecrets,
 } from 'crdx'
@@ -522,7 +524,7 @@ export class Team extends EventEmitter {
    */
   public inviteDevice({
     seed = invitations.randomSeed(),
-    expiration = Date.now() + 30 * 60 * 1000, // 30 minutes
+    expiration = (Date.now() + 30 * 60 * 1000) as UnixTimestamp, // 30 minutes
   }: {
     /** A secret to be passed to the device via a side channel. If not provided, one will be randomly generated. */
     seed?: string
@@ -562,9 +564,9 @@ export class Team extends EventEmitter {
   }
 
   /** Returns true if the invitation has ever existed in this team (even if it's been used or revoked) */
-  public hasInvitation(id: Hash): boolean
+  public hasInvitation(id: Base58): boolean
   public hasInvitation(proof: ProofOfInvitation): boolean
-  public hasInvitation(proofOrId: Hash | ProofOfInvitation): boolean {
+  public hasInvitation(proofOrId: Base58 | ProofOfInvitation): boolean {
     const id =
       typeof proofOrId === 'string' //
         ? proofOrId // string id was passed
@@ -573,7 +575,7 @@ export class Team extends EventEmitter {
   }
 
   /** Gets the invitation corresponding to the given id. If it does not exist, throws an error. */
-  public getInvitation = (id: string) => {
+  public getInvitation = (id: Base58) => {
     return select.getInvitation(this.state, id)
   }
 
@@ -769,7 +771,7 @@ export class Team extends EventEmitter {
   }
 
   /** Decrypt a payload using keys available to the current user. */
-  public decrypt = (message: EncryptedEnvelope): string => {
+  public decrypt = (message: EncryptedEnvelope): Payload => {
     const { secretKey } = this.keys(message.recipient)
     return symmetric.decrypt(message.contents, secretKey)
   }
@@ -923,7 +925,7 @@ const isGraph = (source: string | TeamGraph): source is TeamGraph => source?.has
 
 type InviteResult = {
   /** The unique identifier for this invitation. */
-  id: string
+  id: Base58
 
   /** The secret invitation key. (Returned in case it was generated randomly.) */
   seed: string

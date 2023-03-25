@@ -33,10 +33,10 @@ import { Device, DeviceWithSecrets, getDeviceId, parseDeviceId } from '@/device'
 import * as invitations from '@/invitation'
 import { cast } from '@/server/cast'
 import { decryptTeamGraph, Team, TeamAction, TeamContext, TeamGraph } from '@/team'
-import { assert, debug, EventEmitter, truncateHashes } from '@/util'
+import { assert, debug, EventEmitter, KeyType, truncateHashes } from '@/util'
 import { arraysAreEqual } from '@/util/arraysAreEqual'
 import { syncMessageSummary } from '@/util/testing/messageSummary'
-import { asymmetric, Payload, randomKey, symmetric } from '@herbcaudill/crypto'
+import { asymmetric, Base58, Payload, randomKey, symmetric } from '@herbcaudill/crypto'
 import {
   DecryptFn,
   DecryptFnParams,
@@ -44,7 +44,6 @@ import {
   headsAreEqual,
   initSyncState,
   KeysetWithSecrets,
-  KeyType,
   receiveMessage,
   redactKeys,
   SyncState,
@@ -78,7 +77,10 @@ export class Connection extends EventEmitter {
 
     // define state machine
     const machineConfig = { actions: this.actions, guards: this.guards }
-    const machine = createMachine(protocolMachine, machineConfig).withContext(context)
+    const machine = createMachine<ConnectionContext, ConnectionMessage>(
+      protocolMachine,
+      machineConfig,
+    ).withContext(context)
 
     // instantiate the machine
     this.machine = interpret(machine)
@@ -256,6 +258,10 @@ export class Connection extends EventEmitter {
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendIdentityClaim'`) */
   private readonly actions: Record<string, StateMachineAction> = {
     sendIdentityClaim: async context => {
+      const maybeUserKeys =
+        'user' in context && context.user !== undefined
+          ? { userKeys: redactKeys(context.user.keys) }
+          : {}
       const payload: ClaimIdentityMessage['payload'] =
         'team' in context
           ? // we already belong to a team
@@ -270,10 +276,7 @@ export class Connection extends EventEmitter {
               proofOfInvitation: this.myProofOfInvitation(context),
               deviceKeys: redactKeys(context.device.keys),
               userName: context.userName,
-              // TODO make this more readable
-              ...('user' in context && context.user !== undefined
-                ? { userKeys: redactKeys(context.user.keys) }
-                : {}),
+              ...maybeUserKeys,
             }
 
       // console.log('sending identity claim', payload)
@@ -614,7 +617,7 @@ export class Connection extends EventEmitter {
             cipher: context.theirEncryptedSeed,
             senderPublicKey,
             recipientSecretKey,
-          })
+          }) as Base58
 
           // with the two keys, we derive a shared key
           return deriveSharedKey(ourSeed, theirSeed)

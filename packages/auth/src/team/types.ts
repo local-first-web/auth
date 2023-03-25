@@ -4,8 +4,20 @@ import { Invitation, InvitationState } from '@/invitation/types'
 import { Lockbox } from '@/lockbox'
 import { PermissionsMap, Role } from '@/role'
 import { Host, Server } from '@/server'
-import { Base58, Hash, Payload, UUID, ValidationResult } from '@/util'
-import { Graph, KeyMetadata, Keyset, KeysetWithSecrets, Link, LinkBody, ROOT, Sequence } from 'crdx'
+import { ValidationResult } from '@/util'
+import {
+  Base58,
+  Graph,
+  Hash,
+  KeyMetadata,
+  Keyset,
+  KeysetWithSecrets,
+  Link,
+  LinkBody,
+  Payload,
+  ROOT,
+  Sequence,
+} from 'crdx'
 
 // ********* MEMBER
 
@@ -13,7 +25,7 @@ import { Graph, KeyMetadata, Keyset, KeysetWithSecrets, Link, LinkBody, ROOT, Se
 export interface Member {
   // TODO enforce uniqueness
   /** Unique ID populated on creation. */
-  userId: UUID
+  userId: string
 
   // TODO enforce uniqueness
   /** Username (or email). Must be unique but is not used for lookups. Only provided to connect
@@ -169,7 +181,7 @@ export interface RevokeInvitationAction {
 export interface AdmitMemberAction {
   type: 'ADMIT_MEMBER'
   payload: BasePayload & {
-    id: string // invitation ID
+    id: Base58 // invitation ID
     userName: string
     memberKeys: Keyset // member keys provided by the new member
   }
@@ -178,7 +190,7 @@ export interface AdmitMemberAction {
 export interface AdmitDeviceAction {
   type: 'ADMIT_DEVICE'
   payload: BasePayload & {
-    id: string // invitation ID
+    id: Base58 // invitation ID
     userId: string // user name of the device's owner
     deviceName: string // name given to the device by the owner
     deviceKeys: Keyset // device keys provided by the new device

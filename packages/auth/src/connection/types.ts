@@ -1,8 +1,7 @@
 import { DeviceWithSecrets } from '@/device'
 import { ProofOfInvitation } from '@/invitation'
 import { Member, Team } from '@/team'
-import { Base58, Hash, UnixTimestamp } from '@/util'
-import { KeyScope, Keyset, SyncState, UserWithSecrets } from 'crdx'
+import { Base58, Hash, KeyScope, Keyset, SyncState, UnixTimestamp, UserWithSecrets } from 'crdx'
 import { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
 import { ConnectionMessage } from './message'
 

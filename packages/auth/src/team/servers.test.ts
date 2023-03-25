@@ -1,6 +1,7 @@
 import { Host, Server, ServerWithSecrets } from '@/server'
+import { KeyType } from '@/util'
 import { all, joinTestChannel, setup, TestChannel } from '@/util/testing'
-import { createKeyset, KeyType, redactKeys } from 'crdx'
+import { createKeyset, redactKeys } from 'crdx'
 import { Connection, createTeam, invitation, loadTeam } from '..'
 
 describe('Team', () => {

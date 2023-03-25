@@ -1,4 +1,4 @@
-import { Hash } from '@/util'
+import { Hash } from 'crdx'
 import {
   createKeyring,
   decryptLink,

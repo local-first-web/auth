@@ -1,4 +1,4 @@
-﻿import { Base58 } from '@/util'
+﻿import { Base58 } from 'crdx'
 import { KeyMetadata, Keyset, KeysetWithSecrets } from 'crdx'
 
 export type KeyManifest = KeyMetadata & {
@@ -7,7 +7,7 @@ export type KeyManifest = KeyMetadata & {
 
 // type guard
 export const isKeyManifest = (
-  keys: Keyset | KeysetWithSecrets | KeyManifest
+  keys: Keyset | KeysetWithSecrets | KeyManifest,
 ): keys is KeyManifest => {
   return keys.hasOwnProperty('publicKey')
 }

@@ -1,6 +1,5 @@
 import * as auth from '@localfirst/auth'
 import { Button, CardBody } from '@windmill/react-ui'
-import React from 'react'
 import { useTeam } from '../hooks/useTeam'
 import { devices, users } from '../peers'
 import { assert } from '../util/assert'
@@ -10,7 +9,6 @@ import { Invite } from './Invite'
 import { OnlineToggle } from './OnlineToggle'
 import { StatusIndicator } from './StatusIndicator'
 
-import debug from 'debug'
 import { MemberInitialContext } from '@localfirst/auth'
 
 export const Team = () => {

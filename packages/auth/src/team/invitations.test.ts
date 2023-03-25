@@ -1,8 +1,9 @@
 import { generateProof } from '@/invitation'
 
 import * as teams from '@/team'
+import { KeyType } from '@/util'
 import { setup } from '@/util/testing'
-import { createKeyset, KeyType } from 'crdx'
+import { createKeyset, UnixTimestamp } from 'crdx'
 
 const { USER, DEVICE } = KeyType
 
@@ -92,7 +93,7 @@ describe('Team', () => {
         const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
         // 👩🏾 Alice invites 👨🏻‍🦲 Bob with a future expiration date
-        const expiration = new Date(Date.UTC(2999, 12, 25)).valueOf() // NOTE 👩‍🚀 this test will fail if run in the distant future
+        const expiration = new Date(Date.UTC(2999, 12, 25)).valueOf() as UnixTimestamp // NOTE 👩‍🚀 this test will fail if run in the distant future
         const { seed } = alice.team.inviteMember({ expiration })
         const proofOfInvitation = generateProof(seed)
         alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
@@ -105,7 +106,7 @@ describe('Team', () => {
         const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
         // A long time ago 👩🏾 Alice invited 👨🏻‍🦲 Bob
-        const expiration = new Date(Date.UTC(2020, 12, 25)).valueOf()
+        const expiration = new Date(Date.UTC(2020, 12, 25)).valueOf() as UnixTimestamp
         const { seed } = alice.team.inviteMember({ expiration })
         const proofOfInvitation = generateProof(seed)
 

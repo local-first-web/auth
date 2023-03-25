@@ -1,3 +1,2 @@
-import * as R from 'ramda'
-
-export const unique = R.uniq
+import _uniq from 'lodash/uniq'
+export const unique = _uniq

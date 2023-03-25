@@ -1,7 +1,7 @@
 ﻿import { deriveId } from '@/invitation/deriveId'
 import { normalize } from '@/invitation/normalize'
 import { Invitation } from '@/invitation/types'
-import { UnixTimestamp } from '@/util'
+import { UnixTimestamp } from 'crdx'
 import { generateStarterKeys } from './generateStarterKeys'
 
 export const IKEY_LENGTH = 16
@@ -13,7 +13,7 @@ export const IKEY_LENGTH = 16
 export const create = ({
   seed,
   maxUses = 1, // by default an invitation can only be used once
-  expiration = 0, // by default an invitation never expires
+  expiration = 0 as UnixTimestamp, // by default an invitation never expires
   userId,
 }: CreateOptions): Invitation => {
   seed = normalize(seed)
