@@ -32,9 +32,9 @@
     "postbuild": "./dist/**/*"
   },
   "dependencies": {
-    "@herbcaudill/crypto": "^3.0.6",
+    "@herbcaudill/crypto": "^3.0.8",
     "buffer": "6",
-    "crdx": "^3.0.6",
+    "crdx": "^3.0.8",
     "debug": "4",
     "events": "3",
     "fast-memoize": "2",
