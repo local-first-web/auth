@@ -1,8 +1,7 @@
 import { Host, Server, ServerWithSecrets } from '@/server'
-import { all, connection, joinTestChannel, setup, TestChannel } from '@/util/testing'
-import { pause } from '@/util/testing/pause'
-import { createKeyset, createUser, KeyType, redactKeys } from 'crdx'
-import { Connection, createDevice, createTeam, invitation, loadTeam } from '..'
+import { all, joinTestChannel, setup, TestChannel } from '@/util/testing'
+import { createKeyset, KeyType, redactKeys } from 'crdx'
+import { Connection, createTeam, invitation, loadTeam } from '..'
 
 describe('Team', () => {
   describe('a server', () => {
@@ -117,20 +116,11 @@ describe('Team', () => {
       expect(serverTeam.roles('MANAGER')).toBeDefined()
     })
 
-    it.skip(`can't create a team`, () => {
+    it(`can't create a team`, () => {
       const { serverWithSecrets } = createServer(host)
       expect(() => {
         createTeam('team server', {
-          user: {
-            userName: host,
-            userId: host,
-            keys: serverWithSecrets.keys,
-          },
-          device: {
-            userId: host,
-            deviceName: host,
-            keys: serverWithSecrets.keys,
-          },
+          server: serverWithSecrets,
         })
       }).toThrow()
     })
