@@ -11,7 +11,6 @@
   "private": false,
   "type": "module",
   "scripts": {
-    "build": "cross-env NODE_ENV=production && tsc && vite build",
     "dev:relay": "cross-env DEBUG='lf*' DEBUG_COLORS=1 node ./scripts/start-relay-server.js",
     "dev:serve": "vite --port 3000",
     "dev": "run-p dev:relay dev:serve",
