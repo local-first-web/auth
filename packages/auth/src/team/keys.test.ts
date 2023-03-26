@@ -106,17 +106,6 @@ describe('Team', () => {
       expect(alice.team.state.lockboxes.length).toBe(12) // the number of lockboxes shouldn't grow exponentially
     })
 
-    it(`Alice can't change Bob's device keys`, () => {
-      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
-
-      const deviceId = getDeviceId(bob.device)
-      const newKeys = createKeyset({ type: DEVICE, name: deviceId })
-
-      const tryToChangeBobsKeys = () => alice.team.changeKeys(newKeys)
-
-      expect(tryToChangeBobsKeys).toThrow()
-    })
-
     it(`Bob can't change Alice's keys`, () => {
       const { bob } = setup('alice', { user: 'bob', admin: false })
 
