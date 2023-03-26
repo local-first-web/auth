@@ -9,7 +9,7 @@ import { KeysetWithSecrets } from 'crdx'
  */
 export const getVisibleKeys = (
   state: TeamState,
-  keyset: KeysetWithSecrets
+  keyset: KeysetWithSecrets,
 ): KeysetWithSecrets[] => {
   const { lockboxes } = state
   const publicKey = keyset.encryption.publicKey
@@ -21,7 +21,7 @@ export const getVisibleKeys = (
   const keysets = lockboxesICanOpen.map(lockbox => open(lockbox, keyset))
 
   // recursively get all the keys *those* keys can access
-  const visibileKeys = keysets.flatMap(keyset => getVisibleKeys(state, keyset))
+  const visibleKeys = keysets.flatMap(keyset => getVisibleKeys(state, keyset))
 
-  return [...keysets, ...visibileKeys]
+  return [...keysets, ...visibleKeys]
 }
