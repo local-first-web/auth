@@ -218,17 +218,23 @@ const getTransforms = (action: TeamAction): Transform[] => {
 
     case 'ADD_SERVER': {
       const { server } = action.payload
-      return [addServer(server)]
+      return [
+        addServer(server), // add the specified server to the team
+      ]
     }
 
     case 'REMOVE_SERVER': {
       const { host } = action.payload
-      return [removeServer(host)]
+      return [
+        removeServer(host), // remove the specified server from the team
+      ]
     }
 
     case 'CHANGE_SERVER_KEYS': {
       const { keys } = action.payload
-      return [changeServerKeys(keys)]
+      return [
+        changeServerKeys(keys), // replace this server's public keys with the ones provided
+      ]
     }
 
     default:
