@@ -15,7 +15,6 @@ import { Base58, randomKey, signatures, symmetric } from '@herbcaudill/crypto'
 import {
   createKeyset,
   createStore,
-  Hash,
   isKeyset,
   KeyMetadata,
   KeyScope,
@@ -831,39 +830,31 @@ export class Team extends EventEmitter {
    * (This can also be used by an admin to change another user's secret keyset.)
    */
   public changeKeys = (newKeys: KeysetWithSecrets) => {
-    const isDeviceKeyset = newKeys.type === KeyType.DEVICE
-    const isServerKeyset = newKeys.type === KeyType.SERVER
+    const { device, user } = this.context
+    const isForUser = newKeys.type === KeyType.USER
+    const isForDevice = newKeys.type === KeyType.DEVICE
+    const isForServer = newKeys.type === KeyType.SERVER
 
-    // make sure we're allowed to change these keys
-    if (isDeviceKeyset) {
-      // device keys
-      const changingMyOwnKeys = newKeys.name === this.deviceId
-      assert(changingMyOwnKeys, `Can't change another device's secret keys`)
-    } else {
-      // user keys
-      const changingMyOwnKeys = newKeys.name === this.userId
-      const iAmAdmin = this.memberIsAdmin(this.userId)
-      assert(changingMyOwnKeys || iAmAdmin, `Can't change another user's secret keys`)
-    }
+    const oldGeneration = (isForDevice ? device.keys : user.keys).generation
+    newKeys.generation = oldGeneration + 1
 
-    const userOrDevice = isDeviceKeyset ? this.context.device : this.context.user!
-    const oldKeys = userOrDevice.keys
-    newKeys.generation = oldKeys.generation + 1
-
-    // treat the old keys as compromised, and rotate any lockboxes they could open
+    // treat the old keys as compromised, and generate new lockboxes for any keys they could see
     const lockboxes = this.rotateKeys(newKeys)
 
     // post our new public keys to the graph
-    const type = isDeviceKeyset
+    const type = isForDevice
       ? 'CHANGE_DEVICE_KEYS'
-      : isServerKeyset
-      ? 'CHANGE_SERVER_KEYS'
-      : 'CHANGE_MEMBER_KEYS'
+      : isForUser
+      ? 'CHANGE_MEMBER_KEYS'
+      : 'CHANGE_SERVER_KEYS'
+
     const keys = redactKeys(newKeys)
     this.dispatch({ type, payload: { keys, lockboxes } })
 
-    // update our member or device keys in context
-    userOrDevice.keys = newKeys
+    // update our user and/or device keys in context
+    // (a server plays the role of both a user and a device)
+    if (isForServer || isForDevice) device.keys = newKeys
+    if (isForServer || isForUser) user.keys = newKeys
   }
 
   /**
@@ -884,7 +875,6 @@ export class Team extends EventEmitter {
 
     // identify all the keys that are indirectly compromised
     const visibleScopes = select.getVisibleScopes(this.state, compromised)
-
     const otherNewKeysets = visibleScopes.map(scope => createKeyset(scope))
 
     // generate new keys for each one
@@ -907,9 +897,6 @@ export class Team extends EventEmitter {
         })
       })
     })
-
-    // TODO: update the store with the new team keys
-    // this.store.
 
     return newLockboxes
   }
