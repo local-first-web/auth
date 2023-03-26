@@ -13,5 +13,6 @@ export const getVisibleScopes = (state: TeamState, { type, name }: KeyScope): Ke
   // recursively find all the keys that _those_ keys can see
   const derivedScopes = scopes.flatMap(scope => getVisibleScopes(state, scope))
 
-  return unique([...scopes, ...derivedScopes])
+  const allScopes = [...scopes, ...derivedScopes]
+  return unique(allScopes, s => s.name + s.type)
 }
