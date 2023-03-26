@@ -24,6 +24,11 @@ export const keys = (
   )
 
   const generation =
-    'generation' in scope && scope.generation !== undefined ? scope.generation : keys.length - 1 // use latest generation by default
+    'generation' in scope && scope.generation !== undefined
+      ? // return specific generation if requested
+        scope.generation
+      : // use latest generation by default
+        keys.length - 1
+
   return keys[generation]
 }
