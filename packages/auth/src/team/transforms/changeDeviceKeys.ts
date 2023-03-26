@@ -8,20 +8,20 @@ export const changeDeviceKeys =
     const { userId, deviceName } = parseDeviceId(keys.name)
     return {
       ...state,
-      members: state.members.map(member => {
-        if (member.userId === userId) {
-          return {
-            ...member,
-            devices: member.devices?.map(device => {
-              if (device.deviceName === deviceName)
-                return {
-                  ...device,
-                  keys, // 🡐 replace device keys
-                }
-              else return device
-            }),
-          }
-        } else return member
-      }),
+      members: state.members.map(member =>
+        member.userId === userId
+          ? {
+              ...member,
+              devices: member.devices?.map(device =>
+                device.deviceName === deviceName
+                  ? {
+                      ...device,
+                      keys, // 🡐 replace device keys
+                    }
+                  : device,
+              ),
+            }
+          : member,
+      ),
     }
   }

@@ -6,13 +6,13 @@ export const changeMemberKeys =
   state => {
     return {
       ...state,
-      members: state.members.map(member => {
-        if (member.userId === keys.name) {
-          return {
-            ...member,
-            keys, // 🡐 replace keys with new ones
-          }
-        } else return member
-      }),
+      members: state.members.map(member =>
+        member.userId === keys.name
+          ? {
+              ...member,
+              keys, // 🡐 replace keys with new ones
+            }
+          : member,
+      ),
     }
   }

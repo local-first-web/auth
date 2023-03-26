@@ -6,13 +6,13 @@ export const changeServerKeys =
   state => {
     return {
       ...state,
-      servers: state.servers.map(server => {
-        return server.host === keys.name
+      servers: state.servers.map(server =>
+        server.host === keys.name
           ? {
               ...server,
               keys, // 🡐 replace keys with new ones
             }
-          : server
-      }),
+          : server,
+      ),
     }
   }
