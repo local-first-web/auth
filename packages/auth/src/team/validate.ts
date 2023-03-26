@@ -1,4 +1,5 @@
-﻿import { invitationCanBeUsed } from '@/invitation'
+﻿import { parseDeviceId } from '@/device'
+import { invitationCanBeUsed } from '@/invitation'
 import { actionFingerprint, debug, truncateHashes, VALID, ValidationError } from '@/util'
 import { ROOT } from 'crdx'
 import { isAdminOnlyAction } from './isAdminOnlyAction'
@@ -61,24 +62,19 @@ const validators: TeamStateValidatorSet = {
 
   canOnlyChangeYourOwnKeys: (...args) => {
     const [prevState, link] = args
-    if (link.body.type === 'CHANGE_MEMBER_KEYS') {
-      const author = link.body.userId
-      const authorIsAdmin = select.memberIsAdmin(prevState, author)
-      if (!authorIsAdmin) {
-        // Only admins can change another user's keys
+    const author = link.body.userId
+    const authorIsAdmin = select.memberIsAdmin(prevState, author)
+    if (!authorIsAdmin) {
+      if (link.body.type === 'CHANGE_MEMBER_KEYS') {
         const target = link.body.payload.keys.name
+        console.log({ author, target })
+        // Only admins can change another user's keys
         if (author !== target) return fail(`Can't change another user's keys.`, ...args)
+      } else if (link.body.type === 'CHANGE_DEVICE_KEYS') {
+        const target = parseDeviceId(link.body.payload.keys.name).userId
+        console.log({ author, target })
+        if (author !== target) return fail(`Can't change another user's device keys.`, ...args)
       }
-    } else if (link.body.type === 'CHANGE_DEVICE_KEYS') {
-      return VALID
-      // TODO: we don't have device information in context any more
-      //
-      // const authoruserId = link.signed.userId
-      // const authorDeviceName = link.body.context.device.deviceName
-      // // Devices can only change their own keys
-      // const target = parseDeviceId(link.body.payload.keys.name)
-      // if (authoruserId !== target.userId || authorDeviceName !== target.deviceName)
-      //   return fail(`Can't change another device's keys.`, ...args)
     }
     return VALID
   },

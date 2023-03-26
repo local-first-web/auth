@@ -1,9 +1,10 @@
+import { getDeviceId } from '@/device'
 import { ADMIN } from '@/role'
+import { KeyType } from '@/util'
+import { keysetSummary } from '@/util/keysetSummary'
 import { setup } from '@/util/testing'
 import '@/util/testing/expect/toLookLikeKeyset'
-import { getDeviceId } from '@/device'
 import { createKeyset, redactKeys } from 'crdx'
-import { KeyType } from '@/util'
 
 const { USER, DEVICE } = KeyType
 
@@ -90,8 +91,10 @@ describe('Team', () => {
 
     it(`Every time Alice changes her keys, the admin keys are rotated`, () => {
       const { alice } = setup('alice')
-      const changeKeys = () =>
-        alice.team.changeKeys(createKeyset({ type: KeyType.USER, name: 'alice' }))
+      const changeKeys = () => {
+        const newKeys = { type: KeyType.USER, name: 'alice' }
+        alice.team.changeKeys(createKeyset(newKeys))
+      }
 
       expect(alice.team.adminKeys().generation).toBe(0)
       expect(alice.team.state.lockboxes.length).toBe(3) // team keys for alice, admin keys for alice, alice user keys for alice's laptop
@@ -154,14 +157,13 @@ describe('Team', () => {
       expect(tryToChangeBobsKeys).toThrow()
     })
 
-    // TODO:
-    it.skip(`Eve can't change Bob's device keys`, () => {
+    it(`Eve can't change Bob's device keys`, () => {
       const { bob, eve } = setup('alice', 'bob', { user: 'eve', admin: false })
 
       const deviceId = getDeviceId(bob.device)
       const newKeys = createKeyset({ type: DEVICE, name: deviceId })
 
-      // @ts-ignore - rotateKeys is private
+      // @ts-ignore - rotateKeys is private, but eve don't care
       const lockboxes = eve.team.rotateKeys(newKeys)
 
       const tryToChangeBobsKeys = () =>
@@ -172,6 +174,7 @@ describe('Team', () => {
             lockboxes,
           },
         })
+
       expect(tryToChangeBobsKeys).toThrow()
     })
   })
