@@ -6,7 +6,7 @@ import { Connection, createTeam, invitation, loadTeam } from '..'
 
 describe('Team', () => {
   describe('a server', () => {
-    const host = 'devresults.com'
+    const host = 'example.com'
 
     const createServer = (host: Host) => {
       const serverKeys = createKeyset({ type: KeyType.SERVER, name: host })
@@ -233,7 +233,7 @@ describe('Team', () => {
     })
 
     it(`can change its own keys`, async () => {
-      const { alice, bob } = setup('alice', 'bob')
+      const { alice } = setup('alice', 'bob')
       const { server, serverWithSecrets } = createServer(host)
       alice.team.addServer(server)
       const savedGraph = alice.team.save()
@@ -251,8 +251,7 @@ describe('Team', () => {
 
       // Server still has access to team keys
       const teamKeys1 = serverTeam.teamKeys()
-      // why aren't the team keys rotated??
-      // expect(teamKeys1.generation).toBe(1) // the team keys were rotated, so these are new
+      expect(teamKeys1.generation).toBe(1) // the team keys were rotated, so these are new
     })
   })
 })
