@@ -6,13 +6,13 @@ import { getVisibleKeys } from './getVisibleKeys'
  * ```js
  * {
  *    TEAM: {
- *      TEAM: Keyset[ gen0, gen1, gen2, ... ], // <- all keys starting with generation 0
+ *      TEAM: [ gen0, gen1, gen2, ... ], // <- all keys starting with generation 0
  *    ROLE: {
- *      admin: Keyset[ gen0, ... ]
- *      managers: Keyset[ gen0, ...]
+ *      admin: [ gen0, ... ]
+ *      managers: [ gen0, ...]
  *    },
  *   USER: {
- *    alice: Keyset[ gen0, ... ]
+ *    alice: [ gen0, ... ]
  *   }
  * }
  * ```
