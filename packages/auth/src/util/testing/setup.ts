@@ -8,6 +8,8 @@ import { Team, TeamContext } from '@/team'
 import { arrayToMap, assert, KeyType } from '@/util'
 import { createUser, UserWithSecrets } from 'crdx'
 
+export type SetupConfig = ((TestUserSettings | string)[] | TestUserSettings | string)[]
+
 // ignore file coverage
 
 /**
@@ -21,9 +23,7 @@ const {alice, bob, charlie, dwight} = setup(['alice', 'bob', 'charlie', {user: '
 alice.team.add('bob')
 ```
 */
-export const setup = (
-  ..._config: ((TestUserSettings | string)[] | TestUserSettings | string)[]
-) => {
+export const setup = (..._config: SetupConfig) => {
   assert(_config.length > 0)
 
   // accept `setup(['a', 'b'])` or `setup('a','b')`

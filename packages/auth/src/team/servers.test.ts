@@ -1,22 +1,31 @@
 import { Host, Server, ServerWithSecrets } from '@/server'
+import { cast } from '@/server/cast'
 import { KeyType } from '@/util'
-import { all, joinTestChannel, setup, TestChannel } from '@/util/testing'
+import {
+  all,
+  joinTestChannel,
+  setup as setupHumans,
+  SetupConfig,
+  TestChannel,
+  updated,
+  UserStuff,
+} from '@/util/testing'
 import { createKeyset, redactKeys } from 'crdx'
-import { Connection, createTeam, invitation, loadTeam } from '..'
+import EventEmitter from 'events'
+import {
+  Connection,
+  createTeam,
+  InitialContext,
+  invitation,
+  loadTeam,
+  MemberInitialContext,
+  Team,
+} from '..'
 
 describe('Team', () => {
   describe('a server', () => {
-    const host = 'example.com'
-
-    const createServer = (host: Host) => {
-      const serverKeys = createKeyset({ type: KeyType.SERVER, name: host })
-      const serverWithSecrets: ServerWithSecrets = { host, keys: serverKeys }
-      const server: Server = { host, keys: redactKeys(serverKeys) }
-      return { server, serverWithSecrets }
-    }
-
     it('can be added and removed by an admin', () => {
-      const { alice } = setup('alice')
+      const { alice } = setupHumans('alice')
 
       // add server
       const { server } = createServer(host)
@@ -34,7 +43,7 @@ describe('Team', () => {
     })
 
     it(`can't be added by a non-admin member`, () => {
-      const { bob } = setup('alice', { user: 'bob', admin: false })
+      const { bob } = setupHumans('alice', { user: 'bob', admin: false })
 
       const { server } = createServer(host)
       const tryToAddServer = () => bob.team.addServer(server)
@@ -44,7 +53,7 @@ describe('Team', () => {
     })
 
     it(`can't be removed by a non-admin member`, () => {
-      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+      const { alice, bob } = setupHumans('alice', { user: 'bob', admin: false })
 
       // add server
       const { server } = createServer(host)
@@ -56,7 +65,7 @@ describe('Team', () => {
     })
 
     it(`can decrypt a team graph`, () => {
-      const { alice } = setup('alice', 'bob', { user: 'charlie', admin: false })
+      const { alice } = setupHumans('alice', 'bob', { user: 'charlie', admin: false })
       const { server, serverWithSecrets } = createServer(host)
       alice.team.addServer(server)
 
@@ -78,43 +87,31 @@ describe('Team', () => {
       expect(serverTeam.getInvitation(deviceInviteId)).toBeDefined()
     })
 
-    it(`can sync with a member`, async () => {
-      const { alice } = setup('alice', 'bob', { user: 'charlie', admin: false })
-      const { server, serverWithSecrets } = createServer(host)
-      alice.team.addServer(server)
-      const savedGraph = alice.team.save()
-      const teamKeys = alice.team.teamKeys()
-      const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, teamKeys)
+    it(`syncs with a user - changes made before connecting`, async () => {
+      const { server, alice } = setup('alice')
 
+      // alice makes a change
       alice.team.addRole('MANAGER')
 
-      const join = joinTestChannel(new TestChannel())
+      // alice connects to the server
+      await connectWithServer(alice, server)
 
-      const aliceConnectionContext = {
-        user: alice.user,
-        device: alice.device,
-        team: alice.team,
-      }
-      const serverConnectionContext = {
-        user: {
-          userName: host,
-          userId: host,
-          keys: serverWithSecrets.keys,
-        },
-        device: {
-          userId: host,
-          deviceName: host,
-          keys: serverWithSecrets.keys,
-        },
-        team: serverTeam,
-      }
+      // the server gets the change
+      expect(server.team.roles('MANAGER')).toBeDefined()
+    })
 
-      const aliceConnection = join(aliceConnectionContext).start()
-      const serverConnection = join(serverConnectionContext).start()
+    it(`syncs with a user - changes made after connecting`, async () => {
+      const { server, alice } = setup('alice')
 
-      await connectionPromise(aliceConnection, serverConnection)
+      // alice connects to the server
+      await connectWithServer(alice, server)
 
-      expect(serverTeam.roles('MANAGER')).toBeDefined()
+      // alice makes a change
+      alice.team.addRole('MANAGER')
+
+      // the server gets the change
+      await eventPromise(server.team, 'updated')
+      expect(server.team.roles('MANAGER')).toBeDefined()
     })
 
     it(`can't create a team`, () => {
@@ -127,118 +124,63 @@ describe('Team', () => {
     })
 
     it(`can't invite a member`, () => {
-      const { alice } = setup('alice')
-      const { server, serverWithSecrets } = createServer(host)
-      alice.team.addServer(server)
-      const savedGraph = alice.team.save()
-      const teamKeys = alice.team.teamKeys()
-      const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, teamKeys)
+      const { server } = setup('alice')
 
-      expect(() => serverTeam.inviteMember()).toThrow()
+      expect(() => server.team.inviteMember()).toThrow()
     })
 
-    it(`can admit an invitee`, () => {
-      const { alice, bob } = setup('alice', { user: 'bob', member: false })
-      const { server, serverWithSecrets } = createServer(host)
-      alice.team.addServer(server)
+    it(`can admit an invitee`, async () => {
+      const { server, alice, bob } = setup('alice', { user: 'bob', member: false })
       const { seed: bobInvite } = alice.team.inviteMember()
 
-      const savedGraph = alice.team.save()
-      const teamKeys = alice.team.teamKeys()
-      const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, teamKeys)
+      // the server learns about the invitation by connecting with alice
+      await connectWithServer(alice, server)
 
-      serverTeam.admitMember(invitation.generateProof(bobInvite), bob.user.keys, bob.userId)
-      expect(serverTeam.members().length).toBe(2)
+      // now if bob connects to the server, the server can admit him
+      server.team.admitMember(invitation.generateProof(bobInvite), bob.user.keys, bob.userId)
+      expect(server.team.members().length).toBe(2)
     })
 
     it(`can't invite a device`, () => {
-      const { alice } = setup('alice')
-      const { server, serverWithSecrets } = createServer(host)
-      alice.team.addServer(server)
-      const savedGraph = alice.team.save()
-      const teamKeys = alice.team.teamKeys()
-      const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, teamKeys)
-
-      expect(() => serverTeam.inviteDevice()).toThrow()
+      const { server } = setup('alice')
+      expect(() => server.team.inviteDevice()).toThrow()
     })
 
     it(`can't remove a member`, () => {
-      const { alice, bob } = setup('alice', 'bob')
-      const { server, serverWithSecrets } = createServer(host)
-      alice.team.addServer(server)
-      const savedGraph = alice.team.save()
-      const teamKeys = alice.team.teamKeys()
-      const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, teamKeys)
-
-      expect(() => serverTeam.remove(bob.userId)).toThrow()
+      const { server, bob } = setup('alice', 'bob')
+      expect(() => server.team.remove(bob.userId)).toThrow()
     })
 
     it(`can relay changes from one member to another asynchronously`, async () => {
-      const { alice, bob } = setup('alice', 'bob')
-      const { server, serverWithSecrets } = createServer(host)
-      alice.team.addServer(server)
-      const savedGraph = alice.team.save()
-      const teamKeys = alice.team.teamKeys()
-      const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, teamKeys)
-      bob.team = loadTeam(savedGraph, bob, teamKeys)
+      const { server, alice, bob } = setup('alice', 'bob')
 
+      // alice makes a change
       alice.team.addRole('MANAGER')
 
-      const joinAandS = joinTestChannel(new TestChannel())
+      // alice connects to the server
+      await connectWithServer(alice, server)
 
-      const aliceConnectionContext = {
-        user: alice.user,
-        device: alice.device,
-        team: alice.team,
-      }
-      const serverConnectionContext = {
-        user: {
-          userName: host,
-          userId: host,
-          keys: serverWithSecrets.keys,
-        },
-        device: {
-          userId: host,
-          deviceName: host,
-          keys: serverWithSecrets.keys,
-        },
-        team: serverTeam,
-      }
+      // server learned of the change
+      expect(server.team.roles('MANAGER')).toBeDefined()
 
-      const aliceConnection = joinAandS(aliceConnectionContext).start()
-      const serverConnection = joinAandS(serverConnectionContext).start()
+      // alice disconnects from the server
+      alice.connection[host].stop()
+      server.connection[alice.userId].stop()
 
-      await connectionPromise(aliceConnection, serverConnection)
-
-      // alice told server about new role
-      expect(serverTeam.roles('MANAGER')).toBeDefined()
-
-      aliceConnection.stop()
-      serverConnection.stop()
-
-      const joinBandS = joinTestChannel(new TestChannel())
-
-      const bobConnectionContext = {
-        user: bob.user,
-        device: bob.device,
-        team: bob.team,
-      }
-      const bobConnection = joinBandS(bobConnectionContext).start()
-      const serverConnection2 = joinBandS(serverConnectionContext).start()
-
-      await connectionPromise(bobConnection, serverConnection2)
+      // bob connects to the server
+      await connectWithServer(bob, server)
 
       // server told bob about new role
       expect(bob.team.roles('MANAGER')).toBeDefined()
     })
 
     it(`can change its own keys`, async () => {
-      const { alice } = setup('alice', 'bob')
+      const { alice } = setupHumans('alice', 'bob')
       const { server, serverWithSecrets } = createServer(host)
       alice.team.addServer(server)
       const savedGraph = alice.team.save()
-      const teamKeys = alice.team.teamKeys()
-      const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, teamKeys)
+      const aliceTeamKeys = alice.team.teamKeys()
+      const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, aliceTeamKeys)
 
       const teamKeys0 = serverTeam.teamKeys()
       expect(teamKeys0.generation).toBe(0)
@@ -251,7 +193,10 @@ describe('Team', () => {
 
       // Server still has access to team keys
       const teamKeys1 = serverTeam.teamKeys()
-      expect(teamKeys1.generation).toBe(1) // the team keys were rotated, so these are new
+
+      // the team keys were rotated, so these are new
+      expect(teamKeys1.encryption.publicKey).not.toEqual(teamKeys0.encryption.publicKey)
+      expect(teamKeys1.generation).toBe(1)
     })
   })
 })
@@ -269,3 +214,78 @@ const connectionPromise = async (a: Connection, b: Connection) => {
     expect(connection.sessionKey).toEqual(sharedKey)
   })
 }
+
+const connectWithServer = async (user: UserStuff, server: ServerStuff) => {
+  const join = joinTestChannel(new TestChannel())
+
+  user.connection[host] = join(user.connectionContext).start()
+  server.connection[user.userId] = join(server.connectionContext).start()
+
+  return connectionPromise(user.connection[host], server.connection[user.userId])
+}
+
+const createServer = (host: Host) => {
+  const serverKeys = createKeyset({ type: KeyType.SERVER, name: host })
+  const serverWithSecrets: ServerWithSecrets = { host, keys: serverKeys }
+  const server: Server = { host, keys: redactKeys(serverKeys) }
+  return { server, serverWithSecrets }
+}
+
+const host = 'example.com'
+
+const setup = (...humanUsers: SetupConfig) => {
+  const serverKeys = createKeyset({ type: KeyType.SERVER, name: host })
+  const serverWithSecrets: ServerWithSecrets = { host, keys: serverKeys }
+  const server: Server = { host, keys: redactKeys(serverKeys) }
+
+  const users = setupHumans(...humanUsers)
+
+  const founder = users[humanUsers[0].toString()]
+  const teamKeys = founder.team.teamKeys()
+
+  // add the server to one team
+  founder.team.addServer(server)
+  const savedGraph = founder.team.save()
+
+  // set everybody's team to the one containing the server
+  for (const userStuff of Object.values(users)) {
+    const { userId, user, device, team } = userStuff
+    if (userId === founder.userId) continue
+    if (team) {
+      const newTeam = loadTeam(savedGraph, { user, device }, teamKeys)
+      userStuff.team = newTeam
+      const connectionContext = userStuff.connectionContext as MemberInitialContext
+      connectionContext.team = newTeam
+    }
+  }
+
+  const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, teamKeys)
+
+  const serverStuff = {
+    server,
+    serverWithSecrets,
+    team: serverTeam,
+    connectionContext: {
+      userName: host,
+      user: cast.toUser(serverWithSecrets),
+      device: cast.toDevice(serverWithSecrets),
+      team: serverTeam,
+    },
+    connection: {},
+  } as ServerStuff
+  return {
+    ...users,
+    server: serverStuff,
+  } as Record<string, UserStuff> & { server: ServerStuff }
+}
+
+type ServerStuff = {
+  server: Server
+  serverWithSecrets: ServerWithSecrets
+  team: Team
+  connectionContext: InitialContext
+  connection: Record<string, Connection>
+}
+
+export const eventPromise = (emitter: EventEmitter, event: string) =>
+  new Promise<any>(resolve => emitter.once(event, d => resolve(d)))
