@@ -231,9 +231,7 @@ export class Team extends EventEmitter {
     const deviceId = identityClaim.name
     const { userId, deviceName } = parseDeviceId(deviceId)
     if (this.memberWasRemoved(userId) || this.serverWasRemoved(userId)) return 'MEMBER_REMOVED'
-    if (!this.has(userId) && !this.hasServer(userId)) {
-      return 'MEMBER_UNKNOWN'
-    }
+    if (!this.has(userId) && !this.hasServer(userId)) return 'MEMBER_UNKNOWN'
     if (this.deviceWasRemoved(userId, deviceName)) return 'DEVICE_REMOVED'
     if (!this.hasDevice(userId, deviceName) && !this.hasServer(userId)) return 'DEVICE_UNKNOWN'
     return 'VALID_DEVICE'
