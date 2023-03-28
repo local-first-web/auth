@@ -1,0 +1,43 @@
+{
+  "name": "@localfirst/crypto",
+  "version": "4.0.0",
+  "license": "MIT",
+  "private": false,
+  "author": {
+    "name": "Herb Caudill",
+    "email": "herb@devresults.com"
+  },
+  "description": "Wrapper functions for libsodium",
+  "type": "module",
+  "main": "./dist/index.js",
+  "exports": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=14"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "yarn test && yarn build",
+    "test": "node --no-warnings --experimental-vm-modules ../../node_modules/jest/bin/jest.js"
+  },
+  "dependencies": {
+    "@herbcaudill/base-x": "^4.0.6",
+    "fast-memoize": "^2.5.2",
+    "libsodium-wrappers-sumo": "0.7.11",
+    "msgpackr": "^1.8.5"
+  },
+  "jest": {
+    "preset": "ts-jest/presets/default-esm",
+    "transform": {
+      "^.+\\.tsx?$": [
+        "ts-jest",
+        {
+          "useESM": true
+        }
+      ]
+    }
+  }
+}
