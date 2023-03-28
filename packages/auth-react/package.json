@@ -1,0 +1,19 @@
+{
+  "name": "@localfirst/auth-react",
+  "version": "1.0.2",
+  "description": "Official React library for @localfirst/auth",
+  "author": "Herb Caudill",
+  "license": "MIT",
+  "scripts": {
+    "test": "jest",
+    "prepublishOnly": "yarn build && yarn test"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@localfirst/auth": "^1.0.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}
