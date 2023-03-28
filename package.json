@@ -12,47 +12,38 @@
   "type": "module",
   "scripts": {
     "build": "lerna run build",
-    "dev:demo": "yarn --cwd demo && yarn --cwd demo dev",
-    "dev:cy:demo": "yarn --cwd demo && yarn --cwd demo dev:cy",
+    "dev:demo": "yarn workspace demo dev",
+    "dev:cy:demo": "yarn workspace demo dev:cy",
     "dev:cy": "run-p watch dev:cy:demo",
     "dev:cy:debug": "cross-env CYPRESS_REMOTE_DEBUGGING_PORT=9222 yarn dev:cy",
     "dev": "run-p watch dev:demo",
-    "dev:relay": "yarn --cwd demo dev:relay",
-    "test": "yarn --cwd packages/auth test",
-    "test:log": "yarn --cwd packages/auth test:log",
+    "dev:relay": "yarn workspace demo dev:relay",
+    "test": "lerna run test ",
+    "test:auth": "yarn workspace @localfirst/auth test",
+    "test:log": "yarn workspace @localfirst/auth test:log",
     "watch": "lerna run watch --stream --parallel",
     "pub": "lerna publish --yes"
   },
   "devDependencies": {
-    "@types/debug": "4",
-    "@types/lodash": "4",
-    "@types/react-dom": "17",
-    "@types/react": "17",
-    "cross-env": "6",
-    "jest": "29",
-    "lerna": "3",
-    "npm-run-all": "4",
-    "prettier": "2",
-    "react-dom": "17",
-    "react": "17",
-    "ts-jest": "29",
-    "@herbcaudill/tscpaths": "0",
-    "typescript": "4"
-  },
-  "resolutions": {
-    "typescript": "4.8"
+    "@herbcaudill/random": "^0.3.0",
+    "@herbcaudill/tscpaths": "^0.0.17",
+    "@types/debug": "^4.1.7",
+    "@types/libsodium-wrappers-sumo": "^0.7.5",
+    "@types/lodash": "^4.14.191",
+    "@types/node": "^18.15.10",
+    "cross-env": "^7.0.3",
+    "jest": "^29.5.0",
+    "lerna": "^6.6.1",
+    "npm-run-all": "^4.1.5",
+    "npm-watch": "^0.11.0",
+    "prettier": "^2.8.7",
+    "ts-jest": "^29.0.5",
+    "typescript": "4.9.5"
   },
   "workspaces": [
     "packages/*",
     "demo"
   ],
-  "prettier": {
-    "printWidth": 100,
-    "semi": false,
-    "singleQuote": true,
-    "trailingComma": "all",
-    "arrowParens": "avoid"
-  },
   "jest": {
     "projects": [
       "packages/auth"
