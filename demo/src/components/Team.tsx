@@ -9,6 +9,7 @@ import { OnlineToggle } from './OnlineToggle'
 import { StatusIndicator } from './StatusIndicator'
 
 import { MemberInitialContext } from '@localfirst/auth'
+import { Button } from './Button'
 
 export const Team = () => {
   const { team, user, device, online, connect, disconnect, connectionStatus } = useTeam()
@@ -24,7 +25,7 @@ export const Team = () => {
 
   return (
     <>
-      <div className="Team">
+      <div className="Team p-4">
         {/* Team name */}
         <div className="flex">
           <div className="flex-grow">
@@ -74,7 +75,7 @@ export const Team = () => {
                           else team.addMemberRole(m.userId, auth.ADMIN)
                         }}
                         title={adminToggleTitle}
-                        className={`px-1 m-1 hover:opacity-25  ${
+                        className={`px-1 m-1 hover:opacity-25 cursor-pointer ${
                           memberIsAdmin ? 'opacity-100' : 'opacity-0 disabled:opacity-0'
                         }`}
                         children="👑"
@@ -110,7 +111,7 @@ export const Team = () => {
                     })}
                   </td>
 
-                  {/* Remove button */}
+                  {/* Remove Button */}
                   <td>
                     {userIsAdmin && !memberIsOnlyAdmin ? (
                       <button
@@ -134,7 +135,7 @@ export const Team = () => {
       </div>
 
       {/* Chain visualization */}
-      <div className="border-t">
+      <div className="border-t p-4">
         <CardLabel>Signature chain</CardLabel>
         <GraphDiagram graph={team.graph} id={device.keys.name.replace(/::/, '-')} />
       </div>

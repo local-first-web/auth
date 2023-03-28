@@ -10,10 +10,10 @@ export const Chooser = ({ onAdd, peers }: ChooserProps) => {
       <select
         ref={peerSelect}
         className={`
-          bg-color-none opacity-25
+          bg-color-none opacity-25 px-4 py-2
           group-hover:opacity-100 group-hover:bg-color-white
           focus:opacity-100 focus:bg-color-white
-          border-none rounded-lg focus:rounded-b-none
+          border-none rounded-lg 
           h-10 font-normal text-lg`}
         onChange={() => {
           peerSelect.current.blur()

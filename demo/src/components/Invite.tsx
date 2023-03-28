@@ -3,6 +3,7 @@ import ClipboardJS from 'clipboard'
 import React, { MutableRefObject, useEffect, useRef, useState } from 'react'
 import { useTeam } from '../hooks/useTeam'
 import { assert } from '../util/assert'
+import { Button } from './Button'
 
 const SECOND = 1
 const MINUTE = 60 * SECOND
@@ -69,19 +70,20 @@ export const Invite = () => {
         <div>
           <div className="Invite flex gap-2">
             {/* anyone can "invite" a device*/}
-            <button className="my-2 mr-2" onClick={inviteDevice}>
+            <Button color="primary" className="my-2 mr-2" onClick={inviteDevice}>
               Add a device
-            </button>
-            {/* only admins can invite users */}
+            </Button>
+            {/* sonly admins can invite users */}
             {userIsAdmin ? (
-              <button
+              <Button
+                color="primary"
                 className="my-2 mr-2"
                 onClick={() => {
                   setState('inviting_members')
                 }}
               >
                 Invite members
-              </button>
+              </Button>
             ) : null}
           </div>
         </div>
@@ -100,13 +102,14 @@ export const Invite = () => {
               children={seed}
             />
             <div className="mt-1 text-right">
-              <button
+              <Button
+                color="primary"
                 ref={copyInvitationSeedButton}
                 onClick={() => setState('inactive')}
                 data-clipboard-text={seed}
               >
                 Copy
-              </button>
+              </Button>
             </div>
           </label>
         </>
@@ -119,7 +122,10 @@ export const Invite = () => {
           <div className="flex flex-col gap-4 mt-4">
             <label>
               How many people can use this invitation code?
-              <select ref={maxUsesSelect} className="MaxUses mt-1 w-full">
+              <select
+                ref={maxUsesSelect}
+                className="MaxUses mt-1 w-full border border-gray-200 rounded-md p-2 text-sm"
+              >
                 <option value={1}>1 person</option>
                 <option value={5}>5 people</option>
                 <option value={10}>10 people</option>
@@ -131,7 +137,7 @@ export const Invite = () => {
               <select
                 ref={expirationSelect}
                 defaultValue={MINUTE}
-                className="Expiration mt-1 w-full"
+                className="Expiration mt-1 w-full border border-gray-200 rounded-md p-2 text-sm"
               >
                 <option value={SECOND}>in 1 second</option>
                 <option value={MINUTE}>in 1 minute</option>
@@ -144,19 +150,19 @@ export const Invite = () => {
 
             <div className="flex gap-12">
               <div className="flex-grow">
-                <button
+                <Button
                   className="CancelButton mt-1"
                   onClick={() => {
                     setState('inactive')
                   }}
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
               <div>
-                <button className="InviteButton mt-1" onClick={inviteMembers}>
+                <Button className="InviteButton mt-1" color="primary" onClick={inviteMembers}>
                   Invite
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -176,13 +182,14 @@ export const Invite = () => {
               children={seed}
             />
             <div className="mt-1 text-right">
-              <button
+              <Button
                 ref={copyInvitationSeedButton}
                 onClick={() => setState('inactive')}
                 data-clipboard-text={seed}
+                color="primary"
               >
                 Copy
-              </button>
+              </Button>
             </div>
           </label>
         </>
