@@ -10,7 +10,7 @@ import {
   updated,
   UserStuff,
 } from '@/util/testing'
-import { createKeyset, redactKeys } from 'crdx'
+import { createKeyset, redactKeys } from '@localfirst/crdx'
 import EventEmitter from 'events'
 import {
   Connection,

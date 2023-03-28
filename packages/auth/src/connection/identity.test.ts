@@ -2,7 +2,7 @@
 import { ADMIN_SCOPE, TEAM_SCOPE } from '@/team'
 import { setup } from '@/util/testing'
 import '@/util/testing/expect/toBeValid'
-import { createKeyset, KeyScope, KeyType, redactKeys } from 'crdx'
+import { createKeyset, KeyScope, KeyType, redactKeys } from '@localfirst/crdx'
 
 const { bob, eve } = setup('alice', 'bob', 'eve')
 

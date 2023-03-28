@@ -1,4 +1,4 @@
-import { Base58, UnixTimestamp } from 'crdx'
+import { Base58, UnixTimestamp } from '@localfirst/crdx'
 
 /**
  * The public record of the invitation that Alice adds to the signature chain after inviting Bob

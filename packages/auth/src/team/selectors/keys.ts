@@ -1,14 +1,14 @@
 ﻿import { TeamState } from '@/team/types'
 import { assert } from '@/util'
 import { lockboxSummary } from '@/util/lockboxSummary'
-import { KeyMetadata, KeyScope, KeysetWithSecrets } from 'crdx'
+import { KeyMetadata, KeyScope, KeysetWithSecrets } from '@localfirst/crdx'
 import { getKeyMap } from './getKeyMap'
 
 /** Returns the keys for the given scope, if they are in a lockbox that the current device has access to */
 export const keys = (
   state: TeamState,
   deviceKeys: KeysetWithSecrets,
-  scope: KeyScope | KeyMetadata,
+  scope: KeyScope | KeyMetadata
 ) => {
   const { type, name } = scope
 
@@ -20,7 +20,7 @@ export const keys = (
     `Couldn't find keys: ${type.toLowerCase()} ${name}.
      Scope: ${JSON.stringify(scope)}
      Device: ${deviceKeys.name}
-     Available lockboxes: \n- ${state.lockboxes.map(lockboxSummary).join('\n- ')} `,
+     Available lockboxes: \n- ${state.lockboxes.map(lockboxSummary).join('\n- ')} `
   )
 
   const generation =

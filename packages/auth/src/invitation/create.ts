@@ -1,7 +1,7 @@
 ﻿import { deriveId } from '@/invitation/deriveId'
 import { normalize } from '@/invitation/normalize'
 import { Invitation } from '@/invitation/types'
-import { UnixTimestamp } from 'crdx'
+import { UnixTimestamp } from '@localfirst/crdx'
 import { generateStarterKeys } from './generateStarterKeys'
 
 export const IKEY_LENGTH = 16

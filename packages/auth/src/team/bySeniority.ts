@@ -1,5 +1,5 @@
 import { TeamGraph, TeamLink } from '@/team/types'
-import { isPredecessor } from 'crdx'
+import { isPredecessor } from '@localfirst/crdx'
 
 export const bySeniority = (chain: TeamGraph) => (a: string, b: string) => {
   // if one of these created the chain, they win

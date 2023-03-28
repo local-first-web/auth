@@ -7,7 +7,7 @@ import {
   receiveMessage,
   SyncMessage,
   SyncState,
-} from 'crdx'
+} from '@localfirst/crdx'
 import { setup, UserStuff } from './setup'
 
 // Simulates a peer-to-peer network
@@ -101,7 +101,7 @@ class Peer {
       this.team.graph,
       this.syncStates[sender],
       message,
-      teamKeys,
+      teamKeys
     )
     this.team = this.team.merge(chain)
     this.syncStates[sender] = syncState

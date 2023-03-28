@@ -1,4 +1,4 @@
-﻿import { Hash, hash, stretch } from '@herbcaudill/crypto'
+﻿import { Hash, hash, stretch } from '@localfirst/crypto'
 import { HashPurpose } from '@/util'
 
 export function deriveId(seed: string) {

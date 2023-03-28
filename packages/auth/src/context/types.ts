@@ -1,6 +1,6 @@
 ﻿import { type DeviceWithSecrets } from '@/device'
 import { type ServerWithSecrets } from '@/server'
-import { type UserWithSecrets } from 'crdx'
+import { type UserWithSecrets } from '@localfirst/crdx'
 
 export type LocalContext = LocalUserContext | ServerContext
 

@@ -32,15 +32,13 @@
     "postbuild": "./dist/**/*"
   },
   "dependencies": {
-    "@herbcaudill/crypto": "^4.0.0",
-    "buffer": "6",
-    "crdx": "^4.0.0",
-    "debug": "4",
-    "events": "3",
-    "fast-memoize": "2",
-    "lodash": "4",
-    "npm-watch": "^0.11.0",
-    "typescript": "4",
+    "@localfirst/crdx": "^4.0.0",
+    "@localfirst/crypto": "^4.0.0",
+    "buffer": "^6.0.3",
+    "debug": "^4.3.4",
+    "events": "^3.3.0",
+    "fast-memoize": "^2.5.2",
+    "lodash": "^4.17.21",
     "xstate": "4.26"
   },
   "jest": {

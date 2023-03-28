@@ -17,7 +17,7 @@ import {
   Payload,
   ROOT,
   Sequence,
-} from 'crdx'
+} from '@localfirst/crdx'
 
 // ********* MEMBER
 

@@ -1,7 +1,7 @@
 import { ADMIN } from '@/role'
 import { getScope, KeyType } from '@/util'
 import { setup } from '@/util/testing'
-import { createKeyset } from 'crdx'
+import { createKeyset } from '@localfirst/crdx'
 import * as select from '.'
 
 const { USER, DEVICE, TEAM, ROLE } = KeyType

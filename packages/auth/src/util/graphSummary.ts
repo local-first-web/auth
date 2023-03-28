@@ -1,5 +1,5 @@
 ﻿import { actionFingerprint } from './actionFingerprint'
-import { getSequence } from 'crdx'
+import { getSequence } from '@localfirst/crdx'
 import { TeamAction, TeamContext, TeamGraph } from '@/team/types'
 import { membershipResolver as resolver } from '@/team/membershipResolver'
 

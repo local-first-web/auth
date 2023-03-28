@@ -36,7 +36,7 @@ import { decryptTeamGraph, Team, TeamAction, TeamContext, TeamGraph } from '@/te
 import { assert, debug, EventEmitter, KeyType, truncateHashes } from '@/util'
 import { arraysAreEqual } from '@/util/arraysAreEqual'
 import { syncMessageSummary } from '@/util/testing/messageSummary'
-import { asymmetric, Base58, Payload, randomKey, symmetric } from '@herbcaudill/crypto'
+import { asymmetric, Base58, Payload, randomKey, symmetric } from '@localfirst/crypto'
 import {
   DecryptFn,
   DecryptFnParams,
@@ -48,7 +48,7 @@ import {
   redactKeys,
   SyncState,
   UserWithSecrets,
-} from 'crdx'
+} from '@localfirst/crdx'
 import { assign, createMachine, interpret, Interpreter } from 'xstate'
 import { protocolMachine } from './protocolMachine'
 
@@ -79,7 +79,7 @@ export class Connection extends EventEmitter {
     const machineConfig = { actions: this.actions, guards: this.guards }
     const machine = createMachine<ConnectionContext, ConnectionMessage>(
       protocolMachine,
-      machineConfig,
+      machineConfig
     ).withContext(context)
 
     // instantiate the machine
@@ -214,7 +214,7 @@ export class Connection extends EventEmitter {
     assert(
       isNumberedConnectionMessage(message),
       `Can only deliver numbered connection messages; received 
-      ${JSON.stringify(message, null, 2)}`,
+      ${JSON.stringify(message, null, 2)}`
     )
 
     this.logMessage('in', message, message.index)
@@ -365,7 +365,7 @@ export class Connection extends EventEmitter {
         context.team.admitMember(
           context.theirProofOfInvitation,
           context.theirUserKeys,
-          context.theirUserName,
+          context.theirUserName
         )
       } else {
         // new device for existing member
@@ -549,7 +549,7 @@ export class Connection extends EventEmitter {
         prevSyncState,
         syncMessage,
         team.teamKeys(),
-        decrypt,
+        decrypt
       )
 
       if (!headsAreEqual(newChain.head, team.graph.head)) {
@@ -769,7 +769,7 @@ export class Connection extends EventEmitter {
     serializedGraph: string,
     user: UserWithSecrets,
     device: DeviceWithSecrets,
-    teamKeys: KeysetWithSecrets,
+    teamKeys: KeysetWithSecrets
   ) => {
     return new Team({
       source: serializedGraph,

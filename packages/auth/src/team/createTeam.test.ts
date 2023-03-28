@@ -1,6 +1,6 @@
 import { createTeam } from './createTeam'
 import { createDevice } from '@/device'
-import { createUser } from 'crdx'
+import { createUser } from '@localfirst/crdx'
 
 describe('Team', () => {
   describe('create', () => {

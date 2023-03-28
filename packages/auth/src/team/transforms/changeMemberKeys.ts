@@ -1,4 +1,4 @@
-﻿import { Keyset } from 'crdx'
+﻿import { Keyset } from '@localfirst/crdx'
 import { Transform } from '@/team/types'
 
 export const changeMemberKeys =
@@ -12,7 +12,7 @@ export const changeMemberKeys =
               ...member,
               keys, // 🡐 replace keys with new ones
             }
-          : member,
+          : member
       ),
     }
   }

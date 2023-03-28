@@ -1,7 +1,7 @@
 import { ADMIN } from '@/role'
 import { graphSummary, clone } from '@/util'
 import { setup as userSetup } from '@/util/testing'
-import { append, merge } from 'crdx'
+import { append, merge } from '@localfirst/crdx'
 import { createTeam } from './createTeam'
 import { redactUser } from './redactUser'
 import { TeamAction, TeamGraph } from './types'
@@ -341,7 +341,7 @@ describe('membershipResolver', () => {
   const expectMergedResult = (
     aGraph: TeamGraph,
     bGraph: TeamGraph,
-    expected: string[] | string,
+    expected: string[] | string
   ) => {
     // 👩🏾 ⇄ 👨🏻‍🦲 They synchronize graphs
     const mergedGraph = merge(aGraph, bGraph)

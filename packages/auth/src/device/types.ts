@@ -1,4 +1,4 @@
-﻿import { Keyset, KeysetWithSecrets } from 'crdx'
+﻿import { Keyset, KeysetWithSecrets } from '@localfirst/crdx'
 
 export interface DeviceInfo {
   userId: string

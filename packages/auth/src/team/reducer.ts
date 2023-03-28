@@ -1,7 +1,7 @@
 ﻿import { Device } from '@/device'
 import { ADMIN } from '@/role'
 import { clone, composeTransforms } from '@/util'
-import { Reducer, ROOT } from 'crdx'
+import { Reducer, ROOT } from '@localfirst/crdx'
 import { invalidLinkReducer } from './invalidLinkReducer'
 import { setHead } from './setHead'
 import {

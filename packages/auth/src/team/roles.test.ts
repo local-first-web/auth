@@ -2,7 +2,7 @@ import { ADMIN } from '@/role'
 import * as teams from '@/team'
 import { setup } from '@/util/testing'
 import '@/util/testing/expect/toLookLikeKeyset'
-import { symmetric } from '@herbcaudill/crypto'
+import { symmetric } from '@localfirst/crypto'
 
 const MANAGERS = 'managers'
 const managers = { roleName: MANAGERS }

@@ -21,7 +21,7 @@ export * from './invitation/types'
 export * from './role/types'
 export * from './team/types'
 
-export { symmetric, asymmetric, signatures } from '@herbcaudill/crypto'
+export { symmetric, asymmetric, signatures } from '@localfirst/crypto'
 export {
   Base58,
   createKeyset,
@@ -35,4 +35,4 @@ export {
   UnixTimestamp,
   User,
   UserWithSecrets,
-} from 'crdx'
+} from '@localfirst/crdx'

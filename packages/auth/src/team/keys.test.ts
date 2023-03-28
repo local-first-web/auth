@@ -4,7 +4,7 @@ import { KeyType } from '@/util'
 import { keysetSummary } from '@/util/keysetSummary'
 import { setup } from '@/util/testing'
 import '@/util/testing/expect/toLookLikeKeyset'
-import { createKeyset, redactKeys } from 'crdx'
+import { createKeyset, redactKeys } from '@localfirst/crdx'
 
 const { USER, DEVICE } = KeyType
 

@@ -1,4 +1,4 @@
-import { redactUser as _redactUser, UserWithSecrets } from 'crdx'
+import { redactUser as _redactUser, UserWithSecrets } from '@localfirst/crdx'
 import { Member } from './types'
 
 export const redactUser = (user: UserWithSecrets): Member => {

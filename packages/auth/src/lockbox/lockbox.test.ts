@@ -1,4 +1,4 @@
-﻿import { createKeyset } from 'crdx'
+﻿import { createKeyset } from '@localfirst/crdx'
 import { create, open, rotate } from '@/lockbox'
 import { ADMIN } from '@/role'
 

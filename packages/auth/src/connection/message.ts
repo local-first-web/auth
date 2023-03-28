@@ -1,7 +1,14 @@
 ﻿import { Challenge } from '@/connection/types'
 import { ProofOfInvitation } from '@/invitation'
 import { TeamAction, TeamContext } from '@/team'
-import { Base58, Hash, KeyScope, Keyset, KeysetWithSecrets, SyncMessage as SyncPayload } from 'crdx'
+import {
+  Base58,
+  Hash,
+  KeyScope,
+  Keyset,
+  KeysetWithSecrets,
+  SyncMessage as SyncPayload,
+} from '@localfirst/crdx'
 import { ErrorMessage, LocalErrorMessage } from './errors'
 
 export type ReadyMessage = {

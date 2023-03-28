@@ -11,7 +11,7 @@ import { ADMIN, Role } from '@/role'
 import { cast } from '@/server/cast'
 import { Host, Server } from '@/server/types'
 import { assert, debug, getScope, KeyType, scopesMatch, VALID } from '@/util'
-import { Base58, randomKey, signatures, symmetric } from '@herbcaudill/crypto'
+import { Base58, randomKey, signatures, symmetric } from '@localfirst/crypto'
 import {
   createKeyset,
   createStore,
@@ -26,7 +26,7 @@ import {
   UnixTimestamp,
   User,
   UserWithSecrets,
-} from 'crdx'
+} from '@localfirst/crdx'
 import EventEmitter from 'events'
 import { ADMIN_SCOPE, ALL, initialState, TEAM_SCOPE } from './constants'
 import { membershipResolver as resolver } from './membershipResolver'
@@ -425,7 +425,7 @@ export class Team extends EventEmitter {
   public device = (
     userId: string,
     deviceName: string,
-    options = { includeRemoved: false },
+    options = { includeRemoved: false }
   ): Device => select.device(this.state, userId, deviceName, options)
 
   /** Remove a member's device */
@@ -595,7 +595,7 @@ export class Team extends EventEmitter {
   public admitMember = (
     proof: ProofOfInvitation,
     memberKeys: Keyset | KeysetWithSecrets, // we accept KeysetWithSecrets here to simplify testing - in practice we'll only receive Keyset
-    userName: string, // the new member's desired user-facing name
+    userName: string // the new member's desired user-facing name
   ) => {
     const validation = this.validateInvitation(proof)
     if (validation.isValid === false) throw validation.error
@@ -658,7 +658,7 @@ export class Team extends EventEmitter {
           lockboxes: [deviceLockbox],
         },
       },
-      teamKeys,
+      teamKeys
     )
   }
 
@@ -903,7 +903,7 @@ export class Team extends EventEmitter {
 const maybeDeserialize = (
   source: string | TeamGraph,
   teamKeys: KeysetWithSecrets,
-  deviceKeys: KeysetWithSecrets,
+  deviceKeys: KeysetWithSecrets
 ): TeamGraph => (isGraph(source) ? source : deserializeTeamGraph(source, teamKeys, deviceKeys))
 
 const isGraph = (source: string | TeamGraph): source is TeamGraph => source?.hasOwnProperty('root')

@@ -1,7 +1,7 @@
 ﻿import { Lockbox } from '@/lockbox/types'
 import { memoize } from '@/util'
-import { asymmetric } from '@herbcaudill/crypto'
-import { KeysetWithSecrets } from 'crdx'
+import { asymmetric } from '@localfirst/crypto'
+import { KeysetWithSecrets } from '@localfirst/crdx'
 
 export const open = memoize(
   (lockbox: Lockbox, decryptionKeys: KeysetWithSecrets): KeysetWithSecrets => {
@@ -15,5 +15,5 @@ export const open = memoize(
     const keys = decrypted as unknown as KeysetWithSecrets
 
     return keys
-  },
+  }
 )

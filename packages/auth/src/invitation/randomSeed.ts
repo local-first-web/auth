@@ -1,5 +1,5 @@
 ﻿import { IKEY_LENGTH } from '@/invitation/create'
-import { randomKey } from '@herbcaudill/crypto'
+import { randomKey } from '@localfirst/crypto'
 
 /**
  * Randomly generates a 16-character base30 string, for example `4kgd5mwq5z4fmfwq`, to be used as

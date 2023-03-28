@@ -1,4 +1,4 @@
-import { Base58 } from 'crdx'
+import { Base58 } from '@localfirst/crdx'
 import { deriveSharedKey } from './deriveSharedKey'
 
 describe('deriveSharedKey', () => {

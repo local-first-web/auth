@@ -1,5 +1,12 @@
 export const EMPTY: LinkMap = {}
-import { decryptLink, EncryptedGraph, getChildMap, Hash, KeysetWithSecrets, LinkMap } from 'crdx'
+import {
+  decryptLink,
+  EncryptedGraph,
+  getChildMap,
+  Hash,
+  KeysetWithSecrets,
+  LinkMap,
+} from '@localfirst/crdx'
 import { initialState, TEAM_SCOPE } from './constants'
 import { reducer } from './reducer'
 import { keys } from './selectors'
@@ -19,7 +26,7 @@ export const serializeTeamGraph = (graph: TeamGraph): string => {
 export const deserializeTeamGraph = (
   serialized: string,
   teamKeys: KeysetWithSecrets,
-  deviceKeys: KeysetWithSecrets,
+  deviceKeys: KeysetWithSecrets
 ): TeamGraph => {
   const deserialized = JSON.parse(serialized)
   const { encryptedGraph, childMap } = deserialized as {
@@ -55,7 +62,7 @@ export const decryptTeamGraph = ({
     hash: Hash,
     prevKeys: KeysetWithSecrets,
     prevDecryptedLinks: Record<Hash, TeamLink> = {},
-    prevState: TeamState = initialState,
+    prevState: TeamState = initialState
   ): Record<Hash, TeamLink> => {
     // decrypt this link
     const encryptedLink = encryptedLinks[hash]!

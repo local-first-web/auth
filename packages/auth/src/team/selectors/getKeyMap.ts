@@ -1,5 +1,5 @@
 import { TeamState } from '@/team/types'
-import { KeysetWithSecrets } from 'crdx'
+import { KeysetWithSecrets } from '@localfirst/crdx'
 import { getVisibleKeys } from './getVisibleKeys'
 
 /** Returns all keysets from the current device's lockboxes in a structure that looks like this:

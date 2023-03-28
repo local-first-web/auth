@@ -1,4 +1,4 @@
-import { createKeyset, EPHEMERAL_SCOPE } from 'crdx'
+import { createKeyset, EPHEMERAL_SCOPE } from '@localfirst/crdx'
 import { normalize } from './normalize'
 
 /**

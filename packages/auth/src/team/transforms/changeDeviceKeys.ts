@@ -1,5 +1,5 @@
 ﻿import { parseDeviceId } from '@/device'
-import { Keyset } from 'crdx'
+import { Keyset } from '@localfirst/crdx'
 import { Transform } from '@/team/types'
 
 export const changeDeviceKeys =
@@ -18,10 +18,10 @@ export const changeDeviceKeys =
                       ...device,
                       keys, // 🡐 replace device keys
                     }
-                  : device,
+                  : device
               ),
             }
-          : member,
+          : member
       ),
     }
   }

@@ -1,6 +1,6 @@
 ﻿import { Invitation, InvitationState, ProofOfInvitation } from '@/invitation/types'
 import { memoize, VALID, ValidationResult } from '@/util'
-import { signatures } from '@herbcaudill/crypto'
+import { signatures } from '@localfirst/crypto'
 
 export const invitationCanBeUsed = (invitation: InvitationState, timeOfUse: number) => {
   const { revoked, maxUses, uses, expiration } = invitation
@@ -24,7 +24,7 @@ export const validate = memoize(
     if (!signatureIsValid) return fail(`Signature provided is not valid`, { proof, invitation })
 
     return VALID
-  }
+  },
 )
 
 export const fail = (message: string, details?: any) =>

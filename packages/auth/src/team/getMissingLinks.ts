@@ -1,4 +1,4 @@
-import { Action, Graph } from 'crdx'
+import { Action, Graph } from '@localfirst/crdx'
 
 export function getMissingLinks<A extends Action, C>(chain: Graph<A, C>) {
   const parentHashes = Object.values(chain.links) //

@@ -1,4 +1,4 @@
-﻿import { KeyScope } from 'crdx'
+﻿import { KeyScope } from '@localfirst/crdx'
 import { TeamState } from '@/team/types'
 import { Lockbox } from '@/lockbox'
 

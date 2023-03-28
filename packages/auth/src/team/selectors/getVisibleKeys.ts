@@ -1,6 +1,6 @@
 import { open } from '@/lockbox'
 import { TeamState } from '@/team/types'
-import { KeysetWithSecrets } from 'crdx'
+import { KeysetWithSecrets } from '@localfirst/crdx'
 
 /**
  * Returns all keys that can be accessed directly or indirectly (via lockboxes) by the given keyset
@@ -9,7 +9,7 @@ import { KeysetWithSecrets } from 'crdx'
  */
 export const getVisibleKeys = (
   state: TeamState,
-  keyset: KeysetWithSecrets,
+  keyset: KeysetWithSecrets
 ): KeysetWithSecrets[] => {
   const { lockboxes } = state
   const publicKey = keyset.encryption.publicKey

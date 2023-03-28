@@ -1,5 +1,5 @@
 // ignore file coverage
-import { SyncMessage } from 'crdx'
+import { SyncMessage } from '@localfirst/crdx'
 import { truncateHashes } from '../truncateHashes'
 
 export const syncMessageSummary = (m: SyncMessage<any, any> | undefined) => {

@@ -1,6 +1,6 @@
 ﻿import { ADMIN } from '@/role'
 import { KeyType } from '@/util'
-import { KeyScope } from 'crdx'
+import { KeyScope } from '@localfirst/crdx'
 import { TeamState } from './types'
 
 export const ALL = 'ALL'

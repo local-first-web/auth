@@ -1,6 +1,6 @@
 import { Device, DeviceWithSecrets } from '@/device'
 import { Member } from '@/team'
-import { User, UserWithSecrets } from 'crdx'
+import { User, UserWithSecrets } from '@localfirst/crdx'
 import { Server, ServerWithSecrets } from './types'
 
 const toMember = (server: Server): Member => ({

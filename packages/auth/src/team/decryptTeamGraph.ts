@@ -1,4 +1,4 @@
-import { Hash } from 'crdx'
+import { Hash } from '@localfirst/crdx'
 import {
   createKeyring,
   decryptLink,
@@ -7,7 +7,7 @@ import {
   KeysetWithSecrets,
   LinkMap,
   MaybePartlyDecryptedGraph,
-} from 'crdx'
+} from '@localfirst/crdx'
 import { initialState, TEAM_SCOPE } from './constants'
 import { reducer } from './reducer'
 import { keys } from './selectors'
@@ -50,7 +50,7 @@ export const decryptTeamGraph = ({
     hash: Hash,
     prevKeys: KeysetWithSecrets,
     prevDecryptedLinks: Record<Hash, TeamLink> = {},
-    prevState: TeamState = initialState,
+    prevState: TeamState = initialState
   ): Record<Hash, TeamLink> => {
     // decrypt this link
     const encryptedLink = encryptedLinks[hash]!

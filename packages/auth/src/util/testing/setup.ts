@@ -6,7 +6,7 @@ import { ADMIN } from '@/role'
 import * as teams from '@/team'
 import { Team, TeamContext } from '@/team'
 import { arrayToMap, assert, KeyType } from '@/util'
-import { createUser, UserWithSecrets } from 'crdx'
+import { createUser, UserWithSecrets } from '@localfirst/crdx'
 
 export type SetupConfig = ((TestUserSettings | string)[] | TestUserSettings | string)[]
 

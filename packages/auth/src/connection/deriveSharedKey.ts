@@ -1,4 +1,4 @@
-﻿import { hash, Base58, base58 } from '@herbcaudill/crypto'
+﻿import { hash, Base58, base58 } from '@localfirst/crypto'
 import { HashPurpose } from '@/util'
 
 /**

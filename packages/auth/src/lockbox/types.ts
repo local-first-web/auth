@@ -1,5 +1,5 @@
-﻿import { Base58 } from 'crdx'
-import { KeyMetadata, Keyset, KeysetWithSecrets } from 'crdx'
+﻿import { Base58 } from '@localfirst/crdx'
+import { KeyMetadata, Keyset, KeysetWithSecrets } from '@localfirst/crdx'
 
 export type KeyManifest = KeyMetadata & {
   publicKey: Base58
@@ -7,7 +7,7 @@ export type KeyManifest = KeyMetadata & {
 
 // type guard
 export const isKeyManifest = (
-  keys: Keyset | KeysetWithSecrets | KeyManifest,
+  keys: Keyset | KeysetWithSecrets | KeyManifest
 ): keys is KeyManifest => {
   return keys.hasOwnProperty('publicKey')
 }

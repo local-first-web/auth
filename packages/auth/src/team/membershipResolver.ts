@@ -14,7 +14,7 @@ import {
   AdmitMemberAction,
 } from '@/team/types'
 import { arraysAreEqual } from '@/util/arraysAreEqual'
-import { getConcurrentBubbles, Link, LinkBody, Resolver } from 'crdx'
+import { getConcurrentBubbles, Link, LinkBody, Resolver } from '@localfirst/crdx'
 import { isAdminOnlyAction } from './isAdminOnlyAction'
 
 /**

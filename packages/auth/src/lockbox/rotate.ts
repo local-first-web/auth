@@ -1,6 +1,6 @@
 ﻿import { create } from '@/lockbox/create'
 import { Lockbox } from '@/lockbox/types'
-import { Keyset, KeysetWithSecrets } from 'crdx'
+import { Keyset, KeysetWithSecrets } from '@localfirst/crdx'
 import { assertScopesMatch } from '@/util'
 
 /**
