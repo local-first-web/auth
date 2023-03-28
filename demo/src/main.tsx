@@ -1,17 +1,11 @@
-import { Windmill } from '@windmill/react-ui'
 import React, { StrictMode } from 'react'
-import ReactDOM from 'react-dom'
+import ReactDOM from 'react-dom/client'
 import { App } from './components/App'
-import '@ibm/plex'
+import '@ibm/plex/css/ibm-plex.css'
 import './index.css'
 
-import { theme } from './theme'
-
-ReactDOM.render(
+ReactDOM.createRoot(document.querySelector('#root')!).render(
   <StrictMode>
-    <Windmill theme={theme}>
-      <App />
-    </Windmill>
-  </StrictMode>,
-  document.getElementById('root')
+    <App />
+  </StrictMode>
 )

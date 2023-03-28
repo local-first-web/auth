@@ -1,13 +1,13 @@
-import { Select } from '@windmill/react-ui'
 import React, { useRef } from 'react'
 import { PeerMap } from '../peers'
 
 export const Chooser = ({ onAdd, peers }: ChooserProps) => {
   const peerSelect = useRef() as React.MutableRefObject<HTMLSelectElement>
 
+  // TODO use headlessui component
   return (
     <div className="Chooser group flex-grow">
-      <Select
+      <select
         ref={peerSelect}
         className={`
           bg-color-none opacity-25
@@ -19,7 +19,6 @@ export const Chooser = ({ onAdd, peers }: ChooserProps) => {
           peerSelect.current.blur()
           onAdd(peerSelect.current.value)
         }}
-        css=""
       >
         <option>Show device...</option>
         {Object.values(peers)
@@ -29,7 +28,7 @@ export const Chooser = ({ onAdd, peers }: ChooserProps) => {
               {p.user.emoji} {p.device.emoji}
             </option>
           ))}
-      </Select>
+      </select>
     </div>
   )
 }

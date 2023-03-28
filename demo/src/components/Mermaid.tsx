@@ -1,17 +1,20 @@
-import React, { FC } from 'react'
-import { useMermaid } from '../hooks/useMermaid'
+import { useEffect, useRef, useState } from 'react'
+import mermaid from 'mermaid'
 
-export const Mermaid: FC<MermaidProps> = ({ id, chart, config = {} }) => {
-  const svg = useMermaid(id, chart, config)
-  if (!svg) {
-    return <div>...</div>
-  } else {
-    return <div className="Mermaid" dangerouslySetInnerHTML={{ __html: svg }} />
-  }
-}
-
-interface MermaidProps {
+export interface MermaidProps {
   id: string
   chart: string
   config: any
+}
+
+export const Mermaid = ({ id, chart, config = {} }: MermaidProps) => {
+  const [svg, setSvg] = useState('')
+  mermaid.mermaidAPI.initialize(config)
+
+  useEffect(() => {
+    if (chart === '') return
+    mermaid.render(id, chart).then(({ svg }) => setSvg(svg))
+  }, [chart])
+
+  return <div key={id} className="Mermaid" dangerouslySetInnerHTML={{ __html: svg }} />
 }

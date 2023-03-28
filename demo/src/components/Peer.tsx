@@ -1,4 +1,3 @@
-import { Card } from '@windmill/react-ui'
 import React from 'react'
 import { useTeam } from '../hooks/useTeam'
 import { PeerInfo } from '../peers'
@@ -28,7 +27,7 @@ export const Peer = ({ peerInfo, onHide }: PeerProps) => {
 
   return (
     <ErrorBoundary>
-      <Card title={peerInfo.id} className="Peer group max-w-sm flex-1 bg-white shadow-md relative">
+      <div title={peerInfo.id} className="Peer group max-w-sm flex-1 bg-white shadow-md relative">
         <HideButton onClick={hide}></HideButton>
         <div className="Header flex items-center bg-teal-500 max-h-20">
           <div className="pl-4 py-4">
@@ -50,7 +49,7 @@ export const Peer = ({ peerInfo, onHide }: PeerProps) => {
           // Not on a team; show Create team / Join team buttons
           <CreateOrJoinTeam />
         )}
-      </Card>
+      </div>
     </ErrorBoundary>
   )
 }

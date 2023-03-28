@@ -1,4 +1,3 @@
-import { Button, CardBody, Input, Label } from '@windmill/react-ui'
 import React, { useEffect, useRef, useState } from 'react'
 import { useTeam } from '../hooks/useTeam'
 
@@ -17,46 +16,43 @@ export const CreateOrJoinTeam = () => {
     case 'inactive':
       return (
         <div className="CreateOrJoinTeam flex">
-          <CardBody className="border-r">
+          <div className="border-r">
             <p>Starting something new?</p>
             <p className="py-2">
-              <Button className="w-full" onClick={createTeam}>
+              <button className="w-full" onClick={createTeam}>
                 Create team
-              </Button>
+              </button>
             </p>
-          </CardBody>
+          </div>
 
-          <CardBody>
+          <div>
             <p>Have an invitation?</p>
             <p className="py-2">
-              <Button className="w-full" onClick={() => setState('joining')}>
+              <button className="w-full" onClick={() => setState('joining')}>
                 Join team
-              </Button>
+              </button>
             </p>
-          </CardBody>
+          </div>
         </div>
       )
     case 'joining':
       const onClickJoin = () => {
         const invitationSeed = invitationSeedInput.current.value // e.g. ambitious-raccoon-1234
-        const teamName = invitationSeed
-          .split('-')
-          .slice(0, 2)
-          .join('-') // e.g. ambitious-raccoon
+        const teamName = invitationSeed.split('-').slice(0, 2).join('-') // e.g. ambitious-raccoon
         joinTeam(teamName, invitationSeed)
       }
 
       return (
         <div className="p-3">
           <p className="my-2">Join team</p>
-          <Label>
+          <label>
             <span>Invitation code</span>
-            <Input ref={invitationSeedInput} className="my-2 w-full text-black" css="" />
-          </Label>
+            <input ref={invitationSeedInput} className="my-2 w-full text-black" css="" />
+          </label>
           <div className="text-right">
-            <Button className="" onClick={onClickJoin}>
+            <button className="" onClick={onClickJoin}>
               Join
-            </Button>
+            </button>
           </div>
         </div>
       )

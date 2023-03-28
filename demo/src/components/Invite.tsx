@@ -1,5 +1,4 @@
 import { UnixTimestamp } from '@localfirst/auth'
-import { Button, Label, Select } from '@windmill/react-ui'
 import ClipboardJS from 'clipboard'
 import React, { MutableRefObject, useEffect, useRef, useState } from 'react'
 import { useTeam } from '../hooks/useTeam'
@@ -70,20 +69,19 @@ export const Invite = () => {
         <div>
           <div className="Invite flex gap-2">
             {/* anyone can "invite" a device*/}
-            <Button size="small" className="my-2 mr-2" onClick={inviteDevice}>
+            <button className="my-2 mr-2" onClick={inviteDevice}>
               Add a device
-            </Button>
+            </button>
             {/* only admins can invite users */}
             {userIsAdmin ? (
-              <Button
-                size="small"
+              <button
                 className="my-2 mr-2"
                 onClick={() => {
                   setState('inviting_members')
                 }}
               >
                 Invite members
-              </Button>
+              </button>
             ) : null}
           </div>
         </div>
@@ -93,7 +91,7 @@ export const Invite = () => {
       return (
         <>
           <h3>Add a device</h3>
-          <Label>
+          <label>
             Enter this code on your device to join the team.
             <pre
               className="InvitationCode my-2 p-3 
@@ -102,15 +100,15 @@ export const Invite = () => {
               children={seed}
             />
             <div className="mt-1 text-right">
-              <Button
+              <button
                 ref={copyInvitationSeedButton}
                 onClick={() => setState('inactive')}
                 data-clipboard-text={seed}
               >
                 Copy
-              </Button>
+              </button>
             </div>
-          </Label>
+          </label>
         </>
       )
 
@@ -119,22 +117,21 @@ export const Invite = () => {
         <>
           <h3>Invite members</h3>
           <div className="flex flex-col gap-4 mt-4">
-            <Label>
+            <label>
               How many people can use this invitation code?
-              <Select ref={maxUsesSelect} className="MaxUses mt-1 w-full" css="">
+              <select ref={maxUsesSelect} className="MaxUses mt-1 w-full">
                 <option value={1}>1 person</option>
                 <option value={5}>5 people</option>
                 <option value={10}>10 people</option>
                 <option value={0}>No limit</option>
-              </Select>
-            </Label>
-            <Label>
+              </select>
+            </label>
+            <label>
               When does this invitation code expire?
-              <Select
+              <select
                 ref={expirationSelect}
                 defaultValue={MINUTE}
                 className="Expiration mt-1 w-full"
-                css=""
               >
                 <option value={SECOND}>in 1 second</option>
                 <option value={MINUTE}>in 1 minute</option>
@@ -142,26 +139,24 @@ export const Invite = () => {
                 <option value={DAY}>in 1 day</option>
                 <option value={WEEK}>in 1 week</option>
                 <option value={0}>Never</option>
-              </Select>
-            </Label>
+              </select>
+            </label>
 
             <div className="flex gap-12">
               <div className="flex-grow">
-                <Button
-                  size="small"
-                  layout="outline"
+                <button
                   className="CancelButton mt-1"
                   onClick={() => {
                     setState('inactive')
                   }}
                 >
                   Cancel
-                </Button>
+                </button>
               </div>
               <div>
-                <Button className="InviteButton mt-1" onClick={inviteMembers}>
+                <button className="InviteButton mt-1" onClick={inviteMembers}>
                   Invite
-                </Button>
+                </button>
               </div>
             </div>
           </div>
@@ -172,7 +167,7 @@ export const Invite = () => {
       return (
         <>
           <p className="my-2 font-bold">Here's the invite!</p>
-          <Label>
+          <label>
             Copy this code and send it to whoever you want to invite:
             <pre
               className="InvitationCode my-2 p-3 
@@ -181,15 +176,15 @@ export const Invite = () => {
               children={seed}
             />
             <div className="mt-1 text-right">
-              <Button
+              <button
                 ref={copyInvitationSeedButton}
                 onClick={() => setState('inactive')}
                 data-clipboard-text={seed}
               >
                 Copy
-              </Button>
+              </button>
             </div>
-          </Label>
+          </label>
         </>
       )
   }

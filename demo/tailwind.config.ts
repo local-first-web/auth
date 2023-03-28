@@ -1,7 +1,4 @@
-import windmill from '@windmill/react-ui/config.js'
-import defaultTheme from 'tailwindcss/defaultTheme.js'
-
-const { colors, fontSize } = defaultTheme
+import colors from 'tailwindcss/colors'
 
 const emoji = 'Segoe UI Emoji'
 const mono = 'IBM Plex Mono'
@@ -9,9 +6,9 @@ const sans = 'IBM Plex Sans'
 const condensed = 'IBM Plex Sans Condensed'
 const serif = 'IBM Plex Serif'
 
-export default windmill({
+export default {
   mode: 'jit',
-  purge: ['./src/**/*.{js,jsx,ts,tsx}', './index.html'],
+  content: ['./src/**/*.{js,jsx,ts,tsx}', './index.html'],
   theme: {
     extend: {
       fontFamily: {
@@ -52,4 +49,4 @@ export default windmill({
     textColor: ({ after }) => after(['group-hover', 'group-focus']),
     boxShadow: ({ after }) => after(['group-hover', 'group-focus']),
   },
-})
+}

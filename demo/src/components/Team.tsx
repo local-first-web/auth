@@ -1,5 +1,4 @@
 import * as auth from '@localfirst/auth'
-import { Button, CardBody } from '@windmill/react-ui'
 import { useTeam } from '../hooks/useTeam'
 import { devices, users } from '../peers'
 import { assert } from '../util/assert'
@@ -25,7 +24,7 @@ export const Team = () => {
 
   return (
     <>
-      <CardBody className="Team">
+      <div className="Team">
         {/* Team name */}
         <div className="flex">
           <div className="flex-grow">
@@ -68,9 +67,7 @@ export const Team = () => {
                   {/* Admin icon */}
                   <td className="w-2">
                     {userIsAdmin ? (
-                      <Button
-                        layout="link"
-                        size="small"
+                      <button
                         disabled={!userIsAdmin || memberIsOnlyAdmin}
                         onClick={() => {
                           if (memberIsAdmin) team.removeMemberRole(m.userId, auth.ADMIN)
@@ -134,13 +131,13 @@ export const Team = () => {
 
         {/* Invitation UI */}
         <Invite />
-      </CardBody>
+      </div>
 
       {/* Chain visualization */}
-      <CardBody className="border-t">
+      <div className="border-t">
         <CardLabel>Signature chain</CardLabel>
         <GraphDiagram graph={team.graph} id={device.keys.name.replace(/::/, '-')} />
-      </CardBody>
+      </div>
     </>
   )
 }
