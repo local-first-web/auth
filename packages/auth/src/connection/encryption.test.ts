@@ -15,7 +15,7 @@ describe('connection', () => {
         alice.connection.bob.send('hello')
 
         // 👨🏻‍🦲 Bob receives it
-        function receiveMessage(d: string) {
+        function receiveMessage(d: unknown) {
           expect(d).toEqual('hello')
           resolve()
         }

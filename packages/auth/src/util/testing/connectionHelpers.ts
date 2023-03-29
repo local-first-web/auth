@@ -1,9 +1,10 @@
 // ignore file coverage
 import { InviteeDeviceInitialContext, InviteeMemberInitialContext } from '@/connection/types'
-import { Connection } from '@/connection/Connection'
+import { Connection, ConnectionEvents } from '@/connection/Connection'
 import { joinTestChannel } from './joinTestChannel'
 import { UserStuff } from './setup'
 import { TestChannel } from './TestChannel'
+import { EventNames } from 'eventemitter3'
 
 // HELPERS
 
@@ -108,20 +109,20 @@ export const disconnection = async (a: UserStuff, b: UserStuff, message?: string
   })
 }
 
-export const all = (connections: Connection[], event: string) =>
+export const all = (connections: Connection[], event: EventNames<ConnectionEvents>) =>
   Promise.all(
     connections.map(connection => {
-      if (event === 'disconnect' && connection.state === 'disconnected') return true
+      if (event === 'disconnected' && connection.state === 'disconnected') return true
       if (event === 'connected' && connection.state === 'connected') return true
       else return new Promise(resolve => connection.on(event, () => resolve(true)))
-    }),
+    })
   )
 
-export const any = (connections: Connection[], event: string) =>
+export const any = (connections: Connection[], event: EventNames<ConnectionEvents>) =>
   Promise.any(
     connections.map(connection => {
-      if (event === 'disconnect' && connection.state === 'disconnected') return true
+      if (event === 'disconnected' && connection.state === 'disconnected') return true
       if (event === 'connected' && connection.state === 'connected') return true
       else return new Promise(resolve => connection.on(event, () => resolve(true)))
-    }),
+    })
   )

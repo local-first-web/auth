@@ -1,6 +1,7 @@
 ﻿import { deriveSharedKey } from '@/connection/deriveSharedKey'
 import {
   buildError,
+  ConnectionErrorPayload,
   ConnectionErrorType,
   ErrorMessage,
   LocalErrorMessage,
@@ -58,7 +59,7 @@ const { DEVICE } = KeyType
  * Wraps a state machine (using [XState](https://xstate.js.org/docs/)) that
  * implements the connection protocol. The XState configuration is in `protocolMachine`.
  */
-export class Connection extends EventEmitter {
+export class Connection extends EventEmitter<ConnectionEvents> {
   private peerUserId: string = '?'
 
   private sendFn: SendFunction
@@ -821,3 +822,16 @@ const insistentlyParseJson = (json: any) => {
 }
 
 const trimUserId = (userId?: string) => userId.split('-')[0]
+
+// types
+
+export type ConnectionEvents = {
+  change: (summary: string) => void
+  message: (message: unknown) => void
+  remoteError: (error: ConnectionErrorPayload) => void
+  localError: (error: ConnectionErrorPayload) => void
+  connected: () => void
+  joined: ({ team, user }: { team: Team; user: UserWithSecrets }) => void
+  updated: () => void
+  disconnected: (event: ConnectionMessage) => void
+}

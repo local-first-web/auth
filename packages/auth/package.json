@@ -36,7 +36,7 @@
     "@localfirst/crypto": "^4.0.1",
     "buffer": "^6.0.3",
     "debug": "^4.3.4",
-    "events": "^3.3.0",
+    "eventemitter3": "^4.0.7",
     "fast-memoize": "^2.5.2",
     "lodash": "^4.17.21",
     "xstate": "4.26"

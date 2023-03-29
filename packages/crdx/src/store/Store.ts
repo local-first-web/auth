@@ -1,4 +1,4 @@
-import EventEmitter from 'events'
+import EventEmitter from 'eventemitter3'
 import { StoreOptions } from './StoreOptions'
 import { Reducer } from './types'
 import {

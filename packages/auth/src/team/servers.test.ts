@@ -11,7 +11,7 @@ import {
   UserStuff,
 } from '@/util/testing'
 import { createKeyset, redactKeys } from '@localfirst/crdx'
-import EventEmitter from 'events'
+import EventEmitter from 'eventemitter3'
 import {
   Connection,
   createTeam,

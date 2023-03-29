@@ -27,7 +27,7 @@ import {
   User,
   UserWithSecrets,
 } from '@localfirst/crdx'
-import EventEmitter from 'events'
+import EventEmitter from 'eventemitter3'
 import { ADMIN_SCOPE, ALL, initialState, TEAM_SCOPE } from './constants'
 import { membershipResolver as resolver } from './membershipResolver'
 import { redactUser } from './redactUser'
