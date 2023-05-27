@@ -647,7 +647,7 @@ describe('connection', () => {
 
         await connect(alice, bob)
 
-        // 👩🏾 Alice removes Bob from the team
+        // 👩🏾 Alice removes 👨🏻‍🦲 Bob from the team
         alice.team.remove('bob')
         await anyDisconnected(alice, bob)
 
@@ -659,6 +659,40 @@ describe('connection', () => {
         alice.team.addRole('managers')
 
         await connect(alice, charlie)
+
+        // Charlie can decrypt the last link Alice created
+        expect(charlie.team.hasRole('managers')).toBe(true)
+      })
+
+      // TODO: Failing test: Alice only sends one key to Charlie upon admitting him, whereas he needs a
+      // keyring containing all generations of team keys. He can't just start with the original keys
+      // and decrypt as he goes along, because when the keys were rotated, no lockboxes were made
+      // for him because he wasn't on the team yet
+      //
+      // So:
+      // - we need an easy way of obtaining a keyring with the full set of keys from a team
+      // - this keyring is what needs to be sent to new members when admitting them
+      // - this is what should be passed to invitees when they're admitted
+
+      it('allows a new member to join after team keys have been rotated', async () => {
+        const { alice, bob, charlie } = setup(['alice', 'bob', { user: 'charlie', member: false }])
+
+        await connect(alice, bob)
+
+        // Alice removes Bob from the team
+        alice.team.remove('bob')
+        await anyDisconnected(alice, bob)
+
+        // The team keys have been rotated
+        expect(alice.team.teamKeys().generation).toBe(1)
+
+        // Alice does something else — say she creates a new role
+        // This will now be encrypted with the new team keys
+        alice.team.addRole('managers')
+
+        // Alice invites Charlie
+        const { seed } = alice.team.inviteMember()
+        await connectWithInvitation(alice, charlie, seed)
 
         // Charlie can decrypt the last link Alice created
         expect(charlie.team.hasRole('managers')).toBe(true)
