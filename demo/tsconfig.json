@@ -9,9 +9,6 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "module": "esnext",
     "moduleResolution": "node",
-    "paths": {
-      "@localfirst/auth": ["packages/auth/src"]
-    },
     "noEmit": true,
     "noFallthroughCasesInSwitch": true,
     "resolveJsonModule": true,

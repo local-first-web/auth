@@ -3,6 +3,7 @@
     "allowJs": false,
     "baseUrl": ".",
     "declaration": true,
+    "declarationMap": true,
     "esModuleInterop": true,
     "incremental": true,
     "importHelpers": true,
