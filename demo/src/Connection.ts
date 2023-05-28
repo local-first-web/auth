@@ -55,7 +55,7 @@ export class Connection extends EventEmitter {
   }
 }
 
-const bubbleEvents = (source: EventEmitter, target: EventEmitter, events: string[]) =>
+const bubbleEvents = (source: EventEmitter<any>, target: EventEmitter<any>, events: string[]) =>
   events.forEach(event => source.on(event, payload => target.emit(event, payload)))
 
 type ConnectionParams = {
