@@ -17,10 +17,10 @@ export const keys = (
 
   assert(
     keys,
-    `Couldn't find keys: ${type.toLowerCase()} ${name}.
-     Scope: ${JSON.stringify(scope)}
+    `Couldn't find keys: ${JSON.stringify(scope)}
      Device: ${deviceKeys.name}
-     Available lockboxes: \n- ${state.lockboxes.map(lockboxSummary).join('\n- ')} `
+     Available lockboxes: \n- ${state.lockboxes.map(lockboxSummary).join('\n- ')} 
+     Keymap: ${JSON.stringify(keysFromLockboxes, null, 2)}`
   )
 
   const generation =
