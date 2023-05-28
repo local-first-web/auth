@@ -16,10 +16,12 @@ import { TeamAction, TeamContext, TeamGraph, TeamLink, TeamState } from './types
 /**
  * Decrypts a graph.
  *
- * This is a team-specific version of `decryptGraph` from crdx. We can't just use a single set of
- * team keys to decrypt everything, because sometimes keys are rotated. When that happens, each team
- * member gets the new keys in a lockbox that's stored on the chain. So we need to recurse through
- * the chain, updating the keys if necessary before continuing to decrypt further.
+ * This is a team-specific version of `decryptGraph` from crdx. When we're communicating with a
+ * peer, we can't just use a single set of team keys to decrypt everything, because there might be
+ * key rotations in links that we receive that we will need to decrypt subsequent links. When that
+ * happens, each team member gets the new keys in a lockbox that's stored on the chain. So we need
+ * to recurse through the chain, updating the keys if necessary before continuing to decrypt
+ * further.
  */
 export const decryptTeamGraph = ({
   encryptedGraph,
