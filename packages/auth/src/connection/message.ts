@@ -5,6 +5,7 @@ import {
   Base58,
   Hash,
   KeyScope,
+  Keyring,
   Keyset,
   KeysetWithSecrets,
   SyncMessage as SyncPayload,
@@ -55,7 +56,7 @@ export type AcceptInvitationMessage = {
   type: 'ACCEPT_INVITATION'
   payload: {
     serializedGraph: Base58
-    teamKeys: KeysetWithSecrets
+    teamKeyring: Keyring
   }
 }
 

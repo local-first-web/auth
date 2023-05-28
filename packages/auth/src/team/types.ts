@@ -10,6 +10,7 @@ import {
   Graph,
   Hash,
   KeyMetadata,
+  Keyring,
   Keyset,
   KeysetWithSecrets,
   Link,
@@ -52,6 +53,9 @@ export interface Member {
 export interface NewTeamOptions {
   /** The team's human-facing name */
   teamName: string
+
+  /** The team keys need to be provided for encryption and decryption. It's up to the application to persist these somewhere.  */
+  teamKeys: KeysetWithSecrets
 }
 
 /** Properties required when rehydrating from an existing graph  */
@@ -59,15 +63,15 @@ export interface ExistingTeamOptions {
   /** The `TeamGraph` representing the team's state, to be rehydrated.
    *  Can be serialized or not. */
   source: string | TeamGraph
+
+  /** The team keys need to be provided for encryption and decryption. It's up to the application to persist these somewhere.  */
+  teamKeyring: Keyring
 }
 
 type NewOrExisting = NewTeamOptions | ExistingTeamOptions
 
 /** Options passed to the `Team` constructor */
 export type TeamOptions = NewOrExisting & {
-  /** The team keys need to be provided for encryption and decryption. It's up to the application to persist these somewhere.  */
-  teamKeys: KeysetWithSecrets
-
   /** A seed for generating keys. This is typically only used for testing, to ensure predictable data. */
   seed?: string
 

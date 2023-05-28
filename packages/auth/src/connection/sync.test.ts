@@ -664,16 +664,6 @@ describe('connection', () => {
         expect(charlie.team.hasRole('managers')).toBe(true)
       })
 
-      // TODO: Failing test: Alice only sends one key to Charlie upon admitting him, whereas he needs a
-      // keyring containing all generations of team keys. He can't just start with the original keys
-      // and decrypt as he goes along, because when the keys were rotated, no lockboxes were made
-      // for him because he wasn't on the team yet
-      //
-      // So:
-      // - we need an easy way of obtaining a keyring with the full set of keys from a team
-      // - this keyring is what needs to be sent to new members when admitting them
-      // - this is what should be passed to invitees when they're admitted
-
       it('allows a new member to join after team keys have been rotated', async () => {
         const { alice, bob, charlie } = setup(['alice', 'bob', { user: 'charlie', member: false }])
 

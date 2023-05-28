@@ -10,25 +10,27 @@ import * as lockbox from '@/lockbox'
 import { ADMIN, Role } from '@/role'
 import { cast } from '@/server/cast'
 import { Host, Server } from '@/server/types'
-import { assert, debug, getScope, KeyType, scopesMatch, VALID } from '@/util'
-import { Base58, randomKey, signatures, symmetric } from '@localfirst/crypto'
+import { KeyType, VALID, assert, debug, getScope, scopesMatch } from '@/util'
 import {
-  createKeyset,
-  createStore,
-  isKeyset,
   KeyMetadata,
   KeyScope,
+  Keyring,
   Keyset,
   KeysetWithSecrets,
   Payload,
-  redactKeys,
   Store,
   UnixTimestamp,
   User,
   UserWithSecrets,
+  createKeyring,
+  createKeyset,
+  createStore,
+  isKeyset,
+  redactKeys,
 } from '@localfirst/crdx'
+import { Base58, randomKey, signatures, symmetric } from '@localfirst/crypto'
 import EventEmitter from 'eventemitter3'
-import { ADMIN_SCOPE, ALL, initialState, TEAM_SCOPE } from './constants'
+import { ADMIN_SCOPE, ALL, TEAM_SCOPE, initialState } from './constants'
 import { membershipResolver as resolver } from './membershipResolver'
 import { redactUser } from './redactUser'
 import { reducer } from './reducer'
@@ -36,7 +38,6 @@ import * as select from './selectors'
 import { deserializeTeamGraph, serializeTeamGraph } from './serialize'
 import {
   EncryptedEnvelope,
-  isNewTeam,
   Member,
   SignedEnvelope,
   TeamAction,
@@ -44,6 +45,7 @@ import {
   TeamGraph,
   TeamOptions,
   TeamState,
+  isNewTeam,
 } from './types'
 
 /**
@@ -118,7 +120,7 @@ export class Team extends EventEmitter {
       })
     } else {
       // Rehydrate a team from an existing graph
-      const graph = maybeDeserialize(options.source, options.teamKeys, this.context.device.keys)
+      const graph = maybeDeserialize(options.source, options.teamKeyring)
       const { user } = this.context
 
       // Create CRDX store
@@ -128,7 +130,7 @@ export class Team extends EventEmitter {
         resolver,
         initialState,
         graph,
-        keys: options.teamKeys,
+        keys: options.teamKeyring,
       })
     }
 
@@ -646,8 +648,11 @@ export class Team extends EventEmitter {
   }
 
   /** Once the new member has received the graph and can instantiate the team, they call this to add their device. */
-  public joinAsMember = (teamKeys: KeysetWithSecrets) => {
+  public joinAsMember = (teamKeyring: Keyring) => {
     if (this.isServer) throw new Error(`Can't join as member on server`)
+
+    const teamKeys = getLatestGeneration(teamKeyring)
+
     const deviceLockbox = lockbox.create(this.context.user.keys, this.context.device.keys)
     const device = redactDevice(this.context.device)
     this.dispatch(
@@ -818,7 +823,14 @@ export class Team extends EventEmitter {
   public roleKeys = (roleName: string, generation?: number) =>
     this.keys({ type: KeyType.ROLE, name: roleName, generation })
 
+  /** Returns the current team keys or a specific generation of team keys */
   public teamKeys = (generation?: number) => this.keys({ ...TEAM_SCOPE, generation })
+
+  public teamKeyring = () => {
+    const { TEAM } = KeyType
+    const allTeamKeys = select.getKeyMap(this.state, this.context.device.keys)[TEAM][TEAM]
+    return createKeyring(allTeamKeys)
+  }
 
   /** Returns the admin keyset. */
   public adminKeys = (generation?: number) => this.roleKeys(ADMIN, generation)
@@ -900,11 +912,8 @@ export class Team extends EventEmitter {
   }
 }
 
-const maybeDeserialize = (
-  source: string | TeamGraph,
-  teamKeys: KeysetWithSecrets,
-  deviceKeys: KeysetWithSecrets
-): TeamGraph => (isGraph(source) ? source : deserializeTeamGraph(source, teamKeys, deviceKeys))
+const maybeDeserialize = (source: string | TeamGraph, teamKeyring: Keyring): TeamGraph =>
+  isGraph(source) ? source : deserializeTeamGraph(source, teamKeyring)
 
 const isGraph = (source: string | TeamGraph): source is TeamGraph => source?.hasOwnProperty('root')
 
@@ -922,3 +931,13 @@ type LookupIdentityResult =
   | 'MEMBER_REMOVED'
   | 'DEVICE_UNKNOWN'
   | 'DEVICE_REMOVED'
+
+const getLatestGeneration = (keyring: Keyring) => {
+  let latest: KeysetWithSecrets
+
+  for (const publicKey in keyring) {
+    const keyset = keyring[publicKey]
+    if (!latest || keyset.generation > latest.generation) latest = keyset
+  }
+  return latest
+}

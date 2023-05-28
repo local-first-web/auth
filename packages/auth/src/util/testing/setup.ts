@@ -6,7 +6,7 @@ import { ADMIN } from '@/role'
 import * as teams from '@/team'
 import { Team, TeamContext } from '@/team'
 import { arrayToMap, assert, KeyType } from '@/util'
-import { createUser, UserWithSecrets } from '@localfirst/crdx'
+import { createKeyring, createUser, UserWithSecrets } from '@localfirst/crdx'
 
 export type SetupConfig = ((TestUserSettings | string)[] | TestUserSettings | string)[]
 
@@ -88,7 +88,7 @@ export const setup = (..._config: SetupConfig) => {
     const localContext = { user, device }
     const graphContext = { deviceId: getDeviceId(device) }
     const team = member
-      ? teams.load(graph, localContext, teamKeys) // members get a copy of the source team
+      ? teams.load(graph, localContext, createKeyring(teamKeys)) // members get a copy of the source team
       : teams.createTeam(userId, localContext, randomSeed) // non-members get a dummy empty placeholder team
 
     const context = (
