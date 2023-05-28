@@ -1,6 +1,5 @@
 ﻿import { ADMIN } from '@/role'
 import * as teams from '@/team'
-import { TEAM_SCOPE } from '@/team'
 import {
   anyDisconnected,
   anyUpdated,
@@ -13,7 +12,6 @@ import {
   setup,
   tryToConnect,
 } from '@/util/testing'
-import { createKeyset } from '@localfirst/crdx'
 
 describe('connection', () => {
   describe('authentication', () => {
