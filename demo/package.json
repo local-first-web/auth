@@ -1,6 +1,6 @@
 {
   "name": "demo",
-  "version": "4.0.1",
+  "version": "4.1.0",
   "author": {
     "name": "Herb Caudill",
     "email": "herb@devresults.com"
@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@ibm/plex": "^6.2.0",
-    "@localfirst/auth": "^4.0.1",
+    "@localfirst/auth": "^4.1.0",
     "@localfirst/relay": "^3.6.2",
     "@localfirst/relay-client": "^3.6.2",
     "@testing-library/cypress": "^9.0.0",
