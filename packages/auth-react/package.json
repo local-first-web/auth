@@ -1,6 +1,6 @@
 {
   "name": "@localfirst/auth-react",
-  "version": "4.1.0",
+  "version": "4.1.1",
   "description": "Official React library for @localfirst/auth",
   "author": "Herb Caudill",
   "license": "MIT",
