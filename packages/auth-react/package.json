@@ -5,8 +5,7 @@
   "author": "Herb Caudill",
   "license": "MIT",
   "scripts": {
-    "test": "jest",
-    "prepublishOnly": "yarn build && yarn test"
+    "test": "jest"
   },
   "type": "module",
   "main": "dist/index.js",
@@ -15,5 +14,6 @@
     "@localfirst/auth": "^4.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
-  }
+  },
+  "gitHead": "d4eeacb5600c8043b72c44149ca5098572a81a7f"
 }
