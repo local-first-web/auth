@@ -38,6 +38,7 @@ export const membershipResolver: Resolver<TeamAction, TeamContext> = graph => {
       bubble = bubble.filter(linkNotIn(invalidLinks))
     }
   }
+
   return {
     filter: linkNotIn(invalidLinks),
   }
@@ -75,10 +76,6 @@ const findDependentLinks = (bubble: TeamLink[], invalidLink: TeamLink): TeamLink
 
 const membershipRules: Record<string, MembershipRuleEnforcer> = {
   // RULE: mutual and circular removals are resolved by seniority
-  //
-  // I'd like to actually implement full strong-remove — e.g. remove everyone in a mutual remove
-  // scenario — but not sure how to do that, since the reducer won't allow a to remove b after b has
-  // removed a.
   resolveMutualRemovals: (links, chain) => {
     const removed = getRemovedAndDemotedMembers(links)
     const removers = getRemovalsAndDemotions(links).map(getAuthor)

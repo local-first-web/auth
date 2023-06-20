@@ -9,10 +9,10 @@ describe('connection', () => {
         await connect(alice, bob)
 
         // 👨🏻‍🦲 Bob sets up his message handler
-        bob.connection.alice.once('message', receiveMessage)
+        bob.connection[alice.deviceId].once('message', receiveMessage)
 
         // 👩🏾 Alice sends a message
-        alice.connection.bob.send('hello')
+        alice.connection[bob.deviceId].send('hello')
 
         // 👨🏻‍🦲 Bob receives it
         function receiveMessage(d: unknown) {

@@ -119,7 +119,7 @@ describe('connection', () => {
         await connectWithInvitation(alice, bob, seed)
 
         // update the team from the connection, which should have the new keys
-        const connection = bob.connection.alice
+        const connection = bob.connection[alice.deviceId]
         bob.team = connection.team!
 
         // 👨🏻‍🦲 Bob has the team keys
@@ -194,7 +194,7 @@ describe('connection', () => {
 
         // ✅ that works
         await connect(bob, alice)
-        bob.team = bob.connection.alice.team!
+        bob.team = bob.connection[alice.deviceId].team!
 
         expectEveryoneToKnowEveryone(alice, bob)
       })

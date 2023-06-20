@@ -11,8 +11,8 @@ import { EventNames } from 'eventemitter3'
 export const tryToConnect = async (a: UserStuff, b: UserStuff) => {
   const join = joinTestChannel(new TestChannel())
 
-  a.connection[b.userId] = join(a.connectionContext).start()
-  b.connection[a.userId] = join(b.connectionContext).start()
+  a.connection[b.deviceId] = join(a.connectionContext).start()
+  b.connection[a.deviceId] = join(b.connectionContext).start()
 }
 
 /** Connects the two members and waits for them to be connected */
@@ -31,7 +31,7 @@ export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: st
 
   return connect(a, b).then(() => {
     // The connection now has the team object, so let's update our user stuff
-    b.team = b.connection[a.userId].team!
+    b.team = b.connection[a.deviceId].team!
   })
 }
 
@@ -44,30 +44,36 @@ export const connectPhoneWithInvitation = async (user: UserStuff, seed: string) 
 
   const join = joinTestChannel(new TestChannel())
 
-  const laptop = join(user.connectionContext).start()
-  const phone = join(phoneContext).start()
+  const laptopConnection = join(user.connectionContext).start()
+  const phoneConnection = join(phoneContext).start()
 
-  await all([laptop, phone], 'connected').then(() => {
-    user.team = laptop.team!
-  })
+  await all([laptopConnection, phoneConnection], 'connected')
+  user.team = laptopConnection.team
+  user.connection = { [user.phoneStuff.deviceId]: phoneConnection }
+  user.phoneStuff.team = phoneConnection.team
+  user.phoneStuff.connection = { [user.deviceId]: laptopConnection }
 }
 
 /** Passes if each of the given members is on the team, and knows every other member on the team */
 export const expectEveryoneToKnowEveryone = (...members: UserStuff[]) => {
   for (const a of members)
-    for (const b of members) {
+    for (const b of members)
       if (!a.team.has(b.userId))
         throw new Error(`${a.userId} does not have ${b.userId} on their team`)
-    }
 }
 
 /** Disconnects the two members and waits for them to be disconnected */
-export const disconnect = (a: UserStuff, b: UserStuff) =>
-  Promise.all([disconnection(a, b), a.connection[b.userId].stop(), b.connection[a.userId].stop()])
+export const disconnect = (a: UserStuff, b: UserStuff) => {
+  return Promise.all([
+    disconnection(a, b),
+    a.connection[b.deviceId].stop(),
+    b.connection[a.deviceId].stop(),
+  ])
+}
 
 // PROMISIFIED EVENTS
 export const connection = async (a: UserStuff, b: UserStuff) => {
-  const connections = [a.connection[b.userId], b.connection[a.userId]]
+  const connections = [a.connection[b.deviceId], b.connection[a.deviceId]]
 
   // ✅ They're both connected
   await all(connections, 'connected')
@@ -81,22 +87,22 @@ export const connection = async (a: UserStuff, b: UserStuff) => {
 }
 
 export const updated = (a: UserStuff, b: UserStuff) => {
-  const connections = [a.connection[b.userId], b.connection[a.userId]]
+  const connections = [a.connection[b.deviceId], b.connection[a.deviceId]]
   return all(connections, 'updated')
 }
 
 export const anyUpdated = (a: UserStuff, b: UserStuff) => {
-  const connections = [a.connection[b.userId], b.connection[a.userId]]
+  const connections = [a.connection[b.deviceId], b.connection[a.deviceId]]
   return any(connections, 'updated')
 }
 
 export const anyDisconnected = (a: UserStuff, b: UserStuff) => {
-  const connections = [a.connection[b.userId], b.connection[a.userId]]
+  const connections = [a.connection[b.deviceId], b.connection[a.deviceId]]
   return any(connections, 'disconnected')
 }
 
 export const disconnection = async (a: UserStuff, b: UserStuff, message?: string) => {
-  const connections = [a.connection[b.userId], b.connection[a.userId]]
+  const connections = [a.connection[b.deviceId], b.connection[a.deviceId]]
   const activeConnections = connections.filter(c => c.state !== 'disconnected')
 
   // ✅ They're both disconnected

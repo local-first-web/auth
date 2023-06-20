@@ -262,7 +262,7 @@ describe('connection', () => {
       })
     })
 
-    describe('removals and demotions', () => {
+    describe('invitations, removals and demotions', () => {
       it('lets a member remove the founder', async () => {
         const { alice, bob } = setup('alice', 'bob')
 
@@ -401,12 +401,12 @@ describe('connection', () => {
         expect(bob.team.memberIsAdmin('bob')).toBe(false)
 
         // ✅ They are still connected 👩🏾<->👨🏻‍🦲
-        expect(alice.getState('bob')).toEqual('connected')
-        expect(bob.getState('alice')).toEqual('connected')
+        expect(alice.getState(bob.deviceId)).toEqual('connected')
+        expect(bob.getState(alice.deviceId)).toEqual('connected')
       })
 
-      it('resolves mutual removals in favor of the senior member', async () => {
-        const { alice, bob, charlie, dwight } = setup('alice', 'bob', 'charlie', 'dwight')
+      it(`resolves mutual removals without invalidating the senior member's concurrent actions`, async () => {
+        const { alice, bob, charlie } = setup('alice', 'bob', 'charlie')
 
         // 👨🏻‍🦲 Bob removes 👩🏾 Alice
         bob.team.remove('alice')
@@ -414,33 +414,19 @@ describe('connection', () => {
         // 👩🏾 Alice concurrently removes 👨🏻‍🦲 Bob
         alice.team.remove('bob')
 
-        // 👳🏽‍♂️<->👨🏻‍🦲 Charlie and Bob connect
-        await connect(bob, charlie)
+        // 👩🏾 Alice does something else on her phone (also concurrently)
+        alice.team.addRole('MANAGERS')
+        expect(alice.team.hasRole('MANAGERS')).toBe(true)
 
-        // 👳🏽‍♂️💭 Charlie now knows that Bob has removed Alice
-        expect(charlie.team.has('alice')).toBe(false)
+        // Charlie connects with both Alice and Bob
+        await connect(charlie, bob)
+        await connect(charlie, alice)
 
-        // 👴<->👩🏾 Dwight and Alice connect
-        await connect(alice, dwight)
-
-        // 👴💭 Dwight now knows that Alice has removed Bob
-        expect(dwight.team.has('bob')).toBe(false)
-
-        // 👴<->👳🏽‍♂️ Dwight and Charlie connect
-        await connect(dwight, charlie)
-
-        // 👴💭 👳🏽‍♂️💭 Both Dwight and Charlie now know about the mutual conflicting removals.
-
-        // They each discard Bob's removal of Alice (because they were done concurrently and
-        // Alice is senior so she wins)
-
-        // ✅ Both kept Alice 👩🏾👍
-        expect(dwight.team.has('alice')).toBe(true)
-        expect(charlie.team.has('alice')).toBe(true)
-
-        // ✅ Both removed Bob 👨🏻‍🦲👎
-        expect(dwight.team.has('bob')).toBe(false)
+        // Bob is no longer on the team
         expect(charlie.team.has('bob')).toBe(false)
+
+        // Alice's change was not invalidated
+        expect(charlie.team.hasRole('MANAGERS')).toBe(true)
       })
 
       it('gets both sides of the story in the case of mutual removals', async () => {
@@ -539,7 +525,7 @@ describe('connection', () => {
         expect(bob.team.has('charlie')).toBe(false)
       })
 
-      it('resolves circular concurrent demotions ', async () => {
+      it('resolves circular concurrent demotions', async () => {
         const { alice, bob, charlie, dwight } = setup('alice', 'bob', 'charlie', 'dwight')
 
         // Bob demotes Charlie
@@ -735,7 +721,7 @@ describe('connection', () => {
         expect(alice.team.has('charlie')).toBe(false)
         expect(bob.team.has('charlie')).toBe(false)
 
-        // Alice rotates the team keys
+        // Alice has rotated the team keys
         expect(alice.team.teamKeys().generation).toBe(1)
         // and all other keys, for good measure
         expect(alice.team.adminKeys().generation).toBe(2)
@@ -750,10 +736,7 @@ describe('connection', () => {
 
         // Bob invites his phone and it joins
         const { seed } = bob.team.inviteDevice()
-        await Promise.all([
-          connectPhoneWithInvitation(bob, seed), //
-          anyUpdated(alice, bob),
-        ])
+        await Promise.all([connectPhoneWithInvitation(bob, seed), anyUpdated(alice, bob)])
 
         // Bob and Alice know about Bob's phone
         expect(bob.team.members('bob').devices).toHaveLength(2)
