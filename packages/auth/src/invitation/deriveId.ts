@@ -1,5 +1,5 @@
 ﻿import { hash, stretch, base58 } from '@herbcaudill/crypto'
-import { HashPurpose } from '@/util'
+import { HashPurpose } from '@/util/index.js'
 
 export function deriveId(seed: string) {
   // ## Step 1b

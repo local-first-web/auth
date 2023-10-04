@@ -1,5 +1,5 @@
-﻿import * as select from '@/team/selectors'
-import { Member, Transform } from '@/team/types'
+﻿import * as select from '@/team/selectors/index.js'
+import { Member, Transform } from '@/team/types.js'
 
 export const removeDevice =
   (userId: string, deviceName: string): Transform =>

@@ -14,7 +14,7 @@ import {
   TestChannel,
   updated,
 } from '@/util/testing'
-import { MemberInitialContext } from './types'
+import { MemberInitialContext } from './types.js'
 
 describe('connection', () => {
   describe('sync', () => {

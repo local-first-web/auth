@@ -1,6 +1,6 @@
 ﻿import { KeyScope } from 'crdx'
-import { TeamState } from '@/team/types'
-import { Lockbox } from '@/lockbox'
+import { TeamState } from '@/team/types.js'
+import { Lockbox } from '@/lockbox/index.js'
 
 /** Returns all lockboxes *containing* keys for the given scope */
 export const lockboxesInScope = (state: TeamState, scope: KeyScope): Lockbox[] => {

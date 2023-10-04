@@ -1,10 +1,10 @@
-import { DeviceWithSecrets } from '@/device'
-import { ProofOfInvitation } from '@/invitation'
-import { Member, Team } from '@/team'
-import { Base58, Hash, UnixTimestamp } from '@/util'
+import { DeviceWithSecrets } from '@/device/index.js'
+import { ProofOfInvitation } from '@/invitation/index.js'
+import { Member, Team } from '@/team/index.js'
+import { Base58, Hash, UnixTimestamp } from '@/util/index.js'
 import { KeyScope, Keyset, SyncState, UserWithSecrets } from 'crdx'
 import { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
-import { ConnectionMessage } from './message'
+import { ConnectionMessage } from './message.js'
 
 // Identity
 

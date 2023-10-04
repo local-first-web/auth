@@ -1,5 +1,5 @@
-﻿import { Lockbox } from '@/lockbox/types'
-import { memoize } from '@/util'
+﻿import { Lockbox } from '@/lockbox/types.js'
+import { memoize } from '@/util/index.js'
 import { asymmetric } from '@herbcaudill/crypto'
 import { KeysetWithSecrets } from 'crdx'
 

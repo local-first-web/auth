@@ -1,10 +1,10 @@
 export const EMPTY: LinkMap = {}
-import { Hash } from '@/util'
+import { Hash } from '@/util/index.js'
 import { decryptLink, EncryptedGraph, getChildMap, KeysetWithSecrets, LinkMap } from 'crdx'
-import { initialState, TEAM_SCOPE } from './constants'
-import { reducer } from './reducer'
-import { keys } from './selectors'
-import { TeamAction, TeamContext, TeamGraph, TeamLink, TeamState } from './types'
+import { initialState, TEAM_SCOPE } from './constants.js'
+import { reducer } from './reducer.js'
+import { keys } from './selectors/index.js'
+import { TeamAction, TeamContext, TeamGraph, TeamLink, TeamState } from './types.js'
 
 export const serializeTeamGraph = (graph: TeamGraph): string => {
   // only persist the encrypted links

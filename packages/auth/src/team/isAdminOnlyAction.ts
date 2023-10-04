@@ -1,4 +1,4 @@
-import { TeamLinkBody } from './types'
+import { TeamLinkBody } from './types.js'
 
 export const isAdminOnlyAction = (action: TeamLinkBody) => {
   // any team member can do these things

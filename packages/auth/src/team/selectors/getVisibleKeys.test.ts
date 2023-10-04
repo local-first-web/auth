@@ -1,8 +1,8 @@
-import { ADMIN } from '@/role'
-import { getScope } from '@/util'
-import { setup } from '@/util/testing'
+import { ADMIN } from '@/role/index.js'
+import { getScope } from '@/util/index.js'
+import { setup } from '@/util/testing/index.js'
 import { createKeyset, KeyType } from 'crdx'
-import * as select from '.'
+import * as select from './index.js'
 
 const { USER, DEVICE, TEAM, ROLE } = KeyType
 

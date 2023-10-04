@@ -1,4 +1,4 @@
-import { generateProof, randomSeed, create, validate } from '@/invitation'
+import { generateProof, randomSeed, create, validate } from '@/invitation/index.js'
 
 describe('invitations', () => {
   test('create invitation', () => {

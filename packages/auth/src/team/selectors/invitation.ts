@@ -1,6 +1,6 @@
-import { TeamState } from '@/team/types'
-import { assert } from '@/util'
-import { Hash } from '@/util/types'
+import { TeamState } from '@/team/types.js'
+import { assert } from '@/util/index.js'
+import { Hash } from '@/util/types.js'
 
 export function hasInvitation(state: TeamState, id: Hash): boolean {
   return id in state.invitations

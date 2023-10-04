@@ -1,9 +1,9 @@
-import { Client, LocalUserContext } from '@/context'
-import { Device } from '@/device'
-import { Invitation, InvitationState } from '@/invitation/types'
-import { Lockbox } from '@/lockbox'
-import { PermissionsMap, Role } from '@/role'
-import { Base58, Hash, Payload, UUID, ValidationResult } from '@/util'
+import { Client, LocalUserContext } from '@/context/index.js'
+import { Device } from '@/device/index.js'
+import { Invitation, InvitationState } from '@/invitation/types.js'
+import { Lockbox } from '@/lockbox/index.js'
+import { PermissionsMap, Role } from '@/role/index.js'
+import { Base58, Hash, Payload, UUID, ValidationResult } from '@/util/index.js'
 import { Graph, KeyMetadata, Keyset, KeysetWithSecrets, Link, LinkBody, ROOT, Sequence } from 'crdx'
 
 // ********* MEMBER

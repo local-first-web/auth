@@ -1,6 +1,6 @@
 // ignore file coverage
-import { getDeviceId } from '@/device'
-import { TeamAction, TeamLink } from '@/team/types'
+import { getDeviceId } from '@/device/index.js'
+import { TeamAction, TeamLink } from '@/team/types.js'
 
 /** Identifies a unique action for the purpose of detecting duplicates;
  * e.g. ADD_MEMBER:bob

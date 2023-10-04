@@ -1,9 +1,9 @@
-﻿import { Device } from '@/device'
-import { ADMIN } from '@/role'
-import { clone, composeTransforms } from '@/util'
+﻿import { Device } from '@/device/index.js'
+import { ADMIN } from '@/role/index.js'
+import { clone, composeTransforms } from '@/util/index.js'
 import { Reducer, ROOT } from 'crdx'
-import { invalidLinkReducer } from './invalidLinkReducer'
-import { setHead } from './setHead'
+import { invalidLinkReducer } from './invalidLinkReducer.js'
+import { setHead } from './setHead.js'
 import {
   addDevice,
   addMember,
@@ -22,7 +22,7 @@ import {
   setTeamName,
   useInvitation,
 } from './transforms'
-import { Member, TeamAction, TeamContext, TeamState, Transform } from './types'
+import { Member, TeamAction, TeamContext, TeamState, Transform } from './types.js'
 import { validate } from './validate'
 
 /**

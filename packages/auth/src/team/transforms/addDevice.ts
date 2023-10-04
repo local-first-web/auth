@@ -1,5 +1,5 @@
-﻿import { Transform } from '@/team/types'
-import { getDeviceId, Device } from '@/device'
+﻿import { Transform } from '@/team/types.js'
+import { getDeviceId, Device } from '@/device/index.js'
 
 export const addDevice =
   (device: Device): Transform =>

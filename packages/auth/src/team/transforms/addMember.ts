@@ -1,5 +1,5 @@
-﻿import { Transform } from '@/team/types'
-import { Member } from '@/team'
+﻿import { Transform } from '@/team/types.js'
+import { Member } from '@/team/index.js'
 
 export const addMember =
   (newMember: Member): Transform =>

@@ -1,5 +1,5 @@
-import { setup } from '@/util/testing'
-import { load } from './load'
+import { setup } from '@/util/testing/index.js'
+import { load } from './load.js'
 
 describe('decryptTeamGraph', () => {
   it('deserializes a team after team keys have been rotated', () => {

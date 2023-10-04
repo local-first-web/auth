@@ -1,7 +1,7 @@
-import { ADMIN } from '@/role'
-import * as teams from '@/team'
-import { setup } from '@/util/testing'
-import '@/util/testing/expect/toLookLikeKeyset'
+import { ADMIN } from '@/role/index.js'
+import * as teams from '@/team/index.js'
+import { setup } from '@/util/testing/index.js'
+import '@/util/testing/expect/toLookLikeKeyset.js'
 import { symmetric } from '@herbcaudill/crypto'
 
 const MANAGERS = 'managers'

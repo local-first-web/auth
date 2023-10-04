@@ -1,6 +1,6 @@
-import { ADMIN } from '@/role'
-import { setup } from '@/util/testing'
-import '@/util/testing/expect/toLookLikeKeyset'
+import { ADMIN } from '@/role/index.js'
+import { setup } from '@/util/testing/index.js'
+import '@/util/testing/expect/toLookLikeKeyset.js'
 
 describe('Team', () => {
   describe('members', () => {

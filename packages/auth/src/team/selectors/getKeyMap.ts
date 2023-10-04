@@ -1,6 +1,6 @@
-import { TeamState } from '@/team/types'
+import { TeamState } from '@/team/types.js'
 import { KeysetWithSecrets } from 'crdx'
-import { getVisibleKeys } from './getVisibleKeys'
+import { getVisibleKeys } from './getVisibleKeys.js'
 
 /** Returns all keysets from the current device's lockboxes in a structure that looks like this:
  * ```js

@@ -1,5 +1,5 @@
-﻿import { InvitationState } from '@/invitation'
-import { Transform } from '@/team/types'
+﻿import { InvitationState } from '@/invitation/index.js'
+import { Transform } from '@/team/types.js'
 
 export const useInvitation =
   (id: string): Transform =>

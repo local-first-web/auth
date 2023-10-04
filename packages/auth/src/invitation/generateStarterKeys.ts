@@ -1,5 +1,5 @@
 import { createKeyset, EPHEMERAL_SCOPE } from 'crdx'
-import { normalize } from './normalize'
+import { normalize } from './normalize.js'
 
 /**
  * This will be Bob's first-use keyset; as soon as he's admitted, he'll provide keys of his own

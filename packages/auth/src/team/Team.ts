@@ -1,14 +1,14 @@
-﻿import * as identity from '@/connection/identity'
-import { Challenge } from '@/connection/types'
-import { LocalUserContext } from '@/context'
-import * as devices from '@/device'
-import { Device, DeviceWithSecrets, getDeviceId, parseDeviceId, redactDevice } from '@/device'
-import * as invitations from '@/invitation'
-import { ProofOfInvitation } from '@/invitation'
-import { normalize } from '@/invitation/normalize'
-import * as lockbox from '@/lockbox'
-import { ADMIN, Role } from '@/role'
-import { assert, debug, getScope, Hash, Payload, scopesMatch, UnixTimestamp, VALID } from '@/util'
+﻿import * as identity from '@/connection/identity.js'
+import { Challenge } from '@/connection/types.js'
+import { LocalUserContext } from '@/context/index.js'
+import * as devices from '@/device/index.js'
+import { Device, DeviceWithSecrets, getDeviceId, parseDeviceId, redactDevice } from '@/device/index.js'
+import * as invitations from '@/invitation/index.js'
+import { ProofOfInvitation } from '@/invitation/index.js'
+import { normalize } from '@/invitation/normalize.js'
+import * as lockbox from '@/lockbox/index.js'
+import { ADMIN, Role } from '@/role/index.js'
+import { assert, debug, getScope, Hash, Payload, scopesMatch, UnixTimestamp, VALID } from '@/util/index.js'
 import { Base58, randomKey, signatures, symmetric } from '@herbcaudill/crypto'
 import {
   createKeyset,
@@ -25,12 +25,12 @@ import {
   UserWithSecrets,
 } from 'crdx'
 import EventEmitter from 'events'
-import { ADMIN_SCOPE, ALL, initialState, TEAM_SCOPE } from './constants'
-import { membershipResolver as resolver } from './membershipResolver'
-import { redactUser } from './redactUser'
-import { reducer } from './reducer'
-import * as select from './selectors'
-import { deserializeTeamGraph, serializeTeamGraph } from './serialize'
+import { ADMIN_SCOPE, ALL, initialState, TEAM_SCOPE } from './constants.js'
+import { membershipResolver as resolver } from './membershipResolver.js'
+import { redactUser } from './redactUser.js'
+import { reducer } from './reducer.js'
+import * as select from './selectors/index.js'
+import { deserializeTeamGraph, serializeTeamGraph } from './serialize.js'
 import {
   EncryptedEnvelope,
   isNewTeam,
@@ -41,7 +41,7 @@ import {
   TeamGraph,
   TeamOptions,
   TeamState,
-} from './types'
+} from './types.js'
 
 /**
  * The `Team` class wraps a `TeamGraph` and exposes methods for adding and removing

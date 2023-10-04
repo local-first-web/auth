@@ -1,4 +1,4 @@
-﻿import { Base58 } from '@/util'
+﻿import { Base58 } from '@/util/index.js'
 import { KeyMetadata, Keyset, KeysetWithSecrets } from 'crdx'
 
 export type KeyManifest = KeyMetadata & {

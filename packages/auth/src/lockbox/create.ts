@@ -1,4 +1,4 @@
-﻿import { isKeyManifest, KeyManifest, Lockbox } from '@/lockbox/types'
+﻿import { isKeyManifest, KeyManifest, Lockbox } from '@/lockbox/types.js'
 import { asymmetric } from '@herbcaudill/crypto'
 import { EPHEMERAL_SCOPE, Keyset, KeysetWithSecrets, redactKeys } from 'crdx'
 

@@ -1,4 +1,4 @@
-﻿import { setup as setupUsers } from '@/util/testing'
+﻿import { setup as setupUsers } from '@/util/testing/index.js'
 
 describe('Team', () => {
   const setup = () => {

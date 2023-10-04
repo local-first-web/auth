@@ -1,4 +1,4 @@
-import { Hash } from '@/util'
+import { Hash } from '@/util/index.js'
 import {
   createKeyring,
   decryptLink,
@@ -11,7 +11,7 @@ import {
 import { initialState, TEAM_SCOPE } from './constants'
 import { reducer } from './reducer'
 import { keys } from './selectors'
-import { TeamAction, TeamContext, TeamGraph, TeamLink, TeamState } from './types'
+import { TeamAction, TeamContext, TeamGraph, TeamLink, TeamState } from './types.js'
 
 /**
  * Decrypts a graph.

@@ -1,2 +1,2 @@
-﻿export * from '@/role/constants'
-export * from '@/role/types'
+﻿export * from '@/role/constants.js'
+export * from '@/role/types.js'

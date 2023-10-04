@@ -1,15 +1,15 @@
-﻿import { invitationCanBeUsed } from '@/invitation'
-import { actionFingerprint, debug, truncateHashes, VALID, ValidationError } from '@/util'
+﻿import { invitationCanBeUsed } from '@/invitation/index.js'
+import { actionFingerprint, debug, truncateHashes, VALID, ValidationError } from '@/util/index.js'
 import { ROOT } from 'crdx'
-import { isAdminOnlyAction } from './isAdminOnlyAction'
-import * as select from './selectors'
+import { isAdminOnlyAction } from './isAdminOnlyAction.js'
+import * as select from './selectors/index.js'
 import {
   TeamLink,
   TeamState,
   TeamStateValidator,
   TeamStateValidatorSet,
   ValidationArgs,
-} from './types'
+} from './types.js'
 
 const log = debug('lf:auth:validate')
 

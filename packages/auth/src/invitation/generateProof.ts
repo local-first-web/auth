@@ -1,9 +1,9 @@
-﻿import { deriveId } from '@/invitation/deriveId'
-import { ProofOfInvitation } from '@/invitation/types'
-import { memoize } from '@/util'
+﻿import { deriveId } from '@/invitation/deriveId.js'
+import { ProofOfInvitation } from '@/invitation/types.js'
+import { memoize } from '@/util/index.js'
 import { signatures } from '@herbcaudill/crypto'
-import { generateStarterKeys } from './generateStarterKeys'
-import { normalize } from './normalize'
+import { generateStarterKeys } from './generateStarterKeys.js'
+import { normalize } from './normalize.js'
 
 export const generateProof = memoize(
   (seed: string): ProofOfInvitation => {

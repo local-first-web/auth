@@ -1,5 +1,5 @@
-﻿import { DeviceWithSecrets } from '@/device'
-import { SemVer } from '@/util'
+﻿import { DeviceWithSecrets } from '@/device/index.js'
+import { SemVer } from '@/util/index.js'
 import { UserWithSecrets } from 'crdx'
 
 export interface LocalUserContext {

@@ -1,11 +1,11 @@
-﻿import { deriveSharedKey } from '@/connection/deriveSharedKey'
+﻿import { deriveSharedKey } from '@/connection/deriveSharedKey.js'
 import {
   buildError,
   ConnectionErrorType,
   ErrorMessage,
   LocalErrorMessage,
-} from '@/connection/errors'
-import * as identity from '@/connection/identity'
+} from '@/connection/errors.js'
+import * as identity from '@/connection/identity.js'
 import {
   AcceptInvitationMessage,
   ChallengeIdentityMessage,
@@ -18,8 +18,8 @@ import {
   ProveIdentityMessage,
   SeedMessage,
   SyncMessage,
-} from '@/connection/message'
-import { orderedDelivery } from '@/connection/orderedDelivery'
+} from '@/connection/message.js'
+import { orderedDelivery } from '@/connection/orderedDelivery.js'
 import {
   Condition,
   ConnectionContext,
@@ -28,13 +28,13 @@ import {
   isInvitee,
   SendFunction,
   StateMachineAction,
-} from '@/connection/types'
-import { Device, DeviceWithSecrets, getDeviceId, parseDeviceId } from '@/device'
-import * as invitations from '@/invitation'
-import { decryptTeamGraph, Team, TeamAction, TeamContext, TeamGraph } from '@/team'
-import { assert, debug, EventEmitter, truncateHashes } from '@/util'
-import { arraysAreEqual } from '@/util/arraysAreEqual'
-import { syncMessageSummary } from '@/util/testing/messageSummary'
+} from '@/connection/types.js'
+import { Device, DeviceWithSecrets, getDeviceId, parseDeviceId } from '@/device/index.js'
+import * as invitations from '@/invitation/index.js'
+import { decryptTeamGraph, Team, TeamAction, TeamContext, TeamGraph } from '@/team/index.js'
+import { assert, debug, EventEmitter, truncateHashes } from '@/util/index.js'
+import { arraysAreEqual } from '@/util/arraysAreEqual.js'
+import { syncMessageSummary } from '@/util/testing/messageSummary.js'
 import { asymmetric, Payload, randomKey, symmetric } from '@herbcaudill/crypto'
 import {
   DecryptFn,

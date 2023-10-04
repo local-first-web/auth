@@ -24,7 +24,7 @@ import './assertions/be.online'
 import './assertions/have.member'
 import './assertions/be.onStartScreen'
 
-import { CommandFn } from './types'
+import { CommandFn } from './types.js'
 
 declare global {
   namespace Cypress {

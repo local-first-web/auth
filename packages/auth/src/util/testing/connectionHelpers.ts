@@ -1,9 +1,9 @@
 // ignore file coverage
-import { InviteeDeviceInitialContext, InviteeMemberInitialContext } from '@/connection/types'
-import { Connection } from '@/connection/Connection'
-import { joinTestChannel } from './joinTestChannel'
-import { UserStuff } from './setup'
-import { TestChannel } from './TestChannel'
+import { InviteeDeviceInitialContext, InviteeMemberInitialContext } from '@/connection/types.js'
+import { Connection } from '@/connection/Connection.js'
+import { joinTestChannel } from './joinTestChannel.js'
+import { UserStuff } from './setup.js'
+import { TestChannel } from './TestChannel.js'
 
 // HELPERS
 

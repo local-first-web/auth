@@ -1,7 +1,7 @@
-﻿import { actionFingerprint } from './actionFingerprint'
+﻿import { actionFingerprint } from './actionFingerprint.js'
 import { getSequence } from 'crdx'
-import { TeamAction, TeamContext, TeamGraph } from '@/team/types'
-import { membershipResolver as resolver } from '@/team/membershipResolver'
+import { TeamAction, TeamContext, TeamGraph } from '@/team/types.js'
+import { membershipResolver as resolver } from '@/team/membershipResolver.js'
 
 export const graphSummary = (graph: TeamGraph) => {
   const links = getSequence<TeamAction, TeamContext>(graph, resolver)

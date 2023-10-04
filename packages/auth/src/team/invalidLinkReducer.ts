@@ -1,5 +1,5 @@
-import { Member } from '.'
-import { TeamLink, TeamState } from './types'
+import { Member } from './index.js'
+import { TeamLink, TeamState } from './types.js'
 
 /**
  * This function is used as an alternative reducer for invalid links; the normal reducer just

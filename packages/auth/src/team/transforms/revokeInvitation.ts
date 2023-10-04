@@ -1,4 +1,4 @@
-﻿import { Transform } from '@/team/types'
+﻿import { Transform } from '@/team/types.js'
 
 export const revokeInvitation =
   (id: string): Transform =>

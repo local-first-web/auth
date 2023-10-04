@@ -1,4 +1,4 @@
-import { TeamLink, Transform } from './types'
+import { TeamLink, Transform } from './types.js'
 
 export const setHead =
   (link: TeamLink): Transform =>

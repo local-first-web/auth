@@ -1,5 +1,5 @@
 ﻿import { hash, Base58, base58 } from '@herbcaudill/crypto'
-import { HashPurpose } from '@/util'
+import { HashPurpose } from '@/util/index.js'
 
 /**
  * Takes two seeds (in this case, provided by each of two peers that are connecting) and

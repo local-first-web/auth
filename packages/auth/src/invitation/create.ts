@@ -1,8 +1,8 @@
-﻿import { deriveId } from '@/invitation/deriveId'
-import { normalize } from '@/invitation/normalize'
-import { Invitation } from '@/invitation/types'
-import { UnixTimestamp } from '@/util'
-import { generateStarterKeys } from './generateStarterKeys'
+﻿import { deriveId } from '@/invitation/deriveId.js'
+import { normalize } from '@/invitation/normalize.js'
+import { Invitation } from '@/invitation/types.js'
+import { UnixTimestamp } from '@/util/index.js'
+import { generateStarterKeys } from './generateStarterKeys.js'
 
 export const IKEY_LENGTH = 16
 

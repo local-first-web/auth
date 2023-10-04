@@ -1,4 +1,4 @@
-import { TeamGraph, TeamLink } from '@/team/types'
+import { TeamGraph, TeamLink } from '@/team/types.js'
 import { isPredecessor } from 'crdx'
 
 export const bySeniority = (chain: TeamGraph) => (a: string, b: string) => {

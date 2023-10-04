@@ -1,5 +1,5 @@
-﻿import { ADMIN } from '@/role'
-import { setup } from '@/util/testing'
+﻿import { ADMIN } from '@/role/index.js'
+import { setup } from '@/util/testing/index.js'
 
 describe('Team', () => {
   describe('crypto', () => {

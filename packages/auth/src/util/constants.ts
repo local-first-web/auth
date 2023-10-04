@@ -1,4 +1,4 @@
-﻿import { ValidationResult } from '@/util/types'
+﻿import { ValidationResult } from '@/util/types.js'
 
 export enum HashPurpose {
   SIGNATURE = 'SIGNATURE',

@@ -1,5 +1,5 @@
-﻿import { Lockbox } from '@/lockbox'
-import { Transform } from '@/team/types'
+﻿import { Lockbox } from '@/lockbox/index.js'
+import { Transform } from '@/team/types.js'
 
 export const collectLockboxes =
   (newLockboxes?: Lockbox[]): Transform =>

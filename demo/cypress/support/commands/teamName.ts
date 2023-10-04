@@ -1,4 +1,4 @@
-import { CommandFn } from '../types'
+import { CommandFn } from '../types.js'
 
 export const teamName: CommandFn = subject => {
   const s = () => cy.wrap(subject)

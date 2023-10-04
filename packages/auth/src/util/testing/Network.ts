@@ -1,5 +1,5 @@
 // ignore file coverage
-import { Team } from '@/team'
+import { Team } from '@/team/index.js'
 import {
   generateMessage,
   initSyncState,
@@ -8,7 +8,7 @@ import {
   SyncMessage,
   SyncState,
 } from 'crdx'
-import { setup, UserStuff } from './setup'
+import { setup, UserStuff } from './setup.js'
 
 // Simulates a peer-to-peer network
 export class Network {

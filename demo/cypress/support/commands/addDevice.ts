@@ -1,4 +1,4 @@
-import { CommandFn } from '../types'
+import { CommandFn } from '../types.js'
 import { peer } from '../helpers'
 
 export const addDevice: CommandFn = (subject, deviceName: string) => {

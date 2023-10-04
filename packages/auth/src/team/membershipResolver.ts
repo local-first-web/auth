@@ -1,6 +1,6 @@
-﻿import { Invitation } from '@/invitation'
-import { ADMIN } from '@/role'
-import { bySeniority } from '@/team/bySeniority'
+﻿import { Invitation } from '@/invitation/index.js'
+import { ADMIN } from '@/role/index.js'
+import { bySeniority } from '@/team/bySeniority.js'
 import {
   MembershipRuleEnforcer,
   AddMemberAction,
@@ -12,7 +12,7 @@ import {
   TeamLink,
   TeamGraph,
   AdmitMemberAction,
-} from '@/team/types'
+} from '@/team/types.js'
 import { arraysAreEqual } from '@/util/arraysAreEqual'
 import { getConcurrentBubbles, Link, LinkBody, Resolver } from 'crdx'
 import { isAdminOnlyAction } from './isAdminOnlyAction'

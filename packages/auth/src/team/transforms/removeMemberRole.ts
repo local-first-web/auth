@@ -1,4 +1,4 @@
-﻿import { Transform } from '@/team/types'
+﻿import { Transform } from '@/team/types.js'
 import { KeyType } from 'crdx'
 
 export const removeMemberRole =

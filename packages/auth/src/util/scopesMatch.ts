@@ -1,5 +1,5 @@
-import { assert } from '../util/assert'
-import { getScope } from '@/util/getScope'
+import { assert } from '../util/assert.js'
+import { getScope } from '@/util/getScope.js'
 import { KeyScope } from 'crdx'
 
 export const scopesMatch = (a: KeyScope, b: KeyScope) => {

@@ -1,7 +1,7 @@
-import { ADMIN } from '@/role'
-import { setup } from '@/util/testing'
-import '@/util/testing/expect/toLookLikeKeyset'
-import { getDeviceId } from '@/device'
+import { ADMIN } from '@/role/index.js'
+import { setup } from '@/util/testing/index.js'
+import '@/util/testing/expect/toLookLikeKeyset.js'
+import { getDeviceId } from '@/device/index.js'
 import { KeyType, createKeyset, redactKeys } from 'crdx'
 
 const { USER, DEVICE } = KeyType

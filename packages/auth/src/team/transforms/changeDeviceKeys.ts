@@ -1,6 +1,6 @@
-﻿import { parseDeviceId } from '@/device'
+﻿import { parseDeviceId } from '@/device/index.js'
 import { Keyset } from 'crdx'
-import { Transform } from '@/team/types'
+import { Transform } from '@/team/types.js'
 
 export const changeDeviceKeys =
   (keys: Keyset): Transform =>

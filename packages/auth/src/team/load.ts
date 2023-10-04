@@ -1,6 +1,6 @@
-﻿import { TeamGraph } from './types'
-import { LocalUserContext } from '@/context'
-import { Team } from '@/team/Team'
+﻿import { TeamGraph } from './types.js'
+import { LocalUserContext } from '@/context/index.js'
+import { Team } from '@/team/Team.js'
 import { KeysetWithSecrets } from 'crdx'
 
 export const load = (

@@ -1,6 +1,6 @@
 // ignore file coverage
 import { SyncMessage } from 'crdx'
-import { truncateHashes } from '../truncateHashes'
+import { truncateHashes } from '../truncateHashes.js'
 
 export const syncMessageSummary = (m: SyncMessage<any, any> | undefined) => {
   if (m === undefined) {

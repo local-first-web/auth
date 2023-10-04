@@ -1,8 +1,8 @@
-import { Connection } from '@/connection/Connection'
-import { InitialContext, SendFunction } from '@/connection/types'
-import { getDeviceId } from '@/device'
-import { pause } from './pause'
-import { TestChannel } from './TestChannel'
+import { Connection } from '@/connection/Connection.js'
+import { InitialContext, SendFunction } from '@/connection/types.js'
+import { getDeviceId } from '@/device/index.js'
+import { pause } from './pause.js'
+import { TestChannel } from './TestChannel.js'
 
 /** Returns a function that can be used to join a specific test channel */
 export const joinTestChannel = (channel: TestChannel) => (context: InitialContext) => {

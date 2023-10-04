@@ -1,7 +1,7 @@
-﻿import { hasMember } from './hasMember'
-import { member } from './member'
-import { TeamState } from '@/team/types'
-import { assert } from '@/util'
+﻿import { hasMember } from './hasMember.js'
+import { member } from './member.js'
+import { TeamState } from '@/team/types.js'
+import { assert } from '@/util/index.js'
 
 export const hasDevice = (
   state: TeamState,

@@ -1,10 +1,10 @@
-import { ADMIN } from '@/role'
-import { graphSummary, clone } from '@/util'
-import { setup as userSetup } from '@/util/testing'
+import { ADMIN } from '@/role/index.js'
+import { graphSummary, clone } from '@/util/index.js'
+import { setup as userSetup } from '@/util/testing/index.js'
 import { append, merge } from 'crdx'
-import { createTeam } from './createTeam'
-import { redactUser } from './redactUser'
-import { TeamAction, TeamGraph } from './types'
+import { createTeam } from './createTeam.js'
+import { redactUser } from './redactUser.js'
+import { TeamAction, TeamGraph } from './types.js'
 
 describe('membershipResolver', () => {
   const setup = () => {

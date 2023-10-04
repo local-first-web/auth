@@ -5,7 +5,7 @@ import { Mutex, withTimeout } from 'async-mutex'
 import debug from 'debug'
 import { Connection } from './Connection'
 import { EventEmitter } from './EventEmitter'
-import { ConnectionStatus, UserName } from './types'
+import { ConnectionStatus, UserName } from './types.js'
 
 // It shouldn't take longer than this to present an invitation and have it accepted. If this time
 // expires, we'll try presenting the invitation to someone else.

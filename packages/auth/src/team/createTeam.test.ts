@@ -1,5 +1,5 @@
-import { createTeam } from './createTeam'
-import { createDevice } from '@/device'
+import { createTeam } from './createTeam.js'
+import { createDevice } from '@/device/index.js'
 import { createUser } from 'crdx'
 
 describe('Team', () => {

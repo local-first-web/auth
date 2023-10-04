@@ -1,7 +1,7 @@
 ﻿import { randomKey } from '@herbcaudill/crypto'
 import { createKeyset, KeyType } from 'crdx'
-import { getDeviceId } from './getDeviceId'
-import { DeviceWithSecrets } from './types'
+import { getDeviceId } from './getDeviceId.js'
+import { DeviceWithSecrets } from './types.js'
 
 export const createDevice = (
   userName: string,

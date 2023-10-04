@@ -1,10 +1,10 @@
-﻿import { Challenge } from '@/connection/types'
-import { ProofOfInvitation } from '@/invitation'
+﻿import { Challenge } from '@/connection/types.js'
+import { ProofOfInvitation } from '@/invitation/index.js'
 import { KeysetWithSecrets, SyncMessage as SyncPayload } from 'crdx'
-import { TeamAction, TeamContext } from '@/team'
-import { Base58, Hash } from '@/util'
+import { TeamAction, TeamContext } from '@/team/index.js'
+import { Base58, Hash } from '@/util/index.js'
 import { KeyScope, Keyset } from 'crdx'
-import { ConnectionErrorType, ErrorMessage, LocalErrorMessage } from './errors'
+import { ConnectionErrorType, ErrorMessage, LocalErrorMessage } from './errors.js'
 
 export type ReadyMessage = {
   type: 'REQUEST_IDENTITY'

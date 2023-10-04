@@ -3,7 +3,7 @@ import cuid from 'cuid'
 import * as React from 'react'
 import { teamContext } from '../components/TeamProvider'
 import { ConnectionManager } from '../ConnectionManager'
-import { AlertInfo, PeerState } from '../types'
+import { AlertInfo, PeerState } from '../types.js'
 import { assert } from '../util/assert'
 import { randomTeamName } from '../util/randomTeamName'
 

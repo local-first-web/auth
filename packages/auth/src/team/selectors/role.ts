@@ -1,4 +1,4 @@
-﻿import { TeamState } from '@/team/types'
+﻿import { TeamState } from '@/team/types.js'
 
 export const role = (state: TeamState, roleName: string) => {
   const role = state.roles.find(r => r.roleName === roleName)

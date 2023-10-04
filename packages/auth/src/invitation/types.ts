@@ -1,4 +1,4 @@
-import { Base58, UnixTimestamp } from '@/util'
+import { Base58, UnixTimestamp } from '@/util/index.js'
 
 /**
  * The public record of the invitation that Alice adds to the signature chain after inviting Bob

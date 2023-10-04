@@ -1,8 +1,8 @@
-﻿import { TeamState } from '@/team/types'
-import { assert } from '@/util'
-import { lockboxSummary } from '@/util/lockboxSummary'
+﻿import { TeamState } from '@/team/types.js'
+import { assert } from '@/util/index.js'
+import { lockboxSummary } from '@/util/lockboxSummary.js'
 import { KeyMetadata, KeyScope, KeysetWithSecrets } from 'crdx'
-import { getKeyMap } from './getKeyMap'
+import { getKeyMap } from './getKeyMap.js'
 
 /** Returns the keys for the given scope, if they are in a lockbox that the current device has access to */
 export const keys = (

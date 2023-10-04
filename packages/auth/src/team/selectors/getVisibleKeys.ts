@@ -1,5 +1,5 @@
-import { open } from '@/lockbox'
-import { TeamState } from '@/team/types'
+import { open } from '@/lockbox/index.js'
+import { TeamState } from '@/team/types.js'
 import { KeysetWithSecrets } from 'crdx'
 
 /**

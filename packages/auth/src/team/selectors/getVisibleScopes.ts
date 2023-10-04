@@ -1,6 +1,6 @@
 import { KeyScope } from 'crdx'
-import { TeamState } from '@/team/types'
-import { unique } from '@/util/unique'
+import { TeamState } from '@/team/types.js'
+import { unique } from '@/util/unique.js'
 
 export const getVisibleScopes = (state: TeamState, { type, name }: KeyScope): KeyScope[] => {
   // find the keys that the given key can see

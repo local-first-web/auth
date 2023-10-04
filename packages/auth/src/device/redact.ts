@@ -1,4 +1,4 @@
-﻿import { DeviceWithSecrets, Device } from '@/device/types'
+﻿import { DeviceWithSecrets, Device } from '@/device/types.js'
 import { redactKeys } from 'crdx'
 
 export const redactDevice = (device: DeviceWithSecrets): Device => ({

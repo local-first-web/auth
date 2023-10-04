@@ -1,5 +1,5 @@
-﻿import { Invitation, InvitationState, ProofOfInvitation } from '@/invitation/types'
-import { memoize, VALID, ValidationResult } from '@/util'
+﻿import { Invitation, InvitationState, ProofOfInvitation } from '@/invitation/types.js'
+import { memoize, VALID, ValidationResult } from '@/util/index.js'
 import { signatures } from '@herbcaudill/crypto'
 
 export const invitationCanBeUsed = (invitation: InvitationState, timeOfUse: number) => {

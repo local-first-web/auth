@@ -1,4 +1,4 @@
-import { CommandFn } from '../types'
+import { CommandFn } from '../types.js'
 
 export const isConnectedTo: CommandFn = (subject, userName: string) =>
   cy
