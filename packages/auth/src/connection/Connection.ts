@@ -744,14 +744,11 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     joinedTheRightTeam: (context, event) => {
       // Make sure my invitation exists on the signature chain of the team I'm about to join.
       // This check prevents an attack in which a fake team pretends to accept my invitation.
+      const { serializedGraph, teamKeyring } = (event as AcceptInvitationMessage).payload
+      const { user, device } = context
+      const team = this.rehydrateTeam(serializedGraph, user, device, teamKeyring)
 
-      // TODO
-      // const { serializedGraph, teamKeys } = (event as AcceptInvitationMessage).payload
-      // const { user, device } = context
-      // const team = this.rehydrateTeam(serializedGraph, user, device, teamKeys)
-
-      // return team.hasInvitation(this.myProofOfInvitation(context))
-      return true
+      return team.hasInvitation(this.myProofOfInvitation(context))
     },
 
     // IDENTITY
