@@ -29,6 +29,7 @@ export {
   Hash,
   Keyset,
   KeysetWithSecrets,
+  Keyring,
   LinkBody,
   redactKeys,
   redactUser,
