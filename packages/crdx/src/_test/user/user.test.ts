@@ -1,6 +1,7 @@
-import { signatures, symmetric, asymmetric } from '@localfirst/crypto'
-import { createUser } from '/user/createUser'
-import '/test/helpers/expect/toLookLikeKeyset'
+import { asymmetric, signatures, symmetric } from '@localfirst/crypto'
+import { describe, expect, it } from 'vitest'
+import '@test/helpers/expect/toLookLikeKeyset'
+import { createUser } from '@/user/createUser'
 
 describe('user', () => {
   it('creates a new user', () => {

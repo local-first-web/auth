@@ -1,9 +1,10 @@
-import { Action, createGraph, Link, Resolver } from '/graph'
-import { createStore } from '/store'
-import { Reducer } from '/store/types'
-import { TEST_GRAPH_KEYS as keys } from '/test/helpers/setup'
-import { createUser } from '/user'
-import { UnixTimestamp } from '/util'
+import { describe, expect, it } from 'vitest'
+import { Action, Link, Resolver, createGraph } from '@/graph'
+import { createStore } from '@/store'
+import { Reducer } from '@/store/types'
+import { TEST_GRAPH_KEYS as keys } from '@test/helpers/setup'
+import { createUser } from '@/user'
+import { UnixTimestamp } from '@/util'
 
 /**
  * This example simulates a meeting room scheduler and demonstrates a custom resolver implementing
@@ -51,7 +52,9 @@ describe('scheduler', () => {
 
           // look for any conflicting reservations (note that the order of the reservations has already been
           // determined by the resolver, so earlier reservations in the list take precedence over later ones)
-          const conflictingReservation = Object.values(reservations).find(r => overlaps(r, newReservation))
+          const conflictingReservation = Object.values(reservations).find(r =>
+            overlaps(r, newReservation)
+          )
 
           if (conflictingReservation)
             // the existing reservation stays; the new one is not added
@@ -76,7 +79,11 @@ describe('scheduler', () => {
       }
     }
 
-    const graph = createGraph<SchedulerAction, SchedulerState>({ user: alice, name: 'scheduler', keys })
+    const graph = createGraph<SchedulerAction, SchedulerState>({
+      user: alice,
+      name: 'scheduler',
+      keys,
+    })
 
     // everyone starts out with the same store
     const aliceStore = createStore({ user: alice, graph, reducer, resolver, keys })

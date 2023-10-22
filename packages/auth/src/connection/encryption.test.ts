@@ -1,4 +1,5 @@
 ﻿import { connect, setup } from '@/util/testing'
+import { describe, expect, it } from 'vitest'
 
 describe('connection', () => {
   describe('encryption', () => {

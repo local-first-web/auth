@@ -1,9 +1,9 @@
 import { SyncMessage, SyncState } from './types'
-import { Action, getChildMap, Graph, invertLinkMap, merge } from '/graph'
-import { DecryptFn, decryptGraph } from '/graph/decrypt'
-import { createKeyring, isKeyring, Keyring, KeysetWithSecrets } from '/keyset'
-import { assert } from '/util'
-import { validate } from '/validator'
+import { Action, getChildMap, Graph, invertLinkMap, merge } from '@/graph'
+import { DecryptFn, decryptGraph } from '@/graph/decrypt'
+import { createKeyring, isKeyring, Keyring, KeysetWithSecrets } from '@/keyset'
+import { assert } from '@/util'
+import { validate } from '@/validator'
 
 /**
  * Receives a sync message from a peer and updates our sync state accordingly so that

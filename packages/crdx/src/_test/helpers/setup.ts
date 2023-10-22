@@ -1,9 +1,9 @@
-﻿import * as users from '/user'
-import { UserWithSecrets } from '/user'
-import { assert } from '/util'
+﻿import { Base58 } from '@localfirst/crypto'
 import { arrayToMap } from './arrayToMap'
-import { KeysetWithSecrets } from '/keyset'
-import { Base58 } from '@localfirst/crypto'
+import { KeysetWithSecrets } from '@/keyset'
+import * as users from '@/user'
+import { UserWithSecrets } from '@/user'
+import { assert } from '@/util'
 
 /**
 Usage: 
@@ -25,7 +25,9 @@ export const setup = (...userNames: string[]) => {
     return testUsers[userName]
   }
 
-  const testUserStuff: Record<string, UserWithSecrets> = userNames.map(makeUserStuff).reduce(arrayToMap('userName'), {})
+  const testUserStuff: Record<string, UserWithSecrets> = userNames
+    .map(makeUserStuff)
+    .reduce(arrayToMap('userName'), {})
 
   return testUserStuff
 }
@@ -36,7 +38,8 @@ export const TEST_GRAPH_KEYS: KeysetWithSecrets = {
   generation: 0,
   signature: {
     publicKey: 'GQrmBanGPSFBvZ4AHAoduk1jp7tXxa5fuzmWQTfbCbRT' as Base58,
-    secretKey: 'P7AgGTmMNedfpDixXF1rJgmVpyqAwCnGJRqyQzbm5wQbUnfoySAWMBzjxcm8USprqRNcW2ZoEEbzwPRX7EFuZkD' as Base58,
+    secretKey:
+      'P7AgGTmMNedfpDixXF1rJgmVpyqAwCnGJRqyQzbm5wQbUnfoySAWMBzjxcm8USprqRNcW2ZoEEbzwPRX7EFuZkD' as Base58,
   },
   encryption: {
     publicKey: '7QviM4tWnhSwrrmrZnqEm3vFWrp3nvFwdcQShaFZ7nXj' as Base58,

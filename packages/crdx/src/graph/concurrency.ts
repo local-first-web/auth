@@ -1,12 +1,15 @@
 import memoize from 'lodash/memoize'
-import { getHashes, getLink } from '/graph/graph'
-import { isPredecessorHash } from '/graph/predecessors'
-import { isSuccessorHash } from '/graph/successors'
-import { Action, Link, Graph } from '/graph/types'
-import { Hash } from '/util'
+import { getHashes, getLink } from '@/graph/graph'
+import { isPredecessorHash } from '@/graph/predecessors'
+import { isSuccessorHash } from '@/graph/successors'
+import { Action, Link, Graph } from '@/graph/types'
+import { Hash } from '@/util'
 
 /** Returns all links that are concurrent with the given link. */
-export const getConcurrentLinks = <A extends Action, C>(graph: Graph<A, C>, link: Link<A, C>): Link<A, C>[] => {
+export const getConcurrentLinks = <A extends Action, C>(
+  graph: Graph<A, C>,
+  link: Link<A, C>
+): Link<A, C>[] => {
   return getConcurrentHashes(graph, link.hash).map(hash => getLink(graph, hash))
 }
 

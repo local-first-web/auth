@@ -1,7 +1,7 @@
-﻿import { Action, Link, Graph } from './types'
-import { Base58, Hash, memoize } from '/util'
+﻿import { Hash, memoize } from '@/util'
 import uniq from 'lodash/uniq'
 import { getLink } from './graph'
+import { Action, Graph, Link } from './types'
 
 export const getPredecessorHashes = memoize((graph: Graph<any, any>, hash: Hash): Hash[] => {
   const parents: Hash[] = getLink(graph, hash)?.body.prev || []
@@ -10,7 +10,10 @@ export const getPredecessorHashes = memoize((graph: Graph<any, any>, hash: Hash)
 })
 
 /** Returns the set of predecessors of `link` (not including `link`) */
-export const getPredecessors = <A extends Action, C>(graph: Graph<A, C>, link: Link<A, C>): Link<A, C>[] =>
+export const getPredecessors = <A extends Action, C>(
+  graph: Graph<A, C>,
+  link: Link<A, C>
+): Link<A, C>[] =>
   getPredecessorHashes(graph, link.hash)
     .map(h => graph.links[h])
     .filter(link => link !== undefined)

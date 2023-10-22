@@ -1,7 +1,7 @@
 import { decryptGraph } from './decrypt'
 import { redactGraph } from './redactGraph'
 import { Action, Graph } from './types'
-import { Keyring, KeysetWithSecrets } from '/keyset'
+import { Keyring, KeysetWithSecrets } from '@/keyset'
 
 export const serialize = <A extends Action, C>(graph: Graph<A, C>) => {
   return JSON.stringify(redactGraph(graph))

@@ -1,8 +1,8 @@
 import { Reducer } from './types'
-import { Action, Graph, Resolver } from '/graph'
-import { Keyring, KeysetWithSecrets } from '/keyset'
-import { UserWithSecrets } from '/user'
-import { ValidatorSet } from '/validator'
+import { Action, Graph, Resolver } from '@/graph'
+import { Keyring, KeysetWithSecrets } from '@/keyset'
+import { UserWithSecrets } from '@/user'
+import { ValidatorSet } from '@/validator'
 
 export type StoreOptions<S, A extends Action, C> = {
   /** The user local user, along with their secret keys for signing, encrypting, etc.  */

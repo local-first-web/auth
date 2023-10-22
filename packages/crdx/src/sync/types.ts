@@ -1,6 +1,6 @@
-import { Action, EncryptedLink, LinkMap } from '/graph'
-import { Hash } from '/util'
-import { ValidationError } from '/validator'
+import { Action, EncryptedLink, LinkMap } from '@/graph'
+import { Hash } from '@/util'
+import { ValidationError } from '@/validator'
 
 export interface SyncState {
   their: {

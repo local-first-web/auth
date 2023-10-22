@@ -1,8 +1,8 @@
 ﻿import { ValidationResult, ValidatorSet } from './types'
 import { fail, validators } from './validators'
-import { hashEncryptedLink } from '/graph/hashLink'
-import { Action, Link, Graph } from '/graph/types'
-import { VALID } from '/constants'
+import { hashEncryptedLink } from '@/graph/hashLink'
+import { Action, Link, Graph } from '@/graph/types'
+import { VALID } from '@/constants'
 
 /**
  * Runs a hash graph through a series of validators to ensure that it is correctly formed, has
@@ -21,7 +21,11 @@ export const validate = <A extends Action, C>(
     const rootLink = graph.encryptedLinks[rootHash]
     const computedHash = hashEncryptedLink(rootLink.encryptedBody)
     if (computedHash !== rootHash)
-      return fail('Root hash does not match the hash of the root link', { rootHash, computedHash, rootLink })
+      return fail('Root hash does not match the hash of the root link', {
+        rootHash,
+        computedHash,
+        rootLink,
+      })
   }
 
   // Confirm that each head hash matches the computed hash of the head link
@@ -29,14 +33,21 @@ export const validate = <A extends Action, C>(
     const headLink = graph.encryptedLinks[headHash]
     const computedHash = hashEncryptedLink(headLink.encryptedBody)
     if (computedHash !== headHash)
-      return fail('Head hash does not match the hash of the head link', { headHash, computedHash, headLink })
+      return fail('Head hash does not match the hash of the head link', {
+        headHash,
+        computedHash,
+        headLink,
+      })
   }
 
   // Confirm that there is an encrypted link for each link in the graph and vice versa
   const encryptedLinkHashes = Object.keys(graph.encryptedLinks)
   const linkHashes = Object.keys(graph.links)
   if (encryptedLinkHashes.length !== linkHashes.length)
-    return fail('Number of encrypted links does not match number of links', { encryptedLinkHashes, linkHashes })
+    return fail('Number of encrypted links does not match number of links', {
+      encryptedLinkHashes,
+      linkHashes,
+    })
 
   // Returns a single reducer function that runs all validators.
   const composeValidators =
@@ -67,4 +78,5 @@ export const validate = <A extends Action, C>(
 }
 
 // merges multiple validator sets into one object
-const merge = (validatorSets: ValidatorSet[]) => validatorSets.reduce((result, vs) => Object.assign(result, vs), {})
+const merge = (validatorSets: ValidatorSet[]) =>
+  validatorSets.reduce((result, vs) => Object.assign(result, vs), {})

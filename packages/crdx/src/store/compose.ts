@@ -1,5 +1,5 @@
 import { Reducer } from './types'
-import { Action } from '/graph'
+import { Action } from '@/graph'
 
 export const compose =
   <S, A extends Action>(reducers: Reducer<S, A>[]): Reducer<S, A> =>

@@ -1,9 +1,10 @@
-﻿import { createKeyset } from '@localfirst/crdx'
-import { create, open, rotate } from '@/lockbox'
+﻿import { create, open, rotate } from '@/lockbox'
 import { ADMIN } from '@/role'
+import { createKeyset } from '@localfirst/crdx'
+import { describe, expect, it } from 'vitest'
 
-import { setup } from '@/util/testing'
 import { KeyType } from '@/util'
+import { setup } from '@/util/testing'
 
 const { bob, eve } = setup('alice', 'bob', { user: 'eve', member: false })
 const MANAGERS = 'managers'

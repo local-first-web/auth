@@ -1,5 +1,6 @@
-import { EPHEMERAL_SCOPE } from '/constants'
-import { createKeyset, KeysetWithSecrets, KeyType, redactKeys } from '/keyset'
+import { describe, expect, it } from 'vitest'
+import { EPHEMERAL_SCOPE } from '@/constants'
+import { KeyType, KeysetWithSecrets, createKeyset, redactKeys } from '@/keyset'
 
 describe('redact', () => {
   it('should redact secrets from a random keyset', () => {

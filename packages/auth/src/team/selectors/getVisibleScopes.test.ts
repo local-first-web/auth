@@ -2,6 +2,7 @@ import { ADMIN } from '@/role'
 import { KeyType } from '@/util'
 import { setup } from '@/util/testing'
 import { createKeyset } from '@localfirst/crdx'
+import { describe, expect, it } from 'vitest'
 import * as select from '.'
 
 const { USER, DEVICE, TEAM, ROLE } = KeyType

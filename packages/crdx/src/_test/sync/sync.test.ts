@@ -1,12 +1,17 @@
-import { jest } from '@jest/globals'
-import { append, createGraph, Graph, headsAreEqual } from '/graph'
-import { generateMessage, initSyncState, receiveMessage } from '/sync'
-import { expectNotToBeSynced, expectToBeSynced, Network, setupWithNetwork, TestUserStuff } from '/test/helpers/Network'
-import { TEST_GRAPH_KEYS as keys } from '/test/helpers/setup'
-import { createUser, User, UserWithSecrets } from '/user'
-import { assert } from '/util'
+import { describe, expect, it, vitest } from 'vitest'
+import { Graph, append, createGraph, headsAreEqual } from '@/graph'
+import { generateMessage, initSyncState, receiveMessage } from '@/sync'
+import {
+  Network,
+  expectNotToBeSynced,
+  expectToBeSynced,
+  setupWithNetwork,
+} from '@test/helpers/Network'
+import { TEST_GRAPH_KEYS as keys } from '@test/helpers/setup'
+import { UserWithSecrets, createUser } from '@/user'
+import { assert } from '@/util'
 
-const { setSystemTime } = jest.useFakeTimers()
+const { setSystemTime } = vitest.useFakeTimers()
 
 const setup = setupWithNetwork(keys)
 
@@ -377,8 +382,18 @@ describe('sync', () => {
         expectToBeSynced(alice, charlie)
 
         // everyone makes changes while offline; now they are out of sync
-        alice.peer.graph = append({ graph: alice.peer.graph, action: { type: 'A' }, user: alice.user, keys })
-        bob.peer.graph = append({ graph: bob.peer.graph, action: { type: 'B' }, user: bob.user, keys })
+        alice.peer.graph = append({
+          graph: alice.peer.graph,
+          action: { type: 'A' },
+          user: alice.user,
+          keys,
+        })
+        bob.peer.graph = append({
+          graph: bob.peer.graph,
+          action: { type: 'B' },
+          user: bob.user,
+          keys,
+        })
         charlie.peer.graph = append({
           graph: charlie.peer.graph,
           action: { type: 'C' },
@@ -493,7 +508,12 @@ describe('sync', () => {
           // each user makes a change
           for (const userName in userRecords) {
             const { user, peer } = userRecords[userName]
-            peer.graph = append({ graph: peer.graph, action: { type: userName.toUpperCase() }, user, keys })
+            peer.graph = append({
+              graph: peer.graph,
+              action: { type: userName.toUpperCase() },
+              user,
+              keys,
+            })
           }
 
           founder.peer.sync()
@@ -513,7 +533,12 @@ describe('sync', () => {
           // each user makes a change
           for (const userName in userRecords) {
             const { user, peer } = userRecords[userName]
-            peer.graph = append({ graph: peer.graph, action: { type: userName.toUpperCase() }, user, keys })
+            peer.graph = append({
+              graph: peer.graph,
+              action: { type: userName.toUpperCase() },
+              user,
+              keys,
+            })
           }
 
           founder.peer.sync()
@@ -533,7 +558,12 @@ describe('sync', () => {
           // each user makes a change
           for (const userName in userRecords) {
             const { user, peer } = userRecords[userName]
-            peer.graph = append({ graph: peer.graph, action: { type: userName.toUpperCase() }, user, keys })
+            peer.graph = append({
+              graph: peer.graph,
+              action: { type: userName.toUpperCase() },
+              user,
+              keys,
+            })
           }
 
           // while they're disconnected, they have divergent docs
@@ -556,7 +586,12 @@ describe('sync', () => {
           // each user makes a change
           for (const userName in userRecords) {
             const { user, peer } = userRecords[userName]
-            peer.graph = append({ graph: peer.graph, action: { type: userName.toUpperCase() }, user, keys })
+            peer.graph = append({
+              graph: peer.graph,
+              action: { type: userName.toUpperCase() },
+              user,
+              keys,
+            })
           }
 
           // while they're disconnected, they have divergent docs

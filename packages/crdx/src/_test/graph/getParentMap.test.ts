@@ -1,7 +1,8 @@
-import { getLink, Graph } from '/graph'
+import { describe, expect, it } from 'vitest'
 import { getParentMap } from '../../graph/getParentMap'
-import { buildGraph, findByPayload } from '/test/helpers/graph'
-import { Hash } from '/util'
+import { Graph, getLink } from '@/graph'
+import { buildGraph, findByPayload } from '@test/helpers/graph'
+import { Hash } from '@/util'
 
 describe('getParentMap', () => {
   const graph = buildGraph(`
@@ -148,7 +149,10 @@ describe('getParentMap', () => {
   })
 })
 
-const lookupPayloads = (graph: Graph<any, any>, linkMap: Record<Hash, Hash[]>): Record<Hash, Hash> => {
+const lookupPayloads = (
+  graph: Graph<any, any>,
+  linkMap: Record<Hash, Hash[]>
+): Record<Hash, Hash> => {
   const getPayload = (hash: Hash): Hash => {
     const linkBody = getLink(graph, hash).body
     return linkBody.type === 'ROOT' ? '' : linkBody.payload

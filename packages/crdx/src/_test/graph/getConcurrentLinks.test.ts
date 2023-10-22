@@ -1,5 +1,6 @@
-import { getConcurrentBubbles, getConcurrentLinks, Graph } from '/graph'
+import { describe, expect, test } from 'vitest'
 import { buildGraph, byPayload, findByPayload, getPayloads } from '../helpers/graph'
+import { Graph, getConcurrentBubbles, getConcurrentLinks } from '@/graph'
 
 describe('graphs', () => {
   describe('getConcurrentLinks', () => {
@@ -7,7 +8,8 @@ describe('graphs', () => {
       const link = findByPayload(graph, payload)
       const result = getConcurrentLinks(graph, link)
       const payloads = getPayloads(result).split('').sort().join('')
-      test(`${payload}: ${expected.length ? expected : '-'}`, () => expect(payloads).toEqual(expected))
+      test(`${payload}: ${expected.length ? expected : '-'}`, () =>
+        expect(payloads).toEqual(expected))
     }
 
     const testBubbles = (graph: Graph<any, any>, expected: string) => {
@@ -15,7 +17,9 @@ describe('graphs', () => {
         .map(b => getPayloads(b.map(h => graph.links[h]).sort(byPayload)))
         .join(',')
 
-      test(expected.length ? `bubbles: ${expected}` : 'no bubbles', () => expect(bubbles).toEqual(expected))
+      test(expected.length ? `bubbles: ${expected}` : 'no bubbles', () =>
+        expect(bubbles).toEqual(expected)
+      )
     }
 
     describe('one link', () => {

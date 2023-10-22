@@ -1,8 +1,8 @@
 ﻿import { ValidationError, ValidatorSet } from './types'
-import { getRoot } from '/graph/graph'
-import { hashEncryptedLink } from '/graph/hashLink'
-import { ROOT, VALID } from '/constants'
-import { memoize } from '/util'
+import { getRoot } from '@/graph/graph'
+import { hashEncryptedLink } from '@/graph/hashLink'
+import { ROOT, VALID } from '@/constants'
+import { memoize } from '@/util'
 
 const _validators: ValidatorSet = {
   /** Does this link's hash check out? */
@@ -11,14 +11,21 @@ const _validators: ValidatorSet = {
     const { encryptedBody } = graph.encryptedLinks[hash]
     const computedHash = hashEncryptedLink(encryptedBody)
     if (hash === computedHash) return VALID
-    else return fail(`The hash calculated for this link does not match.`, { link, hash, expected: computedHash })
+    else
+      return fail(`The hash calculated for this link does not match.`, {
+        link,
+        hash,
+        expected: computedHash,
+      })
   },
 
   /** Do the previous link(s) referenced by this link exist?  */
   validatePrev: (link, graph) => {
     for (const hash of link.body.prev)
       if (!(hash in graph.links))
-        return fail(`The link referenced by one of the hashes in the \`prev\` property does not exist.`)
+        return fail(
+          `The link referenced by one of the hashes in the \`prev\` property does not exist.`
+        )
 
     return VALID
   },
@@ -58,7 +65,10 @@ const _validators: ValidatorSet = {
     for (const hash of link.body.prev) {
       const prevLink = graph.links[hash]
       if (prevLink.body.timestamp > timestamp)
-        return fail(`This link's timestamp can't be earlier than a previous link.`, { link, prevLink })
+        return fail(`This link's timestamp can't be earlier than a previous link.`, {
+          link,
+          prevLink,
+        })
     }
     return VALID
   },

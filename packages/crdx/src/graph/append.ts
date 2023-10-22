@@ -2,9 +2,9 @@
 import { EMPTY_GRAPH } from './createGraph'
 import { hashEncryptedLink } from './hashLink'
 import { Action, EncryptedLink, Graph, Link, LinkBody } from './types'
-import { KeysetWithSecrets } from '/keyset'
-import { UserWithSecrets } from '/user'
-import { UnixTimestamp } from '/util'
+import { KeysetWithSecrets } from '@/keyset'
+import { UserWithSecrets } from '@/user'
+import { UnixTimestamp } from '@/util'
 
 interface AppendParams<A extends Action, C> {
   /** The graph to append a link to. */

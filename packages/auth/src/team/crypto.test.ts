@@ -1,5 +1,6 @@
 ﻿import { ADMIN } from '@/role'
 import { setup } from '@/util/testing'
+import { describe, expect, it } from 'vitest'
 
 describe('Team', () => {
   describe('crypto', () => {

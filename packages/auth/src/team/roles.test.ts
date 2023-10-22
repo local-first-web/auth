@@ -3,6 +3,7 @@ import * as teams from '@/team'
 import { setup } from '@/util/testing'
 import '@/util/testing/expect/toLookLikeKeyset'
 import { symmetric } from '@localfirst/crypto'
+import { describe, expect, it } from 'vitest'
 
 const MANAGERS = 'managers'
 const managers = { roleName: MANAGERS }
@@ -166,7 +167,7 @@ describe('Team', () => {
       const { bob, charlie } = setup(
         'alice',
         { user: 'bob', admin: true },
-        { user: 'charlie', member: false },
+        { user: 'charlie', member: false }
       )
 
       // 👨🏻‍🦲 Bob tries to add 👳🏽‍♂️ Charlie to the team
@@ -180,7 +181,7 @@ describe('Team', () => {
       const { bob, charlie } = setup(
         'alice',
         { user: 'bob', admin: false },
-        { user: 'charlie', member: false },
+        { user: 'charlie', member: false }
       )
 
       // 👨🏻‍🦲 Bob tries to add 👳🏽‍♂️ Charlie to the team
@@ -194,7 +195,7 @@ describe('Team', () => {
       const { bob } = setup(
         'alice',
         { user: 'bob', admin: false },
-        { user: 'charlie', admin: false },
+        { user: 'charlie', admin: false }
       )
 
       // 👨🏻‍🦲 Bob tries to remove 👳🏽‍♂️ Charlie
@@ -208,7 +209,7 @@ describe('Team', () => {
       const { bob } = setup(
         'alice',
         { user: 'bob', admin: false },
-        { user: 'charlie', admin: false },
+        { user: 'charlie', admin: false }
       )
 
       // 👨🏻‍🦲 Bob tries to make 👳🏽‍♂️ Charlie an admin
@@ -250,7 +251,7 @@ describe('Team', () => {
       const { alice, bob, charlie } = setup(
         'alice',
         { user: 'bob', admin: false },
-        { user: 'charlie', admin: false },
+        { user: 'charlie', admin: false }
       )
 
       alice.team.addRole(COOLKIDS)

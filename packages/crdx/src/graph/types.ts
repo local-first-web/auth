@@ -1,4 +1,4 @@
-﻿import { Base58, Hash, Optional, UnixTimestamp } from '/util/types'
+﻿import { Base58, Hash, Optional, UnixTimestamp } from '@/util/types'
 
 /**
  * A hash graph is an acyclic directed graph of links. Each link is **asymmetrically encrypted and
@@ -60,7 +60,8 @@ export interface Graph<
  * instance, when we receive new encrypted links). We want to be able to decrypt the new links
  * without re-decrypting links that we already have.
  */
-export interface MaybePartlyDecryptedGraph<A extends Action, C> extends Optional<Graph<A, C>, 'links'> {}
+export interface MaybePartlyDecryptedGraph<A extends Action, C>
+  extends Optional<Graph<A, C>, 'links'> {}
 
 /**
  * A `LinkMap` contains information about the graph structure of a `Graph`, without any of the

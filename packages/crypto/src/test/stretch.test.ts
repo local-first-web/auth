@@ -1,5 +1,6 @@
+import { describe, expect, test } from 'vitest'
 import { stretch } from '..'
-import { base58, keyToBytes } from '../util'
+import { base58 } from '../util'
 
 describe('stretch', () => {
   test('returns a 32-byte key', () => {

@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest'
 import { randomKey } from '..'
 import { keyToBytes } from '../util'
 

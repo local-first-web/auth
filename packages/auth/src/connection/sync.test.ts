@@ -1,5 +1,6 @@
 ﻿import { ADMIN } from '@/role'
 import {
+  TestChannel,
   any,
   anyDisconnected,
   anyUpdated,
@@ -11,9 +12,9 @@ import {
   expectEveryoneToKnowEveryone,
   joinTestChannel,
   setup,
-  TestChannel,
   updated,
 } from '@/util/testing'
+import { describe, expect, it } from 'vitest'
 import { MemberInitialContext } from './types'
 
 describe('connection', () => {

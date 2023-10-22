@@ -12,6 +12,7 @@ import {
   setup,
   tryToConnect,
 } from '@/util/testing'
+import { describe, expect, it } from 'vitest'
 
 describe('connection', () => {
   describe('authentication', () => {

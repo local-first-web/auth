@@ -1,8 +1,9 @@
-import { RootAction } from '/graph'
-import { createStore } from '/store'
-import { Reducer } from '/store/types'
-import { TEST_GRAPH_KEYS as keys } from '/test/helpers/setup'
-import { createUser } from '/user'
+import { describe, expect, test } from 'vitest'
+import { RootAction } from '@/graph'
+import { createStore } from '@/store'
+import { Reducer } from '@/store/types'
+import { TEST_GRAPH_KEYS as keys } from '@test/helpers/setup'
+import { createUser } from '@/user'
 
 /*
 This is intended to be the simplest possible proof of concept: An increment-only counter. There is

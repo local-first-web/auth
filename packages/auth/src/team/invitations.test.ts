@@ -1,9 +1,9 @@
 import { generateProof } from '@/invitation'
-
 import * as teams from '@/team'
 import { KeyType } from '@/util'
 import { setup } from '@/util/testing'
-import { createKeyset, UnixTimestamp } from '@localfirst/crdx'
+import { UnixTimestamp, createKeyset } from '@localfirst/crdx'
+import { describe, expect, it } from 'vitest'
 
 const { USER, DEVICE } = KeyType
 

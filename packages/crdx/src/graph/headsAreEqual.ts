@@ -1,4 +1,4 @@
-import { Hash } from '/util'
+import { Hash } from '@/util'
 
 export const headsAreEqual = (a: Hash[] | undefined, b: Hash[] | undefined) => {
   if (a === undefined || b === undefined) return false

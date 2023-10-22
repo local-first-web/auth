@@ -1,7 +1,8 @@
-import { createGraph, deserialize, getHead, getRoot, serialize } from '/graph'
-import '/test/helpers/expect/toBeValid'
-import { setup, TEST_GRAPH_KEYS as keys } from '/test/helpers/setup'
-import { validate } from '/validator'
+import { describe, expect, test } from 'vitest'
+import { createGraph, deserialize, getHead, getRoot, serialize } from '@/graph'
+import '@test/helpers/expect/toBeValid'
+import { TEST_GRAPH_KEYS as keys, setup } from '@test/helpers/setup'
+import { validate } from '@/validator'
 
 const { alice } = setup('alice')
 const defaultUser = alice

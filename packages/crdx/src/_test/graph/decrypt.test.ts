@@ -1,8 +1,9 @@
-import { append, createGraph, decryptGraph, decryptLink, redactGraph } from '/graph'
-import { createKeyset } from '/keyset'
-import { TEST_GRAPH_KEYS } from '/test/helpers/setup'
-import { createUser } from '/user'
-import { Hash } from '/util'
+import { describe, expect, it } from 'vitest'
+import { append, createGraph, decryptGraph, decryptLink, redactGraph } from '@/graph'
+import { createKeyset } from '@/keyset'
+import { TEST_GRAPH_KEYS } from '@test/helpers/setup'
+import { createUser } from '@/user'
+import { Hash } from '@/util'
 
 const keys = TEST_GRAPH_KEYS
 

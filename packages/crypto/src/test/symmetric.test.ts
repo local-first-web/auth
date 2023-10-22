@@ -1,4 +1,5 @@
-﻿import { symmetric } from '..'
+﻿import { describe, test, expect } from 'vitest'
+import { symmetric } from '..'
 
 const { encrypt, decrypt } = symmetric
 

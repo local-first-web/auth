@@ -1,4 +1,5 @@
-import { randomKey, signatures, asymmetric } from '..'
+import { describe, expect, test } from 'vitest'
+import { asymmetric, randomKey, signatures } from '..'
 import { Base58, SignedMessage } from '../types'
 
 const { keyPair, sign, verify } = signatures
@@ -11,7 +12,7 @@ describe('crypto', () => {
       const alice = keyPair('alice')
       const signature = sign(payload, alice.secretKey)
       expect(signature).toMatchInlineSnapshot(
-        `"2NkJHbpTYjZqrdnRKqzTtVKNrGcsDSFh2mdx7GdTeoMGXfwkMDXzKywASZkgoZ6Q7Try2BPrptnLjdstxmzRnu1E"`,
+        `"2NkJHbpTYjZqrdnRKqzTtVKNrGcsDSFh2mdx7GdTeoMGXfwkMDXzKywASZkgoZ6Q7Try2BPrptnLjdstxmzRnu1E"`
       )
     })
 

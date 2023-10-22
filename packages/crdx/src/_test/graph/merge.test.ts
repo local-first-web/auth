@@ -1,7 +1,8 @@
 import clone from 'lodash/clone'
-import { append, createGraph, merge } from '/graph'
-import '/test/helpers/expect/toBeValid'
-import { setup, TEST_GRAPH_KEYS as keys } from '/test/helpers/setup'
+import { describe, expect, test } from 'vitest'
+import { append, createGraph, merge } from '@/graph'
+import '@test/helpers/expect/toBeValid'
+import { TEST_GRAPH_KEYS as keys, setup } from '@test/helpers/setup'
 
 const { alice, bob } = setup('alice', 'bob')
 const defaultUser = alice
@@ -74,7 +75,12 @@ describe('graphs', () => {
       })
 
       // 👨🏻‍🦲 Bob makes changes while disconnected
-      const bobBranch = append({ graph: bobGraph, action: { type: 'FOO', payload: 'bob' }, user: bob, keys })
+      const bobBranch = append({
+        graph: bobGraph,
+        action: { type: 'FOO', payload: 'bob' },
+        user: bob,
+        keys,
+      })
 
       // 👩🏾👨🏻‍🦲 They sync back up
       const aliceMerged = merge(aliceBranch2, bobBranch)

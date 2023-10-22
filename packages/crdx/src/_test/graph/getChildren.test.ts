@@ -1,5 +1,6 @@
+import { describe, expect, test } from 'vitest'
 import { buildGraph, findByPayload } from '../helpers/graph'
-import { getRoot, getChildren } from '/graph'
+import { getChildren, getRoot } from '@/graph'
 
 describe('getChildren', () => {
   const graph = buildGraph(`
@@ -10,8 +11,11 @@ describe('getChildren', () => {
                 └───── j ─── k ── l ──────┘           
       `)
   test('root has 1 child', () => expect(getChildren(graph, getRoot(graph))).toHaveLength(1))
-  test('b has 3 children', () => expect(getChildren(graph, findByPayload(graph, 'b'))).toHaveLength(3))
-  test('d has 2 children', () => expect(getChildren(graph, findByPayload(graph, 'd'))).toHaveLength(2))
+  test('b has 3 children', () =>
+    expect(getChildren(graph, findByPayload(graph, 'b'))).toHaveLength(3))
+  test('d has 2 children', () =>
+    expect(getChildren(graph, findByPayload(graph, 'd'))).toHaveLength(2))
   test('e has 1 child', () => expect(getChildren(graph, findByPayload(graph, 'e'))).toHaveLength(1))
-  test('n has 0 children', () => expect(getChildren(graph, findByPayload(graph, 'n'))).toHaveLength(0))
+  test('n has 0 children', () =>
+    expect(getChildren(graph, findByPayload(graph, 'n'))).toHaveLength(0))
 })

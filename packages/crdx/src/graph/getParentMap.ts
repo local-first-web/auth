@@ -1,6 +1,6 @@
 import { getHashes, getParents } from './graph'
 import { Action, Graph, LinkMap } from './types'
-import { Hash } from '/util'
+import { Hash } from '@/util'
 
 export const EMPTY: LinkMap = {}
 

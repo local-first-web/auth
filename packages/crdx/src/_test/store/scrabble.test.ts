@@ -1,10 +1,11 @@
 import { makeRandom } from '@herbcaudill/random'
-import { createGraph, RootAction } from '/graph'
-import { createStore, Store } from '/store'
-import { Reducer } from '/store/types'
-import { TEST_GRAPH_KEYS as keys } from '/test/helpers/setup'
-import { createUser } from '/user'
-import { arrayToMap } from '/util'
+import { describe, expect, test } from 'vitest'
+import { RootAction, createGraph } from '@/graph'
+import { Store, createStore } from '@/store'
+import { Reducer } from '@/store/types'
+import { TEST_GRAPH_KEYS as keys } from '@test/helpers/setup'
+import { createUser } from '@/user'
+import { arrayToMap } from '@/util'
 
 /*
 This is a somewhat more complicated example, modeling the game Scrabble Attacks (created by Nancy
@@ -274,7 +275,10 @@ describe('scrabble attacks', () => {
 
 const SEED = 'test 12345'
 
-const scrabbleAttacksReducer: Reducer<ScrabbleAttacksState, ScrabbleAttacksAction> = (state, link) => {
+const scrabbleAttacksReducer: Reducer<ScrabbleAttacksState, ScrabbleAttacksAction> = (
+  state,
+  link
+) => {
   const action = link.body
   const { players, tiles, messages } = state
 
@@ -373,7 +377,9 @@ const findByLetterIn = (tiles: Tile[] | TileSet) => {
   return (letter: Letter) => tileArray.find(tile => tile.letter === letter)
 }
 
-const omniscientlyFlipTileByLetter = (store: Store<ScrabbleAttacksState, ScrabbleAttacksAction>) => {
+const omniscientlyFlipTileByLetter = (
+  store: Store<ScrabbleAttacksState, ScrabbleAttacksAction>
+) => {
   return (letter: Letter) => {
     const tiles = Object.values(store.getState().tiles)
     const tileToFlip = findByLetterIn(tiles.filter(tile => !tile.isFaceUp))(letter)!

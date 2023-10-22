@@ -19,7 +19,7 @@
     "build": "tsc -p tsconfig.build.json",
     "postbuild": "tscpaths -p tsconfig.build.json -s ./src -o ./dist --silent",
     "prepublishOnly": "yarn test && yarn build",
-    "test": "node --no-warnings --experimental-vm-modules ../../node_modules/jest/bin/jest.js",
+    "test": "vitest",
     "test:log": "cross-env DEBUG='crdx*' DEBUG_COLORS=1 yarn test"
   },
   "dependencies": {
@@ -29,24 +29,5 @@
     "events": "3",
     "fast-memoize": "2",
     "lodash": "4"
-  },
-  "jest": {
-    "preset": "ts-jest/presets/default-esm",
-    "transform": {
-      "^.+\\.tsx?$": [
-        "ts-jest",
-        {
-          "useESM": true
-        }
-      ]
-    },
-    "moduleNameMapper": {
-      "^/test/(.*)$": "<rootDir>/src/_test/$1",
-      "^/(.*)$": "<rootDir>/src/$1"
-    },
-    "testMatch": [
-      "<rootDir>/src/**/*.test.ts"
-    ],
-    "testEnvironment": "node"
   }
 }

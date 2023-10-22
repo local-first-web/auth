@@ -1,6 +1,6 @@
 ﻿import uniq from 'lodash/uniq'
 import { Action, EncryptedLink, Link, Graph } from './types'
-import { Hash } from '/util'
+import { Hash } from '@/util'
 
 /**
  * Returns a new graph that contains all the information in the two graphs provided.
@@ -23,7 +23,10 @@ export const merge = <A extends Action, C>(
 
   // The new graph will contain all the links from either graph
   const mergedLinks: Record<Hash, Link<A, C>> = { ...theirs.links, ...ours.links }
-  const mergedEncryptedLinks: Record<Hash, EncryptedLink> = { ...theirs.encryptedLinks, ...ours.encryptedLinks }
+  const mergedEncryptedLinks: Record<Hash, EncryptedLink> = {
+    ...theirs.encryptedLinks,
+    ...ours.encryptedLinks,
+  }
 
   const mergedHeads: Hash[] = uniq(ours.head.concat(theirs.head))
 

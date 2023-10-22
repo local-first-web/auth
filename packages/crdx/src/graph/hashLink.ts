@@ -1,5 +1,5 @@
 import { Base58, Hash, hash } from '@localfirst/crypto'
-import { HashPurpose } from '/constants'
+import { HashPurpose } from '@/constants'
 
 const { LINK_HASH } = HashPurpose
 

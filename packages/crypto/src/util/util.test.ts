@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest'
 import { Base58 } from '../types'
 import { base58 } from './base58'
 import { keyToBytes } from './keyToBytes'
@@ -16,7 +17,8 @@ describe('base58', () => {
 
 describe('keyToBytes', () => {
   it('converts a base58 string to bytes', () => {
-    const key = '5VbnBWz6kBnV2wfJZaPgv81Mj7QtAsPmq3QZgc3zZqbYZEzEdZQ9r24BGZpN6mt6djyr7W2v1eKYnnG3KSHtCD67' as Base58
+    const key =
+      '5VbnBWz6kBnV2wfJZaPgv81Mj7QtAsPmq3QZgc3zZqbYZEzEdZQ9r24BGZpN6mt6djyr7W2v1eKYnnG3KSHtCD67' as Base58
     const bytes = keyToBytes(key)
 
     expect(bytes instanceof Uint8Array).toBe(true)

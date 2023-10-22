@@ -1,10 +1,10 @@
 import { getDeviceId } from '@/device'
 import { ADMIN } from '@/role'
 import { KeyType } from '@/util'
-import { keysetSummary } from '@/util/keysetSummary'
 import { setup } from '@/util/testing'
 import '@/util/testing/expect/toLookLikeKeyset'
 import { createKeyset, redactKeys } from '@localfirst/crdx'
+import { describe, expect, it } from 'vitest'
 
 const { USER, DEVICE } = KeyType
 

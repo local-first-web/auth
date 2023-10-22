@@ -1,9 +1,9 @@
 ﻿import cuid from 'cuid'
 import { append } from './append'
 import { Action, Graph } from './types'
-import { ROOT } from '/constants'
-import { KeysetWithSecrets } from '/keyset'
-import { UserWithSecrets } from '/user'
+import { ROOT } from '@/constants'
+import { KeysetWithSecrets } from '@/keyset'
+import { UserWithSecrets } from '@/user'
 
 export const EMPTY_GRAPH = {
   root: undefined,

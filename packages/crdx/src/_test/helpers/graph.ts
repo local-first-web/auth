@@ -1,9 +1,9 @@
-﻿import { append } from '/graph/append'
-import { createGraph } from '/graph/createGraph'
-import { merge } from '/graph/merge'
-import { Action, Link, LinkBody, Graph } from '/graph/types'
-import { KeysetWithSecrets } from '/keyset'
-import { setup, TEST_GRAPH_KEYS as keys } from '/test/helpers/setup'
+﻿import { append } from '@/graph/append'
+import { createGraph } from '@/graph/createGraph'
+import { merge } from '@/graph/merge'
+import { Action, Graph, Link, LinkBody } from '@/graph/types'
+import { KeysetWithSecrets } from '@/keyset'
+import { TEST_GRAPH_KEYS as keys, setup } from '@test/helpers/setup'
 
 const { alice } = setup('alice')
 

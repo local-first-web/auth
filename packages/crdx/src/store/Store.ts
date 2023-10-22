@@ -13,12 +13,12 @@ import {
   merge,
   Resolver,
   serialize,
-} from '/graph'
-import { isKeyset, Keyring, KeysetWithSecrets } from '/keyset'
-import { createKeyring } from '/keyset/createKeyring'
-import { UserWithSecrets } from '/user'
-import { assert, Optional } from '/util'
-import { validate, ValidatorSet } from '/validator'
+} from '@/graph'
+import { isKeyset, Keyring, KeysetWithSecrets } from '@/keyset'
+import { createKeyring } from '@/keyset/createKeyring'
+import { UserWithSecrets } from '@/user'
+import { assert, Optional } from '@/util'
+import { validate, ValidatorSet } from '@/validator'
 
 /**
  * A CRDX `Store` is intended to work very much like a Redux store.

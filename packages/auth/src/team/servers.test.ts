@@ -2,24 +2,24 @@ import { Host, Server, ServerWithSecrets } from '@/server'
 import { cast } from '@/server/cast'
 import { KeyType } from '@/util'
 import {
+  SetupConfig,
+  TestChannel,
+  UserStuff,
   all,
   joinTestChannel,
   setup as setupHumans,
-  SetupConfig,
-  TestChannel,
-  updated,
-  UserStuff,
 } from '@/util/testing'
 import { createKeyset, redactKeys } from '@localfirst/crdx'
 import EventEmitter from 'eventemitter3'
+import { describe, expect, it } from 'vitest'
 import {
   Connection,
-  createTeam,
   InitialContext,
-  invitation,
-  loadTeam,
   MemberInitialContext,
   Team,
+  createTeam,
+  invitation,
+  loadTeam,
 } from '..'
 
 describe('Team', () => {

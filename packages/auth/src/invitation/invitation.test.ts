@@ -1,4 +1,5 @@
-import { generateProof, randomSeed, create, validate } from '@/invitation'
+import { create, generateProof, randomSeed, validate } from '@/invitation'
+import { describe, expect, test } from 'vitest'
 
 describe('invitations', () => {
   test('create invitation', () => {

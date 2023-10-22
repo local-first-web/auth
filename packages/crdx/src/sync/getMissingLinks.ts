@@ -1,4 +1,4 @@
-import { Action, Graph } from '/graph/types'
+import { Action, Graph } from '@/graph/types'
 
 export function getMissingLinks<A extends Action, C>(graph: Graph<A, C>) {
   // collect all the `prev` hashes from all of the links in the graph

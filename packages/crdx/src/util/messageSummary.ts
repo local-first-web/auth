@@ -1,6 +1,6 @@
 import { truncateHashes } from './truncateHashes'
-import { SyncMessage } from '/sync'
-import { NetworkMessage } from '/test/helpers/Network'
+import { SyncMessage } from '@/sync'
+import { NetworkMessage } from '@test/helpers/Network'
 
 export const logMessages = (msgs: NetworkMessage[]) => {
   const result = msgs.map(m => JSON.stringify(networkMessageSummary(m))).join('\n')

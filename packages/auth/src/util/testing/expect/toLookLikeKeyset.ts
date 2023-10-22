@@ -1,4 +1,5 @@
 ﻿// ignore coverage
+import { expect } from 'vitest'
 expect.extend({
   toLookLikeKeyset(maybeKeyset: any) {
     const looksLikeKeyset =

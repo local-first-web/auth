@@ -1,7 +1,7 @@
 import memoize from 'lodash/memoize'
 import { getLink } from './graph'
-import { Action, Link, Graph } from '/graph/types'
-import { Hash } from '/util'
+import { Action, Link, Graph } from '@/graph/types'
+import { Hash } from '@/util'
 
 /**
  * Returns the hashes of the children of the link with the given hash.
@@ -11,7 +11,10 @@ export const getChildrenHashes = <A extends Action, C>(graph: Graph<A, C>, hash:
   return childrenLookup[hash] || []
 }
 
-export const getChildren = <A extends Action, C>(graph: Graph<A, C>, link: Link<A, C>): Link<A, C>[] => {
+export const getChildren = <A extends Action, C>(
+  graph: Graph<A, C>,
+  link: Link<A, C>
+): Link<A, C>[] => {
   return getChildrenHashes(graph, link.hash).map(hash => getLink(graph, hash))
 }
 

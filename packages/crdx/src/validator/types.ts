@@ -1,4 +1,4 @@
-import { Action, Link, Graph } from '/graph'
+import { Action, Link, Graph } from '@/graph'
 
 export interface InvalidResult {
   isValid: false
@@ -22,7 +22,10 @@ export class ValidationError extends Error {
 
 export type ValidationResult = ValidResult | InvalidResult
 
-export type Validator = <A extends Action, C>(link: Link<A, C>, graph: Graph<A, C>) => ValidationResult
+export type Validator = <A extends Action, C>(
+  link: Link<A, C>,
+  graph: Graph<A, C>
+) => ValidationResult
 
 export type ValidatorSet = {
   [key: string]: Validator

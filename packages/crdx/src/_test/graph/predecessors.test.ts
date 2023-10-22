@@ -1,5 +1,6 @@
-import { getHead, getParents, getPredecessors, isPredecessor } from '/graph'
+import { describe, expect, test } from 'vitest'
 import { buildGraph, byPayload, findByPayload, getPayloads } from '../helpers/graph'
+import { getHead, getParents, getPredecessors, isPredecessor } from '@/graph'
 
 describe('graphs', () => {
   describe('predecessors', () => {
@@ -68,7 +69,8 @@ describe('graphs', () => {
       test(`c doesn't precede h`, () => expect(testCase('c', 'h')).toBe(false))
       test(`c doesn't precede l`, () => expect(testCase('c', 'l')).toBe(false))
 
-      test(`nonexistent nodes don't precede anything`, () => expect(testCase('nope', 'c')).toBe(false))
+      test(`nonexistent nodes don't precede anything`, () =>
+        expect(testCase('nope', 'c')).toBe(false))
     })
   })
 })

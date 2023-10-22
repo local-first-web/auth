@@ -1,6 +1,14 @@
 import { SyncMessage, SyncState } from './types'
-import { Action, getEncryptedLinks, getHashes, getParentMap, getPredecessorHashes, Graph, headsAreEqual } from '/graph'
-import { Hash } from '/util'
+import {
+  Action,
+  getEncryptedLinks,
+  getHashes,
+  getParentMap,
+  getPredecessorHashes,
+  Graph,
+  headsAreEqual,
+} from '@/graph'
+import { Hash } from '@/util'
 
 /**
  * Generates a new sync message for a peer based on our current graph and our sync state with them.

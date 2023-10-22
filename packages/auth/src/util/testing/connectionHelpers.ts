@@ -1,10 +1,11 @@
 // ignore file coverage
-import { InviteeDeviceInitialContext, InviteeMemberInitialContext } from '@/connection/types'
 import { Connection, ConnectionEvents } from '@/connection/Connection'
+import { InviteeDeviceInitialContext, InviteeMemberInitialContext } from '@/connection/types'
+import { EventNames } from 'eventemitter3'
+import { expect } from 'vitest'
+import { TestChannel } from './TestChannel'
 import { joinTestChannel } from './joinTestChannel'
 import { UserStuff } from './setup'
-import { TestChannel } from './TestChannel'
-import { EventNames } from 'eventemitter3'
 
 // HELPERS
 

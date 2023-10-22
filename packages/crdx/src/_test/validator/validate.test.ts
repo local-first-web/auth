@@ -1,14 +1,14 @@
-﻿import { asymmetric } from '@localfirst/crypto'
-import { buildGraph } from '/test/helpers/graph'
-import { append, createGraph, getHead, getLink, getRoot } from '/graph'
-import { hashEncryptedLink } from '/graph/hashLink'
-import { setup, TEST_GRAPH_KEYS as keys } from '/test/helpers/setup'
-import { validate } from '/validator/validate'
-import '/test/helpers/expect/toBeValid'
+﻿import { append, createGraph, getHead, getLink, getRoot } from '@/graph'
+import { hashEncryptedLink } from '@/graph/hashLink'
+import { Hash } from '@/util'
+import { validate } from '@/validator/validate'
+import { asymmetric } from '@localfirst/crypto'
+import { describe, expect, test, vitest } from 'vitest'
+import '@test/helpers/expect/toBeValid'
+import { buildGraph } from '@test/helpers/graph'
+import { TEST_GRAPH_KEYS as keys, setup } from '@test/helpers/setup'
 
-import { jest } from '@jest/globals'
-import { Hash } from '/util'
-const { setSystemTime } = jest.useFakeTimers()
+const { setSystemTime } = vitest.useFakeTimers()
 
 const { alice, eve } = setup('alice', 'eve')
 
@@ -52,7 +52,9 @@ describe('graphs', () => {
       test('The ROOT link has to be the link referenced by the graph `root` property', () => {
         const graph = setupGraph()
         graph.root = graph.head[0]
-        expect(validate(graph)).not.toBeValid('ROOT link has to be the link referenced by the graph `root` property')
+        expect(validate(graph)).not.toBeValid(
+          'ROOT link has to be the link referenced by the graph `root` property'
+        )
       })
 
       test('Non-ROOT links must have predecessors', () => {
@@ -67,7 +69,9 @@ describe('graphs', () => {
         const rootLink = getRoot(graph)
         rootLink.body.type = 'FOO'
         rootLink.body.prev = graph.head
-        expect(validate(graph)).not.toBeValid('The link referenced by the graph `root` property must be a ROOT link')
+        expect(validate(graph)).not.toBeValid(
+          'The link referenced by the graph `root` property must be a ROOT link'
+        )
       })
 
       test(`Eve tampers with the root`, () => {
