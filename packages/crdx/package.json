@@ -28,5 +28,8 @@
     "events": "3",
     "fast-memoize": "2",
     "lodash": "4"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

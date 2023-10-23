@@ -59,5 +59,8 @@
       "autoprefixer": {}
     }
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "gitHead": "500e342d1f752c187796acfaad1578fb0aed79c1"
 }
