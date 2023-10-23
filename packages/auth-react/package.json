@@ -1,6 +1,6 @@
 {
   "name": "@localfirst/auth-react",
-  "version": "4.1.5",
+  "version": "4.1.6",
   "description": "Official React library for @localfirst/auth",
   "author": "Herb Caudill",
   "license": "MIT",
@@ -11,7 +11,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "@localfirst/auth": "^4.1.5",
+    "@localfirst/auth": "^4.1.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
