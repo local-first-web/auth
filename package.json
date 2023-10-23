@@ -1,6 +1,7 @@
 {
   "name": "@localfirst/auth-monorepo",
   "version": "0.0.0",
+  "private": true,
   "author": {
     "name": "Herb Caudill",
     "email": "herb@devresults.com"
@@ -8,7 +9,6 @@
   "description": "Monorepo for @localfirst/auth",
   "repository": "http://github.com/local-first-web/auth",
   "license": "MIT",
-  "private": true,
   "type": "module",
   "scripts": {
     "build": "lerna run build",
