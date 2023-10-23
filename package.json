@@ -19,10 +19,11 @@
     "dev": "run-p watch dev:demo",
     "dev:relay": "yarn workspace @localfirst/auth-demo dev:relay",
     "test": "vitest",
+    "test:run": "vitest run",
     "test:auth": "yarn workspace @localfirst/auth test",
     "test:log": "yarn workspace @localfirst/auth test:log",
     "watch": "lerna run watch --stream --parallel",
-    "pub": "lerna publish --yes"
+    "pub": "lerna publish --yes -- --access=public"
   },
   "devDependencies": {
     "@herbcaudill/random": "^0.3.0",
