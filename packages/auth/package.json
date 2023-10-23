@@ -1,6 +1,6 @@
 {
   "name": "@localfirst/auth",
-  "version": "4.1.4",
+  "version": "4.1.5",
   "author": {
     "name": "Herb Caudill",
     "email": "herb@devresults.com"
@@ -32,8 +32,8 @@
     "postbuild": "./dist/**/*"
   },
   "dependencies": {
-    "@localfirst/crdx": "^4.1.4",
-    "@localfirst/crypto": "^4.1.4",
+    "@localfirst/crdx": "^4.1.5",
+    "@localfirst/crypto": "^4.1.5",
     "buffer": "^6.0.3",
     "debug": "^4.3.4",
     "eventemitter3": "^4.0.7",
