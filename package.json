@@ -23,6 +23,7 @@
     "test:auth": "yarn workspace @localfirst/auth test",
     "test:log": "yarn workspace @localfirst/auth test:log",
     "watch": "lerna run watch --stream --parallel",
+    "prepublishOnly": "yarn test:run && yarn build",
     "pub": "lerna publish --yes -- --access=public"
   },
   "devDependencies": {

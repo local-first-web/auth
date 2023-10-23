@@ -18,7 +18,6 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "postbuild": "tscpaths -p tsconfig.build.json -s ./src -o ./dist --silent",
-    "prepublishOnly": "yarn test:run && yarn build",
     "test": "vitest",
     "test:log": "cross-env DEBUG='crdx*' DEBUG_COLORS=1 yarn test"
   },

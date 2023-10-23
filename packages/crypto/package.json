@@ -20,7 +20,6 @@
   ],
   "scripts": {
     "build": "tsc",
-    "prepublishOnly": "yarn test:run && yarn build",
     "test": "vitest",
     "watch": "npm-watch"
   },
