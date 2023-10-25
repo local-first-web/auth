@@ -221,23 +221,28 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       const { serializedGraph, teamKeyring } = (event as AcceptInvitationMessage).payload
       const { user, device } = context
 
-      // We've just received the team's signature chain; reconstruct team
-      const team = this.rehydrateTeam(serializedGraph, user, device, teamKeyring)
-
       // Join the team
-      if (context.user === undefined) {
+      if (user === undefined) {
         // Joining as a new device for an existing member
         // we get the user's keys from the team and rehydrate our user that way
         const { userId, userName = userId } = context
-        context.user = team.joinAsDevice(userName!, userId!)
+        assert(userName)
+        assert(userId)
+        const tempUser: UserWithSecrets = { userId, userName, keys: device.keys }
+        const team = this.rehydrateTeam(serializedGraph, tempUser, device, teamKeyring)
+        context.user = team.joinAsDevice(userName, userId)
+        // Put the updated team on our context
+        context.team = team
       } else {
         // Joining as a new member
         // we add our current device to the team chain
-        team.joinAsMember(teamKeyring)
-      }
 
-      // Put the updated team on our context
-      context.team = team
+        // Reconstruct team from serialized graph
+        const team = this.rehydrateTeam(serializedGraph, user, device, teamKeyring)
+        team.joinAsMember(teamKeyring)
+        // Put the updated team on our context
+        context.team = team
+      }
     },
 
     // AUTHENTICATING
@@ -749,7 +754,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   /** Passes an incoming message from the peer on to this protocol machine, guaranteeing that
    *  messages will be delivered in the intended order (according to the `index` field on the message) */
   public async deliver(serializedMessage: string) {
-    const message: unknown = insistentlyParseJson(serializedMessage)
+    const message = insistentlyParseJson(serializedMessage) as ConnectionMessage
     assert(
       isNumberedConnectionMessage(message),
       `Can only deliver numbered connection messages; received 
@@ -845,7 +850,6 @@ const messageSummary = (message: ConnectionMessage) =>
     ? `SYNC ${syncMessageSummary(message.payload)}`
     : `${message.type} ${
         // @ts-expect-error utility function don't worry about it
-
         message.payload?.head?.slice(0, 5) || message.payload?.message || ''
       }`
 
