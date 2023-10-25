@@ -1,9 +1,9 @@
-﻿import cuid from 'cuid'
-import { append } from './append'
-import { Action, Graph } from './types'
-import { ROOT } from '@/constants'
-import { KeysetWithSecrets } from '@/keyset'
-import { UserWithSecrets } from '@/user'
+﻿import cuid from "cuid"
+import { append } from "./append.js"
+import { type Action, type Graph } from "./types.js"
+import { ROOT } from "@/constants.js"
+import { type KeysetWithSecrets } from "@/keyset/index.js"
+import { type UserWithSecrets } from "@/user/index.js"
 
 export const EMPTY_GRAPH = {
   root: undefined,
@@ -12,7 +12,7 @@ export const EMPTY_GRAPH = {
   links: {},
 }
 
-interface CreateGraphParams<C = {}> {
+type CreateGraphParams<C = Record<string, unknown>> = {
   /** Local user (with secret keys) that is creating the graph.  */
   user: UserWithSecrets
 
@@ -33,7 +33,7 @@ interface CreateGraphParams<C = {}> {
   keys: KeysetWithSecrets
 }
 
-export const createGraph = <A extends Action, C = {}>({
+export const createGraph = <A extends Action, C = Record<string, unknown>>({
   user,
   id = cuid(),
   name = id,
@@ -41,14 +41,15 @@ export const createGraph = <A extends Action, C = {}>({
   context = {} as C,
   keys,
 }: CreateGraphParams<C>) => {
+  const payload = {
+    name,
+    id,
+    ...rootPayload,
+  } as unknown
   const rootAction = {
     type: ROOT,
     prev: [],
-    payload: {
-      name,
-      id,
-      ...rootPayload, // the root payload may override name or id
-    },
+    payload,
   } as Action
   const graph = append({
     graph: EMPTY_GRAPH,

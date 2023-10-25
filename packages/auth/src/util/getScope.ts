@@ -1,4 +1,4 @@
-import { KeyScope } from '@localfirst/crdx'
+import { type KeyScope } from '@localfirst/crdx'
 
 export const getScope = (x: KeyScope): KeyScope => ({
   type: x.type,

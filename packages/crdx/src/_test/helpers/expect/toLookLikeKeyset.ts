@@ -1,18 +1,19 @@
-﻿import { expect } from 'vitest'
+﻿import { expect } from "vitest"
+import { type Keyset } from "@/keyset/index.js"
 // ignore file coverage
 expect.extend({
-  toLookLikeKeyset(maybeKeyset: any) {
+  toLookLikeKeyset(maybeKeyset: Keyset | Record<string, unknown>) {
     const looksLikeKeyset =
-      maybeKeyset.hasOwnProperty('encryption') && maybeKeyset.hasOwnProperty('signature')
+      maybeKeyset.hasOwnProperty("encryption") &&
+      maybeKeyset.hasOwnProperty("signature")
     if (looksLikeKeyset)
       return {
-        message: () => 'expected not to look like a keyset',
+        message: () => "expected not to look like a keyset",
         pass: true,
       }
-    else
-      return {
-        message: () => 'expected to look like a keyset',
-        pass: false,
-      }
+    return {
+      message: () => "expected to look like a keyset",
+      pass: false,
+    }
   },
 })

@@ -1,17 +1,23 @@
-import { describe, expect, it } from 'vitest'
-import { append, createGraph, decryptGraph, decryptLink, redactGraph } from '@/graph'
-import { createKeyset } from '@/keyset'
-import { TEST_GRAPH_KEYS } from '@test/helpers/setup'
-import { createUser } from '@/user'
-import { Hash } from '@/util'
+import { TEST_GRAPH_KEYS } from "@test/helpers/setup"
+import { describe, expect, it } from "vitest"
+import {
+  append,
+  createGraph,
+  decryptGraph,
+  decryptLink,
+  redactGraph,
+} from "@/graph/index.js"
+import { createKeyset } from "@/keyset/index.js"
+import { createUser } from "@/user/index.js"
+import { type Hash } from "@/util/index.js"
 
 const keys = TEST_GRAPH_KEYS
 
-describe('decrypt', () => {
-  it('decryptLink', () => {
-    const alice = createUser('alice')
-    let graph = createGraph<any>({ user: alice, name: 'test graph', keys })
-    graph = append({ graph, action: { type: 'FOO' }, user: alice, keys })
+describe("decrypt", () => {
+  it("decryptLink", () => {
+    const alice = createUser("alice")
+    let graph = createGraph<any>({ user: alice, name: "test graph", keys })
+    graph = append({ graph, action: { type: "FOO" }, user: alice, keys })
 
     for (const _ in graph.encryptedLinks) {
       const hash = _ as Hash
@@ -22,10 +28,10 @@ describe('decrypt', () => {
     }
   })
 
-  it('decryptGraph', () => {
-    const alice = createUser('alice')
-    let graph = createGraph<any>({ user: alice, name: 'test graph', keys })
-    graph = append({ graph, action: { type: 'FOO' }, user: alice, keys })
+  it("decryptGraph", () => {
+    const alice = createUser("alice")
+    let graph = createGraph<any>({ user: alice, name: "test graph", keys })
+    graph = append({ graph, action: { type: "FOO" }, user: alice, keys })
 
     const encryptedGraph = redactGraph(graph)
 
@@ -39,21 +45,28 @@ describe('decrypt', () => {
     }
   })
 
-  it('decryptGraph with keyring', () => {
-    const alice = createUser('alice')
+  it("decryptGraph with keyring", () => {
+    const alice = createUser("alice")
 
     // create a graph with an initial keyset
-    const keys1 = createKeyset({ type: 'TEAM', name: 'TEAM' })
-    let graph = createGraph<any>({ user: alice, name: 'test graph', keys: keys1 })
+    const keys1 = createKeyset({ type: "TEAM", name: "TEAM" })
+    let graph = createGraph<any>({
+      user: alice,
+      name: "test graph",
+      keys: keys1,
+    })
 
     // suppose the keys are rotated, now we have a new keyset
-    const keys2 = createKeyset({ type: 'TEAM', name: 'TEAM' })
-    graph = append({ graph, action: { type: 'FOO' }, user: alice, keys: keys2 })
+    const keys2 = createKeyset({ type: "TEAM", name: "TEAM" })
+    graph = append({ graph, action: { type: "FOO" }, user: alice, keys: keys2 })
 
     const encryptedGraph = redactGraph(graph)
 
     // we pass all the keys we have to decrypt
-    const decryptedGraph = decryptGraph({ encryptedGraph, keys: [keys1, keys2] })
+    const decryptedGraph = decryptGraph({
+      encryptedGraph,
+      keys: [keys1, keys2],
+    })
     for (const _ in graph.links) {
       const hash = _ as Hash
       const decrypted = decryptedGraph.links[hash]

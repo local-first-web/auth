@@ -1,31 +1,31 @@
-import { describe, expect, test } from 'vitest'
-import { asymmetric, randomKey, signatures } from '..'
-import { Base58, SignedMessage } from '../types'
+import { describe, expect, test } from "vitest"
+import { asymmetric, randomKey, signatures } from ".."
+import { type Base58, type SignedMessage } from "../types.js"
 
 const { keyPair, sign, verify } = signatures
 
-describe('crypto', () => {
-  describe('signatures', () => {
-    const payload = 'one if by day, two if by night'
+describe("crypto", () => {
+  describe("signatures", () => {
+    const payload = "one if by day, two if by night"
 
-    test('alice signs with her secret key', () => {
-      const alice = keyPair('alice')
+    test("alice signs with her secret key", () => {
+      const alice = keyPair("alice")
       const signature = sign(payload, alice.secretKey)
       expect(signature).toMatchInlineSnapshot(
-        `"2NkJHbpTYjZqrdnRKqzTtVKNrGcsDSFh2mdx7GdTeoMGXfwkMDXzKywASZkgoZ6Q7Try2BPrptnLjdstxmzRnu1E"`
+        '"2NkJHbpTYjZqrdnRKqzTtVKNrGcsDSFh2mdx7GdTeoMGXfwkMDXzKywASZkgoZ6Q7Try2BPrptnLjdstxmzRnu1E"'
       )
     })
 
-    test(`bob verifies using alice's public key`, () => {
-      const alice = keyPair('alice')
+    test("bob verifies using alice's public key", () => {
+      const alice = keyPair("alice")
       const signature = sign(payload, alice.secretKey)
       const { publicKey } = alice
       const isLegit = verify({ payload, signature, publicKey })
       expect(isLegit).toBe(true)
     })
 
-    test(`round trip with bytes payload`, () => {
-      const alice = keyPair('alice')
+    test("round trip with bytes payload", () => {
+      const alice = keyPair("alice")
       const payload = randomKey()
       const { secretKey, publicKey } = alice
       const signature = sign(payload, secretKey)
@@ -33,26 +33,26 @@ describe('crypto', () => {
       expect(isLegit).toBe(true)
     })
 
-    test(`round trip with JSON payload`, () => {
+    test("round trip with JSON payload", () => {
       const payload = {
         type: 0,
-        payload: { team: 'Spies Я Us' },
-        user: 'alice',
-        client: { name: 'test', version: '0' },
-        timestamp: 1588335904711,
+        payload: { team: "Spies Я Us" },
+        user: "alice",
+        client: { name: "test", version: "0" },
+        timestamp: 1_588_335_904_711,
         index: 0,
         prev: undefined,
       }
-      const alice = keyPair('alice')
+      const alice = keyPair("alice")
       const { secretKey, publicKey } = alice
       const signature = sign(payload, secretKey)
       const isLegit = verify({ payload, signature, publicKey })
       expect(isLegit).toBe(true)
     })
 
-    test(`Eve tampers with the message, but Bob is not fooled`, () => {
+    test("Eve tampers with the message, but Bob is not fooled", () => {
       // Alice signs a message
-      const alice = keyPair('alice')
+      const alice = keyPair("alice")
       const signedMessage: SignedMessage = {
         payload,
         signature: sign(payload, alice.secretKey),
@@ -61,8 +61,8 @@ describe('crypto', () => {
 
       // Eve tampers with the contents of the message
       const tamperedContent = payload //
-        .replace('one', 'forty-two')
-        .replace('two', 'seventy-twelve')
+        .replace("one", "forty-two")
+        .replace("two", "seventy-twelve")
       const tamperedMessage = {
         ...signedMessage,
         payload: tamperedContent,
@@ -73,8 +73,8 @@ describe('crypto', () => {
       expect(isLegit).toBe(false)
     })
 
-    test(`fails verification if signature is wrong`, () => {
-      const alice = keyPair('alice')
+    test("fails verification if signature is wrong", () => {
+      const alice = keyPair("alice")
       const signedMessage: SignedMessage = {
         payload,
         signature: sign(payload, alice.secretKey),
@@ -82,7 +82,7 @@ describe('crypto', () => {
       }
 
       const badSignature =
-        '5VanBWz6kBnV2wfJZaPgv81Mj7QtAsPmq3QZgc3zZqbYZEzEdZQ9r24BGZpN6mt6djyr7W2v1eKYnnG3KSHtCD67' as Base58
+        "5VanBWz6kBnV2wfJZaPgv81Mj7QtAsPmq3QZgc3zZqbYZEzEdZQ9r24BGZpN6mt6djyr7W2v1eKYnnG3KSHtCD67" as Base58
       const badMessage = {
         ...signedMessage,
         signature: badSignature,
@@ -91,14 +91,14 @@ describe('crypto', () => {
       expect(isLegit).toBe(false)
     })
 
-    test(`fails verification if public key is wrong`, () => {
-      const alice = keyPair('alice')
+    test("fails verification if public key is wrong", () => {
+      const alice = keyPair("alice")
       const signedMessage: SignedMessage = {
         payload,
         signature: sign(payload, alice.secretKey),
         publicKey: alice.publicKey,
       }
-      const badKey = 'AAAAAnDzHhf26V8KcmQdxquK4fWUNDRy3MA6Sqf5hSma' as Base58
+      const badKey = "AAAAAnDzHhf26V8KcmQdxquK4fWUNDRy3MA6Sqf5hSma" as Base58
       const badMessage = {
         ...signedMessage,
         publicKey: badKey,
@@ -107,16 +107,16 @@ describe('crypto', () => {
       expect(isLegit).toBe(false)
     })
 
-    test('fwiw: cannot use encryption keys to sign', () => {
+    test("fwiw: cannot use encryption keys to sign", () => {
       const keysForAnotherPurpose = asymmetric.keyPair()
       const tryToSignWithEncryptionKeys = () =>
         signatures.sign(payload, keysForAnotherPurpose.secretKey)
       expect(tryToSignWithEncryptionKeys).toThrow()
     })
 
-    test('keypair generated from seed is deterministic', () => {
+    test("keypair generated from seed is deterministic", () => {
       // Alice signs a message
-      const seed = 'passw0rd'
+      const seed = "passw0rd"
       const keys = keyPair(seed)
       expect(keys).toMatchInlineSnapshot(`
         {

@@ -1,16 +1,20 @@
-﻿import { Transform } from '@/team/types'
-import { KeyType } from '@/util'
+import { type Transform } from '@/team/types.js'
+import { KeyType } from '@/util/index.js'
 
 export const removeRole =
   (roleName: string): Transform =>
   state => ({
     ...state,
 
-    // remove this role
+    // Remove this role
     roles: state.roles.filter(role => role.roleName !== roleName),
 
-    // remove any lockboxes for this role
+    // Remove any lockboxes for this role
     lockboxes: state.lockboxes.filter(
-      lockbox => !(lockbox.contents.type === KeyType.ROLE && lockbox.contents.name === roleName),
+      lockbox =>
+        !(
+          lockbox.contents.type === KeyType.ROLE &&
+          lockbox.contents.name === roleName
+        )
     ),
   })

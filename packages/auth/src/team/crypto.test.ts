@@ -1,6 +1,6 @@
-﻿import { ADMIN } from '@/role'
-import { setup } from '@/util/testing'
 import { describe, expect, it } from 'vitest'
+import { ADMIN } from '@/role/index.js'
+import { setup } from '@/util/testing/index.js'
 
 describe('Team', () => {
   describe('crypto', () => {

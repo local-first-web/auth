@@ -1,4 +1,6 @@
-﻿import { ADMIN } from '@/role'
+import { describe, expect, it } from 'vitest'
+import { type MemberInitialContext } from './types.js'
+import { ADMIN } from '@/role/index.js'
 import {
   TestChannel,
   any,
@@ -13,9 +15,7 @@ import {
   joinTestChannel,
   setup,
   updated,
-} from '@/util/testing'
-import { describe, expect, it } from 'vitest'
-import { MemberInitialContext } from './types'
+} from '@/util/testing/index.js'
 
 describe('connection', () => {
   describe('sync', () => {
@@ -30,7 +30,7 @@ describe('connection', () => {
       it('updates remote user after connecting', async () => {
         const { alice, bob } = setup('alice', 'bob')
 
-        // at this point, Alice and Bob have the same signature chain
+        // At this point, Alice and Bob have the same signature chain
 
         // 👩🏾 but now Alice does some stuff
         alice.team.addRole('managers')
@@ -54,7 +54,7 @@ describe('connection', () => {
       it('updates local user after connecting', async () => {
         const { alice, bob } = setup('alice', 'bob')
 
-        // at this point, Alice and Bob have the same signature chain
+        // At this point, Alice and Bob have the same signature chain
 
         // 👨🏻‍🦲 but now Bob does some stuff
         bob.team.addRole('managers')
@@ -73,7 +73,7 @@ describe('connection', () => {
 
         // 👩🏾 👨🏻‍🦲 Alice and Bob connect
         await connect(alice, bob)
-        // at this point, Alice and Bob have the same signature chain
+        // At this point, Alice and Bob have the same signature chain
 
         // 👨🏻‍🦲 now Alice does some stuff
         alice.team.addRole('managers')
@@ -90,7 +90,7 @@ describe('connection', () => {
         // 👩🏾 👨🏻‍🦲 Alice and Bob connect
         await connect(alice, bob)
 
-        // at this point, Alice and Bob have the same signature chain
+        // At this point, Alice and Bob have the same signature chain
 
         // 👨🏻‍🦲 now Bob does some stuff
         bob.team.addRole('managers')
@@ -157,7 +157,7 @@ describe('connection', () => {
         await connect(alice, bob)
         await connect(bob, charlie)
 
-        // at this point, Alice and Bob have the same signature chain
+        // At this point, Alice and Bob have the same signature chain
 
         // 👨🏻‍🦲 now Alice does some stuff
         alice.team.addRole('managers')
@@ -281,7 +281,10 @@ describe('connection', () => {
       })
 
       it('eventually updates disconnected members when someone uses an invitation to join', async () => {
-        const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+        const { alice, bob, charlie } = setup('alice', 'bob', {
+          user: 'charlie',
+          member: false,
+        })
 
         // 👩🏾📧👳🏽‍♂️ Alice invites Charlie
         const { seed } = alice.team.inviteMember()
@@ -297,7 +300,10 @@ describe('connection', () => {
       })
 
       it('updates connected members when someone uses an invitation to join', async () => {
-        const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+        const { alice, bob, charlie } = setup('alice', 'bob', {
+          user: 'charlie',
+          member: false,
+        })
 
         // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
         await connect(alice, bob)
@@ -326,10 +332,10 @@ describe('connection', () => {
 
         // 👩🏾📧👳🏽‍♂️👴 Alice invites Charlie and Dwight
         const aliceInvitesCharlie = alice.team.inviteMember()
-        const aliceInvitesDwight = alice.team.inviteMember() // invitation unused, but that's OK
+        const _aliceInvitesDwight = alice.team.inviteMember() // Invitation unused, but that's OK
 
         // 👨🏻‍🦲📧👳🏽‍♂️👴 concurrently, Bob invites Charlie and Dwight
-        const bobInvitesCharlie = bob.team.inviteMember() // invitation unused, but that's OK
+        const _bobInvitesCharlie = bob.team.inviteMember() // Invitation unused, but that's OK
         const bobInvitesDwight = bob.team.inviteMember()
 
         // 👳🏽‍♂️📧<->👩🏾 Charlie connects to Alice and uses his invitation to join
@@ -380,7 +386,7 @@ describe('connection', () => {
         expect(alice.team.memberIsAdmin('bob')).toBe(true)
         expect(bob.team.memberIsAdmin('bob')).toBe(true)
 
-        // they both go offline
+        // They both go offline
         await disconnect(alice, bob)
 
         // 👨🏻‍🦲 Bob removes 👩🏾 Alice from admin role
@@ -406,7 +412,7 @@ describe('connection', () => {
         expect(bob.getState(alice.deviceId)).toEqual('connected')
       })
 
-      it(`resolves mutual removals without invalidating the senior member's concurrent actions`, async () => {
+      it("resolves mutual removals without invalidating the senior member's concurrent actions", async () => {
         const { alice, bob, charlie } = setup('alice', 'bob', 'charlie')
 
         // 👨🏻‍🦲 Bob removes 👩🏾 Alice
@@ -460,8 +466,11 @@ describe('connection', () => {
         await disconnection(bob, charlie)
       })
 
-      it(`when a member is demoted and makes concurrent admin-only changes, discards those changes`, async () => {
-        const { alice, bob } = setup('alice', 'bob', { user: 'charlie', admin: false })
+      it('when a member is demoted and makes concurrent admin-only changes, discards those changes', async () => {
+        const { alice, bob } = setup('alice', 'bob', {
+          user: 'charlie',
+          admin: false,
+        })
 
         // 👩🏾 Alice removes 👨🏻‍🦲 Bob from admin role
         alice.team.removeMemberRole('bob', ADMIN)
@@ -478,7 +487,7 @@ describe('connection', () => {
         expect(bob.team.memberHasRole('charlie', ADMIN)).toBe(false)
       })
 
-      it(`when a member is demoted and concurrently adds a device, the new device is kept`, async () => {
+      it('when a member is demoted and concurrently adds a device, the new device is kept', async () => {
         const { alice, bob } = setup('alice', 'bob')
 
         // 👩🏾 Alice removes 👨🏻‍🦲 Bob from admin role
@@ -507,7 +516,10 @@ describe('connection', () => {
       })
 
       it('when an invitation is discarded, also discard related admittance actions', async () => {
-        const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+        const { alice, bob, charlie } = setup('alice', 'bob', {
+          user: 'charlie',
+          member: false,
+        })
 
         // 👩🏾 Alice removes 👨🏻‍🦲 Bob from admin role
         alice.team.removeMemberRole('bob', ADMIN)
@@ -527,7 +539,12 @@ describe('connection', () => {
       })
 
       it('resolves circular concurrent demotions', async () => {
-        const { alice, bob, charlie, dwight } = setup('alice', 'bob', 'charlie', 'dwight')
+        const { alice, bob, charlie, dwight } = setup(
+          'alice',
+          'bob',
+          'charlie',
+          'dwight'
+        )
 
         // Bob demotes Charlie
         bob.team.removeMemberRole('charlie', ADMIN)
@@ -652,7 +669,11 @@ describe('connection', () => {
       })
 
       it('allows a new member to join after team keys have been rotated', async () => {
-        const { alice, bob, charlie } = setup(['alice', 'bob', { user: 'charlie', member: false }])
+        const { alice, bob, charlie } = setup([
+          'alice',
+          'bob',
+          { user: 'charlie', member: false },
+        ])
 
         await connect(alice, bob)
 
@@ -701,20 +722,23 @@ describe('connection', () => {
       })
 
       it('unwinds an invalidated admission', async () => {
-        const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+        const { alice, bob, charlie } = setup('alice', 'bob', {
+          user: 'charlie',
+          member: false,
+        })
         expect(alice.team.adminKeys().generation).toBe(0)
 
-        // while disconnected...
+        // While disconnected...
         // Alice demotes Bob
         alice.team.removeMemberRole('bob', ADMIN)
-        // the admin keys are rotated
+        // The admin keys are rotated
         expect(alice.team.adminKeys().generation).toBe(1)
 
         // Bob invites Charlie & Charlie joins
         const { seed } = bob.team.inviteMember()
         await connectWithInvitation(bob, charlie, seed)
 
-        // then...
+        // Then...
         // Alice and Bob connect
         await connect(alice, bob)
 
@@ -724,20 +748,23 @@ describe('connection', () => {
 
         // Alice has rotated the team keys
         expect(alice.team.teamKeys().generation).toBe(1)
-        // and all other keys, for good measure
+        // And all other keys, for good measure
         expect(alice.team.adminKeys().generation).toBe(2)
       })
     })
 
     describe('post-compromise recovery', () => {
-      it(`Eve steals Bob's phone; Bob heals the team`, async () => {
+      it("Eve steals Bob's phone; Bob heals the team", async () => {
         const { alice, bob, charlie } = setup('alice', 'bob', 'charlie')
         await connect(alice, bob)
         await connect(bob, charlie)
 
         // Bob invites his phone and it joins
         const { seed } = bob.team.inviteDevice()
-        await Promise.all([connectPhoneWithInvitation(bob, seed), anyUpdated(alice, bob)])
+        await Promise.all([
+          connectPhoneWithInvitation(bob, seed),
+          anyUpdated(alice, bob),
+        ])
 
         // Bob and Alice know about Bob's phone
         expect(bob.team.members('bob').devices).toHaveLength(2)
@@ -758,7 +785,7 @@ describe('connection', () => {
 
         // Eve tries to connect to Charlie from Bob's phone, but she can't
         const phoneContext: MemberInitialContext = {
-          device: bob.phone,
+          device: bob.phone!,
           user: bob.user,
           team: bob.team,
         }
@@ -772,7 +799,7 @@ describe('connection', () => {
         await any([eveOnBobsPhone, heyCharlie], 'disconnected')
       })
 
-      it.todo(`Eve steals Bob's laptop; Alice heals the team`) //, async () => {
+      it.todo("Eve steals Bob's laptop; Alice heals the team") // , async () => {
       //   const { alice, bob, charlie } = setup('alice', 'bob', 'charlie')
       //   await connect(alice, bob)
       //   await connect(alice, charlie)

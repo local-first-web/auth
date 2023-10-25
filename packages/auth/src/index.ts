@@ -1,39 +1,39 @@
-﻿export { createTeam, load as loadTeam, Team } from './team'
-export { Device, createDevice, redactDevice } from './device'
-export { Connection } from './connection'
-export { generateProof } from './invitation'
+export { createTeam, load as loadTeam, Team } from './team/index.js'
+export { type Device, createDevice, redactDevice } from './device/index.js'
+export { Connection } from './connection/index.js'
+export { generateProof } from './invitation/index.js'
 
-export * as connection from './connection'
-export * as context from './context'
-export * as device from './device'
-export * as invitation from './invitation'
-export * as role from './role'
-export * as team from './team'
+export * as connection from './connection/index.js'
+export * as context from './context/index.js'
+export * as device from './device/index.js'
+export * as invitation from './invitation/index.js'
+export * as role from './role/index.js'
+export * as team from './team/index.js'
 
-export * from './team/constants'
-export * from './util/constants'
-export * from './role/constants'
+export * from './team/constants.js'
+export * from './util/constants.js'
+export * from './role/constants.js'
 
-export * from './connection/types'
-export * from './context/types'
-export * from './device/types'
-export * from './invitation/types'
-export * from './role/types'
-export * from './team/types'
+export * from './connection/types.js'
+export * from './context/types.js'
+export * from './device/types.js'
+export * from './invitation/types.js'
+export * from './role/types.js'
+export * from './team/types.js'
 
 export { symmetric, asymmetric, signatures } from '@localfirst/crypto'
 export {
-  Base58,
+  type Base58,
   createKeyset,
   createUser,
-  Hash,
-  Keyset,
-  KeysetWithSecrets,
-  Keyring,
-  LinkBody,
+  type Hash,
+  type Keyset,
+  type KeysetWithSecrets,
+  type Keyring,
+  type LinkBody,
   redactKeys,
   redactUser,
-  UnixTimestamp,
-  User,
-  UserWithSecrets,
+  type UnixTimestamp,
+  type User,
+  type UserWithSecrets,
 } from '@localfirst/crdx'

@@ -1,43 +1,50 @@
-﻿import { append } from '@/graph/append'
-import { createGraph } from '@/graph/createGraph'
-import { merge } from '@/graph/merge'
-import { Action, Graph, Link, LinkBody } from '@/graph/types'
-import { KeysetWithSecrets } from '@/keyset'
-import { TEST_GRAPH_KEYS as keys, setup } from '@test/helpers/setup'
+﻿import { TEST_GRAPH_KEYS as keys, setup } from "@test/helpers/setup.js"
+import { append } from "@/graph/append.js"
+import { createGraph } from "@/graph/createGraph.js"
+import { merge } from "@/graph/merge.js"
+import { type Action, type Graph, type Link } from "@/graph/types.js"
+import { type KeysetWithSecrets } from "@/keyset/index.js"
 
-const { alice } = setup('alice')
+const { alice } = setup("alice")
 
-export const getPayloads = (sequence: Link<XAction, any>[]) =>
+export const getPayloads = (sequence: Array<Link<XAction, any>>) =>
   sequence //
     .filter(link => link.body.prev.length) // omit root link
     .filter(link => link.isInvalid !== true) // omit invalid links
-    .map(link => (link.body as LinkBody<XAction, any>).payload) // pull out payloads
-    .join('') // return as single string
+    .map(link => link.body.payload as string) // pull out payloads
+    .join("") // return as single string
 
-export const findByPayload = (graph: Graph<XAction, any>, payload: XAction['payload']) => {
+export const findByPayload = (
+  graph: Graph<XAction, any>,
+  payload: XAction["payload"]
+) => {
   const links = Object.values(graph.links)
-  return links.find(n => n.body.payload === payload) as Link<XAction, any>
+  return links.find(n => n.body.payload === payload)!
 }
 
 // ignore coverage
 export const byPayload = (a: Link<XAction, any>, b: Link<XAction, any>) => {
-  return a.body.payload < b.body.payload ? -1 : a.body.payload > b.body.payload ? 1 : 0
+  return a.body.payload < b.body.payload
+    ? -1
+    : a.body.payload > b.body.payload
+    ? 1
+    : 0
 }
 
 export const buildGraph = (type: string) => {
-  let root = createGraph<XAction>({ user: alice, name: 'root', keys })
+  const root = createGraph<XAction>({ user: alice, name: "root", keys })
   switch (trim(type)) {
     // one link
-    case 'a': {
-      let a = appendLink(root, 'a', keys)
+    case "a": {
+      const a = appendLink(root, "a", keys)
       return a
     }
 
     // no branches
     case trim(`a ─ b ─ c`): {
-      let a = appendLink(root, 'a', keys)
-      let b = appendLink(a, 'b', keys)
-      let c = appendLink(b, 'c', keys)
+      const a = appendLink(root, "a", keys)
+      const b = appendLink(a, "b", keys)
+      const c = appendLink(b, "c", keys)
       return c
     }
 
@@ -47,9 +54,9 @@ export const buildGraph = (type: string) => {
          a ─┤
             └─ c
       `): {
-      let a = appendLink(root, 'a', keys)
-      let b = appendLink(a, 'b', keys)
-      let c = appendLink(a, 'c', keys)
+      const a = appendLink(root, "a", keys)
+      const b = appendLink(a, "b", keys)
+      const c = appendLink(a, "c", keys)
       return merge(b, c)
     }
 
@@ -60,11 +67,11 @@ export const buildGraph = (type: string) => {
             └─── d ───┘
 
       `): {
-      let a = appendLink(root, 'a', keys)
-      let b = appendLink(a, 'b', keys)
-      let c = appendLink(b, 'c', keys)
-      let d = appendLink(a, 'd', keys)
-      let e = appendLink(merge(c, d), 'e', keys)
+      const a = appendLink(root, "a", keys)
+      const b = appendLink(a, "b", keys)
+      const c = appendLink(b, "c", keys)
+      const d = appendLink(a, "d", keys)
+      const e = appendLink(merge(c, d), "e", keys)
       return e
     }
 
@@ -75,15 +82,15 @@ export const buildGraph = (type: string) => {
             └─── d ───┘     └─── h ───┘
 
       `): {
-      let a = appendLink(root, 'a', keys)
-      let b = appendLink(a, 'b', keys)
-      let c = appendLink(b, 'c', keys)
-      let d = appendLink(a, 'd', keys)
-      let e = appendLink(merge(c, d), 'e', keys)
-      let f = appendLink(e, 'f', keys)
-      let g = appendLink(f, 'g', keys)
-      let h = appendLink(e, 'h', keys)
-      let i = appendLink(merge(g, h), 'i', keys)
+      const a = appendLink(root, "a", keys)
+      const b = appendLink(a, "b", keys)
+      const c = appendLink(b, "c", keys)
+      const d = appendLink(a, "d", keys)
+      const e = appendLink(merge(c, d), "e", keys)
+      const f = appendLink(e, "f", keys)
+      const g = appendLink(f, "g", keys)
+      const h = appendLink(e, "h", keys)
+      const i = appendLink(merge(g, h), "i", keys)
       return i
     }
 
@@ -95,25 +102,25 @@ export const buildGraph = (type: string) => {
                 ├──── h ──── i ─────┘     │
                 └───── j ─── k ── l ──────┘
       `): {
-      let a = appendLink(root, 'a', keys)
-      let b = appendLink(a, 'b', keys)
-      let c = appendLink(b, 'c', keys)
-      let d = appendLink(c, 'd', keys)
-      let e = appendLink(d, 'e', keys)
-      let g = appendLink(e, 'g', keys)
+      const a = appendLink(root, "a", keys)
+      const b = appendLink(a, "b", keys)
+      const c = appendLink(b, "c", keys)
+      const d = appendLink(c, "d", keys)
+      const e = appendLink(d, "e", keys)
+      const g = appendLink(e, "g", keys)
 
-      let f = appendLink(d, 'f', keys)
+      const f = appendLink(d, "f", keys)
 
-      let h = appendLink(b, 'h', keys)
-      let i = appendLink(h, 'i', keys)
+      const h = appendLink(b, "h", keys)
+      const i = appendLink(h, "i", keys)
 
-      let j = appendLink(b, 'j', keys)
-      let k = appendLink(j, 'k', keys)
-      let l = appendLink(k, 'l', keys)
+      const j = appendLink(b, "j", keys)
+      const k = appendLink(j, "k", keys)
+      const l = appendLink(k, "l", keys)
 
-      let o = appendLink(merge(g, merge(f, i)), 'o', keys)
+      const o = appendLink(merge(g, merge(f, i)), "o", keys)
 
-      let n = appendLink(merge(o, l), 'n', keys)
+      const n = appendLink(merge(o, l), "n", keys)
       return n
     }
 
@@ -124,18 +131,18 @@ export const buildGraph = (type: string) => {
          a ─ b ─┤         └── i ─ j ─┘
                 └── d ────────┘
       `): {
-      let a = appendLink(root, 'a', keys)
-      let b = appendLink(a, 'b', keys)
-      let c = appendLink(b, 'c', keys)
-      let e = appendLink(c, 'e', keys)
-      let h = appendLink(e, 'h', keys)
+      const a = appendLink(root, "a", keys)
+      const b = appendLink(a, "b", keys)
+      const c = appendLink(b, "c", keys)
+      const e = appendLink(c, "e", keys)
+      const h = appendLink(e, "h", keys)
 
-      let d = appendLink(b, 'd', keys)
+      const d = appendLink(b, "d", keys)
 
-      let i = appendLink(merge(e, d), 'i', keys)
-      let j = appendLink(i, 'j', keys)
+      const i = appendLink(merge(e, d), "i", keys)
+      const j = appendLink(i, "j", keys)
 
-      let k = appendLink(merge(h, j), 'k', keys)
+      const k = appendLink(merge(h, j), "k", keys)
       return k
     }
 
@@ -147,43 +154,48 @@ export const buildGraph = (type: string) => {
                 ├─ h ─ i  
                 └─ j 
       `): {
-      let a = appendLink(root, 'a', keys)
-      let b = appendLink(a, 'b', keys)
-      let c = appendLink(b, 'c', keys)
-      let d = appendLink(c, 'd', keys)
-      let e = appendLink(d, 'e', keys)
-      let g = appendLink(e, 'g', keys)
-      let f = appendLink(d, 'f', keys)
-      let o = appendLink(merge(g, f), 'o', keys)
+      const a = appendLink(root, "a", keys)
+      const b = appendLink(a, "b", keys)
+      const c = appendLink(b, "c", keys)
+      const d = appendLink(c, "d", keys)
+      const e = appendLink(d, "e", keys)
+      const g = appendLink(e, "g", keys)
+      const f = appendLink(d, "f", keys)
+      const o = appendLink(merge(g, f), "o", keys)
 
-      let h = appendLink(b, 'h', keys)
-      let i = appendLink(h, 'i', keys)
+      const h = appendLink(b, "h", keys)
+      const i = appendLink(h, "i", keys)
 
-      let j = appendLink(b, 'j', keys)
+      const j = appendLink(b, "j", keys)
 
       return merge(o, merge(i, j))
     }
 
-    default:
+    default: {
       // ignore coverage
-      throw new Error('unknown graph')
+      throw new Error("unknown graph")
+    }
   }
 }
 
 export type XAction =
   | Action
   | {
-      type: 'X'
+      type: "X"
       payload: string
     }
-export type XLink = Link<XAction, {}>
+export type XLink = Link<XAction, Record<string, unknown>>
 
-export const appendLink = (graph: Graph<XAction, any>, payload: string, keys: KeysetWithSecrets) =>
+export const appendLink = (
+  graph: Graph<XAction, Record<string, unknown>>,
+  payload: string,
+  keys: KeysetWithSecrets
+) =>
   append({
     graph,
-    action: { type: 'X', payload } as XAction,
+    action: { type: "X", payload },
     user: alice,
     keys,
   })
 
-export const trim = (s: string) => s.replace(/\s*/g, '')
+export const trim = (s: string) => s.replaceAll(/\s*/g, "")

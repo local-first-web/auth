@@ -1,21 +1,21 @@
-﻿import { type DeviceWithSecrets } from '@/device'
-import { type ServerWithSecrets } from '@/server'
 import { type UserWithSecrets } from '@localfirst/crdx'
+import { type DeviceWithSecrets } from '@/device/index.js'
+import { type ServerWithSecrets } from '@/server/index.js'
 
 export type LocalContext = LocalUserContext | ServerContext
 
-export interface LocalUserContext {
+export type LocalUserContext = {
   user: UserWithSecrets
   device: DeviceWithSecrets
   client?: Client
 }
 
-export interface ServerContext {
+export type ServerContext = {
   server: ServerWithSecrets
   client?: Client
 }
 
-export interface Client {
+export type Client = {
   name: string
   version: string
 }

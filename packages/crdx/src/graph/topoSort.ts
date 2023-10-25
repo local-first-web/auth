@@ -1,29 +1,30 @@
-﻿import { getChildrenHashes } from './children'
-import { Action, Link, LinkComparator, Graph } from './types'
-import { Hash } from '@/util'
+﻿import { getChildrenHashes } from "./children.js"
+import {
+  type Action,
+  type Link,
+  type LinkComparator,
+  type Graph,
+} from "./types.js"
+import { type Hash } from "@/util/index.js"
 
 /** Flattens a hash graph into a sequence  */
 export const topoSort = <A extends Action, C>(
   graph: Graph<A, C>,
   options: TopoSortOptions = {}
-): Link<A, C>[] => {
+): Array<Link<A, C>> => {
   const { comparator = byHash } = options
 
   // Kahn's algorithm
   // Start with all the links in the graph, in no particular order
-  var links = Object.values(graph.links)
+  let links = Object.values(graph.links)
 
   // Create a lookup table to keep track of how many remaining parents each link has
-  const remainingParents: Record<Hash, number> = links.reduce(
-    (result, link) => ({
-      ...result,
-      [link.hash]: link.body.prev.length,
-    }),
-    {}
+  const remainingParents: Record<Hash, number> = Object.fromEntries(
+    links.map(link => [link.hash, link.body.prev.length])
   )
 
   // This will be the final sorted list
-  const sorted: Link<A, C>[] = []
+  const sorted: Array<Link<A, C>> = []
 
   /** Takes the given link to be next in the sorted list, along with any direct children in an uininterrupted sequence */
   const take = (link: Link<A, C>) => {
@@ -34,8 +35,8 @@ export const topoSort = <A extends Action, C>(
     links = links.filter(l => l.hash !== link.hash)
 
     // any links that had it as a parent now have one less parent
-    var children = getChildrenHashes(graph, link.hash)
-    children.forEach(child => remainingParents[child]--)
+    const children = getChildrenHashes(graph, link.hash)
+    for (const child of children) remainingParents[child]--
 
     // The following change to the algorithm isn't stricly necessary, but it seems cleaner to me.
     // I want any links that are part of an uninterrupted sequence of links (with no branching or
@@ -75,7 +76,7 @@ export const topoSort = <A extends Action, C>(
   return sorted
 }
 
-interface TopoSortOptions {
+type TopoSortOptions = {
   comparator?: LinkComparator
 }
 

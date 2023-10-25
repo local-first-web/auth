@@ -1,14 +1,16 @@
-﻿import { Host } from '@/server'
-import { Transform } from '@/team/types'
+import { type Host } from '@/server/index.js'
+import { type Transform } from '@/team/types.js'
 
 export const removeServer =
   (host: Host): Transform =>
   state => {
     const remainingServers = state.servers.filter(m => m.host !== host)
-    const removedServer = state.servers.find(m => m.host === host) // the server that was removed
+    const removedServer = state.servers.find(m => m.host === host) // The server that was removed
 
     const removedServers = [...state.removedServers]
-    if (removedServer) removedServers.push(removedServer)
+    if (removedServer) {
+      removedServers.push(removedServer)
+    }
 
     return {
       ...state,

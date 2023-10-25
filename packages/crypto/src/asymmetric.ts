@@ -1,8 +1,14 @@
-import sodium from 'libsodium-wrappers-sumo'
-import { pack, unpack } from 'msgpackr'
-import { DecryptParams, EncryptParams, Base58, Payload } from './types'
-import { base58, keypairToBase58, keyToBytes } from './util'
-import { stretch } from './stretch'
+import sodium from "libsodium-wrappers-sumo"
+import { pack, unpack } from "msgpackr"
+import { stretch } from "./stretch.js"
+import type {
+  DecryptParams,
+  EncryptParams,
+  Base58,
+  Payload,
+  Cipher,
+} from "./types.js"
+import { base58, keypairToBase58, keyToBytes } from "./util/index.js"
 
 /**
  * Wrappers of selected libsodium crypto functions. Each of these functions accepts and returns
@@ -15,10 +21,10 @@ export const asymmetric = {
    * use for asymmetric encryption and decryption. (Note that asymmetric encryption keys cannot be
    * used for signatures, and vice versa.)
    */
-  keyPair: (
+  keyPair(
     /** (optional) If provided, the the key pair will be derived from the secret key. */
     seed?: string
-  ) => {
+  ) {
     const keypair = seed
       ? sodium.crypto_box_seed_keypair(stretch(seed))
       : sodium.crypto_box_keypair()
@@ -30,22 +36,26 @@ export const asymmetric = {
    * @returns The encrypted data, encoded in msgpack format as a base58 string
    * @see asymmetric.decrypt
    */
-  encrypt: ({ secret, recipientPublicKey, senderSecretKey }: EncryptParams): Base58 => {
+  encrypt({
+    secret,
+    recipientPublicKey,
+    senderSecretKey,
+  }: EncryptParams): Base58 {
     const nonce = sodium.randombytes_buf(sodium.crypto_box_NONCEBYTES)
     const messageBytes = pack(secret)
 
     let senderPublicKey: string | undefined
     if (senderSecretKey === undefined) {
-      // use ephemeral sender keys
+      // Use ephemeral sender keys
       const senderKeys = asymmetric.keyPair()
       senderSecretKey = senderKeys.secretKey
       senderPublicKey = senderKeys.publicKey
     } else {
-      // use provided sender keys; no public key included in metadata
+      // Use provided sender keys; no public key included in metadata
       senderPublicKey = undefined
     }
 
-    // encrypt message
+    // Encrypt message
     const message = sodium.crypto_box_easy(
       messageBytes,
       nonce,
@@ -61,12 +71,18 @@ export const asymmetric = {
    * @returns The original object or plaintext
    * @see asymmetric.encrypt
    */
-  decrypt: ({ cipher, recipientSecretKey, senderPublicKey }: DecryptParams): Payload => {
+  decrypt({
+    cipher,
+    recipientSecretKey,
+    senderPublicKey,
+  }: DecryptParams): Payload {
     const cipherBytes = keyToBytes(cipher)
-    const unpackedCipher = unpack(cipherBytes)
+    const unpackedCipher = unpack(cipherBytes) as Cipher & {
+      senderPublicKey?: Base58
+    }
     const { nonce, message } = unpackedCipher
 
-    // if sender public key is not included, assume an ephemeral public key is included in metadata
+    // If sender public key is not included, assume an ephemeral public key is included in metadata
     senderPublicKey = senderPublicKey ?? unpackedCipher.senderPublicKey
 
     const decrypted = sodium.crypto_box_open_easy(
@@ -75,6 +91,6 @@ export const asymmetric = {
       keyToBytes(senderPublicKey!),
       keyToBytes(recipientSecretKey)
     )
-    return unpack(decrypted)
+    return unpack(decrypted) as Payload
   },
 }

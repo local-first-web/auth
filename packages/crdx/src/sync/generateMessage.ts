@@ -1,14 +1,14 @@
-import { SyncMessage, SyncState } from './types'
+import { type SyncMessage, type SyncState } from "./types.js"
 import {
-  Action,
+  type Action,
   getEncryptedLinks,
   getHashes,
   getParentMap,
   getPredecessorHashes,
-  Graph,
+  type Graph,
   headsAreEqual,
-} from '@/graph'
-import { Hash } from '@/util'
+} from "@/graph/index.js"
+import { type Hash } from "@/util/index.js"
 
 /**
  * Generates a new sync message for a peer based on our current graph and our sync state with them.
@@ -21,8 +21,8 @@ export const generateMessage = <A extends Action, C>(
   graph: Graph<A, C>,
   /** Our sync state with this peer */
   prevState: SyncState
-): [SyncState, SyncMessage<A, C> | undefined] => {
-  const message: SyncMessage<A, C> = {
+): [SyncState, SyncMessage | undefined] => {
+  const message: SyncMessage = {
     root: graph.root,
     head: graph.head,
   }
@@ -43,7 +43,7 @@ export const generateMessage = <A extends Action, C>(
   }
 
   // CASE 0B: They tell us that we caused an error; stop trying to sync
-  else if (their.reportedError) {
+  if (their.reportedError) {
     return [state, undefined]
   }
 
@@ -62,33 +62,37 @@ export const generateMessage = <A extends Action, C>(
   }
 
   // construct a map of everything we think they have
-  const theirHashLookup = [
-    // we know that they have their heads, and any of their predecessors
-    ...theirHead,
-    ...theirHead.flatMap(h => getPredecessorHashes(graph, h)),
+  const theirHashLookup = Object.fromEntries(
+    [
+      // we know that they have their heads, and any of their predecessors
+      ...theirHead,
+      ...theirHead.flatMap(h => getPredecessorHashes(graph, h)),
 
-    // their previous heads, and any of their predecessors
-    ...lastCommonHead,
-    ...lastCommonHead.flatMap(h => getPredecessorHashes(graph, h)),
+      // their previous heads, and any of their predecessors
+      ...lastCommonHead,
+      ...lastCommonHead.flatMap(h => getPredecessorHashes(graph, h)),
 
-    // anything in their link map
-    ...Object.keys(their.parentMap!),
+      // anything in their link map
+      ...Object.keys(their.parentMap),
 
-    // anything we've already sent
-    ...our.links,
-  ].reduce((result, h) => ({ ...result, [h]: true }), {} as Record<Hash, boolean>)
+      // anything we've already sent
+      ...our.links,
+    ].map(h => [h, true])
+  )
 
   let hashesWeThinkTheyNeed = [] as Hash[]
 
   const weAreAhead =
-    theirHead.length && // if we don't know their head, we can't assume we're ahead
+    theirHead.length > 0 && // if we don't know their head, we can't assume we're ahead
     theirHead.every(h => h in graph.links) // we're ahead if we already have all their heads
 
   if (weAreAhead) {
     // CASE 3: we are ahead of them, so we don't need anything, AND we know exactly what they need
 
     // Send them everything we have that they don't have
-    hashesWeThinkTheyNeed = getHashes(graph).filter(hash => !(hash in theirHashLookup))
+    hashesWeThinkTheyNeed = getHashes(graph).filter(
+      hash => !(hash in theirHashLookup)
+    )
   } else {
     // CASE 4: we're either behind, or have diverged
 
@@ -96,10 +100,14 @@ export const generateMessage = <A extends Action, C>(
     if (their.parentMap) {
       // ask for anything they mention that we don't have
       const linksWeHave = { ...graph.encryptedLinks, ...their.encryptedLinks }
-      message.need = Object.keys(theirHashLookup).filter(hash => !(hash in linksWeHave)) as Hash[]
+      message.need = Object.keys(theirHashLookup).filter(
+        hash => !(hash in linksWeHave)
+      ) as Hash[]
 
       // and figure out what links they might need
-      hashesWeThinkTheyNeed = getHashes(graph).filter(hash => !(hash in theirHashLookup))
+      hashesWeThinkTheyNeed = getHashes(graph).filter(
+        hash => !(hash in theirHashLookup)
+      )
     }
 
     // If our head has changed since last time we sent them a parentMap,
@@ -115,7 +123,7 @@ export const generateMessage = <A extends Action, C>(
   const hashesTheyAskedFor = their.need
   const hashesToSend = hashesTheyAskedFor.concat(hashesWeThinkTheyNeed) //
 
-  if (hashesToSend.length) {
+  if (hashesToSend.length > 0) {
     // look up the encrypted links
     message.links = getEncryptedLinks(graph, hashesToSend)
     // add dependency info for links we send

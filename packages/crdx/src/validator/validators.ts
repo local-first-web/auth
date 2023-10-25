@@ -1,26 +1,25 @@
-﻿import { ValidationError, ValidatorSet } from './types'
-import { getRoot } from '@/graph/graph'
-import { hashEncryptedLink } from '@/graph/hashLink'
-import { ROOT, VALID } from '@/constants'
-import { memoize } from '@/util'
+﻿import { ValidationError, type ValidatorSet } from "./types.js"
+import { ROOT, VALID } from "@/constants.js"
+import { getRoot } from "@/graph/graph.js"
+import { hashEncryptedLink } from "@/graph/hashLink.js"
+import { memoize } from "@/util/index.js"
 
 const _validators: ValidatorSet = {
   /** Does this link's hash check out? */
-  validateHash: (link, graph) => {
+  validateHash(link, graph) {
     const { hash } = link
     const { encryptedBody } = graph.encryptedLinks[hash]
     const computedHash = hashEncryptedLink(encryptedBody)
     if (hash === computedHash) return VALID
-    else
-      return fail(`The hash calculated for this link does not match.`, {
-        link,
-        hash,
-        expected: computedHash,
-      })
+    return fail(`The hash calculated for this link does not match.`, {
+      link,
+      hash,
+      expected: computedHash,
+    })
   },
 
   /** Do the previous link(s) referenced by this link exist?  */
-  validatePrev: (link, graph) => {
+  validatePrev(link, graph) {
     for (const hash of link.body.prev)
       if (!(hash in graph.links))
         return fail(
@@ -31,12 +30,13 @@ const _validators: ValidatorSet = {
   },
 
   /** If this is a root link, it should not have any predecessors, and should be the graph's root */
-  validateRoot: (link, graph) => {
+  validateRoot(link, graph) {
     const hasNoPrevLink = link.body.prev.length === 0
-    const hasRootType = 'type' in link.body && link.body.type === ROOT
+    const hasRootType = "type" in link.body && link.body.type === ROOT
     const isTheGraphRoot = getRoot(graph) === link
     // all should be true, or all should be false
-    if (hasNoPrevLink === isTheGraphRoot && isTheGraphRoot === hasRootType) return VALID
+    if (hasNoPrevLink === isTheGraphRoot && isTheGraphRoot === hasRootType)
+      return VALID
 
     const message = hasRootType
       ? // ROOT
@@ -46,13 +46,13 @@ const _validators: ValidatorSet = {
       : // not ROOT
       hasNoPrevLink
       ? `Non-ROOT links must have predecessors` // not ROOT but has no prev link
-      : 'The link referenced by the graph `root` property must be a ROOT link' // not ROOT but is the graph root
+      : "The link referenced by the graph `root` property must be a ROOT link" // not ROOT but is the graph root
     return fail(message, { link, graph })
   },
 
   /** Sanity check on timestamps: They can't be in the future, relative to the current time on this
    * device. And they can't be earlier than any links they depend on. */
-  validateTimestamps: (link, graph) => {
+  validateTimestamps(link, graph) {
     const { timestamp } = link.body
 
     // timestamp can't be in the future
@@ -65,11 +65,15 @@ const _validators: ValidatorSet = {
     for (const hash of link.body.prev) {
       const prevLink = graph.links[hash]
       if (prevLink.body.timestamp > timestamp)
-        return fail(`This link's timestamp can't be earlier than a previous link.`, {
-          link,
-          prevLink,
-        })
+        return fail(
+          `This link's timestamp can't be earlier than a previous link.`,
+          {
+            link,
+            prevLink,
+          }
+        )
     }
+
     return VALID
   },
 }

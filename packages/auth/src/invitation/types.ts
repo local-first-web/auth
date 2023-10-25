@@ -1,10 +1,10 @@
-import { Base58, UnixTimestamp } from '@localfirst/crdx'
+import { type Base58, type UnixTimestamp } from '@localfirst/crdx'
 
 /**
  * The public record of the invitation that Alice adds to the signature chain after inviting Bob
  * (or, that Bob's laptop adds after inviting Bob's phone).
  * */
-export interface Invitation {
+export type Invitation = {
   /** Public, unique identifier for the invitation */
   id: Base58
 
@@ -25,19 +25,19 @@ export interface Invitation {
  * The current state of the invitation; appears in the Team state. These properties are populated
  * by the reducer.
  * */
-export interface InvitationState extends Invitation {
+export type InvitationState = {
   /** Number of times the invitation has been used */
   uses: number
 
   /** If true, this invitation was revoked at some point after it was created (but before it was used) */
-  revoked: Boolean
-}
+  revoked: boolean
+} & Invitation
 
 /**
  * The document an invitee presents the first time they connect to an admin, to prove that they've
  * been invited.
  * */
-export interface ProofOfInvitation {
+export type ProofOfInvitation = {
   /** Public, unique identifier for the invitation */
   id: Base58
 

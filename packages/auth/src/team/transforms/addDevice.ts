@@ -1,5 +1,5 @@
-﻿import { Transform } from '@/team/types'
-import { getDeviceId, Device } from '@/device'
+import { getDeviceId, type Device } from '@/device/index.js'
+import { type Transform } from '@/team/types.js'
 
 export const addDevice =
   (device: Device): Transform =>
@@ -8,7 +8,7 @@ export const addDevice =
     return {
       ...state,
 
-      // add device to the member's list of devices
+      // Add device to the member's list of devices
       members: state.members.map(member => {
         if (member.userId === userId) {
           const { devices = [] } = member
@@ -16,10 +16,14 @@ export const addDevice =
             ...member,
             devices: [...devices, device],
           }
-        } else return member
+        }
+
+        return member
       }),
 
-      // remove device ID from list of removed devices (e.g. if it was removed at one point and is being re-added)
-      removedDevices: state.removedDevices.filter(d => d.keys.name === getDeviceId(device)),
+      // Remove device ID from list of removed devices (e.g. if it was removed at one point and is being re-added)
+      removedDevices: state.removedDevices.filter(
+        d => d.keys.name === getDeviceId(device)
+      ),
     }
   }

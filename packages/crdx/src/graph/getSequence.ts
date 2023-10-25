@@ -1,5 +1,5 @@
-﻿import { byHash, topoSort } from './topoSort'
-import { Action, Link, Resolver, Graph } from './types'
+﻿import { byHash, topoSort } from "./topoSort.js"
+import { type Action, type Link, type Resolver, type Graph } from "./types.js"
 
 /**
  * Takes a `Graph` and returns a flat array of links by performing a topographical sort and
@@ -21,14 +21,17 @@ import { Action, Link, Resolver, Graph } from './types'
  * - `filter` is a predicate function that indicates which links to include in the resulting
  *   sequence.
  */
-export const getSequence = <A extends Action, C>(graph: Graph<A, C>, resolver: Resolver<A, C> = baseResolver) => {
+export const getSequence = <A extends Action, C>(
+  graph: Graph<A, C>,
+  resolver: Resolver<A, C> = baseResolver
+) => {
   const { sort = byHash, filter = noFilter } = resolver(graph)
 
   const sorted = topoSort(graph, { comparator: sort })
 
   // Rather than apply the filter directly, we mark links that would be filtered out as invalid.
   return sorted.map(link => {
-    const isInvalid = link.isInvalid || !filter(link)
+    const isInvalid = link.isInvalid ?? !filter(link)
     return { ...link, isInvalid }
   })
 }

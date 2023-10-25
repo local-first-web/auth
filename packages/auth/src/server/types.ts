@@ -1,4 +1,4 @@
-import { Keyset, KeysetWithSecrets } from '@localfirst/crdx'
+import { type Keyset, type KeysetWithSecrets } from '@localfirst/crdx'
 
 export type ServerWithSecrets = {
   host: Host

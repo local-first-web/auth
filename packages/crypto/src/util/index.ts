@@ -1,3 +1,3 @@
-export * from './base58'
-export * from './keypairToBase58'
-export * from './keyToBytes'
+export * from "./base58.js"
+export * from "./keypairToBase58.js"
+export * from "./keyToBytes.js"

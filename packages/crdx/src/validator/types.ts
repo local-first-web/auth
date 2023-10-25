@@ -1,23 +1,23 @@
-import { Action, Link, Graph } from '@/graph'
+import { type Action, type Link, type Graph } from "@/graph/index.js"
 
-export interface InvalidResult {
+export type InvalidResult = {
   isValid: false
   error: ValidationError
 }
 
-export interface ValidResult {
+export type ValidResult = {
   isValid: true
 }
 
 export class ValidationError extends Error {
+  public name: "Hash Graph validation error"
+  public details?: unknown
+
   constructor(message: string, details?: any) {
     super()
     this.message = message
     this.details = details
   }
-
-  public name: 'Hash Graph validation error'
-  public details?: any
 }
 
 export type ValidationResult = ValidResult | InvalidResult
@@ -27,6 +27,4 @@ export type Validator = <A extends Action, C>(
   graph: Graph<A, C>
 ) => ValidationResult
 
-export type ValidatorSet = {
-  [key: string]: Validator
-}
+export type ValidatorSet = Record<string, Validator>

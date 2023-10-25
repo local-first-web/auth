@@ -1,7 +1,7 @@
-import { ADMIN } from '@/role'
-import * as teams from '@/team'
-import { setup } from '@/util/testing'
-import '@/util/testing/expect/toLookLikeKeyset'
+import { ADMIN } from '@/role/index.js'
+import * as teams from '@/team/index.js'
+import { setup } from '@/util/testing/index.js'
+import '@/util/testing/expect/toLookLikeKeyset.js'
 import { symmetric } from '@localfirst/crypto'
 import { describe, expect, it } from 'vitest'
 
@@ -28,7 +28,7 @@ describe('Team', () => {
     it('adds a role', () => {
       const { alice } = setup('alice', 'bob')
 
-      // we only have default roles to start out
+      // We only have default roles to start out
       expect(alice.team.roles().map(r => r.roleName)).toEqual([ADMIN])
       expect(alice.team.hasRole(ADMIN)).toBe(true)
       expect(alice.team.hasRole(MANAGERS)).toBe(false)
@@ -41,7 +41,9 @@ describe('Team', () => {
 
       // 👩🏾 Alice adds 👨🏻‍🦲 Bob to the managers role
       alice.team.addMemberRole('bob', MANAGERS)
-      expect(alice.team.membersInRole(MANAGERS).map(m => m.userId)).toEqual(['bob'])
+      expect(alice.team.membersInRole(MANAGERS).map(m => m.userId)).toEqual([
+        'bob',
+      ])
     })
 
     it('admins have access to all role keys', () => {
@@ -125,13 +127,15 @@ describe('Team', () => {
       expect(alice.team.roles().length).toBe(1)
     })
 
-    it(`won't remove the admin role`, () => {
+    it("won't remove the admin role", () => {
       const { alice } = setup('alice')
 
       // 👩🏾 Alice tries to remove the admin role
-      const attemptToRemoveAdminRole = () => alice.team.removeRole(ADMIN)
+      const attemptToRemoveAdminRole = () => {
+        alice.team.removeRole(ADMIN)
+      }
 
-      // she can't because that would be ridiculous
+      // She can't because that would be ridiculous
       expect(attemptToRemoveAdminRole).toThrow()
     })
 
@@ -159,7 +163,10 @@ describe('Team', () => {
       const { alice } = setup('alice', { user: 'bob', admin: true })
 
       // 👩🏾 Alice and 👨🏻‍🦲 Bob are members
-      expect(alice.team.membersInRole(ADMIN).map(m => m.userId)).toEqual(['alice', 'bob'])
+      expect(alice.team.membersInRole(ADMIN).map(m => m.userId)).toEqual([
+        'alice',
+        'bob',
+      ])
       expect(alice.team.admins().map(m => m.userId)).toEqual(['alice', 'bob'])
     })
 
@@ -171,7 +178,9 @@ describe('Team', () => {
       )
 
       // 👨🏻‍🦲 Bob tries to add 👳🏽‍♂️ Charlie to the team
-      const attemptToAddUser = () => bob.team.addForTesting(charlie.user)
+      const attemptToAddUser = () => {
+        bob.team.addForTesting(charlie.user)
+      }
 
       // 👨🏻‍🦲 Bob is allowed because he is an admin
       expect(attemptToAddUser).not.toThrow()
@@ -185,7 +194,9 @@ describe('Team', () => {
       )
 
       // 👨🏻‍🦲 Bob tries to add 👳🏽‍♂️ Charlie to the team
-      const addUser = () => bob.team.addForTesting(charlie.user)
+      const addUser = () => {
+        bob.team.addForTesting(charlie.user)
+      }
 
       // 👨🏻‍🦲 Bob can't because he is not an admin
       expect(addUser).toThrow()
@@ -199,7 +210,9 @@ describe('Team', () => {
       )
 
       // 👨🏻‍🦲 Bob tries to remove 👳🏽‍♂️ Charlie
-      const remove = () => bob.team.remove('charlie')
+      const remove = () => {
+        bob.team.remove('charlie')
+      }
 
       // 👨🏻‍🦲 Bob can't because he is not an admin
       expect(remove).toThrow()
@@ -213,26 +226,35 @@ describe('Team', () => {
       )
 
       // 👨🏻‍🦲 Bob tries to make 👳🏽‍♂️ Charlie an admin
-      const add = () => bob.team.addMemberRole('charlie', ADMIN)
+      const add = () => {
+        bob.team.addMemberRole('charlie', ADMIN)
+      }
 
       // 👨🏻‍🦲 Bob can't because he is not an admin
       expect(add).toThrow()
     })
 
     it('does not allow a non-admin to remove a member from a role', () => {
-      const { charlie } = setup('alice', 'bob', { user: 'charlie', admin: false })
+      const { charlie } = setup('alice', 'bob', {
+        user: 'charlie',
+        admin: false,
+      })
 
       // 👳🏽‍♂️ Charlie tries to remove 👨🏻‍🦲 Bob as admin
-      const remove = () => charlie.team.removeMemberRole('bob', ADMIN)
+      const remove = () => {
+        charlie.team.removeMemberRole('bob', ADMIN)
+      }
 
       // 👳🏽‍♂️ Charlie can't because he is not an admin
       expect(remove).toThrow()
     })
 
-    it(`can't remove the only admin`, () => {
+    it("can't remove the only admin", () => {
       const { alice } = setup('alice', { user: 'bob', admin: false })
 
-      const remove = () => alice.team.removeMemberRole('alice', ADMIN)
+      const remove = () => {
+        alice.team.removeMemberRole('alice', ADMIN)
+      }
 
       expect(remove).toThrow()
     })
@@ -240,7 +262,9 @@ describe('Team', () => {
     it('Alice can remove herself as admin as long as there at least one other admin', () => {
       const { alice } = setup('alice', 'bob')
 
-      const remove = () => alice.team.removeMemberRole('alice', ADMIN)
+      const remove = () => {
+        alice.team.removeMemberRole('alice', ADMIN)
+      }
 
       expect(remove).not.toThrow()
     })
@@ -271,7 +295,8 @@ describe('Team', () => {
       expect(alice.team.roleKeys(COOLKIDS).generation).toBe(0)
 
       // 👩🏾 Alice encrypts something for the cool kids
-      const message = `exclusive party at Alice's house tonight. cool kids only!!!`
+      const message =
+        "exclusive party at Alice's house tonight. cool kids only!!!"
       const encryptedMessage = alice.team.encrypt(message, COOLKIDS)
       // 👨🏻‍🦲 Bob and Charlie can both read the message
 
@@ -287,7 +312,11 @@ describe('Team', () => {
       // Everyone gets the latest team state
       const savedTeam2 = alice.team.save()
       bob.team = teams.load(savedTeam2, bob.localContext, alice.team.teamKeys())
-      charlie.team = teams.load(savedTeam2, charlie.localContext, alice.team.teamKeys())
+      charlie.team = teams.load(
+        savedTeam2,
+        charlie.localContext,
+        alice.team.teamKeys()
+      )
 
       // 👳🏽‍♂️ Charlie can still read the message
       expect(charlie.team.decrypt(encryptedMessage)).toEqual(message)
@@ -297,7 +326,10 @@ describe('Team', () => {
 
       // But with a little effort...
       const decryptUsingSavedKey = (message: teams.EncryptedEnvelope) => () =>
-        symmetric.decrypt(message.contents, copyOfKeysInCaseTheyKickMeOut.secretKey)
+        symmetric.decrypt(
+          message.contents,
+          copyOfKeysInCaseTheyKickMeOut.secretKey
+        )
 
       // 👨🏻‍🦲 Bob can still see the old message using his saved key, because it was encrypted before he
       // was kicked out (can't undisclose what you've disclosed)
@@ -307,7 +339,7 @@ describe('Team', () => {
       expect(alice.team.roleKeys(COOLKIDS).generation).toBe(1)
 
       // So 👩🏾 Alice encrypts a new message for the cool kids
-      const newMessage = `party moved to Charlie's place, don't tell Bob`
+      const newMessage = "party moved to Charlie's place, don't tell Bob"
       const newEncryptedMessage = alice.team.encrypt(newMessage, COOLKIDS)
 
       // 👳🏽‍♂️ Charlie can read the message

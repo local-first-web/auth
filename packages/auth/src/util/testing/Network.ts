@@ -1,14 +1,14 @@
 // ignore file coverage
-import { Team } from '@/team'
 import {
   generateMessage,
   initSyncState,
-  KeysetWithSecrets,
+  type KeysetWithSecrets,
   receiveMessage,
-  SyncMessage,
-  SyncState,
+  type SyncMessage,
+  type SyncState,
 } from '@localfirst/crdx'
-import { setup, UserStuff } from './setup'
+import { type UserStuff } from './setup.js'
+import { type Team } from '@/team.js'
 
 // Simulates a peer-to-peer network
 export class Network {
@@ -35,19 +35,19 @@ export class Network {
   }
 
   // Enqueues one message to be sent from fromPeer to toPeer
-  sendMessage(from: string, to: string, body: SyncMessage<any, any>) {
+  sendMessage(from: string, to: string, body: SyncMessage) {
     this.queue.push({ from, to, body })
   }
 
   // Runs the protocol until all peers run out of things to say
-  deliverAll(messageMutator: MessageMutator = msg => msg) {
+  deliverAll(messageMutator: MessageMutator = message => message) {
     let messageCount = 0
     const peerCount = Object.keys(this.peers).length
-    const maxMessages = 10 ** peerCount // rough estimate
+    const maxMessages = 10 ** peerCount // Rough estimate
 
     const delivered = [] as NetworkMessage[]
 
-    while (this.queue.length) {
+    while (this.queue.length > 0) {
       const originalMessage = this.queue.shift()
 
       const message = messageMutator(originalMessage)
@@ -55,14 +55,15 @@ export class Network {
 
       this.peers[to].receiveMessage(from, body, this.teamKeys)
 
-      // log the message for the results of this delivery run
+      // Log the message for the results of this delivery run
       delivered.push(message)
 
-      // catch failure to converge
+      // Catch failure to converge
       if (messageCount++ > maxMessages) {
         throw truncateStack(new Error('loop detected'))
       }
     }
+
     return delivered
   }
 }
@@ -70,14 +71,11 @@ export class Network {
 // One peer, which may be connected to any number of other peers
 class Peer {
   syncStates: Record<string, SyncState>
-  userName: string
-  team: Team
-  network: Network
-
-  constructor(userName: string, team: Team, network: Network) {
-    this.userName = userName
-    this.team = team
-    this.network = network
+  constructor(
+    public userName: string,
+    public team: Team,
+    public network: Network
+  ) {
     this.syncStates = {}
   }
 
@@ -88,15 +86,26 @@ class Peer {
 
   // Generates and enqueues messages to all peers we're connected to (unless there is nothing to send)
   sync() {
-    for (const [userName, prevSyncState] of Object.entries(this.syncStates)) {
-      const [syncState, message] = generateMessage(this.team.graph, prevSyncState)
+    for (const [userName, previousSyncState] of Object.entries(
+      this.syncStates
+    )) {
+      const [syncState, message] = generateMessage(
+        this.team.graph,
+        previousSyncState
+      )
       this.syncStates[userName] = syncState
-      if (message) this.network.sendMessage(this.userName, userName, message)
+      if (message) {
+        this.network.sendMessage(this.userName, userName, message)
+      }
     }
   }
 
   // Called by Network when we receive a message from another peer
-  receiveMessage(sender: string, message: SyncMessage<any, any>, teamKeys: KeysetWithSecrets) {
+  receiveMessage(
+    sender: string,
+    message: SyncMessage,
+    teamKeys: KeysetWithSecrets
+  ) {
     const [chain, syncState] = receiveMessage(
       this.team.graph,
       this.syncStates[sender],
@@ -109,16 +118,15 @@ class Peer {
   }
 }
 
-function truncateStack(err: Error, lines = 5) {
-  err.stack = err
-    .stack! //
+function truncateStack(error: Error, lines = 5) {
+  error.stack = error.stack //
     .split('\n')
     .slice(1, lines)
-    .join('\n') // truncate repetitive stack
-  return err
+    .join('\n') // Truncate repetitive stack
+  return error
 }
 
-// export const setupWithNetwork = (...config: any): [Record<string, UserStuffWithPeer>, Network] => {
+// Export const setupWithNetwork = (...config: any): [Record<string, UserStuffWithPeer>, Network] => {
 //   const users = setup(...config) as Record<string, UserStuffWithPeer>
 
 //   const network = new Network(teamKeys)
@@ -131,14 +139,14 @@ function truncateStack(err: Error, lines = 5) {
 //   return [users, network]
 // }
 
-export interface UserStuffWithPeer extends UserStuff {
+export type UserStuffWithPeer = {
   peer: Peer
-}
+} & UserStuff
 
 export type NetworkMessage = {
   to: string
   from: string
-  body: SyncMessage<any, any>
+  body: SyncMessage
 }
 
-export type MessageMutator = (msg: NetworkMessage) => NetworkMessage
+export type MessageMutator = (message: NetworkMessage) => NetworkMessage

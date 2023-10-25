@@ -1,8 +1,8 @@
-import { Action, EncryptedLink, LinkMap } from '@/graph'
-import { Hash } from '@/util'
-import { ValidationError } from '@/validator'
+import { type EncryptedLink, type LinkMap } from "@/graph/index.js"
+import { type Hash } from "@/util/index.js"
+import { type ValidationError } from "@/validator/index.js"
 
-export interface SyncState {
+export type SyncState = {
   their: {
     /** Their head as of the last time they sent a sync message. */
     head: Hash[]
@@ -41,7 +41,7 @@ export interface SyncState {
   failedSyncCount: number
 }
 
-export interface SyncMessage<A extends Action, C> {
+export type SyncMessage = {
   /** Our root. We just send this as a sanity check - if our roots don't match we can't sync. */
   root: Hash
 

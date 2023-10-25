@@ -1,8 +1,8 @@
-import { Reducer } from './types'
-import { Action, Graph, Resolver } from '@/graph'
-import { Keyring, KeysetWithSecrets } from '@/keyset'
-import { UserWithSecrets } from '@/user'
-import { ValidatorSet } from '@/validator'
+import { type Reducer } from "./types.js"
+import { type Action, type Graph, type Resolver } from "@/graph/index.js"
+import { type Keyring, type KeysetWithSecrets } from "@/keyset/index.js"
+import { type UserWithSecrets } from "@/user/index.js"
+import { type ValidatorSet } from "@/validator/index.js"
 
 export type StoreOptions<S, A extends Action, C> = {
   /** The user local user, along with their secret keys for signing, encrypting, etc.  */
@@ -24,14 +24,14 @@ export type StoreOptions<S, A extends Action, C> = {
    *  built-in validators, for example those that that validate cryptographic hashes and signatures. */
   validators?: ValidatorSet
 
-  /** The initial state to provide to the reducer's first action. By default this is an empty object `{}`*/
+  /** The initial state to provide to the reducer's first action. By default this is an empty object `{}` */
   initialState?: S
 
   /** For pre-existing stores: A graph to preload, e.g. from saved state. */
   graph?: string | Graph<A, C>
 
   /** For new stores: Additional information to include in the root node  */
-  rootPayload?: any
+  rootPayload?: unknown
 
   keys: KeysetWithSecrets | Keyring
 }

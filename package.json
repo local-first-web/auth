@@ -18,6 +18,7 @@
     "dev:cy:debug": "cross-env CYPRESS_REMOTE_DEBUGGING_PORT=9222 yarn dev:cy",
     "dev": "run-p watch dev:demo",
     "dev:relay": "yarn workspace @localfirst/auth-demo dev:relay",
+    "lint": "xo",
     "test": "vitest",
     "test:run": "vitest run",
     "test:auth": "yarn workspace @localfirst/auth test",
@@ -33,18 +34,35 @@
     "@types/lodash": "^4.14.200",
     "@types/node": "^18.15.10",
     "cross-env": "^7.0.3",
+    "eslint-config-xo-react": "^0.27.0",
+    "eslint-config-xo": "^0.43.1",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-unused-imports": "^3.0.0",
+    "eslint": "^8.52.0",
     "lerna": "^6.6.1",
     "npm-run-all": "^4.1.5",
     "npm-watch": "^0.11.0",
-    "prettier": "^2.8.7",
+    "prettier": "^3.0.3",
     "typescript": "^5.2.2",
     "vite-tsconfig-paths": "^4.2.1",
-    "vitest": "^0.34.6"
+    "vitest": "^0.34.6",
+    "xo": "^0.56.0"
   },
   "workspaces": [
     "packages/*",
     "demo"
   ],
+  "prettier": {
+    "arrowParens": "avoid",
+    "bracketSpacing": true,
+    "endOfLine": "auto",
+    "semi": false,
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "useTabs": false
+  },
   "wallaby": {
     "autoDetect": true,
     "runMode": "onsave",
@@ -54,10 +72,7 @@
       "ignoreCoverageForFile": "ignore file coverage"
     },
     "env": {
-      "type": "node",
-      "params": {
-        "runner": "--no-warnings --experimental-vm-modules"
-      }
+      "type": "node"
     }
   }
 }

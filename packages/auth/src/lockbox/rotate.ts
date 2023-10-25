@@ -1,7 +1,7 @@
-﻿import { create } from '@/lockbox/create'
-import { Lockbox } from '@/lockbox/types'
-import { Keyset, KeysetWithSecrets } from '@localfirst/crdx'
-import { assertScopesMatch } from '@/util'
+import { type Keyset, type KeysetWithSecrets } from '@localfirst/crdx'
+import { create } from '@/lockbox/create.js'
+import { type Lockbox } from '@/lockbox/types.js'
+import { assertScopesMatch } from '@/util/index.js'
 
 /**
  * "Rotating" a lockbox means replacing the keys it contains with new ones.
@@ -19,23 +19,25 @@ export const rotate = ({
   oldLockbox,
   newContents,
   updatedRecipientKeys,
-}: rotateParams): Lockbox => {
+}: rotateParameters): Lockbox => {
   // Make sure the new keys have the same scope as the old ones
   assertScopesMatch(newContents, oldLockbox.contents)
   // If we're given a new public key for the recipient
-  if (updatedRecipientKeys) assertScopesMatch(oldLockbox.recipient, updatedRecipientKeys)
+  if (updatedRecipientKeys) {
+    assertScopesMatch(oldLockbox.recipient, updatedRecipientKeys)
+  }
 
-  // the new keys have the next generation index
+  // The new keys have the next generation index
   newContents.generation = oldLockbox.contents.generation + 1
 
-  // if we have updated keys for the recipient, use them; otherwise the recipient manifest is the same as before
+  // If we have updated keys for the recipient, use them; otherwise the recipient manifest is the same as before
   const recipientManifest = updatedRecipientKeys ?? oldLockbox.recipient
 
-  // make a new lockbox for the same recipient, but containing the new keys
+  // Make a new lockbox for the same recipient, but containing the new keys
   return create(newContents, recipientManifest)
 }
 
-type rotateParams = {
+type rotateParameters = {
   oldLockbox: Lockbox
   newContents: KeysetWithSecrets
   updatedRecipientKeys?: Keyset

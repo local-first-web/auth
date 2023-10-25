@@ -1,6 +1,6 @@
-﻿import { Keyset, KeysetWithSecrets } from '@/keyset'
+﻿import { type Keyset, type KeysetWithSecrets } from "@/keyset/index.js"
 
-export interface User {
+export type User = {
   /** Unique ID populated on creation. */
   userId: string
 
@@ -13,7 +13,7 @@ export interface User {
 }
 
 /** The local user and their full set of keys, including secrets.   */
-export interface UserWithSecrets {
+export type UserWithSecrets = {
   userId: string
   userName: string
 

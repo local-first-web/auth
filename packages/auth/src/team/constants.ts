@@ -1,7 +1,7 @@
-﻿import { ADMIN } from '@/role'
-import { KeyType } from '@/util'
-import { KeyScope } from '@localfirst/crdx'
-import { TeamState } from './types'
+import { type KeyScope } from '@localfirst/crdx'
+import { type TeamState } from './types.js'
+import { ADMIN } from '@/role/index.js'
+import { KeyType } from '@/util/index.js'
 
 export const ALL = 'ALL'
 

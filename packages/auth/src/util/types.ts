@@ -1,4 +1,4 @@
-﻿export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<T>
+export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<T>
 
 // KEY TYPES
 
@@ -15,12 +15,12 @@ export type KeyType = (typeof KeyType)[keyof typeof KeyType]
 
 // VALIDATION
 
-export interface InvalidResult {
+export type InvalidResult = {
   isValid: false
   error: ValidationError
 }
 
-export interface ValidResult {
+export type ValidResult = {
   isValid: true
 }
 

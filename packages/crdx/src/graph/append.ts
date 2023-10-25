@@ -1,12 +1,12 @@
-﻿import { asymmetric } from '@localfirst/crypto'
-import { EMPTY_GRAPH } from './createGraph'
-import { hashEncryptedLink } from './hashLink'
-import { Action, EncryptedLink, Graph, Link, LinkBody } from './types'
-import { KeysetWithSecrets } from '@/keyset'
-import { UserWithSecrets } from '@/user'
-import { UnixTimestamp } from '@/util'
+﻿import { asymmetric } from "@localfirst/crypto"
+import { type EMPTY_GRAPH } from "./createGraph.js"
+import { hashEncryptedLink } from "./hashLink.js"
+import type { Action, EncryptedLink, Graph, Link, LinkBody } from "./types.js"
+import type { KeysetWithSecrets } from "@/keyset/index.js"
+import type { UserWithSecrets } from "@/user/index.js"
+import type { UnixTimestamp } from "@/util/index.js"
 
-interface AppendParams<A extends Action, C> {
+type AppendParams<A extends Action, C> = {
   /** The graph to append a link to. */
   graph: Graph<A, C> | typeof EMPTY_GRAPH
 
@@ -31,7 +31,8 @@ export const append = <A extends Action, C>({
   keys,
 }: AppendParams<A, C>): Graph<A, C> => {
   // the "sender" of this encrypted link is the user authoring the link
-  const { publicKey: senderPublicKey, secretKey: senderSecretKey } = user.keys.encryption
+  const { publicKey: senderPublicKey, secretKey: senderSecretKey } =
+    user.keys.encryption
 
   // the "recipient" of this encrypted link is whoever knows the secret keys - e.g. in localfirst/auth, the current Team keys
   const { publicKey: recipientPublicKey } = keys.encryption
@@ -41,7 +42,7 @@ export const append = <A extends Action, C>({
     ...action,
     ...context,
     userId: user.userId,
-    timestamp: new Date().getTime() as UnixTimestamp,
+    timestamp: Date.now() as UnixTimestamp,
     prev: graph.head ?? [], // If there are no previous heads, this is the root node
   }
 

@@ -1,3 +1,6 @@
-import { Action, Link } from '@/graph'
+import { type Action, type Link } from "@/graph/index.js"
 
-export type Reducer<S, A extends Action, C = {}> = (state: S, link: Link<A, C>) => S
+export type Reducer<S, A extends Action, C = Record<string, unknown>> = (
+  state: S,
+  link: Link<A, C>
+) => S

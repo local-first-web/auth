@@ -1,9 +1,16 @@
-import { asymmetric } from '@localfirst/crypto'
-import { hashEncryptedLink } from './hashLink'
-import { Action, EncryptedLink, Graph, Link, LinkBody, MaybePartlyDecryptedGraph } from './types'
-import { Keyring, KeysetWithSecrets } from '@/keyset'
-import { createKeyring } from '@/keyset/createKeyring'
-import { assert, Hash } from '@/util'
+import { asymmetric } from "@localfirst/crypto"
+import { hashEncryptedLink } from "./hashLink.js"
+import {
+  type Action,
+  type EncryptedLink,
+  type Graph,
+  type Link,
+  type LinkBody,
+  type MaybePartlyDecryptedGraph,
+} from "./types.js"
+import { createKeyring } from "@/keyset/createKeyring.js"
+import { type Keyring, type KeysetWithSecrets } from "@/keyset/index.js"
+import { assert, type Hash } from "@/util/index.js"
 
 /**
  * Decrypts a single link of a graph, given the graph keys at the time the link was authored.
@@ -18,14 +25,15 @@ export const decryptLink = <A extends Action, C>(
   const keyset = keyring[recipientPublicKey]
   assert(keyset, `Can't decrypt link: don't have the correct keyset`)
 
-  var decryptedLinkBody = asymmetric.decrypt({
+  let decryptedLinkBody = asymmetric.decrypt({
     cipher: encryptedBody,
     recipientSecretKey: keyset.encryption.secretKey,
     senderPublicKey,
   }) as LinkBody<A, C>
 
   // HACK figure out why localfirst/auth is getting a JSON string here
-  if (typeof decryptedLinkBody === 'string') decryptedLinkBody = JSON.parse(decryptedLinkBody)
+  if (typeof decryptedLinkBody === "string")
+    decryptedLinkBody = JSON.parse(decryptedLinkBody) as LinkBody<A, C>
   // if (typeof decryptedLinkBody === 'string') console.error({ decryptedLinkBody })
 
   return {
@@ -46,7 +54,7 @@ export const decryptGraph: DecryptFn = <A extends Action, C>({
 }): Graph<A, C> => {
   const { encryptedLinks, root, childMap = {} } = encryptedGraph
 
-  const links = encryptedGraph.links! ?? {}
+  const links = encryptedGraph.links ?? {}
 
   /** Recursively decrypts a link and its children. */
   const decrypt = (
@@ -58,15 +66,15 @@ export const decryptGraph: DecryptFn = <A extends Action, C>({
     const decryptedLink =
       links[hash] ?? // if it's already decrypted, don't bother decrypting it again
       decryptLink(encryptedLink, keys)
-    var newLinks = {
+    let newLinks = {
       [hash]: decryptedLink,
     }
 
     // decrypt its children
     const children = childMap[hash] ?? []
-    children.forEach(hash => {
+    for (const hash of children) {
       newLinks = { ...newLinks, ...decrypt(hash, newLinks) }
-    })
+    }
 
     return { ...prevLinks, ...newLinks }
   }

@@ -1,30 +1,35 @@
-import { Connection } from '@/connection/Connection'
-import { InitialContext, SendFunction } from '@/connection/types'
-import { getDeviceId } from '@/device'
-import { pause } from './pause'
-import { TestChannel } from './TestChannel'
+import { pause } from './pause.js'
+import { type TestChannel } from './TestChannel.js'
+import { Connection } from '@/connection/Connection.js'
+import { type InitialContext, type SendFunction } from '@/connection/types.js'
+import { getDeviceId } from '@/device/index.js'
 
 /** Returns a function that can be used to join a specific test channel */
-export const joinTestChannel = (channel: TestChannel) => (context: InitialContext) => {
-  const id = getDeviceId(context.device)
+export const joinTestChannel =
+  (channel: TestChannel) => (context: InitialContext) => {
+    const id = getDeviceId(context.device)
 
-  // hook up send
-  const sendMessage: SendFunction = msg => channel.write(id, msg)
+    // Hook up send
+    const sendMessage: SendFunction = message => {
+      channel.write(id, message)
+    }
 
-  // Instantiate the connection service
-  const connection = new Connection({ sendMessage, context })
+    // Instantiate the connection service
+    const connection = new Connection({ sendMessage, context })
 
-  // hook up receive
-  channel.addListener('data', async (senderId, msg) => {
-    if (senderId === id) return // ignore messages that I sent
+    // Hook up receive
+    channel.addListener('data', async (senderId, message) => {
+      if (senderId === id) {
+        return
+      } // ignore messages that I sent
 
-    // simulate a random delay, then deliver the message
-    const delay = 1 //Math.floor(Math.random() * 100)
-    await pause(delay)
-    connection.deliver(msg)
-  })
+      // simulate a random delay, then deliver the message
+      const delay = 1 // Math.floor(Math.random() * 100)
+      await pause(delay)
+      void connection.deliver(message)
+    })
 
-  channel.addPeer()
+    channel.addPeer()
 
-  return connection
-}
+    return connection
+  }

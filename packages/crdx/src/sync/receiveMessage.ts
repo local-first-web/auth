@@ -1,9 +1,19 @@
-import { SyncMessage, SyncState } from './types'
-import { Action, getChildMap, Graph, invertLinkMap, merge } from '@/graph'
-import { DecryptFn, decryptGraph } from '@/graph/decrypt'
-import { createKeyring, isKeyring, Keyring, KeysetWithSecrets } from '@/keyset'
-import { assert } from '@/util'
-import { validate } from '@/validator'
+import { type SyncMessage, type SyncState } from "./types.js"
+import { type DecryptFn, decryptGraph } from "@/graph/decrypt.js"
+import {
+  type Action,
+  getChildMap,
+  type Graph,
+  invertLinkMap,
+  merge,
+} from "@/graph/index.js"
+import {
+  createKeyring,
+  type Keyring,
+  type KeysetWithSecrets,
+} from "@/keyset/index.js"
+import { assert } from "@/util/index.js"
+import { validate } from "@/validator/index.js"
 
 /**
  * Receives a sync message from a peer and updates our sync state accordingly so that
@@ -21,7 +31,7 @@ export const receiveMessage = <A extends Action, C>(
   prevState: SyncState,
 
   /** The sync message they've just sent */
-  message: SyncMessage<A, C>,
+  message: SyncMessage,
 
   keys: KeysetWithSecrets | Keyring,
 
@@ -38,7 +48,7 @@ export const receiveMessage = <A extends Action, C>(
     ...prevState,
     their: {
       head: their.head,
-      need: their.need || [],
+      need: their.need ?? [],
       encryptedLinks: { ...prevState.their.encryptedLinks, ...their.links },
       parentMap: { ...prevState.their.parentMap, ...their.parentMap },
       reportedError: their.error,
@@ -46,15 +56,18 @@ export const receiveMessage = <A extends Action, C>(
   }
 
   // if we've received links from them, try to reconstruct their graph and merge
-  if (Object.keys(state.their.encryptedLinks).length) {
+  if (Object.keys(state.their.encryptedLinks).length > 0) {
     // reconstruct their graph
-    const head = their.head
+    const { head } = their
 
     const ourChildMap = getChildMap(graph)
-    const theirChildMap = invertLinkMap(state.their.parentMap!)
+    const theirChildMap = invertLinkMap(state.their.parentMap)
     const childMap = { ...ourChildMap, ...theirChildMap }
 
-    const encryptedLinks = { ...graph.encryptedLinks, ...state.their.encryptedLinks }
+    const encryptedLinks = {
+      ...graph.encryptedLinks,
+      ...state.their.encryptedLinks,
+    }
     const encryptedGraph = {
       ...graph,
       head,

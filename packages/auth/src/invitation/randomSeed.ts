@@ -1,5 +1,5 @@
-﻿import { IKEY_LENGTH } from '@/invitation/create'
 import { randomKey } from '@localfirst/crypto'
+import { IKEY_LENGTH } from '@/invitation/create.js'
 
 /**
  * Randomly generates a 16-character base30 string, for example `4kgd5mwq5z4fmfwq`, to be used as

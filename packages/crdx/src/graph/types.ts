@@ -1,4 +1,4 @@
-﻿import { Base58, Hash, Optional, UnixTimestamp } from '@/util/types'
+﻿import type { Base58, Hash, Optional, UnixTimestamp } from "@/util/types.js"
 
 /**
  * A hash graph is an acyclic directed graph of links. Each link is **asymmetrically encrypted and
@@ -17,7 +17,7 @@
  * The `EncryptedGraph` can live in public. Each link is asymmetrically encrypted using the author's
  * secret key and the team public key at time of authoring.
  */
-export interface EncryptedGraph {
+export type EncryptedGraph = {
   /** Hash of the root link (the "founding" link added when the graph was created) */
   root: Hash
 
@@ -38,7 +38,7 @@ export interface EncryptedGraph {
  * The `Graph` interface includes the decrypted links as well. This is what the application will
  * actually manipulate.
  */
-export interface Graph<
+export type Graph<
   /**
    * A is the Action type — typically a union of various `type` labels (e.g. 'ADD_CONTACT') along
    * with the interface of the payload associated with each one.
@@ -49,19 +49,22 @@ export interface Graph<
    * about the context in which a link is added (e.g. a device ID, or the version of the
    * application)
    */
-  C
-> extends Optional<EncryptedGraph, 'childMap'> {
+  C,
+> = {
   /** Decrypted links */
   links: Record<Hash, Link<A, C>>
-}
+} & Optional<EncryptedGraph, "childMap">
 
 /**
  * When we pass a graph to be decrypted, some of the links might already be encrypted (for
  * instance, when we receive new encrypted links). We want to be able to decrypt the new links
  * without re-decrypting links that we already have.
  */
-export interface MaybePartlyDecryptedGraph<A extends Action, C>
-  extends Optional<Graph<A, C>, 'links'> {}
+export type MaybePartlyDecryptedGraph<A extends Action, C> = Record<
+  string,
+  unknown
+> &
+  Optional<Graph<A, C>, "links">
 
 /**
  * A `LinkMap` contains information about the graph structure of a `Graph`, without any of the
@@ -121,8 +124,8 @@ export type Link<A extends Action, C> = {
 }
 
 /** The root action's payload is defined by the application. */
-export interface RootAction {
-  type: 'ROOT'
+export type RootAction = {
+  type: "ROOT"
   payload: any
 }
 
@@ -155,7 +158,7 @@ export type LinkBody<A extends Action, C> = {
   C // plus everything from the context interface
 
 /** A `Sequence` is a topological sort of a hash graph (or one of its branches). */
-export type Sequence<A extends Action, C> = Link<A, C>[]
+export type Sequence<A extends Action, C> = Array<Link<A, C>>
 
 /**
  * A `Resolver` encapsulates the logic for merging concurrent branches. It takes the graph as an
@@ -186,6 +189,9 @@ export type Resolver<A extends Action, C> = (graph: Graph<A, C>) => {
  * Array.sort() comparator, it is expected to return a negative value if `a` is less than the `b`,
  * zero if `a` and `b` are equal, and a positive value otherwise.
  */
-export type LinkComparator = <A extends Action, C>(a: Link<A, C>, b: Link<A, C>) => number
+export type LinkComparator = <A extends Action, C>(
+  a: Link<A, C>,
+  b: Link<A, C>
+) => number
 
 export type LinkFilter<A extends Action, C> = (link: Link<A, C>) => boolean

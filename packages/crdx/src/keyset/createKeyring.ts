@@ -1,13 +1,16 @@
-import { isKeyring, isKeyset, Keyring, KeysetWithSecrets } from './types'
+import {
+  isKeyring,
+  isKeyset,
+  type Keyring,
+  type KeysetWithSecrets,
+} from "./types.js"
 
-export const createKeyring = (keys: Keyring | KeysetWithSecrets | KeysetWithSecrets[]): Keyring => {
+export const createKeyring = (
+  keys: Keyring | KeysetWithSecrets | KeysetWithSecrets[]
+): Keyring => {
   if (isKeyring(keys)) return keys
   if (isKeyset(keys)) keys = [keys]
-  return keys.reduce(
-    (keyring, keyset) => ({
-      ...keyring,
-      [keyset.encryption.publicKey]: keyset,
-    }),
-    {} as Keyring
+  return Object.fromEntries(
+    keys.map<Keyring>(keyset => [keyset.encryption.publicKey, keyset])
   )
 }

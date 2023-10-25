@@ -1,14 +1,14 @@
 // ignore file coverage
-import { expect } from 'vitest'
-import { setup } from './setup'
-import { createGraph, Graph, headsAreEqual } from '@/graph'
-import { KeysetWithSecrets } from '@/keyset'
-import { generateMessage } from '@/sync/generateMessage'
-import { initSyncState } from '@/sync/initSyncState'
-import { receiveMessage } from '@/sync/receiveMessage'
-import { SyncMessage, SyncState } from '@/sync/types'
-import { TEST_GRAPH_KEYS as keys } from '@test/helpers/setup'
-import { UserWithSecrets } from '@/user'
+import { TEST_GRAPH_KEYS as keys } from "@test/helpers/setup"
+import { expect } from "vitest"
+import { setup } from "./setup.js"
+import { createGraph, type Graph, headsAreEqual } from "@/graph/index.js"
+import { type KeysetWithSecrets } from "@/keyset/index.js"
+import { generateMessage } from "@/sync/generateMessage.js"
+import { initSyncState } from "@/sync/initSyncState.js"
+import { receiveMessage } from "@/sync/receiveMessage.js"
+import { type SyncMessage, type SyncState } from "@/sync/types.js"
+import { type UserWithSecrets } from "@/user/index.js"
 
 /** Simulates a peer-to-peer network. */
 export class Network {
@@ -34,7 +34,7 @@ export class Network {
   }
 
   /** Enqueues one message to be sent from fromPeer to toPeer */
-  sendMessage(from: string, to: string, body: SyncMessage<any, any>) {
+  sendMessage(from: string, to: string, body: SyncMessage) {
     this.queue.push({ from, to, body })
   }
 
@@ -46,9 +46,9 @@ export class Network {
 
     const delivered = [] as NetworkMessage[]
 
-    while (this.queue.length) {
+    while (this.queue.length > 0) {
       // catch failure to converge
-      if (messageCount++ > maxMessages) throw new Error('loop detected')
+      if (messageCount++ > maxMessages) throw new Error("loop detected")
 
       // send the oldest message in the queue
       const message = this.queue.shift()!
@@ -58,6 +58,7 @@ export class Network {
 
       delivered.push(message)
     }
+
     return delivered
   }
 }
@@ -65,14 +66,12 @@ export class Network {
 /** One peer, which may be connected to any number of other peers */
 export class Peer {
   syncStates: Record<string, SyncState>
-  userName: string
-  graph: Graph<any, any>
-  network: Network
 
-  constructor(userName: string, graph: Graph<any, any>, network: Network) {
-    this.userName = userName
-    this.graph = graph
-    this.network = network
+  constructor(
+    public userName: string,
+    public graph: Graph<any, any>,
+    public network: Network
+  ) {
     this.network.registerPeer(this)
     this.syncStates = {}
   }
@@ -86,7 +85,10 @@ export class Peer {
   sync(userName?: string) {
     if (userName) {
       // sync only with this peer
-      const [syncState, message] = generateMessage(this.graph, this.syncStates[userName])
+      const [syncState, message] = generateMessage(
+        this.graph,
+        this.syncStates[userName]
+      )
       this.syncStates[userName] = syncState
       if (message) this.network.sendMessage(this.userName, userName, message)
     } else {
@@ -96,14 +98,25 @@ export class Peer {
   }
 
   /** Called by Network when we receive a message from another peer */
-  receiveMessage(sender: string, message: SyncMessage<any, any>) {
+  receiveMessage(sender: string, message: SyncMessage) {
     if (message.error) {
-      throw new Error(`${message.error.message}\n${JSON.stringify(message.error.details, null, 2)}`)
+      throw new Error(
+        `${message.error.message}\n${JSON.stringify(
+          message.error.details,
+          null,
+          2
+        )}`
+      )
     }
 
     const prevHead = this.graph.head
 
-    const [graph, syncState] = receiveMessage(this.graph, this.syncStates[sender], message, keys)
+    const [graph, syncState] = receiveMessage(
+      this.graph,
+      this.syncStates[sender],
+      message,
+      keys
+    )
     this.graph = graph
     this.syncStates[sender] = syncState
 
@@ -151,7 +164,7 @@ export const expectNotToBeSynced = (a: TestUserStuff, b: TestUserStuff) => {
 export type NetworkMessage = {
   to: string
   from: string
-  body: SyncMessage<any, any>
+  body: SyncMessage
 }
 
 export type TestUserStuff = {

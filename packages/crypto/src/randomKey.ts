@@ -1,6 +1,7 @@
-import sodium from 'libsodium-wrappers-sumo'
-import { base58 } from './util'
+import sodium from "libsodium-wrappers-sumo"
+import { base58 } from "./util/index.js"
 
-/** Returns an unpredictable key with the given length (32 bytes by default).*/
+/** Returns an unpredictable key with the given length (32 bytes by default). */
 
-export const randomKey = (length: number = 32) => base58.encode(sodium.randombytes_buf(length))
+export const randomKey = (length = 32) =>
+  base58.encode(sodium.randombytes_buf(length))

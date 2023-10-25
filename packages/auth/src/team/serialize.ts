@@ -1,11 +1,18 @@
+import {
+  decryptGraph,
+  type EncryptedGraph,
+  getChildMap,
+  type Keyring,
+  type LinkMap,
+} from '@localfirst/crdx'
+import { type TeamGraph } from './types.js'
+
 export const EMPTY: LinkMap = {}
-import { decryptGraph, EncryptedGraph, getChildMap, Keyring, LinkMap } from '@localfirst/crdx'
-import { TeamGraph } from './types'
 
 export const serializeTeamGraph = (graph: TeamGraph): string => {
   const childMap = getChildMap(graph)
 
-  // leave out the unencrypted `links` element
+  // Leave out the unencrypted `links` element
   const { encryptedLinks, head, root } = graph
   const encryptedGraph = { encryptedLinks, childMap, head, root }
 
@@ -13,7 +20,10 @@ export const serializeTeamGraph = (graph: TeamGraph): string => {
   return serialized
 }
 
-export const deserializeTeamGraph = (serialized: string, keys: Keyring): TeamGraph => {
+export const deserializeTeamGraph = (
+  serialized: string,
+  keys: Keyring
+): TeamGraph => {
   const encryptedGraph = JSON.parse(serialized) as EncryptedGraph
   return decryptGraph({ encryptedGraph, keys })
 }

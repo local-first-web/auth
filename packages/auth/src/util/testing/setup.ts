@@ -1,19 +1,25 @@
-﻿import { Connection, InitialContext } from '@/connection'
-import { LocalUserContext } from '@/context'
-import * as devices from '@/device'
-import { DeviceWithSecrets, getDeviceId } from '@/device'
-import { ADMIN } from '@/role'
-import * as teams from '@/team'
-import { Team, TeamContext } from '@/team'
-import { arrayToMap, assert, KeyType } from '@/util'
-import { createKeyring, createUser, UserWithSecrets } from '@localfirst/crdx'
+import {
+  createKeyring,
+  createUser,
+  type UserWithSecrets,
+} from '@localfirst/crdx'
+import { type Connection, type InitialContext } from '@/connection/index.js'
+import { type LocalUserContext } from '@/context/index.js'
+import * as devices from '@/device/index.js'
+import { type DeviceWithSecrets, getDeviceId } from '@/device/index.js'
+import { ADMIN } from '@/role/index.js'
+import * as teams from '@/team/index.js'
+import { type Team, type TeamContext } from '@/team/index.js'
+import { arrayToMap, assert, KeyType } from '@/util/index.js'
 
-export type SetupConfig = ((TestUserSettings | string)[] | TestUserSettings | string)[]
+export type SetupConfig = Array<
+  Array<TestUserSettings | string> | TestUserSettings | string
+>
 
 // ignore file coverage
 
 /**
-Usage: 
+Usage:
 
 ```ts
 const {alice, bob} = setup(['alice', 'bob'])
@@ -26,11 +32,15 @@ alice.team.add('bob')
 export const setup = (..._config: SetupConfig) => {
   assert(_config.length > 0)
 
-  // accept `setup(['a', 'b'])` or `setup('a','b')`
-  if (Array.isArray(_config[0])) _config = _config[0] as (TestUserSettings | string)[]
+  // Accept `setup(['a', 'b'])` or `setup('a','b')`
+  if (Array.isArray(_config[0])) {
+    _config = _config[0] as Array<TestUserSettings | string>
+  }
 
   // Coerce string userIds into TestUserSettings objects
-  const config = _config.map(u => (typeof u === 'string' ? { user: u } : u)) as TestUserSettings[]
+  const config = _config.map(u =>
+    typeof u === 'string' ? { user: u } : u
+  ) as TestUserSettings[]
 
   // Get a list of just user ids
   const userIds = config.map(user => user.user)
@@ -38,8 +48,9 @@ export const setup = (..._config: SetupConfig) => {
   // Create users
   const testUsers: Record<string, UserWithSecrets> = userIds
     .map((userId: string) => {
-      const randomSeed = userId // make these predictable
-      const userName = userId.replace(/^(.)/, (_, c) => c.toUpperCase()) + ' McUser'
+      const randomSeed = userId // Make these predictable
+      const userName =
+        userId.replace(/^(.)/, (_, c) => c.toUpperCase()) + ' McUser'
       return createUser(userName, userId, randomSeed)
     })
     .reduce(arrayToMap('userId'), {})
@@ -60,7 +71,7 @@ export const setup = (..._config: SetupConfig) => {
     .reduce(arrayToMap('userId'), {})
 
   // Create team
-  const founder = userIds[0] // e.g. alice
+  const founder = userIds[0] // E.g. alice
 
   const founderContext = { user: testUsers[founder], device: laptops[founder] }
   const teamName = 'Spies Я Us'
@@ -77,9 +88,13 @@ export const setup = (..._config: SetupConfig) => {
       team.addForTesting(user, roles, device)
     }
   }
-  const graph = team.graph
 
-  const makeUserStuff = ({ user: userId, member = true }: TestUserSettings): UserStuff => {
+  const { graph } = team
+
+  const makeUserStuff = ({
+    user: userId,
+    member = true,
+  }: TestUserSettings): UserStuff => {
     const user = testUsers[userId]
     const randomSeed = userId
     const device = laptops[userId]
@@ -88,16 +103,16 @@ export const setup = (..._config: SetupConfig) => {
     const localContext = { user, device }
     const graphContext = { deviceId: getDeviceId(device) }
     const team = member
-      ? teams.load(graph, localContext, createKeyring(teamKeys)) // members get a copy of the source team
-      : teams.createTeam(userId, localContext, randomSeed) // non-members get a dummy empty placeholder team
+      ? teams.load(graph, localContext, createKeyring(teamKeys)) // Members get a copy of the source team
+      : teams.createTeam(userId, localContext, randomSeed) // Non-members get a dummy empty placeholder team
 
     const phoneStuff: UserStuff = {
       userId,
       deviceId: getDeviceId(phone),
       user,
       team: member
-        ? teams.load(graph, localContext, createKeyring(teamKeys)) // members get a copy of the source team
-        : teams.createTeam(userId, localContext, randomSeed), // non-members get a dummy empty placeholder team
+        ? teams.load(graph, localContext, createKeyring(teamKeys)) // Members get a copy of the source team
+        : teams.createTeam(userId, localContext, randomSeed), // Non-members get a dummy empty placeholder team
       device: phone,
       localContext: { user, device: phone },
       graphContext: { deviceId: getDeviceId(phone) },
@@ -158,7 +173,7 @@ export type TestUserSettings = {
   member?: boolean
 }
 
-export interface UserStuff {
+export type UserStuff = {
   userId: string
   deviceId: string
   user: UserWithSecrets

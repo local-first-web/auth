@@ -1,8 +1,8 @@
-import { TeamAction, TeamLinkBody } from './types'
+import { type TeamAction, type TeamLinkBody } from './types.js'
 
 export const isAdminOnlyAction = (action: TeamLinkBody) => {
-  // any team member can do these things
-  const nonAdminActions: TeamAction['type'][] = [
+  // Any team member can do these things
+  const nonAdminActions: Array<TeamAction['type']> = [
     'INVITE_DEVICE',
     'ADD_DEVICE',
     'CHANGE_MEMBER_KEYS',

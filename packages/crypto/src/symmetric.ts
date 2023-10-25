@@ -1,8 +1,8 @@
-import sodium from 'libsodium-wrappers-sumo'
-import { pack, unpack } from 'msgpackr'
-import { Base58, Payload } from './types'
-import { base58, keyToBytes } from './util'
-import { stretch } from './stretch'
+import sodium from "libsodium-wrappers-sumo"
+import { pack, unpack } from "msgpackr"
+import { stretch } from "./stretch.js"
+import type { Cipher, Base58, Payload } from "./types.js"
+import { base58, keyToBytes } from "./util/index.js"
 
 /**
  * Symmetrically encrypts a byte array.
@@ -16,7 +16,8 @@ const encryptBytes = (
   const key = stretch(password)
   const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES)
   const encrypted = sodium.crypto_secretbox_easy(payload, nonce, key)
-  const cipherBytes = pack({ nonce, message: encrypted })
+  const cipher: Cipher = { nonce, message: encrypted }
+  const cipherBytes = pack(cipher)
   return cipherBytes
 }
 
@@ -30,7 +31,7 @@ const decryptBytes = (
   password: string
 ): Uint8Array => {
   const key = stretch(password)
-  const { nonce, message } = unpack(cipher)
+  const { nonce, message } = unpack(cipher) as Cipher
   return sodium.crypto_secretbox_open_easy(message, nonce, key)
 }
 
@@ -61,7 +62,7 @@ const decrypt = (
 ): Payload => {
   const cipherBytes = keyToBytes(cipher)
   const decrypted = decryptBytes(cipherBytes, password)
-  return unpack(decrypted)
+  return unpack(decrypted) as Payload
 }
 
 export const symmetric = { encryptBytes, decryptBytes, encrypt, decrypt }

@@ -1,7 +1,13 @@
-﻿import { hash, asymmetric, signatures, stretch, randomKey } from '@localfirst/crypto'
-import { KeyScope, KeysetWithSecrets } from './types'
-import { HashPurpose } from '@/constants'
-import { Optional } from '@/util'
+﻿import {
+  hash,
+  asymmetric,
+  signatures,
+  stretch,
+  randomKey,
+} from "@localfirst/crypto"
+import { type KeyScope, type KeysetWithSecrets } from "./types.js"
+import { HashPurpose } from "@/constants.js"
+import { type Optional } from "@/util/index.js"
 
 const { SIGNATURE, ENCRYPTION, SYMMETRIC } = HashPurpose
 
@@ -10,7 +16,7 @@ const { SIGNATURE, ENCRYPTION, SYMMETRIC } = HashPurpose
  * */
 export const createKeyset = (
   /** The scope associated with the new keys - e.g. `{ type: TEAM }` or `{type: ROLE, name: ADMIN}`.  */
-  scope: Optional<KeyScope, 'name'>,
+  scope: Optional<KeyScope, "name">,
 
   /** A strong secret key used to derive the other keys. This key should be randomly generated to
    *  begin with and never stored. If not provided, a 32-byte random key will be generated and used. */
@@ -23,7 +29,9 @@ export const createKeyset = (
     name,
     generation: 0,
     signature: signatures.keyPair(hash(SIGNATURE, stretchedSeed).slice(0, 32)),
-    encryption: asymmetric.keyPair(hash(ENCRYPTION, stretchedSeed).slice(0, 32)),
+    encryption: asymmetric.keyPair(
+      hash(ENCRYPTION, stretchedSeed).slice(0, 32)
+    ),
     secretKey: hash(SYMMETRIC, stretchedSeed),
   }
 }

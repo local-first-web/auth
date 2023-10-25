@@ -1,6 +1,9 @@
-﻿import { Transform } from '@/team/types'
+import { type Transform } from '@/team/types.js'
 
-export const addMemberRoles = (userId: string, roles: string[] = []): Transform[] =>
+export const addMemberRoles = (
+  userId: string,
+  roles: string[] = []
+): Transform[] =>
   roles.map(roleName => state => ({
     ...state,
     members: state.members.map(member => ({

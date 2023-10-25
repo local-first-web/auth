@@ -1,9 +1,10 @@
-﻿import { connect, setup } from '@/util/testing'
 import { describe, expect, it } from 'vitest'
+import { connect, setup } from '@/util/testing/index.js'
 
 describe('connection', () => {
   describe('encryption', () => {
-    it('allows Alice and Bob to send each other encrypted messages', () =>
+    it('allows Alice and Bob to send each other encrypted messages', async () =>
+      // eslint-disable-next-line no-async-promise-executor
       new Promise<void>(async resolve => {
         const { alice, bob } = setup('alice', 'bob')
         // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel

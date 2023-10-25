@@ -1,8 +1,13 @@
-﻿import { challenge, prove, verify } from '@/connection/identity'
-import { ADMIN_SCOPE, TEAM_SCOPE } from '@/team'
-import { setup } from '@/util/testing'
-import '@/util/testing/expect/toBeValid'
-import { KeyScope, KeyType, createKeyset, redactKeys } from '@localfirst/crdx'
+import { challenge, prove, verify } from '@/connection/identity.js'
+import { ADMIN_SCOPE, TEAM_SCOPE } from '@/team/index.js'
+import { setup } from '@/util/testing/index.js'
+import '@/util/testing/expect/toBeValid.js'
+import {
+  type KeyScope,
+  KeyType,
+  createKeyset,
+  redactKeys,
+} from '@localfirst/crdx'
 import { describe, expect, it } from 'vitest'
 
 const { bob, eve } = setup('alice', 'bob', 'eve')
@@ -64,7 +69,11 @@ describe('identity', () => {
     const bobsProof = prove(alicesChallengeToBob, bobSecretKeys)
 
     // 👩🏾 Alice checks his proof
-    const validationOfBobsProof = verify(alicesChallengeToBob, bobsProof, bobPublicKeys)
+    const validationOfBobsProof = verify(
+      alicesChallengeToBob,
+      bobsProof,
+      bobPublicKeys
+    )
 
     // ✅ Bob's proof checks out
     expect(validationOfBobsProof).toBeValid()
@@ -81,7 +90,11 @@ describe('identity', () => {
     const evesProof = bobsProof
 
     // 👩🏾 Alice checks Eve's proof
-    const validationOfEvesProof = verify(alicesChallengeToEve, evesProof, bobPublicKeys)
+    const validationOfEvesProof = verify(
+      alicesChallengeToEve,
+      evesProof,
+      bobPublicKeys
+    )
 
     // ❌ FOILED AGAIN!! Eve's proof fails because the challenge she was given is different
     expect(validationOfEvesProof).not.toBeValid()

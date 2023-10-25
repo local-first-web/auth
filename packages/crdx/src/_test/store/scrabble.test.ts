@@ -1,11 +1,11 @@
-import { makeRandom } from '@herbcaudill/random'
-import { describe, expect, test } from 'vitest'
-import { RootAction, createGraph } from '@/graph'
-import { Store, createStore } from '@/store'
-import { Reducer } from '@/store/types'
-import { TEST_GRAPH_KEYS as keys } from '@test/helpers/setup'
-import { createUser } from '@/user'
-import { arrayToMap } from '@/util'
+import { makeRandom } from "@herbcaudill/random"
+import { TEST_GRAPH_KEYS as keys } from "@test/helpers/setup"
+import { describe, expect, test } from "vitest"
+import { type RootAction, createGraph } from "@/graph/index.js"
+import { type Store, createStore } from "@/store/index.js"
+import { type Reducer } from "@/store/types.js"
+import { createUser } from "@/user/index.js"
+import { arrayToMap } from "@/util/index.js"
 
 /*
 This is a somewhat more complicated example, modeling the game Scrabble Attacks (created by Nancy
@@ -15,19 +15,28 @@ This store doesn't have a custom resolver; any conflicting actions (e.g. concurr
 the same letter) are ordered arbitrarily and dealt with in the reducer. 
 */
 
-const alice = createUser('alice', 'alice')
-const bob = createUser('bob', 'bob')
+const alice = createUser("alice", "alice")
+const bob = createUser("bob", "bob")
 
 const setupScrabbleAttacks = () => {
-  const graph = createGraph<ScrabbleAttacksAction>({ user: alice, name: 'scrabble', keys })
+  const graph = createGraph<ScrabbleAttacksAction>({
+    user: alice,
+    name: "scrabble",
+    keys,
+  })
   const reducer = scrabbleAttacksReducer
 
   // Alice starts a game and adds Bob as a player
   const aliceStore = createStore({ user: alice, graph, reducer, keys })
-  aliceStore.dispatch({ type: 'ADD_PLAYER', payload: { userId: 'bob' } })
+  aliceStore.dispatch({ type: "ADD_PLAYER", payload: { userId: "bob" } })
 
   // Bob starts with a copy of Alice's graph
-  const bobStore = createStore({ user: bob, graph: aliceStore.getGraph(), reducer, keys })
+  const bobStore = createStore({
+    user: bob,
+    graph: aliceStore.getGraph(),
+    reducer,
+    keys,
+  })
 
   // To sync, each merges their graph with the other's
   const sync = () => {
@@ -38,48 +47,50 @@ const setupScrabbleAttacks = () => {
   return { aliceStore, bobStore, sync }
 }
 
-describe('scrabble attacks', () => {
-  describe('createStore', () => {
-    test('initial state', () => {
+describe("scrabble attacks", () => {
+  describe("createStore", () => {
+    test("initial state", () => {
       const { aliceStore } = setupScrabbleAttacks()
       const { players, tiles } = aliceStore.getState()
       expect(players).toEqual([
-        { userId: 'alice', words: [] },
-        { userId: 'bob', words: [] },
+        { userId: "alice", words: [] },
+        { userId: "bob", words: [] },
       ])
       expect(Object.keys(tiles)).toHaveLength(100)
     })
   })
 
-  describe('flip tiles', () => {
-    test('flip one tile', () => {
+  describe("flip tiles", () => {
+    test("flip one tile", () => {
       const { aliceStore } = setupScrabbleAttacks()
 
-      const availableTiles = () => Object.values(aliceStore.getState().tiles).filter(isAvailable)
+      const availableTiles = () =>
+        Object.values(aliceStore.getState().tiles).filter(t => isAvailable(t))
 
       // no tiles are face up
       expect(availableTiles()).toHaveLength(0)
 
       // we flip one tile
-      aliceStore.dispatch({ type: 'FLIP_TILE', payload: { id: 1 } })
+      aliceStore.dispatch({ type: "FLIP_TILE", payload: { id: 1 } })
 
       // now one tile is face up
       expect(availableTiles()).toHaveLength(1)
     })
 
-    test('claim a word (tiles are available)', () => {
+    test("claim a word (tiles are available)", () => {
       const { aliceStore } = setupScrabbleAttacks()
-      const availableTiles = () => Object.values(aliceStore.getState().tiles).filter(isAvailable)
+      const availableTiles = () =>
+        Object.values(aliceStore.getState().tiles).filter(t => isAvailable(t))
       const flip = omniscientlyFlipTileByLetter(aliceStore)
 
       // flip three tiles
-      flip('C')
-      flip('A')
-      flip('T')
+      flip("C")
+      flip("A")
+      flip("T")
       expect(availableTiles()).toHaveLength(3)
 
       // claim the word 'CAT'
-      aliceStore.dispatch({ type: 'CLAIM_WORD', payload: { word: 'CAT' } })
+      aliceStore.dispatch({ type: "CLAIM_WORD", payload: { word: "CAT" } })
       const { players, messages } = aliceStore.getState()
       const [alice] = players
 
@@ -87,23 +98,23 @@ describe('scrabble attacks', () => {
       expect(messages).toHaveLength(0)
 
       // alice has the word
-      expect(alice.words[0]).toEqual('CAT')
+      expect(alice.words[0]).toEqual("CAT")
 
       // no tiles are available
       expect(availableTiles()).toHaveLength(0)
     })
 
-    test('claim a word (not all tiles are available)', () => {
+    test("claim a word (not all tiles are available)", () => {
       const { aliceStore } = setupScrabbleAttacks()
       const flip = omniscientlyFlipTileByLetter(aliceStore)
 
       // flip three tiles
-      flip('D')
-      flip('O')
-      flip('G')
+      flip("D")
+      flip("O")
+      flip("G")
 
       // try to claim the word 'DOLL'
-      aliceStore.dispatch({ type: 'CLAIM_WORD', payload: { word: 'DOLL' } })
+      aliceStore.dispatch({ type: "CLAIM_WORD", payload: { word: "DOLL" } })
       const { players, messages } = aliceStore.getState()
       const [alice] = players
 
@@ -114,17 +125,17 @@ describe('scrabble attacks', () => {
       expect(alice.words).toHaveLength(0)
     })
 
-    test('claim a word (only one instance of repeated letter available)', () => {
+    test("claim a word (only one instance of repeated letter available)", () => {
       const { aliceStore } = setupScrabbleAttacks()
       const flip = omniscientlyFlipTileByLetter(aliceStore)
 
       // flip three tiles
-      flip('D')
-      flip('O')
-      flip('L')
+      flip("D")
+      flip("O")
+      flip("L")
 
       // try to claim the word 'DOLL'
-      aliceStore.dispatch({ type: 'CLAIM_WORD', payload: { word: 'DOLL' } })
+      aliceStore.dispatch({ type: "CLAIM_WORD", payload: { word: "DOLL" } })
       const { players, messages } = aliceStore.getState()
       const [alice] = players
 
@@ -135,18 +146,18 @@ describe('scrabble attacks', () => {
       expect(alice.words).toHaveLength(0)
     })
 
-    test('claim a word (all repeated letters available)', () => {
+    test("claim a word (all repeated letters available)", () => {
       const { aliceStore } = setupScrabbleAttacks()
       const flip = omniscientlyFlipTileByLetter(aliceStore)
 
       // flip four tiles
-      flip('D')
-      flip('O')
-      flip('L')
-      flip('L')
+      flip("D")
+      flip("O")
+      flip("L")
+      flip("L")
 
       // try to claim the word 'DOLL'
-      aliceStore.dispatch({ type: 'CLAIM_WORD', payload: { word: 'DOLL' } })
+      aliceStore.dispatch({ type: "CLAIM_WORD", payload: { word: "DOLL" } })
       const { players, messages } = aliceStore.getState()
       const [alice] = players
 
@@ -154,32 +165,32 @@ describe('scrabble attacks', () => {
       expect(messages).toHaveLength(0)
 
       // alice has the word
-      expect(alice.words[0]).toEqual('DOLL')
+      expect(alice.words[0]).toEqual("DOLL")
     })
   })
 
-  describe('concurrent changes', () => {
-    test('no conflict', () => {
+  describe("concurrent changes", () => {
+    test("no conflict", () => {
       const { aliceStore, bobStore, sync } = setupScrabbleAttacks()
       const flip = omniscientlyFlipTileByLetter(aliceStore)
 
       // two words are available
 
-      flip('C')
-      flip('A')
-      flip('T')
+      flip("C")
+      flip("A")
+      flip("T")
 
-      flip('D')
-      flip('O')
-      flip('G')
+      flip("D")
+      flip("O")
+      flip("G")
 
       sync()
 
       // alice claims CAT
-      aliceStore.dispatch({ type: 'CLAIM_WORD', payload: { word: 'CAT' } })
+      aliceStore.dispatch({ type: "CLAIM_WORD", payload: { word: "CAT" } })
 
       // bob claims DOG
-      bobStore.dispatch({ type: 'CLAIM_WORD', payload: { word: 'DOG' } })
+      bobStore.dispatch({ type: "CLAIM_WORD", payload: { word: "DOG" } })
 
       sync()
 
@@ -190,29 +201,29 @@ describe('scrabble attacks', () => {
       expect(messages).toHaveLength(0)
 
       // alice has her word
-      expect(alice.words[0]).toEqual('CAT')
+      expect(alice.words[0]).toEqual("CAT")
 
       // bob has his word
-      expect(bob.words[0]).toEqual('DOG')
+      expect(bob.words[0]).toEqual("DOG")
     })
 
-    test('claim same word', () => {
+    test("claim same word", () => {
       const { aliceStore, bobStore, sync } = setupScrabbleAttacks()
       const flip = omniscientlyFlipTileByLetter(aliceStore)
 
       // one word is available
 
-      flip('C')
-      flip('A')
-      flip('T')
+      flip("C")
+      flip("A")
+      flip("T")
 
       sync()
 
       // alice claims CAT
-      aliceStore.dispatch({ type: 'CLAIM_WORD', payload: { word: 'CAT' } })
+      aliceStore.dispatch({ type: "CLAIM_WORD", payload: { word: "CAT" } })
 
       // bob claims CAT
-      bobStore.dispatch({ type: 'CLAIM_WORD', payload: { word: 'CAT' } })
+      bobStore.dispatch({ type: "CLAIM_WORD", payload: { word: "CAT" } })
 
       sync()
 
@@ -226,29 +237,33 @@ describe('scrabble attacks', () => {
       expect(messages).toHaveLength(1)
 
       // somebody got the word
-      expect(alice.words.includes('CAT') || bob.words.includes('CAT')).toBe(true)
+      expect(alice.words.includes("CAT") || bob.words.includes("CAT")).toBe(
+        true
+      )
       // only one person got the word
-      expect(alice.words.includes('CAT') && bob.words.includes('CAT')).toBe(false)
+      expect(alice.words.includes("CAT") && bob.words.includes("CAT")).toBe(
+        false
+      )
     })
 
-    test('claim words using common letters', () => {
+    test("claim words using common letters", () => {
       const { aliceStore, bobStore, sync } = setupScrabbleAttacks()
       const flip = omniscientlyFlipTileByLetter(aliceStore)
 
       // a couple different words are available: CAT, BAT, TAB, CAB; but only one can be claimed
 
-      flip('C')
-      flip('A')
-      flip('T')
-      flip('B')
+      flip("C")
+      flip("A")
+      flip("T")
+      flip("B")
 
       sync()
 
       // alice claims CAT
-      aliceStore.dispatch({ type: 'CLAIM_WORD', payload: { word: 'CAT' } })
+      aliceStore.dispatch({ type: "CLAIM_WORD", payload: { word: "CAT" } })
 
       // bob claims CAB
-      bobStore.dispatch({ type: 'CLAIM_WORD', payload: { word: 'CAB' } })
+      bobStore.dispatch({ type: "CLAIM_WORD", payload: { word: "CAB" } })
 
       sync()
 
@@ -262,9 +277,13 @@ describe('scrabble attacks', () => {
       expect(messages).toHaveLength(1)
 
       // somebody got the word
-      expect(alice.words.includes('CAT') || bob.words.includes('CAB')).toBe(true)
+      expect(alice.words.includes("CAT") || bob.words.includes("CAB")).toBe(
+        true
+      )
       // only one person got the word
-      expect(alice.words.includes('CAT') && bob.words.includes('CAB')).toBe(false)
+      expect(alice.words.includes("CAT") && bob.words.includes("CAB")).toBe(
+        false
+      )
     })
   })
 })
@@ -273,17 +292,17 @@ describe('scrabble attacks', () => {
 
 // reducer
 
-const SEED = 'test 12345'
+const SEED = "test 12345"
 
-const scrabbleAttacksReducer: Reducer<ScrabbleAttacksState, ScrabbleAttacksAction> = (
-  state,
-  link
-) => {
+const scrabbleAttacksReducer: Reducer<
+  ScrabbleAttacksState,
+  ScrabbleAttacksAction
+> = (state, link) => {
   const action = link.body
   const { players, tiles, messages } = state
 
   switch (action.type) {
-    case 'ROOT': {
+    case "ROOT": {
       const { userId } = link.body
       const rootPlayer = { userId, words: [] }
       return {
@@ -293,7 +312,7 @@ const scrabbleAttacksReducer: Reducer<ScrabbleAttacksState, ScrabbleAttacksActio
       }
     }
 
-    case 'ADD_PLAYER': {
+    case "ADD_PLAYER": {
       const { userId } = action.payload
       const newPlayer = { userId, words: [] }
       return {
@@ -302,7 +321,7 @@ const scrabbleAttacksReducer: Reducer<ScrabbleAttacksState, ScrabbleAttacksActio
       }
     }
 
-    case 'FLIP_TILE': {
+    case "FLIP_TILE": {
       const { id } = action.payload
       const tileToFlip = tiles[id]
       return {
@@ -317,42 +336,48 @@ const scrabbleAttacksReducer: Reducer<ScrabbleAttacksState, ScrabbleAttacksActio
       }
     }
 
-    case 'CLAIM_WORD': {
+    case "CLAIM_WORD": {
       const { userId } = action
       const { word } = action.payload
 
-      let availableTiles = Object.values(tiles).filter(isAvailable)
+      let availableTiles = Object.values(tiles).filter(t => isAvailable(t))
 
-      const wordLetters = word.split('') as Letter[]
+      const wordLetters = word.split("") as Letter[]
 
       // see if there's a tile to match each letter in this word
-      let matchingTiles = []
+      const matchingTiles = []
       for (const letter of wordLetters) {
         const find = findByLetterIn(availableTiles)
         const matchingTile = find(letter)
 
         if (matchingTile === undefined) {
           // not available - abort
-          const newMessage = { userId, message: `letter ${letter} not available` }
+          const newMessage = {
+            userId,
+            message: `letter ${letter} not available`,
+          }
           return {
             ...state,
             messages: messages.concat(newMessage),
           }
-        } else {
-          // mark this tile as taken
-          matchingTiles.push({ ...matchingTile, isTaken: true })
-          // remove this tile from available set
-          availableTiles = availableTiles.filter(tile => tile.id !== matchingTile.id)
         }
+
+        // mark this tile as taken
+        matchingTiles.push({ ...matchingTile, isTaken: true })
+        // remove this tile from available set
+        availableTiles = availableTiles.filter(
+          tile => tile.id !== matchingTile.id
+        )
       }
 
-      const takenTiles = matchingTiles.reduce(arrayToMap('id'), {})
+      const takenTiles = matchingTiles.reduce(arrayToMap("id"), {})
 
       return {
         ...state,
         // add this word to the player's words
         players: players.map(player => {
-          const words = player.userId === userId ? player.words.concat(word) : player.words
+          const words =
+            player.userId === userId ? player.words.concat(word) : player.words
           return {
             ...player,
             words,
@@ -364,6 +389,10 @@ const scrabbleAttacksReducer: Reducer<ScrabbleAttacksState, ScrabbleAttacksActio
           ...takenTiles,
         },
       }
+    }
+
+    default: {
+      return state
     }
   }
 }
@@ -382,8 +411,10 @@ const omniscientlyFlipTileByLetter = (
 ) => {
   return (letter: Letter) => {
     const tiles = Object.values(store.getState().tiles)
-    const tileToFlip = findByLetterIn(tiles.filter(tile => !tile.isFaceUp))(letter)!
-    store.dispatch({ type: 'FLIP_TILE', payload: { id: tileToFlip.id } })
+    const tileToFlip = findByLetterIn(tiles.filter(tile => !tile.isFaceUp))(
+      letter
+    )!
+    store.dispatch({ type: "FLIP_TILE", payload: { id: tileToFlip.id } })
   }
 }
 
@@ -391,9 +422,9 @@ export const initialTiles = (seed: string = new Date().toISOString()) => {
   const r = makeRandom(seed)
   const randomSort = () => r.plusOrMinus()
 
-  const nOfEach = (letter: Letter, i: number): Letter[] => {
+  const nOfEach = (letter: Letter): Letter[] => {
     const N = letterMap[letter].count
-    return new Array(N).fill(letter)
+    return Array.from({ length: N }).fill(letter) as Letter[]
   }
 
   const makeTile = (letter: Letter, i: number): Tile => {
@@ -414,12 +445,12 @@ export const initialTiles = (seed: string = new Date().toISOString()) => {
     .map(makeTile)
 
   // turn into map for easy lookup
-  return tileSet.reduce(arrayToMap('id'), {})
+  return tileSet.reduce(arrayToMap("id"), {})
 }
 
 // constants
 
-export const WILD = '*'
+export const WILD = "*"
 export const letterMap = {
   A: { points: 1, count: 9 },
   B: { points: 3, count: 2 },
@@ -454,44 +485,48 @@ export const alphabet = Object.keys(letterMap) as Letter[]
 
 // action types
 
-interface AddPlayer {
-  type: 'ADD_PLAYER'
+type AddPlayer = {
+  type: "ADD_PLAYER"
   payload: { userId: string }
 }
 
-interface FlipTileAction {
-  type: 'FLIP_TILE'
+type FlipTileAction = {
+  type: "FLIP_TILE"
   payload: { id: number }
 }
 
-interface ClaimWordAction {
-  type: 'CLAIM_WORD'
+type ClaimWordAction = {
+  type: "CLAIM_WORD"
   payload: { word: string }
 }
 
-type ScrabbleAttacksAction = RootAction | AddPlayer | FlipTileAction | ClaimWordAction
+type ScrabbleAttacksAction =
+  | RootAction
+  | AddPlayer
+  | FlipTileAction
+  | ClaimWordAction
 
 // state & related types
 
-interface ScrabbleAttacksState {
+type ScrabbleAttacksState = {
   players: Player[]
   tiles: TileSet
   messages: Message[]
 }
 
-interface Message {
+type Message = {
   userId: string
   message: string
 }
 
-interface Player {
+type Player = {
   userId: string
   words: string[]
 }
 
 type Letter = keyof typeof letterMap
 
-interface Tile {
+type Tile = {
   letter: Letter
   id: number
   isFaceUp: boolean

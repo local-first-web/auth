@@ -1,2 +1,1 @@
-﻿import _clone from 'lodash/clone'
-export const clone = _clone
+export { default as clone } from 'lodash/clone'

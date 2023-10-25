@@ -1,7 +1,7 @@
-﻿import { createKeyset, KeyType } from '@/keyset'
-import { UserWithSecrets } from '@/user/types'
-import cuid from 'cuid'
-import { randomKey } from '@localfirst/crypto'
+﻿import { randomKey } from "@localfirst/crypto"
+import cuid from "cuid"
+import { createKeyset, KeyType } from "@/keyset/index.js"
+import { type UserWithSecrets } from "@/user/types.js"
 
 /**
  * Creates a new local user, with randomly-generated keys.

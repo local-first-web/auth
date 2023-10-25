@@ -1,6 +1,6 @@
-import { getHashes, getParents } from './graph'
-import { Action, Graph, LinkMap } from './types'
-import { Hash } from '@/util'
+import { getHashes, getParents } from "./graph.js"
+import { type Action, type Graph, type LinkMap } from "./types.js"
+import { type Hash } from "@/util/index.js"
 
 export const EMPTY: LinkMap = {}
 
@@ -115,28 +115,31 @@ export const getTails = (linkMap: LinkMap): Hash[] => {
 export const isComplete = (linkMap: LinkMap) => {
   const allDependencies = Object.values(linkMap).flat()
   const isMissing = (hash: Hash) => !(hash in linkMap)
-  return !allDependencies.some(isMissing)
+  return !allDependencies.some(d => isMissing(d))
 }
 
-export const getChildMap = <A extends Action, C>(graph: Graph<A, C>): LinkMap => {
+export const getChildMap = <A extends Action, C>(
+  graph: Graph<A, C>
+): LinkMap => {
   const childMap = {} as LinkMap
-  getHashes(graph).forEach(hash =>
-    getParents(graph, hash).forEach(parent => {
+  for (const hash of getHashes(graph))
+    for (const parent of getParents(graph, hash)) {
       if (!childMap[parent]) childMap[parent] = []
       childMap[parent].push(hash)
-    })
-  )
+    }
+
   return childMap
 }
 
 export const invertLinkMap = (linkMap: LinkMap): LinkMap => {
   const inverted = {} as LinkMap
   const keys = Object.keys(linkMap) as Hash[]
-  keys.forEach(hash => {
-    linkMap[hash].forEach(parent => {
+  for (const hash of keys) {
+    for (const parent of linkMap[hash]) {
       if (!inverted[parent]) inverted[parent] = []
       inverted[parent].push(hash)
-    })
-  })
+    }
+  }
+
   return inverted
 }

@@ -1,6 +1,6 @@
-import { Base58 } from '@localfirst/crdx'
+import { type Base58 } from '@localfirst/crdx'
 import { describe, expect, it } from 'vitest'
-import { deriveSharedKey } from './deriveSharedKey'
+import { deriveSharedKey } from './deriveSharedKey.js'
 
 describe('deriveSharedKey', () => {
   it('result should be the same regardless of order of parameters', () => {

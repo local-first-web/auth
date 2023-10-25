@@ -1,18 +1,16 @@
-﻿import { Keyset } from '@localfirst/crdx'
-import { Transform } from '@/team/types'
+import { type Keyset } from '@localfirst/crdx'
+import { type Transform } from '@/team/types.js'
 
 export const changeServerKeys =
   (keys: Keyset): Transform =>
-  state => {
-    return {
-      ...state,
-      servers: state.servers.map(server =>
-        server.host === keys.name
-          ? {
-              ...server,
-              keys, // 🡐 replace keys with new ones
-            }
-          : server
-      ),
-    }
-  }
+  state => ({
+    ...state,
+    servers: state.servers.map(server =>
+      server.host === keys.name
+        ? {
+            ...server,
+            keys, // 🡐 replace keys with new ones
+          }
+        : server
+    ),
+  })

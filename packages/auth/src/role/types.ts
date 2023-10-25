@@ -1,8 +1,6 @@
-﻿export type PermissionsMap = {
-  [key: string]: boolean
-}
+export type PermissionsMap = Record<string, boolean>
 
-export interface Role {
+export type Role = {
   roleName: string
   permissions?: PermissionsMap
 }

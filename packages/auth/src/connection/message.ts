@@ -1,16 +1,15 @@
-﻿import { Challenge } from '@/connection/types'
-import { ProofOfInvitation } from '@/invitation'
-import { TeamAction, TeamContext } from '@/team'
 import {
-  Base58,
-  Hash,
-  KeyScope,
-  Keyring,
-  Keyset,
-  KeysetWithSecrets,
-  SyncMessage as SyncPayload,
+  type Base58,
+  type Hash,
+  type KeyScope,
+  type Keyring,
+  type Keyset,
+  type SyncMessage as SyncPayload,
 } from '@localfirst/crdx'
-import { ErrorMessage, LocalErrorMessage } from './errors'
+import { type ErrorMessage, type LocalErrorMessage } from './errors.js'
+import { type Challenge } from '@/connection/types.js'
+import { type ProofOfInvitation } from '@/invitation/index.js'
+import { type TeamAction, type TeamContext } from '@/team/index.js'
 
 export type ReadyMessage = {
   type: 'REQUEST_IDENTITY'
@@ -33,7 +32,7 @@ export type ClaimIdentityMessage = {
     | {
         // I have an invitation
         proofOfInvitation: ProofOfInvitation
-        userKeys?: Keyset // only for new member (not for new device)
+        userKeys?: Keyset // Only for new member (not for new device)
         deviceKeys: Keyset
         userName: string
       }
@@ -73,13 +72,13 @@ export type ProveIdentityMessage = {
   type: 'PROVE_IDENTITY'
   payload: {
     challenge: Challenge
-    proof: Base58 // this is a signature
+    proof: Base58 // This is a signature
   }
 }
 
 export type AcceptIdentityMessage = {
   type: 'ACCEPT_IDENTITY'
-  payload: {}
+  payload: Record<string, unknown>
 }
 
 export type RejectIdentityMessage = {
@@ -96,7 +95,7 @@ export type SyncMessage = {
   payload: SyncPayload<TeamAction, TeamContext>
 }
 
-// triggered locally when we detect that team has changed
+// Triggered locally when we detect that team has changed
 export type LocalUpdateMessage = {
   type: 'LOCAL_UPDATE'
   payload: { head: Hash[] }
@@ -138,7 +137,7 @@ export type NumberedConnectionMessage = ConnectionMessage & {
   index: number
 }
 
-const msgTypes = [
+const messageTypes = new Set([
   'ACCEPT_IDENTITY',
   'ACCEPT_INVITATION',
   'CHALLENGE_IDENTITY',
@@ -154,13 +153,15 @@ const msgTypes = [
   'REQUEST_IDENTITY',
   'SEED',
   'SYNC',
-]
+])
 
-export function isNumberedConnectionMessage(msg: any): msg is NumberedConnectionMessage {
+export function isNumberedConnectionMessage(
+  message: ConnectionMessage
+): message is NumberedConnectionMessage {
   return (
-    'index' in msg &&
-    typeof msg.index === 'number' && //
-    'type' in msg &&
-    msgTypes.includes(msg.type)
+    'index' in message &&
+    typeof message.index === 'number' && //
+    'type' in message &&
+    messageTypes.has(message.type)
   )
 }

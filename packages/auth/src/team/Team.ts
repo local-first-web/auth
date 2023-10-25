@@ -1,52 +1,70 @@
-import * as identity from '@/connection/identity'
-import { Challenge } from '@/connection/types'
-import { LocalUserContext } from '@/context'
-import * as devices from '@/device'
-import { Device, DeviceWithSecrets, getDeviceId, parseDeviceId, redactDevice } from '@/device'
-import * as invitations from '@/invitation'
-import { ProofOfInvitation } from '@/invitation'
-import { normalize } from '@/invitation/normalize'
-import * as lockbox from '@/lockbox'
-import { ADMIN, Role } from '@/role'
-import { cast } from '@/server/cast'
-import { Host, Server } from '@/server/types'
-import { KeyType, VALID, assert, debug, getScope, scopesMatch } from '@/util'
 import {
-  KeyMetadata,
-  KeyScope,
-  Keyring,
-  Keyset,
-  KeysetWithSecrets,
-  Payload,
-  Store,
-  UnixTimestamp,
-  User,
-  UserWithSecrets,
+  type KeyMetadata,
+  type KeyScope,
+  type Keyring,
+  type Keyset,
+  type KeysetWithSecrets,
+  type Payload,
+  type Store,
+  type UnixTimestamp,
+  type User,
+  type UserWithSecrets,
   createKeyring,
   createKeyset,
   createStore,
   isKeyset,
   redactKeys,
 } from '@localfirst/crdx'
-import { Base58, randomKey, signatures, symmetric } from '@localfirst/crypto'
-import EventEmitter from 'eventemitter3'
-import { ADMIN_SCOPE, ALL, TEAM_SCOPE, initialState } from './constants'
-import { membershipResolver as resolver } from './membershipResolver'
-import { redactUser } from './redactUser'
-import { reducer } from './reducer'
-import * as select from './selectors'
-import { deserializeTeamGraph, serializeTeamGraph } from './serialize'
 import {
-  EncryptedEnvelope,
-  Member,
-  SignedEnvelope,
-  TeamAction,
-  TeamContext,
-  TeamGraph,
-  TeamOptions,
-  TeamState,
+  type Base58,
+  randomKey,
+  signatures,
+  symmetric,
+} from '@localfirst/crypto'
+import EventEmitter from 'eventemitter3'
+import { ADMIN_SCOPE, ALL, TEAM_SCOPE, initialState } from './constants.js'
+import { membershipResolver as resolver } from './membershipResolver.js'
+import { redactUser } from './redactUser.js'
+import { reducer } from './reducer.js'
+import * as select from './selectors/index.js'
+import { deserializeTeamGraph, serializeTeamGraph } from './serialize.js'
+import {
+  type EncryptedEnvelope,
+  type Member,
+  type SignedEnvelope,
+  type TeamAction,
+  type TeamContext,
+  type TeamGraph,
+  type TeamOptions,
+  type TeamState,
   isNewTeam,
-} from './types'
+} from './types.js'
+import * as identity from '@/connection/identity.js'
+import { type Challenge } from '@/connection/types.js'
+import { type LocalUserContext } from '@/context/index.js'
+import * as devices from '@/device/index.js'
+import {
+  type Device,
+  type DeviceWithSecrets,
+  getDeviceId,
+  parseDeviceId,
+  redactDevice,
+} from '@/device/index.js'
+import * as invitations from '@/invitation/index.js'
+import { type ProofOfInvitation } from '@/invitation/index.js'
+import { normalize } from '@/invitation/normalize.js'
+import * as lockbox from '@/lockbox/index.js'
+import { ADMIN, type Role } from '@/role/index.js'
+import { cast } from '@/server/cast.js'
+import { type Host, type Server } from '@/server/types.js'
+import {
+  KeyType,
+  VALID,
+  assert,
+  debug,
+  getScope,
+  scopesMatch,
+} from '@/util/index.js'
 
 /**
  * The `Team` class wraps a `TeamGraph` and exposes methods for adding and removing
@@ -54,12 +72,13 @@ import {
  * individuals, for the team, or for members of specific roles.
  */
 export class Team extends EventEmitter {
-  private store: Store<TeamState, TeamAction>
-  private context: LocalUserContext
-  private log: (o: any, ...args: any[]) => void
-  private seed: string
-
   public state: TeamState = initialState
+
+  private store: Store<TeamState, TeamAction>
+  private readonly context: LocalUserContext
+  private readonly log: (o: any, ...args: any[]) => void
+  private readonly seed: string
+
   /**
    * We can make a team instance either by creating a brand-new team, or restoring one from a stored graph.
    */
@@ -72,7 +91,7 @@ export class Team extends EventEmitter {
     if ('user' in options.context) {
       this.context = options.context
     } else {
-      // if we're on a server, we'll use the server's hostname for everything
+      // If we're on a server, we'll use the server's hostname for everything
       // and the server's keys as both user keys and device keys
       const { server } = options.context
       this.context = {
@@ -86,7 +105,9 @@ export class Team extends EventEmitter {
 
     // Initialize a CRDX store for the team
     if (isNewTeam(options)) {
-      if (this.isServer) throw new Error('Cannot create a team on a server')
+      if (this.isServer) {
+        throw new Error('Cannot create a team on a server')
+      }
 
       // Create a new team with the current user as founding member
       const { device, user } = this.context
@@ -138,22 +159,9 @@ export class Team extends EventEmitter {
 
     // Wire up event listeners
     this.on('updated', () => {
-      // if we're admin, check for pending key rotations
+      // If we're admin, check for pending key rotations
       this.checkForPendingKeyRotations()
     })
-  }
-
-  private checkForPendingKeyRotations() {
-    // only admins can rotate keys
-    if (!this.memberIsAdmin(this.userId)) return
-
-    // TODO: should we introduce a random delay here, so these don't pile up?
-    for (const userId of this.state.pendingKeyRotations) {
-      // We don't know if the user was added to any other roles, so we're just preemptively rotating
-      // all lockboxes *we* can see (since we're an admin, we have access to all keys)
-      const lockboxes = this.rotateKeys({ type: KeyType.USER, name: this.userId })
-      this.dispatch({ type: 'ROTATE_KEYS', payload: { userId, lockboxes } })
-    }
   }
 
   public get graph() {
@@ -165,27 +173,29 @@ export class Team extends EventEmitter {
     return this.graph.root
   }
 
-  /**************** CONTEXT */
+  /** ************** CONTEXT */
 
   private get isServer() {
     return 'server' in this.context
   }
 
   public get userName() {
-    if (this.context.user) return this.context.user.userId
-    else return this.context.device.userId // device is always known
+    if (this.context.user) {
+      return this.context.user.userId
+    }
+
+    return this.context.device.userId // Device is always known
   }
 
   public get userId() {
-    if (this.context.user) return this.context.user.userId
-    else return this.context.device.userId // device is always known
+    if (this.context.user) {
+      return this.context.user.userId
+    }
+
+    return this.context.device.userId // Device is always known
   }
 
-  private get deviceId() {
-    return getDeviceId(this.context.device)
-  }
-
-  /**************** TEAM STATE
+  /** ************** TEAM STATE
    *
    * All the logic for *reading* team state is in selectors (see `/team/selectors`).
    *
@@ -204,9 +214,7 @@ export class Team extends EventEmitter {
     return this.state.teamName
   }
 
-  public save = () => {
-    return serializeTeamGraph(this.graph)
-  }
+  public save = () => serializeTeamGraph(this.graph)
 
   /**
    * Merges another graph (e.g. from a peer) with ours.
@@ -221,7 +229,10 @@ export class Team extends EventEmitter {
   }
 
   /** Add a link to the graph, then recompute team state from the new graph */
-  public dispatch(action: TeamAction, teamKeys: KeysetWithSecrets = this.teamKeys()) {
+  public dispatch(
+    action: TeamAction,
+    teamKeys: KeysetWithSecrets = this.teamKeys()
+  ) {
     this.store.dispatch(action, teamKeys)
     this.state = this.store.getState()
 
@@ -229,18 +240,30 @@ export class Team extends EventEmitter {
   }
 
   public lookupIdentity = (identityClaim: KeyScope): LookupIdentityResult => {
-    assert(identityClaim.type === KeyType.DEVICE) // we always authenticate as devices
+    assert(identityClaim.type === KeyType.DEVICE) // We always authenticate as devices
     const deviceId = identityClaim.name
     const { userId, deviceName } = parseDeviceId(deviceId)
-    if (this.memberWasRemoved(userId) || this.serverWasRemoved(userId)) return 'MEMBER_REMOVED'
-    if (!this.has(userId) && !this.hasServer(userId)) return 'MEMBER_UNKNOWN'
-    if (this.deviceWasRemoved(userId, deviceName)) return 'DEVICE_REMOVED'
-    if (!this.hasDevice(userId, deviceName) && !this.hasServer(userId)) return 'DEVICE_UNKNOWN'
+    if (this.memberWasRemoved(userId) || this.serverWasRemoved(userId)) {
+      return 'MEMBER_REMOVED'
+    }
+
+    if (!this.has(userId) && !this.hasServer(userId)) {
+      return 'MEMBER_UNKNOWN'
+    }
+
+    if (this.deviceWasRemoved(userId, deviceName)) {
+      return 'DEVICE_REMOVED'
+    }
+
+    if (!this.hasDevice(userId, deviceName) && !this.hasServer(userId)) {
+      return 'DEVICE_UNKNOWN'
+    }
+
     return 'VALID_DEVICE'
   }
 
   public verifyIdentityProof = (challenge: Challenge, proof: Base58) => {
-    assert(challenge.type === KeyType.DEVICE) // we always authenticate as devices
+    assert(challenge.type === KeyType.DEVICE) // We always authenticate as devices
     const deviceId = challenge.name
     const { userId, deviceName } = parseDeviceId(deviceId)
 
@@ -252,20 +275,23 @@ export class Team extends EventEmitter {
     return validation.isValid
   }
 
-  /**************** MEMBERS */
+  /** ************** MEMBERS */
 
   /** Returns true if the team has a member with the given userId */
   public has = (userId: string) => select.hasMember(this.state, userId)
 
   /** Returns a list of all members on the team */
-  public members(): Member[] // overload: all members
-  /** Returns the member with the given user name*/
-  public members(userId: string, options?: { includeRemoved: boolean }): Member // overload: one member
+  public members(): Member[] // Overload: all members
+  /** Returns the member with the given user name */
+  public members(userId: string, options?: { includeRemoved: boolean }): Member // Overload: one member
   //
-  public members(userId: string = ALL, options = { includeRemoved: true }): Member | Member[] {
+  public members(
+    userId: string = ALL,
+    options = { includeRemoved: true }
+  ): Member | Member[] {
     return userId === ALL //
-      ? this.state.members // all members
-      : select.member(this.state, userId, options) // one member
+      ? this.state.members // All members
+      : select.member(this.state, userId, options) // One member
   }
 
   /**
@@ -273,20 +299,24 @@ export class Team extends EventEmitter {
    * only makes sense for unit tests. In real-world scenarios, you'll need to use the `team.invite`
    * workflow to add members without relying on some kind of public key infrastructure.
    */
-  public addForTesting = (user: UserWithSecrets, roles: string[] = [], device?: Device) => {
+  public addForTesting = (
+    user: UserWithSecrets,
+    roles: string[] = [],
+    device?: Device
+  ) => {
     const member = { ...redactUser(user), roles }
 
-    // make lockboxes for the new member
+    // Make lockboxes for the new member
     const lockboxes = this.createMemberLockboxes(member)
 
-    // post the member to the graph
+    // Post the member to the graph
     this.dispatch({
       type: 'ADD_MEMBER',
       payload: { member, roles, lockboxes },
     })
 
     if (device) {
-      // post the member's device to the graph
+      // Post the member's device to the graph
       const deviceLockbox = lockbox.create(user.keys, device.keys)
       this.dispatch({
         type: 'ADD_DEVICE',
@@ -298,10 +328,10 @@ export class Team extends EventEmitter {
   public add = (user: User, roles: string[] = []) => {
     const member = { ...user, roles }
 
-    // make lockboxes for the new member
+    // Make lockboxes for the new member
     const lockboxes = this.createMemberLockboxes(member)
 
-    // post the member to the graph
+    // Post the member to the graph
     this.dispatch({
       type: 'ADD_MEMBER',
       payload: { member, roles, lockboxes },
@@ -310,10 +340,10 @@ export class Team extends EventEmitter {
 
   /** Remove a member from the team */
   public remove = (userId: string) => {
-    // create new keys & lockboxes for any keys this person had access to
+    // Create new keys & lockboxes for any keys this person had access to
     const lockboxes = this.rotateKeys({ type: KeyType.USER, name: userId })
 
-    // post the removal to the graph
+    // Post the removal to the graph
     this.dispatch({
       type: 'REMOVE_MEMBER',
       payload: {
@@ -324,15 +354,10 @@ export class Team extends EventEmitter {
   }
 
   /** Returns true if the member was once on the team but was removed */
-  public memberWasRemoved = (userId: string) => select.memberWasRemoved(this.state, userId)
+  public memberWasRemoved = (userId: string) =>
+    select.memberWasRemoved(this.state, userId)
 
-  private createMemberLockboxes = (member: Member) => {
-    const roleKeys = member.roles.map(this.roleKeys)
-    const createLockbox = (keys: KeysetWithSecrets) => lockbox.create(keys, member.keys)
-    return [...roleKeys, this.teamKeys()].map(createLockbox)
-  }
-
-  /**************** ROLES */
+  /** ************** ROLES */
 
   /** Returns all roles in the team */
   public roles(): Role[]
@@ -341,37 +366,44 @@ export class Team extends EventEmitter {
   //
   public roles(roleName: string = ALL): Role | Role[] {
     return roleName === ALL //
-      ? this.state.roles // all roles
-      : select.role(this.state, roleName) // one role
+      ? this.state.roles // All roles
+      : select.role(this.state, roleName) // One role
   }
 
-  /** Returns true if the member with the given userId has the given role*/
+  /** Returns true if the member with the given userId has the given role */
   public memberHasRole = (userId: string, roleName: string) =>
     select.memberHasRole(this.state, userId, roleName)
 
   /** Returns true if the member with the given userId is a member of the 3 role */
-  public memberIsAdmin = (userId: string) => select.memberIsAdmin(this.state, userId)
+  public memberIsAdmin = (userId: string) =>
+    select.memberIsAdmin(this.state, userId)
 
-  /** Returns true if the team has a role with the given name*/
+  /** Returns true if the team has a role with the given name */
   public hasRole = (roleName: string) => select.hasRole(this.state, roleName)
 
   /** Returns a list of members who have the given role */
-  public membersInRole = (roleName: string): Member[] => select.membersInRole(this.state, roleName)
+  public membersInRole = (roleName: string): Member[] =>
+    select.membersInRole(this.state, roleName)
 
   /** Returns a list of members who are in the admin role */
   public admins = (): Member[] => select.admins(this.state)
 
   /** Add a role to the team */
   public addRole = (role: Role | string) => {
-    if (typeof role === 'string') role = { roleName: role }
+    if (typeof role === 'string') {
+      role = { roleName: role }
+    }
 
-    // we're creating this role so we need to generate new keys
-    const roleKeys = createKeyset({ type: KeyType.ROLE, name: role.roleName }, this.seed)
+    // We're creating this role so we need to generate new keys
+    const roleKeys = createKeyset(
+      { type: KeyType.ROLE, name: role.roleName },
+      this.seed
+    )
 
-    // make a lockbox for the admin role, so that all admins can access this role's keys
+    // Make a lockbox for the admin role, so that all admins can access this role's keys
     const lockboxForAdmin = lockbox.create(roleKeys, this.adminKeys())
 
-    // post the role to the graph
+    // Post the role to the graph
     this.dispatch({
       type: 'ADD_ROLE',
       payload: { ...role, lockboxes: [lockboxForAdmin] },
@@ -380,7 +412,10 @@ export class Team extends EventEmitter {
 
   /** Remove a role from the team */
   public removeRole = (roleName: string) => {
-    if (roleName === ADMIN) throw new Error('Cannot remove admin role.')
+    if (roleName === ADMIN) {
+      throw new Error('Cannot remove admin role.')
+    }
+
     this.dispatch({
       type: 'REMOVE_ROLE',
       payload: { roleName },
@@ -389,11 +424,11 @@ export class Team extends EventEmitter {
 
   /** Give a member a role */
   public addMemberRole = (userId: string, roleName: string) => {
-    // make a lockbox for the role
+    // Make a lockbox for the role
     const member = this.members(userId)
     const roleLockbox = lockbox.create(this.roleKeys(roleName), member.keys)
 
-    // post the member role to the graph
+    // Post the member role to the graph
     this.dispatch({
       type: 'ADD_MEMBER_ROLE',
       payload: { userId, roleName, lockboxes: [roleLockbox] },
@@ -404,20 +439,20 @@ export class Team extends EventEmitter {
   public removeMemberRole = (userId: string, roleName: string) => {
     if (roleName === ADMIN) {
       const adminCount = this.membersInRole(ADMIN).length
-      assert(adminCount > 1, `Can't remove the last admin`)
+      assert(adminCount > 1, "Can't remove the last admin")
     }
 
-    // create new keys & lockboxes for any keys this person had access to via this role
+    // Create new keys & lockboxes for any keys this person had access to via this role
     const lockboxes = this.rotateKeys({ type: KeyType.ROLE, name: roleName })
 
-    // post the removal to the graph
+    // Post the removal to the graph
     this.dispatch({
       type: 'REMOVE_MEMBER_ROLE',
       payload: { userId, roleName, lockboxes },
     })
   }
 
-  /**************** DEVICES */
+  /** ************** DEVICES */
 
   /** Returns true if the given member has a device by the given name */
   public hasDevice = (userId: string, deviceName: string): boolean =>
@@ -432,13 +467,15 @@ export class Team extends EventEmitter {
 
   /** Remove a member's device */
   public removeDevice = (userId: string, deviceName: string) => {
-    if (!this.hasDevice(userId, deviceName)) return
+    if (!this.hasDevice(userId, deviceName)) {
+      return
+    }
 
-    // create new keys & lockboxes for any keys this device had access to
+    // Create new keys & lockboxes for any keys this device had access to
     const deviceId = getDeviceId({ userId, deviceName })
     const lockboxes = this.rotateKeys({ type: KeyType.DEVICE, name: deviceId })
 
-    // post the removal to the graph
+    // Post the removal to the graph
     this.dispatch({
       type: 'REMOVE_DEVICE',
       payload: {
@@ -455,7 +492,7 @@ export class Team extends EventEmitter {
     return select.deviceWasRemoved(this.state, deviceId)
   }
 
-  /**************** INVITATIONS */
+  /** ************** INVITATIONS */
 
   /**
    * To invite a new member:
@@ -488,20 +525,20 @@ export class Team extends EventEmitter {
     /** Number of times the invitation can be used. If not provided, the invitation can be used any number of times. */
     maxUses?: number
   } = {}): InviteResult {
-    // normalize the seed (all lower case, strip spaces & punctuation)
+    // Normalize the seed (all lower case, strip spaces & punctuation)
     seed = normalize(seed)
 
-    // generate invitation
+    // Generate invitation
     const invitation = invitations.create({ seed, expiration, maxUses })
     const { id } = invitation
 
-    // post invitation to graph
+    // Post invitation to graph
     this.dispatch({
       type: 'INVITE_MEMBER',
       payload: { invitation },
     })
 
-    // return the secret invitation seed (to pass on to invitee) and the invitation id (which could be used to revoke later)
+    // Return the secret invitation seed (to pass on to invitee) and the invitation id (which could be used to revoke later)
     return { id, seed }
   }
 
@@ -531,31 +568,33 @@ export class Team extends EventEmitter {
     /** Time when the invitation expires. Defaults to 30 minutes from now. */
     expiration?: UnixTimestamp
   } = {}): InviteResult {
-    if (this.isServer) throw new Error("Server can't invite a device")
+    if (this.isServer) {
+      throw new Error("Server can't invite a device")
+    }
 
     seed = normalize(seed)
 
-    // generate invitation
+    // Generate invitation
 
-    const userId = this.userId
+    const { userId } = this
 
-    const maxUses = 1 // can't invite multiple devices with the same invitation
+    const maxUses = 1 // Can't invite multiple devices with the same invitation
     const invitation = invitations.create({ seed, expiration, maxUses, userId })
     const { id } = invitation
 
-    // post invitation to graph
+    // Post invitation to graph
     this.dispatch({
       type: 'INVITE_DEVICE',
       payload: { invitation },
     })
 
-    // return the secret invitation seed (to pass on to invitee) and the invitation id (which could be used to revoke later)
+    // Return the secret invitation seed (to pass on to invitee) and the invitation id (which could be used to revoke later)
     return { id, seed }
   }
 
   /** Revoke an invitation. */
   public revokeInvitation = (id: string) => {
-    // mark the invitation as revoked
+    // Mark the invitation as revoked
     this.dispatch({
       type: 'REVOKE_INVITATION',
       payload: { id },
@@ -568,39 +607,48 @@ export class Team extends EventEmitter {
   public hasInvitation(proofOrId: Base58 | ProofOfInvitation): boolean {
     const id =
       typeof proofOrId === 'string' //
-        ? proofOrId // string id was passed
-        : proofOrId.id // proof of invitation was passed
+        ? proofOrId // String id was passed
+        : proofOrId.id // Proof of invitation was passed
     return select.hasInvitation(this.state, id)
   }
 
   /** Gets the invitation corresponding to the given id. If it does not exist, throws an error. */
-  public getInvitation = (id: Base58) => {
-    return select.getInvitation(this.state, id)
-  }
+  public getInvitation = (id: Base58) => select.getInvitation(this.state, id)
 
   /** Check whether (1) the invitation is still valid, and (2) the proof of invitation checks out. */
   public validateInvitation = (proof: ProofOfInvitation) => {
     const { id } = proof
     // TODO: These invitation errors really should be structured & instead of returning messages we should return codes
-    if (!this.hasInvitation(id)) return invitations.fail(`This invitation code doesn't match.`)
+    if (!this.hasInvitation(id)) {
+      return invitations.fail("This invitation code doesn't match.")
+    }
+
     const invitation = this.getInvitation(id)
 
-    // make sure the invitation hasn't already been used, hasn't expired, and hasn't been revoked
-    const canBeUsedResult = invitations.invitationCanBeUsed(invitation, Date.now())
-    if (canBeUsedResult !== VALID) return canBeUsedResult
+    // Make sure the invitation hasn't already been used, hasn't expired, and hasn't been revoked
+    const canBeUsedResult = invitations.invitationCanBeUsed(
+      invitation,
+      Date.now()
+    )
+    if (canBeUsedResult !== VALID) {
+      return canBeUsedResult
+    }
 
-    // validate the proof of invitation
+    // Validate the proof of invitation
     return invitations.validate(proof, invitation)
   }
 
   /** An existing team member calls this to admit a new member & their device to the team based on proof of invitation */
   public admitMember = (
     proof: ProofOfInvitation,
-    memberKeys: Keyset | KeysetWithSecrets, // we accept KeysetWithSecrets here to simplify testing - in practice we'll only receive Keyset
-    userName: string // the new member's desired user-facing name
+    memberKeys: Keyset | KeysetWithSecrets, // We accept KeysetWithSecrets here to simplify testing - in practice we'll only receive Keyset
+    userName: string // The new member's desired user-facing name
   ) => {
     const validation = this.validateInvitation(proof)
-    if (validation.isValid === false) throw validation.error
+    if (!validation.isValid) {
+      throw validation.error
+    }
+
     const { id } = proof
 
     // TODO: make lockbox naming consistent?
@@ -611,7 +659,7 @@ export class Team extends EventEmitter {
     // we know the team keys, so we can put them in a lockbox for the new member now (even if we're not an admin)
     const teamKeysLockbox = lockbox.create(this.teamKeys(), memberKeys)
 
-    // post admission to the graph
+    // Post admission to the graph
     this.dispatch({
       type: 'ADMIT_MEMBER',
       payload: {
@@ -624,17 +672,23 @@ export class Team extends EventEmitter {
   }
 
   /** A member calls this to admit a new device for themselves based on proof of invitation */
-  public admitDevice = (proof: ProofOfInvitation, device: DeviceWithSecrets | Device) => {
+  public admitDevice = (
+    proof: ProofOfInvitation,
+    device: DeviceWithSecrets | Device
+  ) => {
     const validation = this.validateInvitation(proof)
-    if (validation.isValid === false) throw validation.error
+    if (!validation.isValid) {
+      throw validation.error
+    }
+
     const { id } = proof
     const { userId, deviceName, keys } = device
 
-    assert(this.userId === userId, `Can't admit someone else's device`)
+    assert(this.userId === userId, "Can't admit someone else's device")
 
     const deviceLockbox = lockbox.create(this.context.user.keys, keys)
 
-    // post admission to the graph
+    // Post admission to the graph
     this.dispatch({
       type: 'ADMIT_DEVICE',
       payload: {
@@ -649,11 +703,16 @@ export class Team extends EventEmitter {
 
   /** Once the new member has received the graph and can instantiate the team, they call this to add their device. */
   public joinAsMember = (teamKeyring: Keyring) => {
-    if (this.isServer) throw new Error(`Can't join as member on server`)
+    if (this.isServer) {
+      throw new Error("Can't join as member on server")
+    }
 
     const teamKeys = getLatestGeneration(teamKeyring)
 
-    const deviceLockbox = lockbox.create(this.context.user.keys, this.context.device.keys)
+    const deviceLockbox = lockbox.create(
+      this.context.user.keys,
+      this.context.device.keys
+    )
     const device = redactDevice(this.context.device)
     this.dispatch(
       {
@@ -669,7 +728,10 @@ export class Team extends EventEmitter {
 
   /** Once a new device has received the graph and can instantiate the team, they call this to get the user keys */
   public joinAsDevice = (userName: string, userId: string) => {
-    if (this.isServer) throw new Error(`Can't join as device on server`)
+    if (this.isServer) {
+      throw new Error("Can't join as device on server")
+    }
+
     const user = {
       userName,
       userId,
@@ -688,7 +750,7 @@ export class Team extends EventEmitter {
     return user
   }
 
-  /**************** SERVERS */
+  /** ************** SERVERS */
 
   /**
    * A server is an always-on, always-connected device that is available to the team but does not
@@ -734,27 +796,31 @@ export class Team extends EventEmitter {
   public removeServer = (host: string) => {
     this.dispatch({
       type: 'REMOVE_SERVER',
-      payload: { host: host },
+      payload: { host },
     })
   }
 
   /** Returns a list of all servers on the team. */
-  public servers(): Server[] // overload: all servers
+  public servers(): Server[] // Overload: all servers
   /** Returns the server with the given host */
-  public servers(host: Host, options?: { includeRemoved: boolean }): Server // overload: one server
+  public servers(host: Host, options?: { includeRemoved: boolean }): Server // Overload: one server
   //
-  public servers(host: Host = ALL, options = { includeRemoved: true }) {
+  public servers(
+    host: Host = ALL, //
+    options = { includeRemoved: true }
+  ) {
     return host === ALL //
-      ? this.state.servers // all servers
-      : select.server(this.state, host, options) // one server
+      ? this.state.servers // All servers
+      : select.server(this.state, host, options) // One server
   }
 
   /** Returns true if the server was once on the team but was removed */
-  public serverWasRemoved = (host: Host) => select.serverWasRemoved(this.state, host)
+  public serverWasRemoved = (host: Host) =>
+    select.serverWasRemoved(this.state, host)
 
   public hasServer = (host: Host) => select.hasServer(this.state, host)
 
-  /**************** CRYPTO */
+  /** ************** CRYPTO */
 
   /**
    * Symmetrically encrypt a payload for the given scope using keys available to the current user.
@@ -805,7 +871,7 @@ export class Team extends EventEmitter {
       publicKey: this.members(message.author.name).keys.signature,
     })
 
-  /**************** KEYS
+  /** ************** KEYS
    *
    * These methods all return keysets *with secrets* that are available to the local user. To get
    * other members' public keys, look up the member - the `keys` property contains their public keys.
@@ -824,11 +890,14 @@ export class Team extends EventEmitter {
     this.keys({ type: KeyType.ROLE, name: roleName, generation })
 
   /** Returns the current team keys or a specific generation of team keys */
-  public teamKeys = (generation?: number) => this.keys({ ...TEAM_SCOPE, generation })
+  public teamKeys = (generation?: number) =>
+    this.keys({ ...TEAM_SCOPE, generation })
 
   public teamKeyring = () => {
     const { TEAM } = KeyType
-    const allTeamKeys = select.getKeyMap(this.state, this.context.device.keys)[TEAM][TEAM]
+    const allTeamKeys = select.getKeyMap(this.state, this.context.device.keys)[
+      TEAM
+    ][TEAM]
     return createKeyring(allTeamKeys)
   }
 
@@ -848,10 +917,10 @@ export class Team extends EventEmitter {
     const oldGeneration = (isForDevice ? device.keys : user.keys).generation
     newKeys.generation = oldGeneration + 1
 
-    // treat the old keys as compromised, and generate new lockboxes for any keys they could see
+    // Treat the old keys as compromised, and generate new lockboxes for any keys they could see
     const lockboxes = this.rotateKeys(newKeys)
 
-    // post our new public keys to the graph
+    // Post our new public keys to the graph
     const type = isForDevice
       ? 'CHANGE_DEVICE_KEYS'
       : isForUser
@@ -861,10 +930,44 @@ export class Team extends EventEmitter {
     const keys = redactKeys(newKeys)
     this.dispatch({ type, payload: { keys, lockboxes } })
 
-    // update our user and/or device keys in context
+    // Update our user and/or device keys in context
     // (a server plays the role of both a user and a device)
-    if (isForServer || isForDevice) device.keys = newKeys
-    if (isForServer || isForUser) user.keys = newKeys
+    if (isForServer || isForDevice) {
+      device.keys = newKeys
+    }
+
+    if (isForServer || isForUser) {
+      user.keys = newKeys
+    }
+  }
+
+  private checkForPendingKeyRotations() {
+    // Only admins can rotate keys
+    if (!this.memberIsAdmin(this.userId)) {
+      return
+    }
+
+    // TODO: should we introduce a random delay here, so these don't pile up?
+    for (const userId of this.state.pendingKeyRotations) {
+      // We don't know if the user was added to any other roles, so we're just preemptively rotating
+      // all lockboxes *we* can see (since we're an admin, we have access to all keys)
+      const lockboxes = this.rotateKeys({
+        type: KeyType.USER,
+        name: this.userId,
+      })
+      this.dispatch({ type: 'ROTATE_KEYS', payload: { userId, lockboxes } })
+    }
+  }
+
+  private get deviceId() {
+    return getDeviceId(this.context.device)
+  }
+
+  private readonly createMemberLockboxes = (member: Member) => {
+    const roleKeys = member.roles.map(this.roleKeys)
+    const createLockbox = (keys: KeysetWithSecrets) =>
+      lockbox.create(keys, member.keys)
+    return [...roleKeys, this.teamKeys()].map(createLockbox)
   }
 
   /**
@@ -878,32 +981,36 @@ export class Team extends EventEmitter {
    * @param compromised If `compromised` is a keyset, that will become the new keyset for the
    * compromised scope. If it is just a scope, new keys will be randomly generated for that scope.
    */
-  private rotateKeys = (compromised: KeyScope | KeysetWithSecrets) => {
+  private readonly rotateKeys = (compromised: KeyScope | KeysetWithSecrets) => {
     const newKeyset = isKeyset(compromised)
-      ? compromised // we're given a keyset - use it as the new keys
-      : createKeyset(compromised) // we're just given a scope - generate new keys for it
+      ? compromised // We're given a keyset - use it as the new keys
+      : createKeyset(compromised) // We're just given a scope - generate new keys for it
 
     // identify all the keys that are indirectly compromised
     const visibleScopes = select.getVisibleScopes(this.state, compromised)
     const otherNewKeysets = visibleScopes.map(scope => createKeyset(scope))
 
-    // generate new keys for each one
+    // Generate new keys for each one
     const newKeysets = [newKeyset, ...otherNewKeysets]
 
-    // create new lockboxes for each of these
+    // Create new lockboxes for each of these
     const newLockboxes = newKeysets.flatMap(newKeyset => {
       const scope = getScope(newKeyset)
 
       const oldLockboxes = select.lockboxesInScope(this.state, scope)
 
       return oldLockboxes.map(oldLockbox => {
-        // check whether we have new keys for the recipient of this lockbox
-        const updatedKeyset = newKeysets.find(k => scopesMatch(k, oldLockbox.recipient))
+        // Check whether we have new keys for the recipient of this lockbox
+        const updatedKeyset = newKeysets.find(k =>
+          scopesMatch(k, oldLockbox.recipient)
+        )
         return lockbox.rotate({
           oldLockbox,
           newContents: newKeyset,
-          // if we did, address the new lockbox to those keys
-          updatedRecipientKeys: updatedKeyset ? redactKeys(updatedKeyset) : undefined,
+          // If we did, address the new lockbox to those keys
+          updatedRecipientKeys: updatedKeyset
+            ? redactKeys(updatedKeyset)
+            : undefined,
         })
       })
     })
@@ -912,10 +1019,14 @@ export class Team extends EventEmitter {
   }
 }
 
-const maybeDeserialize = (source: string | TeamGraph, teamKeyring: Keyring): TeamGraph =>
+const maybeDeserialize = (
+  source: string | TeamGraph,
+  teamKeyring: Keyring
+): TeamGraph =>
   isGraph(source) ? source : deserializeTeamGraph(source, teamKeyring)
 
-const isGraph = (source: string | TeamGraph): source is TeamGraph => source?.hasOwnProperty('root')
+const isGraph = (source: string | TeamGraph): source is TeamGraph =>
+  source?.hasOwnProperty('root')
 
 type InviteResult = {
   /** The unique identifier for this invitation. */
@@ -933,11 +1044,14 @@ type LookupIdentityResult =
   | 'DEVICE_REMOVED'
 
 const getLatestGeneration = (keyring: Keyring) => {
-  let latest: KeysetWithSecrets
+  let latest: KeysetWithSecrets | undefined
 
   for (const publicKey in keyring) {
     const keyset = keyring[publicKey]
-    if (!latest || keyset.generation > latest.generation) latest = keyset
+    if (latest === undefined || keyset.generation > latest.generation) {
+      latest = keyset
+    }
   }
+
   return latest
 }

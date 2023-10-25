@@ -1,13 +1,24 @@
-﻿import { ValidationResult } from '@/util/types'
+import { type ValidationResult } from '@/util/types.js'
 
-export enum HashPurpose {
-  SIGNATURE = 'SIGNATURE',
-  ENCRYPTION = 'ENCRYPTION',
-  SYMMETRIC = 'SYMMETRIC',
-  LINK_TO_PREVIOUS = 'LINK_TO_PREVIOUS',
-  INVITATION = 'INVITATION',
-  DEVICE_ID = 'DEVICE_ID',
-  SHARED_KEY = 'SHARED_KEY',
-}
+// avoiding enums
+export const SIGNATURE = 'SIGNATURE'
+export const ENCRYPTION = 'ENCRYPTION'
+export const SYMMETRIC = 'SYMMETRIC'
+export const LINK_HASH = 'LINK_HASH'
+export const LINK_TO_PREVIOUS = 'LINK_TO_PREVIOUS'
+export const INVITATION = 'INVITATION'
+export const DEVICE_ID = 'DEVICE_ID'
+export const SHARED_KEY = 'SHARED_KEY'
 
-export const VALID = { isValid: true } as ValidationResult
+export const HashPurpose = {
+  SIGNATURE,
+  ENCRYPTION,
+  SYMMETRIC,
+  LINK_HASH,
+  LINK_TO_PREVIOUS,
+  INVITATION,
+  DEVICE_ID,
+  SHARED_KEY,
+} as const
+
+export const VALID: ValidationResult = { isValid: true }

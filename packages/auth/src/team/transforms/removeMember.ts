@@ -1,13 +1,15 @@
-﻿import { Transform } from '@/team/types'
+import { type Transform } from '@/team/types.js'
 
 export const removeMember =
   (userId: string): Transform =>
   state => {
     const remainingMembers = state.members.filter(m => m.userId !== userId)
-    const removedMember = state.members.find(m => m.userId === userId) // the member that was removed
+    const removedMember = state.members.find(m => m.userId === userId) // The member that was removed
 
     const removedMembers = [...state.removedMembers]
-    if (removedMember) removedMembers.push(removedMember)
+    if (removedMember) {
+      removedMembers.push(removedMember)
+    }
 
     return {
       ...state,
