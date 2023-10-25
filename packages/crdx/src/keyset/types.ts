@@ -43,7 +43,9 @@ export const hasSecrets = (keys: Keyset | KeysetWithSecrets): keys is KeysetWith
   'secretKey' in keys
 
 /** Type guard: KeysetWithSecrets vs anything else */
-export const isKeyset = (k: Record<string, unknown>): k is KeysetWithSecrets =>
+export const isKeyset = (
+  k: Record<string, unknown> | Array<Record<string, unknown>>
+): k is KeysetWithSecrets =>
   k !== undefined && //
   'secretKey' in k &&
   'encryption' in k &&
@@ -51,7 +53,7 @@ export const isKeyset = (k: Record<string, unknown>): k is KeysetWithSecrets =>
 
 /**
  * A Keyring is a dictionary of keysets (including secrets), indexed by the public part of the
- * assymetric encryption key
+ * asymmetric encryption key
  * */
 export type Keyring = Record<string, KeysetWithSecrets>
 
