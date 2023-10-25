@@ -7,11 +7,7 @@ import {
   type UnixTimestamp,
   type UserWithSecrets,
 } from '@localfirst/crdx'
-import {
-  type ActionFunction,
-  type AssignAction,
-  type ConditionPredicate,
-} from 'xstate'
+import { type ActionFunction, type AssignAction, type ConditionPredicate } from 'xstate'
 import { type ConnectionMessage } from './message.js'
 import { type DeviceWithSecrets } from '@/device/index.js'
 import { type ProofOfInvitation } from '@/invitations/index.js'
@@ -47,18 +43,15 @@ export type InviteeDeviceInitialContext = {
   invitationSeed: string
 }
 
-export type InviteeInitialContext =
-  | InviteeMemberInitialContext
-  | InviteeDeviceInitialContext
+export type InviteeInitialContext = InviteeMemberInitialContext | InviteeDeviceInitialContext
 
 /** The type of the initial context depends on whether we are already a member, or we've just been
  * invited and are connecting to the team for the first time. */
 export type InitialContext = MemberInitialContext | InviteeInitialContext
 
 // Type guard: MemberInitialContext vs InviteeInitialContext
-export const isInvitee = (
-  c: InitialContext | ConnectionContext
-): c is InviteeInitialContext => !('team' in c)
+export const isInvitee = (c: InitialContext | ConnectionContext): c is InviteeInitialContext =>
+  !('team' in c)
 
 export type ConnectionParams = {
   /** A function to send messages to our peer. This how you hook this up to your network stack. */

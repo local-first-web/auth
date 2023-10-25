@@ -1,15 +1,6 @@
-import {
-  EPHEMERAL_SCOPE,
-  type Keyset,
-  type KeysetWithSecrets,
-  redactKeys,
-} from '@localfirst/crdx'
+import { EPHEMERAL_SCOPE, type Keyset, type KeysetWithSecrets, redactKeys } from '@localfirst/crdx'
 import { asymmetric } from '@localfirst/crypto'
-import {
-  isKeyManifest,
-  type KeyManifest,
-  type Lockbox,
-} from '@/lockbox/types.js'
+import { isKeyManifest, type KeyManifest, type Lockbox } from '@/lockbox/types.js'
 
 /** Creates a new lockbox that can be opened using the recipient's private key. */
 export const create = (
@@ -17,9 +8,7 @@ export const create = (
   recipientKeys: KeysetWithSecrets | Keyset | KeyManifest
 ): Lockbox => {
   // Don't leak the recipient's secrets if we have them
-  const redactedRecipientKeys: Keyset | KeyManifest = isKeyManifest(
-    recipientKeys
-  )
+  const redactedRecipientKeys: Keyset | KeyManifest = isKeyManifest(recipientKeys)
     ? recipientKeys
     : redactKeys(recipientKeys)
 

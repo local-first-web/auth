@@ -1,9 +1,9 @@
-import memoize from "fast-memoize"
-import { getHashes, getLink } from "./graph.js"
-import { isPredecessorHash } from "./predecessors.js"
-import { isSuccessorHash } from "./successors.js"
-import { type Action, type Link, type Graph } from "./types.js"
-import { type Hash } from "@/util/index.js"
+import memoize from 'fast-memoize'
+import { getHashes, getLink } from './graph.js'
+import { isPredecessorHash } from './predecessors.js'
+import { isSuccessorHash } from './successors.js'
+import { type Action, type Link, type Graph } from './types.js'
+import { type Hash } from '@/util/index.js'
 
 /** Returns all links that are concurrent with the given link. */
 export const getConcurrentLinks = <A extends Action, C>(
@@ -13,10 +13,7 @@ export const getConcurrentLinks = <A extends Action, C>(
   return getConcurrentHashes(graph, link.hash).map(hash => getLink(graph, hash))
 }
 
-export const getConcurrentHashes = (
-  graph: Graph<any, any>,
-  hash: Hash
-): Hash[] => {
+export const getConcurrentHashes = (graph: Graph<any, any>, hash: Hash): Hash[] => {
   const concurrencyLookup = calculateConcurrency(graph)
   return concurrencyLookup[hash]
 }
@@ -31,34 +28,26 @@ export const getConcurrentHashes = (
  * }
  * ```
  */
-export const calculateConcurrency = memoize(
-  <A extends Action, C>(graph: Graph<A, C>) => {
-    const concurrencyLookup: Record<Hash, Hash[]> = {}
+export const calculateConcurrency = memoize(<A extends Action, C>(graph: Graph<A, C>) => {
+  const concurrencyLookup: Record<Hash, Hash[]> = {}
 
-    // for each link, find all links that are concurrent with it
-    for (const _ in graph.links) {
-      const hash = _ as Hash
-      concurrencyLookup[hash] = getHashes(graph)
-        .filter(b => isConcurrent(graph, hash, b))
-        .sort()
-    }
-
-    return concurrencyLookup
+  // for each link, find all links that are concurrent with it
+  for (const _ in graph.links) {
+    const hash = _ as Hash
+    concurrencyLookup[hash] = getHashes(graph)
+      .filter(b => isConcurrent(graph, hash, b))
+      .sort()
   }
-)
 
-export const isConcurrent = <A extends Action, C>(
-  graph: Graph<A, C>,
-  a: Hash,
-  b: Hash
-) =>
+  return concurrencyLookup
+})
+
+export const isConcurrent = <A extends Action, C>(graph: Graph<A, C>, a: Hash, b: Hash) =>
   a !== b && // a link isn't concurrent with itself
   !isPredecessorHash(graph, a, b) && // a link isn't concurrent with any of its predecessors
   !isSuccessorHash(graph, a, b) // a link isn't concurrent with any of its successors
 
-export const getConcurrentBubbles = <A extends Action, C>(
-  graph: Graph<A, C>
-): Hash[][] => {
+export const getConcurrentBubbles = <A extends Action, C>(graph: Graph<A, C>): Hash[][] => {
   const seen: Record<Hash, boolean> = {}
 
   // returns an array containing the given hash and all hashes directly or indirectly concurrent with it

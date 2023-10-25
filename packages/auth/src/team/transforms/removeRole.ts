@@ -11,10 +11,6 @@ export const removeRole =
 
     // Remove any lockboxes for this role
     lockboxes: state.lockboxes.filter(
-      lockbox =>
-        !(
-          lockbox.contents.type === KeyType.ROLE &&
-          lockbox.contents.name === roleName
-        )
+      lockbox => !(lockbox.contents.type === KeyType.ROLE && lockbox.contents.name === roleName)
     ),
   })

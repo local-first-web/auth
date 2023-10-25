@@ -1,8 +1,4 @@
-import {
-  type KeyMetadata,
-  type KeyScope,
-  type KeysetWithSecrets,
-} from '@localfirst/crdx'
+import { type KeyMetadata, type KeyScope, type KeysetWithSecrets } from '@localfirst/crdx'
 import { getKeyMap } from './getKeyMap.js'
 import { type TeamState } from '@/team/types.js'
 import { assert } from '@/util/index.js'
@@ -17,17 +13,13 @@ export const keys = (
   const { type, name } = scope
 
   const keysFromLockboxes = getKeyMap(state, deviceKeys)
-  const keys = keysFromLockboxes[type]
-    ? keysFromLockboxes[type][name]
-    : undefined
+  const keys = keysFromLockboxes[type] ? keysFromLockboxes[type][name] : undefined
 
   assert(
     keys,
     `Couldn't find keys: ${JSON.stringify(scope)}
      Device: ${deviceKeys.name}
-     Available lockboxes: \n- ${state.lockboxes
-       .map(lockboxSummary)
-       .join('\n- ')} 
+     Available lockboxes: \n- ${state.lockboxes.map(lockboxSummary).join('\n- ')} 
      Keymap: ${JSON.stringify(keysFromLockboxes, null, 2)}`
   )
 

@@ -11,11 +11,7 @@ import {
   loadTeam,
 } from '..'
 import { cast } from '@/server/cast.js'
-import {
-  type Host,
-  type Server,
-  type ServerWithSecrets,
-} from '@/server/index.js'
+import { type Host, type Server, type ServerWithSecrets } from '@/server/index.js'
 import { KeyType } from '@/util/index.js'
 import {
   type SetupConfig,
@@ -90,11 +86,7 @@ describe('Team', () => {
       const teamKeys = alice.team.teamKeys()
 
       // The server instantiates the team
-      const serverTeam = loadTeam(
-        savedGraph,
-        { server: serverWithSecrets },
-        teamKeys
-      )
+      const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, teamKeys)
 
       // All the stuff that should be on the graph is there
       expect(serverTeam.members().length).toBe(3)
@@ -156,11 +148,7 @@ describe('Team', () => {
       await connectWithServer(alice, server)
 
       // Now if bob connects to the server, the server can admit him
-      server.team.admitMember(
-        invitation.generateProof(bobInvite),
-        bob.user.keys,
-        bob.userId
-      )
+      server.team.admitMember(invitation.generateProof(bobInvite), bob.user.keys, bob.userId)
       expect(server.team.members().length).toBe(2)
     })
 
@@ -205,11 +193,7 @@ describe('Team', () => {
       alice.team.addServer(server)
       const savedGraph = alice.team.save()
       const aliceTeamKeys = alice.team.teamKeys()
-      const serverTeam = loadTeam(
-        savedGraph,
-        { server: serverWithSecrets },
-        aliceTeamKeys
-      )
+      const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, aliceTeamKeys)
 
       const teamKeys0 = serverTeam.teamKeys()
       expect(teamKeys0.generation).toBe(0)
@@ -224,9 +208,7 @@ describe('Team', () => {
       const teamKeys1 = serverTeam.teamKeys()
 
       // The team keys were rotated, so these are new
-      expect(teamKeys1.encryption.publicKey).not.toEqual(
-        teamKeys0.encryption.publicKey
-      )
+      expect(teamKeys1.encryption.publicKey).not.toEqual(teamKeys0.encryption.publicKey)
       expect(teamKeys1.generation).toBe(1)
     })
   })
@@ -252,10 +234,7 @@ const connectWithServer = async (user: UserStuff, server: ServerStuff) => {
   user.connection[host] = join(user.connectionContext).start()
   server.connection[user.userId] = join(server.connectionContext).start()
 
-  return connectionPromise(
-    user.connection[host],
-    server.connection[user.userId]
-  )
+  return connectionPromise(user.connection[host], server.connection[user.userId])
 }
 
 const createServer = (host: Host) => {
@@ -291,17 +270,12 @@ const setup = (...humanUsers: SetupConfig) => {
     if (team) {
       const newTeam = loadTeam(savedGraph, { user, device }, teamKeys)
       userStuff.team = newTeam
-      const connectionContext =
-        userStuff.connectionContext as MemberInitialContext
+      const connectionContext = userStuff.connectionContext as MemberInitialContext
       connectionContext.team = newTeam
     }
   }
 
-  const serverTeam = loadTeam(
-    savedGraph,
-    { server: serverWithSecrets },
-    teamKeys
-  )
+  const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, teamKeys)
 
   const serverStuff = {
     server,

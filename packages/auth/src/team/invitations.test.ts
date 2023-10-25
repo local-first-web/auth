@@ -21,11 +21,7 @@ describe('Team', () => {
 
         // 👨🏻‍🦲 Bob shows 👩🏾 Alice his proof of invitation, and she lets him in, associating
         // him with the public keys he's provided
-        alice.team.admitMember(
-          proofOfInvitation,
-          bob.user.keys,
-          bob.user.userName
-        )
+        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
 
         // ✅ 👨🏻‍🦲 Bob is now on the team. Congratulations, Bob!
         expect(alice.team.has('bob')).toBe(true)
@@ -40,11 +36,7 @@ describe('Team', () => {
 
         const proofOfInvitation = generateProof(seed)
 
-        alice.team.admitMember(
-          proofOfInvitation,
-          bob.user.keys,
-          bob.user.userName
-        )
+        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
 
         // ✅ Still works
         expect(alice.team.has('bob')).toBe(true)
@@ -59,11 +51,7 @@ describe('Team', () => {
 
         // 👨🏻‍🦲 Bob accepts the invitation using a url-friendlier version of the key
         const proofOfInvitation = generateProof('abc+def+ghi')
-        alice.team.admitMember(
-          proofOfInvitation,
-          bob.user.keys,
-          bob.user.userName
-        )
+        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
 
         // ✅ Bob is on the team
         expect(alice.team.has('bob')).toBe(true)
@@ -84,32 +72,20 @@ describe('Team', () => {
 
         // Later, 👩🏾 Alice is no longer around, but 👨🏻‍🦲 Bob is online
         let persistedTeam = alice.team.save()
-        const bobsTeam = teams.load(
-          persistedTeam,
-          bob.localContext,
-          alice.team.teamKeys()
-        )
+        const bobsTeam = teams.load(persistedTeam, bob.localContext, alice.team.teamKeys())
 
         // Just to confirm: 👨🏻‍🦲 Bob isn't an admin
         expect(bobsTeam.memberIsAdmin('bob')).toBe(false)
 
         // 👳🏽‍♂️ Charlie shows 👨🏻‍🦲 Bob his proof of invitation
-        bobsTeam.admitMember(
-          proofOfInvitation,
-          charlie.user.keys,
-          bob.user.userName
-        )
+        bobsTeam.admitMember(proofOfInvitation, charlie.user.keys, bob.user.userName)
 
         // 👍👳🏽‍♂️ Charlie is now on the team
         expect(bobsTeam.has('charlie')).toBe(true)
 
         // ✅ 👩🏾 Alice can now see that 👳🏽‍♂️ Charlie is on the team. Congratulations, Charlie!
         persistedTeam = bobsTeam.save()
-        alice.team = teams.load(
-          persistedTeam,
-          alice.localContext,
-          alice.team.teamKeys()
-        )
+        alice.team = teams.load(persistedTeam, alice.localContext, alice.team.teamKeys())
         expect(alice.team.has('charlie')).toBe(true)
       })
 
@@ -117,16 +93,10 @@ describe('Team', () => {
         const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
         // 👩🏾 Alice invites 👨🏻‍🦲 Bob with a future expiration date
-        const expiration = new Date(
-          Date.UTC(2999, 12, 25)
-        ).valueOf() as UnixTimestamp // NOTE 👩‍🚀 this test will fail if run in the distant future
+        const expiration = new Date(Date.UTC(2999, 12, 25)).valueOf() as UnixTimestamp // NOTE 👩‍🚀 this test will fail if run in the distant future
         const { seed } = alice.team.inviteMember({ expiration })
         const proofOfInvitation = generateProof(seed)
-        alice.team.admitMember(
-          proofOfInvitation,
-          bob.user.keys,
-          bob.user.userName
-        )
+        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
 
         // ✅ 👨🏻‍🦲 Bob's invitation has not expired so he is on the team
         expect(alice.team.has('bob')).toBe(true)
@@ -136,18 +106,12 @@ describe('Team', () => {
         const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
         // A long time ago 👩🏾 Alice invited 👨🏻‍🦲 Bob
-        const expiration = new Date(
-          Date.UTC(2020, 12, 25)
-        ).valueOf() as UnixTimestamp
+        const expiration = new Date(Date.UTC(2020, 12, 25)).valueOf() as UnixTimestamp
         const { seed } = alice.team.inviteMember({ expiration })
         const proofOfInvitation = generateProof(seed)
 
         const tryToAdmitBob = () => {
-          alice.team.admitMember(
-            proofOfInvitation,
-            bob.user.keys,
-            bob.user.userName
-          )
+          alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
         }
 
         // 👎 👨🏻‍🦲 Bob's invitation has expired so he can't get in
@@ -171,16 +135,8 @@ describe('Team', () => {
 
         // 👩🏾 Alice admits them both
 
-        alice.team.admitMember(
-          proofOfInvitation,
-          bob.user.keys,
-          bob.user.userName
-        )
-        alice.team.admitMember(
-          proofOfInvitation,
-          charlie.user.keys,
-          charlie.user.userName
-        )
+        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
+        alice.team.admitMember(proofOfInvitation, charlie.user.keys, charlie.user.userName)
 
         // ✅ 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie are both on the team
         expect(alice.team.has('bob')).toBe(true)
@@ -225,19 +181,11 @@ describe('Team', () => {
         const proofOfInvitation = generateProof(seed)
 
         const tryToAdmitBob = () => {
-          alice.team.admitMember(
-            proofOfInvitation,
-            bob.user.keys,
-            bob.user.userName
-          )
+          alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
         }
 
         const tryToAdmitCharlie = () => {
-          alice.team.admitMember(
-            proofOfInvitation,
-            charlie.user.keys,
-            charlie.user.userName
-          )
+          alice.team.admitMember(proofOfInvitation, charlie.user.keys, charlie.user.userName)
         }
 
         // 👍 👨🏻‍🦲 Bob uses the invitation first and he gets in
@@ -271,19 +219,11 @@ describe('Team', () => {
 
         // Later, 👩🏾 Alice is no longer around, but 👨🏻‍🦲 Bob is online
         const persistedTeam = alice.team.save()
-        bob.team = teams.load(
-          persistedTeam,
-          bob.localContext,
-          alice.team.teamKeys()
-        )
+        bob.team = teams.load(persistedTeam, bob.localContext, alice.team.teamKeys())
 
         // 👳🏽‍♂️ Charlie shows 👨🏻‍🦲 Bob his proof of invitation
         const tryToAdmitCharlie = () => {
-          bob.team.admitMember(
-            proofOfInvitation,
-            charlie.user.keys,
-            charlie.user.userName
-          )
+          bob.team.admitMember(proofOfInvitation, charlie.user.keys, charlie.user.userName)
         }
 
         // 👎 But the invitation is rejected because it was revoked
@@ -314,11 +254,7 @@ describe('Team', () => {
 
         // 👍 The proof was good, so the laptop sends the phone the team's signature chain
         const savedTeam = alice.team.save()
-        const phoneTeam = teams.load(
-          savedTeam,
-          alice.localContext,
-          alice.team.teamKeys()
-        )
+        const phoneTeam = teams.load(savedTeam, alice.localContext, alice.team.teamKeys())
 
         // 📱 Alice's phone joins the team
         phoneTeam.joinAsDevice('alice', 'alice')
@@ -344,11 +280,7 @@ describe('Team', () => {
 
         // 👨🏻‍🦲 Bob syncs up with Alice
         const savedTeam = alice.team.save()
-        bob.team = teams.load(
-          savedTeam,
-          bob.localContext,
-          alice.team.teamKeys()
-        )
+        bob.team = teams.load(savedTeam, bob.localContext, alice.team.teamKeys())
 
         // 📱 Alice's phone connects with 👨🏻‍🦲 Bob and she presents the proof
         const tryToAdmitPhone = () => {

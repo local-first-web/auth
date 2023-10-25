@@ -1,11 +1,6 @@
-﻿import { getChildrenHashes } from "./children.js"
-import {
-  type Action,
-  type Link,
-  type LinkComparator,
-  type Graph,
-} from "./types.js"
-import { type Hash } from "@/util/index.js"
+﻿import { getChildrenHashes } from './children.js'
+import { type Action, type Link, type LinkComparator, type Graph } from './types.js'
+import { type Hash } from '@/util/index.js'
 
 /** Flattens a hash graph into a sequence  */
 export const topoSort = <A extends Action, C>(

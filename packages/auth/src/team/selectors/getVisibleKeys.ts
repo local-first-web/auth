@@ -15,9 +15,7 @@ export const getVisibleKeys = (
   const { publicKey } = keyset.encryption
 
   // What lockboxes can I open with these keys?
-  const lockboxesICanOpen = lockboxes.filter(
-    ({ recipient }) => recipient.publicKey === publicKey
-  )
+  const lockboxesICanOpen = lockboxes.filter(({ recipient }) => recipient.publicKey === publicKey)
 
   // Collect all the keys from those lockboxes
   const keysets = lockboxesICanOpen.map(lockbox => open(lockbox, keyset))

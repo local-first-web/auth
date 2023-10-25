@@ -280,10 +280,7 @@ export type TeamLinkMap = Record<Hash, TeamLink>
 export type TeamGraph = Graph<TeamAction, TeamContext>
 export type Branch = Sequence<TeamAction, TeamContext>
 export type TwoBranches = [Branch, Branch]
-export type MembershipRuleEnforcer = (
-  links: TeamLink[],
-  graph: TeamGraph
-) => TeamLink[]
+export type MembershipRuleEnforcer = (links: TeamLink[], graph: TeamGraph) => TeamLink[]
 
 // ********* TEAM STATE
 
@@ -313,10 +310,7 @@ export type InvitationMap = Record<string, InvitationState>
 
 // ********* VALIDATION
 
-export type TeamStateValidator = (
-  previousState: TeamState,
-  link: TeamLink
-) => ValidationResult
+export type TeamStateValidator = (previousState: TeamState, link: TeamLink) => ValidationResult
 
 export type TeamStateValidatorSet = Record<string, TeamStateValidator>
 

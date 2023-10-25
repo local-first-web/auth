@@ -1,6 +1,6 @@
-import { getHashes, getParents } from "./graph.js"
-import { type Action, type Graph, type LinkMap } from "./types.js"
-import { type Hash } from "@/util/index.js"
+import { getHashes, getParents } from './graph.js'
+import { type Action, type Graph, type LinkMap } from './types.js'
+import { type Hash } from '@/util/index.js'
 
 export const EMPTY: LinkMap = {}
 
@@ -118,9 +118,7 @@ export const isComplete = (linkMap: LinkMap) => {
   return !allDependencies.some(d => isMissing(d))
 }
 
-export const getChildMap = <A extends Action, C>(
-  graph: Graph<A, C>
-): LinkMap => {
+export const getChildMap = <A extends Action, C>(graph: Graph<A, C>): LinkMap => {
   const childMap = {} as LinkMap
   for (const hash of getHashes(graph))
     for (const parent of getParents(graph, hash)) {

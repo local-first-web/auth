@@ -1,5 +1,5 @@
-import { asymmetric } from "@localfirst/crypto"
-import { hashEncryptedLink } from "./hashLink.js"
+import { asymmetric } from '@localfirst/crypto'
+import { hashEncryptedLink } from './hashLink.js'
 import {
   type Action,
   type EncryptedLink,
@@ -7,10 +7,10 @@ import {
   type Link,
   type LinkBody,
   type MaybePartlyDecryptedGraph,
-} from "./types.js"
-import { createKeyring } from "@/keyset/createKeyring.js"
-import { type Keyring, type KeysetWithSecrets } from "@/keyset/index.js"
-import { assert, type Hash } from "@/util/index.js"
+} from './types.js'
+import { createKeyring } from '@/keyset/createKeyring.js'
+import { type Keyring, type KeysetWithSecrets } from '@/keyset/index.js'
+import { assert, type Hash } from '@/util/index.js'
 
 /**
  * Decrypts a single link of a graph, given the graph keys at the time the link was authored.
@@ -32,7 +32,7 @@ export const decryptLink = <A extends Action, C>(
   }) as LinkBody<A, C>
 
   // HACK figure out why localfirst/auth is getting a JSON string here
-  if (typeof decryptedLinkBody === "string")
+  if (typeof decryptedLinkBody === 'string')
     decryptedLinkBody = JSON.parse(decryptedLinkBody) as LinkBody<A, C>
   // if (typeof decryptedLinkBody === 'string') console.error({ decryptedLinkBody })
 

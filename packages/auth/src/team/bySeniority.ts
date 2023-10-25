@@ -13,8 +13,7 @@ export const bySeniority = (chain: TeamGraph) => (a: string, b: string) => {
 
   const linkThatAddedMember = (userId: string) => {
     const addedMember = (link: TeamLink) =>
-      link.body.type === 'ADD_MEMBER' &&
-      link.body.payload.member.userId === userId
+      link.body.type === 'ADD_MEMBER' && link.body.payload.member.userId === userId
     return Object.values(chain.links).find(addedMember)
   }
 

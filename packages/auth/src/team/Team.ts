@@ -15,12 +15,7 @@ import {
   isKeyset,
   redactKeys,
 } from '@localfirst/crdx'
-import {
-  type Base58,
-  randomKey,
-  signatures,
-  symmetric,
-} from '@localfirst/crypto'
+import { type Base58, randomKey, signatures, symmetric } from '@localfirst/crypto'
 import EventEmitter from 'eventemitter3'
 import { ADMIN_SCOPE, ALL, TEAM_SCOPE, initialState } from './constants.js'
 import { membershipResolver as resolver } from './membershipResolver.js'
@@ -57,14 +52,7 @@ import * as lockbox from '@/lockbox/index.js'
 import { ADMIN, type Role } from '@/role/index.js'
 import { cast } from '@/server/cast.js'
 import { type Host, type Server } from '@/server/types.js'
-import {
-  KeyType,
-  VALID,
-  assert,
-  debug,
-  getScope,
-  scopesMatch,
-} from '@/util/index.js'
+import { KeyType, VALID, assert, debug, getScope, scopesMatch } from '@/util/index.js'
 
 /**
  * The `Team` class wraps a `TeamGraph` and exposes methods for adding and removing
@@ -229,10 +217,7 @@ export class Team extends EventEmitter {
   }
 
   /** Add a link to the graph, then recompute team state from the new graph */
-  public dispatch(
-    action: TeamAction,
-    teamKeys: KeysetWithSecrets = this.teamKeys()
-  ) {
+  public dispatch(action: TeamAction, teamKeys: KeysetWithSecrets = this.teamKeys()) {
     this.store.dispatch(action, teamKeys)
     this.state = this.store.getState()
 
@@ -285,10 +270,7 @@ export class Team extends EventEmitter {
   /** Returns the member with the given user name */
   public members(userId: string, options?: { includeRemoved: boolean }): Member // Overload: one member
   //
-  public members(
-    userId: string = ALL,
-    options = { includeRemoved: true }
-  ): Member | Member[] {
+  public members(userId: string = ALL, options = { includeRemoved: true }): Member | Member[] {
     return userId === ALL //
       ? this.state.members // All members
       : select.member(this.state, userId, options) // One member
@@ -299,11 +281,7 @@ export class Team extends EventEmitter {
    * only makes sense for unit tests. In real-world scenarios, you'll need to use the `team.invite`
    * workflow to add members without relying on some kind of public key infrastructure.
    */
-  public addForTesting = (
-    user: UserWithSecrets,
-    roles: string[] = [],
-    device?: Device
-  ) => {
+  public addForTesting = (user: UserWithSecrets, roles: string[] = [], device?: Device) => {
     const member = { ...redactUser(user), roles }
 
     // Make lockboxes for the new member
@@ -354,8 +332,7 @@ export class Team extends EventEmitter {
   }
 
   /** Returns true if the member was once on the team but was removed */
-  public memberWasRemoved = (userId: string) =>
-    select.memberWasRemoved(this.state, userId)
+  public memberWasRemoved = (userId: string) => select.memberWasRemoved(this.state, userId)
 
   /** ************** ROLES */
 
@@ -375,15 +352,13 @@ export class Team extends EventEmitter {
     select.memberHasRole(this.state, userId, roleName)
 
   /** Returns true if the member with the given userId is a member of the 3 role */
-  public memberIsAdmin = (userId: string) =>
-    select.memberIsAdmin(this.state, userId)
+  public memberIsAdmin = (userId: string) => select.memberIsAdmin(this.state, userId)
 
   /** Returns true if the team has a role with the given name */
   public hasRole = (roleName: string) => select.hasRole(this.state, roleName)
 
   /** Returns a list of members who have the given role */
-  public membersInRole = (roleName: string): Member[] =>
-    select.membersInRole(this.state, roleName)
+  public membersInRole = (roleName: string): Member[] => select.membersInRole(this.state, roleName)
 
   /** Returns a list of members who are in the admin role */
   public admins = (): Member[] => select.admins(this.state)
@@ -395,10 +370,7 @@ export class Team extends EventEmitter {
     }
 
     // We're creating this role so we need to generate new keys
-    const roleKeys = createKeyset(
-      { type: KeyType.ROLE, name: role.roleName },
-      this.seed
-    )
+    const roleKeys = createKeyset({ type: KeyType.ROLE, name: role.roleName }, this.seed)
 
     // Make a lockbox for the admin role, so that all admins can access this role's keys
     const lockboxForAdmin = lockbox.create(roleKeys, this.adminKeys())
@@ -626,10 +598,7 @@ export class Team extends EventEmitter {
     const invitation = this.getInvitation(id)
 
     // Make sure the invitation hasn't already been used, hasn't expired, and hasn't been revoked
-    const canBeUsedResult = invitations.invitationCanBeUsed(
-      invitation,
-      Date.now()
-    )
+    const canBeUsedResult = invitations.invitationCanBeUsed(invitation, Date.now())
     if (canBeUsedResult !== VALID) {
       return canBeUsedResult
     }
@@ -672,10 +641,7 @@ export class Team extends EventEmitter {
   }
 
   /** A member calls this to admit a new device for themselves based on proof of invitation */
-  public admitDevice = (
-    proof: ProofOfInvitation,
-    device: DeviceWithSecrets | Device
-  ) => {
+  public admitDevice = (proof: ProofOfInvitation, device: DeviceWithSecrets | Device) => {
     const validation = this.validateInvitation(proof)
     if (!validation.isValid) {
       throw validation.error
@@ -709,10 +675,7 @@ export class Team extends EventEmitter {
 
     const teamKeys = getLatestGeneration(teamKeyring)
 
-    const deviceLockbox = lockbox.create(
-      this.context.user.keys,
-      this.context.device.keys
-    )
+    const deviceLockbox = lockbox.create(this.context.user.keys, this.context.device.keys)
     const device = redactDevice(this.context.device)
     this.dispatch(
       {
@@ -815,8 +778,7 @@ export class Team extends EventEmitter {
   }
 
   /** Returns true if the server was once on the team but was removed */
-  public serverWasRemoved = (host: Host) =>
-    select.serverWasRemoved(this.state, host)
+  public serverWasRemoved = (host: Host) => select.serverWasRemoved(this.state, host)
 
   public hasServer = (host: Host) => select.hasServer(this.state, host)
 
@@ -890,14 +852,11 @@ export class Team extends EventEmitter {
     this.keys({ type: KeyType.ROLE, name: roleName, generation })
 
   /** Returns the current team keys or a specific generation of team keys */
-  public teamKeys = (generation?: number) =>
-    this.keys({ ...TEAM_SCOPE, generation })
+  public teamKeys = (generation?: number) => this.keys({ ...TEAM_SCOPE, generation })
 
   public teamKeyring = () => {
     const { TEAM } = KeyType
-    const allTeamKeys = select.getKeyMap(this.state, this.context.device.keys)[
-      TEAM
-    ][TEAM]
+    const allTeamKeys = select.getKeyMap(this.state, this.context.device.keys)[TEAM][TEAM]
     return createKeyring(allTeamKeys)
   }
 
@@ -965,8 +924,7 @@ export class Team extends EventEmitter {
 
   private readonly createMemberLockboxes = (member: Member) => {
     const roleKeys = member.roles.map(this.roleKeys)
-    const createLockbox = (keys: KeysetWithSecrets) =>
-      lockbox.create(keys, member.keys)
+    const createLockbox = (keys: KeysetWithSecrets) => lockbox.create(keys, member.keys)
     return [...roleKeys, this.teamKeys()].map(createLockbox)
   }
 
@@ -1001,16 +959,12 @@ export class Team extends EventEmitter {
 
       return oldLockboxes.map(oldLockbox => {
         // Check whether we have new keys for the recipient of this lockbox
-        const updatedKeyset = newKeysets.find(k =>
-          scopesMatch(k, oldLockbox.recipient)
-        )
+        const updatedKeyset = newKeysets.find(k => scopesMatch(k, oldLockbox.recipient))
         return lockbox.rotate({
           oldLockbox,
           newContents: newKeyset,
           // If we did, address the new lockbox to those keys
-          updatedRecipientKeys: updatedKeyset
-            ? redactKeys(updatedKeyset)
-            : undefined,
+          updatedRecipientKeys: updatedKeyset ? redactKeys(updatedKeyset) : undefined,
         })
       })
     })
@@ -1019,14 +973,10 @@ export class Team extends EventEmitter {
   }
 }
 
-const maybeDeserialize = (
-  source: string | TeamGraph,
-  teamKeyring: Keyring
-): TeamGraph =>
+const maybeDeserialize = (source: string | TeamGraph, teamKeyring: Keyring): TeamGraph =>
   isGraph(source) ? source : deserializeTeamGraph(source, teamKeyring)
 
-const isGraph = (source: string | TeamGraph): source is TeamGraph =>
-  source?.hasOwnProperty('root')
+const isGraph = (source: string | TeamGraph): source is TeamGraph => source?.hasOwnProperty('root')
 
 type InviteResult = {
   /** The unique identifier for this invitation. */

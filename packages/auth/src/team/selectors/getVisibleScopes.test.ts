@@ -61,9 +61,7 @@ describe('getVisibleScopes', () => {
       })
 
     const changeDeviceKeys = () => {
-      alice.team.changeKeys(
-        createKeyset({ type: DEVICE, name: 'alice::laptop' })
-      )
+      alice.team.changeKeys(createKeyset({ type: DEVICE, name: 'alice::laptop' }))
     }
 
     expect(getDeviceScopes()).toEqual([

@@ -539,12 +539,7 @@ describe('connection', () => {
       })
 
       it('resolves circular concurrent demotions', async () => {
-        const { alice, bob, charlie, dwight } = setup(
-          'alice',
-          'bob',
-          'charlie',
-          'dwight'
-        )
+        const { alice, bob, charlie, dwight } = setup('alice', 'bob', 'charlie', 'dwight')
 
         // Bob demotes Charlie
         bob.team.removeMemberRole('charlie', ADMIN)
@@ -669,11 +664,7 @@ describe('connection', () => {
       })
 
       it('allows a new member to join after team keys have been rotated', async () => {
-        const { alice, bob, charlie } = setup([
-          'alice',
-          'bob',
-          { user: 'charlie', member: false },
-        ])
+        const { alice, bob, charlie } = setup(['alice', 'bob', { user: 'charlie', member: false }])
 
         await connect(alice, bob)
 
@@ -761,10 +752,7 @@ describe('connection', () => {
 
         // Bob invites his phone and it joins
         const { seed } = bob.team.inviteDevice()
-        await Promise.all([
-          connectPhoneWithInvitation(bob, seed),
-          anyUpdated(alice, bob),
-        ])
+        await Promise.all([connectPhoneWithInvitation(bob, seed), anyUpdated(alice, bob)])
 
         // Bob and Alice know about Bob's phone
         expect(bob.team.members('bob').devices).toHaveLength(2)

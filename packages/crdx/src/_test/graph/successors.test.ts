@@ -1,14 +1,9 @@
-﻿import { describe, expect, it, test } from "vitest"
-import {
-  type XLink,
-  buildGraph,
-  findByPayload,
-  getPayloads,
-} from "../helpers/graph.js"
-import { getRoot, getSuccessors, isSuccessor } from "@/graph/index.js"
+﻿import { describe, expect, it, test } from 'vitest'
+import { type XLink, buildGraph, findByPayload, getPayloads } from '../helpers/graph.js'
+import { getRoot, getSuccessors, isSuccessor } from '@/graph/index.js'
 
-describe("graphs", () => {
-  describe("successors", () => {
+describe('graphs', () => {
+  describe('successors', () => {
     const graph = buildGraph(`
                          ┌─ e ─ g ─┐
                ┌─ c ─ d ─┤         ├─ o ─┐
@@ -17,29 +12,29 @@ describe("graphs", () => {
                └───── j ─── k ── l ──────┘           
     `)
 
-    describe("getSuccessors", () => {
+    describe('getSuccessors', () => {
       const getSuccessorPayloads = (link: XLink): string => {
         const successors = getSuccessors(graph, link)
-        return getPayloads(successors).split("").sort().join("")
+        return getPayloads(successors).split('').sort().join('')
       }
 
-      test("root", () => {
+      test('root', () => {
         const root = getRoot(graph)
-        expect(getSuccessorPayloads(root)).toEqual("abcdefghijklno")
+        expect(getSuccessorPayloads(root)).toEqual('abcdefghijklno')
       })
 
-      test("d", () => {
-        const d = findByPayload(graph, "d")
-        expect(getSuccessorPayloads(d)).toEqual("efgno")
+      test('d', () => {
+        const d = findByPayload(graph, 'd')
+        expect(getSuccessorPayloads(d)).toEqual('efgno')
       })
 
-      test("o", () => {
-        const o = findByPayload(graph, "o")
-        expect(getSuccessorPayloads(o)).toEqual("n")
+      test('o', () => {
+        const o = findByPayload(graph, 'o')
+        expect(getSuccessorPayloads(o)).toEqual('n')
       })
     })
 
-    describe("isSuccessor", () => {
+    describe('isSuccessor', () => {
       const testCase = (a: string, b: string) => {
         const aLink = findByPayload(graph, a)
         const bLink = findByPayload(graph, b)
@@ -47,9 +42,9 @@ describe("graphs", () => {
         return isSuccessor(graph, aLink, bLink)
       }
 
-      it("f succeeds c", () => expect(testCase("f", "c")).toBe(true))
-      it(`c doesn't succeed f`, () => expect(testCase("c", "f")).toBe(false))
-      it(`c doesn't succeed c`, () => expect(testCase("c", "c")).toBe(false))
+      it('f succeeds c', () => expect(testCase('f', 'c')).toBe(true))
+      it(`c doesn't succeed f`, () => expect(testCase('c', 'f')).toBe(false))
+      it(`c doesn't succeed c`, () => expect(testCase('c', 'c')).toBe(false))
     })
   })
 })

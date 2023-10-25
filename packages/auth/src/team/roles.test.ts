@@ -41,9 +41,7 @@ describe('Team', () => {
 
       // 👩🏾 Alice adds 👨🏻‍🦲 Bob to the managers role
       alice.team.addMemberRole('bob', MANAGERS)
-      expect(alice.team.membersInRole(MANAGERS).map(m => m.userId)).toEqual([
-        'bob',
-      ])
+      expect(alice.team.membersInRole(MANAGERS).map(m => m.userId)).toEqual(['bob'])
     })
 
     it('admins have access to all role keys', () => {
@@ -163,10 +161,7 @@ describe('Team', () => {
       const { alice } = setup('alice', { user: 'bob', admin: true })
 
       // 👩🏾 Alice and 👨🏻‍🦲 Bob are members
-      expect(alice.team.membersInRole(ADMIN).map(m => m.userId)).toEqual([
-        'alice',
-        'bob',
-      ])
+      expect(alice.team.membersInRole(ADMIN).map(m => m.userId)).toEqual(['alice', 'bob'])
       expect(alice.team.admins().map(m => m.userId)).toEqual(['alice', 'bob'])
     })
 
@@ -295,8 +290,7 @@ describe('Team', () => {
       expect(alice.team.roleKeys(COOLKIDS).generation).toBe(0)
 
       // 👩🏾 Alice encrypts something for the cool kids
-      const message =
-        "exclusive party at Alice's house tonight. cool kids only!!!"
+      const message = "exclusive party at Alice's house tonight. cool kids only!!!"
       const encryptedMessage = alice.team.encrypt(message, COOLKIDS)
       // 👨🏻‍🦲 Bob and Charlie can both read the message
 
@@ -312,11 +306,7 @@ describe('Team', () => {
       // Everyone gets the latest team state
       const savedTeam2 = alice.team.save()
       bob.team = teams.load(savedTeam2, bob.localContext, alice.team.teamKeys())
-      charlie.team = teams.load(
-        savedTeam2,
-        charlie.localContext,
-        alice.team.teamKeys()
-      )
+      charlie.team = teams.load(savedTeam2, charlie.localContext, alice.team.teamKeys())
 
       // 👳🏽‍♂️ Charlie can still read the message
       expect(charlie.team.decrypt(encryptedMessage)).toEqual(message)
@@ -326,10 +316,7 @@ describe('Team', () => {
 
       // But with a little effort...
       const decryptUsingSavedKey = (message: teams.EncryptedEnvelope) => () =>
-        symmetric.decrypt(
-          message.contents,
-          copyOfKeysInCaseTheyKickMeOut.secretKey
-        )
+        symmetric.decrypt(message.contents, copyOfKeysInCaseTheyKickMeOut.secretKey)
 
       // 👨🏻‍🦲 Bob can still see the old message using his saved key, because it was encrypted before he
       // was kicked out (can't undisclose what you've disclosed)

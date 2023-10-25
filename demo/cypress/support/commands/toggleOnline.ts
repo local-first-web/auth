@@ -6,11 +6,7 @@ export const toggleOnline: CommandFn = subject => {
     .find('.OnlineToggle')
     .invoke('attr', 'title')
     .then(prevState => {
-      s()
-        .find('.OnlineToggle')
-        .click()
-        .invoke('attr', 'title')
-        .should('not.equal', prevState)
+      s().find('.OnlineToggle').click().invoke('attr', 'title').should('not.equal', prevState)
     })
     .then(() => subject)
 }

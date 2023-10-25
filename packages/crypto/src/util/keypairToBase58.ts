@@ -1,4 +1,4 @@
-import { base58 } from "./base58.js"
+import { base58 } from './base58.js'
 
 export const keypairToBase58 = (keypair: KeyPair) => ({
   publicKey: base58.encode(keypair.publicKey),

@@ -10,13 +10,7 @@ import {
 } from './types.js'
 import { parseDeviceId } from '@/device/index.js'
 import { invitationCanBeUsed } from '@/invitation/index.js'
-import {
-  actionFingerprint,
-  debug,
-  truncateHashes,
-  VALID,
-  ValidationError,
-} from '@/util/index.js'
+import { actionFingerprint, debug, truncateHashes, VALID, ValidationError } from '@/util/index.js'
 
 const log = debug('lf:auth:validate')
 
@@ -98,10 +92,7 @@ const validators: TeamStateValidatorSet = {
   // Check for ADMIT with invitations that are revoked OR have been used more than maxUses OR are expired
   cantAdmitWithInvalidInvitation(...args) {
     const [previousState, link] = args
-    if (
-      link.body.type === 'ADMIT_MEMBER' ||
-      link.body.type === 'ADMIT_DEVICE'
-    ) {
+    if (link.body.type === 'ADMIT_MEMBER' || link.body.type === 'ADMIT_DEVICE') {
       const { id } = link.body.payload
       const invitation = select.getInvitation(previousState, id)
       return invitationCanBeUsed(invitation, link.body.timestamp)

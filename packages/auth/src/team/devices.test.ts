@@ -43,8 +43,7 @@ describe('Team', () => {
       const bobDevice = alice.team.members('bob').devices[0].deviceName
       alice.team.removeDevice('bob', bobDevice)
 
-      const getDevice = () =>
-        alice.team.device('bob', bobDevice, { includeRemoved: true })
+      const getDevice = () => alice.team.device('bob', bobDevice, { includeRemoved: true })
       expect(getDevice).not.toThrow()
     })
 
@@ -68,8 +67,7 @@ describe('Team', () => {
 
     it('throws when trying to access a nonexistent device', () => {
       const { alice } = setup()
-      const getDevice = () =>
-        alice.team.device('alice', 'alicez wrist communicator')
+      const getDevice = () => alice.team.device('alice', 'alicez wrist communicator')
       expect(getDevice).toThrow()
     })
 

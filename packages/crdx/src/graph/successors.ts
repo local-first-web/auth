@@ -1,17 +1,13 @@
-﻿import uniq from "lodash/uniq"
-import { getChildrenHashes } from "./children.js"
-import { type Action, type Link, type Graph } from "./types.js"
-import { type Hash, memoize } from "@/util/index.js"
+﻿import uniq from 'lodash/uniq'
+import { getChildrenHashes } from './children.js'
+import { type Action, type Link, type Graph } from './types.js'
+import { type Hash, memoize } from '@/util/index.js'
 
-export const getSuccessorHashes = memoize(
-  (graph: Graph<any, any>, hash: Hash): Hash[] => {
-    const children = getChildrenHashes(graph, hash)
-    const successors = children.flatMap(parent =>
-      getSuccessorHashes(graph, parent)
-    )
-    return uniq(children.concat(successors))
-  }
-)
+export const getSuccessorHashes = memoize((graph: Graph<any, any>, hash: Hash): Hash[] => {
+  const children = getChildrenHashes(graph, hash)
+  const successors = children.flatMap(parent => getSuccessorHashes(graph, parent))
+  return uniq(children.concat(successors))
+})
 
 /** Returns the set of successors of `link` (not including `link`) */
 export const getSuccessors = <A extends Action, C>(

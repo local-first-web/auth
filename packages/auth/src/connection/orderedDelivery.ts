@@ -8,10 +8,7 @@
  *   - `queue` The updated queue
  *   - `nextMessages` An array of zero or more messages that are ready to be delivered
  */
-export const orderedDelivery = <M extends Indexed>(
-  queue: Queue<M>,
-  message: M
-) => {
+export const orderedDelivery = <M extends Indexed>(queue: Queue<M>, message: M) => {
   const { index } = message
   const updatedQueue: Queue<M> = { ...queue, [index]: message }
   const highestIndex = highest(updatedQueue)
@@ -36,8 +33,7 @@ const firstGap = <M extends Indexed>(queue: Queue<M>) => {
   return i
 }
 
-const highest = <M extends Indexed>(queue: Queue<M>) =>
-  Math.max(...Object.keys(queue).map(Number))
+const highest = <M extends Indexed>(queue: Queue<M>) => Math.max(...Object.keys(queue).map(Number))
 
 export type Queue<M extends Indexed> = Record<number, M>
 

@@ -1,8 +1,8 @@
-﻿import { ValidationError, type ValidatorSet } from "./types.js"
-import { ROOT, VALID } from "@/constants.js"
-import { getRoot } from "@/graph/graph.js"
-import { hashEncryptedLink } from "@/graph/hashLink.js"
-import { memoize } from "@/util/index.js"
+﻿import { ValidationError, type ValidatorSet } from './types.js'
+import { ROOT, VALID } from '@/constants.js'
+import { getRoot } from '@/graph/graph.js'
+import { hashEncryptedLink } from '@/graph/hashLink.js'
+import { memoize } from '@/util/index.js'
 
 const _validators: ValidatorSet = {
   /** Does this link's hash check out? */
@@ -32,11 +32,10 @@ const _validators: ValidatorSet = {
   /** If this is a root link, it should not have any predecessors, and should be the graph's root */
   validateRoot(link, graph) {
     const hasNoPrevLink = link.body.prev.length === 0
-    const hasRootType = "type" in link.body && link.body.type === ROOT
+    const hasRootType = 'type' in link.body && link.body.type === ROOT
     const isTheGraphRoot = getRoot(graph) === link
     // all should be true, or all should be false
-    if (hasNoPrevLink === isTheGraphRoot && isTheGraphRoot === hasRootType)
-      return VALID
+    if (hasNoPrevLink === isTheGraphRoot && isTheGraphRoot === hasRootType) return VALID
 
     const message = hasRootType
       ? // ROOT
@@ -46,7 +45,7 @@ const _validators: ValidatorSet = {
       : // not ROOT
       hasNoPrevLink
       ? `Non-ROOT links must have predecessors` // not ROOT but has no prev link
-      : "The link referenced by the graph `root` property must be a ROOT link" // not ROOT but is the graph root
+      : 'The link referenced by the graph `root` property must be a ROOT link' // not ROOT but is the graph root
     return fail(message, { link, graph })
   },
 
@@ -65,13 +64,10 @@ const _validators: ValidatorSet = {
     for (const hash of link.body.prev) {
       const prevLink = graph.links[hash]
       if (prevLink.body.timestamp > timestamp)
-        return fail(
-          `This link's timestamp can't be earlier than a previous link.`,
-          {
-            link,
-            prevLink,
-          }
-        )
+        return fail(`This link's timestamp can't be earlier than a previous link.`, {
+          link,
+          prevLink,
+        })
     }
 
     return VALID

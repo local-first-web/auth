@@ -171,18 +171,12 @@ describe('membershipResolver', () => {
       context: bob.graphContext,
       keys,
     })
-    expect(summary(bGraph)).toEqual(
-      'ROOT,ADD:bob,ADD:charlie,REMOVE:charlie,ADD:charlie'
-    )
+    expect(summary(bGraph)).toEqual('ROOT,ADD:bob,ADD:charlie,REMOVE:charlie,ADD:charlie')
 
     // 🔌✔ Alice and Bob reconnect and synchronize graphs
 
     // ✅ Charlie isn't added back
-    expectMergedResult(
-      aGraph,
-      bGraph,
-      'ROOT,ADD:bob,ADD:charlie,REMOVE:charlie,REMOVE:charlie'
-    )
+    expectMergedResult(aGraph, bGraph, 'ROOT,ADD:bob,ADD:charlie,REMOVE:charlie,REMOVE:charlie')
   })
 
   it('resolves mutual concurrent removals in favor of the team founder', () => {
@@ -254,11 +248,7 @@ describe('membershipResolver', () => {
     // 🔌✔ Bob and Charlie reconnect and synchronize graphs
 
     // ✅ Bob was added first; Charlie's change is discarded,Bob stays
-    expectMergedResult(
-      bGraph,
-      cGraph,
-      'ROOT,ADD:bob,ADD:charlie,REMOVE:charlie'
-    )
+    expectMergedResult(bGraph, cGraph, 'ROOT,ADD:bob,ADD:charlie,REMOVE:charlie')
   })
 
   it('resolves mutual concurrent demotions in favor of the team founder', () => {

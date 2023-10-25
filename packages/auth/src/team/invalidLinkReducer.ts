@@ -16,10 +16,7 @@ import { type Member } from '.'
  * situations where we need to pay attention. In the above example, we need to act as if Charlie was
  * removed from the team, and do some cleanup.
  */
-export const invalidLinkReducer = (
-  state: TeamState,
-  link: TeamLink
-): TeamState => {
+export const invalidLinkReducer = (state: TeamState, link: TeamLink): TeamState => {
   switch (link.body.type) {
     case 'ADMIT_MEMBER': {
       // We need to treat invalidated ADMIT_MEMBER actions as removals, in that they're included in

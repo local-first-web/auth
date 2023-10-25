@@ -1,15 +1,10 @@
-import { TEST_GRAPH_KEYS as keys } from "@test/helpers/setup"
-import { describe, expect, it } from "vitest"
-import {
-  createGraph,
-  type Link,
-  type Resolver,
-  type RootAction,
-} from "@/graph/index.js"
-import { createStore } from "@/store/index.js"
-import { type Reducer } from "@/store/types.js"
-import { createUser } from "@/user/index.js"
-import { type UnixTimestamp } from "@/util/index.js"
+import { TEST_GRAPH_KEYS as keys } from '@test/helpers/setup'
+import { describe, expect, it } from 'vitest'
+import { createGraph, type Link, type Resolver, type RootAction } from '@/graph/index.js'
+import { createStore } from '@/store/index.js'
+import { type Reducer } from '@/store/types.js'
+import { createUser } from '@/user/index.js'
+import { type UnixTimestamp } from '@/util/index.js'
 
 /**
  * This example simulates a meeting room scheduler and demonstrates a custom resolver implementing
@@ -18,9 +13,9 @@ import { type UnixTimestamp } from "@/util/index.js"
  * If two people concurrently schedule a room for overlapping times, it's considered a conflict and is
  * resolved by giving the room to the person with the most seniority.
  */
-describe("scheduler", () => {
-  const alice = createUser("alice", "alice")
-  const bob = createUser("bob", "bob")
+describe('scheduler', () => {
+  const alice = createUser('alice', 'alice')
+  const bob = createUser('bob', 'bob')
 
   // the person with the longest tenure wins in the case of conflicts
   const seniorityLookup: Record<string, number> = {
@@ -34,11 +29,9 @@ describe("scheduler", () => {
      * The resolver enforces the rule that the most senior person wins in cases of conflict.
      */
     const resolver = (_ => {
-      const seniority = (link: SchedulerLink) =>
-        seniorityLookup[link.body.userId]
+      const seniority = (link: SchedulerLink) => seniorityLookup[link.body.userId]
       return {
-        sort: (a: SchedulerLink, b: SchedulerLink) =>
-          seniority(b) - seniority(a),
+        sort: (a: SchedulerLink, b: SchedulerLink) => seniority(b) - seniority(a),
       }
     }) as Resolver<SchedulerAction, SchedulerState>
 
@@ -51,11 +44,11 @@ describe("scheduler", () => {
       const action = link.body
       const { reservations, conflicts } = state
       switch (action.type) {
-        case "ROOT": {
+        case 'ROOT': {
           return { reservations: [], conflicts: [] }
         }
 
-        case "MAKE_RESERVATION": {
+        case 'MAKE_RESERVATION': {
           const newReservation = action.payload
 
           // look for any conflicting reservations (note that the order of the reservations has already been
@@ -90,7 +83,7 @@ describe("scheduler", () => {
 
     const graph = createGraph<SchedulerAction, SchedulerState>({
       user: alice,
-      name: "scheduler",
+      name: 'scheduler',
       keys,
     })
 
@@ -112,24 +105,24 @@ describe("scheduler", () => {
     return { aliceStore, bobStore, sync }
   }
 
-  it("new store", () => {
+  it('new store', () => {
     const { aliceStore } = setup()
     const { reservations, conflicts } = aliceStore.getState()
     expect(reservations).toEqual([])
     expect(conflicts).toEqual([])
   })
 
-  it("one reservation", () => {
+  it('one reservation', () => {
     const { aliceStore } = setup()
 
     // alice reserves a room
     aliceStore.dispatch({
-      type: "MAKE_RESERVATION",
+      type: 'MAKE_RESERVATION',
       payload: {
-        reservedBy: "alice",
-        room: "101",
-        start: new Date("2021-09-12T15:00Z").getTime() as UnixTimestamp,
-        end: new Date("2021-09-12T17:00Z").getTime() as UnixTimestamp,
+        reservedBy: 'alice',
+        room: '101',
+        start: new Date('2021-09-12T15:00Z').getTime() as UnixTimestamp,
+        end: new Date('2021-09-12T17:00Z').getTime() as UnixTimestamp,
       },
     })
 
@@ -141,35 +134,35 @@ describe("scheduler", () => {
 
     // it is the one we just made
     expect(reservations[0]).toEqual({
-      reservedBy: "alice",
-      room: "101",
+      reservedBy: 'alice',
+      room: '101',
       start: 1_631_458_800_000,
       end: 1_631_466_000_000,
     })
   })
 
-  it("two non-conflicting reservations", () => {
+  it('two non-conflicting reservations', () => {
     const { aliceStore, bobStore, sync } = setup()
 
     // alice reserves a room
     aliceStore.dispatch({
-      type: "MAKE_RESERVATION",
+      type: 'MAKE_RESERVATION',
       payload: {
-        reservedBy: "alice",
-        room: "101",
-        start: new Date("2021-09-12T15:00Z").getTime() as UnixTimestamp,
-        end: new Date("2021-09-12T17:00Z").getTime() as UnixTimestamp,
+        reservedBy: 'alice',
+        room: '101',
+        start: new Date('2021-09-12T15:00Z').getTime() as UnixTimestamp,
+        end: new Date('2021-09-12T17:00Z').getTime() as UnixTimestamp,
       },
     })
 
     // bob reserves the same room for the following day
     bobStore.dispatch({
-      type: "MAKE_RESERVATION",
+      type: 'MAKE_RESERVATION',
       payload: {
-        reservedBy: "bob",
-        room: "101",
-        start: new Date("2021-09-13T15:00Z").getTime() as UnixTimestamp, // 🡐 not 09-12
-        end: new Date("2021-09-13T17:00Z").getTime() as UnixTimestamp,
+        reservedBy: 'bob',
+        room: '101',
+        start: new Date('2021-09-13T15:00Z').getTime() as UnixTimestamp, // 🡐 not 09-12
+        end: new Date('2021-09-13T17:00Z').getTime() as UnixTimestamp,
       },
     })
 
@@ -184,28 +177,28 @@ describe("scheduler", () => {
     expect(Object.keys(bobStore.getState().conflicts)).toHaveLength(0)
   })
 
-  it("two conflicting reservations", () => {
+  it('two conflicting reservations', () => {
     // repeat test to make random success less likely
     for (let i = 0; i < 5; i++) {
       const { aliceStore, bobStore, sync } = setup()
 
       bobStore.dispatch({
-        type: "MAKE_RESERVATION",
+        type: 'MAKE_RESERVATION',
         payload: {
-          reservedBy: "bob",
-          room: "101",
-          start: new Date("2021-09-12T15:00Z").getTime() as UnixTimestamp,
-          end: new Date("2021-09-12T17:00Z").getTime() as UnixTimestamp,
+          reservedBy: 'bob',
+          room: '101',
+          start: new Date('2021-09-12T15:00Z').getTime() as UnixTimestamp,
+          end: new Date('2021-09-12T17:00Z').getTime() as UnixTimestamp,
         },
       })
 
       aliceStore.dispatch({
-        type: "MAKE_RESERVATION",
+        type: 'MAKE_RESERVATION',
         payload: {
-          reservedBy: "alice",
-          room: "101",
-          start: new Date("2021-09-12T15:00Z").getTime() as UnixTimestamp,
-          end: new Date("2021-09-12T17:00Z").getTime() as UnixTimestamp,
+          reservedBy: 'alice',
+          room: '101',
+          start: new Date('2021-09-12T15:00Z').getTime() as UnixTimestamp,
+          end: new Date('2021-09-12T17:00Z').getTime() as UnixTimestamp,
         },
       })
 
@@ -221,8 +214,8 @@ describe("scheduler", () => {
 
       // alice wins because she has seniority
       const conflict = aliceStore.getState().conflicts[0]
-      expect(conflict.winner.reservedBy).toBe("alice")
-      expect(conflict.loser.reservedBy).toBe("bob")
+      expect(conflict.winner.reservedBy).toBe('alice')
+      expect(conflict.loser.reservedBy).toBe('bob')
     }
   })
 
@@ -241,7 +234,7 @@ describe("scheduler", () => {
 // action types
 
 type MakeReservation = {
-  type: "MAKE_RESERVATION"
+  type: 'MAKE_RESERVATION'
   payload: Reservation
 }
 

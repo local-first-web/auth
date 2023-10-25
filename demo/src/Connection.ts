@@ -5,12 +5,7 @@ export class Connection extends EventEmitter {
   private readonly authConnection: auth.Connection
   private readonly peerSocket: WebSocket
 
-  constructor({
-    socket,
-    context,
-    peerUserName: peerUserId,
-    storedMessages,
-  }: ConnectionParams) {
+  constructor({ socket, context, peerUserName: peerUserId, storedMessages }: ConnectionParams) {
     super()
     this.peerSocket = socket
 
@@ -65,13 +60,8 @@ export class Connection extends EventEmitter {
   }
 }
 
-const bubbleEvents = (
-  source: EventEmitter<any>,
-  target: EventEmitter<any>,
-  events: string[]
-) => {
-  for (const event of events)
-    source.on(event, payload => target.emit(event, payload))
+const bubbleEvents = (source: EventEmitter<any>, target: EventEmitter<any>, events: string[]) => {
+  for (const event of events) source.on(event, payload => target.emit(event, payload))
 }
 
 type ConnectionParams = {

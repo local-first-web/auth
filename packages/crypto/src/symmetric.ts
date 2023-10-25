@@ -1,8 +1,8 @@
-import sodium from "libsodium-wrappers-sumo"
-import { pack, unpack } from "msgpackr"
-import { stretch } from "./stretch.js"
-import type { Cipher, Base58, Payload } from "./types.js"
-import { base58, keyToBytes } from "./util/index.js"
+import sodium from 'libsodium-wrappers-sumo'
+import { pack, unpack } from 'msgpackr'
+import { stretch } from './stretch.js'
+import type { Cipher, Base58, Payload } from './types.js'
+import { base58, keyToBytes } from './util/index.js'
 
 /**
  * Symmetrically encrypts a byte array.

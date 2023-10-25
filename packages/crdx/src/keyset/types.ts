@@ -1,8 +1,8 @@
-﻿import { type Base58, type Base58Keypair } from "@localfirst/crypto"
+﻿import { type Base58, type Base58Keypair } from '@localfirst/crypto'
 
 export const KeyType = {
-  GRAPH: "GRAPH",
-  USER: "USER",
+  GRAPH: 'GRAPH',
+  USER: 'USER',
 } as const
 export type KeyType = (typeof KeyType)[keyof typeof KeyType]
 
@@ -37,19 +37,17 @@ export type Keyset = {
 } & KeyMetadata
 
 /** Type guard: Keyset vs KeysetWithSecrets  */
-export const hasSecrets = (
-  keys: Keyset | KeysetWithSecrets
-): keys is KeysetWithSecrets =>
-  keys.encryption.hasOwnProperty("secretKey") &&
-  keys.signature.hasOwnProperty("secretKey") &&
-  "secretKey" in keys
+export const hasSecrets = (keys: Keyset | KeysetWithSecrets): keys is KeysetWithSecrets =>
+  keys.encryption.hasOwnProperty('secretKey') &&
+  keys.signature.hasOwnProperty('secretKey') &&
+  'secretKey' in keys
 
 /** Type guard: KeysetWithSecrets vs anything else */
 export const isKeyset = (k: Record<string, unknown>): k is KeysetWithSecrets =>
   k !== undefined && //
-  "secretKey" in k &&
-  "encryption" in k &&
-  "signature" in k
+  'secretKey' in k &&
+  'encryption' in k &&
+  'signature' in k
 
 /**
  * A Keyring is a dictionary of keysets (including secrets), indexed by the public part of the
@@ -58,6 +56,5 @@ export const isKeyset = (k: Record<string, unknown>): k is KeysetWithSecrets =>
 export type Keyring = Record<string, KeysetWithSecrets>
 
 /** Type guard: Keyring vs KeysetWithSecrets  */
-export const isKeyring = (
-  k: Keyring | KeysetWithSecrets | KeysetWithSecrets[]
-): k is Keyring => !Array.isArray(k) && !isKeyset(k)
+export const isKeyring = (k: Keyring | KeysetWithSecrets | KeysetWithSecrets[]): k is Keyring =>
+  !Array.isArray(k) && !isKeyset(k)

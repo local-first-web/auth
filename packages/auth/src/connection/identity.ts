@@ -47,8 +47,7 @@ export class IdentityChallengeFailure extends Error {
   constructor(message: string, details?: any) {
     super()
     this.name = 'Identity challenge failed'
-    this.message =
-      message + '\n' + JSON.stringify(details, null, 2).replaceAll('"', '')
+    this.message = message + '\n' + JSON.stringify(details, null, 2).replaceAll('"', '')
     this.details = details
   }
 

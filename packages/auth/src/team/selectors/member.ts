@@ -1,10 +1,6 @@
 import { type TeamState } from '@/team/types.js'
 
-export const member = (
-  state: TeamState,
-  userId: string,
-  options = { includeRemoved: false }
-) => {
+export const member = (state: TeamState, userId: string, options = { includeRemoved: false }) => {
   const membersToSearch = [
     ...state.members,
     ...(options.includeRemoved ? state.removedMembers : []),

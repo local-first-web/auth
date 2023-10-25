@@ -1,11 +1,6 @@
-﻿import uniq from "lodash/uniq"
-import {
-  type Action,
-  type EncryptedLink,
-  type Link,
-  type Graph,
-} from "./types.js"
-import { type Hash } from "@/util/index.js"
+﻿import uniq from 'lodash/uniq'
+import { type Action, type EncryptedLink, type Link, type Graph } from './types.js'
+import { type Hash } from '@/util/index.js'
 
 /**
  * Returns a new graph that contains all the information in the two graphs provided.
@@ -24,8 +19,7 @@ export const merge = <A extends Action, C>(
   /** The second graph. This should be the less trusted of the two, e.g. the remote one.  */
   theirs: Graph<A, C>
 ): Graph<A, C> => {
-  if (ours.root !== theirs.root)
-    throw new Error("Cannot merge two graphs with different roots")
+  if (ours.root !== theirs.root) throw new Error('Cannot merge two graphs with different roots')
 
   // The new graph will contain all the links from either graph
   const mergedLinks: Record<Hash, Link<A, C>> = {

@@ -5,7 +5,5 @@ export const collectLockboxes =
   (newLockboxes?: Lockbox[]): Transform =>
   state => {
     const { lockboxes } = state
-    return newLockboxes
-      ? { ...state, lockboxes: lockboxes.concat(newLockboxes) }
-      : state
+    return newLockboxes ? { ...state, lockboxes: lockboxes.concat(newLockboxes) } : state
   }

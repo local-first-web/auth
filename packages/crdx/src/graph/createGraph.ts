@@ -1,9 +1,9 @@
-﻿import cuid from "cuid"
-import { append } from "./append.js"
-import { type Action, type Graph } from "./types.js"
-import { ROOT } from "@/constants.js"
-import { type KeysetWithSecrets } from "@/keyset/index.js"
-import { type UserWithSecrets } from "@/user/index.js"
+﻿import cuid from 'cuid'
+import { append } from './append.js'
+import { type Action, type Graph } from './types.js'
+import { ROOT } from '@/constants.js'
+import { type KeysetWithSecrets } from '@/keyset/index.js'
+import { type UserWithSecrets } from '@/user/index.js'
 
 export const EMPTY_GRAPH = {
   root: undefined,

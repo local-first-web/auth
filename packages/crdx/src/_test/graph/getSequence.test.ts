@@ -1,14 +1,10 @@
-import { describe, expect, test } from "vitest"
-import { type XAction, buildGraph, getPayloads } from "../helpers/graph.js"
-import {
-  type Resolver,
-  getConcurrentLinks,
-  getSequence,
-} from "@/graph/index.js"
-import { type Hash } from "@/util/index.js"
+import { describe, expect, test } from 'vitest'
+import { type XAction, buildGraph, getPayloads } from '../helpers/graph.js'
+import { type Resolver, getConcurrentLinks, getSequence } from '@/graph/index.js'
+import { type Hash } from '@/util/index.js'
 
-describe("graphs", () => {
-  describe("getSequence", () => {
+describe('graphs', () => {
+  describe('getSequence', () => {
     /**
      * Custom logic:
      * 1. if `e` and `f` are concurrent, `e` is invalid
@@ -21,18 +17,12 @@ describe("graphs", () => {
         const concurrentLinks = getConcurrentLinks(graph, link)
         for (const concurrentLink of concurrentLinks) {
           // rule 1
-          if (
-            link.body.payload === "f" &&
-            concurrentLink.body.payload === "e"
-          ) {
+          if (link.body.payload === 'f' && concurrentLink.body.payload === 'e') {
             invalid[concurrentLink.hash] = true
           }
 
           // rule 2
-          if (
-            link.body.payload === "h" &&
-            concurrentLink.body.payload === "i"
-          ) {
+          if (link.body.payload === 'h' && concurrentLink.body.payload === 'i') {
             invalid[link.hash] = true
             invalid[concurrentLink.hash] = true
           }
@@ -45,8 +35,8 @@ describe("graphs", () => {
           const b = _b.body.payload as string
 
           // rule 3
-          if (a === "j") return -1
-          if (b === "j") return 1
+          if (a === 'j') return -1
+          if (b === 'j') return 1
 
           if (a < b) return -1
           if (a > b) return 1
@@ -58,22 +48,22 @@ describe("graphs", () => {
       }
     }
 
-    test("one link", () => {
-      const graph = buildGraph("a")
+    test('one link', () => {
+      const graph = buildGraph('a')
       const sequence = getSequence(graph)
       const payloads = getPayloads(sequence)
-      expect(payloads).toEqual("a")
+      expect(payloads).toEqual('a')
     })
 
-    test("no branches", () => {
+    test('no branches', () => {
       const graph = buildGraph(`a ─ b ─ c`)
       const sequence = getSequence(graph)
       const payloads = getPayloads(sequence)
 
-      expect(payloads).toEqual("abc")
+      expect(payloads).toEqual('abc')
     })
 
-    test("simple graph", () => {
+    test('simple graph', () => {
       const graph = buildGraph(` 
           ┌─ b
        a ─┤
@@ -82,10 +72,10 @@ describe("graphs", () => {
 
       const sequence = getSequence(graph, resolver)
       const payloads = getPayloads(sequence)
-      expect(payloads).toEqual("abc")
+      expect(payloads).toEqual('abc')
     })
 
-    test("complex graph", () => {
+    test('complex graph', () => {
       const graph = buildGraph(`
                           ┌─ e ─ g ─┐
                 ┌─ c ─ d ─┤         ├─ o ─┐
@@ -98,10 +88,10 @@ describe("graphs", () => {
       // without resolver we'd get `abcdegfhiojkln`
       // `e` is removed (rule 1)
       // `jkl` comes before `c` (rule 3)
-      expect(payloads).toEqual("abjklcdgfhion")
+      expect(payloads).toEqual('abjklcdgfhion')
     })
 
-    test("tricky graph", () => {
+    test('tricky graph', () => {
       const graph = buildGraph(`
                           ┌─── h ────┐
                 ┌─ c ─ e ─┤          ├─ k
@@ -113,10 +103,10 @@ describe("graphs", () => {
       const payloads = getPayloads(sequence)
       // without resolver we'd get `abcehdijk`
       // `h` and `i` are removed (rule 2)
-      expect(payloads).toEqual("abcedjk")
+      expect(payloads).toEqual('abcedjk')
     })
 
-    test("multiple heads", () => {
+    test('multiple heads', () => {
       const graph = buildGraph(`
                           ┌─ e ─ g ─┐
                 ┌─ c ─ d ─┤         ├─ o 
@@ -129,7 +119,7 @@ describe("graphs", () => {
       // without resolver we'd get `abhijcdfego`
       // `e` is removed (rule 1)
       // `j` comes before `c` (rule 3)
-      expect(payloads).toEqual("abjcdgfohi")
+      expect(payloads).toEqual('abjcdgfohi')
     })
   })
 })

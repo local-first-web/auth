@@ -1,14 +1,8 @@
-import sodium from "libsodium-wrappers-sumo"
-import { pack, unpack } from "msgpackr"
-import { stretch } from "./stretch.js"
-import type {
-  DecryptParams,
-  EncryptParams,
-  Base58,
-  Payload,
-  Cipher,
-} from "./types.js"
-import { base58, keypairToBase58, keyToBytes } from "./util/index.js"
+import sodium from 'libsodium-wrappers-sumo'
+import { pack, unpack } from 'msgpackr'
+import { stretch } from './stretch.js'
+import type { DecryptParams, EncryptParams, Base58, Payload, Cipher } from './types.js'
+import { base58, keypairToBase58, keyToBytes } from './util/index.js'
 
 /**
  * Wrappers of selected libsodium crypto functions. Each of these functions accepts and returns
@@ -36,11 +30,7 @@ export const asymmetric = {
    * @returns The encrypted data, encoded in msgpack format as a base58 string
    * @see asymmetric.decrypt
    */
-  encrypt({
-    secret,
-    recipientPublicKey,
-    senderSecretKey,
-  }: EncryptParams): Base58 {
+  encrypt({ secret, recipientPublicKey, senderSecretKey }: EncryptParams): Base58 {
     const nonce = sodium.randombytes_buf(sodium.crypto_box_NONCEBYTES)
     const messageBytes = pack(secret)
 
@@ -71,11 +61,7 @@ export const asymmetric = {
    * @returns The original object or plaintext
    * @see asymmetric.encrypt
    */
-  decrypt({
-    cipher,
-    recipientSecretKey,
-    senderPublicKey,
-  }: DecryptParams): Payload {
+  decrypt({ cipher, recipientSecretKey, senderPublicKey }: DecryptParams): Payload {
     const cipherBytes = keyToBytes(cipher)
     const unpackedCipher = unpack(cipherBytes) as Cipher & {
       senderPublicKey?: Base58

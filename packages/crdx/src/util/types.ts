@@ -1,4 +1,4 @@
-﻿export type { Base58, Utf8, Hash, Payload } from "@localfirst/crypto"
+﻿export type { Base58, Utf8, Hash, Payload } from '@localfirst/crypto'
 
 export type UnixTimestamp = number & { _unixTimestamp: false }
 

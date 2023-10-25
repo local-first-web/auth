@@ -15,11 +15,5 @@ chai.Assertion.addMethod('admin', function () {
         $adminButton.css('opacity') === '1'
       : // if the span exists, this member is an admin
         $adminSpan.length
-  this.assert(
-    isAdmin,
-    'expected to be admin',
-    'expected not to be admin',
-    true,
-    false
-  )
+  this.assert(isAdmin, 'expected to be admin', 'expected not to be admin', true, false)
 })

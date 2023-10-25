@@ -1,4 +1,4 @@
-import { type Action, type Link, type Graph } from "@/graph/index.js"
+import { type Action, type Link, type Graph } from '@/graph/index.js'
 
 export type InvalidResult = {
   isValid: false
@@ -10,7 +10,7 @@ export type ValidResult = {
 }
 
 export class ValidationError extends Error {
-  public name: "Hash Graph validation error"
+  public name: 'Hash Graph validation error'
   public details?: unknown
 
   constructor(message: string, details?: any) {

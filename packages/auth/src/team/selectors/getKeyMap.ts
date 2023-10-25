@@ -17,10 +17,7 @@ import { type TeamState } from '@/team/types.js'
  * }
  * ```
  */
-export const getKeyMap = (
-  state: TeamState,
-  deviceKeys: KeysetWithSecrets
-): KeyMap => {
+export const getKeyMap = (state: TeamState, deviceKeys: KeysetWithSecrets): KeyMap => {
   // Get all the keys those keys can access
   const allVisibleKeys = getVisibleKeys(state, deviceKeys)
 

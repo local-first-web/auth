@@ -1,5 +1,5 @@
-﻿import { byHash, topoSort } from "./topoSort.js"
-import { type Action, type Link, type Resolver, type Graph } from "./types.js"
+﻿import { byHash, topoSort } from './topoSort.js'
+import { type Action, type Link, type Resolver, type Graph } from './types.js'
 
 /**
  * Takes a `Graph` and returns a flat array of links by performing a topographical sort and

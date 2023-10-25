@@ -134,11 +134,7 @@ describe('Team', () => {
       alice.team.addForTesting(bob.user)
       alice.team.addForTesting(charlie.user)
       expect(alice.team.members()).toHaveLength(3)
-      expect(alice.team.members().map(m => m.userId)).toEqual([
-        'alice',
-        'bob',
-        'charlie',
-      ])
+      expect(alice.team.members().map(m => m.userId)).toEqual(['alice', 'bob', 'charlie'])
     })
   })
 })

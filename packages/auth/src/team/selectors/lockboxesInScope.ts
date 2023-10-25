@@ -3,13 +3,9 @@ import { type Lockbox } from '@/lockbox/index.js'
 import { type TeamState } from '@/team/types.js'
 
 /** Returns all lockboxes *containing* keys for the given scope */
-export const lockboxesInScope = (
-  state: TeamState,
-  scope: KeyScope
-): Lockbox[] => {
+export const lockboxesInScope = (state: TeamState, scope: KeyScope): Lockbox[] => {
   const lockboxes = state.lockboxes.filter(
-    ({ contents }) =>
-      contents.type === scope.type && contents.name === scope.name
+    ({ contents }) => contents.type === scope.type && contents.name === scope.name
   )
   const latestGeneration = lockboxes.reduce(maxGeneration, 0)
   const latestLockboxes = lockboxes.filter(

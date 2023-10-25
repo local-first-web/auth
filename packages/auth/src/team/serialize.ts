@@ -20,10 +20,7 @@ export const serializeTeamGraph = (graph: TeamGraph): string => {
   return serialized
 }
 
-export const deserializeTeamGraph = (
-  serialized: string,
-  keys: Keyring
-): TeamGraph => {
+export const deserializeTeamGraph = (serialized: string, keys: Keyring): TeamGraph => {
   const encryptedGraph = JSON.parse(serialized) as EncryptedGraph
   return decryptGraph({ encryptedGraph, keys })
 }

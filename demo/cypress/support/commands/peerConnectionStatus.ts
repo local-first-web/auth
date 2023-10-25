@@ -7,11 +7,6 @@ export const peerConnectionStatus: CommandFn = (
   deviceName = 'laptop'
 ) => {
   const { emoji } = devices[deviceName]
-  const connCell = cy
-    .wrap(subject)
-    .teamMember(userName)
-    .findByText(emoji)
-    .parents('div')
-    .first()
+  const connCell = cy.wrap(subject).teamMember(userName).findByText(emoji).parents('div').first()
   return connCell.invoke('attr', 'title')
 }

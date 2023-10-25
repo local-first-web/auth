@@ -1,11 +1,7 @@
 import { type Host } from '@/server/index.js'
 import { type TeamState } from '@/team/types.js'
 
-export const server = (
-  state: TeamState,
-  host: Host,
-  options = { includeRemoved: false }
-) => {
+export const server = (state: TeamState, host: Host, options = { includeRemoved: false }) => {
   const serversToSearch = [
     ...state.servers,
     ...(options.includeRemoved ? state.removedServers : []),

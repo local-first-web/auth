@@ -15,9 +15,7 @@ export const addDevice: CommandFn = (subject, deviceName: string) => {
     .then(() =>
       s()
         .teamName()
-        .then(teamName =>
-          peer(userName, deviceName).teamName().should('equal', teamName)
-        )
+        .then(teamName => peer(userName, deviceName).teamName().should('equal', teamName))
     )
     .then(() => s())
 }

@@ -1,41 +1,35 @@
 ﻿/* eslint-disable @typescript-eslint/ban-ts-comment */
-import { asymmetric } from "@localfirst/crypto"
-import { buildGraph } from "@test/helpers/graph"
-import { TEST_GRAPH_KEYS as keys, setup } from "@test/helpers/setup"
-import { describe, expect, test, vitest } from "vitest"
-import { hashEncryptedLink } from "@/graph/hashLink.js"
-import {
-  append,
-  createGraph,
-  getHead,
-  getLink,
-  getRoot,
-} from "@/graph/index.js"
-import { type Hash } from "@/util/index.js"
-import { validate } from "@/validator/validate.js"
-import "@test/helpers/expect/toBeValid"
+import { asymmetric } from '@localfirst/crypto'
+import { buildGraph } from '@test/helpers/graph'
+import { TEST_GRAPH_KEYS as keys, setup } from '@test/helpers/setup'
+import { describe, expect, test, vitest } from 'vitest'
+import { hashEncryptedLink } from '@/graph/hashLink.js'
+import { append, createGraph, getHead, getLink, getRoot } from '@/graph/index.js'
+import { type Hash } from '@/util/index.js'
+import { validate } from '@/validator/validate.js'
+import '@test/helpers/expect/toBeValid'
 
 const { setSystemTime } = vitest.useFakeTimers()
 
-const { alice, eve } = setup("alice", "eve")
+const { alice, eve } = setup('alice', 'eve')
 
-describe("graphs", () => {
-  describe("validation", () => {
-    describe("valid graphs", () => {
+describe('graphs', () => {
+  describe('validation', () => {
+    describe('valid graphs', () => {
       test(`new graph`, () => {
-        const graph = createGraph({ user: alice, name: "Spies Я Us", keys })
+        const graph = createGraph({ user: alice, name: 'Spies Я Us', keys })
         expect(validate(graph)).toBeValid()
       })
 
       test(`new graph with one additional link`, () => {
-        const graph = createGraph({ user: alice, name: "Spies Я Us", keys })
-        const newLink = { type: "FOO", payload: { name: "charlie" } }
+        const graph = createGraph({ user: alice, name: 'Spies Я Us', keys })
+        const newLink = { type: 'FOO', payload: { name: 'charlie' } }
         const newGraph = append({ graph, action: newLink, user: alice, keys })
         expect(validate(newGraph)).toBeValid()
       })
     })
 
-    describe("invalid graphs", () => {
+    describe('invalid graphs', () => {
       const setupGraph = () => {
         const graph = buildGraph(`
                              ┌─ e ─ g ─┐
@@ -48,7 +42,7 @@ describe("graphs", () => {
         return graph
       }
 
-      test("The ROOT link cannot have any predecessors ", () => {
+      test('The ROOT link cannot have any predecessors ', () => {
         const graph = setupGraph()
         const rootLink = getRoot(graph)
 
@@ -56,24 +50,24 @@ describe("graphs", () => {
         expect(validate(graph)).not.toBeValid()
       })
 
-      test("The ROOT link has to be the link referenced by the graph `root` property", () => {
+      test('The ROOT link has to be the link referenced by the graph `root` property', () => {
         const graph = setupGraph()
         graph.root = graph.head[0]
         expect(validate(graph)).not.toBeValid()
       })
 
-      test("Non-ROOT links must have predecessors", () => {
+      test('Non-ROOT links must have predecessors', () => {
         const graph = setupGraph()
         const nonRootLink = getHead(graph)[0]
         nonRootLink.body.prev = []
         expect(validate(graph)).not.toBeValid()
       })
 
-      test("The link referenced by the graph `root` property must be a ROOT link", () => {
+      test('The link referenced by the graph `root` property must be a ROOT link', () => {
         const graph = setupGraph()
         const rootLink = getRoot(graph)
         // @ts-expect-error
-        rootLink.body.type = "FOO"
+        rootLink.body.type = 'FOO'
         rootLink.body.prev = graph.head
         expect(validate(graph)).not.toBeValid()
       })
@@ -167,7 +161,7 @@ describe("graphs", () => {
         const linkHash = Object.keys(graph.links)[2] as Hash
         const link = getLink(graph, linkHash)
 
-        link.body.payload = "foo"
+        link.body.payload = 'foo'
 
         // 🦹‍♀️ She reencrypts the link with her private key
         graph.encryptedLinks[linkHash] = {
@@ -185,7 +179,7 @@ describe("graphs", () => {
       })
 
       test(`timestamp out of order`, () => {
-        const IN_THE_PAST = new Date("2020-01-01").getTime()
+        const IN_THE_PAST = new Date('2020-01-01').getTime()
         const graph = setupGraph()
 
         // 🦹‍♀️ Eve sets her system clock back when appending a link
@@ -193,7 +187,7 @@ describe("graphs", () => {
         setSystemTime(IN_THE_PAST)
         const graph2 = append({
           graph,
-          action: { type: "FOO", payload: "pizza" },
+          action: { type: 'FOO', payload: 'pizza' },
           user: eve,
           keys,
         })
@@ -211,7 +205,7 @@ describe("graphs", () => {
         setSystemTime(IN_THE_FUTURE)
         const graph2 = append({
           graph,
-          action: { type: "FOO", payload: "pizza" },
+          action: { type: 'FOO', payload: 'pizza' },
           user: eve,
           keys,
         })

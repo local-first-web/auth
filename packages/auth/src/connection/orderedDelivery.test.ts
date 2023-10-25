@@ -12,18 +12,10 @@ const msgs = [
 
 describe('orderedDelivery', () => {
   describe('nextMessages', () => {
-    const testCase = (
-      queueIndexes: number[],
-      nextIndex: number,
-      expectedIndexes: number[]
-    ) => {
-      const queue = msgs
-        .filter(m => queueIndexes.includes(m.index))
-        .reduce(arrayToMap('index'), {})
+    const testCase = (queueIndexes: number[], nextIndex: number, expectedIndexes: number[]) => {
+      const queue = msgs.filter(m => queueIndexes.includes(m.index)).reduce(arrayToMap('index'), {})
       const message = msgs[nextIndex]
-      const actualIndexes = orderedDelivery(queue, message).nextMessages.map(
-        m => m.index
-      )
+      const actualIndexes = orderedDelivery(queue, message).nextMessages.map(m => m.index)
       expect(actualIndexes).toEqual(expectedIndexes)
     }
 

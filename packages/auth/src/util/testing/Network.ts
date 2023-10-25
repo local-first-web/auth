@@ -86,13 +86,8 @@ class Peer {
 
   // Generates and enqueues messages to all peers we're connected to (unless there is nothing to send)
   sync() {
-    for (const [userName, previousSyncState] of Object.entries(
-      this.syncStates
-    )) {
-      const [syncState, message] = generateMessage(
-        this.team.graph,
-        previousSyncState
-      )
+    for (const [userName, previousSyncState] of Object.entries(this.syncStates)) {
+      const [syncState, message] = generateMessage(this.team.graph, previousSyncState)
       this.syncStates[userName] = syncState
       if (message) {
         this.network.sendMessage(this.userName, userName, message)
@@ -101,11 +96,7 @@ class Peer {
   }
 
   // Called by Network when we receive a message from another peer
-  receiveMessage(
-    sender: string,
-    message: SyncMessage,
-    teamKeys: KeysetWithSecrets
-  ) {
+  receiveMessage(sender: string, message: SyncMessage, teamKeys: KeysetWithSecrets) {
     const [chain, syncState] = receiveMessage(
       this.team.graph,
       this.syncStates[sender],

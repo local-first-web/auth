@@ -1,4 +1,4 @@
-import { type SyncState } from "./types.js"
+import { type SyncState } from './types.js'
 
 export const initSyncState = (): SyncState => ({
   their: {

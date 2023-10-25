@@ -18,14 +18,10 @@ export const invite: CommandFn = (subject, options: InviteOptions = {}) => {
   s().findByText('Invite members').click()
 
   // set max uses
-  s()
-    .findByLabelText('How many people can use this invitation code?')
-    .select(maxUses.toString())
+  s().findByLabelText('How many people can use this invitation code?').select(maxUses.toString())
 
   // set expiration
-  s()
-    .findByLabelText('When does this invitation code expire?')
-    .select(expiration.toString())
+  s().findByLabelText('When does this invitation code expire?').select(expiration.toString())
 
   // press invite button
   s().findByText('Invite').click()

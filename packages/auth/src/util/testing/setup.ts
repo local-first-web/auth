@@ -1,8 +1,4 @@
-import {
-  createKeyring,
-  createUser,
-  type UserWithSecrets,
-} from '@localfirst/crdx'
+import { createKeyring, createUser, type UserWithSecrets } from '@localfirst/crdx'
 import { type Connection, type InitialContext } from '@/connection/index.js'
 import { type LocalUserContext } from '@/context/index.js'
 import * as devices from '@/device/index.js'
@@ -12,9 +8,7 @@ import * as teams from '@/team/index.js'
 import { type Team, type TeamContext } from '@/team/index.js'
 import { arrayToMap, assert, KeyType } from '@/util/index.js'
 
-export type SetupConfig = Array<
-  Array<TestUserSettings | string> | TestUserSettings | string
->
+export type SetupConfig = Array<Array<TestUserSettings | string> | TestUserSettings | string>
 
 // ignore file coverage
 
@@ -38,9 +32,7 @@ export const setup = (..._config: SetupConfig) => {
   }
 
   // Coerce string userIds into TestUserSettings objects
-  const config = _config.map(u =>
-    typeof u === 'string' ? { user: u } : u
-  ) as TestUserSettings[]
+  const config = _config.map(u => (typeof u === 'string' ? { user: u } : u)) as TestUserSettings[]
 
   // Get a list of just user ids
   const userIds = config.map(user => user.user)
@@ -49,8 +41,7 @@ export const setup = (..._config: SetupConfig) => {
   const testUsers: Record<string, UserWithSecrets> = userIds
     .map((userId: string) => {
       const randomSeed = userId // Make these predictable
-      const userName =
-        userId.replace(/^(.)/, (_, c) => c.toUpperCase()) + ' McUser'
+      const userName = userId.replace(/^(.)/, (_, c) => c.toUpperCase()) + ' McUser'
       return createUser(userName, userId, randomSeed)
     })
     .reduce(arrayToMap('userId'), {})
@@ -91,10 +82,7 @@ export const setup = (..._config: SetupConfig) => {
 
   const { graph } = team
 
-  const makeUserStuff = ({
-    user: userId,
-    member = true,
-  }: TestUserSettings): UserStuff => {
+  const makeUserStuff = ({ user: userId, member = true }: TestUserSettings): UserStuff => {
     const user = testUsers[userId]
     const randomSeed = userId
     const device = laptops[userId]

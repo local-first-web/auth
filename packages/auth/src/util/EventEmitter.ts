@@ -1,9 +1,5 @@
 import debug from 'debug'
-import _EventEmitter, {
-  type EventArgs,
-  type EventNames,
-  type ValidEventTypes,
-} from 'eventemitter3'
+import _EventEmitter, { type EventArgs, type EventNames, type ValidEventTypes } from 'eventemitter3'
 
 /** EventEmitter with built-in logging */
 export class EventEmitter<
@@ -17,10 +13,7 @@ export class EventEmitter<
    */
   log: debug.Debugger = debug('EventEmitter')
 
-  public emit<T extends EventNames<EventTypes>>(
-    event: T,
-    ...args: EventArgs<EventTypes, T>
-  ) {
+  public emit<T extends EventNames<EventTypes>>(event: T, ...args: EventArgs<EventTypes, T>) {
     this.log(`emit ${String(event)} %o`, ...args)
     return super.emit(event, ...args)
   }

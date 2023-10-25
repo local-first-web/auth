@@ -4,10 +4,7 @@ import { expect } from 'vitest'
 import { joinTestChannel } from './joinTestChannel.js'
 import { type UserStuff } from './setup.js'
 import { TestChannel } from './TestChannel.js'
-import {
-  type Connection,
-  type ConnectionEvents,
-} from '@/connection/Connection.js'
+import { type Connection, type ConnectionEvents } from '@/connection/Connection.js'
 import {
   type InviteeDeviceInitialContext,
   type InviteeMemberInitialContext,
@@ -29,11 +26,7 @@ export const connect = async (a: UserStuff, b: UserStuff) => {
 }
 
 /** Connects a (a member) with b (invited using the given seed). */
-export const connectWithInvitation = async (
-  a: UserStuff,
-  b: UserStuff,
-  seed: string
-) => {
+export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: string) => {
   b.connectionContext = {
     user: b.user,
     device: b.device,
@@ -46,10 +39,7 @@ export const connectWithInvitation = async (
   })
 }
 
-export const connectPhoneWithInvitation = async (
-  user: UserStuff,
-  seed: string
-) => {
+export const connectPhoneWithInvitation = async (user: UserStuff, seed: string) => {
   const phoneContext = {
     userId: user.userId,
     device: user.phone,
@@ -117,11 +107,7 @@ export const anyDisconnected = async (a: UserStuff, b: UserStuff) => {
   return any(connections, 'disconnected')
 }
 
-export const disconnection = async (
-  a: UserStuff,
-  b: UserStuff,
-  message?: string
-) => {
+export const disconnection = async (a: UserStuff, b: UserStuff, message?: string) => {
   const connections = [a.connection[b.deviceId], b.connection[a.deviceId]]
   const activeConnections = connections.filter(c => c.state !== 'disconnected')
 
@@ -137,10 +123,7 @@ export const disconnection = async (
   }
 }
 
-export const all = async (
-  connections: Connection[],
-  event: EventNames<ConnectionEvents>
-) =>
+export const all = async (connections: Connection[], event: EventNames<ConnectionEvents>) =>
   Promise.all(
     connections.map(async connection => {
       if (event === 'disconnected' && connection.state === 'disconnected') {
@@ -159,10 +142,7 @@ export const all = async (
     })
   )
 
-export const any = async (
-  connections: Connection[],
-  event: EventNames<ConnectionEvents>
-) =>
+export const any = async (connections: Connection[], event: EventNames<ConnectionEvents>) =>
   Promise.any(
     connections.map(async connection => {
       if (event === 'disconnected' && connection.state === 'disconnected') {

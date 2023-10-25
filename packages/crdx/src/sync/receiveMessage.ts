@@ -1,19 +1,9 @@
-import { type SyncMessage, type SyncState } from "./types.js"
-import { type DecryptFn, decryptGraph } from "@/graph/decrypt.js"
-import {
-  type Action,
-  getChildMap,
-  type Graph,
-  invertLinkMap,
-  merge,
-} from "@/graph/index.js"
-import {
-  createKeyring,
-  type Keyring,
-  type KeysetWithSecrets,
-} from "@/keyset/index.js"
-import { assert } from "@/util/index.js"
-import { validate } from "@/validator/index.js"
+import { type SyncMessage, type SyncState } from './types.js'
+import { type DecryptFn, decryptGraph } from '@/graph/decrypt.js'
+import { type Action, getChildMap, type Graph, invertLinkMap, merge } from '@/graph/index.js'
+import { createKeyring, type Keyring, type KeysetWithSecrets } from '@/keyset/index.js'
+import { assert } from '@/util/index.js'
+import { validate } from '@/validator/index.js'
 
 /**
  * Receives a sync message from a peer and updates our sync state accordingly so that

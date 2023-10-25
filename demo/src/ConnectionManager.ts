@@ -1,8 +1,5 @@
 ﻿import * as auth from '@localfirst/auth'
-import {
-  type InviteeMemberInitialContext,
-  type MemberInitialContext,
-} from '@localfirst/auth'
+import { type InviteeMemberInitialContext, type MemberInitialContext } from '@localfirst/auth'
 import { Client, type PeerEventPayload } from '@localfirst/relay-client'
 import { Mutex, withTimeout } from 'async-mutex'
 import debug from 'debug'
@@ -21,10 +18,7 @@ export class ConnectionManager extends EventEmitter {
   private context: auth.InitialContext
   private readonly client: Client
   private connections: Record<UserName, Connection> = {}
-  private readonly connectingMutex = withTimeout(
-    new Mutex(),
-    INVITATION_TIMEOUT
-  )
+  private readonly connectingMutex = withTimeout(new Mutex(), INVITATION_TIMEOUT)
 
   /**
    * A dictionary of strings describing the connection status of each of our peers.
@@ -54,31 +48,27 @@ export class ConnectionManager extends EventEmitter {
         client.join(this.teamName)
         this.emit('server.connect')
       })
-      .on(
-        'peer.connect',
-        async ({ userName: peerUserName, socket }: PeerEventPayload) => {
-          // in case we're not able to start the connection immediately (e.g. because there's a mutex
-          // lock), store any messages we receive, so we can deliver them when we start it
-          const storedMessages: string[] = []
-          socket.addEventListener('message', ({ data: message }) => {
-            storedMessages.push(message)
-          })
+      .on('peer.connect', async ({ userName: peerUserName, socket }: PeerEventPayload) => {
+        // in case we're not able to start the connection immediately (e.g. because there's a mutex
+        // lock), store any messages we receive, so we can deliver them when we start it
+        const storedMessages: string[] = []
+        socket.addEventListener('message', ({ data: message }) => {
+          storedMessages.push(message)
+        })
 
-          // We don't want to present invitations to multiple people simultaneously, because then they
-          // both might admit us concurrently and that complicates things unnecessarily. So we need to
-          // make sure that we go through the connection process with one other peer at a time.
-          const iHaveInvitation =
-            'invitationSeed' in this.context && this.context.invitationSeed
-          if (iHaveInvitation) {
-            await this.connectingMutex.runExclusive(async () => {
-              await this.connectPeer(socket, peerUserName, storedMessages)
-            })
-          } else {
-            this.log('connecting without mutex')
-            this.connectPeer(socket, peerUserName, storedMessages)
-          }
+        // We don't want to present invitations to multiple people simultaneously, because then they
+        // both might admit us concurrently and that complicates things unnecessarily. So we need to
+        // make sure that we go through the connection process with one other peer at a time.
+        const iHaveInvitation = 'invitationSeed' in this.context && this.context.invitationSeed
+        if (iHaveInvitation) {
+          await this.connectingMutex.runExclusive(async () => {
+            await this.connectPeer(socket, peerUserName, storedMessages)
+          })
+        } else {
+          this.log('connecting without mutex')
+          this.connectPeer(socket, peerUserName, storedMessages)
         }
-      )
+      })
     return client
   }
 

@@ -1,6 +1,6 @@
 ﻿// ignore file coverage
-import _memoize from "fast-memoize"
-import type { MemoizeFunc } from "fast-memoize"
+import _memoize from 'fast-memoize'
+import type { MemoizeFunc } from 'fast-memoize'
 
 const BYPASS = false
 

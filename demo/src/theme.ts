@@ -63,16 +63,11 @@
   // Badge
   badge: {
     base: 'inline-flex px-2 text-xs font-medium leading-5 rounded-full',
-    success:
-      'text-success-700 bg-success-100 dark:bg-success-700 dark:text-success-100',
-    danger:
-      'text-danger-700 bg-danger-100 dark:text-danger-100 dark:bg-danger-700',
-    warning:
-      'text-warning-700 bg-warning-100 dark:text-white dark:bg-warning-600',
-    neutral:
-      'text-neutral-700 bg-neutral-100 dark:text-neutral-100 dark:bg-neutral-700',
-    primary:
-      'text-primary-700 bg-primary-100 dark:text-white dark:bg-primary-600',
+    success: 'text-success-700 bg-success-100 dark:bg-success-700 dark:text-success-100',
+    danger: 'text-danger-700 bg-danger-100 dark:text-danger-100 dark:bg-danger-700',
+    warning: 'text-warning-700 bg-warning-100 dark:text-white dark:bg-warning-600',
+    neutral: 'text-neutral-700 bg-neutral-100 dark:text-neutral-100 dark:bg-neutral-700',
+    primary: 'text-primary-700 bg-primary-100 dark:text-white dark:bg-primary-600',
   },
   // Backdrop
   backdrop: {
@@ -83,8 +78,7 @@
     base: 'block  text-sm dark:text-neutral-300 form-textarea focus:outline-none',
     active:
       'focus:border-primary-400 dark:border-neutral-600 dark:focus:border-neutral-600 dark:bg-neutral-700 dark:focus:shadow-outline-neutral focus:shadow-outline-primary',
-    disabled:
-      'cursor-not-allowed opacity-50 bg-neutral-300 dark:bg-neutral-800',
+    disabled: 'cursor-not-allowed opacity-50 bg-neutral-300 dark:bg-neutral-800',
     valid:
       'border-success-600 dark:bg-neutral-700 focus:border-success-400 dark:focus:border-success-400 focus:shadow-outline-success dark:focus:shadow-outline-success',
     invalid:
@@ -97,8 +91,7 @@
       'focus:border-primary-400 dark:border-neutral-600 dark:bg-neutral-700 focus:shadow-outline-primary dark:focus:shadow-outline-neutral dark:focus:border-neutral-600',
     select: 'form-select leading-5',
     multiple: 'form-multiselect',
-    disabled:
-      'cursor-not-allowed opacity-50 bg-neutral-300 dark:bg-neutral-800',
+    disabled: 'cursor-not-allowed opacity-50 bg-neutral-300 dark:bg-neutral-800',
     valid:
       'border-success-600 dark:bg-neutral-700 focus:border-success-400 dark:focus:border-success-400 focus:shadow-outline-success dark:focus:shadow-outline-success',
     invalid:
@@ -116,8 +109,7 @@
     base: 'block text-sm font-mono focus:outline-none dark:text-neutral-300 form-input leading-5',
     active:
       'focus:border-primary-400 dark:border-neutral-600 focus:shadow-outline-primary dark:focus:border-neutral-600 dark:focus:shadow-outline-neutral dark:bg-neutral-700',
-    disabled:
-      'cursor-not-allowed opacity-50 bg-neutral-300 dark:bg-neutral-800',
+    disabled: 'cursor-not-allowed opacity-50 bg-neutral-300 dark:bg-neutral-800',
     valid:
       'border-success-600 dark:bg-neutral-700 focus:border-success-400 dark:focus:border-success-400 focus:shadow-outline-success dark:focus:shadow-outline-success',
     invalid:
@@ -169,8 +161,7 @@
     },
     primary: {
       base: 'text-white bg-primary-600 border border-transparent',
-      active:
-        'active:bg-primary-600 hover:bg-primary-700 focus:shadow-outline-primary',
+      active: 'active:bg-primary-600 hover:bg-primary-700 focus:shadow-outline-primary',
       disabled: 'opacity-50 cursor-not-allowed',
     },
     outline: {

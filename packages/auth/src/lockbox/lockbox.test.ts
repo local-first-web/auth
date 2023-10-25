@@ -38,8 +38,7 @@ describe('lockbox', () => {
     const lockbox = create(adminKeys, bob.user.keys)
 
     const newKeys = createKeyset({ type: KeyType.ROLE, name: MANAGERS })
-    const tryToRotate = () =>
-      rotate({ oldLockbox: lockbox, newContents: newKeys })
+    const tryToRotate = () => rotate({ oldLockbox: lockbox, newContents: newKeys })
     expect(tryToRotate).toThrow()
   })
 })

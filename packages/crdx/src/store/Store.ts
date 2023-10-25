@@ -1,6 +1,6 @@
-import EventEmitter from "eventemitter3"
-import { type StoreOptions } from "./StoreOptions.js"
-import { type Reducer } from "./types.js"
+import EventEmitter from 'eventemitter3'
+import { type StoreOptions } from './StoreOptions.js'
+import { type Reducer } from './types.js'
 import {
   type Action,
   append,
@@ -13,16 +13,12 @@ import {
   merge,
   type Resolver,
   serialize,
-} from "@/graph/index.js"
-import { createKeyring } from "@/keyset/createKeyring.js"
-import {
-  isKeyset,
-  type Keyring,
-  type KeysetWithSecrets,
-} from "@/keyset/index.js"
-import { type UserWithSecrets } from "@/user/index.js"
-import { assert, type Optional } from "@/util/index.js"
-import { validate, type ValidatorSet } from "@/validator/index.js"
+} from '@/graph/index.js'
+import { createKeyring } from '@/keyset/createKeyring.js'
+import { isKeyset, type Keyring, type KeysetWithSecrets } from '@/keyset/index.js'
+import { type UserWithSecrets } from '@/user/index.js'
+import { assert, type Optional } from '@/util/index.js'
+import { validate, type ValidatorSet } from '@/validator/index.js'
 
 /**
  * A CRDX `Store` is intended to work very much like a Redux store.
@@ -31,11 +27,7 @@ import { validate, type ValidatorSet } from "@/validator/index.js"
  * The only way to change the data in the store is to `dispatch` an action to it. There should only
  * be a single store in an application.
  */
-export class Store<
-  S,
-  A extends Action,
-  C = Record<string, unknown>,
-> extends EventEmitter {
+export class Store<S, A extends Action, C = Record<string, unknown>> extends EventEmitter {
   /** The user object provided in options */
   private readonly user: UserWithSecrets
 
@@ -70,12 +62,9 @@ export class Store<
 
     if (graph === undefined) {
       // no graph provided, so we'll create a new one
-      assert(
-        isKeyset(keys),
-        "If no graph is provided, only pass a single keyset, not a keyring."
-      )
+      assert(isKeyset(keys), 'If no graph is provided, only pass a single keyset, not a keyring.')
       this.graph = createGraph({ user, rootPayload, keys })
-    } else if (typeof graph === "string") {
+    } else if (typeof graph === 'string') {
       // serialized graph was provided, so deserialize it
       assert(keys)
       this.graph = deserialize(graph, keys)
@@ -131,7 +120,7 @@ export class Store<
      * A Redux-style plain object representing what changed. An action must have a `type` property
      * which may not be `undefined`. It is a good idea to use string constants for action types.
      */
-    action: Optional<A, "payload">,
+    action: Optional<A, 'payload'>,
 
     /**
      * Keys used to encrypt the action's payload. If not provided, the action will be encrypted
@@ -149,8 +138,7 @@ export class Store<
       // no keys provided, so use the last keys we used
       // TODO: if there are multiple heads, we'll have a bunch of edge cases to sort out. For now just picking the first one.
       const lastHash = this.graph.head[0]
-      const lastPublicKey =
-        this.graph.encryptedLinks[lastHash].recipientPublicKey
+      const lastPublicKey = this.graph.encryptedLinks[lastHash].recipientPublicKey
       keys = this.keyring[lastPublicKey]
     } else {
       // record this key in our keyring
@@ -173,7 +161,7 @@ export class Store<
     this.state = this.reducer(this.state, head)
 
     // notify listeners
-    this.emit("updated", { head: this.graph.head })
+    this.emit('updated', { head: this.graph.head })
 
     return action
   }
@@ -212,6 +200,6 @@ export class Store<
     this.state = sequence.reduce(reducer, this.initialState)
 
     // notify listeners
-    this.emit("updated", { head: graph.head })
+    this.emit('updated', { head: graph.head })
   }
 }

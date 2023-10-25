@@ -6,10 +6,7 @@ import {
 } from '@/invitation/types.js'
 import { memoize, VALID, type ValidationResult } from '@/util/index.js'
 
-export const invitationCanBeUsed = (
-  invitation: InvitationState,
-  timeOfUse: number
-) => {
+export const invitationCanBeUsed = (invitation: InvitationState, timeOfUse: number) => {
   const { revoked, maxUses, uses, expiration } = invitation
   if (revoked) {
     return fail('The invitation has been revoked')

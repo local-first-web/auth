@@ -16,10 +16,8 @@ export const connectionErrors: Record<string, ErrorDefinition> = {
     remoteMessage: 'Your device was removed from this team',
   },
   NEITHER_IS_MEMBER: {
-    localMessage:
-      'The peer is also holding an invitation and cannot admit you to the team',
-    remoteMessage:
-      'The peer is also holding an invitation and cannot admit you to the team',
+    localMessage: 'The peer is also holding an invitation and cannot admit you to the team',
+    remoteMessage: 'The peer is also holding an invitation and cannot admit you to the team',
   },
   IDENTITY_PROOF_INVALID: {
     localMessage: "The peer's proof of identity is not valid",

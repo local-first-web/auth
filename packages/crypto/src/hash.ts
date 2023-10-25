@@ -1,7 +1,7 @@
-import sodium from "libsodium-wrappers-sumo"
-import { pack } from "msgpackr"
-import { type Payload } from "./types.js"
-import { base58, keyToBytes } from "./util/index.js"
+import sodium from 'libsodium-wrappers-sumo'
+import { pack } from 'msgpackr'
+import { type Payload } from './types.js'
+import { base58, keyToBytes } from './util/index.js'
 
 /** Computes a fixed-length fingerprint for an arbitrary long message. */
 
@@ -12,6 +12,6 @@ export const hash = (
   payload: Payload
 ) => {
   const bytes = pack(payload)
-  const hash = sodium.crypto_generichash(32, bytes, keyToBytes(seed, "utf8"))
+  const hash = sodium.crypto_generichash(32, bytes, keyToBytes(seed, 'utf8'))
   return base58.encode(hash)
 }

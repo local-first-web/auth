@@ -47,10 +47,7 @@ import { clone, composeTransforms } from '@/util/index.js'
  * @param state The team state as of the previous link in the signature chain.
  * @param link The current link being processed.
  */
-export const reducer: Reducer<TeamState, TeamAction, TeamContext> = (
-  state,
-  link
-) => {
+export const reducer: Reducer<TeamState, TeamAction, TeamContext> = (state, link) => {
   // Invalid links are marked to be discarded by the MembershipResolver due to conflicting
   // concurrent actions. In most cases we just ignore these links and they don't affect state at
   // all; but in some cases we need to clean up, for example when someone's admission is reversed

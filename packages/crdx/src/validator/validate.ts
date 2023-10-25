@@ -1,8 +1,8 @@
-﻿import { type ValidationResult, type ValidatorSet } from "./types.js"
-import { fail, validators } from "./validators.js"
-import { VALID } from "@/constants.js"
-import { hashEncryptedLink } from "@/graph/hashLink.js"
-import { type Action, type Link, type Graph } from "@/graph/types.js"
+﻿import { type ValidationResult, type ValidatorSet } from './types.js'
+import { fail, validators } from './validators.js'
+import { VALID } from '@/constants.js'
+import { hashEncryptedLink } from '@/graph/hashLink.js'
+import { type Action, type Link, type Graph } from '@/graph/types.js'
 
 /**
  * Runs a hash graph through a series of validators to ensure that it is correctly formed, has
@@ -21,7 +21,7 @@ export const validate = <A extends Action, C>(
     const rootLink = graph.encryptedLinks[rootHash]
     const computedHash = hashEncryptedLink(rootLink.encryptedBody)
     if (computedHash !== rootHash)
-      return fail("Root hash does not match the hash of the root link", {
+      return fail('Root hash does not match the hash of the root link', {
         rootHash,
         computedHash,
         rootLink,
@@ -33,7 +33,7 @@ export const validate = <A extends Action, C>(
     const headLink = graph.encryptedLinks[headHash]
     const computedHash = hashEncryptedLink(headLink.encryptedBody)
     if (computedHash !== headHash)
-      return fail("Head hash does not match the hash of the head link", {
+      return fail('Head hash does not match the hash of the head link', {
         headHash,
         computedHash,
         headLink,
@@ -44,7 +44,7 @@ export const validate = <A extends Action, C>(
   const encryptedLinkHashes = Object.keys(graph.encryptedLinks)
   const linkHashes = Object.keys(graph.links)
   if (encryptedLinkHashes.length !== linkHashes.length)
-    return fail("Number of encrypted links does not match number of links", {
+    return fail('Number of encrypted links does not match number of links', {
       encryptedLinkHashes,
       linkHashes,
     })

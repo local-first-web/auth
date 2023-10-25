@@ -1,4 +1,4 @@
-import { type SyncMessage, type SyncState } from "./types.js"
+import { type SyncMessage, type SyncState } from './types.js'
 import {
   type Action,
   getEncryptedLinks,
@@ -7,8 +7,8 @@ import {
   getPredecessorHashes,
   type Graph,
   headsAreEqual,
-} from "@/graph/index.js"
-import { type Hash } from "@/util/index.js"
+} from '@/graph/index.js'
+import { type Hash } from '@/util/index.js'
 
 /**
  * Generates a new sync message for a peer based on our current graph and our sync state with them.
@@ -90,9 +90,7 @@ export const generateMessage = <A extends Action, C>(
     // CASE 3: we are ahead of them, so we don't need anything, AND we know exactly what they need
 
     // Send them everything we have that they don't have
-    hashesWeThinkTheyNeed = getHashes(graph).filter(
-      hash => !(hash in theirHashLookup)
-    )
+    hashesWeThinkTheyNeed = getHashes(graph).filter(hash => !(hash in theirHashLookup))
   } else {
     // CASE 4: we're either behind, or have diverged
 
@@ -100,14 +98,10 @@ export const generateMessage = <A extends Action, C>(
     if (their.parentMap) {
       // ask for anything they mention that we don't have
       const linksWeHave = { ...graph.encryptedLinks, ...their.encryptedLinks }
-      message.need = Object.keys(theirHashLookup).filter(
-        hash => !(hash in linksWeHave)
-      ) as Hash[]
+      message.need = Object.keys(theirHashLookup).filter(hash => !(hash in linksWeHave)) as Hash[]
 
       // and figure out what links they might need
-      hashesWeThinkTheyNeed = getHashes(graph).filter(
-        hash => !(hash in theirHashLookup)
-      )
+      hashesWeThinkTheyNeed = getHashes(graph).filter(hash => !(hash in theirHashLookup))
     }
 
     // If our head has changed since last time we sent them a parentMap,

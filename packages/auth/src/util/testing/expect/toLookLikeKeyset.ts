@@ -4,8 +4,7 @@ import { expect } from 'vitest'
 expect.extend({
   toLookLikeKeyset(maybeKeyset: any) {
     const looksLikeKeyset =
-      maybeKeyset.hasOwnProperty('encryption') &&
-      maybeKeyset.hasOwnProperty('signature')
+      maybeKeyset.hasOwnProperty('encryption') && maybeKeyset.hasOwnProperty('signature')
     if (looksLikeKeyset) {
       return {
         message: () => 'expected not to look like a keyset',
