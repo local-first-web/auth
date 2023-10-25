@@ -202,10 +202,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         const keys = context.theirDeviceKeys
         const { userId, deviceName } = parseDeviceId(context.theirDeviceKeys.name)
         const device: Device = { userId, deviceName, keys }
-        context.team.admitDevice(
-          context.theirProofOfInvitation as invitations.ProofOfInvitation, // WHY is this necessary
-          device
-        )
+        context.team.admitDevice(context.theirProofOfInvitation, device)
       }
 
       // Welcome them by sending the team's signature chain, so they can reconstruct team membership state
@@ -223,7 +220,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
       const { serializedGraph, teamKeyring } = (event as AcceptInvitationMessage).payload
       const { user, device } = context
-      // assert(user)
 
       // We've just received the team's signature chain; reconstruct team
       const team = this.rehydrateTeam(serializedGraph, user, device, teamKeyring)
@@ -232,9 +228,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       if (context.user === undefined) {
         // Joining as a new device for an existing member
         // we get the user's keys from the team and rehydrate our user that way
-        assert(context.userName)
-        assert(context.userId)
-        context.user = team.joinAsDevice(context.userName, context.userId)
+        const { userId, userName = userId } = context
+        context.user = team.joinAsDevice(userName!, userId!)
       } else {
         // Joining as a new member
         // we add our current device to the team chain
@@ -559,14 +554,14 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       return true
       // Make sure my invitation exists on the signature chain of the team I'm about to join.
       // This check prevents an attack in which a fake team pretends to accept my invitation.
-      const { serializedGraph, teamKeyring } = (event as AcceptInvitationMessage).payload
-      const { user, device } = context
-      assert(user)
-      assert(device)
+      // const { serializedGraph, teamKeyring } = (event as AcceptInvitationMessage).payload
+      // const { user, device } = context
+      // assert(user)
+      // assert(device)
 
-      const team = this.rehydrateTeam(serializedGraph, user, device, teamKeyring)
+      // const team = this.rehydrateTeam(serializedGraph, user, device, teamKeyring)
 
-      return team.hasInvitation(this.myProofOfInvitation(context))
+      // return team.hasInvitation(this.myProofOfInvitation(context))
     },
 
     // IDENTITY
