@@ -17,10 +17,12 @@
  * ```
  * @param keyField
  */
-export const arrayToMap = (keyField: string) => <T extends Record<string, any>>(
-  result: Record<string, T>,
-  current: T
-): {} => ({
-  ...result,
-  [current[keyField]]: current,
-})
+export const arrayToMap =
+  (keyField: string) =>
+  <T extends Record<string, any>>(
+    result: Record<string, T>,
+    current: T
+  ): Record<string, unknown> => ({
+    ...result,
+    [current[keyField]]: current,
+  })

@@ -2,9 +2,7 @@ import { alice, bob, bobToAlice, bobToBob, show } from '../support/helpers'
 
 it(`Alice promotes Bob after he joins`, () => {
   show('Bob:laptop')
-  alice()
-    .addToTeam('Bob')
-    .promote('Bob')
+  alice().addToTeam('Bob').promote('Bob')
 
   // Alice and Bob see that Bob is admin
   bobToAlice().should('be.admin')

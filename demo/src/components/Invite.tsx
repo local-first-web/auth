@@ -1,9 +1,14 @@
-import { UnixTimestamp } from '@localfirst/auth'
+import { type UnixTimestamp } from '@localfirst/auth'
 import ClipboardJS from 'clipboard'
-import React, { MutableRefObject, useEffect, useRef, useState } from 'react'
+import React, {
+  type MutableRefObject,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import { useTeam } from '../hooks/useTeam'
 import { assert } from '../util/assert'
-import { Button } from './Button'
+import { Button } from './Button.js'
 
 const SECOND = 1
 const MINUTE = 60 * SECOND
@@ -12,7 +17,11 @@ const DAY = 24 * HOUR
 const WEEK = 7 * DAY
 
 export const Invite = () => {
-  type State = 'inactive' | 'adding_device' | 'inviting_members' | 'showing_member_invite'
+  type State =
+    | 'inactive'
+    | 'adding_device'
+    | 'inviting_members'
+    | 'showing_member_invite'
 
   const [state, setState] = useState<State>('inactive')
   const [seed, setSeed] = useState<string>()
@@ -24,13 +33,15 @@ export const Invite = () => {
   assert(team)
   assert(user)
 
-  const copyInvitationSeedButton = useRef() as MutableRefObject<HTMLButtonElement>
+  const copyInvitationSeedButton =
+    useRef() as MutableRefObject<HTMLButtonElement>
 
   useEffect(() => {
     let c: ClipboardJS
     if (copyInvitationSeedButton?.current && seed) {
       c = new ClipboardJS(copyInvitationSeedButton.current)
     }
+
     return () => {
       c?.destroy()
     }
@@ -40,9 +51,9 @@ export const Invite = () => {
     const seed = `${team.teamName}-${randomSeed()}`
     setSeed(seed)
 
-    const maxUses = +maxUsesSelect.current.value
-    const now = new Date().getTime()
-    const expirationMs = +expirationSelect.current.value * 1000
+    const maxUses = Number(maxUsesSelect.current.value)
+    const now = Date.now()
+    const expirationMs = Number(expirationSelect.current.value) * 1000
     const expiration = (now + expirationMs) as UnixTimestamp
 
     // TODO we're storing id so we can revoke - wire that up
@@ -65,12 +76,16 @@ export const Invite = () => {
   const userIsAdmin = userBelongsToTeam && team?.memberIsAdmin(user.userId)
 
   switch (state) {
-    case 'inactive':
+    case 'inactive': {
       return (
         <div>
           <div className="Invite flex gap-2">
-            {/* anyone can "invite" a device*/}
-            <Button color="primary" className="my-2 mr-2" onClick={inviteDevice}>
+            {/* anyone can "invite" a device */}
+            <Button
+              color="primary"
+              className="my-2 mr-2"
+              onClick={inviteDevice}
+            >
               Add a device
             </Button>
             {/* sonly admins can invite users */}
@@ -88,8 +103,9 @@ export const Invite = () => {
           </div>
         </div>
       )
+    }
 
-    case 'adding_device':
+    case 'adding_device': {
       return (
         <>
           <h3>Add a device</h3>
@@ -114,8 +130,9 @@ export const Invite = () => {
           </label>
         </>
       )
+    }
 
-    case 'inviting_members':
+    case 'inviting_members': {
       return (
         <>
           <h3>Invite members</h3>
@@ -160,7 +177,11 @@ export const Invite = () => {
                 </Button>
               </div>
               <div>
-                <Button className="InviteButton mt-1" color="primary" onClick={inviteMembers}>
+                <Button
+                  className="InviteButton mt-1"
+                  color="primary"
+                  onClick={inviteMembers}
+                >
                   Invite
                 </Button>
               </div>
@@ -168,8 +189,9 @@ export const Invite = () => {
           </div>
         </>
       )
+    }
 
-    case 'showing_member_invite':
+    case 'showing_member_invite': {
       return (
         <>
           <p className="my-2 font-bold">Here's the invite!</p>
@@ -194,9 +216,11 @@ export const Invite = () => {
           </label>
         </>
       )
+    }
   }
 }
 
 // TODO: style invited members who haven't joined yet
 
-const randomSeed = () => '0000'.replace(/0/g, () => Math.floor(Math.random() * 10).toString())
+const randomSeed = () =>
+  '0000'.replaceAll('0', () => Math.floor(Math.random() * 10).toString())

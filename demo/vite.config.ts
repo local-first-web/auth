@@ -1,7 +1,6 @@
-import { defineConfig } from 'vite'
 import viteReact from '@vitejs/plugin-react'
+import { defineConfig } from 'vite'
 import tsconfigPaths from 'vite-tsconfig-paths'
-
 import postcss from './postcss.config'
 
 export default defineConfig({

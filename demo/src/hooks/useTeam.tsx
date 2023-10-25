@@ -3,7 +3,7 @@ import cuid from 'cuid'
 import * as React from 'react'
 import { teamContext } from '../components/TeamProvider'
 import { ConnectionManager } from '../ConnectionManager'
-import { AlertInfo, PeerState } from '../types'
+import { type AlertInfo, type PeerState } from '../types.js'
 import { assert } from '../util/assert'
 import { randomTeamName } from '../util/randomTeamName'
 
@@ -20,7 +20,8 @@ export const useTeam = () => {
 
   React.useEffect(() => {
     if (team) {
-      const updateTeamState = () => setPeerState(prev => ({ ...prev, state: team.state }))
+      const updateTeamState = () =>
+        setPeerState(prev => ({ ...prev, state: team.state }))
       team.addListener('updated', updateTeamState)
       return () => {
         team.removeListener('updated', updateTeamState)
@@ -41,6 +42,7 @@ export const useTeam = () => {
       return stateMinusTeam
     })
   }
+
   const addAlert = (message: string, type: AlertInfo['type'] = 'info') => {
     setPeerState(prev => {
       const alert = { id: cuid(), message, type }
@@ -90,7 +92,11 @@ export const useTeam = () => {
   }
 
   const connect = (teamName: string, context: auth.InitialContext) => {
-    const connectionManager = new ConnectionManager({ teamName, urls: relayUrls, context })
+    const connectionManager = new ConnectionManager({
+      teamName,
+      urls: relayUrls,
+      context,
+    })
 
       // when we connect to the relay, set our online status to true and expose our connection status
       .on('server.connect', () => {
@@ -129,15 +135,16 @@ export const useTeam = () => {
 
       // when we connect to a peer, expose the latest team info from the connection
       .on('connected', (connection: auth.Connection) => {
-        setTeam(connection.team!)
+        setTeam(connection.team)
       })
 
       .on('remoteError', (error: auth.connection.ConnectionErrorPayload) => {
         switch (error.type) {
           case 'MEMBER_UNKNOWN':
-          case 'MEMBER_REMOVED':
+          case 'MEMBER_REMOVED': {
             clearTeam()
             break
+          }
         }
 
         // if we have a detailed error message, use that
@@ -151,7 +158,7 @@ export const useTeam = () => {
           ...prev,
           connectionStatus: connectionManager.connectionStatus,
         }))
-      }) as ConnectionManager
+      })
 
     setPeerState(prev => ({
       ...prev,
@@ -164,5 +171,13 @@ export const useTeam = () => {
     peerState.connectionManager.disconnectServer()
   }
 
-  return { ...peerState, addAlert, clearAlert, createTeam, joinTeam, connect, disconnect }
+  return {
+    ...peerState,
+    addAlert,
+    clearAlert,
+    createTeam,
+    joinTeam,
+    connect,
+    disconnect,
+  }
 }

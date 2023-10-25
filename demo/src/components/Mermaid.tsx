@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
 import mermaid from 'mermaid'
+import { useEffect, useState } from 'react'
 
-export interface MermaidProps {
+export type MermaidProps = {
   id: string
   chart: string
   config: any
@@ -16,5 +16,11 @@ export const Mermaid = ({ id, chart, config = {} }: MermaidProps) => {
     mermaid.render(id, chart).then(({ svg }) => setSvg(svg))
   }, [chart])
 
-  return <div key={id} className="Mermaid" dangerouslySetInnerHTML={{ __html: svg }} />
+  return (
+    <div
+      key={id}
+      className="Mermaid"
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  )
 }

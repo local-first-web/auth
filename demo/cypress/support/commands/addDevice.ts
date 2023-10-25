@@ -1,5 +1,5 @@
-import { CommandFn } from '../types'
 import { peer } from '../helpers'
+import { type CommandFn } from '../types.js'
 
 export const addDevice: CommandFn = (subject, deviceName: string) => {
   const s = () => cy.wrap(subject)
@@ -16,9 +16,7 @@ export const addDevice: CommandFn = (subject, deviceName: string) => {
       s()
         .teamName()
         .then(teamName =>
-          peer(userName, deviceName)
-            .teamName()
-            .should('equal', teamName)
+          peer(userName, deviceName).teamName().should('equal', teamName)
         )
     )
     .then(() => s())

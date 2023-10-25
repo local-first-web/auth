@@ -1,4 +1,5 @@
 import React from 'react'
+
 const noOp = () => {}
 
 export const Toggle = ({
@@ -42,7 +43,7 @@ export const Toggle = ({
   )
 }
 
-interface ToggleProps {
+type ToggleProps = {
   title: string
   on: boolean
   disabled?: boolean

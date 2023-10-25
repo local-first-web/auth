@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useTeam } from '../hooks/useTeam'
-import { Button } from './Button'
+import { Button } from './Button.js'
 
 export const CreateOrJoinTeam = () => {
   const { joinTeam, createTeam } = useTeam()
 
-  const invitationSeedInput = useRef() as React.MutableRefObject<HTMLInputElement>
+  const invitationSeedInput =
+    useRef() as React.MutableRefObject<HTMLInputElement>
 
   type State = 'inactive' | 'joining' | 'done'
   const [state, setState] = useState<State>('inactive')
@@ -14,13 +15,17 @@ export const CreateOrJoinTeam = () => {
   }, [state])
 
   switch (state) {
-    case 'inactive':
+    case 'inactive': {
       return (
         <div className="CreateOrJoinTeam flex py-4">
           <div className="border-r p-4">
             <p>Starting something new?</p>
             <p className="py-2">
-              <Button color="primary" className="w-full justify-center" onClick={createTeam}>
+              <Button
+                color="primary"
+                className="w-full justify-center"
+                onClick={createTeam}
+              >
                 Create team
               </Button>
             </p>
@@ -40,7 +45,9 @@ export const CreateOrJoinTeam = () => {
           </div>
         </div>
       )
-    case 'joining':
+    }
+
+    case 'joining': {
       const onClickJoin = () => {
         const invitationSeed = invitationSeedInput.current.value // e.g. ambitious-raccoon-1234
         const teamName = invitationSeed.split('-').slice(0, 2).join('-') // e.g. ambitious-raccoon
@@ -65,10 +72,14 @@ export const CreateOrJoinTeam = () => {
           </div>
         </div>
       )
-    case 'done':
-      return null
+    }
 
-    default:
+    case 'done': {
       return null
+    }
+
+    default: {
+      return null
+    }
   }
 }

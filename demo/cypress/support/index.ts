@@ -1,11 +1,20 @@
 // register commands
 
 import '@testing-library/cypress/add-commands'
-import * as _commands from './commands'
-const commands = _commands as { [key: string]: CommandFn }
+import * as _commands from './commands.js'
+
+// register assertions
+
+import './assertions/be.admin'
+import './assertions/be.online'
+import './assertions/have.member'
+import './assertions/be.onStartScreen'
+import { type CommandFn } from './types.js'
+
+const commands = _commands as Record<string, CommandFn>
 
 for (const key in commands) {
-  const command = commands[key] as CommandFn
+  const command = commands[key]
   Cypress.Commands.add(key, { prevSubject: true }, command)
 }
 
@@ -16,15 +25,6 @@ declare global {
 }
 
 export type CustomCommands = typeof commands
-
-// register assertions
-
-import './assertions/be.admin'
-import './assertions/be.online'
-import './assertions/have.member'
-import './assertions/be.onStartScreen'
-
-import { CommandFn } from './types'
 
 declare global {
   namespace Cypress {

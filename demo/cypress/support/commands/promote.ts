@@ -1,4 +1,4 @@
-import { CommandFn } from '../'
+import { type CommandFn } from '..'
 
 export const promote: CommandFn = (subject, userName: string) =>
   cy

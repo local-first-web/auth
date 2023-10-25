@@ -1,5 +1,5 @@
 import React from 'react'
-import { Toggle } from './Toggle'
+import { Toggle } from './Toggle.js'
 
 export const OnlineToggle = ({
   isOnline = false,
@@ -15,7 +15,9 @@ export const OnlineToggle = ({
       onClick={() => onChange(!isOnline)}
     />
     <svg
-      className={`ml-1 inline-block transition-all ${isOnline ? 'fill-gray-500' : 'fill-gray-100'}`}
+      className={`ml-1 inline-block transition-all ${
+        isOnline ? 'fill-gray-500' : 'fill-gray-100'
+      }`}
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       width="16px"
@@ -26,7 +28,7 @@ export const OnlineToggle = ({
   </>
 )
 
-interface OnlineToggleProps {
+type OnlineToggleProps = {
   isOnline?: boolean
   disabled?: boolean
   onChange?: (value: boolean) => void

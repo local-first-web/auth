@@ -1,11 +1,16 @@
 import * as auth from '@localfirst/auth'
-import { EventEmitter } from './EventEmitter'
+import { EventEmitter } from './EventEmitter.js'
 
 export class Connection extends EventEmitter {
-  private authConnection: auth.Connection
-  private peerSocket: WebSocket
+  private readonly authConnection: auth.Connection
+  private readonly peerSocket: WebSocket
 
-  constructor({ socket, context, peerUserName: peerUserId, storedMessages }: ConnectionParams) {
+  constructor({
+    socket,
+    context,
+    peerUserName: peerUserId,
+    storedMessages,
+  }: ConnectionParams) {
     super()
     this.peerSocket = socket
 
@@ -17,7 +22,12 @@ export class Connection extends EventEmitter {
         socket.send(message)
       }
     }
-    this.authConnection = new auth.Connection({ context, sendMessage, peerUserId })
+
+    this.authConnection = new auth.Connection({
+      context,
+      sendMessage,
+      peerUserId,
+    })
 
     // listen for incoming messages and pass them to the auth connection
     socket.addEventListener('message', ({ data: message }) => {
@@ -55,8 +65,14 @@ export class Connection extends EventEmitter {
   }
 }
 
-const bubbleEvents = (source: EventEmitter<any>, target: EventEmitter<any>, events: string[]) =>
-  events.forEach(event => source.on(event, payload => target.emit(event, payload)))
+const bubbleEvents = (
+  source: EventEmitter<any>,
+  target: EventEmitter<any>,
+  events: string[]
+) => {
+  for (const event of events)
+    source.on(event, payload => target.emit(event, payload))
+}
 
 type ConnectionParams = {
   socket: WebSocket

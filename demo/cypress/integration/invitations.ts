@@ -1,5 +1,5 @@
-import { alice, alicePhone, bob, charlie, eve, show } from '../support/helpers'
 import { SECOND } from '../support/commands/invite'
+import { alice, alicePhone, bob, charlie, eve, show } from '../support/helpers'
 
 it('Alice invites Bob', () => {
   show('Bob:laptop')
@@ -10,12 +10,8 @@ it('Alice invites Bob', () => {
   alice().addToTeam('Bob')
 
   // both peers have 'connected' status
-  alice()
-    .peerConnectionStatus('Bob')
-    .should('equal', 'connected')
-  bob()
-    .peerConnectionStatus('Alice')
-    .should('equal', 'connected')
+  alice().peerConnectionStatus('Bob').should('equal', 'connected')
+  bob().peerConnectionStatus('Alice').should('equal', 'connected')
 
   alice().should('have.member', 'Bob')
   bob().should('have.member', 'Alice')
@@ -59,7 +55,7 @@ it('Alice invites Bob and Charlie with a single code', () => {
 it(`Bob mistypes his invitation code`, () => {
   const mangleCode = (code: string) => {
     const numericPart = code.split('-')[2]
-    const numericPartAsNumber = parseInt(numericPart, 10)
+    const numericPartAsNumber = Number.parseInt(numericPart, 10)
     const newNumericPart = (numericPartAsNumber + 1).toString()
     return code.replace(numericPart, newNumericPart)
   }
@@ -81,7 +77,7 @@ it(`Bob mistypes his invitation code`, () => {
 it(`Bob's invitation expires`, () => {
   show('Bob:laptop')
   alice()
-    .invite({ expiration: 1 * SECOND }) // invitation expires in 1 second
+    .invite({ expiration: Number(SECOND) }) // invitation expires in 1 second
     .then(code => {
       // but we wait 2 seconds before joining
       cy.wait(2 * SECOND).then(() => {
@@ -97,9 +93,7 @@ it(`Bob's invitation expires`, () => {
 
 it(`Bob invites Charlie`, () => {
   show('Bob:laptop')
-  alice()
-    .addToTeam('Bob')
-    .promote('Bob')
+  alice().addToTeam('Bob').promote('Bob')
 
   // show Charlie's device
   show('Charlie:laptop')
@@ -129,12 +123,8 @@ it(`Alice's phone invites Bob`, () => {
   alicePhone().addToTeam('Bob')
 
   // both peers have 'connected' status
-  alicePhone()
-    .peerConnectionStatus('Bob')
-    .should('equal', 'connected')
-  bob()
-    .peerConnectionStatus('Alice', 'phone')
-    .should('equal', 'connected')
+  alicePhone().peerConnectionStatus('Bob').should('equal', 'connected')
+  bob().peerConnectionStatus('Alice', 'phone').should('equal', 'connected')
 })
 
 it(`Eve tries to reuse a single-use invitation`, () => {

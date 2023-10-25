@@ -17,9 +17,7 @@ it(`Alice and Bob concurrently make non-conflicting changes`, () => {
   show('Bob:laptop')
   show('Charlie:laptop')
 
-  alice()
-    .addToTeam('Bob')
-    .promote('Bob')
+  alice().addToTeam('Bob').promote('Bob')
 
   // Alice disconnects
   alice().toggleOnline()
@@ -84,10 +82,7 @@ it(`Alice and Bob demote each other concurrently`, () => {
 it(`Alice and Bob remove each other concurrently; Charlie is able to get both sides of the story`, () => {
   show('Bob:laptop')
   show('Charlie:laptop')
-  alice()
-    .addToTeam('Bob')
-    .addToTeam('Charlie')
-    .promote('Bob')
+  alice().addToTeam('Bob').addToTeam('Charlie').promote('Bob')
 
   // both Alice and Bob go offline
   alice().toggleOnline()
@@ -115,10 +110,7 @@ it(`Alice and Bob remove each other concurrently; Charlie is able to get both si
 it('Bob promotes Charlie but is concurrently demoted. Charlie is not an admin.', () => {
   show('Bob:laptop')
   show('Charlie:laptop')
-  alice()
-    .addToTeam('Bob')
-    .addToTeam('Charlie')
-    .promote('Bob')
+  alice().addToTeam('Bob').addToTeam('Charlie').promote('Bob')
 
   // Alice goes offline
   alice().toggleOnline()
@@ -150,10 +142,7 @@ it('Bob promotes Charlie but is concurrently demoted. Charlie is not an admin.',
 it('Bob promotes Charlie but is concurrently removed. Charlie is not an admin.', () => {
   show('Bob:laptop')
   show('Charlie:laptop')
-  alice()
-    .addToTeam('Bob')
-    .addToTeam('Charlie')
-    .promote('Bob')
+  alice().addToTeam('Bob').addToTeam('Charlie').promote('Bob')
 
   // Alice goes offline
   alice().toggleOnline()
@@ -188,13 +177,9 @@ it('Bob adds Charlie but is concurrently demoted. Charlie is not on the team.', 
   show('Dwight:laptop')
 
   // Bob and Dwight are admins
-  alice()
-    .addToTeam('Bob')
-    .promote('Bob')
+  alice().addToTeam('Bob').promote('Bob')
 
-  alice()
-    .addToTeam('Dwight')
-    .promote('Dwight')
+  alice().addToTeam('Dwight').promote('Dwight')
 
   // Dwight and Alice go offline
   dwight().toggleOnline()

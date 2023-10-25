@@ -3,9 +3,7 @@ import { alice, bob, show } from '../support/helpers'
 it('We load the page', () => {
   // we see just one peer, Alice
   cy.get('.Peer').should('have.length', 1)
-  cy.get('.Peer')
-    .userName()
-    .should('equal', 'Alice')
+  cy.get('.Peer').userName().should('equal', 'Alice')
 
   // we see Alice's Chain
   alice()
@@ -32,9 +30,7 @@ it(`We hide Bob's device`, () => {
 
   // we don't see Bob any more
   cy.get('.Peer').should('have.length', 1)
-  cy.get('.Peer')
-    .userName()
-    .should('equal', 'Alice')
+  cy.get('.Peer').userName().should('equal', 'Alice')
 })
 
 it(`We show Bob's device again`, () => {
@@ -56,23 +52,15 @@ it('Bob creates another team', () => {
     .get('.TeamName')
   alice()
     .teamName()
-    .then(teamName =>
-      bob()
-        .teamName()
-        .should('not.equal', teamName)
-    )
+    .then(teamName => bob().teamName().should('not.equal', teamName))
 })
 
 it('Alice creates an invitation', () => {
   // This test is just making sure that user actions are immediately visible and don't have to wait
   // for a synchronization round trip
-  alice()
-    .chain()
-    .should('have.length', 1)
+  alice().chain().should('have.length', 1)
 
   alice().invite()
 
-  alice()
-    .chain()
-    .should('have.length', 2)
+  alice().chain().should('have.length', 2)
 })
