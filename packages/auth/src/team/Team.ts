@@ -918,10 +918,6 @@ export class Team extends EventEmitter {
     }
   }
 
-  private get deviceId() {
-    return getDeviceId(this.context.device)
-  }
-
   private readonly createMemberLockboxes = (member: Member) => {
     const roleKeys = member.roles.map(this.roleKeys)
     const createLockbox = (keys: KeysetWithSecrets) => lockbox.create(keys, member.keys)
