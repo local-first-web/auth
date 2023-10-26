@@ -1,4 +1,4 @@
-import { Buffer } from 'node:buffer'
+import { Buffer } from 'buffer'
 import * as auth from '@localfirst/auth'
 import React from 'react'
 import { type PeerInfo, peers as allPeers } from '../peers'
@@ -71,11 +71,7 @@ export const App = () => {
       {Object.values(peers)
         .filter(p => p.show)
         .map(p => (
-          <TeamProvider
-            key={p.id}
-            initialState={getInitialState(p)}
-            onUpdate={onUpdate}
-          >
+          <TeamProvider key={p.id} initialState={getInitialState(p)} onUpdate={onUpdate}>
             <Peer onHide={setShow(false)} peerInfo={p}></Peer>
           </TeamProvider>
         ))}

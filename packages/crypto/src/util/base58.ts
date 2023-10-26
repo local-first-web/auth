@@ -1,4 +1,4 @@
-import { type Buffer } from 'node:buffer'
+import { type Buffer } from 'buffer'
 import { base58 as _base58 } from '@herbcaudill/base-x'
 import { type Base58 } from '../types.js'
 
