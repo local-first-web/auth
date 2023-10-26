@@ -19,24 +19,15 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsup --dts",
     "test": "vitest",
-    "watch": "npm-watch"
+    "watch": "tsup --dts --watch"
   },
   "dependencies": {
     "@herbcaudill/base-x": "^4.0.6",
     "fast-memoize": "^2.5.2",
     "libsodium-wrappers-sumo": "^0.7.13",
     "msgpackr": "^1.8.5"
-  },
-  "watch": {
-    "build": {
-      "patterns": "./src/**/*",
-      "extensions": [
-        ".ts",
-        ".tsx"
-      ]
-    }
   },
   "publishConfig": {
     "access": "public"

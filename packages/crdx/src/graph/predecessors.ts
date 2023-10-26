@@ -1,7 +1,7 @@
 ﻿import uniq from 'lodash/uniq'
 import { getLink } from './graph.js'
 import { type Action, type Graph, type Link } from './types.js'
-import { type Hash, memoize } from '@/util/index.js'
+import { type Hash, memoize } from 'util/index.js'
 
 export const getPredecessorHashes = memoize((graph: Graph<any, any>, hash: Hash): Hash[] => {
   const parents = (getLink(graph, hash)?.body.prev ?? []) as Hash[]

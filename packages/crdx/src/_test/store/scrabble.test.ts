@@ -1,11 +1,11 @@
 import { makeRandom } from '@herbcaudill/random'
-import { TEST_GRAPH_KEYS as keys } from '@test/helpers/setup'
+import { TEST_GRAPH_KEYS as keys } from '_test/helpers/setup'
 import { describe, expect, test } from 'vitest'
-import { type RootAction, createGraph } from '@/graph/index.js'
-import { type Store, createStore } from '@/store/index.js'
-import { type Reducer } from '@/store/types.js'
-import { createUser } from '@/user/index.js'
-import { arrayToMap } from '@/util/index.js'
+import { type RootAction, createGraph } from 'graph/index.js'
+import { type Store, createStore } from 'store/index.js'
+import { type Reducer } from 'store/types.js'
+import { createUser } from 'user/index.js'
+import { arrayToMap } from 'util/index.js'
 
 /*
 This is a somewhat more complicated example, modeling the game Scrabble Attacks (created by Nancy

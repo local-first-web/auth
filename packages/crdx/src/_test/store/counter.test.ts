@@ -1,9 +1,9 @@
-import { TEST_GRAPH_KEYS as keys } from '@test/helpers/setup'
+import { TEST_GRAPH_KEYS as keys } from '_test/helpers/setup'
 import { describe, expect, test } from 'vitest'
-import { type RootAction } from '@/graph/index.js'
-import { createStore } from '@/store/index.js'
-import { type Reducer } from '@/store/types.js'
-import { createUser } from '@/user/index.js'
+import { type RootAction } from 'graph/index.js'
+import { createStore } from 'store/index.js'
+import { type Reducer } from 'store/types.js'
+import { createUser } from 'user/index.js'
 
 /*
 This is intended to be the simplest possible proof of concept: An increment-only counter. There is

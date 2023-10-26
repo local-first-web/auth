@@ -13,12 +13,12 @@ import {
   merge,
   type Resolver,
   serialize,
-} from '@/graph/index.js'
-import { createKeyring } from '@/keyset/createKeyring.js'
-import { isKeyset, type Keyring, type KeysetWithSecrets } from '@/keyset/index.js'
-import { type UserWithSecrets } from '@/user/index.js'
-import { assert, type Optional } from '@/util/index.js'
-import { validate, type ValidatorSet } from '@/validator/index.js'
+} from 'graph/index.js'
+import { createKeyring } from 'keyset/createKeyring.js'
+import { isKeyset, type Keyring, type KeysetWithSecrets } from 'keyset/index.js'
+import { type UserWithSecrets } from 'user/index.js'
+import { assert, type Optional } from 'util/index.js'
+import { validate, type ValidatorSet } from 'validator/index.js'
 
 /**
  * A CRDX `Store` is intended to work very much like a Redux store.

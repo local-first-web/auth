@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { load } from '@/team/index.js'
-import { setup } from '@/util/testing/index.js'
+import { load } from 'team/index.js'
+import { setup } from 'util/testing/index.js'
 
 describe('Team', () => {
   describe('create', () => {

@@ -1,6 +1,6 @@
 import { asymmetric } from '@localfirst/crypto'
-import '@test/helpers/expect/toBeValid'
-import { TEST_GRAPH_KEYS as keys } from '@test/helpers/setup'
+import '_test/helpers/expect/toBeValid'
+import { TEST_GRAPH_KEYS as keys } from '_test/helpers/setup'
 import { describe, expect, test } from 'vitest'
 import {
   counterReducer,
@@ -8,9 +8,9 @@ import {
   type CounterState,
   type IncrementAction,
 } from './counter.test.js'
-import { createGraph, getRoot, serialize } from '@/graph/index.js'
-import { createStore } from '@/store/index.js'
-import { createUser } from '@/user/index.js'
+import { createGraph, getRoot, serialize } from 'graph/index.js'
+import { createStore } from 'store/index.js'
+import { createUser } from 'user/index.js'
 
 const alice = createUser('alice')
 const bob = createUser('bob')

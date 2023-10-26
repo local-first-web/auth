@@ -1,7 +1,8 @@
 export type Utf8 = string & { _utf8: false }
 export type Base58 = string & { _base58: false }
 export type Hash = Base58 & { _hash: false }
-export type Payload = string | Record<string, unknown> | any[]
+
+export type Payload = any // msgpacker can serialize anything
 
 export type ByteKeypair = {
   publicKey: Uint8Array

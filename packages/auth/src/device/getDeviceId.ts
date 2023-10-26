@@ -1,4 +1,4 @@
-import { type DeviceInfo } from '@/device/types.js'
+import { type DeviceInfo } from 'device/types.js'
 
 const separator = '::'
 

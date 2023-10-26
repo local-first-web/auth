@@ -8,7 +8,7 @@ import {
   type SyncState,
 } from '@localfirst/crdx'
 import { type UserStuff } from './setup.js'
-import { type Team } from '@/team.js'
+import { type Team } from 'team/index.js'
 
 // Simulates a peer-to-peer network
 export class Network {
@@ -110,25 +110,9 @@ class Peer {
 }
 
 function truncateStack(error: Error, lines = 5) {
-  error.stack = error.stack //
-    .split('\n')
-    .slice(1, lines)
-    .join('\n') // Truncate repetitive stack
+  error.stack = error.stack!.split('\n').slice(1, lines).join('\n') // Truncate repetitive stack
   return error
 }
-
-// Export const setupWithNetwork = (...config: any): [Record<string, UserStuffWithPeer>, Network] => {
-//   const users = setup(...config) as Record<string, UserStuffWithPeer>
-
-//   const network = new Network(teamKeys)
-
-//   for (const userName in users) {
-//     const user = users[userName]
-//     user.peer = new Peer(userName, user.team, network)
-//   }
-
-//   return [users, network]
-// }
 
 export type UserStuffWithPeer = {
   peer: Peer

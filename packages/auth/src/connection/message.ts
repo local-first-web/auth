@@ -7,9 +7,8 @@ import {
   type SyncMessage as SyncPayload,
 } from '@localfirst/crdx'
 import { type ErrorMessage, type LocalErrorMessage } from './errors.js'
-import { type Challenge } from '@/connection/types.js'
-import { type ProofOfInvitation } from '@/invitation/index.js'
-import { type TeamAction, type TeamContext } from '@/team/index.js'
+import { type Challenge } from 'connection/types.js'
+import { type ProofOfInvitation } from 'invitation/index.js'
 
 export type ReadyMessage = {
   type: 'REQUEST_IDENTITY'
@@ -92,7 +91,7 @@ export type RejectIdentityMessage = {
 
 export type SyncMessage = {
   type: 'SYNC'
-  payload: SyncPayload<TeamAction, TeamContext>
+  payload: SyncPayload
 }
 
 // Triggered locally when we detect that team has changed

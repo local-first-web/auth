@@ -1,9 +1,9 @@
 import { createKeyset } from '@localfirst/crdx'
 import { describe, expect, it } from 'vitest'
-import { create, open, rotate } from '@/lockbox/index.js'
-import { ADMIN } from '@/role/index.js'
-import { KeyType } from '@/util/index.js'
-import { setup } from '@/util/testing/index.js'
+import { create, open, rotate } from 'lockbox/index.js'
+import { ADMIN } from 'role/index.js'
+import { KeyType } from 'util/index.js'
+import { setup } from 'util/testing/index.js'
 
 const { bob, eve } = setup('alice', 'bob', { user: 'eve', member: false })
 const MANAGERS = 'managers'

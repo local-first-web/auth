@@ -1,6 +1,6 @@
 ﻿import { describe, expect, it, test } from 'vitest'
 import { type XLink, buildGraph, findByPayload, getPayloads } from '../helpers/graph.js'
-import { getRoot, getSuccessors, isSuccessor } from '@/graph/index.js'
+import { getRoot, getSuccessors, isSuccessor } from 'graph/index.js'
 
 describe('graphs', () => {
   describe('successors', () => {

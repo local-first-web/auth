@@ -2,7 +2,7 @@
 import { type SyncMessage } from '@localfirst/crdx'
 import { truncateHashes } from '../truncateHashes.js'
 
-export const syncMessageSummary = (m: SyncMessage<any, any> | undefined) => {
+export const syncMessageSummary = (m: SyncMessage | undefined) => {
   if (m === undefined) {
     return 'DONE'
   }

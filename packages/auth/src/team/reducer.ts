@@ -30,9 +30,9 @@ import {
   type Transform,
 } from './types.js'
 import { validate } from './validate.js'
-import { type Device } from '@/device/index.js'
-import { ADMIN } from '@/role/index.js'
-import { clone, composeTransforms } from '@/util/index.js'
+import { type Device } from 'device/index.js'
+import { ADMIN } from 'role/index.js'
+import { clone, composeTransforms } from 'util/index.js'
 
 /**
  * Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `TeamState`

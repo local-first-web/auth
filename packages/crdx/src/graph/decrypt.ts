@@ -8,9 +8,9 @@ import {
   type LinkBody,
   type MaybePartlyDecryptedGraph,
 } from './types.js'
-import { createKeyring } from '@/keyset/createKeyring.js'
-import { type Keyring, type KeysetWithSecrets } from '@/keyset/index.js'
-import { assert, type Hash } from '@/util/index.js'
+import { createKeyring } from 'keyset/createKeyring.js'
+import { type Keyring, type KeysetWithSecrets } from 'keyset/index.js'
+import { assert, type Hash } from 'util/index.js'
 
 /**
  * Decrypts a single link of a graph, given the graph keys at the time the link was authored.

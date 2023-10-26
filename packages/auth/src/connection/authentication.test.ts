@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { ADMIN } from '@/role/index.js'
-import * as teams from '@/team/index.js'
+import { ADMIN } from 'role/index.js'
+import * as teams from 'team/index.js'
 import {
   anyDisconnected,
   anyUpdated,
@@ -12,7 +12,7 @@ import {
   expectEveryoneToKnowEveryone,
   setup,
   tryToConnect,
-} from '@/util/testing/index.js'
+} from 'util/testing/index.js'
 
 describe('connection', () => {
   describe('authentication', () => {

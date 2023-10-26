@@ -12,13 +12,13 @@ import {
   type ROOT,
   type Sequence,
 } from '@localfirst/crdx'
-import { type Client, type LocalContext } from '@/context/index.js'
-import { type Device } from '@/device/index.js'
-import { type Invitation, type InvitationState } from '@/invitation/types.js'
-import { type Lockbox } from '@/lockbox/index.js'
-import { type PermissionsMap, type Role } from '@/role/index.js'
-import { type Host, type Server } from '@/server/index.js'
-import { type ValidationResult } from '@/util/index.js'
+import { type Client, type LocalContext } from 'context/index.js'
+import { type Device } from 'device/index.js'
+import { type Invitation, type InvitationState } from 'invitation/types.js'
+import { type Lockbox } from 'lockbox/index.js'
+import { type PermissionsMap, type Role } from 'role/index.js'
+import { type Host, type Server } from 'server/index.js'
+import { type ValidationResult } from 'util/index.js'
 
 // ********* MEMBER
 

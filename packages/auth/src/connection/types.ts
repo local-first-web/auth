@@ -9,9 +9,9 @@ import {
 } from '@localfirst/crdx'
 import { type ActionFunction, type AssignAction, type ConditionPredicate } from 'xstate'
 import { type ConnectionMessage } from './message.js'
-import { type DeviceWithSecrets } from '@/device/index.js'
-import { type ProofOfInvitation } from '@/invitations/index.js'
-import { type Member, type Team } from '@/team/index.js'
+import { type DeviceWithSecrets } from 'device/index.js'
+import { type ProofOfInvitation } from 'invitation/index.js'
+import { type Member, type Team } from 'team/index.js'
 
 // Identity
 

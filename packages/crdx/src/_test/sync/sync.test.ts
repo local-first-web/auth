@@ -3,13 +3,13 @@ import {
   expectNotToBeSynced,
   expectToBeSynced,
   setupWithNetwork,
-} from '@test/helpers/Network'
-import { TEST_GRAPH_KEYS as keys } from '@test/helpers/setup'
+} from '_test/helpers/Network'
+import { TEST_GRAPH_KEYS as keys } from '_test/helpers/setup'
 import { describe, expect, it, vitest } from 'vitest'
-import { type Graph, append, createGraph, headsAreEqual } from '@/graph/index.js'
-import { generateMessage, initSyncState, receiveMessage } from '@/sync/index.js'
-import { type UserWithSecrets, createUser } from '@/user/index.js'
-import { assert } from '@/util/index.js'
+import { type Graph, append, createGraph, headsAreEqual } from 'graph/index.js'
+import { generateMessage, initSyncState, receiveMessage } from 'sync/index.js'
+import { type UserWithSecrets, createUser } from 'user/index.js'
+import { assert } from 'util/index.js'
 
 const { setSystemTime } = vitest.useFakeTimers()
 

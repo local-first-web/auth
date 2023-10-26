@@ -34,25 +34,25 @@ import {
   type TeamState,
   isNewTeam,
 } from './types.js'
-import * as identity from '@/connection/identity.js'
-import { type Challenge } from '@/connection/types.js'
-import { type LocalUserContext } from '@/context/index.js'
-import * as devices from '@/device/index.js'
+import * as identity from 'connection/identity.js'
+import { type Challenge } from 'connection/types.js'
+import { type LocalUserContext } from 'context/index.js'
+import * as devices from 'device/index.js'
 import {
   type Device,
   type DeviceWithSecrets,
   getDeviceId,
   parseDeviceId,
   redactDevice,
-} from '@/device/index.js'
-import * as invitations from '@/invitation/index.js'
-import { type ProofOfInvitation } from '@/invitation/index.js'
-import { normalize } from '@/invitation/normalize.js'
-import * as lockbox from '@/lockbox/index.js'
-import { ADMIN, type Role } from '@/role/index.js'
-import { cast } from '@/server/cast.js'
-import { type Host, type Server } from '@/server/types.js'
-import { KeyType, VALID, assert, debug, getScope, scopesMatch } from '@/util/index.js'
+} from 'device/index.js'
+import * as invitations from 'invitation/index.js'
+import { type ProofOfInvitation } from 'invitation/index.js'
+import { normalize } from 'invitation/normalize.js'
+import * as lockbox from 'lockbox/index.js'
+import { ADMIN, type Role } from 'role/index.js'
+import { cast } from 'server/cast.js'
+import { type Host, type Server } from 'server/types.js'
+import { KeyType, VALID, assert, debug, getScope, scopesMatch } from 'util/index.js'
 
 /**
  * The `Team` class wraps a `TeamGraph` and exposes methods for adding and removing

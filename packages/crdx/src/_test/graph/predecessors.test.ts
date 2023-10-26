@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { buildGraph, byPayload, findByPayload, getPayloads } from '../helpers/graph.js'
-import { getHead, getParents, getPredecessors, isPredecessor } from '@/graph/index.js'
+import { getHead, getParents, getPredecessors, isPredecessor } from 'graph/index.js'
 
 describe('graphs', () => {
   describe('predecessors', () => {

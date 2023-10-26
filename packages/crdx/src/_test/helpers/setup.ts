@@ -1,9 +1,9 @@
 ﻿import { type Base58 } from '@localfirst/crypto'
 import { arrayToMap } from './arrayToMap.js'
-import { type KeysetWithSecrets } from '@/keyset/index.js'
-import * as users from '@/user/index.js'
-import { type UserWithSecrets } from '@/user/index.js'
-import { assert } from '@/util/index.js'
+import { type KeysetWithSecrets } from 'keyset/index.js'
+import * as users from 'user/index.js'
+import { type UserWithSecrets } from 'user/index.js'
+import { assert } from 'util/index.js'
 
 /**
 Usage: 

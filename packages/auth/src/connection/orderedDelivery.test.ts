@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { orderedDelivery } from '@/connection/orderedDelivery.js'
-import { arrayToMap } from '@/util/arrayToMap.js'
+import { orderedDelivery } from 'connection/orderedDelivery.js'
+import { arrayToMap } from 'util/arrayToMap.js'
 
 const msgs = [
   { index: 0, payload: 'zero' },

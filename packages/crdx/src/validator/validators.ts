@@ -1,8 +1,8 @@
 ﻿import { ValidationError, type ValidatorSet } from './types.js'
-import { ROOT, VALID } from '@/constants.js'
-import { getRoot } from '@/graph/graph.js'
-import { hashEncryptedLink } from '@/graph/hashLink.js'
-import { memoize } from '@/util/index.js'
+import { ROOT, VALID } from 'constants.js'
+import { getRoot } from 'graph/graph.js'
+import { hashEncryptedLink } from 'graph/hashLink.js'
+import { memoize } from 'util/index.js'
 
 const _validators: ValidatorSet = {
   /** Does this link's hash check out? */

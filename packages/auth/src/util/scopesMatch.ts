@@ -1,6 +1,6 @@
 import { type KeyScope } from '@localfirst/crdx'
 import { assert } from './assert.js'
-import { getScope } from '@/util/getScope.js'
+import { getScope } from 'util/getScope.js'
 
 export const scopesMatch = (a: KeyScope, b: KeyScope) => {
   const scopeA = getScope(a)

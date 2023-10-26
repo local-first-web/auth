@@ -45,6 +45,7 @@ module.exports = {
     "import/no-extraneous-dependencies": OFF, // haven't figured out how to make this work with monorepo
     "unicorn/prefer-spread": OFF, // don't find [...a] readable compared to a.split('')
     "default-case": OFF, // not necessary with typescript
+    "unicorn/prefer-node-protocol", OFF, // false positives with /util folder
 
     // DISABLED FOR EXPEDIENCY, MIGHT REVISIT
     "max-params": OFF,

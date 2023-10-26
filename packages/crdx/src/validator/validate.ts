@@ -1,8 +1,8 @@
 ﻿import { type ValidationResult, type ValidatorSet } from './types.js'
 import { fail, validators } from './validators.js'
-import { VALID } from '@/constants.js'
-import { hashEncryptedLink } from '@/graph/hashLink.js'
-import { type Action, type Link, type Graph } from '@/graph/types.js'
+import { VALID } from 'constants.js'
+import { hashEncryptedLink } from 'graph/hashLink.js'
+import { type Action, type Link, type Graph } from 'graph/types.js'
 
 /**
  * Runs a hash graph through a series of validators to ensure that it is correctly formed, has

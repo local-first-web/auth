@@ -1,10 +1,10 @@
-import { TEST_GRAPH_KEYS as keys } from '@test/helpers/setup'
+import { TEST_GRAPH_KEYS as keys } from '_test/helpers/setup'
 import { describe, expect, it } from 'vitest'
-import { createGraph, type Link, type Resolver, type RootAction } from '@/graph/index.js'
-import { createStore } from '@/store/index.js'
-import { type Reducer } from '@/store/types.js'
-import { createUser } from '@/user/index.js'
-import { type UnixTimestamp } from '@/util/index.js'
+import { createGraph, type Link, type Resolver, type RootAction } from 'graph/index.js'
+import { createStore } from 'store/index.js'
+import { type Reducer } from 'store/types.js'
+import { createUser } from 'user/index.js'
+import { type UnixTimestamp } from 'util/index.js'
 
 /**
  * This example simulates a meeting room scheduler and demonstrates a custom resolver implementing

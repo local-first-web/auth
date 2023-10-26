@@ -4,11 +4,11 @@ import { expect } from 'vitest'
 import { joinTestChannel } from './joinTestChannel.js'
 import { type UserStuff } from './setup.js'
 import { TestChannel } from './TestChannel.js'
-import { type Connection, type ConnectionEvents } from '@/connection/Connection.js'
+import { type Connection, type ConnectionEvents } from 'connection/Connection.js'
 import {
   type InviteeDeviceInitialContext,
   type InviteeMemberInitialContext,
-} from '@/connection/types.js'
+} from 'connection/types.js'
 
 // HELPERS
 

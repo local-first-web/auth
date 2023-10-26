@@ -20,15 +20,15 @@ import {
 } from '@localfirst/crypto'
 import { assign, createMachine, interpret, type Interpreter } from 'xstate'
 import { protocolMachine } from './protocolMachine.js'
-import { deriveSharedKey } from '@/connection/deriveSharedKey.js'
+import { deriveSharedKey } from 'connection/deriveSharedKey.js'
 import {
   buildError,
   type ConnectionErrorPayload,
   type ConnectionErrorType,
   type ErrorMessage,
   type LocalErrorMessage,
-} from '@/connection/errors.js'
-import * as identity from '@/connection/identity.js'
+} from 'connection/errors.js'
+import * as identity from 'connection/identity.js'
 import {
   isNumberedConnectionMessage,
   type AcceptInvitationMessage,
@@ -41,8 +41,8 @@ import {
   type ProveIdentityMessage,
   type SeedMessage,
   type SyncMessage,
-} from '@/connection/message.js'
-import { orderedDelivery } from '@/connection/orderedDelivery.js'
+} from 'connection/message.js'
+import { orderedDelivery } from 'connection/orderedDelivery.js'
 import {
   isInvitee,
   type Condition,
@@ -51,20 +51,20 @@ import {
   type ConnectionState,
   type SendFunction,
   type StateMachineAction,
-} from '@/connection/types.js'
-import { getDeviceId, parseDeviceId, type Device, type DeviceWithSecrets } from '@/device/index.js'
-import * as invitations from '@/invitation/index.js'
-import { cast } from '@/server/cast.js'
+} from 'connection/types.js'
+import { getDeviceId, parseDeviceId, type Device, type DeviceWithSecrets } from 'device/index.js'
+import * as invitations from 'invitation/index.js'
+import { cast } from 'server/cast.js'
 import {
   Team,
   decryptTeamGraph,
   type TeamAction,
   type TeamContext,
   type TeamGraph,
-} from '@/team/index.js'
-import { arraysAreEqual } from '@/util/arraysAreEqual.js'
-import { EventEmitter, KeyType, assert, debug, truncateHashes } from '@/util/index.js'
-import { syncMessageSummary } from '@/util/testing/messageSummary.js'
+} from 'team/index.js'
+import { arraysAreEqual } from 'util/arraysAreEqual.js'
+import { EventEmitter, KeyType, assert, debug, truncateHashes } from 'util/index.js'
+import { syncMessageSummary } from 'util/testing/messageSummary.js'
 
 const { DEVICE } = KeyType
 

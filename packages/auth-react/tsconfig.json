@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "allowJs": false,
-    "baseUrl": ".",
+    "baseUrl": "./src",
     "declaration": true,
     "esModuleInterop": true,
     "importHelpers": true,
@@ -13,9 +13,6 @@
     "noImplicitReturns": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "paths": {
-      "@/*": ["src/*"]
-    },
     "outDir": "dist",
     "sourceMap": true,
     "strict": true,

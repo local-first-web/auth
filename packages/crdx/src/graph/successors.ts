@@ -1,7 +1,7 @@
 ﻿import uniq from 'lodash/uniq'
 import { getChildrenHashes } from './children.js'
 import { type Action, type Link, type Graph } from './types.js'
-import { type Hash, memoize } from '@/util/index.js'
+import { type Hash, memoize } from 'util/index.js'
 
 export const getSuccessorHashes = memoize((graph: Graph<any, any>, hash: Hash): Hash[] => {
   const children = getChildrenHashes(graph, hash)

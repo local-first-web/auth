@@ -3,7 +3,7 @@ import { getHashes, getLink } from './graph.js'
 import { isPredecessorHash } from './predecessors.js'
 import { isSuccessorHash } from './successors.js'
 import { type Action, type Link, type Graph } from './types.js'
-import { type Hash } from '@/util/index.js'
+import { type Hash } from 'util/index.js'
 
 /** Returns all links that are concurrent with the given link. */
 export const getConcurrentLinks = <A extends Action, C>(

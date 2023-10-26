@@ -10,9 +10,9 @@ import {
   invitation,
   loadTeam,
 } from '..'
-import { cast } from '@/server/cast.js'
-import { type Host, type Server, type ServerWithSecrets } from '@/server/index.js'
-import { KeyType } from '@/util/index.js'
+import { cast } from 'server/cast.js'
+import { type Host, type Server, type ServerWithSecrets } from 'server/index.js'
+import { KeyType } from 'util/index.js'
 import {
   type SetupConfig,
   TestChannel,
@@ -20,7 +20,7 @@ import {
   all,
   joinTestChannel,
   setup as setupHumans,
-} from '@/util/testing/index.js'
+} from 'util/testing/index.js'
 
 describe('Team', () => {
   describe('a server', () => {

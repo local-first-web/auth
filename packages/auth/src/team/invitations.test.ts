@@ -1,9 +1,9 @@
 import { type UnixTimestamp, createKeyset } from '@localfirst/crdx'
 import { describe, expect, it } from 'vitest'
-import { generateProof } from '@/invitation/index.js'
-import * as teams from '@/team/index.js'
-import { KeyType } from '@/util/index.js'
-import { setup } from '@/util/testing/index.js'
+import { generateProof } from 'invitation/index.js'
+import * as teams from 'team/index.js'
+import { KeyType } from 'util/index.js'
+import { setup } from 'util/testing/index.js'
 
 const { USER } = KeyType
 

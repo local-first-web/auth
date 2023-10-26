@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { type XAction, buildGraph, getPayloads } from '../helpers/graph.js'
-import { type Resolver, getConcurrentLinks, getSequence } from '@/graph/index.js'
-import { type Hash } from '@/util/index.js'
+import { type Resolver, getConcurrentLinks, getSequence } from 'graph/index.js'
+import { type Hash } from 'util/index.js'
 
 describe('graphs', () => {
   describe('getSequence', () => {

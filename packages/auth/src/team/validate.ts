@@ -8,9 +8,9 @@ import {
   type TeamStateValidatorSet,
   type ValidationArgs,
 } from './types.js'
-import { parseDeviceId } from '@/device/index.js'
-import { invitationCanBeUsed } from '@/invitation/index.js'
-import { actionFingerprint, debug, truncateHashes, VALID, ValidationError } from '@/util/index.js'
+import { parseDeviceId } from 'device/index.js'
+import { invitationCanBeUsed } from 'invitation/index.js'
+import { actionFingerprint, debug, truncateHashes, VALID, ValidationError } from 'util/index.js'
 
 const log = debug('lf:auth:validate')
 

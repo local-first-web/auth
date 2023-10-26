@@ -1,5 +1,5 @@
-import { type Server } from '@/server/index.js'
-import { type Transform } from '@/team/types.js'
+import { type Server } from 'server/index.js'
+import { type Transform } from 'team/types.js'
 
 export const addServer =
   (newServer: Server): Transform =>

@@ -1,6 +1,6 @@
 import { type MachineConfig } from 'xstate'
-import { type ConnectionMessage } from '@/connection/message.js'
-import { type ConnectionContext, type ConnectionState } from '@/connection/types.js'
+import { type ConnectionMessage } from 'connection/message.js'
+import { type ConnectionContext, type ConnectionState } from 'connection/types.js'
 
 // Common timeout settings
 const TIMEOUT_DELAY = 7000

@@ -1,9 +1,9 @@
-﻿import { TEST_GRAPH_KEYS as keys, setup } from '@test/helpers/setup.js'
-import { append } from '@/graph/append.js'
-import { createGraph } from '@/graph/createGraph.js'
-import { merge } from '@/graph/merge.js'
-import { type Action, type Graph, type Link } from '@/graph/types.js'
-import { type KeysetWithSecrets } from '@/keyset/index.js'
+﻿import { TEST_GRAPH_KEYS as keys, setup } from '_test/helpers/setup.js'
+import { append } from 'graph/append.js'
+import { createGraph } from 'graph/createGraph.js'
+import { merge } from 'graph/merge.js'
+import { type Action, type Graph, type Link } from 'graph/types.js'
+import { type KeysetWithSecrets } from 'keyset/index.js'
 
 const { alice } = setup('alice')
 

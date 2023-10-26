@@ -78,7 +78,7 @@ export const decryptTeamGraph = ({
     }
 
     // Decrypt its children
-    const children = childMap[hash]
+    const children = childMap![hash]
 
     if (children) {
       for (const hash of children) {

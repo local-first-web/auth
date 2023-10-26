@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { setup as setupUsers } from '@/util/testing/index.js'
+import { setup as setupUsers } from 'util/testing/index.js'
 
 describe('Team', () => {
   const setup = () => {

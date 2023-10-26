@@ -1,8 +1,8 @@
-import { getDeviceId } from '@/device/index.js'
-import { ADMIN } from '@/role/index.js'
-import { KeyType } from '@/util/index.js'
-import { setup } from '@/util/testing/index.js'
-import '@/util/testing/expect/toLookLikeKeyset.js'
+import { getDeviceId } from 'device/index.js'
+import { ADMIN } from 'role/index.js'
+import { KeyType } from 'util/index.js'
+import { setup } from 'util/testing/index.js'
+import 'util/testing/expect/toLookLikeKeyset.js'
 import { createKeyset, redactKeys } from '@localfirst/crdx'
 import { describe, expect, it } from 'vitest'
 

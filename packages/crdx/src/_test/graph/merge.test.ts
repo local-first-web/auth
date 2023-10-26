@@ -1,8 +1,8 @@
-import { TEST_GRAPH_KEYS as keys, setup } from '@test/helpers/setup'
+import { TEST_GRAPH_KEYS as keys, setup } from '_test/helpers/setup'
 import clone from 'lodash/clone'
-import '@test/helpers/expect/toBeValid'
+import '_test/helpers/expect/toBeValid'
 import { describe, expect, test } from 'vitest'
-import { append, createGraph, merge } from '@/graph/index.js'
+import { append, createGraph, merge } from 'graph/index.js'
 
 const { alice, bob } = setup('alice', 'bob')
 const defaultUser = alice
