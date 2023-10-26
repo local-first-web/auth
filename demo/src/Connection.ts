@@ -1,5 +1,5 @@
 import * as auth from '@localfirst/auth'
-import { EventEmitter } from './EventEmitter.js'
+import { EventEmitter } from './EventEmitter'
 
 export class Connection extends EventEmitter {
   private readonly authConnection: auth.Connection

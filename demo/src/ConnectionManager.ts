@@ -3,9 +3,9 @@ import { type InviteeMemberInitialContext, type MemberInitialContext } from '@lo
 import { Client, type PeerEventPayload } from '@localfirst/relay-client'
 import { Mutex, withTimeout } from 'async-mutex'
 import debug from 'debug'
-import { Connection } from './Connection.js'
-import { EventEmitter } from './EventEmitter.js'
-import { type ConnectionStatus, type UserName } from './types.js'
+import { Connection } from './Connection'
+import { EventEmitter } from './EventEmitter'
+import { type ConnectionStatus, type UserName } from './types'
 
 // It shouldn't take longer than this to present an invitation and have it accepted. If this time
 // expires, we'll try presenting the invitation to someone else.

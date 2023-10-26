@@ -1,7 +1,7 @@
 // register commands
 
 import '@testing-library/cypress/add-commands'
-import * as _commands from './commands.js'
+import * as _commands from './commands'
 
 // register assertions
 
@@ -9,7 +9,9 @@ import './assertions/be.admin'
 import './assertions/be.online'
 import './assertions/have.member'
 import './assertions/be.onStartScreen'
-import { type CommandFn } from './types.js'
+
+import { type CommandFn } from './types'
+export { type CommandFn } from './types'
 
 const commands = _commands as Record<string, CommandFn>
 

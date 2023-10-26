@@ -1,4 +1,4 @@
-import { type CommandFn } from '../types.js'
+import { type CommandFn } from '../types'
 
 export const SECOND = 1
 export const MINUTE = 60 * SECOND
