@@ -1,0 +1,36 @@
+{
+  "name": "@localfirst/crdx",
+  "author": "herb@devresults.com",
+  "version": "4.1.9",
+  "license": "MIT",
+  "repository": "https://github.com/local-first-web/auth/packages/crdx",
+  "private": false,
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "exports": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=14"
+  },
+  "scripts": {
+    "build": "tsup --dts",
+    "test": "vitest",
+    "test:log": "cross-env DEBUG='crdx*' DEBUG_COLORS=1 yarn test",
+    "watch": "tsup --dts --watch"
+  },
+  "dependencies": {
+    "@localfirst/crypto": "^4.1.9",
+    "cuid": "3.0.0",
+    "debug": "4",
+    "events": "3",
+    "fast-memoize": "2",
+    "lodash": "4"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "gitHead": "1497ffec3092c5b03672ebc0ef3fc272eb681f92"
+}

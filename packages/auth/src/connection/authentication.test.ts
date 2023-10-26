@@ -1,6 +1,6 @@
-﻿import { ADMIN } from '@/role'
-import * as teams from '@/team'
-import { TEAM_SCOPE } from '@/team'
+import { describe, expect, it } from 'vitest'
+import { ADMIN } from 'role/index.js'
+import * as teams from 'team/index.js'
 import {
   anyDisconnected,
   anyUpdated,
@@ -12,8 +12,7 @@ import {
   expectEveryoneToKnowEveryone,
   setup,
   tryToConnect,
-} from '@/util/testing'
-import { createKeyset } from 'crdx'
+} from 'util/testing/index.js'
 
 describe('connection', () => {
   describe('authentication', () => {
@@ -28,33 +27,39 @@ describe('connection', () => {
         await disconnect(alice, bob)
       })
 
-      it(`doesn't connect with a member who has been removed`, async () => {
+      it("doesn't connect with a member who has been removed", async () => {
         const { alice, bob } = setup('alice', 'bob')
 
         // 👩🏾 Alice removes Bob
         alice.team.remove('bob')
 
         // ❌ They can't connect because Bob was removed
-        tryToConnect(alice, bob)
+        void tryToConnect(alice, bob)
         await anyDisconnected(alice, bob)
       })
 
-      it(`doesn't connect with someone who doesn't belong to the team`, async () => {
-        const { alice, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+      it("doesn't connect with someone who doesn't belong to the team", async () => {
+        const { alice, charlie } = setup('alice', 'bob', {
+          user: 'charlie',
+          member: false,
+        })
 
         charlie.connectionContext = {
-          team: teams.createTeam(`team charlie`, { device: charlie.device, user: charlie.user }),
+          team: teams.createTeam('team charlie', {
+            device: charlie.device,
+            user: charlie.user,
+          }),
           userName: 'charlie',
           user: charlie.user,
           device: charlie.device,
         }
 
         // ❌ Alice and Charlie can't connect because they're on different teams
-        tryToConnect(alice, charlie)
+        void tryToConnect(alice, charlie)
         await anyDisconnected(alice, charlie)
       })
 
-      it(`can reconnect after disconnecting`, async () => {
+      it('can reconnect after disconnecting', async () => {
         const { alice, bob } = setup('alice', 'bob')
         // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
         await connect(alice, bob)
@@ -87,7 +92,7 @@ describe('connection', () => {
         const { alice, bob, charlie } = setup(
           'alice',
           { user: 'bob', member: false },
-          { user: 'charlie', member: false },
+          { user: 'charlie', member: false }
         )
 
         // 👩🏾📧👨🏻‍🦲 Alice invites Bob
@@ -120,15 +125,15 @@ describe('connection', () => {
         // 👨🏻‍🦲📧<->👩🏾 Bob connects to Alice and uses his invitation to join
         await connectWithInvitation(alice, bob, seed)
 
-        // update the team from the connection, which should have the new keys
-        const connection = bob.connection.alice
+        // Update the team from the connection, which should have the new keys
+        const connection = bob.connection[alice.deviceId]
         bob.team = connection.team!
 
         // 👨🏻‍🦲 Bob has the team keys
         expect(() => bob.team.teamKeys()).not.toThrow()
       })
 
-      it(`doesn't allow two invitees to connect`, async () => {
+      it("doesn't allow two invitees to connect", async () => {
         const { alice, charlie, dwight } = setup([
           'alice',
           { user: 'charlie', member: false },
@@ -150,7 +155,7 @@ describe('connection', () => {
         }
 
         // 👳🏽‍♂️<->👴 Charlie and Dwight try to connect to each other
-        connect(charlie, dwight)
+        void connect(charlie, dwight)
 
         // ✅ ❌ They're unable to connect because at least one needs to be a member
         await disconnection(charlie, dwight, 'peer is also holding an invitation')
@@ -184,19 +189,25 @@ describe('connection', () => {
         alice.team.inviteMember({ seed })
 
         // 👨🏻‍🦲📧<->👩🏾 Bob tries to connect, but mistypes his code
-        bob.connectionContext = { ...bob.connectionContext, invitationSeed: 'password' }
+        bob.connectionContext = {
+          ...bob.connectionContext,
+          invitationSeed: 'password',
+        }
 
-        connect(bob, alice)
+        void connect(bob, alice)
 
         // ❌ The connection fails
         await disconnection(alice, bob)
 
         // 👨🏻‍🦲📧<->👩🏾 Bob tries again with the right code this time
-        bob.connectionContext = { ...bob.connectionContext, invitationSeed: 'passw0rd' }
+        bob.connectionContext = {
+          ...bob.connectionContext,
+          invitationSeed: 'passw0rd',
+        }
 
         // ✅ that works
         await connect(bob, alice)
-        bob.team = bob.connection.alice.team!
+        bob.team = bob.connection[alice.deviceId].team!
 
         expectEveryoneToKnowEveryone(alice, bob)
       })

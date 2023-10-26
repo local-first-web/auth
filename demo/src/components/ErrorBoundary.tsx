@@ -1,11 +1,12 @@
-import React, { ReactNode } from 'react'
-import Catch from './Catch'
+import React, { type ReactNode } from 'react'
+import Catch from './Catch.js'
 
 type Props = {
   children: ReactNode
 }
 
-export const ErrorBoundary = Catch(function ErrorBoundary(props: Props, error?: Error) {
+// eslint-disable-next-line new-cap
+export const ErrorBoundary = Catch(function (props: Props, error?: Error) {
   if (error) {
     return (
       <div className="ErrorBoundary">
@@ -13,7 +14,7 @@ export const ErrorBoundary = Catch(function ErrorBoundary(props: Props, error?: 
         <h4>{error.message}</h4>
       </div>
     )
-  } else {
-    return <>{props.children}</>
   }
+
+  return <>{props.children}</>
 })

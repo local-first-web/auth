@@ -1,6 +1,6 @@
-﻿import { isKeyManifest, KeyManifest, Lockbox } from '@/lockbox/types'
-import { asymmetric } from '@herbcaudill/crypto'
-import { EPHEMERAL_SCOPE, Keyset, KeysetWithSecrets, redactKeys } from 'crdx'
+import { EPHEMERAL_SCOPE, type Keyset, type KeysetWithSecrets, redactKeys } from '@localfirst/crdx'
+import { asymmetric } from '@localfirst/crypto'
+import { isKeyManifest, type KeyManifest, type Lockbox } from 'lockbox/types.js'
 
 /** Creates a new lockbox that can be opened using the recipient's private key. */
 export const create = (
@@ -24,7 +24,7 @@ export const create = (
   // Encrypt the lockbox's contents
   const encryptedPayload = asymmetric.encrypt({
     secret: contents,
-    recipientPublicKey: recipientPublicKey,
+    recipientPublicKey,
     senderSecretKey: encryptionKeys.secretKey,
   })
 

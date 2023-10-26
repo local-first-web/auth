@@ -15,6 +15,6 @@ export const HideButton = ({ onClick }: HideButtonProps) => (
     </button>
   </div>
 )
-interface HideButtonProps {
+type HideButtonProps = {
   onClick: () => void
 }

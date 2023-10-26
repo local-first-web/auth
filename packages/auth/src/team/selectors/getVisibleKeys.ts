@@ -1,6 +1,6 @@
-import { open } from '@/lockbox'
-import { TeamState } from '@/team/types'
-import { KeysetWithSecrets } from 'crdx'
+import { type KeysetWithSecrets } from '@localfirst/crdx'
+import { open } from 'lockbox/index.js'
+import { type TeamState } from 'team/types.js'
 
 /**
  * Returns all keys that can be accessed directly or indirectly (via lockboxes) by the given keyset
@@ -12,16 +12,16 @@ export const getVisibleKeys = (
   keyset: KeysetWithSecrets
 ): KeysetWithSecrets[] => {
   const { lockboxes } = state
-  const publicKey = keyset.encryption.publicKey
+  const { publicKey } = keyset.encryption
 
-  // what lockboxes can I open with these keys?
+  // What lockboxes can I open with these keys?
   const lockboxesICanOpen = lockboxes.filter(({ recipient }) => recipient.publicKey === publicKey)
 
-  // collect all the keys from those lockboxes
+  // Collect all the keys from those lockboxes
   const keysets = lockboxesICanOpen.map(lockbox => open(lockbox, keyset))
 
-  // recursively get all the keys *those* keys can access
-  const visibileKeys = keysets.flatMap(keyset => getVisibleKeys(state, keyset))
+  // Recursively get all the keys *those* keys can access
+  const visibleKeys = keysets.flatMap(keyset => getVisibleKeys(state, keyset))
 
-  return [...keysets, ...visibileKeys]
+  return [...keysets, ...visibleKeys]
 }

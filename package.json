@@ -1,6 +1,7 @@
 {
   "name": "@localfirst/auth-monorepo",
   "version": "0.0.0",
+  "private": true,
   "author": {
     "name": "Herb Caudill",
     "email": "herb@devresults.com"
@@ -8,45 +9,58 @@
   "description": "Monorepo for @localfirst/auth",
   "repository": "http://github.com/local-first-web/auth",
   "license": "MIT",
-  "private": true,
   "type": "module",
   "scripts": {
     "build": "lerna run build",
-    "dev:demo": "yarn --cwd demo && yarn --cwd demo dev",
-    "dev:cy:demo": "yarn --cwd demo && yarn --cwd demo dev:cy",
+    "dev:demo": "yarn workspace @localfirst/auth-demo dev",
+    "dev:cy:demo": "yarn workspace @localfirst/auth-demo dev:cy",
     "dev:cy": "run-p watch dev:cy:demo",
     "dev:cy:debug": "cross-env CYPRESS_REMOTE_DEBUGGING_PORT=9222 yarn dev:cy",
     "dev": "run-p watch dev:demo",
-    "dev:relay": "yarn --cwd demo dev:relay",
-    "test": "yarn --cwd packages/auth test",
-    "test:log": "yarn --cwd packages/auth test:log",
+    "dev:relay": "yarn workspace @localfirst/auth-demo dev:relay",
+    "lint": "xo",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:log": "yarn workspace @localfirst/auth test:log",
     "watch": "lerna run watch --stream --parallel",
-    "pub": "lerna publish --yes"
+    "release": "lerna publish --no-private --yes"
   },
   "devDependencies": {
-    "@changesets/changelog-github": "0",
-    "@changesets/cli": "2",
-    "@types/libsodium-wrappers": "0",
-    "@types/lodash": "4",
-    "@types/react": "17",
-    "@types/react-dom": "17",
-    "lerna": "3",
-    "npm-run-all": "4",
-    "react": "17",
-    "react-dom": "17",
-    "typescript": "4"
-  },
-  "resolutions": {
-    "typescript": "4.8"
+    "@herbcaudill/random": "^0.3.0",
+    "@types/debug": "^4.1.7",
+    "@types/libsodium-wrappers-sumo": "^0.7.5",
+    "@types/lodash": "^4.14.200",
+    "@types/node": "^18.15.10",
+    "cross-env": "^7.0.3",
+    "eslint": "^8.52.0",
+    "eslint-config-xo": "^0.43.1",
+    "eslint-config-xo-react": "^0.27.0",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-unused-imports": "^3.0.0",
+    "lerna": "^6.6.1",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.0.3",
+    "tsup": "^7.2.0",
+    "typescript": "^5.2.2",
+    "vite-tsconfig-paths": "^4.2.1",
+    "vitest": "^0.34.6",
+    "xo": "^0.56.0"
   },
   "workspaces": [
     "packages/*",
     "demo"
   ],
-  "jest": {
-    "projects": [
-      "packages/auth"
-    ]
+  "prettier": {
+    "arrowParens": "avoid",
+    "bracketSpacing": true,
+    "endOfLine": "auto",
+    "semi": false,
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "useTabs": false,
+    "printWidth": 100
   },
   "wallaby": {
     "autoDetect": true,
@@ -55,12 +69,6 @@
     "lowCoverageThreshold": 99,
     "hints": {
       "ignoreCoverageForFile": "ignore file coverage"
-    },
-    "env": {
-      "type": "node",
-      "params": {
-        "runner": "--no-warnings --experimental-vm-modules"
-      }
     }
   }
 }

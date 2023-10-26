@@ -1,1 +1,1 @@
-﻿export { clone } from 'ramda'
+export { default as clone } from 'lodash/clone'

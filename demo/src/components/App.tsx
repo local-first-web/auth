@@ -1,16 +1,14 @@
+import { Buffer } from 'buffer'
 import * as auth from '@localfirst/auth'
 import React from 'react'
-import { PeerInfo, peers as allPeers } from '../peers'
-import { PeerState, Storage, StoredPeerState } from '../types'
-import { Chooser } from './Chooser'
-import { Peer } from './Peer'
-import { TeamProvider } from './TeamProvider'
+import { type PeerInfo, peers as allPeers } from '../peers'
+import { type PeerState, type Storage, type StoredPeerState } from '../types.js'
+import { Chooser } from './Chooser.js'
+import { Peer } from './Peer.js'
+import { TeamProvider } from './TeamProvider.js'
 
-import { Buffer } from 'buffer'
-
-// @ts-ignore
-globalThis.Buffer =
-  typeof window !== 'undefined' && typeof window.Buffer !== 'undefined' ? window.Buffer : Buffer
+// @ts-expect-error
+globalThis.Buffer = window?.Buffer === undefined ? Buffer : window.Buffer
 
 // 👩🏾💻 Add Alice's laptop by default
 allPeers['Alice:laptop'].show = true
@@ -47,25 +45,25 @@ export const App = () => {
           ? auth.loadTeam(teamGraph, { ...storedState, user }, teamKeys)
           : undefined
       return { ...defaults, ...storedState, team }
-    } else {
-      // we're showing a peer for the first time
-      const { userId, userName } = peerInfo.user
-
-      const device = auth.createDevice(userId, peerInfo.device.name)
-
-      const user =
-        peerInfo.device.name === 'laptop'
-          ? // For the purposes of this demo, we're using the laptop as each user's "primary" device --
-            // that's where their user keys are created.
-            auth.createUser(userName, userId)
-          : // On the phone, we only know the user's name. We don't have any user keys yet,
-            // we'll get them once the device joins the team.
-            undefined
-
-      const state = { userName, userId, user, device }
-      setStorage(prev => ({ ...prev, [peerId]: state }))
-      return { ...defaults, ...state }
     }
+
+    // we're showing a peer for the first time
+    const { userId, userName } = peerInfo.user
+
+    const device = auth.createDevice(userId, peerInfo.device.name)
+
+    const user =
+      peerInfo.device.name === 'laptop'
+        ? // For the purposes of this demo, we're using the laptop as each user's "primary" device --
+          // that's where their user keys are created.
+          auth.createUser(userName, userId)
+        : // On the phone, we only know the user's name. We don't have any user keys yet,
+          // we'll get them once the device joins the team.
+          undefined
+
+    const state = { userName, userId, user, device }
+    setStorage(prev => ({ ...prev, [peerId]: state }))
+    return { ...defaults, ...state }
   }
 
   return (

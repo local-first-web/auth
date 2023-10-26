@@ -1,17 +1,12 @@
-import { CommandFn } from '../types'
 import { devices } from '../../../src/peers'
+import { type CommandFn } from '../types'
 
 export const peerConnectionStatus: CommandFn = (
   subject,
   userName: string,
-  deviceName: string = 'laptop'
+  deviceName = 'laptop'
 ) => {
   const { emoji } = devices[deviceName]
-  const connCell = cy
-    .wrap(subject)
-    .teamMember(userName)
-    .findByText(emoji)
-    .parents('div')
-    .first()
+  const connCell = cy.wrap(subject).teamMember(userName).findByText(emoji).parents('div').first()
   return connCell.invoke('attr', 'title')
 }

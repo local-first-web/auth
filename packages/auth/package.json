@@ -1,6 +1,7 @@
 {
   "name": "@localfirst/auth",
-  "version": "1.0.2",
+  "version": "4.1.9",
+  "private": false,
   "author": {
     "name": "Herb Caudill",
     "email": "herb@devresults.com"
@@ -15,71 +16,23 @@
     "node": ">=14"
   },
   "scripts": {
-    "watch": "npm-watch",
-    "build": "tsc -p tsconfig.build.json",
-    "postbuild": "tscpaths -p tsconfig.build.json -s src -o dist",
-    "test": "node --no-warnings --experimental-vm-modules ../../node_modules/jest/bin/jest.js",
-    "test:log": "cross-env DEBUG='lf*' DEBUG_COLORS=1 yarn test"
-  },
-  "watch": {
-    "build": {
-      "patterns": "./src/**/*",
-      "extensions": [
-        ".ts",
-        ".tsx"
-      ]
-    },
-    "postbuild": "./dist/**/*"
+    "build": "tsup --dts",
+    "test": "vitest",
+    "test:log": "cross-env DEBUG='lf*' DEBUG_COLORS=1 yarn test",
+    "watch": "tsup --dts --watch"
   },
   "dependencies": {
-    "@changesets/changelog-github": "0",
-    "@changesets/cli": "2",
-    "@herbcaudill/crypto": "2",
-    "@types/react": "17",
-    "@types/react-dom": "17",
-    "buffer": "6",
-    "crdx": "3",
-    "debug": "4",
-    "events": "3",
-    "fast-memoize": "2",
-    "msgpack-lite": "0",
-    "npm-watch": "^0.11.0",
-    "ramda": "0",
-    "typescript": "4",
+    "@localfirst/crdx": "^4.1.9",
+    "@localfirst/crypto": "^4.1.9",
+    "buffer": "^6.0.3",
+    "debug": "^4.3.4",
+    "eventemitter3": "^4.0.7",
+    "fast-memoize": "^2.5.2",
+    "lodash": "^4.17.21",
     "xstate": "4.26"
   },
-  "devDependencies": {
-    "@types/debug": "4",
-    "@types/msgpack-lite": "0",
-    "@types/ramda": "0",
-    "cross-env": "6",
-    "jest": "27",
-    "prettier": "2",
-    "ts-jest": "27",
-    "tscpaths": "0",
-    "typescript": "4"
+  "publishConfig": {
+    "access": "public"
   },
-  "prettier": {
-    "printWidth": 100,
-    "semi": false,
-    "singleQuote": true,
-    "trailingComma": "all",
-    "arrowParens": "avoid"
-  },
-  "jest": {
-    "transform": {},
-    "preset": "ts-jest/presets/default-esm",
-    "globals": {
-      "ts-jest": {
-        "useESM": true
-      }
-    },
-    "moduleNameMapper": {
-      "^@/(.*)$": "<rootDir>/src/$1"
-    },
-    "testMatch": [
-      "**/*.test.ts"
-    ],
-    "testEnvironment": "node"
-  }
+  "gitHead": "1497ffec3092c5b03672ebc0ef3fc272eb681f92"
 }

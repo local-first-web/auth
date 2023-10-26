@@ -1,19 +1,18 @@
-﻿import { Lockbox } from '@/lockbox/types'
-import { memoize } from '@/util'
-import { asymmetric } from '@herbcaudill/crypto'
-import { KeysetWithSecrets } from 'crdx'
+import { type KeysetWithSecrets } from '@localfirst/crdx'
+import { asymmetric } from '@localfirst/crypto'
+import { type Lockbox } from 'lockbox/types.js'
+import { memoize } from 'util/index.js'
 
 export const open = memoize(
   (lockbox: Lockbox, decryptionKeys: KeysetWithSecrets): KeysetWithSecrets => {
     const { encryptionKey, encryptedPayload } = lockbox
 
-    const keys = JSON.parse(
-      asymmetric.decrypt({
-        cipher: encryptedPayload,
-        senderPublicKey: encryptionKey.publicKey,
-        recipientSecretKey: decryptionKeys.encryption.secretKey,
-      })
-    )
+    const decrypted = asymmetric.decrypt({
+      cipher: encryptedPayload,
+      senderPublicKey: encryptionKey.publicKey,
+      recipientSecretKey: decryptionKeys.encryption.secretKey,
+    })
+    const keys = decrypted as unknown as KeysetWithSecrets
 
     return keys
   }

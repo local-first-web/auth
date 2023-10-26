@@ -1,6 +1,7 @@
-import { ADMIN } from '@/role'
-import { setup } from '@/util/testing'
-import '@/util/testing/expect/toLookLikeKeyset'
+import { ADMIN } from 'role/index.js'
+import { setup } from 'util/testing/index.js'
+import 'util/testing/expect/toLookLikeKeyset.js'
+import { describe, expect, it } from 'vitest'
 
 describe('Team', () => {
   describe('members', () => {
@@ -49,14 +50,20 @@ describe('Team', () => {
       expect(adminKeyset).toLookLikeKeyset()
     })
 
-    it(`doesn't care if you add a member twice`, () => {
+    it("doesn't care if you add a member twice", () => {
       const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
-      const addBob = () => alice.team.addForTesting(bob.user)
+      const addBob = () => {
+        alice.team.addForTesting(bob.user)
+      }
+
       expect(addBob).not.toThrow()
 
-      // try adding bob again
-      const addBobAgain = () => alice.team.addForTesting(bob.user)
+      // Try adding bob again
+      const addBobAgain = () => {
+        alice.team.addForTesting(bob.user)
+      }
+
       expect(addBobAgain).not.toThrow()
     })
 
@@ -69,32 +76,35 @@ describe('Team', () => {
       alice.team.remove('bob')
       expect(alice.team.has('bob')).toBe(false)
 
-      // memberWasRemoved works as expected
-      expect(alice.team.memberWasRemoved('alice')).toBe(false) // alice is still a member
-      expect(alice.team.memberWasRemoved('bob')).toBe(true) // bob is no longer a member
-      expect(alice.team.memberWasRemoved('charlie')).toBe(false) // charlie was never a member
+      // MemberWasRemoved works as expected
+      expect(alice.team.memberWasRemoved('alice')).toBe(false) // Alice is still a member
+      expect(alice.team.memberWasRemoved('bob')).toBe(true) // Bob is no longer a member
+      expect(alice.team.memberWasRemoved('charlie')).toBe(false) // Charlie was never a member
     })
 
     it('rotates keys after removing a member', () => {
       const { alice } = setup('alice', { user: 'bob', admin: true })
 
-      // keys have never been rotated
+      // Keys have never been rotated
       expect(alice.team.teamKeys().generation).toBe(0)
       expect(alice.team.adminKeys().generation).toBe(0)
 
-      // remove bob from team
+      // Remove bob from team
       alice.team.remove('bob')
 
-      // team keys & admin keys have now been rotated once
+      // Team keys & admin keys have now been rotated once
       expect(alice.team.teamKeys().generation).toBe(1)
       expect(alice.team.adminKeys().generation).toBe(1)
     })
 
-    it(`doesn't do anything if asked to remove a nonexistent member`, () => {
+    it("doesn't do anything if asked to remove a nonexistent member", () => {
       const { alice } = setup('alice')
 
-      // try removing bob although he hasn't been added
-      const removeBob = () => alice.team.remove('bob')
+      // Try removing bob although he hasn't been added
+      const removeBob = () => {
+        alice.team.remove('bob')
+      }
+
       expect(removeBob).not.toThrow()
     })
 

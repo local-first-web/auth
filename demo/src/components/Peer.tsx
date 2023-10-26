@@ -1,13 +1,12 @@
-import { Card } from '@windmill/react-ui'
 import React from 'react'
 import { useTeam } from '../hooks/useTeam'
-import { PeerInfo } from '../peers'
-import { Alerts } from './Alerts'
-import { Avatar } from './Avatar'
-import { CreateOrJoinTeam } from './CreateOrJoinTeam'
-import { ErrorBoundary } from './ErrorBoundary'
-import { HideButton } from './HideButton'
-import { Team } from './Team'
+import { type PeerInfo } from '../peers'
+import { Alerts } from './Alerts.js'
+import { Avatar } from './Avatar.js'
+import { CreateOrJoinTeam } from './CreateOrJoinTeam.js'
+import { ErrorBoundary } from './ErrorBoundary.js'
+import { HideButton } from './HideButton.js'
+import { Team } from './Team.js'
 
 const AUTO_CREATE_ALICE_TEAM = true
 
@@ -28,11 +27,18 @@ export const Peer = ({ peerInfo, onHide }: PeerProps) => {
 
   return (
     <ErrorBoundary>
-      <Card title={peerInfo.id} className="Peer group max-w-sm flex-1 bg-white shadow-md relative">
+      <div
+        title={peerInfo.id}
+        className="Peer group max-w-sm flex-1 bg-white shadow-md relative"
+      >
         <HideButton onClick={hide}></HideButton>
         <div className="Header flex items-center bg-teal-500 max-h-20">
           <div className="pl-4 py-4">
-            <Avatar size="lg" className="bg-opacity-75" children={peerInfo.user.emoji} />
+            <Avatar
+              size="lg"
+              className="bg-opacity-75"
+              children={peerInfo.user.emoji}
+            />
           </div>
           <h1
             className="text-white text-2xl font-extrabold flex-grow"
@@ -50,12 +56,12 @@ export const Peer = ({ peerInfo, onHide }: PeerProps) => {
           // Not on a team; show Create team / Join team buttons
           <CreateOrJoinTeam />
         )}
-      </Card>
+      </div>
     </ErrorBoundary>
   )
 }
 
-interface PeerProps {
+type PeerProps = {
   peerInfo: PeerInfo
   onHide: (id: string) => void
 }

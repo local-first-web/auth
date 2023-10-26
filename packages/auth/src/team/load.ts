@@ -1,10 +1,13 @@
-﻿import { TeamGraph } from './types'
-import { LocalUserContext } from '@/context'
-import { Team } from '@/team/Team'
-import { KeysetWithSecrets } from 'crdx'
+import { type Keyring, type KeysetWithSecrets, createKeyring } from '@localfirst/crdx'
+import { type TeamGraph } from './types.js'
+import { type LocalContext } from 'context/index.js'
+import { Team } from 'team/Team.js'
 
 export const load = (
   source: string | TeamGraph,
-  context: LocalUserContext,
-  teamKeys: KeysetWithSecrets,
-) => new Team({ source, context, teamKeys })
+  context: LocalContext,
+  teamKeys: KeysetWithSecrets | Keyring
+) => {
+  const teamKeyring = createKeyring(teamKeys)
+  return new Team({ source, context, teamKeyring })
+}

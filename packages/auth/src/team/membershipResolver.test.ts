@@ -1,17 +1,18 @@
-import { ADMIN } from '@/role'
-import { graphSummary, clone } from '@/util'
-import { setup as userSetup } from '@/util/testing'
-import { append, merge } from 'crdx'
-import { createTeam } from './createTeam'
-import { redactUser } from './redactUser'
-import { TeamAction, TeamGraph } from './types'
+import { append, merge } from '@localfirst/crdx'
+import { describe, expect, it } from 'vitest'
+import { createTeam } from './createTeam.js'
+import { redactUser } from './redactUser.js'
+import { type TeamAction, type TeamGraph } from './types.js'
+import { ADMIN } from 'role/index.js'
+import { clone, graphSummary } from 'util/index.js'
+import { setup as userSetup } from 'util/testing/index.js'
 
 describe('membershipResolver', () => {
   const setup = () => {
     // 👩🏾 Alice creates a graph
-    let aTeam = createTeam('Spies Я Us', alice.localContext)
+    const aTeam = createTeam('Spies Я Us', alice.localContext)
     let aGraph = aTeam.graph
-    let keys = aTeam.teamKeys()
+    const keys = aTeam.teamKeys()
 
     // 👩🏾 Alice adds 👨🏻‍🦲 Bob as admin
     aGraph = append({
@@ -23,7 +24,7 @@ describe('membershipResolver', () => {
     })
 
     // 👩🏾 🡒 👨🏻‍🦲 Alice shares the graph with Bob
-    let bGraph: TeamGraph = clone(aGraph)
+    const bGraph: TeamGraph = clone(aGraph)
     return { aGraph, bGraph, keys }
   }
 
@@ -128,7 +129,7 @@ describe('membershipResolver', () => {
 
   // TODO: This doesn't really tell us anything since it doesn't cover INVITE_MEMBER, which is how
   // members are actually added
-  it(`doesn't allow a member who is removed to be concurrently added back`, () => {
+  it("doesn't allow a member who is removed to be concurrently added back", () => {
     // 👩🏾 Alice creates a graph and adds Charlie
     let { aGraph, keys } = setup()
 
@@ -335,33 +336,33 @@ describe('membershipResolver', () => {
 
     // ✅ Alice created the team; Bob's change is discarded,Alice is still an admin
     const expected = 'ROOT,ADD:bob,ADD:charlie,REMOVE:admin:bob'
-    for (const graph of mergedGraphs) expect(summary(graph)).toBe(expected)
+    for (const graph of mergedGraphs) {
+      expect(summary(graph)).toBe(expected)
+    }
   })
 
   const expectMergedResult = (
     aGraph: TeamGraph,
     bGraph: TeamGraph,
-    expected: string[] | string,
+    expected: string[] | string
   ) => {
     // 👩🏾 ⇄ 👨🏻‍🦲 They synchronize graphs
     const mergedGraph = merge(aGraph, bGraph)
 
-    if (!Array.isArray(expected)) {
-      expect(summary(mergedGraph)).toBe(expected)
-    } else {
+    if (Array.isArray(expected)) {
       // The resolved sequence should match one of the provided options
       expect(expected).toContain(summary(mergedGraph))
+    } else {
+      expect(summary(mergedGraph)).toBe(expected)
     }
   }
 
   const summary = (graph: TeamGraph) =>
-    graphSummary(graph)
-      .replace(/_MEMBER/g, '')
-      .replace(/_ROLE/g, '')
+    graphSummary(graph).replaceAll('_MEMBER', '').replaceAll('_ROLE', '')
 
   const { alice, bob, charlie } = userSetup('alice', 'bob', 'charlie')
 
-  // constant actions
+  // Constant actions
 
   const REMOVE_ALICE = {
     type: 'REMOVE_MEMBER',
@@ -413,12 +414,15 @@ describe('membershipResolver', () => {
     payload: { roleName: 'managers' },
   } as TeamAction
 
-  const ADD_CHARLIE_TO_MANAGERS = {
-    type: 'ADD_MEMBER_ROLE',
-    payload: { userId: 'charlie', roleName: 'managers' },
-  } as TeamAction
-
   /**
+
+
+  const ADD_CHARLIE_TO_MANAGERS = {
+    type: "ADD_MEMBER_ROLE",
+    payload: { userId: "charlie", roleName: "managers" },
+  } as TeamAction
+  
+  
           TODO simulate this situation from connection.test
           20201229 OK. What's happening here is that sometimes (50% of the time?) when we eliminate duplicate
           ADD_MEMBERs,we're eliminating one that would have needed to have come BEFORE something else,

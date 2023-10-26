@@ -1,18 +1,32 @@
-import { Client, LocalUserContext } from '@/context'
-import { Device } from '@/device'
-import { Invitation, InvitationState } from '@/invitation/types'
-import { Lockbox } from '@/lockbox'
-import { PermissionsMap, Role } from '@/role'
-import { Base58, Hash, Payload, UUID, ValidationResult } from '@/util'
-import { Graph, KeyMetadata, Keyset, KeysetWithSecrets, Link, LinkBody, ROOT, Sequence } from 'crdx'
+import {
+  type Base58,
+  type Graph,
+  type Hash,
+  type KeyMetadata,
+  type Keyring,
+  type Keyset,
+  type KeysetWithSecrets,
+  type Link,
+  type LinkBody,
+  type Payload,
+  type ROOT,
+  type Sequence,
+} from '@localfirst/crdx'
+import { type Client, type LocalContext } from 'context/index.js'
+import { type Device } from 'device/index.js'
+import { type Invitation, type InvitationState } from 'invitation/types.js'
+import { type Lockbox } from 'lockbox/index.js'
+import { type PermissionsMap, type Role } from 'role/index.js'
+import { type Host, type Server } from 'server/index.js'
+import { type ValidationResult } from 'util/index.js'
 
 // ********* MEMBER
 
 /** A member is a user that belongs to a team. */
-export interface Member {
+export type Member = {
   // TODO enforce uniqueness
   /** Unique ID populated on creation. */
-  userId: UUID
+  userId: string
 
   // TODO enforce uniqueness
   /** Username (or email). Must be unique but is not used for lookups. Only provided to connect
@@ -36,33 +50,36 @@ export interface Member {
 // ********* TEAM CONSTRUCTOR
 
 /** Properties required when creating a new team */
-export interface NewTeamOptions {
+export type NewTeamOptions = {
   /** The team's human-facing name */
   teamName: string
+
+  /** The team keys need to be provided for encryption and decryption. It's up to the application to persist these somewhere.  */
+  teamKeys: KeysetWithSecrets
 }
 
 /** Properties required when rehydrating from an existing graph  */
-export interface ExistingTeamOptions {
+export type ExistingTeamOptions = {
   /** The `TeamGraph` representing the team's state, to be rehydrated.
    *  Can be serialized or not. */
   source: string | TeamGraph
+
+  /** The team keys need to be provided for encryption and decryption. It's up to the application to persist these somewhere.  */
+  teamKeyring: Keyring
 }
 
 type NewOrExisting = NewTeamOptions | ExistingTeamOptions
 
 /** Options passed to the `Team` constructor */
 export type TeamOptions = NewOrExisting & {
-  /** The team keys need to be provided for encryption and decryption. It's up to the application to persist these somewhere.  */
-  teamKeys: KeysetWithSecrets
-
   /** A seed for generating keys. This is typically only used for testing, to ensure predictable data. */
   seed?: string
 
   /** Object containing the current user and device (and optionally information about the client & version). */
-  context: LocalUserContext
+  context: LocalContext
 }
 
-/** type guard for NewTeamOptions vs ExistingTeamOptions  */
+/** Type guard for NewTeamOptions vs ExistingTeamOptions  */
 export const isNewTeam = (options: NewOrExisting): options is NewTeamOptions =>
   'teamName' in options
 
@@ -71,12 +88,12 @@ export const isNewTeam = (options: NewOrExisting): options is NewTeamOptions =>
 // TODO: the content of lockboxes needs to be validated
 // e.g. only an admin can add lockboxes for others
 
-interface BasePayload {
+type BasePayload = {
   // Every action might include new lockboxes
   lockboxes?: Lockbox[]
 }
 
-export interface RootAction {
+export type RootAction = {
   type: typeof ROOT
   payload: BasePayload & {
     name: string
@@ -85,7 +102,7 @@ export interface RootAction {
   }
 }
 
-export interface AddMemberAction {
+export type AddMemberAction = {
   type: 'ADD_MEMBER'
   payload: BasePayload & {
     member: Member
@@ -93,26 +110,26 @@ export interface AddMemberAction {
   }
 }
 
-export interface RemoveMemberAction {
+export type RemoveMemberAction = {
   type: 'REMOVE_MEMBER'
   payload: BasePayload & {
     userId: string
   }
 }
 
-export interface AddRoleAction {
+export type AddRoleAction = {
   type: 'ADD_ROLE'
   payload: BasePayload & Role
 }
 
-export interface RemoveRoleAction {
+export type RemoveRoleAction = {
   type: 'REMOVE_ROLE'
   payload: BasePayload & {
     roleName: string
   }
 }
 
-export interface AddMemberRoleAction {
+export type AddMemberRoleAction = {
   type: 'ADD_MEMBER_ROLE'
   payload: BasePayload & {
     userId: string
@@ -121,7 +138,7 @@ export interface AddMemberRoleAction {
   }
 }
 
-export interface RemoveMemberRoleAction {
+export type RemoveMemberRoleAction = {
   type: 'REMOVE_MEMBER_ROLE'
   payload: BasePayload & {
     userId: string
@@ -129,14 +146,14 @@ export interface RemoveMemberRoleAction {
   }
 }
 
-export interface AddDeviceAction {
+export type AddDeviceAction = {
   type: 'ADD_DEVICE'
   payload: BasePayload & {
     device: Device
   }
 }
 
-export interface RemoveDeviceAction {
+export type RemoveDeviceAction = {
   type: 'REMOVE_DEVICE'
   payload: BasePayload & {
     userId: string
@@ -144,64 +161,85 @@ export interface RemoveDeviceAction {
   }
 }
 
-export interface InviteMemberAction {
+export type InviteMemberAction = {
   type: 'INVITE_MEMBER'
   payload: BasePayload & {
     invitation: Invitation
   }
 }
 
-export interface InviteDeviceAction {
+export type InviteDeviceAction = {
   type: 'INVITE_DEVICE'
   payload: BasePayload & {
     invitation: Invitation
   }
 }
 
-export interface RevokeInvitationAction {
+export type RevokeInvitationAction = {
   type: 'REVOKE_INVITATION'
   payload: BasePayload & {
-    id: string // invitation ID
+    id: string // Invitation ID
   }
 }
 
-export interface AdmitMemberAction {
+export type AdmitMemberAction = {
   type: 'ADMIT_MEMBER'
   payload: BasePayload & {
-    id: string // invitation ID
+    id: Base58 // Invitation ID
     userName: string
-    memberKeys: Keyset // member keys provided by the new member
+    memberKeys: Keyset // Member keys provided by the new member
   }
 }
 
-export interface AdmitDeviceAction {
+export type AdmitDeviceAction = {
   type: 'ADMIT_DEVICE'
   payload: BasePayload & {
-    id: string // invitation ID
-    userId: string // user name of the device's owner
-    deviceName: string // name given to the device by the owner
-    deviceKeys: Keyset // device keys provided by the new device
+    id: Base58 // Invitation ID
+    userId: string // User name of the device's owner
+    deviceName: string // Name given to the device by the owner
+    deviceKeys: Keyset // Device keys provided by the new device
   }
 }
 
-export interface ChangeMemberKeysAction {
+export type ChangeMemberKeysAction = {
   type: 'CHANGE_MEMBER_KEYS'
   payload: BasePayload & {
     keys: Keyset
   }
 }
 
-export interface ChangeDeviceKeysAction {
+export type ChangeDeviceKeysAction = {
   type: 'CHANGE_DEVICE_KEYS'
   payload: BasePayload & {
     keys: Keyset
   }
 }
 
-export interface RotateKeysAction {
+export type RotateKeysAction = {
   type: 'ROTATE_KEYS'
   payload: BasePayload & {
     userId: string
+  }
+}
+
+export type AddServerAction = {
+  type: 'ADD_SERVER'
+  payload: BasePayload & {
+    server: Server
+  }
+}
+
+export type RemoveServerAction = {
+  type: 'REMOVE_SERVER'
+  payload: BasePayload & {
+    host: Host
+  }
+}
+
+export type ChangeServerKeysAction = {
+  type: 'CHANGE_SERVER_KEYS'
+  payload: BasePayload & {
+    keys: Keyset
   }
 }
 
@@ -223,6 +261,9 @@ export type TeamAction =
   | ChangeMemberKeysAction
   | ChangeDeviceKeysAction
   | RotateKeysAction
+  | AddServerAction
+  | RemoveServerAction
+  | ChangeServerKeysAction
 
 export type TeamContext = {
   deviceId: string
@@ -243,48 +284,46 @@ export type MembershipRuleEnforcer = (links: TeamLink[], graph: TeamGraph) => Te
 
 // ********* TEAM STATE
 
-export interface TeamState {
+export type TeamState = {
   head: Hash[]
 
   teamName: string
   rootContext?: TeamContext
   members: Member[]
   roles: Role[]
+  servers: Server[]
   lockboxes: Lockbox[]
   invitations: InvitationMap
 
-  // we keep track of removed members and devices primarily so that we deliver the correct message
+  // We keep track of removed members and devices primarily so that we deliver the correct message
   // to them when we refuse to connect
   removedMembers: Member[]
   removedDevices: Device[]
+  removedServers: Server[]
 
-  // if a member's admission is reversed, we need to flag them as compromised so an admin can
+  // If a member's admission is reversed, we need to flag them as compromised so an admin can
   // rotate any keys they had access to at the first opportunity
   pendingKeyRotations: string[]
 }
 
-export interface InvitationMap {
-  [id: string]: InvitationState
-}
+export type InvitationMap = Record<string, InvitationState>
 
 // ********* VALIDATION
 
-export type TeamStateValidator = (prevState: TeamState, link: TeamLink) => ValidationResult
+export type TeamStateValidator = (previousState: TeamState, link: TeamLink) => ValidationResult
 
-export type TeamStateValidatorSet = {
-  [key: string]: TeamStateValidator
-}
+export type TeamStateValidatorSet = Record<string, TeamStateValidator>
 
 export type ValidationArgs = [TeamState, TeamLink]
 
 // ********* CRYPTO
 
-export interface EncryptedEnvelope {
+export type EncryptedEnvelope = {
   contents: Base58
   recipient: KeyMetadata
 }
 
-export interface SignedEnvelope {
+export type SignedEnvelope = {
   contents: Payload
   signature: Base58
   author: KeyMetadata

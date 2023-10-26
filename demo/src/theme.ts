@@ -1,13 +1,11 @@
 ﻿export const theme = {
   // Pagination
   pagination: {
-    base:
-      'flex flex-col justify-between text-xs sm:flex-row text-neutral-600 dark:text-neutral-400',
+    base: 'flex flex-col justify-between text-xs sm:flex-row text-neutral-600 dark:text-neutral-400',
   },
   // TableFooter
   tableFooter: {
-    base:
-      'px-4 py-3 border-t dark:border-neutral-700 bg-neutral-50 text-neutral-500 dark:text-neutral-400 dark:bg-neutral-800',
+    base: 'px-4 py-3 border-t dark:border-neutral-700 bg-neutral-50 text-neutral-500 dark:text-neutral-400 dark:bg-neutral-800',
   },
   // TableRow
   tableRow: {
@@ -15,8 +13,7 @@
   },
   // TableHeader
   tableHeader: {
-    base:
-      'text-xs font-semibold tracking-wide text-left text-neutral-500 uppercase border-b dark:border-neutral-700 bg-neutral-50 dark:text-neutral-400 dark:bg-neutral-800',
+    base: 'text-xs font-semibold tracking-wide text-left text-neutral-500 uppercase border-b dark:border-neutral-700 bg-neutral-50 dark:text-neutral-400 dark:bg-neutral-800',
   },
   // TableContainer
   tableContainer: {
@@ -28,8 +25,7 @@
   },
   // TableBody
   tableBody: {
-    base:
-      'bg-white divide-y dark:divide-neutral-700 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-400',
+    base: 'bg-white divide-y dark:divide-neutral-700 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-400',
   },
   // Dropdown
   dropdown: {
@@ -50,8 +46,7 @@
   },
   // Modal
   modal: {
-    base:
-      ' px-6 py-4 overflow-hidden bg-white rounded-t-lg dark:bg-neutral-800 sm:rounded-lg sm:m-4 sm:max-w-xl',
+    base: ' px-6 py-4 overflow-hidden bg-white rounded-t-lg dark:bg-neutral-800 sm:rounded-lg sm:m-4 sm:max-w-xl',
   },
   // ModalBody
   modalBody: {
@@ -59,8 +54,7 @@
   },
   // ModalFooter
   modalFooter: {
-    base:
-      'flex flex-col items-center justify-end px-6 py-3 -mx-6 -mb-4 space-y-4 sm:space-y-0 sm:space-x-6 sm:flex-row bg-neutral-50 dark:bg-neutral-800',
+    base: 'flex flex-col items-center justify-end px-6 py-3 -mx-6 -mb-4 space-y-4 sm:space-y-0 sm:space-x-6 sm:flex-row bg-neutral-50 dark:bg-neutral-800',
   },
   // ModalHeader
   modalHeader: {
@@ -77,8 +71,7 @@
   },
   // Backdrop
   backdrop: {
-    base:
-      'fixed inset-0 z-40 flex items-end bg-black bg-opacity-50 sm:items-center sm:justify-center',
+    base: 'fixed inset-0 z-40 flex items-end bg-black bg-opacity-50 sm:items-center sm:justify-center',
   },
   // Textarea
   textarea: {
@@ -142,8 +135,7 @@
   },
   // Button
   button: {
-    base:
-      'align-bottom inline-flex items-center justify-center cursor-pointer leading-5 transition-colors duration-150 font-medium focus:outline-none',
+    base: 'align-bottom inline-flex items-center justify-center cursor-pointer leading-5 transition-colors duration-150 font-medium focus:outline-none',
     block: 'w-full',
     size: {
       larger: 'px-16 py-4 rounded-lg',
@@ -186,8 +178,7 @@
     },
     // this is the button that lives inside the DropdownItem
     dropdownItem: {
-      base:
-        'inline-flex items-center cursor-pointer w-full px-2 py-1 text-sm font-medium transition-colors duration-150 rounded-md hover:bg-neutral-100 hover:text-neutral-800 dark:hover:bg-neutral-800 dark:hover:text-neutral-200',
+      base: 'inline-flex items-center cursor-pointer w-full px-2 py-1 text-sm font-medium transition-colors duration-150 rounded-md hover:bg-neutral-100 hover:text-neutral-800 dark:hover:bg-neutral-800 dark:hover:text-neutral-200',
     },
   },
 }

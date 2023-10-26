@@ -1,6 +1,7 @@
-import { createTeam } from './createTeam'
-import { createDevice } from '@/device'
-import { createUser } from 'crdx'
+import { createUser } from '@localfirst/crdx'
+import { describe, expect, it } from 'vitest'
+import { createTeam } from './createTeam.js'
+import { createDevice } from 'device/index.js'
 
 describe('Team', () => {
   describe('create', () => {

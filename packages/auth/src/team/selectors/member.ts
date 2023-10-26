@@ -1,4 +1,4 @@
-﻿import { TeamState } from '@/team/types'
+import { type TeamState } from 'team/types.js'
 
 export const member = (state: TeamState, userId: string, options = { includeRemoved: false }) => {
   const membersToSearch = [
@@ -7,6 +7,9 @@ export const member = (state: TeamState, userId: string, options = { includeRemo
   ]
   const member = membersToSearch.find(m => m.userId === userId)
 
-  if (member === undefined) throw new Error(`A member named '${userId}' was not found`)
+  if (member === undefined) {
+    throw new Error(`A member named '${userId}' was not found`)
+  }
+
   return member
 }

@@ -1,14 +1,14 @@
-﻿import { Keyset, KeysetWithSecrets } from 'crdx'
+import { type Keyset, type KeysetWithSecrets } from '@localfirst/crdx'
 
-export interface DeviceInfo {
+export type DeviceInfo = {
   userId: string
   deviceName: string
 }
 
-export interface DeviceWithSecrets extends DeviceInfo {
+export type DeviceWithSecrets = {
   keys: KeysetWithSecrets
-}
+} & DeviceInfo
 
-export interface Device extends DeviceInfo {
+export type Device = {
   keys: Keyset
-}
+} & DeviceInfo

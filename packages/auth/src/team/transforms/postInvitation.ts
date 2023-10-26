@@ -1,5 +1,5 @@
-﻿import { Invitation } from '@/invitation'
-import { Transform } from '@/team/types'
+import { type Invitation } from 'invitation/index.js'
+import { type Transform } from 'team/types.js'
 
 export const postInvitation =
   (invitation: Invitation): Transform =>

@@ -1,14 +1,14 @@
-﻿import { TeamState } from '@/team/types'
-import { assert } from '@/util'
-import { lockboxSummary } from '@/util/lockboxSummary'
-import { KeyMetadata, KeyScope, KeysetWithSecrets } from 'crdx'
-import { getKeyMap } from './getKeyMap'
+import { type KeyMetadata, type KeyScope, type KeysetWithSecrets } from '@localfirst/crdx'
+import { getKeyMap } from './getKeyMap.js'
+import { type TeamState } from 'team/types.js'
+import { assert } from 'util/index.js'
+import { lockboxSummary } from 'util/lockboxSummary.js'
 
 /** Returns the keys for the given scope, if they are in a lockbox that the current device has access to */
 export const keys = (
   state: TeamState,
   deviceKeys: KeysetWithSecrets,
-  scope: KeyScope | KeyMetadata,
+  scope: KeyScope | KeyMetadata
 ) => {
   const { type, name } = scope
 
@@ -17,13 +17,18 @@ export const keys = (
 
   assert(
     keys,
-    `Couldn't find keys: ${type.toLowerCase()} ${name}.
-     Scope: ${JSON.stringify(scope)}
+    `Couldn't find keys: ${JSON.stringify(scope)}
      Device: ${deviceKeys.name}
-     Available lockboxes: \n- ${state.lockboxes.map(lockboxSummary).join('\n- ')} `,
+     Available lockboxes: \n- ${state.lockboxes.map(lockboxSummary).join('\n- ')} 
+     Keymap: ${JSON.stringify(keysFromLockboxes, null, 2)}`
   )
 
   const generation =
-    'generation' in scope && scope.generation !== undefined ? scope.generation : keys.length - 1 // use latest generation by default
+    'generation' in scope && scope.generation !== undefined
+      ? // Return specific generation if requested
+        scope.generation
+      : // Use latest generation by default
+        keys.length - 1
+
   return keys[generation]
 }

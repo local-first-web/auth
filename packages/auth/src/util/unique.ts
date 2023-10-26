@@ -1,3 +1,4 @@
-import * as R from 'ramda'
+import type { ValueIteratee } from 'lodash'
+import _uniqBy from 'lodash/uniqby'
 
-export const unique = R.uniq
+export const unique = <T>(array: T[], fn: ValueIteratee<T> = _ => _) => _uniqBy(array, fn)

@@ -12,3 +12,5 @@ yarn.lock
 yalc.lock
 
 *.cpuprofile
+
+.nx

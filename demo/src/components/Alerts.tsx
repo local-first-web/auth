@@ -1,9 +1,9 @@
-﻿import { useTeam } from '../hooks/useTeam'
-import React from 'react'
+﻿import React from 'react'
+import { useTeam } from '../hooks/useTeam'
 
 export const Alerts = () => {
   const { alerts, clearAlert } = useTeam()
-  return alerts.length ? (
+  return alerts.length > 0 ? (
     <div className="Alerts p-2">
       {alerts.map(a => (
         <div key={a.id} className="relative rounded-md bg-gray-100 p-3 pr-12 ">

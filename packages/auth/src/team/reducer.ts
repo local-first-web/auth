@@ -1,29 +1,38 @@
-﻿import { Device } from '@/device'
-import { ADMIN } from '@/role'
-import { clone, composeTransforms } from '@/util'
-import { Reducer, ROOT } from 'crdx'
-import { invalidLinkReducer } from './invalidLinkReducer'
-import { setHead } from './setHead'
+import { type Reducer, ROOT } from '@localfirst/crdx'
+import { invalidLinkReducer } from './invalidLinkReducer.js'
+import { setHead } from './setHead.js'
 import {
   addDevice,
   addMember,
   addMemberRoles,
   addRole,
+  addServer,
   changeDeviceKeys,
   changeMemberKeys,
+  changeServerKeys,
   collectLockboxes,
   postInvitation,
   removeDevice,
   removeMember,
   removeMemberRole,
   removeRole,
+  removeServer,
   revokeInvitation,
   rotateKeys,
   setTeamName,
   useInvitation,
-} from './transforms'
-import { Member, TeamAction, TeamContext, TeamState, Transform } from './types'
-import { validate } from './validate'
+} from './transforms/index.js'
+import {
+  type Member,
+  type TeamAction,
+  type TeamContext,
+  type TeamState,
+  type Transform,
+} from './types.js'
+import { validate } from './validate.js'
+import { type Device } from 'device/index.js'
+import { ADMIN } from 'role/index.js'
+import { clone, composeTransforms } from 'util/index.js'
 
 /**
  * Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `TeamState`
@@ -43,22 +52,26 @@ export const reducer: Reducer<TeamState, TeamAction, TeamContext> = (state, link
   // concurrent actions. In most cases we just ignore these links and they don't affect state at
   // all; but in some cases we need to clean up, for example when someone's admission is reversed
   // but they already joined and had access to the chain.
-  if (link.isInvalid) return invalidLinkReducer(state, link)
+  if (link.isInvalid) {
+    return invalidLinkReducer(state, link)
+  }
 
   state = clone(state)
 
-  // make sure this link can be applied to the previous state & doesn't put us in an invalid state
+  // Make sure this link can be applied to the previous state & doesn't put us in an invalid state
   const validation = validate(state, link)
-  if (validation.isValid === false) throw validation.error
+  if (!validation.isValid) {
+    throw validation.error
+  }
 
-  // recast as TeamAction so we get type enforcement on payloads
+  // Recast as TeamAction so we get type enforcement on payloads
   const action = link.body as TeamAction
 
-  // get all transforms and compose them into a single function
+  // Get all transforms and compose them into a single function
   const applyTransforms = composeTransforms([
     setHead(link),
-    collectLockboxes(action.payload.lockboxes), // any payload can include lockboxes
-    ...getTransforms(action), // get the specific transforms indicated by this action
+    collectLockboxes(action.payload.lockboxes), // Any payload can include lockboxes
+    ...getTransforms(action), // Get the specific transforms indicated by this action
   ])
   const newState = applyTransforms(state)
 
@@ -72,91 +85,92 @@ export const reducer: Reducer<TeamState, TeamAction, TeamContext> = (state, link
  */
 const getTransforms = (action: TeamAction): Transform[] => {
   switch (action.type) {
-    case ROOT:
+    case ROOT: {
       const { name, rootMember, rootDevice } = action.payload
       return [
         setTeamName(name),
-        addRole({ roleName: ADMIN }), // create the admin role
-        addMember(rootMember), // add the founding member
-        addDevice(rootDevice), // add the founding member's device
-        ...addMemberRoles(rootMember.userId, [ADMIN]), // make the founding member an admin
+        addRole({ roleName: ADMIN }), // Create the admin role
+        addMember(rootMember), // Add the founding member
+        addDevice(rootDevice), // Add the founding member's device
+        ...addMemberRoles(rootMember.userId, [ADMIN]), // Make the founding member an admin
       ]
+    }
 
     case 'ADD_MEMBER': {
       const { member, roles } = action.payload
       return [
-        addMember(member), // add this member to the team
-        ...addMemberRoles(member.userId, roles), // add each of these roles to the member's list of roles
+        addMember(member), // Add this member to the team
+        ...addMemberRoles(member.userId, roles), // Add each of these roles to the member's list of roles
       ]
     }
 
     case 'ADD_ROLE': {
       const newRole = action.payload
       return [
-        addRole(newRole), // add this role to the team
+        addRole(newRole), // Add this role to the team
       ]
     }
 
     case 'ADD_MEMBER_ROLE': {
       const { userId, roleName } = action.payload
       return [
-        ...addMemberRoles(userId, [roleName]), // add this role to the member's list of roles
+        ...addMemberRoles(userId, [roleName]), // Add this role to the member's list of roles
       ]
     }
 
     case 'REMOVE_MEMBER': {
       const { userId } = action.payload
       return [
-        removeMember(userId), // remove this member from the team
+        removeMember(userId), // Remove this member from the team
       ]
     }
 
     case 'ADD_DEVICE': {
       const { device } = action.payload
       return [
-        addDevice(device), // add this device to the member's list of devices
+        addDevice(device), // Add this device to the member's list of devices
       ]
     }
 
     case 'REMOVE_DEVICE': {
       const { userId, deviceName } = action.payload
       return [
-        removeDevice(userId, deviceName), // remove this device from the member's list of devices
+        removeDevice(userId, deviceName), // Remove this device from the member's list of devices
       ]
     }
 
     case 'REMOVE_ROLE': {
       const { roleName } = action.payload
       return [
-        removeRole(roleName), // remove this role from the team
+        removeRole(roleName), // Remove this role from the team
       ]
     }
 
     case 'REMOVE_MEMBER_ROLE': {
       const { userId, roleName } = action.payload
       return [
-        removeMemberRole(userId, roleName), // remove this role from the member's list of roles
+        removeMemberRole(userId, roleName), // Remove this role from the member's list of roles
       ]
     }
 
     case 'INVITE_MEMBER': {
       const { invitation } = action.payload
       return [
-        postInvitation(invitation), // add the invitation to the list of open invitations.
+        postInvitation(invitation), // Add the invitation to the list of open invitations.
       ]
     }
 
     case 'INVITE_DEVICE': {
       const { invitation } = action.payload
       return [
-        postInvitation(invitation), // add the invitation to the list of open invitations.
+        postInvitation(invitation), // Add the invitation to the list of open invitations.
       ]
     }
 
     case 'REVOKE_INVITATION': {
       const { id } = action.payload
       return [
-        revokeInvitation(id), // mark the invitation revoked so it can't be used
+        revokeInvitation(id), // Mark the invitation revoked so it can't be used
       ]
     }
 
@@ -172,8 +186,8 @@ const getTransforms = (action: TeamAction): Transform[] => {
       }
 
       return [
-        useInvitation(id), // mark the invitation as used
-        addMember(member), // add this member to the team
+        useInvitation(id), // Mark the invitation as used
+        addMember(member), // Add this member to the team
       ]
     }
 
@@ -181,40 +195,66 @@ const getTransforms = (action: TeamAction): Transform[] => {
       const { id, userId, deviceName, deviceKeys } = action.payload
 
       const device: Device = {
-        userId: userId,
+        userId,
         deviceName,
         keys: deviceKeys,
       }
 
       return [
-        useInvitation(id), // mark the invitation as used
-        addDevice(device), // add this device
+        useInvitation(id), // Mark the invitation as used
+        addDevice(device), // Add this device
       ]
     }
 
     case 'CHANGE_MEMBER_KEYS': {
       const { keys } = action.payload
       return [
-        changeMemberKeys(keys), // replace this member's public keys with the ones provided
+        changeMemberKeys(keys), // Replace this member's public keys with the ones provided
       ]
     }
 
     case 'CHANGE_DEVICE_KEYS': {
       const { keys } = action.payload
       return [
-        changeDeviceKeys(keys), // replace this device's public keys with the ones provided
+        changeDeviceKeys(keys), // Replace this device's public keys with the ones provided
       ]
     }
 
     case 'ROTATE_KEYS': {
       const { userId } = action.payload
       return [
-        rotateKeys(userId), // mark this member's keys as having been rotated (the rotated keys themselves are in the lockboxes)
+        rotateKeys(userId), // Mark this member's keys as having been rotated (the rotated keys themselves are in the lockboxes)
       ]
     }
 
-    default:
-      // @ts-ignore (should never get here)
-      throw new Error(`Unrecognized link type: ${action.type}`)
+    case 'ADD_SERVER': {
+      const { server } = action.payload
+      return [
+        addServer(server), // Add the specified server to the team
+      ]
+    }
+
+    case 'REMOVE_SERVER': {
+      const { host } = action.payload
+      return [
+        removeServer(host), // Remove the specified server from the team
+      ]
+    }
+
+    case 'CHANGE_SERVER_KEYS': {
+      const { keys } = action.payload
+      return [
+        changeServerKeys(keys), // Replace this server's public keys with the ones provided
+      ]
+    }
+
+    default: {
+      throw unrecognizedLinkType(action)
+    }
   }
+}
+
+function unrecognizedLinkType(action: never) {
+  const { type } = action as TeamAction
+  return new Error(`Unrecognized link type: ${type}`)
 }

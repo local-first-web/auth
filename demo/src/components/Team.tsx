@@ -1,20 +1,17 @@
 import * as auth from '@localfirst/auth'
-import { Button, CardBody } from '@windmill/react-ui'
-import React from 'react'
+import { type MemberInitialContext } from '@localfirst/auth'
 import { useTeam } from '../hooks/useTeam'
 import { devices, users } from '../peers'
 import { assert } from '../util/assert'
-import { CardLabel } from './CardLabel'
-import { GraphDiagram } from './GraphDiagram'
-import { Invite } from './Invite'
-import { OnlineToggle } from './OnlineToggle'
-import { StatusIndicator } from './StatusIndicator'
-
-import debug from 'debug'
-import { MemberInitialContext } from '@localfirst/auth'
+import { CardLabel } from './CardLabel.js'
+import { GraphDiagram } from './GraphDiagram.js'
+import { Invite } from './Invite.js'
+import { OnlineToggle } from './OnlineToggle.js'
+import { StatusIndicator } from './StatusIndicator.js'
 
 export const Team = () => {
-  const { team, user, device, online, connect, disconnect, connectionStatus } = useTeam()
+  const { team, user, device, online, connect, disconnect, connectionStatus } =
+    useTeam()
 
   assert(team) // we know we're on a team if we're showing this component
   assert(user)
@@ -23,11 +20,12 @@ export const Team = () => {
 
   const userBelongsToTeam = team.has(userId)
   const userIsAdmin = userBelongsToTeam && team.memberIsAdmin(userId)
-  const adminCount = () => team.members().filter(m => team.memberIsAdmin(m.userId)).length
+  const adminCount = () =>
+    team.members().filter(m => team.memberIsAdmin(m.userId)).length
 
   return (
     <>
-      <CardBody className="Team">
+      <div className="Team p-4">
         {/* Team name */}
         <div className="flex">
           <div className="flex-grow">
@@ -66,21 +64,25 @@ export const Team = () => {
                 : 'Click to make team admin'
 
               return (
-                <tr key={m.userName} className="border-t border-b border-gray-200 group">
+                <tr
+                  key={m.userName}
+                  className="border-t border-b border-gray-200 group"
+                >
                   {/* Admin icon */}
                   <td className="w-2">
                     {userIsAdmin ? (
-                      <Button
-                        layout="link"
-                        size="small"
+                      <button
                         disabled={!userIsAdmin || memberIsOnlyAdmin}
                         onClick={() => {
-                          if (memberIsAdmin) team.removeMemberRole(m.userId, auth.ADMIN)
+                          if (memberIsAdmin)
+                            team.removeMemberRole(m.userId, auth.ADMIN)
                           else team.addMemberRole(m.userId, auth.ADMIN)
                         }}
                         title={adminToggleTitle}
-                        className={`px-1 m-1 hover:opacity-25  ${
-                          memberIsAdmin ? 'opacity-100' : 'opacity-0 disabled:opacity-0'
+                        className={`px-1 m-1 hover:opacity-25 cursor-pointer ${
+                          memberIsAdmin
+                            ? 'opacity-100'
+                            : 'opacity-0 disabled:opacity-0'
                         }`}
                         children="👑"
                       />
@@ -100,9 +102,11 @@ export const Team = () => {
                   <td className="flex py-2">
                     {m.devices?.map(d => {
                       const emoji = devices[d.deviceName].emoji
-                      const status = connectionStatus[auth.device.getDeviceId(d)] || 'disconnected'
+                      const status =
+                        connectionStatus[auth.device.getDeviceId(d)] ||
+                        'disconnected'
                       const isThisDevice = d.keys.name === device.keys.name
-                      return !isThisDevice ? (
+                      return isThisDevice ? null : (
                         <div
                           key={`${d.keys.name}`}
                           title={status}
@@ -111,11 +115,11 @@ export const Team = () => {
                           <span className="mr-1">{emoji}</span>
                           <StatusIndicator status={status} />
                         </div>
-                      ) : null
+                      )
                     })}
                   </td>
 
-                  {/* Remove button */}
+                  {/* Remove Button */}
                   <td>
                     {userIsAdmin && !memberIsOnlyAdmin ? (
                       <button
@@ -136,13 +140,16 @@ export const Team = () => {
 
         {/* Invitation UI */}
         <Invite />
-      </CardBody>
+      </div>
 
       {/* Chain visualization */}
-      <CardBody className="border-t">
+      <div className="border-t p-4">
         <CardLabel>Signature chain</CardLabel>
-        <GraphDiagram graph={team.graph} id={device.keys.name.replace(/::/, '-')} />
-      </CardBody>
+        <GraphDiagram
+          graph={team.graph}
+          id={device.keys.name.replace(/::/, '-')}
+        />
+      </div>
     </>
   )
 }

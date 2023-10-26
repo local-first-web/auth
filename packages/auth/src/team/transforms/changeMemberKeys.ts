@@ -1,18 +1,16 @@
-﻿import { Keyset } from 'crdx'
-import { Transform } from '@/team/types'
+import { type Keyset } from '@localfirst/crdx'
+import { type Transform } from 'team/types.js'
 
 export const changeMemberKeys =
   (keys: Keyset): Transform =>
-  state => {
-    return {
-      ...state,
-      members: state.members.map(member => {
-        if (member.userId === keys.name) {
-          return {
+  state => ({
+    ...state,
+    members: state.members.map(member =>
+      member.userId === keys.name
+        ? {
             ...member,
             keys, // 🡐 replace keys with new ones
           }
-        } else return member
-      }),
-    }
-  }
+        : member
+    ),
+  })

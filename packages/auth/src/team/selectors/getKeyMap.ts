@@ -1,27 +1,27 @@
-import { TeamState } from '@/team/types'
-import { KeysetWithSecrets } from 'crdx'
-import { getVisibleKeys } from './getVisibleKeys'
+import { type KeysetWithSecrets } from '@localfirst/crdx'
+import { getVisibleKeys } from './getVisibleKeys.js'
+import { type TeamState } from 'team/types.js'
 
 /** Returns all keysets from the current device's lockboxes in a structure that looks like this:
  * ```js
  * {
  *    TEAM: {
- *      TEAM: Keyset[ gen0, gen1, gen2, ... ], // <- all keys starting with generation 0
+ *      TEAM: [ gen0, gen1, gen2, ... ], // <- all keys starting with generation 0
  *    ROLE: {
- *      admin: Keyset[ gen0, ... ]
- *      managers: Keyset[ gen0, ...]
+ *      admin: [ gen0, ... ]
+ *      managers: [ gen0, ...]
  *    },
  *   USER: {
- *    alice: Keyset[ gen0, ... ]
+ *    alice: [ gen0, ... ]
  *   }
  * }
  * ```
  */
 export const getKeyMap = (state: TeamState, deviceKeys: KeysetWithSecrets): KeyMap => {
-  // get all the keys those keys can access
+  // Get all the keys those keys can access
   const allVisibleKeys = getVisibleKeys(state, deviceKeys)
 
-  // structure these keys as described above
+  // Structure these keys as described above
   return allVisibleKeys.reduce(organizeKeysIntoMap, {})
 }
 
@@ -38,8 +38,5 @@ const organizeKeysIntoMap = (result: KeyMap, keys: KeysetWithSecrets) => {
     },
   } as KeyMap
 }
-interface KeyMap {
-  [type: string]: {
-    [name: string]: KeysetWithSecrets[]
-  }
-}
+
+type KeyMap = Record<string, Record<string, KeysetWithSecrets[]>>

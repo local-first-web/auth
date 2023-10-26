@@ -1,5 +1,5 @@
 import React, { useRef } from 'react'
-import { PeerMap } from '../peers'
+import { type PeerMap } from '../peers'
 
 export const DeviceChooser = ({ onAdd, peers }: ChooserProps) => {
   const peerSelect = useRef() as React.MutableRefObject<HTMLSelectElement>
@@ -32,7 +32,7 @@ export const DeviceChooser = ({ onAdd, peers }: ChooserProps) => {
   )
 }
 
-interface ChooserProps {
+type ChooserProps = {
   onAdd: (id: string) => void
   peers: PeerMap
 }

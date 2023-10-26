@@ -1,12 +1,13 @@
-import { generateProof, randomSeed, create, validate } from '@/invitation'
+import { describe, expect, test } from 'vitest'
+import { create, generateProof, randomSeed, validate } from 'invitation/index.js'
 
 describe('invitations', () => {
   test('create invitation', () => {
     const seed = randomSeed()
     const invitation = create({ seed })
 
-    // looks like an invitation
-    expect(seed).toHaveLength(16)
+    // Looks like an invitation
+    expect(seed).toHaveLength(22)
     expect(invitation).toHaveProperty('id')
     expect(invitation.id).toHaveLength(15)
     expect(invitation).toHaveProperty('publicKey')
@@ -31,11 +32,11 @@ describe('invitations', () => {
     expect(validationResult.isValid).toBe(true)
   })
 
-  test(`you have to have the secret key to accept an invitation`, () => {
+  test('you have to have the secret key to accept an invitation', () => {
     // 👩🏾 Alice uses a secret key to create an invitation; she sends it to Bob via a trusted side channel
     const seed = 'passw0rd'
 
-    // and uses it to create an invitation for him
+    // And uses it to create an invitation for him
     const invitation = create({ seed })
 
     // 🦹‍♀️ Eve tries to accept the invitation in Bob's place, but she doesn't have the correct invitation key

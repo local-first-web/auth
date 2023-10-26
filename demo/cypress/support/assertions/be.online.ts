@@ -1,6 +1,6 @@
 ﻿import '@testing-library/cypress/add-commands'
 
-chai.Assertion.addMethod('online', function() {
+chai.Assertion.addMethod('online', function () {
   const $element = this._obj
   new chai.Assertion($element).to.be
   const $onlineToggle = $element.find('.OnlineToggle')

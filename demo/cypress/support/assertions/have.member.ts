@@ -1,6 +1,6 @@
 ﻿import '@testing-library/cypress/add-commands'
 
-chai.Assertion.addMethod('member', function(userName: string) {
+chai.Assertion.addMethod('member', function (userName: string) {
   const $element = this._obj
   new chai.Assertion($element).to.have
 

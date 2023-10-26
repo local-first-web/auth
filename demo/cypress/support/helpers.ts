@@ -1,6 +1,6 @@
 export const show = (id: string) => cy.get('.Chooser select').select(id)
 
-export const peer = (userName: string, deviceName: string = 'laptop') =>
+export const peer = (userName: string, deviceName = 'laptop') =>
   cy.root().findByTitle(`${userName}:${deviceName}`)
 
 export const alice = () => peer('Alice')

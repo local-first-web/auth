@@ -1,10 +1,17 @@
-import { DeviceWithSecrets } from '@/device'
-import { ProofOfInvitation } from '@/invitation'
-import { Member, Team } from '@/team'
-import { Base58, Hash, UnixTimestamp } from '@/util'
-import { KeyScope, Keyset, SyncState, UserWithSecrets } from 'crdx'
-import { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
-import { ConnectionMessage } from './message'
+import {
+  type Base58,
+  type Hash,
+  type KeyScope,
+  type Keyset,
+  type SyncState,
+  type UnixTimestamp,
+  type UserWithSecrets,
+} from '@localfirst/crdx'
+import { type ActionFunction, type AssignAction, type ConditionPredicate } from 'xstate'
+import { type ConnectionMessage } from './message.js'
+import { type DeviceWithSecrets } from 'device/index.js'
+import { type ProofOfInvitation } from 'invitation/index.js'
+import { type Member, type Team } from 'team/index.js'
 
 // Identity
 
@@ -42,11 +49,11 @@ export type InviteeInitialContext = InviteeMemberInitialContext | InviteeDeviceI
  * invited and are connecting to the team for the first time. */
 export type InitialContext = MemberInitialContext | InviteeInitialContext
 
-// type guard: MemberInitialContext vs InviteeInitialContext
+// Type guard: MemberInitialContext vs InviteeInitialContext
 export const isInvitee = (c: InitialContext | ConnectionContext): c is InviteeInitialContext =>
   !('team' in c)
 
-export interface ConnectionParams {
+export type ConnectionParams = {
   /** A function to send messages to our peer. This how you hook this up to your network stack. */
   sendMessage: SendFunction
 
@@ -57,15 +64,12 @@ export interface ConnectionParams {
   peerUserId?: string
 }
 
-export interface ErrorPayload {
+export type ErrorPayload = {
   message: string
   details?: any
 }
 
-export interface ConnectionContext
-  extends Partial<MemberInitialContext>,
-    Partial<InviteeMemberInitialContext>,
-    Partial<InviteeDeviceInitialContext> {
+export type ConnectionContext = {
   theyHaveInvitation?: boolean
   theirIdentityClaim?: KeyScope
   theirUserName?: string
@@ -84,7 +88,9 @@ export interface ConnectionContext
   device: DeviceWithSecrets
 
   syncState?: SyncState
-}
+} & Partial<MemberInitialContext> &
+  Partial<InviteeMemberInitialContext> &
+  Partial<InviteeDeviceInitialContext>
 
 export type StateMachineAction =
   | ActionFunction<ConnectionContext, ConnectionMessage>
@@ -94,52 +100,52 @@ export type Condition = ConditionPredicate<ConnectionContext, ConnectionMessage>
 // State schema
 // This is the schema for protocolMachine.ts
 
-export interface ConnectionState {
+export type ConnectionState = {
   states: {
-    awaitingIdentityClaim: {}
+    awaitingIdentityClaim: Record<string, unknown>
 
     authenticating: {
       states: {
         checkingInvitations: {
           states: {
-            checkingForInvitations: {}
-            awaitingInvitationAcceptance: {}
-            validatingInvitation: {}
+            checkingForInvitations: Record<string, unknown>
+            awaitingInvitationAcceptance: Record<string, unknown>
+            validatingInvitation: Record<string, unknown>
           }
         }
         checkingIdentity: {
           states: {
             provingMyIdentity: {
               states: {
-                awaitingIdentityChallenge: {}
-                awaitingIdentityAcceptance: {}
-                doneProvingMyIdentity: {}
+                awaitingIdentityChallenge: Record<string, unknown>
+                awaitingIdentityAcceptance: Record<string, unknown>
+                doneProvingMyIdentity: Record<string, unknown>
               }
             }
             verifyingTheirIdentity: {
               states: {
-                challengingIdentity: {}
-                awaitingIdentityProof: {}
-                doneVerifyingTheirIdentity: {}
+                challengingIdentity: Record<string, unknown>
+                awaitingIdentityProof: Record<string, unknown>
+                doneVerifyingTheirIdentity: Record<string, unknown>
               }
             }
           }
         }
-        doneAuthenticating: {}
+        doneAuthenticating: Record<string, unknown>
       }
     }
 
-    synchronizing: {}
+    synchronizing: Record<string, unknown>
 
     negotiating: {
       states: {
-        awaitingSeed: {}
-        doneNegotiating: {}
+        awaitingSeed: Record<string, unknown>
+        doneNegotiating: Record<string, unknown>
       }
     }
 
-    connected: {}
+    connected: Record<string, unknown>
 
-    disconnected: {}
+    disconnected: Record<string, unknown>
   }
 }

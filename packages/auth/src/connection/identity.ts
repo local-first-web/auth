@@ -1,12 +1,18 @@
-﻿import { signatures, randomKey } from '@herbcaudill/crypto'
-import { Challenge } from '@/connection/types'
-import { KeyScope, KeysetWithSecrets, Keyset } from 'crdx'
-import { Base58, VALID, ValidationResult } from '@/util'
+import {
+  type Base58,
+  type KeyScope,
+  type KeysetWithSecrets,
+  type Keyset,
+  type UnixTimestamp,
+} from '@localfirst/crdx'
+import { signatures, randomKey } from '@localfirst/crypto'
+import { type Challenge } from 'connection/types.js'
+import { VALID, type ValidationResult } from 'util/index.js'
 
 export const challenge = (identityClaim: KeyScope): Challenge => ({
   ...identityClaim,
   nonce: randomKey(),
-  timestamp: new Date().getTime(),
+  timestamp: Date.now() as UnixTimestamp,
 })
 
 export const prove = (challenge: Challenge, keys: KeysetWithSecrets): Base58 =>
@@ -24,24 +30,26 @@ export const verify = (
     signature,
     publicKey: publicKeys.signature,
   })
-  if (!signatureIsValid) return fail('Signature is not valid', details)
+  if (!signatureIsValid) {
+    return fail('Signature is not valid', details)
+  }
 
   return VALID
 }
 
-const fail = (message: string, details: any) => {
-  return {
+const fail = (message: string, details: any) =>
+  ({
     isValid: false,
     error: new IdentityChallengeFailure(message, details),
-  } as ValidationResult
-}
+  }) as ValidationResult
 
 export class IdentityChallengeFailure extends Error {
   constructor(message: string, details?: any) {
     super()
     this.name = 'Identity challenge failed'
-    this.message = message + '\n' + JSON.stringify(details, null, 2).replace(/\"/g, '')
+    this.message = message + '\n' + JSON.stringify(details, null, 2).replaceAll('"', '')
     this.details = details
   }
+
   public details?: any
 }

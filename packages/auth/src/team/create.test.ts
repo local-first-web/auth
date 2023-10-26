@@ -1,5 +1,6 @@
-import { load } from '@/team'
-import { setup } from '@/util/testing'
+import { describe, expect, it } from 'vitest'
+import { load } from 'team/index.js'
+import { setup } from 'util/testing/index.js'
 
 describe('Team', () => {
   describe('create', () => {
@@ -11,7 +12,9 @@ describe('Team', () => {
     it('saves & loads', () => {
       const { alice } = setup('alice')
       const savedChain = alice.team.save()
-      const restoredTeam = load(savedChain, alice.localContext, alice.team.teamKeys())
+      const savedKeys = alice.team.teamKeyring()
+
+      const restoredTeam = load(savedChain, alice.localContext, savedKeys)
       expect(restoredTeam.teamName).toBe('Spies Я Us')
     })
 
@@ -28,16 +31,12 @@ describe('Team', () => {
       // Alice does some other stuff — say she adds a role
       alice.team.addRole('managers')
 
-      // We now have generation 1 keys
-      expect(alice.team.teamKeys().generation).toBe(1)
-
       // Alice saves the team
       const savedChain = alice.team.save()
+      const savedKeys = alice.team.teamKeyring()
 
-      // Even though the team is saved with multiple generations of keys,
-      // we can still decrypt it starting with only the original keys
-      const originalTeamKeys = alice.team.teamKeys(0)
-      const restoredTeam = load(savedChain, alice.localContext, originalTeamKeys)
+      const restoredTeam = load(savedChain, alice.localContext, savedKeys)
+
       expect(restoredTeam.hasRole('managers')).toBe(true)
     })
   })

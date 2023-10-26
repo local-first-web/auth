@@ -1,12 +1,12 @@
-﻿import { actionFingerprint } from './actionFingerprint'
-import { getSequence } from 'crdx'
-import { TeamAction, TeamContext, TeamGraph } from '@/team/types'
-import { membershipResolver as resolver } from '@/team/membershipResolver'
+import { getSequence } from '@localfirst/crdx'
+import { actionFingerprint } from './actionFingerprint.js'
+import { membershipResolver as resolver } from 'team/membershipResolver.js'
+import { type TeamAction, type TeamContext, type TeamGraph } from 'team/types.js'
 
 export const graphSummary = (graph: TeamGraph) => {
   const links = getSequence<TeamAction, TeamContext>(graph, resolver)
-    .filter(l => l.isInvalid !== true)
+    .filter(l => !l.isInvalid)
     .map(l => actionFingerprint(l))
     .join(',')
-  return links //`${chain.head.slice(0, 5)}:${links}`
+  return links // `${chain.head.slice(0, 5)}:${links}`
 }

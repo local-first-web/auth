@@ -1,21 +1,21 @@
-﻿import { Invitation } from '@/invitation'
-import { ADMIN } from '@/role'
-import { bySeniority } from '@/team/bySeniority'
+import { getConcurrentBubbles, type Link, type Resolver } from '@localfirst/crdx'
+import { isAdminOnlyAction } from './isAdminOnlyAction.js'
+import { type Invitation } from 'invitation/index.js'
+import { ADMIN } from 'role/index.js'
+import { bySeniority } from 'team/bySeniority.js'
 import {
-  MembershipRuleEnforcer,
-  AddMemberAction,
-  AddMemberRoleAction,
-  RemoveMemberAction,
-  RemoveMemberRoleAction,
-  TeamAction,
-  TeamContext,
-  TeamLink,
-  TeamGraph,
-  AdmitMemberAction,
-} from '@/team/types'
-import { arraysAreEqual } from '@/util/arraysAreEqual'
-import { getConcurrentBubbles, Link, LinkBody, Resolver } from 'crdx'
-import { isAdminOnlyAction } from './isAdminOnlyAction'
+  type MembershipRuleEnforcer,
+  type AddMemberAction,
+  type AddMemberRoleAction,
+  type RemoveMemberAction,
+  type RemoveMemberRoleAction,
+  type TeamAction,
+  type TeamContext,
+  type TeamLink,
+  type TeamGraph,
+  type AdmitMemberAction,
+} from 'team/types.js'
+import { arraysAreEqual } from 'util/arraysAreEqual.js'
 
 /**
  * This is a custom resolver, used to flatten a graph of team membership operations into a strictly
@@ -25,19 +25,23 @@ import { isAdminOnlyAction } from './isAdminOnlyAction'
 export const membershipResolver: Resolver<TeamAction, TeamContext> = graph => {
   const bubbles = getConcurrentBubbles(graph).map(hashes => hashes.map(hash => graph.links[hash]))
   const invalidLinks: TeamLink[] = []
-  for (var bubble of bubbles) {
+  for (let bubble of bubbles) {
     for (const ruleName in membershipRules) {
-      // apply this rule to find any links that need to be invalidated
+      // Apply this rule to find any links that need to be invalidated
       const rule = membershipRules[ruleName]
       const invalidLinksByThisRule = rule(bubble, graph)
 
-      // expand this list to include any links that depend on invalid links we've already found
-      const alsoInvalid = invalidLinksByThisRule.flatMap(link => findDependentLinks(bubble, link))
+      // Expand this list to include any links that depend on invalid links we've already found
+      const alsoInvalid = invalidLinksByThisRule //
+        // eslint-disable-next-line @typescript-eslint/no-loop-func
+        .flatMap(link => findDependentLinks(bubble, link))
+
       invalidLinks.push(...invalidLinksByThisRule, ...alsoInvalid)
 
       bubble = bubble.filter(linkNotIn(invalidLinks))
     }
   }
+
   return {
     filter: linkNotIn(invalidLinks),
   }
@@ -52,59 +56,60 @@ const findDependentLinks = (bubble: TeamLink[], invalidLink: TeamLink): TeamLink
   const dependentLinks = [] as TeamLink[]
   switch (invalidLink.body.type) {
     case 'INVITE_MEMBER':
-    case 'INVITE_DEVICE':
-      // invalidate ADMIT actions that used this invitation
+    case 'INVITE_DEVICE': {
+      // Invalidate ADMIT actions that used this invitation
       const { invitation } = invalidLink.body.payload
       dependentLinks.push(...bubble.filter(usesInvitation(invitation)))
       break
+    }
 
-    case 'ADMIT_MEMBER':
-      // invalidate anything the admitted member did
+    case 'ADMIT_MEMBER': {
+      // Invalidate anything the admitted member did
       const userId = invalidLink.body.payload.memberKeys.name
       dependentLinks.push(...bubble.filter(authorIs(userId)))
       break
+    }
 
-    default:
+    default: {
       break
+    }
   }
 
-  // recursively find any links that depend on the ones we've just found to be invalid
+  // Recursively find any links that depend on the ones we've just found to be invalid
   const alsoInvalid = dependentLinks.flatMap(l => findDependentLinks(bubble, l))
   return dependentLinks.concat(alsoInvalid)
 }
 
 const membershipRules: Record<string, MembershipRuleEnforcer> = {
   // RULE: mutual and circular removals are resolved by seniority
-  //
-  // I'd like to actually implement full strong-remove — e.g. remove everyone in a mutual remove
-  // scenario — but not sure how to do that, since the reducer won't allow a to remove b after b has
-  // removed a.
-  resolveMutualRemovals: (links, chain) => {
+  resolveMutualRemovals(links, chain) {
     const removed = getRemovedAndDemotedMembers(links)
     const removers = getRemovalsAndDemotions(links).map(getAuthor)
 
-    // is this a mutual/circular removal?
+    // Is this a mutual/circular removal?
     const isCircularRemoval = removed.length > 0 && arraysAreEqual(removed, removers)
-    if (!isCircularRemoval) return []
+    if (!isCircularRemoval) {
+      return []
+    }
 
-    // find the least senior member and omit their actions
+    // Find the least senior member and omit their actions
     return links.filter(authorIs(leastSenior(chain, removers)))
   },
 
   // RULE: If A is removing C, B can't overcome this by concurrently removing C then adding C back
-  cantAddBackRemovedMember: links => {
+  cantAddBackRemovedMember(links) {
     const removedMembers = getRemovedAndDemotedMembers(links)
     return getAdditions(links).filter(link => removedMembers.includes(addedUserId(link)))
   },
 
   // RULE: If B is removed, anything they do concurrently is omitted
-  cantDoAnythingWhenRemoved: links => {
+  cantDoAnythingWhenRemoved(links) {
     const removedMembers = getRemovedMembers(links)
     return links.filter(authorIn(removedMembers))
   },
 
   // RULE: If B is demoted, any admin-only actions they do concurrently are omitted
-  cantDoAdminActionsWhenDemoted: links => {
+  cantDoAdminActionsWhenDemoted(links) {
     const demotedMembers = getDemotedMembers(links)
     const authorDemoted = authorIn(demotedMembers)
     const isAdminOnly = (link: TeamLink) => isAdminOnlyAction(link.body)
@@ -122,7 +127,7 @@ const isAddAction = (link: TeamLink): link is AddActionLink =>
 
 const isRemovalAction = (link: TeamLink): boolean => link.body.type === 'REMOVE_MEMBER'
 
-const getAdditions = (links: TeamLink[]) => links.filter(isAddAction) as AddActionLink[]
+const getAdditions = (links: TeamLink[]) => links.filter(isAddAction)
 
 const getRemovals = (links: TeamLink[]) => links.filter(isRemovalAction) as RemoveActionLink[]
 
@@ -154,20 +159,18 @@ const authorIn =
 const addedUserId = (link: AddActionLink): string => {
   switch (link.body.type) {
     case 'ADD_MEMBER': {
-      const addAction = link.body as LinkBody<AddMemberAction, TeamContext>
+      const addAction = link.body
       return addAction.payload.member.userId
     }
+
     case 'ADD_MEMBER_ROLE': {
-      const addAction = link.body as LinkBody<AddMemberRoleAction, TeamContext>
+      const addAction = link.body
       return addAction.payload.userId
     }
+
     case 'ADMIT_MEMBER': {
-      const addAction = link.body as LinkBody<AdmitMemberAction, TeamContext>
+      const addAction = link.body
       return addAction.payload.memberKeys.name
-    }
-    default: {
-      // ignore coverage
-      throw new Error()
     }
   }
 }

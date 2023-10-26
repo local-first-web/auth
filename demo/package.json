@@ -1,6 +1,6 @@
 {
-  "name": "demo",
-  "version": "1.0.2",
+  "name": "@localfirst/auth-demo",
+  "version": "4.1.9",
   "author": {
     "name": "Herb Caudill",
     "email": "herb@devresults.com"
@@ -11,60 +11,46 @@
   "private": false,
   "type": "module",
   "scripts": {
-    "build": "cross-env NODE_ENV=production && tsc && vite build",
     "dev:relay": "cross-env DEBUG='lf*' DEBUG_COLORS=1 node ./scripts/start-relay-server.js",
-    "dev:serve": "vite --port 3000",
+    "dev:serve": "vite --force --port 3000",
     "dev": "run-p dev:relay dev:serve",
-    "dev:cy": "cross-env BROWSER=none CYPRESS_REMOTE_DEBUGGING_PORT=9222 run-p dev test:cy",
-    "test:cy": "cypress open",
+    "dev:cy": "cross-env CYPRESS_REMOTE_DEBUGGING_PORT=9222 run-p dev test:cy",
+    "test:cy": "cypress open --browser chrome --e2e",
     "serve": "vite preview"
   },
   "dependencies": {
-    "@ibm/plex": "5",
-    "@localfirst/auth": "^1.0.2",
-    "@localfirst/relay": "3",
-    "@localfirst/relay-client": "3",
-    "@testing-library/cypress": "8",
-    "@testing-library/jest-dom": "5",
-    "@testing-library/react": "12",
-    "@testing-library/user-event": "13",
-    "@types/debug": "4",
-    "@types/jest": "27",
-    "@types/mermaid": "8",
-    "@types/node": "16",
-    "@types/react": "17",
-    "@types/react-dom": "17",
-    "@vitejs/plugin-react-refresh": "1",
-    "@windmill/react-ui": "0",
-    "async-mutex": "0",
-    "autoprefixer": "10",
-    "buffer": "6",
-    "classnames": "2",
-    "clipboard": "2",
-    "cross-env": "7",
-    "cuid": "2",
-    "cypress": "9",
-    "debug": "4",
-    "events": "3",
-    "friendly-words": "1",
-    "keycode": "2",
-    "mermaid": "9",
-    "nodemon": "2",
-    "npm-run-all": "4",
-    "postcss": "8",
-    "react": "17",
-    "react-dom": "17",
-    "tailwindcss": "2",
-    "typescript": "4",
-    "vite": "2",
-    "vite-tsconfig-paths": "3"
+    "@ibm/plex": "^6.2.0",
+    "@localfirst/auth": "^4.1.9",
+    "@localfirst/relay": "^3.6.2",
+    "@localfirst/relay-client": "^3.6.2",
+    "@testing-library/cypress": "^10.0.0",
+    "@testing-library/dom": "^9.3.3",
+    "@testing-library/jest-dom": "^6.1.4",
+    "@testing-library/react": "^14.0.0",
+    "@testing-library/user-event": "^14.5.1",
+    "@vitejs/plugin-react": "^3.1.0",
+    "async-mutex": "^0.4.0",
+    "autoprefixer": "^10.4.14",
+    "buffer": "^6.0.3",
+    "classnames": "^2.3.2",
+    "clipboard": "^2.0.11",
+    "cross-env": "^7.0.3",
+    "cuid": "^3.0.0",
+    "cypress": "^13.3.3",
+    "debug": "^4.3.4",
+    "events": "^3.3.0",
+    "friendly-words": "^1.2.0",
+    "keycode": "^2.2.1",
+    "mermaid": "^10.0.2",
+    "nodemon": "^2.0.22",
+    "postcss": "^8.4.21",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwindcss": "^3.2.7",
+    "vite": "^4.2.1"
   },
-  "resolutions": {
-    "json-schema": "^0.4",
-    "trim-newlines": "^3.0.1",
-    "glob-parent": "^5.1.2",
-    "postcss": "^8.2.10",
-    "mermaid": "^8.2.3"
+  "devDependencies": {
+    "react-devtools": "^4.21.0"
   },
   "postcss": {
     "plugins": {
@@ -72,7 +58,8 @@
       "autoprefixer": {}
     }
   },
-  "devDependencies": {
-    "react-devtools": "^4.21.0"
-  }
+  "publishConfig": {
+    "access": "public"
+  },
+  "gitHead": "1497ffec3092c5b03672ebc0ef3fc272eb681f92"
 }

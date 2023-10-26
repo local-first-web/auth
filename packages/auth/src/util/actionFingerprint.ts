@@ -1,6 +1,6 @@
 // ignore file coverage
-import { getDeviceId } from '@/device'
-import { TeamAction, TeamLink } from '@/team/types'
+import { getDeviceId } from 'device/index.js'
+import { type TeamAction, type TeamLink } from 'team/types.js'
 
 /** Identifies a unique action for the purpose of detecting duplicates;
  * e.g. ADD_MEMBER:bob
@@ -8,36 +8,60 @@ import { TeamAction, TeamLink } from '@/team/types'
 export const actionFingerprint = (link: TeamLink) => {
   const fingerprintPayload = (action: TeamAction) => {
     switch (action.type) {
-      case 'ADD_MEMBER':
+      case 'ADD_MEMBER': {
         return action.payload.member.userId
-      case 'REMOVE_MEMBER':
+      }
+
+      case 'REMOVE_MEMBER': {
         return action.payload.userId
-      case 'ADD_ROLE':
+      }
+
+      case 'ADD_ROLE': {
         return action.payload.roleName
+      }
+
       case 'ADD_MEMBER_ROLE':
-      case 'REMOVE_MEMBER_ROLE':
+      case 'REMOVE_MEMBER_ROLE': {
         return `${action.payload.roleName}:${action.payload.userId}`
-      case 'ADD_DEVICE':
+      }
+
+      case 'ADD_DEVICE': {
         return getDeviceId(action.payload.device)
-      case 'REMOVE_DEVICE':
+      }
+
+      case 'REMOVE_DEVICE': {
         return getDeviceId(action.payload)
+      }
+
       case 'INVITE_MEMBER':
-      case 'INVITE_DEVICE':
+      case 'INVITE_DEVICE': {
         return action.payload.invitation.id
-      case 'REVOKE_INVITATION':
+      }
+
+      case 'REVOKE_INVITATION': {
         return action.payload.id
+      }
+
       case 'ADMIT_MEMBER':
-      case 'ADMIT_DEVICE':
+      case 'ADMIT_DEVICE': {
         return action.payload.id
+      }
+
       case 'CHANGE_MEMBER_KEYS':
-      case 'CHANGE_DEVICE_KEYS':
+      case 'CHANGE_DEVICE_KEYS': {
         return JSON.stringify(action.payload.keys)
-      default:
+      }
+
+      default: {
         // ignore coverage
         return JSON.stringify(action.payload)
+      }
     }
   }
 
-  if (link.body.type === 'ROOT') return 'ROOT'
+  if (link.body.type === 'ROOT') {
+    return 'ROOT'
+  }
+
   return `${link.body.type}:${fingerprintPayload(link.body)}`
 }

@@ -1,8 +1,10 @@
-import { ADMIN } from '@/role'
-import { setup } from '@/util/testing'
-import '@/util/testing/expect/toLookLikeKeyset'
-import { getDeviceId } from '@/device'
-import { KeyType, createKeyset, redactKeys } from 'crdx'
+import { getDeviceId } from 'device/index.js'
+import { ADMIN } from 'role/index.js'
+import { KeyType } from 'util/index.js'
+import { setup } from 'util/testing/index.js'
+import 'util/testing/expect/toLookLikeKeyset.js'
+import { createKeyset, redactKeys } from '@localfirst/crdx'
+import { describe, expect, it } from 'vitest'
 
 const { USER, DEVICE } = KeyType
 
@@ -25,7 +27,7 @@ describe('Team', () => {
       expect(teamKeys).toLookLikeKeyset()
     })
 
-    it(`if Bob isn't admin he doesn't have admin keys`, () => {
+    it("if Bob isn't admin he doesn't have admin keys", () => {
       const { bob } = setup('alice', { user: 'bob', admin: false })
 
       // Bob is not an admin so he doesn't have admin keys
@@ -56,7 +58,7 @@ describe('Team', () => {
       // Bob still has access to team keys
       const teamKeys2 = bob.team.teamKeys()
       expect(teamKeys2).toLookLikeKeyset()
-      expect(teamKeys2.generation).toBe(1) // the team keys were rotated, so these are new
+      expect(teamKeys2.generation).toBe(1) // The team keys were rotated, so these are new
     })
 
     it('after changing his device keys, Bob still has team keys', () => {
@@ -75,74 +77,71 @@ describe('Team', () => {
       // Bob still has access to team keys
       const teamKeys2 = bob.team.teamKeys()
       expect(teamKeys2).toLookLikeKeyset()
-      expect(teamKeys2.generation).toBe(1) // the team keys were rotated, so these are new
+      expect(teamKeys2.generation).toBe(1) // The team keys were rotated, so these are new
     })
 
-    it(`Alice can change Bob's keys`, () => {
+    it("Alice can change Bob's keys", () => {
       const { alice } = setup('alice', { user: 'bob', admin: false })
 
       const newKeys = createKeyset({ type: USER, name: 'bob' })
-      const tryToChangeBobsKeys = () => alice.team.changeKeys(newKeys)
+      const tryToChangeBobsKeys = () => {
+        alice.team.changeKeys(newKeys)
+      }
 
       expect(tryToChangeBobsKeys).not.toThrow()
     })
 
-    it(`Every time Alice changes her keys, the admin keys are rotated`, () => {
+    it('Every time Alice changes her keys, the admin keys are rotated', () => {
       const { alice } = setup('alice')
-      const changeKeys = () =>
-        alice.team.changeKeys(createKeyset({ type: KeyType.USER, name: 'alice' }))
+      const changeKeys = () => {
+        const newKeys = { type: KeyType.USER, name: 'alice' }
+        alice.team.changeKeys(createKeyset(newKeys))
+      }
 
       expect(alice.team.adminKeys().generation).toBe(0)
-      expect(alice.team.state.lockboxes.length).toBe(3) // team keys for alice, admin keys for alice, alice user keys for alice's laptop
+      expect(alice.team.state.lockboxes.length).toBe(3) // Team keys for alice, admin keys for alice, alice user keys for alice's laptop
 
       changeKeys()
       changeKeys()
       changeKeys()
       expect(alice.team.adminKeys().generation).toBe(3)
-      expect(alice.team.state.lockboxes.length).toBe(12) // the number of lockboxes shouldn't grow exponentially
+      expect(alice.team.state.lockboxes.length).toBe(12) // The number of lockboxes shouldn't grow exponentially
     })
 
-    it(`Alice can't change Bob's device keys`, () => {
-      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
-
-      const deviceId = getDeviceId(bob.device)
-      const newKeys = createKeyset({ type: DEVICE, name: deviceId })
-
-      const tryToChangeBobsKeys = () => alice.team.changeKeys(newKeys)
-
-      expect(tryToChangeBobsKeys).toThrow()
-    })
-
-    it(`Bob can't change Alice's keys`, () => {
+    it("Bob can't change Alice's keys", () => {
       const { bob } = setup('alice', { user: 'bob', admin: false })
 
       const newKeys = createKeyset({ type: USER, name: 'alice' })
-      const tryToChangeAlicesKeys = () => bob.team.changeKeys(newKeys)
+      const tryToChangeAlicesKeys = () => {
+        bob.team.changeKeys(newKeys)
+      }
 
       expect(tryToChangeAlicesKeys).toThrow()
     })
 
-    it(`Bob can't change Alice's device keys`, () => {
+    it("Bob can't change Alice's device keys", () => {
       const { alice, bob } = setup('alice', { user: 'bob', admin: false })
 
       const deviceId = getDeviceId(alice.device)
       const newKeys = createKeyset({ type: DEVICE, name: deviceId })
 
-      const tryToChangeAlicesKeys = () => bob.team.changeKeys(newKeys)
+      const tryToChangeAlicesKeys = () => {
+        bob.team.changeKeys(newKeys)
+      }
 
       expect(tryToChangeAlicesKeys).toThrow()
     })
 
-    it(`Eve can't change Bob's keys`, () => {
+    it("Eve can't change Bob's keys", () => {
       // Eve is tricker than Bob -- rather than try to go through the team object, she's going to
       // try to tamper with the team chain directly.
       const { eve } = setup('alice', 'bob', { user: 'eve', admin: false })
       const newKeys = createKeyset({ type: USER, name: 'bob' })
 
-      // @ts-ignore - rotateKeys is private
+      // @ts-expect-error - rotateKeys is private
       const lockboxes = eve.team.rotateKeys(newKeys)
 
-      const tryToChangeBobsKeys = () =>
+      const tryToChangeBobsKeys = () => {
         eve.team.dispatch({
           type: 'CHANGE_MEMBER_KEYS',
           payload: {
@@ -150,20 +149,21 @@ describe('Team', () => {
             lockboxes,
           },
         })
+      }
+
       expect(tryToChangeBobsKeys).toThrow()
     })
 
-    // TODO:
-    it.skip(`Eve can't change Bob's device keys`, () => {
+    it("Eve can't change Bob's device keys", () => {
       const { bob, eve } = setup('alice', 'bob', { user: 'eve', admin: false })
 
       const deviceId = getDeviceId(bob.device)
       const newKeys = createKeyset({ type: DEVICE, name: deviceId })
 
-      // @ts-ignore - rotateKeys is private
+      // @ts-expect-error - rotateKeys is private, but eve don't care
       const lockboxes = eve.team.rotateKeys(newKeys)
 
-      const tryToChangeBobsKeys = () =>
+      const tryToChangeBobsKeys = () => {
         eve.team.dispatch({
           type: 'CHANGE_DEVICE_KEYS',
           payload: {
@@ -171,6 +171,8 @@ describe('Team', () => {
             lockboxes,
           },
         })
+      }
+
       expect(tryToChangeBobsKeys).toThrow()
     })
   })

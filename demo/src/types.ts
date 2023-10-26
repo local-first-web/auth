@@ -1,13 +1,12 @@
-﻿import * as auth from '@localfirst/auth'
-import { ConnectionManager } from 'ConnectionManager'
-import { UUID } from 'crdx/dist/util'
+﻿import type * as auth from '@localfirst/auth'
+import { type ConnectionManager } from 'ConnectionManager'
 
 export type UserName = string
 export type ConnectionStatus = string
 
 export type PeerState = {
   userName: UserName
-  userId: UUID
+  userId: string
   user?: auth.UserWithSecrets
   device: auth.DeviceWithSecrets
   team?: auth.Team
@@ -20,7 +19,7 @@ export type PeerState = {
 
 export type StoredPeerState = {
   userName: UserName
-  userId: UUID
+  userId: string
   user?: auth.UserWithSecrets
   device: auth.DeviceWithSecrets
   teamGraph?: string
@@ -33,7 +32,7 @@ export type TeamContextPayload =
   | [PeerState, React.Dispatch<React.SetStateAction<PeerState>>]
   | undefined
 
-export interface AlertInfo {
+export type AlertInfo = {
   id: string
   message: string
   type: 'error' | 'warning' | 'info'

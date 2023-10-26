@@ -21,13 +21,13 @@ const peerArray = Object.values(users).flatMap(user =>
         device,
         id: `${user.userName}:${device.name}`,
         show: false,
-      } as PeerInfo)
+      }) as PeerInfo
   )
 )
 
 export const peers = peerArray.reduce(arrayToMap('id'), {}) as PeerMap
 
-export interface PeerInfo {
+export type PeerInfo = {
   id: string
   user: UserInfo
   device: DeviceInfo

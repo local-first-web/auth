@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Given a message queue and an incoming message, returns a new queue and an array of messages that
  * are ready to be delivered. Messages that are received out of order are held until their
  * predecessors arrive.
@@ -26,7 +26,10 @@ export const orderedDelivery = <M extends Indexed>(queue: Queue<M>, message: M) 
 
 const firstGap = <M extends Indexed>(queue: Queue<M>) => {
   let i = 0
-  while (i in queue) i += 1
+  while (i in queue) {
+    i += 1
+  }
+
   return i
 }
 
@@ -34,7 +37,7 @@ const highest = <M extends Indexed>(queue: Queue<M>) => Math.max(...Object.keys(
 
 export type Queue<M extends Indexed> = Record<number, M>
 
-export interface Indexed {
+export type Indexed = {
   index: number
 }
 

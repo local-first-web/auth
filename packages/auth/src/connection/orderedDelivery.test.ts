@@ -1,5 +1,6 @@
-import { orderedDelivery } from '@/connection/orderedDelivery'
-import { arrayToMap } from '@/util/arrayToMap'
+import { describe, expect, test } from 'vitest'
+import { orderedDelivery } from 'connection/orderedDelivery.js'
+import { arrayToMap } from 'util/arrayToMap.js'
 
 const msgs = [
   { index: 0, payload: 'zero' },
@@ -18,17 +19,37 @@ describe('orderedDelivery', () => {
       expect(actualIndexes).toEqual(expectedIndexes)
     }
 
-    test('a', () => testCase([], 0, [0]))
-    test('b', () => testCase([], 1, []))
-    test('c', () => testCase([0], 1, [1]))
-    test('d', () => testCase([0], 2, []))
+    test('a', () => {
+      testCase([], 0, [0])
+    })
+    test('b', () => {
+      testCase([], 1, [])
+    })
+    test('c', () => {
+      testCase([0], 1, [1])
+    })
+    test('d', () => {
+      testCase([0], 2, [])
+    })
 
-    test('e', () => testCase([0, 1, /**/ 3, 4], 2, [2, 3, 4]))
-    test('f', () => testCase([0, 1, /*****/ 4], 3, []))
-    test('g', () => testCase([0, 1, /*****/ 4], 2, [2]))
+    test('e', () => {
+      testCase([0, 1, /**/ 3, 4], 2, [2, 3, 4])
+    })
+    test('f', () => {
+      testCase([0, 1, /*****/ 4], 3, [])
+    })
+    test('g', () => {
+      testCase([0, 1, /*****/ 4], 2, [2])
+    })
 
-    test('h', () => testCase([0, 1, 2 /*****/], 3, [3]))
-    test('i', () => testCase([0, 1, 2 /*****/], 4, []))
-    test('j', () => testCase([0, 1, 2, /**/ 4], 3, [3, 4]))
+    test('h', () => {
+      testCase([0, 1, 2], 3, [3])
+    })
+    test('i', () => {
+      testCase([0, 1, 2], 4, [])
+    })
+    test('j', () => {
+      testCase([0, 1, 2, /**/ 4], 3, [3, 4])
+    })
   })
 })

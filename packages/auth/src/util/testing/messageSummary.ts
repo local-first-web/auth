@@ -1,16 +1,21 @@
 // ignore file coverage
-import { SyncMessage } from 'crdx'
-import { truncateHashes } from '../truncateHashes'
+import { type SyncMessage } from '@localfirst/crdx'
+import { truncateHashes } from '../truncateHashes.js'
 
-export const syncMessageSummary = (m: SyncMessage<any, any> | undefined) => {
+export const syncMessageSummary = (m: SyncMessage | undefined) => {
   if (m === undefined) {
     return 'DONE'
-  } else {
-    const { head, links, need } = m
-    const body = { head } as any
-    if (links) body.links = Object.keys(links).join(', ')
-    if (need) body.need = need.join(', ')
-
-    return truncateHashes(JSON.stringify(body))
   }
+
+  const { head, links, need } = m
+  const body = { head } as any
+  if (links) {
+    body.links = Object.keys(links).join(', ')
+  }
+
+  if (need) {
+    body.need = need.join(', ')
+  }
+
+  return truncateHashes(JSON.stringify(body))
 }
