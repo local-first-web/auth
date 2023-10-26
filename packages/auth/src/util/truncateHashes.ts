@@ -1,6 +1,5 @@
 // ignore coverage
 export function truncateHashes(arg: any): any {
-  console.log(arg)
   if (typeof arg === 'string') {
     const hashRx = /(?:[A-Za-z\d+/=]{32,9999999})?/g
     return arg.replaceAll(hashRx, s => s.slice(0, 5))
