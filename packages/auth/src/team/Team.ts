@@ -10,7 +10,13 @@ import type {
   User,
   UserWithSecrets,
 } from '@localfirst/crdx'
-import { createKeyset, createStore, isKeyset, makeMachine, redactKeys } from '@localfirst/crdx'
+import {
+  createKeyset,
+  createStore,
+  getLatestGeneration,
+  isKeyset,
+  redactKeys,
+} from '@localfirst/crdx'
 import { randomKey, signatures, symmetric, type Base58 } from '@localfirst/crypto'
 import * as identity from 'connection/identity.js'
 import { type Challenge } from 'connection/types.js'
@@ -37,7 +43,8 @@ import { membershipResolver as resolver } from './membershipResolver.js'
 import { redactUser } from './redactUser.js'
 import { reducer } from './reducer.js'
 import * as select from './selectors/index.js'
-import { deserializeTeamGraph, serializeTeamGraph } from './serialize.js'
+import { maybeDeserialize, serializeTeamGraph } from './serialize.js'
+import { isNewTeam } from './types.js'
 import type {
   EncryptedEnvelope,
   Member,
@@ -46,10 +53,11 @@ import type {
   TeamGraph,
   TeamOptions,
   TeamState,
+  InviteResult,
+  LookupIdentityResult,
 } from './types.js'
-import { isNewTeam } from './types.js'
 
-const { TEAM, DEVICE, USER } = KeyType
+const { DEVICE, USER } = KeyType
 /**
  * The `Team` class wraps a `TeamGraph` and exposes methods for adding and removing
  * members, assigning roles, creating and using invitations, and encrypting messages for
@@ -58,7 +66,7 @@ const { TEAM, DEVICE, USER } = KeyType
 export class Team extends EventEmitter {
   public state: TeamState = initialState
 
-  private store: Store<TeamState, TeamAction>
+  private readonly store: Store<TeamState, TeamAction>
   private readonly context: LocalUserContext
   private readonly log: (o: any, ...args: any[]) => void
   private readonly seed: string
@@ -833,8 +841,8 @@ export class Team extends EventEmitter {
     const isForDevice = newKeys.type === DEVICE
     const isForServer = newKeys.type === KeyType.SERVER
 
-    const oldGeneration = (isForDevice ? device.keys : user.keys).generation
-    newKeys.generation = oldGeneration + 1
+    const oldKeys: KeysetWithSecrets = isForDevice ? device.keys : user.keys
+    newKeys.generation = oldKeys.generation + 1
 
     // Treat the old keys as compromised, and generate new lockboxes for any keys they could see
     const lockboxes = this.rotateKeys(newKeys)
@@ -925,55 +933,4 @@ export class Team extends EventEmitter {
 
     return newLockboxes
   }
-}
-
-const maybeDeserialize = (source: string | TeamGraph, teamKeyring: Keyring): TeamGraph =>
-  isGraph(source) ? source : deserializeTeamGraph(source, teamKeyring)
-
-const isGraph = (source: string | TeamGraph): source is TeamGraph => source?.hasOwnProperty('root')
-
-type InviteResult = {
-  /** The unique identifier for this invitation. */
-  id: Base58
-
-  /** The secret invitation key. (Returned in case it was generated randomly.) */
-  seed: string
-}
-
-type LookupIdentityResult =
-  | 'VALID_DEVICE'
-  | 'MEMBER_UNKNOWN'
-  | 'MEMBER_REMOVED'
-  | 'DEVICE_UNKNOWN'
-  | 'DEVICE_REMOVED'
-
-const getLatestGeneration = (keyring: Keyring) => {
-  let latest: KeysetWithSecrets | undefined
-
-  for (const publicKey in keyring) {
-    const keyset = keyring[publicKey]
-    if (latest === undefined || keyset.generation > latest.generation) {
-      latest = keyset
-    }
-  }
-
-  return latest
-}
-
-export const teamMachine = makeMachine({ initialState, reducer, resolver })
-
-export const getTeamState = (serializedGraph: string, keyring: Keyring) => {
-  const graph = deserializeTeamGraph(serializedGraph, keyring)
-  return teamMachine(graph)
-}
-
-export const getUserKeysForDeviceFromGraph = (
-  serializedGraph: string,
-  keyring: Keyring,
-  device: DeviceWithSecrets
-): KeysetWithSecrets => {
-  const state = getTeamState(serializedGraph, keyring)
-  const userScope = { type: USER, name: device.userId }
-  const keys = select.keys(state, device.keys, userScope)
-  return keys
 }

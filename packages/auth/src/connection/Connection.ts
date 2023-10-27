@@ -66,9 +66,10 @@ import {
 import { arraysAreEqual } from 'util/arraysAreEqual.js'
 import { EventEmitter, KeyType, assert, debug, truncateHashes } from 'util/index.js'
 import { syncMessageSummary } from 'util/testing/messageSummary.js'
-import { getTeamState, getUserKeysForDeviceFromGraph } from 'team/Team.js'
+import { getUserKeysForDeviceFromGraph } from 'team/getUserKeysForDeviceFromGraph.js'
+import { getTeamState } from 'team/getTeamState.js'
 
-const { USER, DEVICE } = KeyType
+const { DEVICE } = KeyType
 
 /**
  * Wraps a state machine (using [XState](https://xstate.js.org/docs/)) that

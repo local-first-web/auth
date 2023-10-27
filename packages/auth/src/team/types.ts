@@ -12,13 +12,13 @@ import type {
   ROOT,
   Sequence,
 } from '@localfirst/crdx'
-import type { Client, LocalContext, LocalUserContext, ServerContext } from 'context/index.js'
+import type { Client, LocalContext } from 'context/index.js'
 import type { Device } from 'device/index.js'
 import type { Invitation, InvitationState } from 'invitation/types.js'
 import type { Lockbox } from 'lockbox/index.js'
 import type { PermissionsMap, Role } from 'role/index.js'
 import type { Host, Server } from 'server/index.js'
-import type { Optional, ValidationResult } from 'util/index.js'
+import type { ValidationResult } from 'util/index.js'
 
 // ********* MEMBER
 
@@ -330,3 +330,16 @@ export type SignedEnvelope = {
 }
 
 export type Transform = (state: TeamState) => TeamState
+export type InviteResult = {
+  /** The unique identifier for this invitation. */
+  id: Base58
+
+  /** The secret invitation key. (Returned in case it was generated randomly.) */
+  seed: string
+}
+export type LookupIdentityResult =
+  | 'VALID_DEVICE'
+  | 'MEMBER_UNKNOWN'
+  | 'MEMBER_REMOVED'
+  | 'DEVICE_UNKNOWN'
+  | 'DEVICE_REMOVED'

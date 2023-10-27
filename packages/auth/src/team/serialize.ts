@@ -1,7 +1,7 @@
 import {
   decryptGraph,
-  type EncryptedGraph,
   getChildMap,
+  type EncryptedGraph,
   type Keyring,
   type LinkMap,
 } from '@localfirst/crdx'
@@ -24,3 +24,8 @@ export const deserializeTeamGraph = (serialized: string, keys: Keyring): TeamGra
   const encryptedGraph = JSON.parse(serialized) as EncryptedGraph
   return decryptGraph({ encryptedGraph, keys })
 }
+
+export const maybeDeserialize = (source: string | TeamGraph, teamKeyring: Keyring): TeamGraph =>
+  isGraph(source) ? source : deserializeTeamGraph(source, teamKeyring)
+
+const isGraph = (source: string | TeamGraph): source is TeamGraph => source?.hasOwnProperty('root')

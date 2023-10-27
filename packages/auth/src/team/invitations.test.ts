@@ -1,11 +1,9 @@
-import { createKeyset, UserWithSecrets, type UnixTimestamp } from '@localfirst/crdx'
+import { type UserWithSecrets, createKeyset, type UnixTimestamp } from '@localfirst/crdx'
 import { generateProof } from 'invitation/index.js'
 import * as teams from 'team/index.js'
-import * as select from 'team/selectors/index.js'
 import { KeyType } from 'util/index.js'
 import { setup } from 'util/testing/index.js'
 import { describe, expect, it } from 'vitest'
-import { deserializeTeamGraph } from './serialize'
 
 const { USER } = KeyType
 
@@ -261,7 +259,7 @@ describe('Team', () => {
 
         // 📱 Alice's phone needs to get Alice's user keys from the graph in order to instantiate the team
         const keys = teams.getUserKeysForDeviceFromGraph(serializedGraph, teamKeyring, alicePhone)
-        const userId = alicePhone.userId
+        const { userId } = alicePhone
         const user: UserWithSecrets = { userId, userName: userId, keys }
 
         const phoneTeam = teams.load(serializedGraph, { user, device: alicePhone }, teamKeyring)
