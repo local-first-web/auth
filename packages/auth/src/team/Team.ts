@@ -1,50 +1,36 @@
+import type {
+  KeyMetadata,
+  KeyScope,
+  Keyring,
+  Keyset,
+  KeysetWithSecrets,
+  Payload,
+  Store,
+  UnixTimestamp,
+  User,
+  UserWithSecrets,
+} from '@localfirst/crdx'
 import {
-  type KeyMetadata,
-  type KeyScope,
-  type Keyring,
-  type Keyset,
-  type KeysetWithSecrets,
-  type Payload,
-  type Store,
-  type UnixTimestamp,
-  type User,
-  type UserWithSecrets,
   createKeyring,
   createKeyset,
   createStore,
   isKeyset,
+  makeMachine,
   redactKeys,
 } from '@localfirst/crdx'
-import { type Base58, randomKey, signatures, symmetric } from '@localfirst/crypto'
-import EventEmitter from 'eventemitter3'
-import { ADMIN_SCOPE, ALL, TEAM_SCOPE, initialState } from './constants.js'
-import { membershipResolver as resolver } from './membershipResolver.js'
-import { redactUser } from './redactUser.js'
-import { reducer } from './reducer.js'
-import * as select from './selectors/index.js'
-import { deserializeTeamGraph, serializeTeamGraph } from './serialize.js'
-import {
-  type EncryptedEnvelope,
-  type Member,
-  type SignedEnvelope,
-  type TeamAction,
-  type TeamContext,
-  type TeamGraph,
-  type TeamOptions,
-  type TeamState,
-  isNewTeam,
-} from './types.js'
+import { randomKey, signatures, symmetric, type Base58 } from '@localfirst/crypto'
 import * as identity from 'connection/identity.js'
 import { type Challenge } from 'connection/types.js'
 import { type LocalUserContext } from 'context/index.js'
 import * as devices from 'device/index.js'
 import {
-  type Device,
-  type DeviceWithSecrets,
   getDeviceId,
   parseDeviceId,
   redactDevice,
+  type Device,
+  type DeviceWithSecrets,
 } from 'device/index.js'
+import EventEmitter from 'eventemitter3'
 import * as invitations from 'invitation/index.js'
 import { type ProofOfInvitation } from 'invitation/index.js'
 import { normalize } from 'invitation/normalize.js'
@@ -53,6 +39,23 @@ import { ADMIN, type Role } from 'role/index.js'
 import { cast } from 'server/cast.js'
 import { type Host, type Server } from 'server/types.js'
 import { KeyType, VALID, assert, debug, getScope, scopesMatch } from 'util/index.js'
+import { ADMIN_SCOPE, ALL, TEAM_SCOPE, initialState } from './constants.js'
+import { membershipResolver as resolver } from './membershipResolver.js'
+import { redactUser } from './redactUser.js'
+import { reducer } from './reducer.js'
+import * as select from './selectors/index.js'
+import { deserializeTeamGraph, serializeTeamGraph } from './serialize.js'
+import type {
+  EncryptedEnvelope,
+  Member,
+  SignedEnvelope,
+  TeamAction,
+  TeamContext,
+  TeamGraph,
+  TeamOptions,
+  TeamState,
+} from './types.js'
+import { isNewTeam } from './types.js'
 
 /**
  * The `Team` class wraps a `TeamGraph` and exposes methods for adding and removing
@@ -93,9 +96,7 @@ export class Team extends EventEmitter {
 
     // Initialize a CRDX store for the team
     if (isNewTeam(options)) {
-      if (this.isServer) {
-        throw new Error('Cannot create a team on a server')
-      }
+      assert(!this.isServer, 'Cannot create a team on a server')
 
       // Create a new team with the current user as founding member
       const { device, user } = this.context
@@ -384,9 +385,7 @@ export class Team extends EventEmitter {
 
   /** Remove a role from the team */
   public removeRole = (roleName: string) => {
-    if (roleName === ADMIN) {
-      throw new Error('Cannot remove admin role.')
-    }
+    assert(roleName !== ADMIN, 'Cannot remove admin role')
 
     this.dispatch({
       type: 'REMOVE_ROLE',
@@ -540,9 +539,7 @@ export class Team extends EventEmitter {
     /** Time when the invitation expires. Defaults to 30 minutes from now. */
     expiration?: UnixTimestamp
   } = {}): InviteResult {
-    if (this.isServer) {
-      throw new Error("Server can't invite a device")
-    }
+    assert(!this.isServer, "Server can't invite a device")
 
     seed = normalize(seed)
 
@@ -669,9 +666,7 @@ export class Team extends EventEmitter {
 
   /** Once the new member has received the graph and can instantiate the team, they call this to add their device. */
   public joinAsMember = (teamKeyring: Keyring) => {
-    if (this.isServer) {
-      throw new Error("Can't join as member on server")
-    }
+    assert(!this.isServer, "Can't join as member on server")
 
     const teamKeys = getLatestGeneration(teamKeyring)
 
@@ -691,9 +686,7 @@ export class Team extends EventEmitter {
 
   /** Once a new device has received the graph and can instantiate the team, they call this to get the user keys */
   public joinAsDevice = (userName: string, userId: string) => {
-    if (this.isServer) {
-      throw new Error("Can't join as device on server")
-    }
+    assert(!this.isServer, "Can't join as device on server")
 
     const user = {
       userName,
@@ -1001,3 +994,5 @@ const getLatestGeneration = (keyring: Keyring) => {
 
   return latest
 }
+
+export const teamMachine = makeMachine({ initialState, reducer, resolver })
