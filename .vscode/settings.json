@@ -20,5 +20,6 @@
   "peacock.lightForegroundColor": "",
   "peacock.elementAdjustments": {
     "activityBar": "none"
-  }
+  },
+  "testFileMagic.testDirectoryLocation": "alongside"
 }

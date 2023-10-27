@@ -3,9 +3,7 @@ import { assert } from './assert.js'
 import { getScope } from 'util/getScope.js'
 
 export const scopesMatch = (a: KeyScope, b: KeyScope) => {
-  const scopeA = getScope(a)
-  const scopeB = getScope(b)
-  return scopeA.type === scopeB.type && scopeA.name === scopeB.name
+  return a.type === b.type && a.name === b.name
 }
 
 export const assertScopesMatch = (a: KeyScope, b: KeyScope) => {

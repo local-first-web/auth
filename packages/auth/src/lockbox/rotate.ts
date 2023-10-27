@@ -22,6 +22,7 @@ export const rotate = ({
 }: rotateParameters): Lockbox => {
   // Make sure the new keys have the same scope as the old ones
   assertScopesMatch(newContents, oldLockbox.contents)
+
   // If we're given a new public key for the recipient
   if (updatedRecipientKeys) {
     assertScopesMatch(oldLockbox.recipient, updatedRecipientKeys)

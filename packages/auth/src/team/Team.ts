@@ -31,7 +31,7 @@ import * as lockbox from 'lockbox/index.js'
 import { ADMIN, type Role } from 'role/index.js'
 import { cast } from 'server/cast.js'
 import { type Host, type Server } from 'server/types.js'
-import { KeyType, VALID, assert, debug, getScope, scopesMatch } from 'util/index.js'
+import { KeyType, VALID, assert, debug, scopesMatch } from 'util/index.js'
 import { ADMIN_SCOPE, ALL, TEAM_SCOPE, initialState } from './constants.js'
 import { membershipResolver as resolver } from './membershipResolver.js'
 import { redactUser } from './redactUser.js'
@@ -909,9 +909,7 @@ export class Team extends EventEmitter {
 
     // Create new lockboxes for each of these
     const newLockboxes = newKeysets.flatMap(newKeyset => {
-      const scope = getScope(newKeyset)
-
-      const oldLockboxes = select.lockboxesInScope(this.state, scope)
+      const oldLockboxes = select.lockboxesInScope(this.state, newKeyset)
 
       return oldLockboxes.map(oldLockbox => {
         // Check whether we have new keys for the recipient of this lockbox
