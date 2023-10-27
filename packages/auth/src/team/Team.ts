@@ -50,7 +50,6 @@ import type {
   Member,
   SignedEnvelope,
   TeamAction,
-  TeamContext,
   TeamGraph,
   TeamOptions,
   TeamState,
@@ -665,7 +664,7 @@ export class Team extends EventEmitter {
   }
 
   /** Once the new member has received the graph and can instantiate the team, they call this to add their device. */
-  public joinAsMember = (teamKeyring: Keyring) => {
+  public join = (teamKeyring: Keyring) => {
     assert(!this.isServer, "Can't join as member on server")
 
     const teamKeys = getLatestGeneration(teamKeyring)
@@ -682,28 +681,6 @@ export class Team extends EventEmitter {
       },
       teamKeys
     )
-  }
-
-  /** Once a new device has received the graph and can instantiate the team, they call this to get the user keys */
-  public joinAsDevice = (userName: string, userId: string) => {
-    assert(!this.isServer, "Can't join as device on server")
-
-    const user = {
-      userName,
-      userId,
-      keys: this.keys({ type: KeyType.USER, name: userId }),
-    } as UserWithSecrets
-    this.store = createStore<TeamState, TeamAction, TeamContext>({
-      user,
-      reducer,
-      resolver,
-      initialState,
-      graph: this.graph,
-      keys: this.teamKeys(),
-    })
-    this.context.user = user
-
-    return user
   }
 
   /** ************** SERVERS */
@@ -996,3 +973,19 @@ const getLatestGeneration = (keyring: Keyring) => {
 }
 
 export const teamMachine = makeMachine({ initialState, reducer, resolver })
+
+export const getTeamState = (serializedGraph: string, keyring: Keyring) => {
+  const graph = deserializeTeamGraph(serializedGraph, keyring)
+  return teamMachine(graph)
+}
+
+export const getUserKeysForDeviceFromGraph = (
+  serializedGraph: string,
+  keyring: Keyring,
+  device: DeviceWithSecrets
+): KeysetWithSecrets => {
+  const state = getTeamState(serializedGraph, keyring)
+  const userScope = { type: KeyType.USER, name: device.userId }
+  const keys = select.keys(state, device.keys, userScope)
+  return keys
+}

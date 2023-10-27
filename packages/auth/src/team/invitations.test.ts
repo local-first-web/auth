@@ -1,9 +1,11 @@
-import { type UnixTimestamp, createKeyset } from '@localfirst/crdx'
-import { describe, expect, it } from 'vitest'
+import { createKeyset, UserWithSecrets, type UnixTimestamp } from '@localfirst/crdx'
 import { generateProof } from 'invitation/index.js'
 import * as teams from 'team/index.js'
+import * as select from 'team/selectors/index.js'
 import { KeyType } from 'util/index.js'
 import { setup } from 'util/testing/index.js'
+import { describe, expect, it } from 'vitest'
+import { deserializeTeamGraph } from './serialize'
 
 const { USER } = KeyType
 
@@ -236,13 +238,14 @@ describe('Team', () => {
 
     describe('devices', () => {
       it('creates and accepts an invitation for a device', () => {
-        const { alice } = setup('alice')
+        const { alice: aliceLaptop } = setup('alice')
+        const alicePhone = aliceLaptop.phone!
 
         // 👩🏾 Alice only has 💻 one device on the signature chain
-        expect(alice.team.members('alice').devices).toHaveLength(1)
+        expect(aliceLaptop.team.members('alice').devices).toHaveLength(1)
 
         // 💻 on her laptop, Alice generates an invitation for her phone
-        const { seed } = alice.team.inviteDevice()
+        const { seed } = aliceLaptop.team.inviteDevice()
 
         // 📱 Alice gets the seed to her phone, perhaps by typing it in or by scanning a QR code.
 
@@ -250,18 +253,22 @@ describe('Team', () => {
         const proofOfInvitation = generateProof(seed)
 
         // 📱 Alice's phone connects with 💻 her laptop and presents the proof
-        alice.team.admitDevice(proofOfInvitation, alice.phone!)
+        aliceLaptop.team.admitDevice(proofOfInvitation, alicePhone)
 
-        // 👍 The proof was good, so the laptop sends the phone the team's signature chain
-        const savedTeam = alice.team.save()
-        const phoneTeam = teams.load(savedTeam, alice.localContext, alice.team.teamKeys())
+        // 👍 The proof was good, so the laptop sends the phone the team's graph and keyring
+        const serializedGraph = aliceLaptop.team.save()
+        const teamKeyring = aliceLaptop.team.teamKeyring()
 
-        // 📱 Alice's phone joins the team
-        phoneTeam.joinAsDevice('alice', 'alice')
+        // 📱 Alice's phone needs to get Alice's user keys from the graph in order to instantiate the team
+        const keys = teams.getUserKeysForDeviceFromGraph(serializedGraph, teamKeyring, alicePhone)
+        const userId = alicePhone.userId
+        const user: UserWithSecrets = { userId, userName: userId, keys }
+
+        const phoneTeam = teams.load(serializedGraph, { user, device: alicePhone }, teamKeyring)
 
         // ✅ Now Alice has 💻📱 two devices on the signature chain
         expect(phoneTeam.members('alice').devices).toHaveLength(2)
-        expect(alice.team.members('alice').devices).toHaveLength(2)
+        expect(aliceLaptop.team.members('alice').devices).toHaveLength(2)
       })
 
       it("doesn't let someone else admit Alice's device", () => {

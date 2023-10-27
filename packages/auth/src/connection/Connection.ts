@@ -62,14 +62,13 @@ import {
   type TeamAction,
   type TeamContext,
   type TeamGraph,
-  teamMachine,
 } from 'team/index.js'
 import { arraysAreEqual } from 'util/arraysAreEqual.js'
 import { EventEmitter, KeyType, assert, debug, truncateHashes } from 'util/index.js'
 import { syncMessageSummary } from 'util/testing/messageSummary.js'
-import { deserializeTeamGraph } from 'team/serialize'
+import { getTeamState, getUserKeysForDeviceFromGraph } from 'team/Team.js'
 
-const { DEVICE } = KeyType
+const { USER, DEVICE } = KeyType
 
 /**
  * Wraps a state machine (using [XState](https://xstate.js.org/docs/)) that
@@ -223,26 +222,31 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
       const { serializedGraph, teamKeyring } = (event as AcceptInvitationMessage).payload
       const { user, device } = context
-
       // Join the team
       if (user === undefined) {
-        // Joining as a new device for an existing member
-        // we get the user's keys from the team and rehydrate our user that way
+        // Joining as a new device for an existing member.
         const { userId, userName = userId } = context
         assert(userName)
         assert(userId)
-        const tempUser: UserWithSecrets = { userId, userName, keys: device.keys }
-        const team = this.rehydrateTeam(serializedGraph, tempUser, device, teamKeyring)
-        context.user = team.joinAsDevice(userName, userId)
-        // Put the updated team on our context
+
+        // We don't know our user keys yet, so we need to get those from the graph.
+        const keys = getUserKeysForDeviceFromGraph(serializedGraph, teamKeyring, device)
+        const user: UserWithSecrets = { userId, userName, keys }
+
+        // Now we can rehydrate the graph
+        const team = this.rehydrateTeam(serializedGraph, user, device, teamKeyring)
+
+        // Put the user and team on our context
+        context.user = user
         context.team = team
       } else {
         // Joining as a new member
-        // we add our current device to the team chain
 
         // Reconstruct team from serialized graph
         const team = this.rehydrateTeam(serializedGraph, user, device, teamKeyring)
-        team.joinAsMember(teamKeyring)
+        // we add our current device to the team chain
+        team.join(teamKeyring)
+
         // Put the updated team on our context
         context.team = team
       }
@@ -260,24 +264,15 @@ export class Connection extends EventEmitter<ConnectionEvents> {
      * When on the happy path (user and device both in good standing) does nothing.
      */
     confirmIdentityExists: (context, event) => {
-      // If we're not on the team yet, we don't have a way of knowing if the peer is
-      if (context.team === undefined) {
-        return
-      }
-
       event = event as ClaimIdentityMessage
 
+      // If we're not on the team yet, we don't have a way of knowing if the peer is
+      if (context.team === undefined) return
+
       // If no identity claim is being made, there's nothing to confirm
-      if (!('identityClaim' in event.payload)) {
-        return
-      }
+      if (!('identityClaim' in event.payload) || event.payload.identityClaim === undefined) return
 
       const { identityClaim } = event.payload
-
-      if (identityClaim === undefined) {
-        return
-      }
-
       const deviceId = identityClaim.name
       const { userId, deviceName } = parseDeviceId(deviceId)
 
@@ -841,13 +836,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     const peerUserName = trimUserId(this.peerUserId)
     this.log = debug(`lf:auth:connection:${userName}:${peerUserName}`)
   }
-}
-
-// HELPERS
-
-export const getTeamState = (serializedGraph: string, keyring: Keyring) => {
-  const graph = deserializeTeamGraph(serializedGraph, keyring)
-  return teamMachine(graph)
 }
 
 const isMember = (context: ConnectionContext) => context.team !== undefined
