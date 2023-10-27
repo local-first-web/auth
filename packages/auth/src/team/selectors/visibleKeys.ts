@@ -7,10 +7,7 @@ import { type TeamState } from 'team/types.js'
  * @param state
  * @param keyset
  */
-export const getVisibleKeys = (
-  state: TeamState,
-  keyset: KeysetWithSecrets
-): KeysetWithSecrets[] => {
+export const visibleKeys = (state: TeamState, keyset: KeysetWithSecrets): KeysetWithSecrets[] => {
   const { lockboxes } = state
   const { publicKey } = keyset.encryption
 
@@ -21,7 +18,7 @@ export const getVisibleKeys = (
   const keysets = lockboxesICanOpen.map(lockbox => open(lockbox, keyset))
 
   // Recursively get all the keys *those* keys can access
-  const visibleKeys = keysets.flatMap(keyset => getVisibleKeys(state, keyset))
+  const keys = keysets.flatMap(keyset => visibleKeys(state, keyset))
 
-  return [...keysets, ...visibleKeys]
+  return [...keysets, ...keys]
 }

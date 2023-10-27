@@ -7,10 +7,10 @@ import { setup } from 'util/testing/index.js'
 
 const { USER, DEVICE, TEAM, ROLE } = KeyType
 
-describe('getVisibleScopes', () => {
+describe('visibleScopes', () => {
   it("alice's device can see user, admin and team keys", () => {
     const { alice } = setup('alice')
-    const deviceScopes = select.getVisibleScopes(alice.team.state, {
+    const deviceScopes = select.visibleScopes(alice.team.state, {
       type: DEVICE,
       name: 'alice::laptop',
     })
@@ -23,7 +23,7 @@ describe('getVisibleScopes', () => {
 
   it('alice can see admin and team keys', () => {
     const { alice } = setup('alice')
-    const aliceScopes = select.getVisibleScopes(alice.team.state, {
+    const aliceScopes = select.visibleScopes(alice.team.state, {
       type: USER,
       name: 'alice',
     })
@@ -35,7 +35,7 @@ describe('getVisibleScopes', () => {
 
   it('bob can only see team keys', () => {
     const { bob } = setup('alice', { user: 'bob', admin: false })
-    const bobScopes = select.getVisibleScopes(bob.team.state, {
+    const bobScopes = select.visibleScopes(bob.team.state, {
       type: USER,
       name: 'bob',
     })
@@ -45,7 +45,7 @@ describe('getVisibleScopes', () => {
   it('admin role can see all other role keys', () => {
     const { alice } = setup('alice')
     alice.team.addRole('MANAGERS')
-    const adminScopes = select.getVisibleScopes(alice.team.state, {
+    const adminScopes = select.visibleScopes(alice.team.state, {
       type: ROLE,
       name: ADMIN,
     })
@@ -55,7 +55,7 @@ describe('getVisibleScopes', () => {
   it('after rotating keys, can still see the same scopes', () => {
     const { alice } = setup('alice')
     const getDeviceScopes = () =>
-      select.getVisibleScopes(alice.team.state, {
+      select.visibleScopes(alice.team.state, {
         type: DEVICE,
         name: 'alice::laptop',
       })

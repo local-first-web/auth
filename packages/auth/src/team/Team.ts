@@ -10,14 +10,7 @@ import type {
   User,
   UserWithSecrets,
 } from '@localfirst/crdx'
-import {
-  createKeyring,
-  createKeyset,
-  createStore,
-  isKeyset,
-  makeMachine,
-  redactKeys,
-} from '@localfirst/crdx'
+import { createKeyset, createStore, isKeyset, makeMachine, redactKeys } from '@localfirst/crdx'
 import { randomKey, signatures, symmetric, type Base58 } from '@localfirst/crypto'
 import * as identity from 'connection/identity.js'
 import { type Challenge } from 'connection/types.js'
@@ -56,6 +49,7 @@ import type {
 } from './types.js'
 import { isNewTeam } from './types.js'
 
+const { TEAM, DEVICE, USER } = KeyType
 /**
  * The `Team` class wraps a `TeamGraph` and exposes methods for adding and removing
  * members, assigning roles, creating and using invitations, and encrypting messages for
@@ -225,7 +219,7 @@ export class Team extends EventEmitter {
   }
 
   public lookupIdentity = (identityClaim: KeyScope): LookupIdentityResult => {
-    assert(identityClaim.type === KeyType.DEVICE) // We always authenticate as devices
+    assert(identityClaim.type === DEVICE) // We always authenticate as devices
     const deviceId = identityClaim.name
     const { userId, deviceName } = parseDeviceId(deviceId)
     if (this.memberWasRemoved(userId) || this.serverWasRemoved(userId)) {
@@ -248,7 +242,7 @@ export class Team extends EventEmitter {
   }
 
   public verifyIdentityProof = (challenge: Challenge, proof: Base58) => {
-    assert(challenge.type === KeyType.DEVICE) // We always authenticate as devices
+    assert(challenge.type === DEVICE) // We always authenticate as devices
     const deviceId = challenge.name
     const { userId, deviceName } = parseDeviceId(deviceId)
 
@@ -319,7 +313,7 @@ export class Team extends EventEmitter {
   /** Remove a member from the team */
   public remove = (userId: string) => {
     // Create new keys & lockboxes for any keys this person had access to
-    const lockboxes = this.rotateKeys({ type: KeyType.USER, name: userId })
+    const lockboxes = this.rotateKeys({ type: USER, name: userId })
 
     // Post the removal to the graph
     this.dispatch({
@@ -443,7 +437,7 @@ export class Team extends EventEmitter {
 
     // Create new keys & lockboxes for any keys this device had access to
     const deviceId = getDeviceId({ userId, deviceName })
-    const lockboxes = this.rotateKeys({ type: KeyType.DEVICE, name: deviceId })
+    const lockboxes = this.rotateKeys({ type: DEVICE, name: deviceId })
 
     // Post the removal to the graph
     this.dispatch({
@@ -824,11 +818,7 @@ export class Team extends EventEmitter {
   /** Returns the current team keys or a specific generation of team keys */
   public teamKeys = (generation?: number) => this.keys({ ...TEAM_SCOPE, generation })
 
-  public teamKeyring = () => {
-    const { TEAM } = KeyType
-    const allTeamKeys = select.getKeyMap(this.state, this.context.device.keys)[TEAM][TEAM]
-    return createKeyring(allTeamKeys)
-  }
+  public teamKeyring = () => select.teamKeyring(this.state, this.context.device.keys)
 
   /** Returns the admin keyset. */
   public adminKeys = (generation?: number) => this.roleKeys(ADMIN, generation)
@@ -839,8 +829,8 @@ export class Team extends EventEmitter {
    */
   public changeKeys = (newKeys: KeysetWithSecrets) => {
     const { device, user } = this.context
-    const isForUser = newKeys.type === KeyType.USER
-    const isForDevice = newKeys.type === KeyType.DEVICE
+    const isForUser = newKeys.type === USER
+    const isForDevice = newKeys.type === DEVICE
     const isForServer = newKeys.type === KeyType.SERVER
 
     const oldGeneration = (isForDevice ? device.keys : user.keys).generation
@@ -881,7 +871,7 @@ export class Team extends EventEmitter {
       // We don't know if the user was added to any other roles, so we're just preemptively rotating
       // all lockboxes *we* can see (since we're an admin, we have access to all keys)
       const lockboxes = this.rotateKeys({
-        type: KeyType.USER,
+        type: USER,
         name: this.userId,
       })
       this.dispatch({ type: 'ROTATE_KEYS', payload: { userId, lockboxes } })
@@ -911,7 +901,7 @@ export class Team extends EventEmitter {
       : createKeyset(compromised) // We're just given a scope - generate new keys for it
 
     // identify all the keys that are indirectly compromised
-    const visibleScopes = select.getVisibleScopes(this.state, compromised)
+    const visibleScopes = select.visibleScopes(this.state, compromised)
     const otherNewKeysets = visibleScopes.map(scope => createKeyset(scope))
 
     // Generate new keys for each one
@@ -985,7 +975,7 @@ export const getUserKeysForDeviceFromGraph = (
   device: DeviceWithSecrets
 ): KeysetWithSecrets => {
   const state = getTeamState(serializedGraph, keyring)
-  const userScope = { type: KeyType.USER, name: device.userId }
+  const userScope = { type: USER, name: device.userId }
   const keys = select.keys(state, device.keys, userScope)
   return keys
 }

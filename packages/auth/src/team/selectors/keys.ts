@@ -1,5 +1,5 @@
 import { type KeyMetadata, type KeyScope, type KeysetWithSecrets } from '@localfirst/crdx'
-import { getKeyMap } from './getKeyMap.js'
+import { keyMap } from './keyMap.js'
 import { type TeamState } from 'team/types.js'
 import { assert } from 'util/index.js'
 import { lockboxSummary } from 'util/lockboxSummary.js'
@@ -12,7 +12,7 @@ export const keys = (
 ) => {
   const { type, name } = scope
 
-  const keysFromLockboxes = getKeyMap(state, deviceKeys)
+  const keysFromLockboxes = keyMap(state, deviceKeys)
   const keys = keysFromLockboxes[type] ? keysFromLockboxes[type][name] : undefined
 
   assert(

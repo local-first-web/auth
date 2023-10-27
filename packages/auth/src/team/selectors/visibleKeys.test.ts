@@ -7,10 +7,10 @@ import { setup } from 'util/testing/index.js'
 
 const { USER, DEVICE, TEAM, ROLE } = KeyType
 
-describe('getVisibleKeys', () => {
+describe('visibleKeys', () => {
   it('alice can see admin and team keys', () => {
     const { alice } = setup('alice', { user: 'bob', admin: false })
-    const keysAliceSees = select.getVisibleKeys(alice.team.state, alice.user.keys)
+    const keysAliceSees = select.visibleKeys(alice.team.state, alice.user.keys)
     expect(keysAliceSees.map(getScope)).toEqual([
       { type: TEAM, name: TEAM },
       { type: ROLE, name: ADMIN },
@@ -19,7 +19,7 @@ describe('getVisibleKeys', () => {
 
   it('bob can only see team keys', () => {
     const { bob } = setup('alice', { user: 'bob', admin: false })
-    const keysBobKeys = select.getVisibleKeys(bob.team.state, bob.user.keys)
+    const keysBobKeys = select.visibleKeys(bob.team.state, bob.user.keys)
     expect(keysBobKeys.map(getScope)).toEqual([{ type: TEAM, name: TEAM }])
   })
 
@@ -27,7 +27,7 @@ describe('getVisibleKeys', () => {
     const { alice } = setup('alice')
     alice.team.addRole('MANAGERS')
     const adminKeys = alice.team.adminKeys()
-    const keysAdminSees = select.getVisibleKeys(alice.team.state, adminKeys)
+    const keysAdminSees = select.visibleKeys(alice.team.state, adminKeys)
     expect(keysAdminSees.map(getScope)).toEqual([{ type: ROLE, name: 'MANAGERS' }])
   })
 
@@ -35,14 +35,14 @@ describe('getVisibleKeys', () => {
     const { alice } = setup('alice')
     alice.team.addRole('MANAGERS')
     const adminKeys = alice.team.adminKeys()
-    const keysAdminSees = select.getVisibleKeys(alice.team.state, adminKeys)
+    const keysAdminSees = select.visibleKeys(alice.team.state, adminKeys)
     expect(keysAdminSees.map(getScope)).toEqual([{ type: ROLE, name: 'MANAGERS' }])
   })
 
   it('after rotating keys, can still see the same scopes', () => {
     const { alice } = setup('alice')
     const getDeviceKeys = () =>
-      select.getVisibleKeys(alice.team.state, alice.device.keys).map(getScope)
+      select.visibleKeys(alice.team.state, alice.device.keys).map(getScope)
 
     expect(getDeviceKeys()).toEqual([
       { type: USER, name: 'alice' },
