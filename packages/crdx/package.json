@@ -16,10 +16,11 @@
     "node": ">=14"
   },
   "scripts": {
-    "build": "tsup --dts",
+    "build": "tsup",
+    "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly --declaration",
     "test": "vitest",
     "test:log": "cross-env DEBUG='crdx*' DEBUG_COLORS=1 yarn test",
-    "watch": "tsup --dts --watch"
+    "watch": "yarn build --watch"
   },
   "dependencies": {
     "@localfirst/crypto": "^4.1.9",

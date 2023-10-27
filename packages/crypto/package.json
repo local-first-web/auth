@@ -19,9 +19,10 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup --dts",
+    "build": "tsup",
+    "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly --declaration",
     "test": "vitest",
-    "watch": "tsup --dts --watch"
+    "watch": "yarn build --watch"
   },
   "dependencies": {
     "@herbcaudill/base-x": "^4.0.6",
