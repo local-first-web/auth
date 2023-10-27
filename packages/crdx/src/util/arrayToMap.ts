@@ -15,14 +15,18 @@
  * //   3: {id: 3, ...},
  * // }
  * ```
- * @param keyField
+ * @param keyAccessor
  */
-export const arrayToMap =
-  (keyField: string) =>
-  <T extends Record<string, any>>(
-    result: Record<string, T>,
-    current: T
-  ): Record<string, unknown> => ({
-    ...result,
-    [current[keyField]]: current,
-  })
+export const arrayToMap = <T extends Record<string, unknown>>(
+  keyAccessor: string | KeyAccessor<T>
+) => {
+  return (result: Record<string, T>, current: T) => {
+    const key = typeof keyAccessor === 'function' ? keyAccessor(current) : current[keyAccessor]
+    return {
+      ...result,
+      [key as string]: current,
+    } as Record<string, T>
+  }
+}
+
+type KeyAccessor<T> = (obj: T) => string
