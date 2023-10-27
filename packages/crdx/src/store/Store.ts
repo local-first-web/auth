@@ -174,7 +174,6 @@ export class Store<S, A extends Action, C = Record<string, unknown>> extends Eve
   public merge(theirGraph: Graph<A, C>) {
     this.graph = merge(this.graph, theirGraph)
     this.updateState()
-    return this
   }
 
   /**
