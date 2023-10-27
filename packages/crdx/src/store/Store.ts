@@ -8,7 +8,6 @@ import {
   createGraph,
   deserialize,
   getHead,
-  getSequence,
   type Graph,
   merge,
   type Resolver,
@@ -19,6 +18,7 @@ import { isKeyset, type Keyring, type KeysetWithSecrets } from 'keyset/index.js'
 import { type UserWithSecrets } from 'user/index.js'
 import { assert, type Optional } from 'util/index.js'
 import { validate, type ValidatorSet } from 'validator/index.js'
+import { makeMachine } from './makeMachine.js'
 
 /**
  * A CRDX `Store` is intended to work very much like a Redux store.
@@ -28,16 +28,10 @@ import { validate, type ValidatorSet } from 'validator/index.js'
  * be a single store in an application.
  */
 export class Store<S, A extends Action, C = Record<string, unknown>> extends EventEmitter {
-  /** The user object provided in options */
   private readonly user: UserWithSecrets
-
-  /** The context object provided in options */
   private readonly context: C
 
-  /** The inital state provided in options */
   private readonly initialState: S
-
-  /** The reducer function provided in the constructor */
   private readonly reducer: Reducer<S, A, C>
   private readonly resolver: Resolver<A, C>
   private readonly validators?: ValidatorSet
@@ -187,18 +181,15 @@ export class Store<S, A extends Action, C = Record<string, unknown>> extends Eve
   // PRIVATE
 
   private updateState() {
-    const { graph, resolver, reducer } = this
-
-    // Validate the graph's integrity.
-    this.validate()
-
-    // Use the filter & sequencer to turn the graph into an ordered sequence
-    const sequence = getSequence<A, C>(graph, resolver)
-
-    // Run the sequence through the reducer to calculate the current team state
-    this.state = sequence.reduce(reducer, this.initialState)
+    const machine = makeMachine({
+      initialState: this.initialState,
+      reducer: this.reducer,
+      resolver: this.resolver,
+      validators: this.validators,
+    })
+    this.state = machine(this.graph)
 
     // notify listeners
-    this.emit('updated', { head: graph.head })
+    this.emit('updated', { head: this.graph.head })
   }
 }
