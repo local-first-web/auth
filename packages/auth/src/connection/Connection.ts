@@ -1,3 +1,4 @@
+import * as select from 'team/selectors/index.js'
 import {
   generateMessage,
   headsAreEqual,
@@ -61,10 +62,12 @@ import {
   type TeamAction,
   type TeamContext,
   type TeamGraph,
+  teamMachine,
 } from 'team/index.js'
 import { arraysAreEqual } from 'util/arraysAreEqual.js'
 import { EventEmitter, KeyType, assert, debug, truncateHashes } from 'util/index.js'
 import { syncMessageSummary } from 'util/testing/messageSummary.js'
+import { deserializeTeamGraph } from 'team/serialize'
 
 const { DEVICE } = KeyType
 
@@ -556,17 +559,14 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     },
 
     joinedTheRightTeam: (context, event) => {
-      return true
       // Make sure my invitation exists on the signature chain of the team I'm about to join.
       // This check prevents an attack in which a fake team pretends to accept my invitation.
-      // const { serializedGraph, teamKeyring } = (event as AcceptInvitationMessage).payload
-      // const { user, device } = context
-      // assert(user)
-      // assert(device)
+      // TODO: cover with test
+      const { serializedGraph, teamKeyring } = (event as AcceptInvitationMessage).payload
 
-      // const team = this.rehydrateTeam(serializedGraph, user, device, teamKeyring)
-
-      // return team.hasInvitation(this.myProofOfInvitation(context))
+      const state = getTeamState(serializedGraph, teamKeyring)
+      const { id } = this.myProofOfInvitation(context)
+      return select.hasInvitation(state, id)
     },
 
     // IDENTITY
@@ -843,6 +843,26 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   }
 }
 
+// HELPERS
+
+export const getTeamState = (serializedGraph: string, keyring: Keyring) => {
+  const graph = deserializeTeamGraph(serializedGraph, keyring)
+  return teamMachine(graph)
+}
+
+const isMember = (context: ConnectionContext) => context.team !== undefined
+
+const insistentlyParseJson = (json: unknown) => {
+  let result = json
+  while (typeof result === 'string') {
+    result = JSON.parse(result)
+  }
+
+  return result
+}
+
+const trimUserId = (userId?: string) => userId?.split('-')[0]
+
 // FOR DEBUGGING
 
 const messageSummary = (message: ConnectionMessage) =>
@@ -864,19 +884,6 @@ const stateSummary = (state = 'disconnected'): string =>
         .map(key => `${key}:${stateSummary(state[key])}`)
         .filter(s => s.length)
         .join(',')
-
-const isMember = (context: ConnectionContext) => context.team !== undefined
-
-const insistentlyParseJson = (json: unknown) => {
-  let result = json
-  while (typeof result === 'string') {
-    result = JSON.parse(result)
-  }
-
-  return result
-}
-
-const trimUserId = (userId?: string) => userId?.split('-')[0]
 
 // TYPES
 
