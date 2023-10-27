@@ -19,7 +19,7 @@
     "build": "tsup",
     "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly --declaration",
     "test": "vitest",
-    "test:log": "cross-env DEBUG='lf*' DEBUG_COLORS=1 yarn test",
+    "test:log": "cross-env DEBUG='lf*' DEBUG_COLORS=1 vitest --reporter basic",
     "watch": "yarn build --watch"
   },
   "dependencies": {
