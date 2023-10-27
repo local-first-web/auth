@@ -1,24 +1,24 @@
-import {
-  type Base58,
-  type Graph,
-  type Hash,
-  type KeyMetadata,
-  type Keyring,
-  type Keyset,
-  type KeysetWithSecrets,
-  type Link,
-  type LinkBody,
-  type Payload,
-  type ROOT,
-  type Sequence,
+import type {
+  Base58,
+  Graph,
+  Hash,
+  KeyMetadata,
+  Keyring,
+  Keyset,
+  KeysetWithSecrets,
+  Link,
+  LinkBody,
+  Payload,
+  ROOT,
+  Sequence,
 } from '@localfirst/crdx'
-import { type Client, type LocalContext } from 'context/index.js'
-import { type Device } from 'device/index.js'
-import { type Invitation, type InvitationState } from 'invitation/types.js'
-import { type Lockbox } from 'lockbox/index.js'
-import { type PermissionsMap, type Role } from 'role/index.js'
-import { type Host, type Server } from 'server/index.js'
-import { type ValidationResult } from 'util/index.js'
+import type { Client, LocalContext, LocalUserContext, ServerContext } from 'context/index.js'
+import type { Device } from 'device/index.js'
+import type { Invitation, InvitationState } from 'invitation/types.js'
+import type { Lockbox } from 'lockbox/index.js'
+import type { PermissionsMap, Role } from 'role/index.js'
+import type { Host, Server } from 'server/index.js'
+import type { Optional, ValidationResult } from 'util/index.js'
 
 // ********* MEMBER
 
