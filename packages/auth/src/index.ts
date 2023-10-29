@@ -14,6 +14,7 @@ export * from './team/constants.js'
 export * from './util/constants.js'
 export * from './role/constants.js'
 
+export * from './connection/message.js'
 export * from './connection/types.js'
 export * from './context/types.js'
 export * from './device/types.js'
