@@ -1,6 +1,6 @@
 {
   "name": "@localfirst/auth",
-  "version": "4.1.9",
+  "version": "4.2.0",
   "private": false,
   "author": {
     "name": "Herb Caudill",
@@ -23,8 +23,8 @@
     "watch": "yarn build --watch"
   },
   "dependencies": {
-    "@localfirst/crdx": "^4.1.9",
-    "@localfirst/crypto": "^4.1.9",
+    "@localfirst/crdx": "^4.2.0",
+    "@localfirst/crypto": "^4.2.0",
     "buffer": "^6.0.3",
     "debug": "^4.3.4",
     "eventemitter3": "^4.0.7",
