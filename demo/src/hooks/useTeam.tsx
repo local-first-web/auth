@@ -1,5 +1,5 @@
 import * as auth from '@localfirst/auth'
-import cuid from 'cuid'
+import { createId } from '@paralleldrive/cuid2'
 import * as React from 'react'
 import { teamContext } from '../components/TeamProvider'
 import { ConnectionManager } from '../ConnectionManager'
@@ -20,8 +20,7 @@ export const useTeam = () => {
 
   React.useEffect(() => {
     if (team) {
-      const updateTeamState = () =>
-        setPeerState(prev => ({ ...prev, state: team.state }))
+      const updateTeamState = () => setPeerState(prev => ({ ...prev, state: team.state }))
       team.addListener('updated', updateTeamState)
       return () => {
         team.removeListener('updated', updateTeamState)
@@ -45,7 +44,7 @@ export const useTeam = () => {
 
   const addAlert = (message: string, type: AlertInfo['type'] = 'info') => {
     setPeerState(prev => {
-      const alert = { id: cuid(), message, type }
+      const alert = { id: createId(), message, type }
       return {
         ...prev,
         alerts: prev.alerts.concat(alert),

@@ -1,4 +1,4 @@
-﻿import cuid from 'cuid'
+﻿import { createId } from '@paralleldrive/cuid2'
 import { append } from './append.js'
 import { type Action, type Graph } from './types.js'
 import { ROOT } from 'constants.js'
@@ -35,7 +35,7 @@ type CreateGraphParams<C = Record<string, unknown>> = {
 
 export const createGraph = <A extends Action, C = Record<string, unknown>>({
   user,
-  id = cuid(),
+  id = createId(),
   name = id,
   rootPayload = {},
   context = {} as C,

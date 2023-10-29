@@ -1,5 +1,5 @@
 ﻿import { randomKey } from '@localfirst/crypto'
-import cuid from 'cuid'
+import { createId } from '@paralleldrive/cuid2'
 import { createKeyset, KeyType } from 'keyset/index.js'
 import { type UserWithSecrets } from 'user/types.js'
 
@@ -8,7 +8,7 @@ import { type UserWithSecrets } from 'user/types.js'
  */
 export const createUser = (
   userName: string,
-  userId: string = cuid(),
+  userId: string = createId(),
   seed: string = randomKey()
 ): UserWithSecrets => {
   return {

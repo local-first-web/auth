@@ -35,7 +35,7 @@
     "classnames": "^2.3.2",
     "clipboard": "^2.0.11",
     "cross-env": "^7.0.3",
-    "cuid": "^3.0.0",
+    "@paralleldrive/cuid2": "^2.2.2",
     "cypress": "^13.3.3",
     "debug": "^4.3.4",
     "events": "^3.3.0",
