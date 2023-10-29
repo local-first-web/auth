@@ -11,7 +11,10 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "lerna run build",
+    "build": "run-s build:crypto build:crdx build:auth",
+    "build:crypto": "yarn workspace @localfirst/crypto build",
+    "build:crdx": "yarn workspace @localfirst/crdx build",
+    "build:auth": "yarn workspace @localfirst/auth build",
     "dev:demo": "yarn workspace @localfirst/auth-demo dev",
     "dev:cy:demo": "yarn workspace @localfirst/auth-demo dev:cy",
     "dev:cy": "run-p watch dev:cy:demo",
