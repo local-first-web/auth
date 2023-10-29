@@ -64,7 +64,8 @@ import {
   type TeamGraph,
 } from 'team/index.js'
 import { arraysAreEqual } from 'util/arraysAreEqual.js'
-import { EventEmitter, KeyType, assert, debug, truncateHashes } from 'util/index.js'
+import EventEmitter from 'eventemitter3'
+import { KeyType, assert, debug, truncateHashes } from 'util/index.js'
 import { syncMessageSummary } from 'util/testing/messageSummary.js'
 import { getUserKeysForDeviceFromGraph } from 'team/getUserKeysForDeviceFromGraph.js'
 import { getTeamState } from 'team/getTeamState.js'
@@ -84,6 +85,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   private incomingMessageQueue: Record<number, NumberedConnectionMessage> = {}
   private outgoingMessageIndex = 0
   private started = false
+
+  log: (...args: any[]) => void = () => {}
 
   // ACTIONS
 
@@ -195,7 +198,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       if ('theirUserKeys' in context && context.theirUserKeys !== undefined) {
         // New member
         context.team.admitMember(
-          context.theirProofOfInvitation as invitations.ProofOfInvitation, // WHY is this necessary
+          context.theirProofOfInvitation,
           context.theirUserKeys,
           context.theirUserName!
         )
@@ -542,9 +545,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     invitationProofIsValid: context => {
       assert(context.team)
       assert(context.theirProofOfInvitation)
-      const validation = context.team.validateInvitation(
-        context.theirProofOfInvitation as invitations.ProofOfInvitation
-      )
+      const validation = context.team.validateInvitation(context.theirProofOfInvitation)
       this.log('invitation validation: %o', validation)
       if (validation.isValid) {
         return true

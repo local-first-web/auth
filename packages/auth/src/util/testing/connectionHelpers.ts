@@ -1,14 +1,14 @@
 // ignore file coverage
-import { type EventNames } from 'eventemitter3'
-import { expect } from 'vitest'
-import { joinTestChannel } from './joinTestChannel.js'
-import { type UserStuff } from './setup.js'
-import { TestChannel } from './TestChannel.js'
 import { type Connection, type ConnectionEvents } from 'connection/Connection.js'
 import {
   type InviteeDeviceInitialContext,
   type InviteeMemberInitialContext,
 } from 'connection/types.js'
+import type EventEmitter from 'eventemitter3'
+import { expect } from 'vitest'
+import { TestChannel } from './TestChannel.js'
+import { joinTestChannel } from './joinTestChannel.js'
+import { type UserStuff } from './setup.js'
 
 // HELPERS
 
@@ -123,7 +123,10 @@ export const disconnection = async (a: UserStuff, b: UserStuff, message?: string
   }
 }
 
-export const all = async (connections: Connection[], event: EventNames<ConnectionEvents>) =>
+export const all = async (
+  connections: Connection[],
+  event: EventEmitter.EventNames<ConnectionEvents>
+) =>
   Promise.all(
     connections.map(async connection => {
       if (event === 'disconnected' && connection.state === 'disconnected') {
@@ -142,7 +145,10 @@ export const all = async (connections: Connection[], event: EventNames<Connectio
     })
   )
 
-export const any = async (connections: Connection[], event: EventNames<ConnectionEvents>) =>
+export const any = async (
+  connections: Connection[],
+  event: EventEmitter.EventNames<ConnectionEvents>
+) =>
   Promise.any(
     connections.map(async connection => {
       if (event === 'disconnected' && connection.state === 'disconnected') {
