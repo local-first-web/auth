@@ -16,6 +16,7 @@ export * from './role/constants.js'
 
 export * from './connection/message.js'
 export * from './connection/types.js'
+export * from './connection/errors.js'
 export * from './context/types.js'
 export * from './device/types.js'
 export * from './invitation/types.js'

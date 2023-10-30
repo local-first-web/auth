@@ -1,4 +1,3 @@
-import * as select from 'team/selectors/index.js'
 import {
   generateMessage,
   headsAreEqual,
@@ -12,19 +11,16 @@ import {
   type UserWithSecrets,
 } from '@localfirst/crdx'
 import {
-  type Hash,
   asymmetric,
   randomKey,
   symmetric,
   type Base58,
+  type Hash,
   type Payload,
 } from '@localfirst/crypto'
-import { assign, createMachine, interpret, type Interpreter } from 'xstate'
-import { protocolMachine } from './protocolMachine.js'
 import { deriveSharedKey } from 'connection/deriveSharedKey.js'
 import {
   buildError,
-  type ConnectionErrorPayload,
   type ConnectionErrorType,
   type ErrorMessage,
   type LocalErrorMessage,
@@ -44,18 +40,12 @@ import {
   type SyncMessage,
 } from 'connection/message.js'
 import { orderedDelivery } from 'connection/orderedDelivery.js'
-import {
-  isInvitee,
-  type Condition,
-  type ConnectionContext,
-  type ConnectionParams,
-  type ConnectionState,
-  type SendFunction,
-  type StateMachineAction,
-} from 'connection/types.js'
 import { getDeviceId, parseDeviceId, type Device, type DeviceWithSecrets } from 'device/index.js'
+import EventEmitter from 'eventemitter3'
 import * as invitations from 'invitation/index.js'
 import { cast } from 'server/cast.js'
+import { getTeamState } from 'team/getTeamState.js'
+import { getUserKeysForDeviceFromGraph } from 'team/getUserKeysForDeviceFromGraph.js'
 import {
   Team,
   decryptTeamGraph,
@@ -63,12 +53,22 @@ import {
   type TeamContext,
   type TeamGraph,
 } from 'team/index.js'
+import * as select from 'team/selectors/index.js'
 import { arraysAreEqual } from 'util/arraysAreEqual.js'
-import EventEmitter from 'eventemitter3'
 import { KeyType, assert, debug, truncateHashes } from 'util/index.js'
 import { syncMessageSummary } from 'util/testing/messageSummary.js'
-import { getUserKeysForDeviceFromGraph } from 'team/getUserKeysForDeviceFromGraph.js'
-import { getTeamState } from 'team/getTeamState.js'
+import { assign, createMachine, interpret, type Interpreter } from 'xstate'
+import { protocolMachine } from './protocolMachine.js'
+import {
+  isInvitee,
+  type Condition,
+  type ConnectionContext,
+  type ConnectionEvents,
+  type ConnectionParams,
+  type ConnectionState,
+  type SendFunction,
+  type StateMachineAction,
+} from './types.js'
 
 const { DEVICE } = KeyType
 
@@ -874,16 +874,3 @@ const stateSummary = (state = 'disconnected'): string =>
         .map(key => `${key}:${stateSummary(state[key])}`)
         .filter(s => s.length)
         .join(',')
-
-// TYPES
-
-export type ConnectionEvents = {
-  change: (summary: string) => void
-  message: (message: unknown) => void
-  remoteError: (error: ConnectionErrorPayload) => void
-  localError: (error: ConnectionErrorPayload) => void
-  connected: () => void
-  joined: ({ team, user }: { team: Team; user: UserWithSecrets }) => void
-  updated: () => void
-  disconnected: (event: ConnectionMessage) => void
-}

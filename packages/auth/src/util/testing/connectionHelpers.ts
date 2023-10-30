@@ -1,5 +1,5 @@
 // ignore file coverage
-import { type Connection, type ConnectionEvents } from 'connection/Connection.js'
+import { type Connection, type ConnectionEvents } from 'connection/index.js'
 import {
   type InviteeDeviceInitialContext,
   type InviteeMemberInitialContext,
