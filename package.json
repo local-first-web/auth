@@ -15,6 +15,7 @@
     "build:crypto": "yarn workspace @localfirst/crypto build",
     "build:crdx": "yarn workspace @localfirst/crdx build",
     "build:auth": "yarn workspace @localfirst/auth build",
+    "dev:demo:automerge": "yarn workspace @localfirst/auth-demo-automerge-repo dev",
     "dev:demo": "yarn workspace @localfirst/auth-demo dev",
     "dev:cy:demo": "yarn workspace @localfirst/auth-demo dev:cy",
     "dev:cy": "run-p watch dev:cy:demo",
@@ -52,7 +53,8 @@
   },
   "workspaces": [
     "packages/*",
-    "demo"
+    "demo",
+    "demo-automerge-repo"
   ],
   "prettier": {
     "arrowParens": "avoid",
