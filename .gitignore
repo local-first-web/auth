@@ -1,7 +1,7 @@
 *.log
 .DS_Store
-node_modules
 dist
+.vscode/settings.json
 
 node_modules
 package-lock.json
