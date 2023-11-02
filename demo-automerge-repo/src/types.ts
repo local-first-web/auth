@@ -1,5 +1,5 @@
 ﻿import type * as auth from '@localfirst/auth'
-import { type ConnectionManager } from 'ConnectionManager'
+import { type Repo } from '@automerge/automerge-repo'
 
 export type UserName = string
 export type ConnectionStatus = string
@@ -11,7 +11,7 @@ export type PeerState = {
   device: auth.DeviceWithSecrets
   team?: auth.Team
   teamState?: auth.TeamState
-  connectionManager?: ConnectionManager
+  repo?: Repo
   online: boolean
   connectionStatus: Record<UserName, ConnectionStatus>
   alerts: AlertInfo[]
