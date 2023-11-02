@@ -16,6 +16,7 @@ module.exports = {
     '*.js',
     // or with the demo
     'demo/**/*',
+    'demo-automerge-repo/**/*',
   ],
 
   rules: {
