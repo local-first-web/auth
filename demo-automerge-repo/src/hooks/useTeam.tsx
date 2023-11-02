@@ -1,17 +1,17 @@
 import * as auth from '@localfirst/auth'
 import { createId } from '@paralleldrive/cuid2'
 import * as React from 'react'
-import { teamContext } from '../components/TeamProvider'
+import { TeamContext } from '../components/TeamProvider'
 import { ConnectionManager } from '../ConnectionManager'
 import { type AlertInfo, type PeerState } from '../types.js'
-import { assert } from '../util/assert'
+import assert from 'assert'
 import { randomTeamName } from '../util/randomTeamName'
 
 // TODO: make this an environment var
 const relayUrls = ['ws://localhost:8080']
 
 export const useTeam = () => {
-  const context = React.useContext(teamContext)
+  const context = React.useContext(TeamContext)
   assert(context, `useTeam must be used within a TeamProvider`)
 
   const [peerState, setPeerState] = context

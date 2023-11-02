@@ -1,23 +1,13 @@
 ﻿import React from 'react'
-import {
-  type PeerState,
-  type StoredPeerState,
-  type TeamContextPayload,
-} from '../types.js'
+import { type PeerState, type StoredPeerState, type TeamContextPayload } from '../types.js'
 import { RepoContext } from '@automerge/automerge-repo-react-hooks'
 import { Repo } from '@automerge/automerge-repo'
 import { LocalFirstAuthProvider } from '@automerge/automerge-repo-auth-localfirst'
 import { BroadcastChannelNetworkAdapter } from '@automerge/automerge-repo-network-broadcastchannel'
 import { BrowserWebSocketClientAdapter } from '@automerge/automerge-repo-network-websocket'
-import { device } from '@localfirst/auth'
 
-export const TeamProvider = ({
-  initialState,
-  onUpdate,
-  children,
-}: TeamProviderProps) => {
+export const TeamProvider = ({ initialState, onUpdate, children }: TeamProviderProps) => {
   const [peerState, setPeerState] = React.useState<PeerState>(initialState)
-
 
   const userDeviceContext = { user: peerState.user, device: peerState.device }
   const authProvider = new LocalFirstAuthProvider(userDeviceContext)
@@ -25,10 +15,9 @@ export const TeamProvider = ({
     authProvider,
     network: [
       new BroadcastChannelNetworkAdapter(),
-      new BrowserWebSocketClientAdapter("ws://localhost:3030"),
+      new BrowserWebSocketClientAdapter('ws://localhost:3030'),
     ],
   })
-
 
   React.useEffect(() => {
     // store state whenever it changes
@@ -38,16 +27,16 @@ export const TeamProvider = ({
   }, [peerState])
 
   return (
-    <RepoContext.Provider value={peerState.repo})>
-      <teamContext.Provider
-      value={[peerState, setPeerState]}
-      children={children}
-      />
+    <RepoContext.Provider value={repo}>
+      <TeamContext.Provider
+        value={[peerState, setPeerState]}
+        children={children}
+      ></TeamContext.Provider>
     </RepoContext.Provider>
   )
 }
 
-export const teamContext = React.createContext<TeamContextPayload>(undefined)
+export const TeamContext = React.createContext<TeamContextPayload | null>(null)
 
 // TYPES
 
