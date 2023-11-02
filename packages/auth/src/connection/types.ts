@@ -15,13 +15,33 @@ import { type ConnectionErrorPayload } from './errors.js'
 import { type ConnectionMessage } from './message.js'
 
 export type ConnectionEvents = {
+  /** state change in the connection */
   change: (summary: string) => void
+
+  /** message received from peer */
   message: (message: unknown) => void
+
+  /** Our peer has detected an error and reported it to us, e.g. we tried to join with an invalid invitation. */
   remoteError: (error: ConnectionErrorPayload) => void
+
+  /** We've detected an error locally, e.g. a peer tries to join with an invalid invitation. */
   localError: (error: ConnectionErrorPayload) => void
+
+  /** We're connected to a peer and have been mutually authenticated. */
   connected: () => void
+
+  /**
+  * We've successfully joined a team using an invitation. This event provides the team graph and
+  * the user's info (including keys). (When we're joining as a new device for an existing user,
+  * this is how we get the user's keys.) This event gives the application a chance to persist the
+  * team graph and the user's info.
+  */
   joined: ({ team, user }: { team: Team; user: UserWithSecrets }) => void
+
+  /** The team graph has been updated. This event gives the application a chance to persist the changes. */
   updated: () => void
+
+  /** The auth connection disconnects from a peer after entering an error state. */
   disconnected: (event: ConnectionMessage) => void
 }
 
