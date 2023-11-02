@@ -21,6 +21,8 @@
   "dependencies": {
     "@automerge/automerge-repo": "^1.0.13",
     "@automerge/automerge-repo-auth-localfirst": "file:c:/dev/xdev/automerge/automerge-repo/packages/automerge-repo-auth-localfirst",
+    "@automerge/automerge-repo-network-broadcastchannel": "^1.0.13",
+    "@automerge/automerge-repo-network-websocket": "^1.0.13",
     "@automerge/automerge-repo-react-hooks": "^1.0.13",
     "@ibm/plex": "^6.2.0",
     "@localfirst/auth": "^4.1.9",
