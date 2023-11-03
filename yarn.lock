@@ -836,20 +836,6 @@
     yargs "16.2.0"
     yargs-parser "20.2.4"
 
-"@localfirst/auth@^4.2.1":
-  version "4.2.1"
-  resolved "https://registry.yarnpkg.com/@localfirst/auth/-/auth-4.2.1.tgz#be4e8a25243e8e808a5abe57c3754548823fe4df"
-  integrity sha512-Ve1TNfyIa78ruK0vcWxYtl4P/XAIXs0TFr7iNIywxcWz6mj/Fp3ppINxvOoC8cCD3RH4rMhg0kqTobCZ6GOJwQ==
-  dependencies:
-    "@localfirst/crdx" "^4.2.0"
-    "@localfirst/crypto" "^4.2.0"
-    buffer "^6.0.3"
-    debug "^4.3.4"
-    eventemitter3 "^5.0.1"
-    fast-memoize "^2.5.2"
-    lodash "^4.17.21"
-    xstate "4.26"
-
 "@localfirst/relay-client@^3.6.2":
   version "3.6.2"
   resolved "https://registry.yarnpkg.com/@localfirst/relay-client/-/relay-client-3.6.2.tgz#c859fdbfe1e3ace056281806cedbcc7e35ec60f8"
