@@ -281,6 +281,9 @@ const setup = (...humanUsers: SetupConfig) => {
     server,
     serverWithSecrets,
     team: serverTeam,
+
+    // the server just uses the connection without any special server-specific context,
+    // by casting itself as both a user and a device
     connectionContext: {
       userName: host,
       user: cast.toUser(serverWithSecrets),
