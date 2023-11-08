@@ -1,5 +1,5 @@
 // ignore file coverage
-import { TEST_GRAPH_KEYS as keys } from '_test/helpers/setup'
+import { TEST_GRAPH_KEYS as keys } from '_test/helpers/setup.js'
 import { expect } from 'vitest'
 import { setup } from './setup.js'
 import { createGraph, type Graph, headsAreEqual } from 'graph/index.js'

@@ -1,4 +1,4 @@
-import { TEST_GRAPH_KEYS as keys, setup } from '_test/helpers/setup'
+import { TEST_GRAPH_KEYS as keys, setup } from '_test/helpers/setup.js'
 import { clone } from 'lodash-es'
 import '_test/helpers/expect/toBeValid'
 import { describe, expect, test } from 'vitest'

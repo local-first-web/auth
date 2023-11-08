@@ -1,6 +1,6 @@
 import { asymmetric } from '@localfirst/crypto'
 import '_test/helpers/expect/toBeValid'
-import { TEST_GRAPH_KEYS as keys } from '_test/helpers/setup'
+import { TEST_GRAPH_KEYS as keys } from '_test/helpers/setup.js'
 import { describe, expect, test } from 'vitest'
 import {
   counterReducer,

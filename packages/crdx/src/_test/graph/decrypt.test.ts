@@ -1,4 +1,4 @@
-import { TEST_GRAPH_KEYS } from '_test/helpers/setup'
+import { TEST_GRAPH_KEYS } from '_test/helpers/setup.js'
 import { describe, expect, it } from 'vitest'
 import { append, createGraph, decryptGraph, decryptLink, redactGraph } from 'graph/index.js'
 import { createKeyset } from 'keyset/index.js'

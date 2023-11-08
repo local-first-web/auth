@@ -3,8 +3,8 @@ import {
   expectNotToBeSynced,
   expectToBeSynced,
   setupWithNetwork,
-} from '_test/helpers/Network'
-import { TEST_GRAPH_KEYS as keys } from '_test/helpers/setup'
+} from '_test/helpers/Network.js'
+import { TEST_GRAPH_KEYS as keys } from '_test/helpers/setup.js'
 import { describe, expect, it, vitest } from 'vitest'
 import { type Graph, append, createGraph, headsAreEqual } from 'graph/index.js'
 import { generateMessage, initSyncState, receiveMessage } from 'sync/index.js'

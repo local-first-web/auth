@@ -1,7 +1,7 @@
 ﻿/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { asymmetric } from '@localfirst/crypto'
-import { buildGraph } from '_test/helpers/graph'
-import { TEST_GRAPH_KEYS as keys, setup } from '_test/helpers/setup'
+import { buildGraph } from '_test/helpers/graph.js'
+import { TEST_GRAPH_KEYS as keys, setup } from '_test/helpers/setup.js'
 import { describe, expect, test, vitest } from 'vitest'
 import { hashEncryptedLink } from 'graph/hashLink.js'
 import { append, createGraph, getHead, getLink, getRoot } from 'graph/index.js'
