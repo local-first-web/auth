@@ -1,5 +1,5 @@
 import { TEST_GRAPH_KEYS as keys, setup } from '_test/helpers/setup'
-import clone from 'lodash/clone'
+import { clone } from 'lodash-es'
 import '_test/helpers/expect/toBeValid'
 import { describe, expect, test } from 'vitest'
 import { append, createGraph, merge } from 'graph/index.js'
