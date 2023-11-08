@@ -4,7 +4,7 @@ import {
   type InviteeDeviceInitialContext,
   type InviteeMemberInitialContext,
 } from 'connection/types.js'
-import type EventEmitter from 'eventemitter3'
+import type { EventEmitter } from 'eventemitter3'
 import { expect } from 'vitest'
 import { TestChannel } from './TestChannel.js'
 import { joinTestChannel } from './joinTestChannel.js'

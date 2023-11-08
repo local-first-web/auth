@@ -1,4 +1,4 @@
-import EventEmitter from 'eventemitter3'
+import { EventEmitter } from 'eventemitter3'
 
 export class TestChannel extends EventEmitter {
   private peers = 0
