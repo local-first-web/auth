@@ -263,9 +263,7 @@ const setup = (...humanUsers: SetupConfig) => {
   // Set everybody's team to the one containing the server
   for (const userStuff of Object.values(users)) {
     const { userId, user, device, team } = userStuff
-    if (userId === founder.userId) {
-      continue
-    }
+    if (userId === founder.userId) continue
 
     if (team) {
       const newTeam = loadTeam(savedGraph, { user, device }, teamKeys)
@@ -282,12 +280,8 @@ const setup = (...humanUsers: SetupConfig) => {
     serverWithSecrets,
     team: serverTeam,
 
-    // the server just uses the connection without any special server-specific context,
-    // by casting itself as both a user and a device
     connectionContext: {
-      userName: host,
-      user: cast.toUser(serverWithSecrets),
-      device: cast.toDevice(serverWithSecrets),
+      server: serverWithSecrets,
       team: serverTeam,
     },
     connection: {},

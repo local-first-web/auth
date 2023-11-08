@@ -69,7 +69,13 @@ import {
   type ConnectionState,
   type SendFunction,
   type StateMachineAction,
+  isServer,
+  MemberInitialContext,
+  InviteeInitialContext,
+  InitialContext,
 } from './types.js'
+import { type ServerWithSecrets } from 'server/index.js'
+import { ServerContext } from 'index.js'
 
 const { DEVICE } = KeyType
 
@@ -594,13 +600,28 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     this.sendFn = sendMessage
 
+    const fakeServerContext = (server: ServerWithSecrets) => {
+      const userId = server.host
+      const userName = server.host
+      const deviceName = server.host
+      const { keys } = server
+      return {
+        user: { userId, userName, keys },
+        device: { userId, deviceName, keys },
+      }
+    }
+
+    const initialContext: InitialContext = isServer(context)
+      ? { ...context, ...fakeServerContext(context.server) }
+      : context
+
     this.log = (msg: string, ...args: any[]) =>
       debug(`lf:auth:connection:${this.userName}:${this.peerUserName}`)(msg, ...args)
 
     // Define state machine
     const machineConfig = { actions: this.actions, guards: this.guards }
     const machine = createMachine(protocolMachine, machineConfig) //
-      .withContext(context as ConnectionContext)
+      .withContext(initialContext as ConnectionContext)
 
     // Instantiate the machine
     this.machine = interpret(machine) as Interpreter<

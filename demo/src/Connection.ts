@@ -21,7 +21,6 @@ export class Connection extends EventEmitter {
     this.authConnection = new auth.Connection({
       context,
       sendMessage,
-      peerUserId,
     })
 
     // listen for incoming messages and pass them to the auth connection

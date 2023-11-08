@@ -18,6 +18,7 @@ import type { Member, Team } from 'team/index.js'
 import type { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
 import type { ConnectionErrorPayload } from './errors.js'
 import type { ConnectionMessage } from './message.js'
+import type { ServerWithSecrets } from 'server/index.js'
 
 export type ConnectionEvents = {
   /** state change in the connection */
@@ -81,17 +82,14 @@ export type InviteeDeviceInitialContext = {
 
 export type InviteeInitialContext = InviteeMemberInitialContext | InviteeDeviceInitialContext
 
+export type ServerInitialContext = {
+  server: ServerWithSecrets
+  team: Team
+}
+
 /** The type of the initial context depends on whether we are already a member, or we've just been
  * invited and are connecting to the team for the first time. */
-export type InitialContext = MemberInitialContext | InviteeInitialContext
-
-// Type guard: MemberInitialContext vs InviteeInitialContext
-export const isInvitee = (c: InitialContext | ConnectionContext): c is InviteeInitialContext =>
-  !('team' in c)
-
-export const isInviteeMember = (
-  c: InviteeMemberInitialContext | InviteeDeviceInitialContext
-): c is InviteeMemberInitialContext => 'user' in c
+export type InitialContext = MemberInitialContext | InviteeInitialContext | ServerInitialContext
 
 export type ConnectionParams = {
   /** A function to send messages to our peer. This how you hook this up to your network stack. */
@@ -122,11 +120,13 @@ export type ConnectionContext = {
   theirEncryptedSeed?: Base58
   sessionKey?: Base58
   error?: ErrorPayload
-  device: DeviceWithSecrets
   syncState?: SyncState
-} & Partial<MemberInitialContext> &
+
+  device: DeviceWithSecrets | FirstUseDeviceWithSecrets
+} & Partial<InviteeDeviceInitialContext> &
   Partial<InviteeMemberInitialContext> &
-  Partial<InviteeDeviceInitialContext>
+  Partial<ServerInitialContext> &
+  Partial<MemberInitialContext>
 
 export type StateMachineAction =
   | ActionFunction<ConnectionContext, ConnectionMessage>
@@ -185,3 +185,16 @@ export type ConnectionState = {
     disconnected: Record<string, unknown>
   }
 }
+
+// Type guard: InviteeInitialContext vs others
+export const isInvitee = (c: InitialContext | ConnectionContext): c is InviteeInitialContext =>
+  !('team' in c)
+
+// Type guard: InviteeMemberInitialContext vs InviteeDeviceInitialContext
+export const isInviteeMember = (
+  c: InviteeMemberInitialContext | InviteeDeviceInitialContext
+): c is InviteeMemberInitialContext => 'user' in c
+
+// Type guard: ServerInitialContext vs others
+export const isServer = (c: InitialContext | ConnectionContext): c is ServerInitialContext =>
+  'server' in c
