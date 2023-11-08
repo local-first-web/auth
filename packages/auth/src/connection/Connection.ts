@@ -630,7 +630,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
       // Deliver any stored messages we might have received before starting
       for (const m of storedMessages) {
-        void this.deliver(m)
+        this.deliver(m)
       }
     }
 
@@ -744,7 +744,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   /** Passes an incoming message from the peer on to this protocol machine, guaranteeing that
    *  messages will be delivered in the intended order (according to the `index` field on the message) */
-  public async deliver(serializedMessage: string) {
+  public deliver(serializedMessage: string) {
     const message = insistentlyParseJson(serializedMessage) as ConnectionMessage
     assert(
       isNumberedConnectionMessage(message),
