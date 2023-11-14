@@ -1,4 +1,4 @@
-import { Keyring, KeysetWithSecrets } from './types'
+import type { Keyring, KeysetWithSecrets } from './types.js'
 
 export const getLatestGeneration = (keyring: Keyring) => {
   let latest: KeysetWithSecrets | undefined

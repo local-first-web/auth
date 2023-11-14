@@ -41,7 +41,7 @@ import {
 } from 'connection/message.js'
 import { orderedDelivery } from 'connection/orderedDelivery.js'
 import { getDeviceId, parseDeviceId, type Device, type DeviceWithSecrets } from 'device/index.js'
-import EventEmitter from 'eventemitter3'
+import { EventEmitter } from 'eventemitter3'
 import * as invitations from 'invitation/index.js'
 import { cast } from 'server/cast.js'
 import { getTeamState } from 'team/getTeamState.js'

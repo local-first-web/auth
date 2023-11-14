@@ -1,4 +1,4 @@
-import memoize from 'fast-memoize'
+import memize from 'memize'
 import { getHashes, getLink } from './graph.js'
 import { isPredecessorHash } from './predecessors.js'
 import { isSuccessorHash } from './successors.js'
@@ -28,7 +28,7 @@ export const getConcurrentHashes = (graph: Graph<any, any>, hash: Hash): Hash[] 
  * }
  * ```
  */
-export const calculateConcurrency = memoize(<A extends Action, C>(graph: Graph<A, C>) => {
+export const calculateConcurrency = memize(<A extends Action, C>(graph: Graph<A, C>) => {
   const concurrencyLookup: Record<Hash, Hash[]> = {}
 
   // for each link, find all links that are concurrent with it

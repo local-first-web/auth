@@ -1,5 +1,5 @@
-import { KeysetWithSecrets, createKeyring } from '@localfirst/crdx'
-import { TeamState } from 'team/types'
+import { type KeysetWithSecrets, createKeyring } from '@localfirst/crdx'
+import { type TeamState } from 'team/types.js'
 import { KeyType } from 'util/types.js'
 import { keyMap } from './keyMap.js'
 

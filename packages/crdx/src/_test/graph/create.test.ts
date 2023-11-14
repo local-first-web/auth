@@ -1,4 +1,4 @@
-import { TEST_GRAPH_KEYS as keys, setup } from '_test/helpers/setup'
+import { TEST_GRAPH_KEYS as keys, setup } from '_test/helpers/setup.js'
 import { describe, expect, test } from 'vitest'
 import { createGraph, deserialize, getHead, getRoot, serialize } from 'graph/index.js'
 import { validate } from 'validator/index.js'

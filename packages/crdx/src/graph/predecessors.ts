@@ -1,4 +1,4 @@
-﻿import uniq from 'lodash/uniq'
+﻿import { uniq } from 'lodash-es'
 import { getLink } from './graph.js'
 import { type Action, type Graph, type Link } from './types.js'
 import { type Hash, memoize } from 'util/index.js'

@@ -1,1 +1,1 @@
-export { default as clone } from 'lodash/clone'
+export { clone } from 'lodash-es'

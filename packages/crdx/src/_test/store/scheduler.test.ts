@@ -1,4 +1,4 @@
-import { TEST_GRAPH_KEYS as keys } from '_test/helpers/setup'
+import { TEST_GRAPH_KEYS as keys } from '_test/helpers/setup.js'
 import { describe, expect, it } from 'vitest'
 import { createGraph, type Link, type Resolver, type RootAction } from 'graph/index.js'
 import { createStore } from 'store/index.js'

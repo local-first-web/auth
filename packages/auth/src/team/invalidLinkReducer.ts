@@ -1,5 +1,4 @@
-import { type TeamLink, type TeamState } from './types.js'
-import { type Member } from '.'
+import { type Member, type TeamLink, type TeamState } from './types.js'
 
 /**
  * This function is used as an alternative reducer for invalid links; the normal reducer just

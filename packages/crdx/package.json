@@ -28,7 +28,8 @@
     "debug": "4",
     "events": "3",
     "fast-memoize": "2",
-    "lodash": "4"
+    "lodash-es": "^4.17.21",
+    "memize": "^2.1.0"
   },
   "publishConfig": {
     "access": "public"

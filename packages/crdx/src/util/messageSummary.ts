@@ -1,4 +1,4 @@
-import { type NetworkMessage } from '_test/helpers/Network'
+import { type NetworkMessage } from '_test/helpers/Network.js'
 import { truncateHashes } from './truncateHashes.js'
 import { type SyncMessage } from 'sync/index.js'
 

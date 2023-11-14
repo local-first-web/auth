@@ -14,3 +14,4 @@ yalc.lock
 *.cpuprofile
 
 .nx
+.vscode/settings.json

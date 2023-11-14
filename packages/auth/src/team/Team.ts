@@ -29,7 +29,7 @@ import {
   type Device,
   type DeviceWithSecrets,
 } from 'device/index.js'
-import EventEmitter from 'eventemitter3'
+import { EventEmitter } from 'eventemitter3'
 import * as invitations from 'invitation/index.js'
 import { type ProofOfInvitation } from 'invitation/index.js'
 import { normalize } from 'invitation/normalize.js'

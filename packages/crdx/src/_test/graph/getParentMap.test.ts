@@ -1,4 +1,4 @@
-import { buildGraph, findByPayload } from '_test/helpers/graph'
+import { buildGraph, findByPayload } from '_test/helpers/graph.js'
 import { describe, expect, it } from 'vitest'
 import { getLink, getParentMap, type Graph, type Action } from 'graph/index.js'
 import { type Hash } from 'util/index.js'

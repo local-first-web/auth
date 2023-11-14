@@ -1,5 +1,5 @@
 import { makeRandom } from '@herbcaudill/random'
-import { TEST_GRAPH_KEYS as keys } from '_test/helpers/setup'
+import { TEST_GRAPH_KEYS as keys } from '_test/helpers/setup.js'
 import { describe, expect, test } from 'vitest'
 import { type RootAction, createGraph } from 'graph/index.js'
 import { type Store, createStore } from 'store/index.js'
