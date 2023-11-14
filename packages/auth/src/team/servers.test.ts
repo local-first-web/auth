@@ -9,7 +9,7 @@ import {
   createTeam,
   invitation,
   loadTeam,
-} from '..'
+} from '../index.js'
 import { cast } from 'server/cast.js'
 import { type Host, type Server, type ServerWithSecrets } from 'server/index.js'
 import { KeyType } from 'util/index.js'
