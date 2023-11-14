@@ -273,7 +273,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       const identityLookupResult = context.team.lookupIdentity(identityClaim)
 
       const fail = (type: ConnectionErrorType, message: string) => {
-        context.error = this.throwError(type, () => message)
+        context.error = this.throwError(type, { message })
       }
 
       switch (identityLookupResult) {
