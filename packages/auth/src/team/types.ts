@@ -243,6 +243,13 @@ export type ChangeServerKeysAction = {
   }
 }
 
+export type MessageAction = {
+  type: 'MESSAGE'
+  payload: BasePayload & {
+    message: unknown
+  }
+}
+
 export type TeamAction =
   | RootAction
   | AddMemberAction
@@ -264,6 +271,7 @@ export type TeamAction =
   | AddServerAction
   | RemoveServerAction
   | ChangeServerKeysAction
+  | MessageAction
 
 export type TeamContext = {
   deviceId: string
@@ -294,6 +302,7 @@ export type TeamState = {
   servers: Server[]
   lockboxes: Lockbox[]
   invitations: InvitationMap
+  messages: unknown[]
 
   // We keep track of removed members and devices primarily so that we deliver the correct message
   // to them when we refuse to connect

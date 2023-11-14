@@ -754,6 +754,17 @@ export class Team extends EventEmitter {
 
   public hasServer = (host: Host) => select.hasServer(this.state, host)
 
+  /** ************** MESSAGES */
+
+  public addMessage = (message: unknown) => {
+    this.dispatch({
+      type: 'MESSAGE',
+      payload: { message },
+    })
+  }
+
+  public messages = () => select.messages(this.state)
+
   /** ************** CRYPTO */
 
   /**

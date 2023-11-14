@@ -5,6 +5,7 @@ import {
   addDevice,
   addMember,
   addMemberRoles,
+  addMessage,
   addRole,
   addServer,
   changeDeviceKeys,
@@ -245,6 +246,13 @@ const getTransforms = (action: TeamAction): Transform[] => {
       const { keys } = action.payload
       return [
         changeServerKeys(keys), // Replace this server's public keys with the ones provided
+      ]
+    }
+
+    case 'MESSAGE': {
+      const { message } = action.payload
+      return [
+        addMessage(message), // Add the message to the team's message log
       ]
     }
 
