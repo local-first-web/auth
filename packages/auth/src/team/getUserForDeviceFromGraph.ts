@@ -1,5 +1,5 @@
 import type { Base58, Keyring, UserWithSecrets } from '@localfirst/crdx'
-import { FirstUseDeviceWithSecrets } from 'device/index.js'
+import type { FirstUseDeviceWithSecrets } from 'device/index.js'
 import { KeyType, assert } from 'util/index.js'
 import { getTeamState } from './getTeamState.js'
 import * as select from './selectors/index.js'
