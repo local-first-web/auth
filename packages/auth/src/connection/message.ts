@@ -1,15 +1,15 @@
-import {
-  type Base58,
-  type Hash,
-  type KeyScope,
-  type Keyring,
-  type Keyset,
-  type SyncMessage as SyncPayload,
+import type {
+  Base58,
+  Hash,
+  KeyScope,
+  Keyring,
+  Keyset,
+  SyncMessage as SyncPayload,
 } from '@localfirst/crdx'
-import { type ErrorMessage, type LocalErrorMessage } from './errors.js'
-import { type Challenge } from 'connection/types.js'
-import { type ProofOfInvitation } from 'invitation/index.js'
-import { Device, FirstUseDevice } from 'index.js'
+import type { ErrorMessage, LocalErrorMessage } from './errors.js'
+import type { Challenge } from 'connection/types.js'
+import type { ProofOfInvitation } from 'invitation/index.js'
+import type { Device, FirstUseDevice } from 'index.js'
 
 export type ReadyMessage = {
   type: 'REQUEST_IDENTITY'
