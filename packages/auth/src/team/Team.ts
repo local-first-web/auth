@@ -763,7 +763,7 @@ export class Team extends EventEmitter {
     })
   }
 
-  public messages = () => select.messages(this.state)
+  public messages = <T = unknown>() => select.messages(this.state) as T[]
 
   /** ************** CRYPTO */
 
