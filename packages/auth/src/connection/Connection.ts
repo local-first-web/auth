@@ -808,7 +808,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   private logMessage(direction: 'in' | 'out', message: ConnectionMessage, index: number) {
     const arrow = direction === 'in' ? '<-' : '->'
 
-    const userName = trimUserId(this.userId)
+    //TODO: Figure out why we can't use simply this.userId instead
+    const userName = this.user ? trimUserId(this.user.userId) : 'unknown'
     this.log(`${userName}${arrow}${this.peerName} #${index} ${messageSummary(message)}`)
   }
 
