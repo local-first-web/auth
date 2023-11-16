@@ -45,7 +45,7 @@ import { EventEmitter } from 'eventemitter3'
 import * as invitations from 'invitation/index.js'
 import { cast } from 'server/cast.js'
 import { getTeamState } from 'team/getTeamState.js'
-import { getUserForDeviceFromGraph } from 'team/getUserKeysForDeviceFromGraph.js'
+import { getUserForDeviceFromGraph } from 'team/getUserForDeviceFromGraph.js'
 import {
   Team,
   decryptTeamGraph,
