@@ -26,11 +26,13 @@ export const actionFingerprint = (link: TeamLink) => {
       }
 
       case 'ADD_DEVICE': {
-        return getDeviceId(action.payload.device)
+        const { userId, deviceName } = action.payload.device
+        return getDeviceId(userId, deviceName)
       }
 
       case 'REMOVE_DEVICE': {
-        return getDeviceId(action.payload)
+        const { userId, deviceName } = action.payload
+        return getDeviceId(userId, deviceName)
       }
 
       case 'INVITE_MEMBER':
