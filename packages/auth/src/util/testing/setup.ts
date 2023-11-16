@@ -105,9 +105,10 @@ export const setup = (..._config: SetupConfig) => {
       localContext: { user, device: phone },
       graphContext: { deviceId: phone.deviceId },
       connectionContext: member
-        ? { user, device, team }
+        ? ({ user, userName: user.userId, device, team } as MemberInitialContext)
         : ({
             user,
+            userName: user.userId,
             device,
             invitee: { type: KeyType.DEVICE, name: phone.deviceName },
             invitationSeed: '',
