@@ -63,18 +63,20 @@ export type SendFunction = (message: string) => void
 
 export type MemberInitialContext = {
   user: UserWithSecrets
+  userName: string | undefined
   device: DeviceWithSecrets
   team: Team
 }
 
 export type InviteeMemberInitialContext = {
   user: UserWithSecrets
+  userName: string | undefined
   device: DeviceWithSecrets
   invitationSeed: string
 }
 
 export type InviteeDeviceInitialContext = {
-  userName: string
+  userName: string | undefined
   device: FirstUseDeviceWithSecrets
   invitationSeed: string
 }
@@ -105,7 +107,7 @@ export type ErrorPayload = {
   details?: any
 }
 
-export type ConnectionContext = InitialContext & {
+export type ConnectionContext = {
   theyHaveInvitation?: boolean
   theirIdentityClaim?: KeyScope
   theirUserName?: string
@@ -122,9 +124,11 @@ export type ConnectionContext = InitialContext & {
   sessionKey?: Base58
   error?: ErrorPayload
   device: DeviceWithSecrets
-
+  team?: Team
   syncState?: SyncState
-}
+} & Partial<MemberInitialContext> &
+  Partial<InviteeMemberInitialContext> &
+  Partial<InviteeDeviceInitialContext>
 
 // & Partial<MemberInitialContext> &
 //   Partial<InviteeMemberInitialContext> &
