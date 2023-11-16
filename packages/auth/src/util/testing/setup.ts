@@ -1,11 +1,11 @@
 import { createKeyring, createUser, type UserWithSecrets } from '@localfirst/crdx'
-import { type Connection, type InitialContext } from 'connection/index.js'
-import { type LocalUserContext } from 'context/index.js'
+import type { MemberInitialContext, Connection, InitialContext } from 'connection/index.js'
+import type { LocalUserContext } from 'context/index.js'
 import * as devices from 'device/index.js'
-import { type DeviceWithSecrets } from 'device/index.js'
+import type { DeviceWithSecrets } from 'device/index.js'
 import { ADMIN } from 'role/index.js'
 import * as teams from 'team/index.js'
-import { type Team, type TeamContext } from 'team/index.js'
+import type { Team, TeamContext } from 'team/index.js'
 import { arrayToMap, assert, KeyType } from 'util/index.js'
 
 export type SetupConfig = Array<Array<TestUserSettings | string> | TestUserSettings | string>
