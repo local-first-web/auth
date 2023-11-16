@@ -107,7 +107,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             {
               proofOfInvitation: this.myProofOfInvitation(context),
               userName: context.userName,
-              userKeys: redactKeys(context.user.keys),
+              userKeys: redactKeys(context.user?.keys),
               device: redactDevice(context.device),
             }
           : // I'm a new device for an existing user and I have an invitation
