@@ -1,23 +1,23 @@
-import {
-  type Base58,
-  type Hash,
-  type KeyScope,
-  type Keyset,
-  type SyncState,
-  type UnixTimestamp,
-  type UserWithSecrets,
+import type {
+  Base58,
+  Hash,
+  KeyScope,
+  Keyset,
+  SyncState,
+  UnixTimestamp,
+  UserWithSecrets,
 } from '@localfirst/crdx'
-import {
+import type {
   FirstUseDeviceWithSecrets,
-  type DeviceWithSecrets,
+  DeviceWithSecrets,
   FirstUseDevice,
   Device,
 } from 'device/index.js'
-import { type ProofOfInvitation } from 'invitation/index.js'
-import { type Member, type Team } from 'team/index.js'
-import { type ActionFunction, type AssignAction, type ConditionPredicate } from 'xstate'
-import { type ConnectionErrorPayload } from './errors.js'
-import { type ConnectionMessage } from './message.js'
+import type { ProofOfInvitation } from 'invitation/index.js'
+import type { Member, Team } from 'team/index.js'
+import type { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
+import type { ConnectionErrorPayload } from './errors.js'
+import type { ConnectionMessage } from './message.js'
 
 export type ConnectionEvents = {
   /** state change in the connection */
