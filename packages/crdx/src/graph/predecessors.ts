@@ -3,11 +3,13 @@ import { getLink } from './graph.js'
 import { type Action, type Graph, type Link } from './types.js'
 import { type Hash, memoize } from 'util/index.js'
 
+const memoizeResolver = (graph: Graph<any, any>, hash: Hash) => `${graph.head.join('')}:${hash}`
+
 export const getPredecessorHashes = memoize((graph: Graph<any, any>, hash: Hash): Hash[] => {
   const parents = (getLink(graph, hash)?.body.prev ?? []) as Hash[]
   const predecessors = parents.flatMap(parent => getPredecessorHashes(graph, parent))
   return uniq(parents.concat(predecessors))
-})
+}, memoizeResolver)
 
 /** Returns the set of predecessors of `link` (not including `link`) */
 export const getPredecessors = <A extends Action, C>(

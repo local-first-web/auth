@@ -1,8 +1,9 @@
 ﻿// ignore file coverage
-import memize from 'memize'
+
+import { memoize as _memoize } from 'lodash-es'
 
 const BYPASS = false
 
-const passthrough = <T>(f: T) => f
+export const nomemoize = <T>(f: T, _resolver: (...args: Parameters<T>) => any) => f
 
-export const memoize = (BYPASS ? passthrough : memize) as typeof memize
+export const memoize = (BYPASS ? nomemoize : _memoize) as typeof _memoize
