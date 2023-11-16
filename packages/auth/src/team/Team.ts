@@ -270,7 +270,7 @@ export class Team extends EventEmitter {
   /** Returns a list of all members on the team */
   public members(): Member[] // Overload: all members
   /** Returns the member with the given user name */
-  public members(userId: string, options?: { includeRemoved: boolean }): Member // Overload: one member
+  public members(userId: string, options?: LookupOptions): Member // Overload: one member
   //
   public members(userId: string = ALL, options = { includeRemoved: true }): Member | Member[] {
     return userId === ALL //
@@ -426,16 +426,27 @@ export class Team extends EventEmitter {
 
   /** ************** DEVICES */
 
+  // TODO: All of these functions should take just a deviceId now that we have it and it's
+  // guaranteed to be unique. This would be a breaking change.
+
   /** Returns true if the given member has a device by the given name */
   public hasDevice = (userId: string, deviceName: string): boolean =>
     select.hasDevice(this.state, userId, deviceName)
 
   /** Find a member's device by name */
-  public device = (
-    userId: string,
-    deviceName: string,
-    options = { includeRemoved: false }
-  ): Device => select.device(this.state, userId, deviceName, options)
+  public device(userId: string, deviceName: string, options?: LookupOptions): Device
+  public device(deviceId: string, options?: LookupOptions): Device
+  public device(...args: Array<string | LookupOptions | undefined>): Device {
+    if (typeof args[1] === 'string') {
+      // 1st overload  - lookup by userId and deviceName
+      const [userId, deviceName, options] = args as [string, string, LookupOptions?]
+      return select.device(this.state, userId, deviceName, options)
+    } else {
+      // 2nd overload - lookup by deviceId
+      const [deviceId, options] = args as [string, LookupOptions?]
+      return select.deviceById(this.state, deviceId, options)
+    }
+  }
 
   /** Remove a member's device */
   public removeDevice = (userId: string, deviceName: string) => {
@@ -462,6 +473,12 @@ export class Team extends EventEmitter {
   public deviceWasRemoved = (userId: string, deviceName: string) => {
     const deviceId = getDeviceId({ userId, deviceName })
     return select.deviceWasRemoved(this.state, deviceId)
+  }
+
+  /** Looks for a member that has this device. If none is found, return  */
+  public memberByDeviceId = (deviceId: string) => {
+    const { userId } = this.device(deviceId)
+    return this.members(userId)
   }
 
   /** ************** INVITATIONS */
@@ -944,4 +961,8 @@ export class Team extends EventEmitter {
 
     return newLockboxes
   }
+}
+
+interface LookupOptions {
+  includeRemoved: boolean
 }

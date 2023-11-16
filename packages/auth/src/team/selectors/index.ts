@@ -1,4 +1,5 @@
 export * from './device.js'
+export * from './deviceById.js'
 export * from './deviceWasRemoved.js'
 export * from './hasMember.js'
 export * from './hasRole.js'
