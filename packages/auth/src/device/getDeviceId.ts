@@ -1,13 +1,7 @@
-const separator = '::'
+// const separator = '::'
 
 /** Unique identifier for a device = deviceName + userName */
-export const getDeviceId = ({
-  _deviceName,
-  _userId,
-}: {
-  userId: string
-  deviceName: string
-}): string => {
+export const getDeviceId = (_userId: string, _deviceName: string) => {
   throw new Error('getDeviceId is deprecated')
 }
 
