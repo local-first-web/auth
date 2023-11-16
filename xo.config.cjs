@@ -46,6 +46,7 @@ module.exports = {
     'unicorn/prefer-spread': OFF, // don't find [...a] readable compared to a.split('')
     'default-case': OFF, // not necessary with typescript
     'unicorn/prefer-node-protocol': OFF, // false positives with /util folder
+    'no-else-return': OFF, // don't agree
 
     // DISABLED FOR EXPEDIENCY, MIGHT REVISIT
     'max-params': OFF,
