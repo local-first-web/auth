@@ -5,7 +5,6 @@ import { truncateHashes } from './truncateHashes.js'
 const substituteTokens = (s: string) =>
   truncateHashes(s)
     .replaceAll('"', '')
-    .replaceAll('::', '')
 
     .replaceAll(/alice/gi, '👩🏾')
     .replaceAll(/bob/gi, '👨🏻‍🦲')
@@ -19,7 +18,7 @@ const substituteTokens = (s: string) =>
 
 export function debug(prefix: string) {
   const debug = originalDebug(prefix)
-  debug.log = (s: string, ...args: any[]) => {
+  debug.log = (s: string) => {
     originalDebug('lf:auth')(substituteTokens(s))
   }
 
