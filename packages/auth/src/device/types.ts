@@ -2,6 +2,7 @@ import { type Keyset, type KeysetWithSecrets } from '@localfirst/crdx'
 
 export type DeviceInfo = {
   userId: string
+  deviceId: string
   deviceName: string
 }
 

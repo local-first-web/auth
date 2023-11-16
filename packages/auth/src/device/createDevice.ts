@@ -1,15 +1,17 @@
 import { createKeyset } from '@localfirst/crdx'
+import { createId } from '@paralleldrive/cuid2'
 import { randomKey } from '@localfirst/crypto'
 import { getDeviceId } from './getDeviceId.js'
 import { type DeviceWithSecrets } from './types.js'
 import { KeyType } from 'util/index.js'
 
 export const createDevice = (
-  userName: string,
+  userId: string,
   deviceName: string,
   seed: string = randomKey()
 ): DeviceWithSecrets => {
-  const deviceId = getDeviceId({ userId: userName, deviceName })
-  const keys = createKeyset({ type: KeyType.DEVICE, name: deviceId }, seed)
-  return { userId: userName, deviceName, keys }
+  const deviceNameForKeys = getDeviceId({ userId, deviceName })
+  const deviceId = createId()
+  const keys = createKeyset({ type: KeyType.DEVICE, name: deviceNameForKeys }, seed)
+  return { userId, deviceId, deviceName, keys }
 }
