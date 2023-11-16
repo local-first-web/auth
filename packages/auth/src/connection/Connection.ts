@@ -569,7 +569,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       assert(context.team)
       assert(context.device)
       const { team, device } = context
-      const { userId, deviceName } = device
+      const { userId, deviceName } = device as DeviceWithSecrets
       const memberWasRemoved = team.memberWasRemoved(userId)
       const deviceWasRemoved = team.deviceWasRemoved(userId, deviceName)
       return memberWasRemoved || deviceWasRemoved
@@ -602,12 +602,12 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     this.sendFn = sendMessage
 
-    this.setLogPrefix(context)
+    this.setLogPrefix(context as ConnectionContext)
 
     // Define state machine
     const machineConfig = { actions: this.actions, guards: this.guards }
     const machine = createMachine(protocolMachine, machineConfig) //
-      .withContext(context)
+      .withContext(context as ConnectionContext)
 
     // Instantiate the machine
     this.machine = interpret(machine) as Interpreter<
