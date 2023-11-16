@@ -7,7 +7,12 @@ import {
   type UnixTimestamp,
   type UserWithSecrets,
 } from '@localfirst/crdx'
-import { type DeviceWithSecrets } from 'device/index.js'
+import {
+  FirstUseDeviceWithSecrets,
+  type DeviceWithSecrets,
+  FirstUseDevice,
+  Device,
+} from 'device/index.js'
 import { type ProofOfInvitation } from 'invitation/index.js'
 import { type Member, type Team } from 'team/index.js'
 import { type ActionFunction, type AssignAction, type ConditionPredicate } from 'xstate'
@@ -31,11 +36,11 @@ export type ConnectionEvents = {
   connected: () => void
 
   /**
-  * We've successfully joined a team using an invitation. This event provides the team graph and
-  * the user's info (including keys). (When we're joining as a new device for an existing user,
-  * this is how we get the user's keys.) This event gives the application a chance to persist the
-  * team graph and the user's info.
-  */
+   * We've successfully joined a team using an invitation. This event provides the team graph and
+   * the user's info (including keys). (When we're joining as a new device for an existing user,
+   * this is how we get the user's keys.) This event gives the application a chance to persist the
+   * team graph and the user's info.
+   */
   joined: ({ team, user }: { team: Team; user: UserWithSecrets }) => void
 
   /** The team graph has been updated. This event gives the application a chance to persist the changes. */
@@ -70,8 +75,7 @@ export type InviteeMemberInitialContext = {
 
 export type InviteeDeviceInitialContext = {
   userName: string
-  userId: string
-  device: DeviceWithSecrets
+  device: FirstUseDeviceWithSecrets
   invitationSeed: string
 }
 
@@ -101,14 +105,14 @@ export type ErrorPayload = {
   details?: any
 }
 
-export type ConnectionContext = {
+export type ConnectionContext = InitialContext & {
   theyHaveInvitation?: boolean
   theirIdentityClaim?: KeyScope
   theirUserName?: string
 
   theirProofOfInvitation?: ProofOfInvitation
   theirUserKeys?: Keyset
-  theirDeviceKeys?: Keyset
+  theirDevice?: Device | FirstUseDevice
 
   challenge?: Challenge
   peer?: Member
@@ -120,9 +124,11 @@ export type ConnectionContext = {
   device: DeviceWithSecrets
 
   syncState?: SyncState
-} & Partial<MemberInitialContext> &
-  Partial<InviteeMemberInitialContext> &
-  Partial<InviteeDeviceInitialContext>
+}
+
+// & Partial<MemberInitialContext> &
+//   Partial<InviteeMemberInitialContext> &
+//   Partial<InviteeDeviceInitialContext>
 
 export type StateMachineAction =
   | ActionFunction<ConnectionContext, ConnectionMessage>

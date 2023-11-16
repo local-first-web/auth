@@ -195,9 +195,7 @@ export type AdmitDeviceAction = {
   type: 'ADMIT_DEVICE'
   payload: BasePayload & {
     id: Base58 // Invitation ID
-    userId: string // User name of the device's owner
-    deviceName: string // Name given to the device by the owner
-    deviceKeys: Keyset // Device keys provided by the new device
+    device: Device
   }
 }
 

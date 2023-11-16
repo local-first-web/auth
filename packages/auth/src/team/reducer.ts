@@ -193,13 +193,7 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     case 'ADMIT_DEVICE': {
-      const { id, userId, deviceName, deviceKeys } = action.payload
-
-      const device: Device = {
-        userId,
-        deviceName,
-        keys: deviceKeys,
-      }
+      const { id, device } = action.payload
 
       return [
         useInvitation(id), // Mark the invitation as used

@@ -2,7 +2,7 @@ import { createKeyring, createUser, type UserWithSecrets } from '@localfirst/crd
 import { type Connection, type InitialContext } from 'connection/index.js'
 import { type LocalUserContext } from 'context/index.js'
 import * as devices from 'device/index.js'
-import { type DeviceWithSecrets, getDeviceId } from 'device/index.js'
+import { type DeviceWithSecrets } from 'device/index.js'
 import { ADMIN } from 'role/index.js'
 import * as teams from 'team/index.js'
 import { type Team, type TeamContext } from 'team/index.js'
@@ -89,21 +89,21 @@ export const setup = (..._config: SetupConfig) => {
     const phone = phones[userId]
 
     const localContext = { user, device }
-    const graphContext = { deviceId: getDeviceId(device) }
+    const graphContext = { deviceId: device.deviceId }
     const team = member
       ? teams.load(graph, localContext, createKeyring(teamKeys)) // Members get a copy of the source team
       : teams.createTeam(userId, localContext, randomSeed) // Non-members get a dummy empty placeholder team
 
     const phoneStuff: UserStuff = {
       userId,
-      deviceId: getDeviceId(phone),
+      deviceId: phone.deviceId,
       user,
       team: member
         ? teams.load(graph, localContext, createKeyring(teamKeys)) // Members get a copy of the source team
         : teams.createTeam(userId, localContext, randomSeed), // Non-members get a dummy empty placeholder team
       device: phone,
       localContext: { user, device: phone },
-      graphContext: { deviceId: getDeviceId(phone) },
+      graphContext: { deviceId: phone.deviceId },
       connectionContext: member
         ? { user, device, team }
         : ({
@@ -132,7 +132,7 @@ export const setup = (..._config: SetupConfig) => {
 
     return {
       userId,
-      deviceId: getDeviceId(device),
+      deviceId: device.deviceId,
       user,
       team,
       device,

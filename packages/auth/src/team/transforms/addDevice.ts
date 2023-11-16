@@ -1,4 +1,4 @@
-import { getDeviceId, type Device } from 'device/index.js'
+import { type Device } from 'device/index.js'
 import { type Transform } from 'team/types.js'
 
 export const addDevice =
@@ -22,6 +22,6 @@ export const addDevice =
       }),
 
       // Remove device ID from list of removed devices (e.g. if it was removed at one point and is being re-added)
-      removedDevices: state.removedDevices.filter(d => d.keys.name === getDeviceId(device)),
+      removedDevices: state.removedDevices.filter(d => d.keys.name === device.deviceId),
     }
   }

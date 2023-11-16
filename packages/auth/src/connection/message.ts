@@ -9,31 +9,31 @@ import {
 import { type ErrorMessage, type LocalErrorMessage } from './errors.js'
 import { type Challenge } from 'connection/types.js'
 import { type ProofOfInvitation } from 'invitation/index.js'
+import { Device, FirstUseDevice } from 'index.js'
 
 export type ReadyMessage = {
   type: 'REQUEST_IDENTITY'
 }
 
-/**
- * - If we're a member, we just authorize as a device. So all we provide is an identity claim for a
- *   device.
- * - If we're a new member with an invitation, we want to give them our user's public keys and our
- *   device's public keys.
- * - If we're a new device with an invitation, we just want to give them our device public keys.
- */
 export type ClaimIdentityMessage = {
   type: 'CLAIM_IDENTITY'
   payload:
     | {
-        // I'm already a member
-        identityClaim: KeyScope
+        // I'm already a member, I just send my deviceId
+        identityClaim: KeyScope // { type: 'DEVICE', name: deviceId }
       }
     | {
-        // I have an invitation
+        // I'm a new user and I have an invitation
         proofOfInvitation: ProofOfInvitation
-        userKeys?: Keyset // Only for new member (not for new device)
-        deviceKeys: Keyset
         userName: string
+        userKeys: Keyset
+        device: Device
+      }
+    | {
+        // I'm a new device for an existing user and I have an invitation
+        proofOfInvitation: ProofOfInvitation
+        userName: string
+        device: FirstUseDevice
       }
 }
 

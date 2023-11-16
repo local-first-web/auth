@@ -1,11 +1,13 @@
 import { type Keyset } from '@localfirst/crdx'
-import { parseDeviceId } from 'device/index.js'
+import * as select from 'team/selectors/index.js'
 import { type Transform } from 'team/types.js'
 
 export const changeDeviceKeys =
   (keys: Keyset): Transform =>
   state => {
-    const { userId, deviceName } = parseDeviceId(keys.name)
+    const deviceId = keys.name
+    const device = select.deviceById(state, deviceId)
+    const { userId, deviceName } = device
     return {
       ...state,
       members: state.members.map(member =>

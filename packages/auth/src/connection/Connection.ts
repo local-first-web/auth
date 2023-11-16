@@ -40,12 +40,12 @@ import {
   type SyncMessage,
 } from 'connection/message.js'
 import { orderedDelivery } from 'connection/orderedDelivery.js'
-import { getDeviceId, parseDeviceId, type Device, type DeviceWithSecrets } from 'device/index.js'
+import { parseDeviceId, type Device, type DeviceWithSecrets, redactDevice } from 'device/index.js'
 import { EventEmitter } from 'eventemitter3'
 import * as invitations from 'invitation/index.js'
 import { cast } from 'server/cast.js'
 import { getTeamState } from 'team/getTeamState.js'
-import { getUserKeysForDeviceFromGraph } from 'team/getUserKeysForDeviceFromGraph.js'
+import { getUserForDeviceFromGraph } from 'team/getUserKeysForDeviceFromGraph.js'
 import {
   Team,
   decryptTeamGraph,
@@ -93,28 +93,30 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendIdentityClaim'`) */
   private readonly actions: Record<string, StateMachineAction> = {
     sendIdentityClaim: async context => {
-      const maybeUserKeys =
-        'user' in context && context.user !== undefined
-          ? { userKeys: redactKeys(context.user.keys) }
-          : {}
       const payload: ClaimIdentityMessage['payload'] =
         'team' in context
-          ? // We already belong to a team
+          ? // I'm already a member
             {
               identityClaim: {
                 type: DEVICE,
-                name: getDeviceId(context.device),
+                name: context.device.deviceId,
               },
             }
-          : // We are holding an invitation
+          : 'user' in context && 'userName' in context
+          ? // I'm a new user and I have an invitation
             {
               proofOfInvitation: this.myProofOfInvitation(context),
-              deviceKeys: redactKeys(context.device.keys),
+              userName: context.userName,
+              userKeys: redactKeys(context.user.keys),
+              device: redactDevice(context.device),
+            }
+          : // I'm a new device for an existing user and I have an invitation
+            {
+              proofOfInvitation: this.myProofOfInvitation(context),
               userName: context.userName!,
-              ...maybeUserKeys,
+              device: redactDevice(context.device),
             }
 
-      // Console.log('sending identity claim', payload)
       this.sendMessage({
         type: 'CLAIM_IDENTITY',
         payload,
@@ -127,6 +129,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         if ('identityClaim' in event.payload) {
           // Update peer user name
           const deviceId = event.payload.identityClaim.name
+
           this.peerUserId = parseDeviceId(deviceId).userId
           this.setLogPrefix(context)
 
@@ -164,23 +167,17 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         return undefined
       },
 
-      theirDeviceKeys: (context, event) => {
+      theirDevice: (_, event) => {
         event = event as ClaimIdentityMessage
-        if ('deviceKeys' in event.payload) {
-          // Update peer user name
-          const deviceId = event.payload.deviceKeys.name
-          this.peerUserId = parseDeviceId(deviceId).userId
-          this.setLogPrefix(context)
-          return event.payload.deviceKeys
+        if ('device' in event.payload) {
+          return event.payload.device
         }
-
         return undefined
       },
 
-      theirUserName(context, event) {
+      theirUserName(_, event) {
         event = event as ClaimIdentityMessage
         if ('userName' in event.payload) {
-          // Console.log({ theirUserName: event.payload.userName })
           return event.payload.userName
         }
 
@@ -204,11 +201,9 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         )
       } else {
         // New device for existing member
-        assert(context.theirDeviceKeys)
-        const keys = context.theirDeviceKeys
-        const { userId, deviceName } = parseDeviceId(context.theirDeviceKeys.name)
-        const device: Device = { userId, deviceName, keys }
-        context.team.admitDevice(context.theirProofOfInvitation, device)
+        assert(context.theirDevice)
+
+        context.team.admitDevice(context.theirProofOfInvitation, context.theirDevice)
       }
 
       // Welcome them by sending the team's signature chain, so they can reconstruct team membership state
@@ -229,13 +224,14 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       // Join the team
       if (user === undefined) {
         // Joining as a new device for an existing member.
-        const { userId, userName = userId } = context
-        assert(userName)
-        assert(userId)
-
-        // We don't know our user keys yet, so we need to get those from the graph.
-        const keys = getUserKeysForDeviceFromGraph(serializedGraph, teamKeyring, device)
-        const user: UserWithSecrets = { userId, userName, keys }
+        // We don't know our user id or user keys yet, so we need to get those from the graph.
+        const proofOfInvitation = this.myProofOfInvitation(context)
+        const user = getUserForDeviceFromGraph({
+          serializedGraph,
+          keyring: teamKeyring,
+          device,
+          invitationId: proofOfInvitation.id,
+        })
 
         // Now we can rehydrate the graph
         const team = this.rehydrateTeam(serializedGraph, user, device, teamKeyring)

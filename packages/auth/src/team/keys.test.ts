@@ -1,4 +1,3 @@
-import { getDeviceId } from 'device/index.js'
 import { ADMIN } from 'role/index.js'
 import { KeyType } from 'util/index.js'
 import { setup } from 'util/testing/index.js'
@@ -70,8 +69,7 @@ describe('Team', () => {
       expect(teamKeys.generation).toBe(0)
 
       // Bob changes his device keys
-      const deviceId = getDeviceId(bob.device)
-      const newKeys = createKeyset({ type: DEVICE, name: deviceId })
+      const newKeys = createKeyset({ type: DEVICE, name: bob.device.deviceId })
       bob.team.changeKeys(newKeys)
 
       // Bob still has access to team keys
@@ -122,7 +120,7 @@ describe('Team', () => {
     it("Bob can't change Alice's device keys", () => {
       const { alice, bob } = setup('alice', { user: 'bob', admin: false })
 
-      const deviceId = getDeviceId(alice.device)
+      const { deviceId } = alice.device
       const newKeys = createKeyset({ type: DEVICE, name: deviceId })
 
       const tryToChangeAlicesKeys = () => {
@@ -157,7 +155,7 @@ describe('Team', () => {
     it("Eve can't change Bob's device keys", () => {
       const { bob, eve } = setup('alice', 'bob', { user: 'eve', admin: false })
 
-      const deviceId = getDeviceId(bob.device)
+      const { deviceId } = bob.device
       const newKeys = createKeyset({ type: DEVICE, name: deviceId })
 
       // @ts-expect-error - rotateKeys is private, but eve don't care

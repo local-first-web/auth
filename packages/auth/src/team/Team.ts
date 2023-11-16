@@ -22,13 +22,7 @@ import * as identity from 'connection/identity.js'
 import { type Challenge } from 'connection/types.js'
 import { type LocalUserContext } from 'context/index.js'
 import * as devices from 'device/index.js'
-import {
-  getDeviceId,
-  parseDeviceId,
-  redactDevice,
-  type Device,
-  type DeviceWithSecrets,
-} from 'device/index.js'
+import { parseDeviceId, redactDevice, type Device, type DeviceWithSecrets } from 'device/index.js'
 import { EventEmitter } from 'eventemitter3'
 import * as invitations from 'invitation/index.js'
 import { type ProofOfInvitation } from 'invitation/index.js'
@@ -454,8 +448,10 @@ export class Team extends EventEmitter {
       return
     }
 
+    const device = this.device(userId, deviceName)
+    const { deviceId } = device
+
     // Create new keys & lockboxes for any keys this device had access to
-    const deviceId = getDeviceId({ userId, deviceName })
     const lockboxes = this.rotateKeys({ type: DEVICE, name: deviceId })
 
     // Post the removal to the graph
@@ -471,7 +467,8 @@ export class Team extends EventEmitter {
 
   /** Returns true if the device was once on the team but was removed */
   public deviceWasRemoved = (userId: string, deviceName: string) => {
-    const deviceId = getDeviceId({ userId, deviceName })
+    const device = this.device(userId, deviceName, { includeRemoved: true })
+    const { deviceId } = device
     return select.deviceWasRemoved(this.state, deviceId)
   }
 
@@ -656,27 +653,37 @@ export class Team extends EventEmitter {
   }
 
   /** A member calls this to admit a new device for themselves based on proof of invitation */
-  public admitDevice = (proof: ProofOfInvitation, device: DeviceWithSecrets | Device) => {
+  public admitDevice = (proof: ProofOfInvitation, firstUseDevice: devices.FirstUseDevice) => {
     const validation = this.validateInvitation(proof)
-    if (!validation.isValid) {
-      throw validation.error
-    }
+    if (!validation.isValid) throw validation.error
 
     const { id } = proof
-    const { userId, deviceName, keys } = device
+    const invitation = this.getInvitation(id)
+    const { userId } = invitation
 
+    // TODO: In this setup, a device can only be admitted by the user whose device it is. This works
+    // fine when peers connect directly to each other, but it doesn't work for star-shaped networks
+    // where every device connects to a sync server.
+    //
+    // The reason it's set up this way is because the user has the user-level secret keys and can
+    // store them in a lockbox for the device.
+    //
+    // If we want an arbitrary member (or server) to be able to admit a device, we need another mechanism to
+    // get the user-level secret keys to the device.
     assert(this.userId === userId, "Can't admit someone else's device")
 
-    const deviceLockbox = lockbox.create(this.context.user.keys, keys)
+    // Now we can add the userId to the device and post it to the graph
+    const device: Device = { ...firstUseDevice, userId }
+
+    // Store the user keys in a lockbox for the new device
+    const deviceLockbox = lockbox.create(this.context.user.keys, device.keys)
 
     // Post admission to the graph
     this.dispatch({
       type: 'ADMIT_DEVICE',
       payload: {
         id,
-        userId,
-        deviceName,
-        deviceKeys: redactKeys(keys),
+        device,
         lockboxes: [deviceLockbox],
       },
     })

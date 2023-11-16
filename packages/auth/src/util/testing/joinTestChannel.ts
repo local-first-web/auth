@@ -1,16 +1,15 @@
-import { pause } from './pause.js'
-import { type TestChannel } from './TestChannel.js'
 import { Connection } from 'connection/Connection.js'
 import { type InitialContext, type SendFunction } from 'connection/types.js'
-import { getDeviceId } from 'device/index.js'
+import { pause } from './pause.js'
+import { type TestChannel } from './TestChannel.js'
 
 /** Returns a function that can be used to join a specific test channel */
 export const joinTestChannel = (channel: TestChannel) => (context: InitialContext) => {
-  const id = getDeviceId(context.device)
+  const { deviceId } = context.device
 
   // Hook up send
   const sendMessage: SendFunction = message => {
-    channel.write(id, message)
+    channel.write(deviceId, message)
   }
 
   // Instantiate the connection service
@@ -18,7 +17,7 @@ export const joinTestChannel = (channel: TestChannel) => (context: InitialContex
 
   // Hook up receive
   channel.addListener('data', async (senderId, message) => {
-    if (senderId === id) {
+    if (senderId === deviceId) {
       return
     } // ignore messages that I sent
 

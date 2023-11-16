@@ -2,24 +2,15 @@ const separator = '::'
 
 /** Unique identifier for a device = deviceName + userName */
 export const getDeviceId = ({
-  deviceName,
-  userId,
+  _deviceName,
+  _userId,
 }: {
   userId: string
   deviceName: string
 }): string => {
-  if (deviceName === userId) {
-    return deviceName
-  }
-
-  return `${userId}${separator}${deviceName}`
+  throw new Error('getDeviceId is deprecated')
 }
 
-export const parseDeviceId = (deviceId: string): { userId: string; deviceName: string } => {
-  if (deviceId.includes(separator)) {
-    const [userId, deviceName] = deviceId.split(separator)
-    return { userId, deviceName }
-  }
-
-  return { userId: deviceId, deviceName: deviceId }
+export const parseDeviceId = (_deviceId: string): { userId: string; deviceName: string } => {
+  throw new Error('parseDeviceId is deprecated')
 }

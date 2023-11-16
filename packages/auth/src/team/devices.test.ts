@@ -26,7 +26,7 @@ describe('Team', () => {
       // DeviceWasRemoved works as expected
       expect(alice.team.deviceWasRemoved('alice', 'laptop')).toBe(false) // Device still exists
       expect(alice.team.deviceWasRemoved('bob', 'laptop')).toBe(true) // Device was removed
-      expect(alice.team.deviceWasRemoved('bob', 'phone')).toBe(false) // Device never existed
+      expect(() => alice.team.deviceWasRemoved('bob', 'phone')).toThrow() // Device never existed
     })
 
     it('throws when trying to access a removed device', () => {
