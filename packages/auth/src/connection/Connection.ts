@@ -167,11 +167,12 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         return undefined
       },
 
-      theirDevice: (_, event) => {
+      theirDevice(_, event) {
         event = event as ClaimIdentityMessage
         if ('device' in event.payload) {
           return event.payload.device
         }
+
         return undefined
       },
 
