@@ -1,4 +1,5 @@
-import { type Keyset, type KeysetWithSecrets } from '@localfirst/crdx'
+import type { Keyset, KeysetWithSecrets } from '@localfirst/crdx'
+import type { Optional } from 'util/types.js'
 
 export type DeviceInfo = {
   userId: string
@@ -9,6 +10,8 @@ export type DeviceInfo = {
 export type DeviceWithSecrets = {
   keys: KeysetWithSecrets
 } & DeviceInfo
+
+export type FirstUseDeviceWithSecrets = Optional<DeviceWithSecrets, 'userId'>
 
 export type Device = {
   keys: Keyset
