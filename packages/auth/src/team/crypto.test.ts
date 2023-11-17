@@ -46,7 +46,7 @@ describe('Team', () => {
         const signed = bob.team.sign(message)
 
         // 👩🏾 ✅ Alice verifies that it was signed by Bob
-        expect(signed.author.name).toBe('bob')
+        expect(signed.author.name).toBe(bob.userId)
         expect(alice.team.verify(signed)).toBe(true)
       })
     })
