@@ -19,13 +19,13 @@ describe('Team', () => {
     })
 
     it('deserializes a team after key rotations', () => {
-      const { alice } = setup('alice', 'bob')
+      const { alice, bob } = setup('alice', 'bob')
 
       // We start with generation 0 keys
       expect(alice.team.teamKeys().generation).toBe(0)
 
       // Alice removes Bob, triggering a key rotation
-      alice.team.remove('bob')
+      alice.team.remove(bob.userId)
       expect(alice.team.teamKeys().generation).toBe(1)
 
       // Alice does some other stuff — say she adds a role
