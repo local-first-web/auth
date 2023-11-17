@@ -1,5 +1,4 @@
 // ignore file coverage
-import { getDeviceId } from 'device/index.js'
 import type { TeamAction, TeamLink } from 'team/types.js'
 
 /** Identifies a unique action for the purpose of detecting duplicates;
@@ -26,13 +25,11 @@ export const actionFingerprint = (link: TeamLink) => {
       }
 
       case 'ADD_DEVICE': {
-        const { userId, deviceName } = action.payload.device
-        return getDeviceId(userId, deviceName)
+        return action.payload.device.deviceName
       }
 
       case 'REMOVE_DEVICE': {
-        const { userId, deviceName } = action.payload
-        return getDeviceId(userId, deviceName)
+        return action.payload.deviceName
       }
 
       case 'INVITE_MEMBER':

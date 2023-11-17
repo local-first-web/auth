@@ -25,14 +25,13 @@ export type ClaimIdentityMessage = {
     | {
         // I'm a new user and I have an invitation
         proofOfInvitation: ProofOfInvitation
-        userName: string | undefined
         userKeys: Keyset
         device: Device
       }
     | {
         // I'm a new device for an existing user and I have an invitation
         proofOfInvitation: ProofOfInvitation
-        userName: string | undefined
+        userName: string
         device: FirstUseDevice
       }
 }

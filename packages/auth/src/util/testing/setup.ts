@@ -94,6 +94,14 @@ export const setup = (..._config: SetupConfig) => {
       ? teams.load(graph, localContext, createKeyring(teamKeys)) // Members get a copy of the source team
       : teams.createTeam(userId, localContext, randomSeed) // Non-members get a dummy empty placeholder team
 
+    const connectionContext: InitialContext = member
+      ? { user, device, team }
+      : {
+          user,
+          device,
+          invitationSeed: '',
+        }
+
     const phoneStuff: UserStuff = {
       userId,
       deviceId: phone.deviceId,
@@ -104,29 +112,10 @@ export const setup = (..._config: SetupConfig) => {
       device: phone,
       localContext: { user, device: phone },
       graphContext: { deviceId: phone.deviceId },
-      connectionContext: member
-        ? ({ user, userName: user.userId, device, team } as MemberInitialContext)
-        : ({
-            user,
-            userName: user.userId,
-            device,
-            invitee: { type: KeyType.DEVICE, name: phone.deviceName },
-            invitationSeed: '',
-          } as InitialContext),
+      connectionContext,
       connection: {} as Record<string, Connection>,
       getState: (peer: string) => phoneStuff.connection[peer].state,
     }
-
-    const context = (
-      member
-        ? { user, device, team }
-        : {
-            user,
-            device,
-            invitee: { type: KeyType.USER, name: userId },
-            invitationSeed: '',
-          }
-    ) as InitialContext
 
     const connection = {} as Record<string, Connection>
     const getState = (peer: string) => connection[peer].state
@@ -141,7 +130,7 @@ export const setup = (..._config: SetupConfig) => {
       graphContext,
       phone,
       phoneStuff,
-      connectionContext: context,
+      connectionContext,
       connection,
       getState,
     }

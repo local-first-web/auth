@@ -102,12 +102,11 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                 name: context.device.deviceId,
               },
             }
-          : 'user' in context && 'userName' in context
+          : 'user' in context && context.user !== undefined
           ? // I'm a new user and I have an invitation
             {
               proofOfInvitation: this.myProofOfInvitation(context),
-              userName: context.userName,
-              userKeys: redactKeys(context.user?.keys),
+              userKeys: redactKeys(context.user.keys),
               device: redactDevice(context.device),
             }
           : // I'm a new device for an existing user and I have an invitation
@@ -124,27 +123,15 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     },
 
     receiveIdentityClaim: assign({
-      theirIdentityClaim: (context, event) => {
+      theirIdentityClaim: (_, event) => {
         event = event as ClaimIdentityMessage
-        if ('identityClaim' in event.payload) {
-          // Update peer user name
-          const deviceId = event.payload.identityClaim.name
-
-          this.peerUserId = parseDeviceId(deviceId).userId
-          this.setLogPrefix(context)
-
-          return event.payload.identityClaim
-        }
-
+        if ('identityClaim' in event.payload) return event.payload.identityClaim
         return undefined
       },
 
       theyHaveInvitation(_, event) {
         event = event as ClaimIdentityMessage
-        if ('proofOfInvitation' in event.payload) {
-          return true
-        }
-
+        if ('proofOfInvitation' in event.payload) return true
         return false
       },
 
@@ -158,7 +145,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       },
 
       theirUserKeys(_, event) {
-        // Console.log('theirUserKeys', event)
         event = event as ClaimIdentityMessage
         if ('userKeys' in event.payload) {
           return event.payload.userKeys
@@ -565,11 +551,12 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     // IDENTITY
 
+    // TODO: this is checking our device and userId, not our peer's???
     peerWasRemoved(context) {
       assert(context.team)
       assert(context.device)
       const { team, device } = context
-      const { userId, deviceName } = device as DeviceWithSecrets
+      const { userId, deviceName } = device
       const memberWasRemoved = team.memberWasRemoved(userId)
       const deviceWasRemoved = team.deviceWasRemoved(userId, deviceName)
       return memberWasRemoved || deviceWasRemoved
@@ -661,14 +648,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   /** Returns the local user's name. */
   get userId() {
-    if (!this.started) {
-      return '(not started)'
-    }
+    if (!this.started) return '(not started)'
 
     return 'user' in this.context && this.context.user !== undefined
       ? this.context.user.userId
-      : 'userId' in this.context && this.context.userId !== undefined
-      ? this.context.userId
       : 'unknown'
   }
 
@@ -808,8 +791,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   private logMessage(direction: 'in' | 'out', message: ConnectionMessage, index: number) {
     const arrow = direction === 'in' ? '<-' : '->'
 
-    //TODO: Figure out why we can't use simply this.userId instead
-    const userName = this.user ? trimUserId(this.user.userId) : 'unknown'
+    const userName = trimUserId(this.userId)
     this.log(`${userName}${arrow}${this.peerName} #${index} ${messageSummary(message)}`)
   }
 
