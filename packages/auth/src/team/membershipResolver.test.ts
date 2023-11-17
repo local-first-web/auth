@@ -357,21 +357,29 @@ describe('membershipResolver', () => {
     }
   }
 
-  const summary = (graph: TeamGraph) =>
-    graphSummary(graph).replaceAll('_MEMBER', '').replaceAll('_ROLE', '')
+  const summary = (graph: TeamGraph) => {
+    let result = graphSummary(graph).replaceAll('_MEMBER', '').replaceAll('_ROLE', '')
+    for (const user of users) {
+      result = result.replaceAll(user.userId, user.userName)
+    }
+
+    return result
+  }
 
   const { alice, bob, charlie } = userSetup('alice', 'bob', 'charlie')
+
+  const users = [alice, bob, charlie]
 
   // Constant actions
 
   const REMOVE_ALICE = {
     type: 'REMOVE_MEMBER',
-    payload: { userId: 'alice' },
+    payload: { userId: alice.userId },
   } as TeamAction
 
   const DEMOTE_ALICE = {
     type: 'REMOVE_MEMBER_ROLE',
-    payload: { userId: 'alice', roleName: ADMIN },
+    payload: { userId: alice.userId, roleName: ADMIN },
   } as TeamAction
 
   const ADD_BOB_AS_ADMIN = {
@@ -381,12 +389,12 @@ describe('membershipResolver', () => {
 
   const REMOVE_BOB = {
     type: 'REMOVE_MEMBER',
-    payload: { userId: 'bob' },
+    payload: { userId: bob.userId },
   } as TeamAction
 
   const DEMOTE_BOB = {
     type: 'REMOVE_MEMBER_ROLE',
-    payload: { userId: 'bob', roleName: ADMIN },
+    payload: { userId: bob.userId, roleName: ADMIN },
   } as TeamAction
 
   const ADD_CHARLIE = {
@@ -401,12 +409,12 @@ describe('membershipResolver', () => {
 
   const REMOVE_CHARLIE = {
     type: 'REMOVE_MEMBER',
-    payload: { userId: 'charlie' },
+    payload: { userId: charlie.userId },
   } as TeamAction
 
   const DEMOTE_CHARLIE = {
     type: 'REMOVE_MEMBER_ROLE',
-    payload: { userId: 'charlie', roleName: ADMIN },
+    payload: { userId: charlie.userId, roleName: ADMIN },
   } as TeamAction
 
   const ADD_ROLE_MANAGERS = {
