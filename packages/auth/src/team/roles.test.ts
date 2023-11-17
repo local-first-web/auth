@@ -12,21 +12,21 @@ describe('Team', () => {
   describe('roles', () => {
     it('Alice is admin', () => {
       const { alice } = setup('alice')
-      expect(alice.team.memberIsAdmin('alice')).toBe(true)
+      expect(alice.team.memberIsAdmin(alice.userId)).toBe(true)
     })
 
     it('Bob is not admin', () => {
-      const { alice } = setup('alice', { user: 'bob', admin: false })
-      expect(alice.team.memberIsAdmin('bob')).toBe(false)
+      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+      expect(alice.team.memberIsAdmin(bob.userId)).toBe(false)
     })
 
     it('Bob is admin', () => {
-      const { alice } = setup('alice', { user: 'bob', admin: true })
-      expect(alice.team.memberIsAdmin('bob')).toBe(true)
+      const { alice, bob } = setup('alice', { user: 'bob', admin: true })
+      expect(alice.team.memberIsAdmin(bob.userId)).toBe(true)
     })
 
     it('adds a role', () => {
-      const { alice } = setup('alice', 'bob')
+      const { alice, bob } = setup('alice', 'bob')
 
       // We only have default roles to start out
       expect(alice.team.roles().map(r => r.roleName)).toEqual([ADMIN])
@@ -40,8 +40,8 @@ describe('Team', () => {
       expect(alice.team.hasRole(MANAGERS)).toBe(true)
 
       // 👩🏾 Alice adds 👨🏻‍🦲 Bob to the managers role
-      alice.team.addMemberRole('bob', MANAGERS)
-      expect(alice.team.membersInRole(MANAGERS).map(m => m.userId)).toEqual(['bob'])
+      alice.team.addMemberRole(bob.userId, MANAGERS)
+      expect(alice.team.membersInRole(MANAGERS).map(m => m.userName)).toEqual(['bob'])
     })
 
     it('admins have access to all role keys', () => {
@@ -51,7 +51,7 @@ describe('Team', () => {
       alice.team.addRole(managers)
 
       // 👩🏾 Alice is not a member of the managers role
-      expect(alice.team.memberHasRole('alice', MANAGERS)).toBe(false)
+      expect(alice.team.memberHasRole(alice.userId, MANAGERS)).toBe(false)
 
       // But she does have access to the managers' keys
       const managersKeys = alice.team.roleKeys(MANAGERS)
@@ -62,13 +62,13 @@ describe('Team', () => {
       const { alice, bob } = setup('alice', { user: 'bob', admin: false })
 
       // 👨🏻‍🦲 Bob isn't an admin yet
-      expect(alice.team.memberIsAdmin('bob')).toBe(false)
+      expect(alice.team.memberIsAdmin(bob.userId)).toBe(false)
 
       // 👩🏾 Alice makes 👨🏻‍🦲 Bob an admin
-      alice.team.addMemberRole('bob', ADMIN)
+      alice.team.addMemberRole(bob.userId, ADMIN)
 
       // Now 👨🏻‍🦲 Bob is an admin
-      expect(alice.team.memberIsAdmin('bob')).toBe(true)
+      expect(alice.team.memberIsAdmin(bob.userId)).toBe(true)
 
       // Alice persists the team
       const savedTeam = alice.team.save()
@@ -86,17 +86,17 @@ describe('Team', () => {
 
       // Alice creates manager role and add 👨🏻‍🦲 Bob to it
       alice.team.addRole(managers)
-      alice.team.addMemberRole('bob', MANAGERS)
+      alice.team.addMemberRole(bob.userId, MANAGERS)
 
       // 👨🏻‍🦲 Bob is an admin
-      expect(alice.team.memberIsAdmin('bob')).toBe(true)
+      expect(alice.team.memberIsAdmin(bob.userId)).toBe(true)
 
       // Alice removes 👨🏻‍🦲 Bob's admin role
-      alice.team.removeMemberRole('bob', ADMIN)
+      alice.team.removeMemberRole(bob.userId, ADMIN)
 
       // 👨🏻‍🦲 Bob is no longer an admin
-      expect(alice.team.memberIsAdmin('bob')).toBe(false)
-      expect(alice.team.memberHasRole('bob', MANAGERS)).toBe(true)
+      expect(alice.team.memberIsAdmin(bob.userId)).toBe(false)
+      expect(alice.team.memberHasRole(bob.userId, MANAGERS)).toBe(true)
 
       // Alice persists the team
       const savedTeam = alice.team.save()
@@ -105,7 +105,7 @@ describe('Team', () => {
       bob.team = teams.load(savedTeam, bob.localContext, alice.team.teamKeys())
 
       // On his side, 👨🏻‍🦲 Bob can see that he is no longer an admin
-      expect(bob.team.memberIsAdmin('bob')).toBe(false)
+      expect(bob.team.memberIsAdmin(bob.userId)).toBe(false)
 
       // 👨🏻‍🦲 Bob doesn't have admin keys any more
       const bobLooksForAdminKeys = () => bob.team.roleKeys(ADMIN)
@@ -161,8 +161,8 @@ describe('Team', () => {
       const { alice } = setup('alice', { user: 'bob', admin: true })
 
       // 👩🏾 Alice and 👨🏻‍🦲 Bob are members
-      expect(alice.team.membersInRole(ADMIN).map(m => m.userId)).toEqual(['alice', 'bob'])
-      expect(alice.team.admins().map(m => m.userId)).toEqual(['alice', 'bob'])
+      expect(alice.team.membersInRole(ADMIN).map(m => m.userName)).toEqual(['alice', 'bob'])
+      expect(alice.team.admins().map(m => m.userName)).toEqual(['alice', 'bob'])
     })
 
     it('allows an admin other than Alice to add a member', () => {
@@ -274,8 +274,8 @@ describe('Team', () => {
       )
 
       alice.team.addRole(COOLKIDS)
-      alice.team.addMemberRole('bob', COOLKIDS)
-      alice.team.addMemberRole('charlie', COOLKIDS)
+      alice.team.addMemberRole(bob.userId, COOLKIDS)
+      alice.team.addMemberRole(charlie.userId, COOLKIDS)
 
       const keys = alice.team.teamKeys()
 
@@ -284,7 +284,7 @@ describe('Team', () => {
       charlie.team = teams.load(savedTeam, charlie.localContext, keys)
 
       // 👨🏻‍🦲 Bob is currently in the cool kids
-      expect(bob.team.memberHasRole('bob', COOLKIDS)).toBe(true)
+      expect(bob.team.memberHasRole(bob.userId, COOLKIDS)).toBe(true)
 
       // The cool kids keys have never been rotated
       expect(alice.team.roleKeys(COOLKIDS).generation).toBe(0)
@@ -301,7 +301,7 @@ describe('Team', () => {
       const copyOfKeysInCaseTheyKickMeOut = bob.team.roleKeys(COOLKIDS)
 
       // Sure enough, 👩🏾 Alice remembers that she can't stand 👨🏻‍🦲 Bob so she kicks him out
-      alice.team.removeMemberRole('bob', COOLKIDS)
+      alice.team.removeMemberRole(bob.userId, COOLKIDS)
 
       // Everyone gets the latest team state
       const savedTeam2 = alice.team.save()
