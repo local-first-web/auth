@@ -12,10 +12,15 @@ export const addDevice =
       members: state.members.map(member => {
         if (member.userId === userId) {
           const { devices = [] } = member
-          return {
-            ...member,
-            devices: [...devices, device],
-          }
+
+          // Don't add the device if it's already in the list
+          if (devices.find(d => d.deviceId === device.deviceId)) {
+            return member
+          } else
+            return {
+              ...member,
+              devices: [...devices, device],
+            }
         }
 
         return member
