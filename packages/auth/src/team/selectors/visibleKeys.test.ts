@@ -1,6 +1,6 @@
 import { createKeyset } from '@localfirst/crdx'
 import { describe, expect, it } from 'vitest'
-import * as select from '.'
+import * as select from './index.js'
 import { ADMIN } from 'role/index.js'
 import { KeyType, getScope } from 'util/index.js'
 import { setup } from 'util/testing/index.js'
@@ -45,15 +45,15 @@ describe('visibleKeys', () => {
       select.visibleKeys(alice.team.state, alice.device.keys).map(getScope)
 
     expect(getDeviceKeys()).toEqual([
-      { type: USER, name: 'alice' },
+      { type: USER, name: alice.userId },
       { type: TEAM, name: TEAM },
       { type: ROLE, name: ADMIN },
     ])
 
     // Rotating the keys creates new lockboxes, but we don't see duplicate keys
-    alice.team.changeKeys(createKeyset({ type: DEVICE, name: 'alice::laptop' }))
+    alice.team.changeKeys(createKeyset({ type: DEVICE, name: alice.device.deviceId }))
     expect(getDeviceKeys()).toEqual([
-      { type: USER, name: 'alice' },
+      { type: USER, name: alice.userId },
       { type: TEAM, name: TEAM },
       { type: ROLE, name: ADMIN },
     ])
