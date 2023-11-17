@@ -7,10 +7,9 @@ describe('Team', () => {
   describe('members', () => {
     it('has Alice as a root member', () => {
       const { alice } = setup('alice')
-
       expect(alice.team.members().length).toBe(1)
-      const A = alice.team.members('alice')
-      expect(A.userId).toBe('alice')
+      const A = alice.team.members(alice.userId)
+      expect(A.userName).toBe('alice')
     })
 
     it('has lockboxes for Alice containing the admin and team secrets', () => {
@@ -23,9 +22,12 @@ describe('Team', () => {
     })
 
     it('adds a member', () => {
-      const { alice } = setup('alice', 'bob')
+      const { alice, bob } = setup('alice', 'bob')
       expect(alice.team.members().length).toBe(2)
-      expect(alice.team.members('bob').userId).toBe('bob')
+
+      // look bob up by userId
+      const bob2 = alice.team.members(bob.userId)
+      expect(bob2.userName).toBe('bob')
     })
 
     it('makes lockboxes for added members', () => {
@@ -68,29 +70,29 @@ describe('Team', () => {
     })
 
     it('removes a member', () => {
-      const { alice } = setup('alice', 'bob')
+      const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
 
-      expect(alice.team.has('bob')).toBe(true)
-      expect(alice.team.memberWasRemoved('bob')).toBe(false)
+      expect(alice.team.has(bob.userId)).toBe(true)
+      expect(alice.team.memberWasRemoved(bob.userId)).toBe(false)
 
-      alice.team.remove('bob')
-      expect(alice.team.has('bob')).toBe(false)
+      alice.team.remove(bob.userId)
+      expect(alice.team.has(bob.userId)).toBe(false)
 
       // MemberWasRemoved works as expected
-      expect(alice.team.memberWasRemoved('alice')).toBe(false) // Alice is still a member
-      expect(alice.team.memberWasRemoved('bob')).toBe(true) // Bob is no longer a member
-      expect(alice.team.memberWasRemoved('charlie')).toBe(false) // Charlie was never a member
+      expect(alice.team.memberWasRemoved(alice.userId)).toBe(false) // Alice is still a member
+      expect(alice.team.memberWasRemoved(bob.userId)).toBe(true) // Bob is no longer a member
+      expect(alice.team.memberWasRemoved(charlie.userId)).toBe(false) // Charlie was never a member
     })
 
     it('rotates keys after removing a member', () => {
-      const { alice } = setup('alice', { user: 'bob', admin: true })
+      const { alice, bob } = setup('alice', { user: 'bob', admin: true })
 
       // Keys have never been rotated
       expect(alice.team.teamKeys().generation).toBe(0)
       expect(alice.team.adminKeys().generation).toBe(0)
 
       // Remove bob from team
-      alice.team.remove('bob')
+      alice.team.remove(bob.userId)
 
       // Team keys & admin keys have now been rotated once
       expect(alice.team.teamKeys().generation).toBe(1)
@@ -109,9 +111,9 @@ describe('Team', () => {
     })
 
     it('gets an individual member', () => {
-      const { alice } = setup('alice', 'bob')
-      const member = alice.team.members('bob')
-      expect(member.userId).toBe('bob')
+      const { alice, bob } = setup('alice', 'bob')
+      const member = alice.team.members(bob.userId)
+      expect(member.userName).toBe('bob')
     })
 
     it('throws if asked to get a nonexistent member', () => {
@@ -129,12 +131,12 @@ describe('Team', () => {
       ])
 
       expect(alice.team.members()).toHaveLength(1)
-      expect(alice.team.members().map(m => m.userId)).toEqual(['alice'])
+      expect(alice.team.members().map(m => m.userName)).toEqual(['alice'])
 
       alice.team.addForTesting(bob.user)
       alice.team.addForTesting(charlie.user)
       expect(alice.team.members()).toHaveLength(3)
-      expect(alice.team.members().map(m => m.userId)).toEqual(['alice', 'bob', 'charlie'])
+      expect(alice.team.members().map(m => m.userName)).toEqual(['alice', 'bob', 'charlie'])
     })
   })
 })
