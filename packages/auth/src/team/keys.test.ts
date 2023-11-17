@@ -51,7 +51,7 @@ describe('Team', () => {
       expect(teamKeys.generation).toBe(0)
 
       // Bob changes his user keys
-      const newKeys = createKeyset({ type: USER, name: 'bob' })
+      const newKeys = createKeyset({ type: USER, name: bob.userId })
       bob.team.changeKeys(newKeys)
 
       // Bob still has access to team keys
@@ -79,9 +79,9 @@ describe('Team', () => {
     })
 
     it("Alice can change Bob's keys", () => {
-      const { alice } = setup('alice', { user: 'bob', admin: false })
+      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
 
-      const newKeys = createKeyset({ type: USER, name: 'bob' })
+      const newKeys = createKeyset({ type: USER, name: bob.userId })
       const tryToChangeBobsKeys = () => {
         alice.team.changeKeys(newKeys)
       }
@@ -92,7 +92,7 @@ describe('Team', () => {
     it('Every time Alice changes her keys, the admin keys are rotated', () => {
       const { alice } = setup('alice')
       const changeKeys = () => {
-        const newKeys = { type: KeyType.USER, name: 'alice' }
+        const newKeys = { type: KeyType.USER, name: alice.userId }
         alice.team.changeKeys(createKeyset(newKeys))
       }
 
