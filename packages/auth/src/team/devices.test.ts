@@ -10,48 +10,48 @@ describe('Team', () => {
   describe('devices', () => {
     it('Alice has a device', () => {
       const { alice } = setup()
-      expect(alice.team.members('alice').devices).toHaveLength(1)
+      expect(alice.team.members(alice.userId).devices).toHaveLength(1)
     })
 
     it('Bob has a device', () => {
-      const { alice } = setup()
-      expect(alice.team.members('bob').devices).toHaveLength(1)
+      const { alice, bob } = setup()
+      expect(alice.team.members(bob.userId).devices).toHaveLength(1)
     })
 
     it("Alice can remove Bob's device", () => {
-      const { alice } = setup()
-      alice.team.removeDevice('bob', 'laptop')
-      expect(alice.team.members('bob').devices).toHaveLength(0)
+      const { alice, bob } = setup()
+      alice.team.removeDevice(bob.userId, 'laptop')
+      expect(alice.team.members(bob.userId).devices).toHaveLength(0)
 
       // DeviceWasRemoved works as expected
-      expect(alice.team.deviceWasRemoved('alice', 'laptop')).toBe(false) // Device still exists
-      expect(alice.team.deviceWasRemoved('bob', 'laptop')).toBe(true) // Device was removed
-      expect(() => alice.team.deviceWasRemoved('bob', 'phone')).toThrow() // Device never existed
+      expect(alice.team.deviceWasRemoved(alice.userId, 'laptop')).toBe(false) // Device still exists
+      expect(alice.team.deviceWasRemoved(bob.userId, 'laptop')).toBe(true) // Device was removed
+      expect(() => alice.team.deviceWasRemoved(bob.userId, 'phone')).toThrow() // Device never existed
     })
 
     it('throws when trying to access a removed device', () => {
-      const { alice } = setup()
-      const bobDevice = alice.team.members('bob').devices![0].deviceName
-      alice.team.removeDevice('bob', bobDevice)
+      const { alice, bob } = setup()
+      const bobDevice = alice.team.members(bob.userId).devices![0].deviceName
+      alice.team.removeDevice(bob.userId, bobDevice)
 
-      const getDevice = () => alice.team.device('bob', bobDevice)
+      const getDevice = () => alice.team.device(bob.userId, bobDevice)
       expect(getDevice).toThrow()
     })
 
     it("doesn't throw when deliberately trying to access a removed device", () => {
-      const { alice } = setup()
-      const bobDevice = alice.team.members('bob').devices![0].deviceName
-      alice.team.removeDevice('bob', bobDevice)
+      const { alice, bob } = setup()
+      const bobDevice = alice.team.members(bob.userId).devices![0].deviceName
+      alice.team.removeDevice(bob.userId, bobDevice)
 
-      const getDevice = () => alice.team.device('bob', bobDevice, { includeRemoved: true })
+      const getDevice = () => alice.team.device(bob.userId, bobDevice, { includeRemoved: true })
       expect(getDevice).not.toThrow()
     })
 
     it("Bob cannot remove Alice's device", () => {
-      const { bob } = setup()
-      const aliceDevice = bob.team.members('alice').devices![0].deviceName
+      const { alice, bob } = setup()
+      const aliceDevice = bob.team.members(alice.userId).devices![0].deviceName
       const tryToRemoveDevice = () => {
-        bob.team.removeDevice('alice', aliceDevice)
+        bob.team.removeDevice(alice.userId, aliceDevice)
       }
 
       expect(tryToRemoveDevice).toThrowError()
@@ -60,7 +60,7 @@ describe('Team', () => {
     it('can look up a device by name', () => {
       const { alice } = setup()
       const { deviceName } = alice.device
-      const aliceDevice = alice.team.device('alice', deviceName)
+      const aliceDevice = alice.team.device(alice.userId, deviceName)
       expect(aliceDevice).not.toBeUndefined()
       expect(aliceDevice.deviceName).toBe(deviceName)
     })
@@ -87,15 +87,15 @@ describe('Team', () => {
     })
 
     it('rotates keys after removing a device', () => {
-      const { alice } = setup()
+      const { alice, bob } = setup()
 
       // Keys have never been rotated
       expect(alice.team.teamKeys().generation).toBe(0)
       const { secretKey } = alice.team.teamKeys()
 
       // Remove bob's device
-      const bobDevice = alice.team.members('bob').devices![0].deviceName
-      alice.team.removeDevice('bob', bobDevice)
+      const bobDevice = alice.team.members(bob.userId).devices![0].deviceName
+      alice.team.removeDevice(bob.userId, bobDevice)
 
       // Team keys have now been rotated once
       expect(alice.team.teamKeys().generation).toBe(1)
