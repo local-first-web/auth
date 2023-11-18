@@ -72,6 +72,7 @@ import {
   type SendFunction,
   type StateMachineAction,
 } from './types.js'
+import { ServerInitialContext } from './types.js'
 
 const { DEVICE } = KeyType
 
@@ -87,50 +88,36 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   private outgoingMessageIndex = 0
   private started = false
 
-  log: (...args: any[]) => void = () => {}
+  log: debug.Debugger = debug.extend('connection')
 
   constructor({ sendMessage, context }: Params) {
     super()
 
     this.sendFn = sendMessage
 
-    // A server is conceptually kind of a user and kind of a device. This little hack lets us avoid
-    // creating special logic for servers all over the place.
-    const fakeServerContext = (server: ServerWithSecrets) => {
-      const { keys, host } = server
-      return {
-        user: { userId: host, userName: host, keys },
-        device: { userId: host, deviceId: host, deviceName: host, keys },
-      }
-    }
-
     const initialContext: InitialContext = isServer(context)
-      ? { ...context, ...fakeServerContext(context.server) }
+      ? extendServerContext(context)
       : context
 
-    this.log = (msg: string, ...args: any[]) =>
-      debug(`lf:auth:connection:${this.userName}:${this.peerUserName}`)(msg, ...args)
+    const userName =
+      'userName' in initialContext
+        ? initialContext.userName
+        : 'user' in initialContext
+        ? initialContext.user.userName
+        : ''
+    this.log = this.log.extend(userName)
 
-    // Define state machine
-    const machineConfig = { actions: this.actions, guards: this.guards }
-
-    // Instantiate the machine
+    // Instantiate the state machine
     this.machine = interpret(
-      createMachine(machine, machineConfig) //
+      createMachine(machine, { actions: this.actions, guards: this.guards }) //
         .withContext(initialContext as ConnectionContext)
-    ) as Interpreter<
-      ConnectionContext,
-      ConnectionState,
-      ConnectionMessage,
-      { value: any; context: ConnectionContext }
-    >
-
-    // Emit and log transitions
-    this.machine.onTransition((state, event) => {
-      const summary = stateSummary(state.value as string)
-      this.emit('change', summary)
-      this.log(`${messageSummary(event)} ⏩ ${summary} `)
-    })
+    )
+      // emit and log all transitions
+      .onTransition((state, event) => {
+        const summary = stateSummary(state.value as string)
+        this.emit('change', summary)
+        this.log(`${messageSummary(event)} ⏩ ${summary} `)
+      })
   }
 
   // ACTIONS
@@ -171,7 +158,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       theirIdentityClaim: (_, event) => {
         event = event as ClaimIdentityMessage
         if ('identityClaim' in event.payload) {
-          return event.payload.identityClaim
+          const { identityClaim } = event.payload
+          if ('userName' in identityClaim)
+            this.log = this.log.extend(identityClaim.userName as string)
+          return identityClaim
         }
         return undefined
       },
@@ -305,7 +295,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     confirmIdentityExists: (context, event) => {
       event = event as ClaimIdentityMessage
 
-      this.log('confirmIdentityExists %o', event.payload)
       // If we're not on the team yet, we don't have a way of knowing if the peer is
       if (context.team === undefined) return
 
@@ -328,6 +317,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         case 'VALID_DEVICE': {
           const device = context.team.device(deviceId, { includeRemoved: true })
           const user = context.team.memberByDeviceId(deviceId, { includeRemoved: true })
+          this.log = this.log.extend(user.userName)
           context.theirDevice = device
           context.peer = user
           assert(device)
@@ -637,19 +627,14 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   /** Starts (or restarts) the protocol machine. Returns this Protocol object. */
   public start = (storedMessages: string[] = []) => {
     this.log('starting')
-    if (this.started) {
-      this.machine.send({ type: 'RECONNECT' })
-    } else {
-      this.machine.start()
-      this.started = true
-      this.sendMessage({ type: 'REQUEST_IDENTITY' })
+    this.machine.start()
+    this.started = true
+    this.sendMessage({ type: 'REQUEST_IDENTITY' })
 
-      // Deliver any stored messages we might have received before starting
-      for (const m of storedMessages) {
-        this.deliver(m)
-      }
+    // Deliver any stored messages we might have received before starting
+    for (const m of storedMessages) {
+      this.deliver(m)
     }
-
     return this
   }
 
@@ -688,7 +673,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   get context(): ConnectionContext {
     if (!this.started) throw new Error("Can't get context; machine not started")
-
     return this.machine.state.context
   }
 
@@ -859,10 +843,8 @@ const insistentlyParseJson = (json: unknown) => {
 const messageSummary = (message: ConnectionMessage) =>
   message.type === 'SYNC'
     ? `SYNC ${syncMessageSummary(message.payload)}`
-    : `${message.type} ${
-        // @ts-expect-error utility function don't worry about it
-        message.payload?.head?.slice(0, 5) || message.payload?.message || ''
-      }`
+    : // @ts-expect-error
+      `${message.type} ${message.payload?.head?.slice(0, 5) || message.payload?.message || ''}`
 
 const isString = (state: any): state is string => typeof state === 'string'
 
@@ -882,4 +864,17 @@ export type Params = {
 
   /** The initial context. */
   context: InitialContext
+}
+
+/**
+ * A server is conceptually kind of a user and kind of a device. This little hack lets us avoid
+ * creating special logic for servers all over the place.
+ */
+const extendServerContext = (context: ServerInitialContext) => {
+  const { keys, host } = context.server
+  return {
+    ...context,
+    user: { userId: host, userName: host, keys },
+    device: { userId: host, deviceId: host, deviceName: host, keys },
+  }
 }
