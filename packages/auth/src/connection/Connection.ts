@@ -149,15 +149,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     return this
   }
 
-  /** Returns the local user's id  */
-  public get userId() {
-    if (!this.started) return '...'
-
-    return 'user' in this.context && this.context.user !== undefined
-      ? this.context.user.userId
-      : 'unknown'
-  }
-
   /** Returns the current state of the protocol machine. */
   public get state() {
     if (!this.started) {
