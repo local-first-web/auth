@@ -47,6 +47,7 @@ module.exports = {
     'default-case': OFF, // not necessary with typescript
     'unicorn/prefer-node-protocol': OFF, // false positives with /util folder
     'no-else-return': OFF, // don't agree
+    '@typescript-eslint/padding-line-between-statements': OFF, // leave formatting to prettierjs
 
     // DISABLED FOR EXPEDIENCY, MIGHT REVISIT
     'max-params': OFF,
