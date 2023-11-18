@@ -38,7 +38,7 @@ describe('connection', () => {
         await anyDisconnected(alice, bob)
       })
 
-      it.only("doesn't connect with someone who doesn't belong to the team", async () => {
+      it("doesn't connect with someone who doesn't belong to the team", async () => {
         const { alice, charlie } = setup('alice', 'bob', {
           user: 'charlie',
           member: false,

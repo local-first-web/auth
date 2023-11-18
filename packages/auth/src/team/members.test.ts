@@ -78,7 +78,7 @@ describe('Team', () => {
       alice.team.remove(bob.userId)
       expect(alice.team.has(bob.userId)).toBe(false)
 
-      // MemberWasRemoved works as expected
+      // memberWasRemoved works as expected
       expect(alice.team.memberWasRemoved(alice.userId)).toBe(false) // Alice is still a member
       expect(alice.team.memberWasRemoved(bob.userId)).toBe(true) // Bob is no longer a member
       expect(alice.team.memberWasRemoved(charlie.userId)).toBe(false) // Charlie was never a member

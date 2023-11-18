@@ -23,10 +23,10 @@ describe('Team', () => {
       alice.team.removeDevice(bob.device.deviceId)
       expect(alice.team.members(bob.userId).devices).toHaveLength(0)
 
-      // DeviceWasRemoved works as expected
+      // deviceWasRemoved works as expected
       expect(alice.team.deviceWasRemoved(alice.device.deviceId)).toBe(false) // Device still exists
       expect(alice.team.deviceWasRemoved(bob.device.deviceId)).toBe(true) // Device was removed
-      expect(() => alice.team.deviceWasRemoved(bob.phone!.deviceId)).toThrow() // Device never existed
+      expect(alice.team.deviceWasRemoved(bob.phone!.deviceId)).toBe(false) // Device never existed
     })
 
     it('throws when trying to access a removed device', () => {

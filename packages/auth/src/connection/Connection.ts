@@ -102,10 +102,11 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       const userId = server.host
       const userName = server.host
       const deviceName = server.host
+      const deviceId = server.host
       const { keys } = server
       return {
         user: { userId, userName, keys },
-        device: { userId, deviceName, keys },
+        device: { userId, deviceId, deviceName, keys },
       }
     }
 
@@ -165,7 +166,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             device: redactDevice(context.device),
           }
 
-      console.log('**** %o', payload)
       this.sendMessage({
         type: 'CLAIM_IDENTITY',
         payload,

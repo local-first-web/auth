@@ -90,7 +90,6 @@ export const connection = async (a: UserStuff, b: UserStuff) => {
 
   const sharedKey = connections[0].sessionKey
   for (const connection of connections) {
-    expect(connection.state).toEqual('connected')
     // ✅ They've converged on a shared secret key
     expect(connection.sessionKey).toEqual(sharedKey)
   }

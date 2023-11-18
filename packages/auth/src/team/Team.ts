@@ -226,7 +226,7 @@ export class Team extends EventEmitter {
 
     if (this.hasServer(deviceId)) return 'VALID_DEVICE'
 
-    if (!this.hasDevice(deviceId)) {
+    if (!this.hasDevice(deviceId, { includeRemoved: true })) {
       return 'DEVICE_UNKNOWN'
     }
 
@@ -429,7 +429,8 @@ export class Team extends EventEmitter {
   // guaranteed to be unique. This would be a breaking change.
 
   /** Returns true if the given member has a device by the given name */
-  public hasDevice = (deviceId: string): boolean => select.hasDevice(this.state, deviceId)
+  public hasDevice = (deviceId: string, options?: LookupOptions): boolean =>
+    select.hasDevice(this.state, deviceId, options)
 
   /** Find a member's device by name */
   public device(deviceId: string, options?: LookupOptions): Device {

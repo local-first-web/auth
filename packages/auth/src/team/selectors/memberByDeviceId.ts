@@ -9,5 +9,5 @@ export const memberByDeviceId = (
 ) => {
   if (hasServer(state, deviceId)) return cast.toMember(server(state, deviceId))
   const { userId } = device(state, deviceId, options)
-  return member(state, userId)
+  return member(state, userId, options)
 }
