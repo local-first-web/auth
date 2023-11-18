@@ -261,7 +261,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
       const { identityClaim } = event.payload
       const deviceId = identityClaim.name
-      const { userId, deviceName } = parseDeviceId(deviceId)
 
       const identityLookupResult = context.team.lookupIdentity(identityClaim)
 
@@ -274,16 +273,14 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         case 'MEMBER_REMOVED':
         case 'DEVICE_REMOVED':
         case 'VALID_DEVICE': {
-          return
-        }
-
-        case 'MEMBER_UNKNOWN': {
-          fail('MEMBER_UNKNOWN', `${userId} is not a member of this team.`)
+          const device = context.team.device(deviceId, { includeRemoved: true })
+          assert(device)
+          this.peerUserId = device.userId
           return
         }
 
         case 'DEVICE_UNKNOWN': {
-          fail('DEVICE_UNKNOWN', `${userId} does not have a device '${deviceName}'.`)
+          fail('DEVICE_UNKNOWN', `Device ${deviceId} not found.`)
           break
         }
       }
@@ -553,13 +550,15 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     // TODO: this is checking our device and userId, not our peer's???
     peerWasRemoved(context) {
-      assert(context.team)
-      assert(context.device)
-      const { team, device } = context
-      const { userId, deviceName } = device
-      const memberWasRemoved = team.memberWasRemoved(userId)
-      const deviceWasRemoved = team.deviceWasRemoved(userId, deviceName)
-      return memberWasRemoved || deviceWasRemoved
+      return false
+      // assert(context.team)
+      // assert(context.device)
+      // const { team, device } = context
+      // const { userId, deviceName } = device
+      // const serverWasRemoved = team.serverWasRemoved(userId)
+      // const memberWasRemoved = team.memberWasRemoved(userId)
+      // const deviceWasRemoved = team.deviceWasRemoved(userId, deviceName)
+      // return memberWasRemoved || deviceWasRemoved
     },
 
     identityProofIsValid(context, event) {

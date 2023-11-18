@@ -1,26 +1,26 @@
 import { createKeyset, redactKeys } from '@localfirst/crdx'
-import type EventEmitter from 'eventemitter3'
-import { describe, expect, it } from 'vitest'
-import {
-  type Connection,
-  type InitialContext,
-  type MemberInitialContext,
-  type Team,
-  createTeam,
-  invitation,
-  loadTeam,
-} from '../index.js'
+import { EventEmitter } from 'eventemitter3'
 import { cast } from 'server/cast.js'
 import { type Host, type Server, type ServerWithSecrets } from 'server/index.js'
 import { KeyType } from 'util/index.js'
 import {
-  type SetupConfig,
   TestChannel,
-  type UserStuff,
   all,
   joinTestChannel,
   setup as setupHumans,
+  type SetupConfig,
+  type UserStuff,
 } from 'util/testing/index.js'
+import { describe, expect, it } from 'vitest'
+import {
+  createTeam,
+  invitation,
+  loadTeam,
+  type Connection,
+  type InitialContext,
+  type MemberInitialContext,
+  type Team,
+} from '../index.js'
 
 describe('Team', () => {
   describe('a server', () => {

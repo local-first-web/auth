@@ -70,16 +70,19 @@ const validators: TeamStateValidatorSet = {
   canOnlyChangeYourOwnKeys(...args) {
     const [previousState, link] = args
     const author = link.body.userId
+
+    // Only admins can change another user's keys
     const authorIsAdmin = select.memberIsAdmin(previousState, author)
     if (!authorIsAdmin) {
       if (link.body.type === 'CHANGE_MEMBER_KEYS') {
         const target = link.body.payload.keys.name
-        // Only admins can change another user's keys
         if (author !== target) {
           return fail("Can't change another user's keys.", ...args)
         }
       } else if (link.body.type === 'CHANGE_DEVICE_KEYS') {
-        const target = parseDeviceId(link.body.payload.keys.name).userId
+        const deviceId = link.body.payload.keys.name
+        const device = select.deviceById(previousState, deviceId)
+        const { userId: target } = device
         if (author !== target) {
           return fail("Can't change another user's device keys.", ...args)
         }

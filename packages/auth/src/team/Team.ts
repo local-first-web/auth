@@ -223,7 +223,12 @@ export class Team extends EventEmitter {
   public lookupIdentity = (identityClaim: KeyScope): LookupIdentityResult => {
     assert(identityClaim.type === DEVICE) // We always authenticate as devices
     const deviceId = identityClaim.name
-    const { userId, deviceName } = parseDeviceId(deviceId)
+
+    if (this.hasServer(deviceId)) return 'VALID_DEVICE'
+
+    const device = this.device(deviceId)
+    const { userId, deviceName } = device
+
     if (this.memberWasRemoved(userId) || this.serverWasRemoved(userId)) {
       return 'MEMBER_REMOVED'
     }
@@ -246,11 +251,11 @@ export class Team extends EventEmitter {
   public verifyIdentityProof = (challenge: Challenge, proof: Base58) => {
     assert(challenge.type === DEVICE) // We always authenticate as devices
     const deviceId = challenge.name
-    const { userId, deviceName } = parseDeviceId(deviceId)
 
-    const device = this.hasServer(userId)
-      ? this.servers(userId)
-      : this.device(userId, deviceName, { includeRemoved: true })
+    // TODO: clean up all this silliness with servers pretending to be users or devices
+    const device = this.hasServer(deviceId)
+      ? this.servers(deviceId)
+      : this.device(deviceId, { includeRemoved: true })
 
     const validation = identity.verify(challenge, proof, device.keys)
     return validation.isValid
@@ -465,6 +470,8 @@ export class Team extends EventEmitter {
     })
   }
 
+  // TODO: get rid of the (userId, deviceName) pattern and just use deviceId everywhere
+
   /** Returns true if the device was once on the team but was removed */
   public deviceWasRemoved = (userId: string, deviceName: string) => {
     const device = this.device(userId, deviceName, { includeRemoved: true })
@@ -473,8 +480,8 @@ export class Team extends EventEmitter {
   }
 
   /** Looks for a member that has this device. If none is found, return  */
-  public memberByDeviceId = (deviceId: string) => {
-    const { userId } = this.device(deviceId)
+  public memberByDeviceId = (deviceId: string, options?: LookupOptions) => {
+    const { userId } = this.device(deviceId, options)
     return this.members(userId)
   }
 

@@ -21,6 +21,7 @@ const toDevice = <T extends Server | ServerWithSecrets>(server: T) =>
   ({
     userId: server.host,
     deviceName: server.host,
+    deviceId: server.host,
     keys: server.keys,
   }) as T extends Server ? Device : DeviceWithSecrets
 
