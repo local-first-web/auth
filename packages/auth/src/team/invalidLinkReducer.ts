@@ -24,7 +24,12 @@ export const invalidLinkReducer = (state: TeamState, link: TeamLink): TeamState 
       const keys = link.body.payload.memberKeys
       const userId = keys.name
 
-      const member: Member = { userId, keys, roles: [] }
+      const member: Member = {
+        userName: '', // not needed here
+        userId,
+        keys,
+        roles: [],
+      }
       const removedMembers = [...state.removedMembers, member]
 
       // We also need to flag the user as compromised, so that an admin can rotate all keys they had access to at the first opportunity.

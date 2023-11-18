@@ -31,7 +31,7 @@ export type Member = {
   // TODO enforce uniqueness
   /** Username (or email). Must be unique but is not used for lookups. Only provided to connect
    * human identities with other systems. */
-  userName?: string
+  userName: string
 
   /** The member's public keys */
   keys: Keyset
