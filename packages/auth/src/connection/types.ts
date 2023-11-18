@@ -89,15 +89,16 @@ export type InitialContext = MemberInitialContext | InviteeInitialContext
 export const isInvitee = (c: InitialContext | ConnectionContext): c is InviteeInitialContext =>
   !('team' in c)
 
+export const isInviteeMember = (
+  c: InviteeMemberInitialContext | InviteeDeviceInitialContext
+): c is InviteeMemberInitialContext => 'user' in c
+
 export type ConnectionParams = {
   /** A function to send messages to our peer. This how you hook this up to your network stack. */
   sendMessage: SendFunction
 
   /** The initial context. */
   context: InitialContext
-
-  /** The peer's user id, if we know it */
-  peerUserId?: string
 }
 
 export type ErrorPayload = {
@@ -107,9 +108,9 @@ export type ErrorPayload = {
 
 export type ConnectionContext = {
   theyHaveInvitation?: boolean
+
   theirIdentityClaim?: KeyScope
   theirUserName?: string
-
   theirProofOfInvitation?: ProofOfInvitation
   theirUserKeys?: Keyset
   theirDevice?: Device | FirstUseDevice

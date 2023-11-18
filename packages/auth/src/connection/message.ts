@@ -25,6 +25,7 @@ export type ClaimIdentityMessage = {
     | {
         // I'm a new user and I have an invitation
         proofOfInvitation: ProofOfInvitation
+        userName: string
         userKeys: Keyset
         device: Device
       }

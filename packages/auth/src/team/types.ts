@@ -156,8 +156,7 @@ export type AddDeviceAction = {
 export type RemoveDeviceAction = {
   type: 'REMOVE_DEVICE'
   payload: BasePayload & {
-    userId: string
-    deviceName: string
+    deviceId: string
   }
 }
 

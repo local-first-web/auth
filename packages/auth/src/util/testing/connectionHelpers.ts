@@ -25,17 +25,21 @@ export const connect = async (a: UserStuff, b: UserStuff) => {
   await connection(a, b)
 }
 
-/** Connects a (a member) with b (invited using the given seed). */
-export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: string) => {
-  b.connectionContext = {
-    user: b.user,
-    device: b.device,
+/** Connects a member with an invitee. */
+export const connectWithInvitation = async (
+  member: UserStuff,
+  invitee: UserStuff,
+  seed: string
+) => {
+  invitee.connectionContext = {
+    user: invitee.user,
+    device: invitee.device,
     invitationSeed: seed,
   } as InviteeMemberInitialContext
 
-  return connect(a, b).then(() => {
+  return connect(member, invitee).then(() => {
     // The connection now has the team object, so let's update our user stuff
-    b.team = b.connection[a.deviceId].team!
+    invitee.team = invitee.connection[member.deviceId].team!
   })
 }
 

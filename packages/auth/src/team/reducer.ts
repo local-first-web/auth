@@ -134,9 +134,9 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     case 'REMOVE_DEVICE': {
-      const { userId, deviceName } = action.payload
+      const { deviceId } = action.payload
       return [
-        removeDevice(userId, deviceName), // Remove this device from the member's list of devices
+        removeDevice(deviceId), // Remove this device from the member's list of devices
       ]
     }
 

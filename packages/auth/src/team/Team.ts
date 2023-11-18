@@ -22,7 +22,7 @@ import * as identity from 'connection/identity.js'
 import { type Challenge } from 'connection/types.js'
 import { type LocalUserContext } from 'context/index.js'
 import * as devices from 'device/index.js'
-import { parseDeviceId, redactDevice, type Device, type DeviceWithSecrets } from 'device/index.js'
+import { redactDevice, type Device } from 'device/index.js'
 import { EventEmitter } from 'eventemitter3'
 import * as invitations from 'invitation/index.js'
 import { type ProofOfInvitation } from 'invitation/index.js'
@@ -38,18 +38,18 @@ import { redactUser } from './redactUser.js'
 import { reducer } from './reducer.js'
 import * as select from './selectors/index.js'
 import { maybeDeserialize, serializeTeamGraph } from './serialize.js'
-import { isNewTeam } from './types.js'
 import type {
   EncryptedEnvelope,
+  InviteResult,
+  LookupIdentityResult,
   Member,
   SignedEnvelope,
   TeamAction,
   TeamGraph,
   TeamOptions,
   TeamState,
-  InviteResult,
-  LookupIdentityResult,
 } from './types.js'
+import { isNewTeam } from './types.js'
 
 const { DEVICE, USER } = KeyType
 /**
@@ -226,7 +226,15 @@ export class Team extends EventEmitter {
 
     if (this.hasServer(deviceId)) return 'VALID_DEVICE'
 
-    const device = this.device(deviceId)
+    if (!this.hasDevice(deviceId)) {
+      return 'DEVICE_UNKNOWN'
+    }
+
+    if (this.deviceWasRemoved(deviceId)) {
+      return 'DEVICE_REMOVED'
+    }
+
+    const device = this.device(deviceId, { includeRemoved: true })
     const { userId, deviceName } = device
 
     if (this.memberWasRemoved(userId) || this.serverWasRemoved(userId)) {
@@ -235,14 +243,6 @@ export class Team extends EventEmitter {
 
     if (!this.has(userId) && !this.hasServer(userId)) {
       return 'MEMBER_UNKNOWN'
-    }
-
-    if (this.deviceWasRemoved(userId, deviceName)) {
-      return 'DEVICE_REMOVED'
-    }
-
-    if (!this.hasDevice(userId, deviceName) && !this.hasServer(userId)) {
-      return 'DEVICE_UNKNOWN'
     }
 
     return 'VALID_DEVICE'
@@ -429,32 +429,16 @@ export class Team extends EventEmitter {
   // guaranteed to be unique. This would be a breaking change.
 
   /** Returns true if the given member has a device by the given name */
-  public hasDevice = (userId: string, deviceName: string): boolean =>
-    select.hasDevice(this.state, userId, deviceName)
+  public hasDevice = (deviceId: string): boolean => select.hasDevice(this.state, deviceId)
 
   /** Find a member's device by name */
-  public device(userId: string, deviceName: string, options?: LookupOptions): Device
-  public device(deviceId: string, options?: LookupOptions): Device
-  public device(...args: Array<string | LookupOptions | undefined>): Device {
-    if (typeof args[1] === 'string') {
-      // 1st overload  - lookup by userId and deviceName
-      const [userId, deviceName, options] = args as [string, string, LookupOptions?]
-      return select.device(this.state, userId, deviceName, options)
-    } else {
-      // 2nd overload - lookup by deviceId
-      const [deviceId, options] = args as [string, LookupOptions?]
-      return select.deviceById(this.state, deviceId, options)
-    }
+  public device(deviceId: string, options?: LookupOptions): Device {
+    return select.device(this.state, deviceId, options)
   }
 
   /** Remove a member's device */
-  public removeDevice = (userId: string, deviceName: string) => {
-    if (!this.hasDevice(userId, deviceName)) {
-      return
-    }
-
-    const device = this.device(userId, deviceName)
-    const { deviceId } = device
+  public removeDevice = (deviceId: string) => {
+    if (!this.hasDevice(deviceId)) return
 
     // Create new keys & lockboxes for any keys this device had access to
     const lockboxes = this.rotateKeys({ type: DEVICE, name: deviceId })
@@ -463,8 +447,7 @@ export class Team extends EventEmitter {
     this.dispatch({
       type: 'REMOVE_DEVICE',
       payload: {
-        userId,
-        deviceName,
+        deviceId,
         lockboxes,
       },
     })
@@ -473,16 +456,13 @@ export class Team extends EventEmitter {
   // TODO: get rid of the (userId, deviceName) pattern and just use deviceId everywhere
 
   /** Returns true if the device was once on the team but was removed */
-  public deviceWasRemoved = (userId: string, deviceName: string) => {
-    const device = this.device(userId, deviceName, { includeRemoved: true })
-    const { deviceId } = device
+  public deviceWasRemoved = (deviceId: string) => {
     return select.deviceWasRemoved(this.state, deviceId)
   }
 
   /** Looks for a member that has this device. If none is found, return  */
   public memberByDeviceId = (deviceId: string, options?: LookupOptions) => {
-    const { userId } = this.device(deviceId, options)
-    return this.members(userId)
+    return select.memberByDeviceId(this.state, deviceId, options)
   }
 
   /** ************** INVITATIONS */
@@ -633,9 +613,7 @@ export class Team extends EventEmitter {
     userName: string // The new member's desired user-facing name
   ) => {
     const validation = this.validateInvitation(proof)
-    if (!validation.isValid) {
-      throw validation.error
-    }
+    if (!validation.isValid) throw validation.error
 
     const { id } = proof
 

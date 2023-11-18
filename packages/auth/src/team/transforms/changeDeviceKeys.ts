@@ -6,7 +6,7 @@ export const changeDeviceKeys =
   (keys: Keyset): Transform =>
   state => {
     const deviceId = keys.name
-    const device = select.deviceById(state, deviceId)
+    const device = select.device(state, deviceId)
     const { userId, deviceName } = device
     return {
       ...state,

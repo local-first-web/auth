@@ -2,15 +2,17 @@ import * as select from 'team/selectors/index.js'
 import { type Member, type Transform } from 'team/types.js'
 
 export const removeDevice =
-  (userId: string, deviceName: string): Transform =>
+  (deviceId: string): Transform =>
   state => {
-    const removedDevice = select.device(state, userId, deviceName)
+    const removedDevice = select.device(state, deviceId)
+
+    const { userId } = select.memberByDeviceId(state, deviceId)
 
     const removeDeviceFromMember = (member: Member) =>
       member.userId === userId
         ? {
             ...member,
-            devices: member.devices?.filter(d => d.deviceName !== deviceName),
+            devices: member.devices?.filter(d => d.deviceName !== removedDevice.deviceName),
           }
         : member
 

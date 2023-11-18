@@ -17,7 +17,7 @@ import {
 describe('connection', () => {
   describe('authentication', () => {
     describe('with known members', () => {
-      it.only('connects two members', async () => {
+      it('connects two members', async () => {
         const { alice, bob } = setup('alice', 'bob')
 
         // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel
@@ -31,14 +31,14 @@ describe('connection', () => {
         const { alice, bob } = setup('alice', 'bob')
 
         // 👩🏾 Alice removes Bob
-        alice.team.remove('bob')
+        alice.team.remove(bob.userId)
 
         // ❌ They can't connect because Bob was removed
         void tryToConnect(alice, bob)
         await anyDisconnected(alice, bob)
       })
 
-      it("doesn't connect with someone who doesn't belong to the team", async () => {
+      it.only("doesn't connect with someone who doesn't belong to the team", async () => {
         const { alice, charlie } = setup('alice', 'bob', {
           user: 'charlie',
           member: false,
@@ -103,7 +103,7 @@ describe('connection', () => {
         expectEveryoneToKnowEveryone(alice, bob)
 
         // Alice promotes Bob
-        alice.team.addMemberRole('bob', ADMIN)
+        alice.team.addMemberRole(bob.userId, ADMIN)
         await anyUpdated(alice, bob)
 
         // Bob invites Charlie
@@ -166,7 +166,7 @@ describe('connection', () => {
 
         await connect(alice, bob)
 
-        expect(bob.team.members('bob').devices).toHaveLength(1)
+        expect(bob.team.members(bob.userId).devices).toHaveLength(1)
 
         // 👨🏻‍🦲💻📧->📱 on his laptop, Bob creates an invitation and gets it to his phone
         const { seed } = bob.team.inviteDevice()
@@ -175,10 +175,10 @@ describe('connection', () => {
         await connectPhoneWithInvitation(bob, seed)
 
         // 👨🏻‍🦲👍📱 Bob's phone is added to his list of devices
-        expect(bob.team.members('bob').devices).toHaveLength(2)
+        expect(bob.team.members(bob.userId).devices).toHaveLength(2)
 
         // ✅ 👩🏾👍📱 Alice knows about Bob's phone
-        expect(alice.team.members('bob').devices).toHaveLength(2)
+        expect(alice.team.members(bob.userId).devices).toHaveLength(2)
       })
 
       it('connects an invitee after one failed attempt', async () => {

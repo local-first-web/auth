@@ -1,43 +1,32 @@
-import { hasMember } from './hasMember.js'
-import { member } from './member.js'
 import { type TeamState } from 'team/types.js'
 import { assert } from 'util/index.js'
+import { server } from './server.js'
+import { hasServer } from './hasServer.js'
+import { cast } from 'server/cast.js'
 
 export const hasDevice = (
   state: TeamState,
-  userId: string,
-  deviceName: string,
+  deviceId: string,
   options = { includeRemoved: false }
 ) => {
-  if (!hasMember(state, userId)) {
-    return false
-  }
-
-  return getDevice(state, userId, deviceName, options) !== undefined
+  return getDevice(state, deviceId, options) !== undefined
 }
 
-export const device = (
-  state: TeamState,
-  userId: string,
-  deviceName: string,
-  options = { includeRemoved: false }
-) => {
-  const device = getDevice(state, userId, deviceName, options)
-  assert(device, `Member ${userId} does not have a device called ${deviceName}`)
+export const device = (state: TeamState, deviceId: string, options = { includeRemoved: false }) => {
+  const device = getDevice(state, deviceId, options)
+  assert(device, `Device ${deviceId} not found`)
   return device
 }
 
-const getDevice = (
-  state: TeamState,
-  userId: string,
-  deviceName: string,
-  options = { includeRemoved: false }
-) => {
-  const memberDevices = member(state, userId, options).devices ?? []
+const getDevice = (state: TeamState, deviceId: string, options = { includeRemoved: false }) => {
+  if (hasServer(state, deviceId)) {
+    return cast.toDevice(server(state, deviceId))
+  }
+  const members = state.members.concat(options.includeRemoved ? state.removedMembers ?? [] : [])
+  const allDevices = members.flatMap(m => m.devices ?? [])
   return (
-    memberDevices.find(d => d.deviceName === deviceName) ??
-    (options.includeRemoved
-      ? state.removedDevices.find(d => d.deviceName === deviceName && d.userId === userId)
-      : undefined)
+    allDevices.find(d => d.deviceId === deviceId) ??
+    (options.includeRemoved ? state.removedDevices.find(d => d.deviceId === deviceId) : undefined)
   )
 }
+;``

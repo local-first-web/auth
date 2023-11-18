@@ -29,7 +29,7 @@ export const actionFingerprint = (link: TeamLink) => {
       }
 
       case 'REMOVE_DEVICE': {
-        return action.payload.deviceName
+        return action.payload.deviceId
       }
 
       case 'INVITE_MEMBER':

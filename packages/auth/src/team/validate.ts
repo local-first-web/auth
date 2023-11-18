@@ -1,4 +1,6 @@
 import { ROOT } from '@localfirst/crdx'
+import { invitationCanBeUsed } from 'invitation/index.js'
+import { VALID, ValidationError, actionFingerprint, debug, truncateHashes } from 'util/index.js'
 import { isAdminOnlyAction } from './isAdminOnlyAction.js'
 import * as select from './selectors/index.js'
 import {
@@ -8,9 +10,6 @@ import {
   type TeamStateValidatorSet,
   type ValidationArgs,
 } from './types.js'
-import { parseDeviceId } from 'device/index.js'
-import { invitationCanBeUsed } from 'invitation/index.js'
-import { actionFingerprint, debug, truncateHashes, VALID, ValidationError } from 'util/index.js'
 
 const log = debug('lf:auth:validate')
 
@@ -81,7 +80,7 @@ const validators: TeamStateValidatorSet = {
         }
       } else if (link.body.type === 'CHANGE_DEVICE_KEYS') {
         const deviceId = link.body.payload.keys.name
-        const device = select.deviceById(previousState, deviceId)
+        const device = select.device(previousState, deviceId)
         const { userId: target } = device
         if (author !== target) {
           return fail("Can't change another user's device keys.", ...args)
