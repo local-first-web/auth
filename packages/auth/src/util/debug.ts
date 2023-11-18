@@ -1,24 +1,12 @@
 // ignore file coverage
-import originalDebug from 'debug'
+import _debug from 'debug'
 import { truncateHashes } from './truncateHashes.js'
 
-const substituteTokens = (s: string) => truncateHashes(s).replaceAll('"', '')
+const originalFormatArgs = _debug.formatArgs
 
-// .replaceAll(/alice/gi, '👩🏾')
-// .replaceAll(/bob/gi, '👨🏻‍🦲')
-// .replaceAll(/charlie/gi, '👳🏽‍♂️')
-// .replaceAll(/dwight/gi, '👴')
-// .replace(/eve/gi, '🦹‍♀️')
-
-// .replaceAll(/laptop/gi, '💻')
-// .replaceAll(/phone/gi, '📱')
-// .replaceAll(/devresults.com/gi, '🌍')
-
-export function debug(prefix: string) {
-  const debug = originalDebug(prefix)
-  debug.log = (s: string) => {
-    originalDebug('lf:auth')(substituteTokens(s))
-  }
-
-  return debug
+_debug.formatArgs = function (args: any[]) {
+  originalFormatArgs.call(this, args)
+  args.forEach(arg => (arg = truncateHashes(arg)))
 }
+
+export const debug = _debug('lf:auth')
