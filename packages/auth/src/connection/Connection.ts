@@ -58,7 +58,7 @@ import { arraysAreEqual } from 'util/arraysAreEqual.js'
 import { KeyType, assert, debug, truncateHashes } from 'util/index.js'
 import { syncMessageSummary } from 'util/testing/messageSummary.js'
 import { assign, createMachine, interpret, type Interpreter } from 'xstate'
-import { protocolMachine } from './protocolMachine.js'
+import { machine } from './machine.js'
 import {
   isInvitee,
   isInviteeMember,
@@ -119,11 +119,12 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     // Define state machine
     const machineConfig = { actions: this.actions, guards: this.guards }
-    const machine = createMachine(protocolMachine, machineConfig) //
-      .withContext(initialContext as ConnectionContext)
 
     // Instantiate the machine
-    this.machine = interpret(machine) as Interpreter<
+    this.machine = interpret(
+      createMachine(machine, machineConfig) //
+        .withContext(initialContext as ConnectionContext)
+    ) as Interpreter<
       ConnectionContext,
       ConnectionState,
       ConnectionMessage,
