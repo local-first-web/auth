@@ -1,4 +1,5 @@
 import { type UserWithSecrets, createKeyset, type UnixTimestamp } from '@localfirst/crdx'
+import { redactDevice } from 'index.js'
 import { generateProof } from 'invitation/index.js'
 import * as teams from 'team/index.js'
 import { KeyType } from 'util/index.js'
@@ -24,7 +25,7 @@ describe('Team', () => {
         alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
 
         // ✅ 👨🏻‍🦲 Bob is now on the team. Congratulations, Bob!
-        expect(alice.team.has('bob')).toBe(true)
+        expect(alice.team.has(bob.userId)).toBe(true)
       })
 
       it('lets you use a key of your choosing', () => {
@@ -39,7 +40,7 @@ describe('Team', () => {
         alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
 
         // ✅ Still works
-        expect(alice.team.has('bob')).toBe(true)
+        expect(alice.team.has(bob.userId)).toBe(true)
       })
 
       it('normalizes the secret key', () => {
@@ -54,7 +55,7 @@ describe('Team', () => {
         alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
 
         // ✅ Bob is on the team
-        expect(alice.team.has('bob')).toBe(true)
+        expect(alice.team.has(bob.userId)).toBe(true)
       })
 
       it('allows non-admins to accept an invitation', () => {
@@ -75,18 +76,18 @@ describe('Team', () => {
         const bobsTeam = teams.load(persistedTeam, bob.localContext, alice.team.teamKeys())
 
         // Just to confirm: 👨🏻‍🦲 Bob isn't an admin
-        expect(bobsTeam.memberIsAdmin('bob')).toBe(false)
+        expect(bobsTeam.memberIsAdmin(bob.userId)).toBe(false)
 
         // 👳🏽‍♂️ Charlie shows 👨🏻‍🦲 Bob his proof of invitation
         bobsTeam.admitMember(proofOfInvitation, charlie.user.keys, bob.user.userName)
 
         // 👍👳🏽‍♂️ Charlie is now on the team
-        expect(bobsTeam.has('charlie')).toBe(true)
+        expect(bobsTeam.has(charlie.userId)).toBe(true)
 
         // ✅ 👩🏾 Alice can now see that 👳🏽‍♂️ Charlie is on the team. Congratulations, Charlie!
         persistedTeam = bobsTeam.save()
         alice.team = teams.load(persistedTeam, alice.localContext, alice.team.teamKeys())
-        expect(alice.team.has('charlie')).toBe(true)
+        expect(alice.team.has(charlie.userId)).toBe(true)
       })
 
       it("will use an invitation that hasn't expired yet", () => {
@@ -99,7 +100,7 @@ describe('Team', () => {
         alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
 
         // ✅ 👨🏻‍🦲 Bob's invitation has not expired so he is on the team
-        expect(alice.team.has('bob')).toBe(true)
+        expect(alice.team.has(bob.userId)).toBe(true)
       })
 
       it("won't use an expired invitation", () => {
@@ -118,7 +119,7 @@ describe('Team', () => {
         expect(tryToAdmitBob).toThrowError(/expired/)
 
         // ❌ 👨🏻‍🦲 Bob is not on the team
-        expect(alice.team.has('bob')).toBe(false)
+        expect(alice.team.has(bob.userId)).toBe(false)
       })
 
       it('can use an invitation multiple times', () => {
@@ -139,8 +140,8 @@ describe('Team', () => {
         alice.team.admitMember(proofOfInvitation, charlie.user.keys, charlie.user.userName)
 
         // ✅ 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie are both on the team
-        expect(alice.team.has('bob')).toBe(true)
-        expect(alice.team.has('charlie')).toBe(true)
+        expect(alice.team.has(bob.userId)).toBe(true)
+        expect(alice.team.has(charlie.userId)).toBe(true)
       })
 
       it('can use an invitation infinite uses when maxUses is zero', () => {
@@ -195,10 +196,10 @@ describe('Team', () => {
         expect(tryToAdmitCharlie).toThrow(/used/)
 
         // ✅ 👨🏻‍🦲 Bob is on the team
-        expect(alice.team.has('bob')).toBe(true)
+        expect(alice.team.has(bob.userId)).toBe(true)
 
         // ❌ 👳🏽‍♂️ Charlie is not on the team
-        expect(alice.team.has('charlie')).toBe(false)
+        expect(alice.team.has(charlie.userId)).toBe(false)
       })
 
       it("won't use a revoked invitation", () => {
@@ -230,7 +231,7 @@ describe('Team', () => {
         expect(tryToAdmitCharlie).toThrowError(/revoked/)
 
         // ❌ 👳🏽‍♂️ Charlie is not on the team
-        expect(bob.team.has('charlie')).toBe(false)
+        expect(bob.team.has(charlie.userId)).toBe(false)
       })
     })
 
@@ -240,7 +241,7 @@ describe('Team', () => {
         const alicePhone = aliceLaptop.phone!
 
         // 👩🏾 Alice only has 💻 one device on the signature chain
-        expect(aliceLaptop.team.members('alice').devices).toHaveLength(1)
+        expect(aliceLaptop.team.members(aliceLaptop.userId).devices).toHaveLength(1)
 
         // 💻 on her laptop, Alice generates an invitation for her phone
         const { seed } = aliceLaptop.team.inviteDevice()
@@ -251,7 +252,7 @@ describe('Team', () => {
         const proofOfInvitation = generateProof(seed)
 
         // 📱 Alice's phone connects with 💻 her laptop and presents the proof
-        aliceLaptop.team.admitDevice(proofOfInvitation, alicePhone)
+        aliceLaptop.team.admitDevice(proofOfInvitation, redactDevice(alicePhone))
 
         // 👍 The proof was good, so the laptop sends the phone the team's graph and keyring
         const serializedGraph = aliceLaptop.team.save()
@@ -262,6 +263,7 @@ describe('Team', () => {
           serializedGraph,
           keyring: teamKeyring,
           device: alicePhone,
+          invitationId: proofOfInvitation.id,
         })
         const { userId } = alicePhone
         const user: UserWithSecrets = { userId, userName: userId, keys }
@@ -269,15 +271,15 @@ describe('Team', () => {
         const phoneTeam = teams.load(serializedGraph, { user, device: alicePhone }, teamKeyring)
 
         // ✅ Now Alice has 💻📱 two devices on the signature chain
-        expect(phoneTeam.members('alice').devices).toHaveLength(2)
-        expect(aliceLaptop.team.members('alice').devices).toHaveLength(2)
+        expect(phoneTeam.members(aliceLaptop.userId).devices).toHaveLength(2)
+        expect(aliceLaptop.team.members(aliceLaptop.userId).devices).toHaveLength(2)
       })
 
       it("doesn't let someone else admit Alice's device", () => {
         const { alice, bob } = setup('alice', 'bob')
 
         // 👩🏾 Alice only has 💻 one device on the signature chain
-        expect(alice.team.members('alice').devices).toHaveLength(1)
+        expect(alice.team.members(alice.userId).devices).toHaveLength(1)
 
         // 💻 on her laptop, Alice generates an invitation for her phone
         const { seed } = alice.team.inviteDevice()
@@ -293,7 +295,7 @@ describe('Team', () => {
 
         // 📱 Alice's phone connects with 👨🏻‍🦲 Bob and she presents the proof
         const tryToAdmitPhone = () => {
-          bob.team.admitDevice(proofOfInvitation, alice.phone!)
+          bob.team.admitDevice(proofOfInvitation, redactDevice(alice.phone!))
         }
 
         // ❌ Alice's phone can only present its invitation to one of Alice's other devices
