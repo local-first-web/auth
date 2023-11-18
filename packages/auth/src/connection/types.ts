@@ -89,19 +89,6 @@ export type ServerInitialContext = {
 
 export type InitialContext = MemberInitialContext | InviteeInitialContext | ServerInitialContext
 
-export type ConnectionParams = {
-  /** A function to send messages to our peer. This how you hook this up to your network stack. */
-  sendMessage: SendFunction
-
-  /** The initial context. */
-  context: InitialContext
-}
-
-export type ErrorPayload = {
-  message: string
-  details?: any
-}
-
 export type ConnectionContext = {
   theyHaveInvitation?: boolean
 
@@ -125,6 +112,11 @@ export type ConnectionContext = {
   Partial<InviteeMemberInitialContext> &
   Partial<ServerInitialContext> &
   Partial<MemberInitialContext>
+
+export type ErrorPayload = {
+  message: string
+  details?: any
+}
 
 export type StateMachineAction =
   | ActionFunction<ConnectionContext, ConnectionMessage>
@@ -184,15 +176,14 @@ export type ConnectionState = {
   }
 }
 
-// Type guard: InviteeInitialContext vs others
+// TYPE GUARDS
+
 export const isInvitee = (c: InitialContext | ConnectionContext): c is InviteeInitialContext =>
   !('team' in c)
 
-// Type guard: InviteeMemberInitialContext vs InviteeDeviceInitialContext
 export const isInviteeMember = (
   c: InviteeMemberInitialContext | InviteeDeviceInitialContext
 ): c is InviteeMemberInitialContext => 'user' in c
 
-// Type guard: ServerInitialContext vs others
 export const isServer = (c: InitialContext | ConnectionContext): c is ServerInitialContext =>
   'server' in c
