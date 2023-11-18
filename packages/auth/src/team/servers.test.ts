@@ -186,6 +186,10 @@ describe('Team', () => {
       expect(bob.team.roles('MANAGER')).toBeDefined()
     })
 
+    it.todo('can admit a device invited by a member', () => {
+      const { server, alice, bob } = setup('alice', 'bob')
+    })
+
     it('can change its own keys', async () => {
       const { alice } = setupHumans('alice', 'bob')
       const { server, serverWithSecrets } = createServer(host)

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { ADMIN } from 'role/index.js'
 import * as teams from 'team/index.js'
 import {
+  TestChannel,
+  all,
   anyDisconnected,
   anyUpdated,
   connect,
@@ -10,9 +12,11 @@ import {
   disconnect,
   disconnection,
   expectEveryoneToKnowEveryone,
+  joinTestChannel,
   setup,
   tryToConnect,
 } from 'util/testing/index.js'
+import { InviteeDeviceInitialContext } from './types.js'
 
 describe('connection', () => {
   describe('authentication', () => {
@@ -172,10 +176,53 @@ describe('connection', () => {
         const { seed } = bob.team.inviteDevice()
 
         // 💻<->📱📧 Bob's phone and laptop connect and the phone joins
-        await connectPhoneWithInvitation(bob, seed)
+        const phoneContext: InviteeDeviceInitialContext = {
+          userName: bob.userName,
+          device: bob.phone!,
+          invitationSeed: seed,
+        }
+        const join = joinTestChannel(new TestChannel())
+
+        const laptopConnection = join(bob.connectionContext).start()
+        const phoneConnection = join(phoneContext).start()
+
+        await all([laptopConnection, phoneConnection], 'connected')
+
+        bob.team = laptopConnection.team!
 
         // 👨🏻‍🦲👍📱 Bob's phone is added to his list of devices
         expect(bob.team.members(bob.userId).devices).toHaveLength(2)
+
+        // ✅ 👩🏾👍📱 Alice knows about Bob's phone
+        expect(alice.team.members(bob.userId).devices).toHaveLength(2)
+      })
+
+      it.todo('lets a different member admit an invited device', async () => {
+        const { alice, bob } = setup('alice', 'bob')
+
+        await connect(alice, bob)
+
+        expect(bob.team.members(bob.userId).devices).toHaveLength(1)
+
+        // 👨🏻‍🦲💻📧->📱 on his laptop, Bob creates an invitation and gets it to his phone
+        const { seed } = bob.team.inviteDevice()
+
+        // 💻<->📱📧 Bob's phone and Alice's laptop connect and the phone joins
+        const phoneContext: InviteeDeviceInitialContext = {
+          userName: bob.userName,
+          device: bob.phone!,
+          invitationSeed: seed,
+        }
+        const join = joinTestChannel(new TestChannel())
+        const aliceConnection = join(alice.connectionContext).start()
+        const phoneConnection = join(phoneContext).start()
+
+        await all([aliceConnection, phoneConnection], 'connected')
+
+        alice.team = aliceConnection.team!
+
+        // 👨🏻‍🦲👍📱 Bob's phone is added to his list of devices
+        expect(alice.team.members(bob.userId).devices).toHaveLength(2)
 
         // ✅ 👩🏾👍📱 Alice knows about Bob's phone
         expect(alice.team.members(bob.userId).devices).toHaveLength(2)
