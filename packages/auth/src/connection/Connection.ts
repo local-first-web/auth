@@ -117,6 +117,159 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       })
   }
 
+  // PUBLIC API
+
+  /** Starts the protocol machine. Returns this Protocol object. */
+  public start = (storedMessages: string[] = []) => {
+    this.log('starting')
+    this.machine.start()
+    this.started = true
+    this.sendMessage({ type: 'REQUEST_IDENTITY' })
+
+    // Deliver any stored messages we might have received before starting
+    for (const m of storedMessages) {
+      this.deliver(m)
+    }
+
+    return this
+  }
+
+  /** Sends a disconnect message to the peer. */
+  public stop = () => {
+    if (this.started && !this.machine.state.done) {
+      const disconnectMessage = { type: 'DISCONNECT' } as DisconnectMessage
+      this.sendMessage(disconnectMessage) // Send disconnect message to peer
+      this.machine.send(disconnectMessage) // Send disconnect event to local machine
+    }
+
+    this.removeAllListeners()
+    this.machine.stop()
+    this.machine.state.done = true
+    this.log('machine stopped')
+    return this
+  }
+
+  /** Returns the local user's id  */
+  public get userId() {
+    if (!this.started) return '...'
+
+    return 'user' in this.context && this.context.user !== undefined
+      ? this.context.user.userId
+      : 'unknown'
+  }
+
+  /** Returns the current state of the protocol machine. */
+  public get state() {
+    if (!this.started) {
+      return 'disconnected'
+    }
+
+    return this.machine.state.value
+  }
+
+  public get context(): ConnectionContext {
+    if (!this.started) throw new Error("Can't public get context; machine not started")
+    return this.machine.state.context
+  }
+
+  public get user() {
+    return this.context.user
+  }
+
+  public get userName() {
+    if (!this.started) return '...'
+    return this.user?.userName ?? this.context.userName ?? '?'
+  }
+
+  /**
+   * Returns the last error encountered by the protocol machine.
+   * If no error has occurred, returns undefined.
+   */
+  public get error() {
+    return this.context.error
+  }
+
+  /**
+   * Returns the team that the connection's user is a member of.
+   * If the user has not yet joined a team, returns undefined.
+   */
+  public get team() {
+    return this.context.team
+  }
+
+  /**
+   * Returns the connection's session key when we are in a connected state.
+   * Otherwise, returns `undefined`.
+   */
+  public get sessionKey() {
+    return this.context.sessionKey
+  }
+
+  public get peer() {
+    return this.context.peer
+  }
+
+  public get peerUserId() {
+    if (!this.started) return '...'
+    return this.context.peer?.userId ?? '?'
+  }
+
+  public get peerUserName() {
+    if (!this.started) return '...'
+    return this.context.peer?.userName ?? '?'
+  }
+
+  /** Sends an encrypted message to the peer we're connected with */
+  public send = (message: Payload) => {
+    assert(this.context.sessionKey)
+
+    const encryptedMessage = symmetric.encrypt(message, this.context.sessionKey)
+    this.sendMessage({ type: 'ENCRYPTED_MESSAGE', payload: encryptedMessage })
+  }
+
+  public sendSyncMessage(chain: TeamGraph, previousSyncState: SyncState = initSyncState()) {
+    const [syncState, syncMessage] = generateMessage(chain, previousSyncState)
+
+    // Undefined message means we're already synced
+    if (syncMessage) {
+      this.log('sending sync message', syncMessageSummary(syncMessage))
+      this.sendMessage({ type: 'SYNC', payload: syncMessage })
+    } else {
+      this.log('no sync message to send')
+    }
+
+    return syncState
+  }
+
+  /** Passes an incoming message from the peer on to this protocol machine, guaranteeing that
+   *  messages will be delivered in the intended order (according to the `index` field on the message) */
+  public deliver(serializedMessage: string) {
+    const message = insistentlyParseJson(serializedMessage) as ConnectionMessage
+    assert(
+      isNumberedConnectionMessage(message),
+      `Can only deliver numbered connection messages; received 
+      ${JSON.stringify(message, null, 2)}`
+    )
+
+    this.logMessage('in', message, message.index)
+
+    const { queue, nextMessages } = orderedDelivery(this.incomingMessageQueue, message)
+
+    // Update queue
+    this.incomingMessageQueue = queue
+
+    // TODO: detect hang when we've got message N+1 and message N doesn't come in for a while?
+
+    // send any messages that are ready to go out
+    for (const m of nextMessages) {
+      if (this.started && !this.machine.state.done) {
+        this.log(`delivering #${m.index} from ${this.peerUserName} %o`, truncateHashes(m))
+        this.machine.send(m)
+      } else {
+        this.log(`stopped, not delivering #${m.index}`)
+      }
+    }
+  }
   // ACTIONS
 
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendIdentityClaim'`) */
@@ -618,155 +771,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     },
 
     headsAreDifferent: (...args) => !this.guards.headsAreEqual(...args),
-  }
-
-  /** Starts the protocol machine. Returns this Protocol object. */
-  public start = (storedMessages: string[] = []) => {
-    this.log('starting')
-    this.machine.start()
-    this.started = true
-    this.sendMessage({ type: 'REQUEST_IDENTITY' })
-
-    // Deliver any stored messages we might have received before starting
-    for (const m of storedMessages) {
-      this.deliver(m)
-    }
-
-    return this
-  }
-
-  /** Sends a disconnect message to the peer. */
-  public stop = () => {
-    if (this.started && !this.machine.state.done) {
-      const disconnectMessage = { type: 'DISCONNECT' } as DisconnectMessage
-      this.sendMessage(disconnectMessage) // Send disconnect message to peer
-      this.machine.send(disconnectMessage) // Send disconnect event to local machine
-    }
-
-    this.removeAllListeners()
-    this.machine.stop()
-    this.machine.state.done = true
-    this.log('machine stopped')
-    return this
-  }
-
-  /** Returns the local user's id  */
-  get userId() {
-    if (!this.started) return '...'
-
-    return 'user' in this.context && this.context.user !== undefined
-      ? this.context.user.userId
-      : 'unknown'
-  }
-
-  /** Returns the current state of the protocol machine. */
-  get state() {
-    if (!this.started) {
-      return 'disconnected'
-    }
-
-    return this.machine.state.value
-  }
-
-  get context(): ConnectionContext {
-    if (!this.started) throw new Error("Can't get context; machine not started")
-    return this.machine.state.context
-  }
-
-  get user() {
-    return this.context.user
-  }
-
-  get userName() {
-    if (!this.started) return '...'
-    return this.user?.userName ?? this.context.userName ?? '?'
-  }
-
-  /** Returns the last error encountered by the protocol machine.
-   * If no error has occurred, returns undefined.
-   */
-  get error() {
-    return this.context.error
-  }
-
-  /** Returns the team that the connection's user is a member of.
-   * If the user has not yet joined a team, returns undefined.
-   */
-  get team() {
-    return this.context.team
-  }
-
-  /** Returns the connection's session key when we are in a connected state.
-   * Otherwise, returns `undefined`.
-   */
-  get sessionKey() {
-    return this.context.sessionKey
-  }
-
-  get peer() {
-    return this.context.peer
-  }
-
-  get peerUserId() {
-    if (!this.started) return '...'
-    return this.context.peer?.userId ?? '?'
-  }
-
-  get peerUserName() {
-    if (!this.started) return '...'
-    return this.context.peer?.userName ?? '?'
-  }
-
-  /** Sends an encrypted message to the peer we're connected with */
-  public send = (message: Payload) => {
-    assert(this.context.sessionKey)
-
-    const encryptedMessage = symmetric.encrypt(message, this.context.sessionKey)
-    this.sendMessage({ type: 'ENCRYPTED_MESSAGE', payload: encryptedMessage })
-  }
-
-  public sendSyncMessage(chain: TeamGraph, previousSyncState: SyncState = initSyncState()) {
-    const [syncState, syncMessage] = generateMessage(chain, previousSyncState)
-
-    // Undefined message means we're already synced
-    if (syncMessage) {
-      this.log('sending sync message', syncMessageSummary(syncMessage))
-      this.sendMessage({ type: 'SYNC', payload: syncMessage })
-    } else {
-      this.log('no sync message to send')
-    }
-
-    return syncState
-  }
-
-  /** Passes an incoming message from the peer on to this protocol machine, guaranteeing that
-   *  messages will be delivered in the intended order (according to the `index` field on the message) */
-  public deliver(serializedMessage: string) {
-    const message = insistentlyParseJson(serializedMessage) as ConnectionMessage
-    assert(
-      isNumberedConnectionMessage(message),
-      `Can only deliver numbered connection messages; received 
-      ${JSON.stringify(message, null, 2)}`
-    )
-
-    this.logMessage('in', message, message.index)
-
-    const { queue, nextMessages } = orderedDelivery(this.incomingMessageQueue, message)
-
-    // Update queue
-    this.incomingMessageQueue = queue
-
-    // TODO: detect hang when we've got message N+1 and message N doesn't come in for a while?
-
-    // send any messages that are ready to go out
-    for (const m of nextMessages) {
-      if (this.started && !this.machine.state.done) {
-        this.log(`delivering #${m.index} from ${this.peerUserName} %o`, truncateHashes(m))
-        this.machine.send(m)
-      } else {
-        this.log(`stopped, not delivering #${m.index}`)
-      }
-    }
   }
 
   // HELPERS
