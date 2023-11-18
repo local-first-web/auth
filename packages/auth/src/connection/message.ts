@@ -44,10 +44,6 @@ export type DisconnectMessage = {
   }
 }
 
-export type ReconnectMessage = {
-  type: 'RECONNECT'
-}
-
 // Invitations
 
 export type AcceptInvitationMessage = {
@@ -128,7 +124,6 @@ export type ConnectionMessage =
   | LocalUpdateMessage
   | ProveIdentityMessage
   | ReadyMessage
-  | ReconnectMessage
   | SeedMessage
   | SyncMessage
 
@@ -147,7 +142,6 @@ const messageTypes = new Set([
   'LOCAL_ERROR',
   'LOCAL_UPDATE',
   'PROVE_IDENTITY',
-  'RECONNECT',
   'REJECT_IDENTITY',
   'REQUEST_IDENTITY',
   'SEED',
