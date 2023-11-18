@@ -8,17 +8,17 @@ import type {
   UserWithSecrets,
 } from '@localfirst/crdx'
 import type {
-  FirstUseDeviceWithSecrets,
+  Device,
   DeviceWithSecrets,
   FirstUseDevice,
-  Device,
+  FirstUseDeviceWithSecrets,
 } from 'device/index.js'
 import type { ProofOfInvitation } from 'invitation/index.js'
+import type { ServerWithSecrets } from 'server/index.js'
 import type { Member, Team } from 'team/index.js'
 import type { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
 import type { ConnectionErrorPayload } from './errors.js'
 import type { ConnectionMessage } from './message.js'
-import type { ServerWithSecrets } from 'server/index.js'
 
 export type ConnectionEvents = {
   /** state change in the connection */
