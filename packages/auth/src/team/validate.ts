@@ -11,7 +11,7 @@ import {
   type ValidationArgs,
 } from './types.js'
 
-const log = debug('lf:auth:validate')
+const log = debug.extend('validate')
 
 export const validate: TeamStateValidator = (...args: ValidationArgs) => {
   for (const key in validators) {
