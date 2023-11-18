@@ -19,13 +19,11 @@
     "build": "tsup",
     "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly --declaration",
     "test": "vitest",
-    "test:log": "cross-env DEBUG='crdx*' DEBUG_COLORS=1 vitest run --reporter basic",
     "watch": "yarn build --watch"
   },
   "dependencies": {
     "@localfirst/crypto": "^4.2.0",
     "@paralleldrive/cuid2": "^2.2.2",
-    "debug": "4",
     "events": "3",
     "lodash-es": "^4.17.21"
   },
