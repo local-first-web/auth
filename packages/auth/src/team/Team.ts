@@ -220,30 +220,6 @@ export class Team extends EventEmitter {
     this.emit('updated', { head: this.graph.head })
   }
 
-  public lookupIdentity = (identityClaim: KeyScope): LookupIdentityResult => {
-    assert(identityClaim.type === DEVICE) // We always authenticate as devices
-    const deviceId = identityClaim.name
-
-    if (this.hasServer(deviceId)) return 'VALID_DEVICE'
-
-    if (!this.hasDevice(deviceId, { includeRemoved: true })) {
-      return 'DEVICE_UNKNOWN'
-    }
-
-    if (this.deviceWasRemoved(deviceId)) {
-      return 'DEVICE_REMOVED'
-    }
-
-    const device = this.device(deviceId, { includeRemoved: true })
-    const { userId } = device
-
-    if (this.memberWasRemoved(userId) || this.serverWasRemoved(userId)) {
-      return 'MEMBER_REMOVED'
-    }
-
-    return 'VALID_DEVICE'
-  }
-
   public verifyIdentityProof = (challenge: Challenge, proof: Base58) => {
     assert(challenge.type === DEVICE) // We always authenticate as devices
     const deviceId = challenge.name

@@ -4,20 +4,11 @@ import {
   initSyncState,
   receiveMessage,
   redactKeys,
-  type DecryptFn,
   type DecryptFnParams,
-  type Keyring,
   type SyncState,
   type UserWithSecrets,
 } from '@localfirst/crdx'
-import {
-  asymmetric,
-  randomKey,
-  symmetric,
-  type Base58,
-  type Hash,
-  type Payload,
-} from '@localfirst/crypto'
+import { asymmetric, randomKey, symmetric, type Hash, type Payload } from '@localfirst/crypto'
 import { deriveSharedKey } from 'connection/deriveSharedKey.js'
 import {
   buildError,
@@ -40,19 +31,17 @@ import {
   type SyncMessage,
 } from 'connection/message.js'
 import { orderedDelivery } from 'connection/orderedDelivery.js'
-import { redactDevice, type DeviceWithSecrets } from 'device/index.js'
+import { redactDevice } from 'device/index.js'
 import { EventEmitter } from 'eventemitter3'
 import * as invitations from 'invitation/index.js'
-import { cast } from 'server/cast.js'
 import { getTeamState } from 'team/getTeamState.js'
-import { getUserForDeviceFromGraph } from 'team/getUserForDeviceFromGraph.js'
+import { getDeviceUserFromGraph } from 'team/getDeviceUserFromGraph.js'
 import {
   Team,
   decryptTeamGraph,
   type TeamAction,
   type TeamContext,
   type TeamGraph,
-  Member,
 } from 'team/index.js'
 import * as select from 'team/selectors/index.js'
 import { arraysAreEqual } from 'util/arraysAreEqual.js'
@@ -196,9 +185,9 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   /** Sends an encrypted message to the peer we're connected with */
   public send = (message: Payload) => {
-    assert(this.context.sessionKey)
-
-    const encryptedMessage = symmetric.encrypt(message, this.context.sessionKey)
+    const { sessionKey } = this.context
+    assert(sessionKey)
+    const encryptedMessage = symmetric.encrypt(message, sessionKey)
     this.sendMessage({ type: 'ENCRYPTED_MESSAGE', payload: encryptedMessage })
   }
 
@@ -216,8 +205,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     return syncState
   }
 
-  /** Passes an incoming message from the peer on to this protocol machine, guaranteeing that
-   *  messages will be delivered in the intended order (according to the `index` field on the message) */
+  /**
+   * Passes an incoming message from the peer on to this protocol machine, guaranteeing that
+   * messages will be delivered in the intended order (according to the `index` field on the message)
+   */
   public deliver(serializedMessage: string) {
     const message = insistentlyParseJson(serializedMessage) as ConnectionMessage
     assert(
@@ -340,37 +331,34 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     }),
 
     joinTeam: assign((context, event) => {
-      assert(context.invitationSeed)
-
-      const { serializedGraph, teamKeyring } = (event as AcceptInvitationMessage).payload
+      const { payload } = event as AcceptInvitationMessage
+      const { serializedGraph, teamKeyring } = payload
       const { user, device } = context
 
+      const rehydrateTeam = (user: UserWithSecrets) =>
+        new Team({ source: serializedGraph, context: { user, device }, teamKeyring })
+
       // Join the team
-      if (user === undefined) {
-        // Joining as a new device for an existing member.
-        // We don't know our user id or user keys yet, so we need to get those from the graph.
-        const { id } = this.myProofOfInvitation(context)
-        const user = getUserForDeviceFromGraph({
-          serializedGraph,
-          keyring: teamKeyring,
-          device,
-          invitationId: id,
-        })
-
-        // Now we can rehydrate the graph
-        const team = this.rehydrateTeam(serializedGraph, user, device, teamKeyring)
-
-        return { user, team }
-      } else {
+      if (user !== undefined) {
         // Joining as a new member
 
         // Reconstruct team from serialized graph
-        const team = this.rehydrateTeam(serializedGraph, user, device, teamKeyring)
+        const team = rehydrateTeam(user)
 
         // Add our current device to the team chain
         team.join(teamKeyring)
 
         return { team }
+      } else {
+        // Joining as a new device for an existing member.
+        // We don't know our user id or user keys yet, so we need to get those from the graph.
+        const { id: invitationId } = this.myProofOfInvitation(context)
+        const user = getDeviceUserFromGraph({ serializedGraph, teamKeyring, device, invitationId })
+
+        // Now we can rehydrate the graph
+        const team = rehydrateTeam(user)
+
+        return { user, team }
       }
     }),
 
@@ -378,7 +366,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     confirmIdentityExists: assign(context => {
       const deviceId = context.theirDeviceId
-      if (deviceId === undefined) return {} // If they haven't send a deviceId, they're not on the team yet
+      if (deviceId === undefined) return {} // If they haven't sent a deviceId, they're not on the team yet
       if (context.team === undefined) return {} // If we're not on the team yet, we don't have a way of knowing if the peer is
 
       try {
@@ -439,51 +427,51 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     sendSyncMessage: assign({
       syncState: context => {
         assert(context.team)
-        const syncState = this.sendSyncMessage(context.team.graph, context.syncState)
+        const previousSyncState = context.syncState ?? initSyncState()
+
+        const [syncState, syncMessage] = generateMessage(context.team.graph, previousSyncState)
+
+        // Undefined message means we're already synced
+        if (syncMessage) {
+          this.log('sending sync message', syncMessageSummary(syncMessage))
+          this.sendMessage({ type: 'SYNC', payload: syncMessage })
+        } else {
+          this.log('no sync message to send')
+        }
+
         return syncState
       },
     }),
 
     receiveSyncMessage: assign((context, event) => {
-      assert(context.team)
-      let { team } = context
+      const { team, device } = context
+      assert(team)
 
       const previousSyncState = context.syncState ?? initSyncState()
       const syncMessage = (event as SyncMessage).payload
 
       const teamKeys = team.teamKeys()
+      const deviceKeys = device.keys
 
-      this.log(`receiving message with team keys generation ${teamKeys.generation}`)
-
-      const decrypt = (({ encryptedGraph, keys }: DecryptFnParams<TeamAction, TeamContext>) => {
-        const graph = decryptTeamGraph({
-          encryptedGraph,
-          teamKeys: keys,
-          deviceKeys: context.device.keys,
-        })
-        return graph
-      }) as DecryptFn
+      const decrypt = ({ encryptedGraph, keys }: DecryptFnParams<TeamAction, TeamContext>) =>
+        decryptTeamGraph({ encryptedGraph, teamKeys: keys, deviceKeys })
 
       const [newChain, syncState] = receiveMessage(
-        context.team.graph,
+        team.graph,
         previousSyncState,
         syncMessage,
-        team.teamKeys(),
+        teamKeys,
         decrypt
       )
 
-      if (!headsAreEqual(newChain.head, team.graph.head)) {
-        team = context.team.merge(newChain)
+      if (headsAreEqual(newChain.head, team.graph.head))
+        // no update
+        return { syncState }
 
-        const summary = JSON.stringify({
-          head: team.graph.head,
-          links: Object.keys(team.graph.links),
-        })
-        this.log(`received sync message; new chain ${summary}`)
-        this.emit('updated')
-      }
+      this.emit('updated')
 
-      return { team, syncState }
+      const newTeam = team.merge(newChain)
+      return { team: newTeam, syncState }
     }),
 
     // NEGOTIATING
@@ -491,18 +479,12 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     generateSeed: assign({ seed: _ => randomKey() }),
 
     sendSeed: context => {
-      assert(context.user)
-      assert(context.peer)
-      assert(context.seed)
+      const { user, peer, seed } = context
 
-      const recipientPublicKey = context.peer.keys.encryption
-      const senderPublicKey = context.user.keys.encryption.publicKey
-      const senderSecretKey = context.user.keys.encryption.secretKey
-      this.log('encrypting %o', { recipientPublicKey, senderPublicKey })
       const encryptedSeed = asymmetric.encrypt({
-        secret: context.seed,
-        recipientPublicKey,
-        senderSecretKey,
+        secret: seed!,
+        recipientPublicKey: peer!.keys.encryption,
+        senderSecretKey: user!.keys.encryption.secretKey,
       })
 
       this.sendMessage({
@@ -513,47 +495,37 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     receiveSeed: assign((_, event) => {
       const { payload } = event as SeedMessage
-      this.log('receiveSeed %o', payload)
       return { theirEncryptedSeed: payload.encryptedSeed }
     }),
 
     deriveSharedKey: assign({
       sessionKey: context => {
-        assert(context.user)
-        assert(context.theirEncryptedSeed)
-        assert(context.seed)
-        assert(context.peer)
+        const { user, seed, theirEncryptedSeed, peer } = context
 
         // We saved our seed in context
-        const ourSeed = context.seed
+        assert(seed)
 
-        // Their seed is encrypted and stored in context
-        const senderPublicKey = context.peer.keys.encryption
-        const recipientPublicKey = context.user.keys.encryption.publicKey
-        const recipientSecretKey = context.user.keys.encryption.secretKey
-        this.log('decrypting %o', { senderPublicKey, recipientPublicKey })
-        try {
-          const theirSeed = asymmetric.decrypt({
-            cipher: context.theirEncryptedSeed,
-            senderPublicKey,
-            recipientSecretKey,
-          }) as Base58
+        // Their encrypted seed is stored in context
+        assert(theirEncryptedSeed)
+        // Decrypt it:
+        const theirSeed = asymmetric.decrypt({
+          cipher: theirEncryptedSeed,
+          senderPublicKey: peer!.keys.encryption,
+          recipientSecretKey: user!.keys.encryption.secretKey,
+        })
 
-          // With the two keys, we derive a shared key
-          return deriveSharedKey(ourSeed, theirSeed)
-        } catch (error: unknown) {
-          this.log('decryption failed %o', { senderPublicKey, recipientPublicKey })
-          throw error
-        }
+        // With the two keys, we derive a shared key
+        return deriveSharedKey(seed, theirSeed)
       },
     }),
 
     // COMMUNICATING
 
     receiveEncryptedMessage: (context, event) => {
-      assert(context.sessionKey)
-      const encryptedMessage = (event as EncryptedMessage).payload
-      const decryptedMessage = symmetric.decrypt(encryptedMessage, context.sessionKey)
+      const { sessionKey } = context
+      assert(sessionKey)
+      const { payload: encryptedMessage } = event as EncryptedMessage
+      const decryptedMessage = symmetric.decrypt(encryptedMessage, sessionKey)
       this.emit('message', decryptedMessage)
     },
 
@@ -620,14 +592,11 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       this.guards.iHaveInvitation(...args) && this.guards.theyHaveInvitation(...args),
 
     invitationProofIsValid: context => {
-      assert(context.team)
-      assert(context.theirProofOfInvitation)
-      const validation = context.team.validateInvitation(context.theirProofOfInvitation)
-      this.log('invitation validation: %o', validation)
-      if (validation.isValid) {
-        return true
-      }
-
+      const { team, theirProofOfInvitation } = context
+      assert(team)
+      assert(theirProofOfInvitation)
+      const validation = team.validateInvitation(theirProofOfInvitation)
+      if (validation.isValid) return true
       context.error = validation.error
       return false
     },
@@ -636,8 +605,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       // Make sure my invitation exists on the signature chain of the team I'm about to join.
       // This check prevents an attack in which a fake team pretends to accept my invitation.
       // TODO: cover with test
-      const { serializedGraph, teamKeyring } = (event as AcceptInvitationMessage).payload
-
+      const { payload } = event as AcceptInvitationMessage
+      const { serializedGraph, teamKeyring } = payload
       const state = getTeamState(serializedGraph, teamKeyring)
       const { id } = this.myProofOfInvitation(context)
       return select.hasInvitation(state, id)
@@ -646,37 +615,38 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     // IDENTITY
 
     peerWasRemoved(context) {
-      assert(context.team)
-      assert(context.peer)
-      assert(context.theirDevice)
-      const { team } = context
-      const { userId } = context.peer
-      const { deviceId } = context.theirDevice
-      const serverWasRemoved = team.serverWasRemoved(userId)
-      const memberWasRemoved = team.memberWasRemoved(userId)
-      const deviceWasRemoved = team.deviceWasRemoved(deviceId)
+      const { team, peer, theirDevice } = context
+      assert(team)
+      assert(peer)
+      assert(theirDevice)
+      const serverWasRemoved = team.serverWasRemoved(peer.userId)
+      const memberWasRemoved = team.memberWasRemoved(peer.userId)
+      const deviceWasRemoved = team.deviceWasRemoved(theirDevice.deviceId)
       return serverWasRemoved || memberWasRemoved || deviceWasRemoved
     },
 
     identityProofIsValid(context, event) {
-      assert(context.team)
-      const { challenge, proof } = (event as ProveIdentityMessage).payload
-      return context.team.verifyIdentityProof(challenge, proof)
+      const { team } = context
+      assert(team)
+      const { payload } = event as ProveIdentityMessage
+      const { challenge, proof } = payload
+      return team.verifyIdentityProof(challenge, proof)
     },
 
     // SYNCHRONIZATION
 
     headsAreEqual(context) {
-      assert(context.team)
-      const ourHead = context.team.graph.head
-      const lastCommonHead = context.syncState?.lastCommonHead
+      const { team, syncState } = context
+      assert(team)
+      const ourHead = team.graph.head
+      const lastCommonHead = syncState?.lastCommonHead
       return arraysAreEqual(ourHead, lastCommonHead)
     },
 
     headsAreDifferent: (...args) => !this.guards.headsAreEqual(...args),
   }
 
-  // HELPERS
+  // PRIVATE
 
   private readonly sendMessage = (message: ConnectionMessage) => {
     // Add a sequential index to any outgoing messages
@@ -710,19 +680,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     const arrow = direction === 'in' ? '<-' : '->'
     const peerUserName = this.context.peer?.userName ?? '?'
     this.log(`${arrow}${peerUserName} #${index} ${messageSummary(message)}`)
-  }
-
-  private rehydrateTeam(
-    serializedGraph: string,
-    user: UserWithSecrets,
-    device: DeviceWithSecrets,
-    teamKeyring: Keyring
-  ) {
-    return new Team({
-      source: serializedGraph,
-      context: { user, device },
-      teamKeyring,
-    })
   }
 
   private myProofOfInvitation(context: ConnectionContext) {

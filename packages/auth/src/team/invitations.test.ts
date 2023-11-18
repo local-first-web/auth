@@ -259,9 +259,9 @@ describe('Team', () => {
         const teamKeyring = aliceLaptop.team.teamKeyring()
 
         // 📱 Alice's phone needs to get Alice's user keys from the graph in order to instantiate the team
-        const keys = teams.getUserForDeviceFromGraph({
+        const keys = teams.getDeviceUserFromGraph({
           serializedGraph,
-          keyring: teamKeyring,
+          teamKeyring,
           device: alicePhone,
           invitationId: proofOfInvitation.id,
         })

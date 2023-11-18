@@ -6,18 +6,18 @@ import * as select from './selectors/index.js'
 
 const { USER } = KeyType
 
-export const getUserForDeviceFromGraph = ({
+export const getDeviceUserFromGraph = ({
   serializedGraph,
-  keyring,
+  teamKeyring,
   device,
   invitationId,
 }: {
   serializedGraph: string
-  keyring: Keyring
+  teamKeyring: Keyring
   device: FirstUseDeviceWithSecrets
   invitationId: Base58
 }): UserWithSecrets => {
-  const state = getTeamState(serializedGraph, keyring)
+  const state = getTeamState(serializedGraph, teamKeyring)
   const { userId } = select.getInvitation(state, invitationId)
   assert(userId) // since this is a device invitation the invitation info includes the userId that created it
   const { userName } = select.member(state, userId)
