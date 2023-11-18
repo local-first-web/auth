@@ -93,6 +93,50 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   log: (...args: any[]) => void = () => {}
 
+  constructor({ sendMessage, context }: ConnectionParams) {
+    super()
+
+    this.sendFn = sendMessage
+
+    const fakeServerContext = (server: ServerWithSecrets) => {
+      const userId = server.host
+      const userName = server.host
+      const deviceName = server.host
+      const { keys } = server
+      return {
+        user: { userId, userName, keys },
+        device: { userId, deviceName, keys },
+      }
+    }
+
+    const initialContext: InitialContext = isServer(context)
+      ? { ...context, ...fakeServerContext(context.server) }
+      : context
+
+    this.log = (msg: string, ...args: any[]) =>
+      debug(`lf:auth:connection:${this.userName}:${this.peerUserName}`)(msg, ...args)
+
+    // Define state machine
+    const machineConfig = { actions: this.actions, guards: this.guards }
+    const machine = createMachine(protocolMachine, machineConfig) //
+      .withContext(initialContext as ConnectionContext)
+
+    // Instantiate the machine
+    this.machine = interpret(machine) as Interpreter<
+      ConnectionContext,
+      ConnectionState,
+      ConnectionMessage,
+      { value: any; context: ConnectionContext }
+    >
+
+    // Emit and log transitions
+    this.machine.onTransition((state, event) => {
+      const summary = stateSummary(state.value as string)
+      this.emit('change', summary)
+      this.log(`${messageSummary(event)} ⏩ ${summary} `)
+    })
+  }
+
   // ACTIONS
 
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendIdentityClaim'`) */
@@ -121,6 +165,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             device: redactDevice(context.device),
           }
 
+      console.log('**** %o', payload)
       this.sendMessage({
         type: 'CLAIM_IDENTITY',
         payload,
@@ -131,7 +176,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       theirIdentityClaim: (_, event) => {
         event = event as ClaimIdentityMessage
         if ('identityClaim' in event.payload) {
-          this.log('identityClaim %o', event.payload.identityClaim)
           return event.payload.identityClaim
         }
         return undefined
@@ -593,50 +637,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     },
 
     headsAreDifferent: (...args) => !this.guards.headsAreEqual(...args),
-  }
-
-  constructor({ sendMessage, context }: ConnectionParams) {
-    super()
-
-    this.sendFn = sendMessage
-
-    const fakeServerContext = (server: ServerWithSecrets) => {
-      const userId = server.host
-      const userName = server.host
-      const deviceName = server.host
-      const { keys } = server
-      return {
-        user: { userId, userName, keys },
-        device: { userId, deviceName, keys },
-      }
-    }
-
-    const initialContext: InitialContext = isServer(context)
-      ? { ...context, ...fakeServerContext(context.server) }
-      : context
-
-    this.log = (msg: string, ...args: any[]) =>
-      debug(`lf:auth:connection:${this.userName}:${this.peerUserName}`)(msg, ...args)
-
-    // Define state machine
-    const machineConfig = { actions: this.actions, guards: this.guards }
-    const machine = createMachine(protocolMachine, machineConfig) //
-      .withContext(initialContext as ConnectionContext)
-
-    // Instantiate the machine
-    this.machine = interpret(machine) as Interpreter<
-      ConnectionContext,
-      ConnectionState,
-      ConnectionMessage,
-      { value: any; context: ConnectionContext }
-    >
-
-    // Emit and log transitions
-    this.machine.onTransition((state, event) => {
-      const summary = stateSummary(state.value as string)
-      this.emit('change', summary)
-      this.log(`${messageSummary(event)} ⏩ ${summary} `)
-    })
   }
 
   /** Starts (or restarts) the protocol machine. Returns this Protocol object. */
