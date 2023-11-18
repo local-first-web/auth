@@ -55,7 +55,7 @@ import {
 } from 'team/index.js'
 import * as select from 'team/selectors/index.js'
 import { arraysAreEqual } from 'util/arraysAreEqual.js'
-import { KeyType, assert, debug, truncateHashes } from 'util/index.js'
+import { KeyType, assert, debug } from 'util/index.js'
 import { syncMessageSummary } from 'util/testing/messageSummary.js'
 import { assign, createMachine, interpret, type Interpreter } from 'xstate'
 import { machine } from './machine.js'
@@ -124,12 +124,12 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     this.log('starting')
     this.machine.start()
     this.started = true
+
+    // kick off the connection by requesting our peer's identity
     this.sendMessage({ type: 'REQUEST_IDENTITY' })
 
-    // Deliver any stored messages we might have received before starting
-    for (const m of storedMessages) {
-      this.deliver(m)
-    }
+    // Process any stored messages we might have received before starting
+    for (const m of storedMessages) this.deliver(m)
 
     return this
   }
@@ -151,25 +151,18 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   /** Returns the current state of the protocol machine. */
   public get state() {
-    if (!this.started) {
-      return 'disconnected'
-    }
+    if (!this.started) return 'not started'
 
     return this.machine.state.value
   }
 
   public get context(): ConnectionContext {
-    if (!this.started) throw new Error("Can't public get context; machine not started")
+    if (!this.started) throw new Error("Can't get context; machine not started")
     return this.machine.state.context
   }
 
   public get user() {
     return this.context.user
-  }
-
-  public get userName() {
-    if (!this.started) return '...'
-    return this.user?.userName ?? this.context.userName ?? '?'
   }
 
   /**
@@ -254,7 +247,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     // send any messages that are ready to go out
     for (const m of nextMessages) {
       if (this.started && !this.machine.state.done) {
-        this.log(`delivering #${m.index} from ${this.peerUserName} %o`, truncateHashes(m))
+        this.log(`delivering #${m.index} from ${this.peerUserName} %o`, m)
         this.machine.send(m)
       } else {
         this.log(`stopped, not delivering #${m.index}`)
@@ -619,7 +612,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         const senderPublicKey = context.peer.keys.encryption
         const recipientPublicKey = context.user.keys.encryption.publicKey
         const recipientSecretKey = context.user.keys.encryption.secretKey
-        this.log('decrypting %o', truncateHashes({ senderPublicKey, recipientPublicKey }))
+        this.log('decrypting %o', { senderPublicKey, recipientPublicKey })
         try {
           const theirSeed = asymmetric.decrypt({
             cipher: context.theirEncryptedSeed,
@@ -630,7 +623,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           // With the two keys, we derive a shared key
           return deriveSharedKey(ourSeed, theirSeed)
         } catch (error: unknown) {
-          this.log('decryption failed %o', truncateHashes({ senderPublicKey, recipientPublicKey }))
+          this.log('decryption failed %o', { senderPublicKey, recipientPublicKey })
           throw error
         }
       },
@@ -796,8 +789,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   private logMessage(direction: 'in' | 'out', message: ConnectionMessage, index: number) {
     const arrow = direction === 'in' ? '<-' : '->'
-    const { userName } = this
-    this.log(`${userName}${arrow}${this.peerUserName} #${index} ${messageSummary(message)}`)
+    this.log(`${arrow}${this.peerUserName} #${index} ${messageSummary(message)}`)
   }
 
   private rehydrateTeam(
