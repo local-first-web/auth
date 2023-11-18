@@ -44,6 +44,7 @@ import { redactDevice, type DeviceWithSecrets } from 'device/index.js'
 import { EventEmitter } from 'eventemitter3'
 import * as invitations from 'invitation/index.js'
 import { cast } from 'server/cast.js'
+import { type ServerWithSecrets } from 'server/index.js'
 import { getTeamState } from 'team/getTeamState.js'
 import { getUserForDeviceFromGraph } from 'team/getUserForDeviceFromGraph.js'
 import {
@@ -60,22 +61,17 @@ import { syncMessageSummary } from 'util/testing/messageSummary.js'
 import { assign, createMachine, interpret, type Interpreter } from 'xstate'
 import { machine } from './machine.js'
 import {
+  InitialContext,
   isInvitee,
   isInviteeMember,
+  isServer,
   type Condition,
   type ConnectionContext,
   type ConnectionEvents,
-  type ConnectionParams,
   type ConnectionState,
   type SendFunction,
   type StateMachineAction,
-  isServer,
-  MemberInitialContext,
-  InviteeInitialContext,
-  InitialContext,
 } from './types.js'
-import { type ServerWithSecrets } from 'server/index.js'
-import { ServerContext } from 'index.js'
 
 const { DEVICE } = KeyType
 
@@ -93,20 +89,18 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   log: (...args: any[]) => void = () => {}
 
-  constructor({ sendMessage, context }: ConnectionParams) {
+  constructor({ sendMessage, context }: Params) {
     super()
 
     this.sendFn = sendMessage
 
+    // A server is conceptually kind of a user and kind of a device. This little hack lets us avoid
+    // creating special logic for servers all over the place.
     const fakeServerContext = (server: ServerWithSecrets) => {
-      const userId = server.host
-      const userName = server.host
-      const deviceName = server.host
-      const deviceId = server.host
-      const { keys } = server
+      const { keys, host } = server
       return {
-        user: { userId, userName, keys },
-        device: { userId, deviceId, deviceName, keys },
+        user: { userId: host, userName: host, keys },
+        device: { userId: host, deviceId: host, deviceName: host, keys },
       }
     }
 
@@ -144,27 +138,27 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendIdentityClaim'`) */
   private readonly actions: Record<string, StateMachineAction> = {
     sendIdentityClaim: async context => {
-      const payload: ClaimIdentityMessage['payload'] = !isInvitee(context)
-        ? // I'm already a member
+      const payload: ClaimIdentityMessage['payload'] = isInvitee(context)
+        ? isInviteeMember(context)
+          ? // I'm a new user and I have an invitation
+            {
+              proofOfInvitation: this.myProofOfInvitation(context),
+              userName: context.user.userName,
+              userKeys: redactKeys(context.user.keys),
+              device: redactDevice(context.device),
+            }
+          : // I'm a new device for an existing user and I have an invitation
+            {
+              proofOfInvitation: this.myProofOfInvitation(context),
+              userName: context.userName,
+              device: redactDevice(context.device),
+            }
+        : // I'm already a member
           {
             identityClaim: {
               type: DEVICE,
               name: context.device.deviceId,
             },
-          }
-        : isInviteeMember(context)
-        ? // I'm a new user and I have an invitation
-          {
-            proofOfInvitation: this.myProofOfInvitation(context),
-            userName: context.user.userName,
-            userKeys: redactKeys(context.user.keys),
-            device: redactDevice(context.device),
-          }
-        : // I'm a new device for an existing user and I have an invitation
-          {
-            proofOfInvitation: this.myProofOfInvitation(context),
-            userName: context.userName,
-            device: redactDevice(context.device),
           }
 
       this.sendMessage({
@@ -881,3 +875,11 @@ const stateSummary = (state = 'disconnected'): string =>
         .map(key => `${key}:${stateSummary(state[key])}`)
         .filter(s => s.length)
         .join(',')
+
+export type Params = {
+  /** A function to send messages to our peer. This how you hook this up to your network stack. */
+  sendMessage: SendFunction
+
+  /** The initial context. */
+  context: InitialContext
+}
