@@ -624,7 +624,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     headsAreDifferent: (...args) => !this.guards.headsAreEqual(...args),
   }
 
-  /** Starts (or restarts) the protocol machine. Returns this Protocol object. */
+  /** Starts the protocol machine. Returns this Protocol object. */
   public start = (storedMessages: string[] = []) => {
     this.log('starting')
     this.machine.start()
@@ -635,6 +635,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     for (const m of storedMessages) {
       this.deliver(m)
     }
+
     return this
   }
 
@@ -649,7 +650,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     this.removeAllListeners()
     this.machine.stop()
     this.machine.state.done = true
-    this.log('machine stopped: %o', this.machine.state.done)
+    this.log('machine stopped')
     return this
   }
 
