@@ -87,7 +87,7 @@ export class Team extends EventEmitter {
       }
     }
 
-    this.log = debug(`lf:auth:team:${this.userName}`)
+    this.log = debug.extend(`team:${this.userName}`)
 
     // Initialize a CRDX store for the team
     if (isNewTeam(options)) {
