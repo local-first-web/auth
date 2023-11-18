@@ -188,7 +188,7 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
           },
 
           // Once BOTH processes complete, we continue
-          onDone: { actions: 'storePeer', target: 'doneAuthenticating' },
+          onDone: { target: 'doneAuthenticating' },
         },
 
         doneAuthenticating: { type: 'final' },

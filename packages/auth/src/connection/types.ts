@@ -92,7 +92,8 @@ export type InitialContext = MemberInitialContext | InviteeInitialContext | Serv
 export type ConnectionContext = {
   theyHaveInvitation?: boolean
 
-  theirIdentityClaim?: KeyScope
+  theirDeviceId?: string
+
   theirUserName?: string
   theirProofOfInvitation?: ProofOfInvitation
   theirUserKeys?: Keyset
@@ -178,12 +179,15 @@ export type ConnectionState = {
 
 // TYPE GUARDS
 
-export const isInvitee = (c: InitialContext | ConnectionContext): c is InviteeInitialContext =>
-  !('team' in c)
+type C = InitialContext | ConnectionContext
+export const isMember = (c: C): c is MemberInitialContext => !isInvitee(c)
 
-export const isInviteeMember = (
-  c: InviteeMemberInitialContext | InviteeDeviceInitialContext
-): c is InviteeMemberInitialContext => 'user' in c
+export const isInvitee = (c: C): c is InviteeInitialContext => 'invitationSeed' in c
 
-export const isServer = (c: InitialContext | ConnectionContext): c is ServerInitialContext =>
-  'server' in c
+export const isInviteeMember = (c: C): c is InviteeMemberInitialContext =>
+  isInvitee(c) && 'user' in c
+
+export const isInviteeDevice = (c: C): c is InviteeDeviceInitialContext =>
+  isInvitee(c) && !isInviteeMember(c)
+
+export const isServer = (c: C): c is ServerInitialContext => 'server' in c

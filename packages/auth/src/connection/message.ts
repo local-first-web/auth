@@ -20,7 +20,7 @@ export type ClaimIdentityMessage = {
   payload:
     | {
         // I'm already a member, I just send my deviceId
-        identityClaim: KeyScope // { type: 'DEVICE', name: deviceId }
+        deviceId: string
       }
     | {
         // I'm a new user and I have an invitation
@@ -49,7 +49,7 @@ export type DisconnectMessage = {
 export type AcceptInvitationMessage = {
   type: 'ACCEPT_INVITATION'
   payload: {
-    serializedGraph: Base58
+    serializedGraph: string
     teamKeyring: Keyring
   }
 }
@@ -73,7 +73,6 @@ export type ProveIdentityMessage = {
 
 export type AcceptIdentityMessage = {
   type: 'ACCEPT_IDENTITY'
-  payload: Record<string, unknown>
 }
 
 export type RejectIdentityMessage = {

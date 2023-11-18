@@ -52,6 +52,7 @@ import {
   type TeamAction,
   type TeamContext,
   type TeamGraph,
+  Member,
 } from 'team/index.js'
 import * as select from 'team/selectors/index.js'
 import { arraysAreEqual } from 'util/arraysAreEqual.js'
@@ -69,7 +70,7 @@ import type {
   ServerInitialContext,
   StateMachineAction,
 } from './types.js'
-import { isInvitee, isInviteeMember, isServer } from './types.js'
+import { isInvitee, isInviteeDevice, isInviteeMember, isServer } from './types.js'
 
 const { DEVICE } = KeyType
 
@@ -193,16 +194,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     return this.context.peer
   }
 
-  public get peerUserId() {
-    if (!this.started) return '...'
-    return this.context.peer?.userId ?? '?'
-  }
-
-  public get peerUserName() {
-    if (!this.started) return '...'
-    return this.context.peer?.userName ?? '?'
-  }
-
   /** Sends an encrypted message to the peer we're connected with */
   public send = (message: Payload) => {
     assert(this.context.sessionKey)
@@ -247,7 +238,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     // send any messages that are ready to go out
     for (const m of nextMessages) {
       if (this.started && !this.machine.state.done) {
-        this.log(`delivering #${m.index} from ${this.peerUserName} %o`, m)
+        const peerUserName = this.context.peer?.userName ?? '?'
+        this.log(`delivering #${m.index} from ${peerUserName} %o`, m)
         this.machine.send(m)
       } else {
         this.log(`stopped, not delivering #${m.index}`)
@@ -259,221 +251,162 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendIdentityClaim'`) */
   private readonly actions: Record<string, StateMachineAction> = {
     sendIdentityClaim: async context => {
-      const payload: ClaimIdentityMessage['payload'] = isInvitee(context)
-        ? isInviteeMember(context)
-          ? // I'm a new user and I have an invitation
-            {
-              proofOfInvitation: this.myProofOfInvitation(context),
-              userName: context.user.userName,
-              userKeys: redactKeys(context.user.keys),
-              device: redactDevice(context.device),
-            }
-          : // I'm a new device for an existing user and I have an invitation
-            {
-              proofOfInvitation: this.myProofOfInvitation(context),
-              userName: context.userName,
-              device: redactDevice(context.device),
-            }
-        : // I'm already a member
-          {
-            identityClaim: {
-              type: DEVICE,
-              name: context.device.deviceId,
-            },
+      const createIdentityClaim = (context: ConnectionContext) => {
+        if (isMember(context)) {
+          // I'm already a member
+          return {
+            deviceId: context.device.deviceId,
           }
+        }
+        if (isInviteeMember(context)) {
+          // I'm a new user and I have an invitation
+          const { userName, keys } = context.user
+          return {
+            proofOfInvitation: this.myProofOfInvitation(context),
+            userName,
+            userKeys: redactKeys(keys),
+            device: redactDevice(context.device),
+          }
+        }
+        if (isInviteeDevice(context)) {
+          // I'm a new device for an existing user and I have an invitation
+          const { userName, device } = context
+          return {
+            proofOfInvitation: this.myProofOfInvitation(context),
+            userName,
+            device: redactDevice(device),
+          }
+        }
+        throw new Error('Invalid context') // that should have been exhaustive
+      }
 
       this.sendMessage({
         type: 'CLAIM_IDENTITY',
-        payload,
+        payload: createIdentityClaim(context),
       })
     },
 
-    receiveIdentityClaim: assign({
-      theirIdentityClaim: (_, event) => {
-        event = event as ClaimIdentityMessage
-        if ('identityClaim' in event.payload) {
-          const { identityClaim } = event.payload
-          if ('userName' in identityClaim)
-            this.log = this.log.extend(identityClaim.userName as string)
-          return identityClaim
-        }
+    receiveIdentityClaim: assign((_, event) => {
+      const { payload: p } = event as ClaimIdentityMessage
+      if ('userName' in p) this.log = this.log.extend(p.userName)
 
-        return undefined
-      },
-
-      theyHaveInvitation(_, event) {
-        event = event as ClaimIdentityMessage
-        if ('proofOfInvitation' in event.payload) return true
-        return false
-      },
-
-      theirProofOfInvitation(_, event) {
-        event = event as ClaimIdentityMessage
-        if ('proofOfInvitation' in event.payload) {
-          return event.payload.proofOfInvitation
-        }
-
-        return undefined
-      },
-
-      theirUserKeys(_, event) {
-        event = event as ClaimIdentityMessage
-        if ('userKeys' in event.payload) {
-          return event.payload.userKeys
-        }
-
-        return undefined
-      },
-
-      theirDevice(_, event) {
-        event = event as ClaimIdentityMessage
-        if ('device' in event.payload) {
-          return event.payload.device
-        }
-
-        return undefined
-      },
-
-      theirUserName(_, event) {
-        event = event as ClaimIdentityMessage
-        if ('userName' in event.payload) {
-          return event.payload.userName
-        }
-
-        return undefined
-      },
+      return {
+        theirDeviceId: 'deviceId' in p ? p.deviceId : undefined,
+        theyHaveInvitation: 'proofOfInvitation' in p,
+        theirProofOfInvitation: 'proofOfInvitation' in p ? p.proofOfInvitation : undefined,
+        theirUserKeys: 'userKeys' in p ? p.userKeys : undefined,
+        theirDevice: 'device' in p ? p.device : undefined,
+        theirUserName: 'userName' in p ? p.userName : undefined,
+      }
     }),
 
     // HANDLING INVITATIONS
 
-    acceptInvitation: context => {
-      assert(context.team)
-      assert(context.theirProofOfInvitation)
-
+    acceptInvitation: assign(context => {
       // Admit them to the team
-      if ('theirUserKeys' in context && context.theirUserKeys !== undefined) {
-        // New member
-        assert(context.theirUserName)
-        context.team.admitMember(
-          context.theirProofOfInvitation,
-          context.theirUserKeys,
-          context.theirUserName
-        )
-        const userId = context.theirUserKeys.name
-        context.peer = context.team.members(userId)
-      } else {
-        // New device for existing member
-        assert(context.theirDevice)
-        context.team.admitDevice(context.theirProofOfInvitation, context.theirDevice)
-        const { deviceId } = context.theirDevice
-        const { userId } = context.team.memberByDeviceId(deviceId)!
-        context.peer = context.team.members(userId)
+      const { team, theirProofOfInvitation, theirUserKeys, theirUserName, theirDevice } = context
+
+      assert(team)
+      assert(theirProofOfInvitation)
+
+      const admit = () => {
+        if (theirUserKeys !== undefined) {
+          // New member
+          assert(theirUserName)
+          team.admitMember(theirProofOfInvitation, theirUserKeys, theirUserName)
+          const userId = theirUserKeys.name
+          return team.members(userId)
+        } else {
+          // New device for existing member
+          assert(theirDevice)
+          team.admitDevice(theirProofOfInvitation, theirDevice)
+          const { deviceId } = theirDevice
+          const { userId } = team.memberByDeviceId(deviceId)
+          return team.members(userId)
+        }
       }
+      const peer = admit()
 
       // Welcome them by sending the team's signature chain, so they can reconstruct team membership state
       this.sendMessage({
         type: 'ACCEPT_INVITATION',
         payload: {
-          serializedGraph: context.team.save(),
-          teamKeyring: context.team.teamKeyring(),
+          serializedGraph: team.save(),
+          teamKeyring: team.teamKeyring(),
         },
-      } as AcceptInvitationMessage)
-    },
+      })
 
-    joinTeam: (context, event) => {
-      assert(this.context.invitationSeed)
+      return { peer }
+    }),
+
+    joinTeam: assign((context, event) => {
+      assert(context.invitationSeed)
 
       const { serializedGraph, teamKeyring } = (event as AcceptInvitationMessage).payload
       const { user, device } = context
+
       // Join the team
       if (user === undefined) {
         // Joining as a new device for an existing member.
         // We don't know our user id or user keys yet, so we need to get those from the graph.
-        const proofOfInvitation = this.myProofOfInvitation(context)
+        const { id } = this.myProofOfInvitation(context)
         const user = getUserForDeviceFromGraph({
           serializedGraph,
           keyring: teamKeyring,
           device,
-          invitationId: proofOfInvitation.id,
+          invitationId: id,
         })
 
         // Now we can rehydrate the graph
         const team = this.rehydrateTeam(serializedGraph, user, device, teamKeyring)
 
-        // Put the user and team on our context
-        context.user = user
-        context.team = team
+        return { user, team }
       } else {
         // Joining as a new member
 
         // Reconstruct team from serialized graph
         const team = this.rehydrateTeam(serializedGraph, user, device, teamKeyring)
-        // we add our current device to the team chain
+
+        // Add our current device to the team chain
         team.join(teamKeyring)
 
-        // Put the updated team on our context
-        context.team = team
+        return { team }
       }
-    },
+    }),
 
     // AUTHENTICATING
 
-    /**
-     * Looks up the device name (e.g. alice::laptop) on the team chain. Returns an appropriate error if
-     * - the member is unknown
-     * - the member is known but has been removed
-     * - the member does not have a device by that name
-     * - the member had a device by that name but it was removed
-     *
-     * When on the happy path (user and device both in good standing) does nothing.
-     */
-    confirmIdentityExists: context => {
-      // If we're not on the team yet, we don't have a way of knowing if the peer is
-      if (context.team === undefined) return
+    confirmIdentityExists: assign(context => {
+      const deviceId = context.theirDeviceId
+      if (deviceId === undefined) return {} // If they haven't send a deviceId, they're not on the team yet
+      if (context.team === undefined) return {} // If we're not on the team yet, we don't have a way of knowing if the peer is
 
-      const identityClaim = context.theirIdentityClaim
+      try {
+        const device = context.team.device(deviceId, { includeRemoved: true })
+        const user = context.team.memberByDeviceId(deviceId, { includeRemoved: true })
 
-      // If no identity claim has been made, there's nothing to confirm
-      if (identityClaim === undefined) return
+        this.log = this.log.extend(user.userName)
 
-      const deviceId = identityClaim.name
-      const identityLookupResult = context.team.lookupIdentity(identityClaim)
-
-      const fail = (type: ConnectionErrorType, message: string) => {
-        context.error = this.throwError(type, { message })
-      }
-
-      switch (identityLookupResult) {
-        // If a member or a device was removed, we still connect with it in order to sync
-        case 'MEMBER_REMOVED':
-        case 'DEVICE_REMOVED':
-        case 'VALID_DEVICE': {
-          const device = context.team.device(deviceId, { includeRemoved: true })
-          const user = context.team.memberByDeviceId(deviceId, { includeRemoved: true })
-          this.log = this.log.extend(user.userName)
-          context.theirDevice = device
-          context.peer = user
-          assert(device)
-          return
+        return {
+          theirDevice: device,
+          peer: user,
         }
-
-        case 'DEVICE_UNKNOWN': {
-          fail('DEVICE_UNKNOWN', `Device ${deviceId} not found.`)
-          break
+      } catch {
+        return {
+          error: this.throwError('DEVICE_UNKNOWN', { message: `Device ${deviceId} not found.` }),
         }
       }
-    },
+    }),
 
     challengeIdentity: assign({
       challenge: context => {
-        this.log('challengeIdentity')
-        assert(context.theirIdentityClaim)
-        const identityClaim = context.theirIdentityClaim
-        const challenge = identity.challenge(identityClaim)
+        const { theirDeviceId } = context
+        assert(theirDeviceId)
+        const challenge = identity.challenge({ type: DEVICE, name: theirDeviceId })
         this.sendMessage({
           type: 'CHALLENGE_IDENTITY',
           payload: { challenge },
-        } as ChallengeIdentityMessage)
+        })
         return challenge
       },
     }),
@@ -485,27 +418,11 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       this.sendMessage({
         type: 'PROVE_IDENTITY',
         payload: { challenge, proof },
-      } as ProveIdentityMessage)
+      })
     },
 
-    storePeer: assign({
-      peer: context => {
-        assert(context.team)
-        if (context.team.hasServer(this.peerUserId)) {
-          const server = context.team.servers(this.peerUserId)
-          // Return synthetic member
-          return cast.toMember(server)
-        }
-
-        return context.team.members(this.peerUserId, { includeRemoved: true })
-      },
-    }),
-
     acceptIdentity: () => {
-      this.sendMessage({
-        type: 'ACCEPT_IDENTITY',
-        payload: {},
-      })
+      this.sendMessage({ type: 'ACCEPT_IDENTITY' })
     },
 
     // UPDATING
@@ -594,8 +511,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       })
     },
 
-    receiveSeed: assign({
-      theirEncryptedSeed: (_, event) => (event as SeedMessage).payload.encryptedSeed,
+    receiveSeed: assign((_, event) => {
+      const { payload } = event as SeedMessage
+      this.log('receiveSeed %o', payload)
+      return { theirEncryptedSeed: payload.encryptedSeed }
     }),
 
     deriveSharedKey: assign({
@@ -693,7 +612,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     //
     // INVITATIONS
 
-    iHaveInvitation: context => isInvitee(context) && !isMember(context),
+    iHaveInvitation: context => isInvitee(context),
 
     theyHaveInvitation: context => context.theyHaveInvitation!,
 
@@ -789,7 +708,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   private logMessage(direction: 'in' | 'out', message: ConnectionMessage, index: number) {
     const arrow = direction === 'in' ? '<-' : '->'
-    this.log(`${arrow}${this.peerUserName} #${index} ${messageSummary(message)}`)
+    const peerUserName = this.context.peer?.userName ?? '?'
+    this.log(`${arrow}${peerUserName} #${index} ${messageSummary(message)}`)
   }
 
   private rehydrateTeam(
