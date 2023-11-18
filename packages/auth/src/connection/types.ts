@@ -87,8 +87,6 @@ export type ServerInitialContext = {
   team: Team
 }
 
-/** The type of the initial context depends on whether we are already a member, or we've just been
- * invited and are connecting to the team for the first time. */
 export type InitialContext = MemberInitialContext | InviteeInitialContext | ServerInitialContext
 
 export type ConnectionParams = {
