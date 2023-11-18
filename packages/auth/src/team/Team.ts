@@ -952,6 +952,6 @@ export class Team extends EventEmitter {
   }
 }
 
-interface LookupOptions {
+type LookupOptions = {
   includeRemoved: boolean
 }

@@ -840,7 +840,7 @@ const insistentlyParseJson = (json: unknown) => {
 const messageSummary = (message: ConnectionMessage) =>
   message.type === 'SYNC'
     ? `SYNC ${syncMessageSummary(message.payload)}`
-    : // @ts-expect-error
+    : // @ts-expect-error utility function don't worry about it
       `${message.type} ${message.payload?.head?.slice(0, 5) || message.payload?.message || ''}`
 
 const isString = (state: any): state is string => typeof state === 'string'
