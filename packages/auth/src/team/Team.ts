@@ -235,14 +235,10 @@ export class Team extends EventEmitter {
     }
 
     const device = this.device(deviceId, { includeRemoved: true })
-    const { userId, deviceName } = device
+    const { userId } = device
 
     if (this.memberWasRemoved(userId) || this.serverWasRemoved(userId)) {
       return 'MEMBER_REMOVED'
-    }
-
-    if (!this.has(userId) && !this.hasServer(userId)) {
-      return 'MEMBER_UNKNOWN'
     }
 
     return 'VALID_DEVICE'

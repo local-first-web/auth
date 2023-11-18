@@ -345,7 +345,6 @@ export type InviteResult = {
 }
 export type LookupIdentityResult =
   | 'VALID_DEVICE'
-  | 'MEMBER_UNKNOWN'
   | 'MEMBER_REMOVED'
   | 'DEVICE_UNKNOWN'
   | 'DEVICE_REMOVED'
