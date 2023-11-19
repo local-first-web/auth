@@ -197,6 +197,10 @@ export class Team extends EventEmitter {
     return this.state.teamName
   }
 
+  public setTeamName(teamName: string) {
+    this.dispatch({ type: 'SET_TEAM_NAME', payload: { teamName } })
+  }
+
   public save = () => serializeTeamGraph(this.graph)
 
   /**

@@ -247,6 +247,13 @@ export type MessageAction = {
   }
 }
 
+export type SetTeamNameAction = {
+  type: 'SET_TEAM_NAME'
+  payload: BasePayload & {
+    teamName: string
+  }
+}
+
 export type TeamAction =
   | RootAction
   | AddMemberAction
@@ -269,6 +276,7 @@ export type TeamAction =
   | RemoveServerAction
   | ChangeServerKeysAction
   | MessageAction
+  | SetTeamNameAction
 
 export type TeamContext = {
   deviceId: string

@@ -249,6 +249,13 @@ const getTransforms = (action: TeamAction): Transform[] => {
       ]
     }
 
+    case 'SET_TEAM_NAME': {
+      const { teamName } = action.payload
+      return [
+        setTeamName(teamName), // Set the team's name
+      ]
+    }
+
     default: {
       throw unrecognizedLinkType(action)
     }

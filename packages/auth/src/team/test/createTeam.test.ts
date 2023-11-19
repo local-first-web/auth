@@ -44,5 +44,11 @@ describe('Team', () => {
 
       expect(restoredTeam.hasRole('managers')).toBe(true)
     })
+
+    it('can change the team name', () => {
+      const { alice } = setup('alice')
+      alice.team.setTeamName(`Sgt. Pepper's Lonely Hearts Club Band`)
+      expect(alice.team.teamName).toBe(`Sgt. Pepper's Lonely Hearts Club Band`)
+    })
   })
 })
