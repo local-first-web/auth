@@ -85,15 +85,15 @@ export class Team extends EventEmitter {
         user: cast.toUser(server),
       }
     }
+    const { device, user } = this.context
 
     this.log = debug.extend(`team:${this.userName}`)
 
     // Initialize a CRDX store for the team
     if (isNewTeam(options)) {
-      assert(!this.isServer, 'Cannot create a team on a server')
-
       // Create a new team with the current user as founding member
-      const { device, user } = this.context
+
+      assert(!this.isServer, `Servers can't create teams`)
 
       // Team & role secrets are never stored in plaintext, only encrypted into individual
       // lockboxes. Here we generate new keysets for the team and for the admin role, and store
@@ -102,7 +102,7 @@ export class Team extends EventEmitter {
       const adminKeys = createKeyset(ADMIN_SCOPE, this.seed)
       const adminLockbox = lockbox.create(adminKeys, user.keys)
 
-      // We also store the user's keys in a lockbox for the user's device
+      // We also store the founding user's keys in a lockbox for the user's device
       const deviceLockbox = lockbox.create(user.keys, this.context.device.keys)
 
       // We're creating a new graph; this information is to be recorded in the root link
@@ -124,16 +124,13 @@ export class Team extends EventEmitter {
       })
     } else {
       // Rehydrate a team from an existing graph
-      const graph = maybeDeserialize(options.source, options.teamKeyring)
-      const { user } = this.context
-
       // Create CRDX store
       this.store = createStore({
         user,
         reducer,
         resolver,
         initialState,
-        graph,
+        graph: maybeDeserialize(options.source, options.teamKeyring),
         keys: options.teamKeyring,
       })
     }
@@ -147,6 +144,8 @@ export class Team extends EventEmitter {
     })
   }
 
+  /** ************** PUBLIC API */
+
   public get graph() {
     return this.store.getGraph() as TeamGraph
   }
@@ -156,11 +155,16 @@ export class Team extends EventEmitter {
     return this.graph.root
   }
 
-  /** ************** CONTEXT */
-
-  private get isServer() {
-    return 'server' in this.context
+  /** Returns this team's user-facing name. */
+  public get teamName() {
+    return this.state.teamName
   }
+
+  public setTeamName(teamName: string) {
+    this.dispatch({ type: 'SET_TEAM_NAME', payload: { teamName } })
+  }
+
+  /** ************** CONTEXT */
 
   public get userName() {
     if (this.context.user) {
@@ -178,6 +182,10 @@ export class Team extends EventEmitter {
     return this.context.device.userId // Device is always known
   }
 
+  private get isServer() {
+    return 'server' in this.context
+  }
+
   /** ************** TEAM STATE
    *
    * All the logic for *reading* team state is in selectors (see `/team/selectors`).
@@ -191,15 +199,6 @@ export class Team extends EventEmitter {
    * public-facing outputs (for example, the resulting lockboxesInScope, or the signed links) are
    * posted on the graph.
    */
-
-  /** Returns this team's user-facing name. */
-  public get teamName() {
-    return this.state.teamName
-  }
-
-  public setTeamName(teamName: string) {
-    this.dispatch({ type: 'SET_TEAM_NAME', payload: { teamName } })
-  }
 
   public save = () => serializeTeamGraph(this.graph)
 
@@ -221,18 +220,6 @@ export class Team extends EventEmitter {
     this.state = this.store.getState()
 
     this.emit('updated', { head: this.graph.head })
-  }
-
-  public verifyIdentityProof = (challenge: Challenge, proof: Base58) => {
-    assert(challenge.type === DEVICE) // We always authenticate as devices
-    const deviceId = challenge.name
-
-    const device = this.hasServer(deviceId)
-      ? this.servers(deviceId)
-      : this.device(deviceId, { includeRemoved: true })
-
-    const validation = identity.verify(challenge, proof, device.keys)
-    return validation.isValid
   }
 
   /** ************** MEMBERS */
@@ -420,6 +407,18 @@ export class Team extends EventEmitter {
   /** Looks for a member that has this device. If none is found, return  */
   public memberByDeviceId = (deviceId: string, options?: LookupOptions) => {
     return select.memberByDeviceId(this.state, deviceId, options)
+  }
+
+  public verifyIdentityProof = (challenge: Challenge, proof: Base58) => {
+    assert(challenge.type === DEVICE) // We always authenticate as devices
+    const deviceId = challenge.name
+
+    const device = this.hasServer(deviceId)
+      ? this.servers(deviceId)
+      : this.device(deviceId, { includeRemoved: true })
+
+    const validation = identity.verify(challenge, proof, device.keys)
+    return validation.isValid
   }
 
   /** ************** INVITATIONS */
