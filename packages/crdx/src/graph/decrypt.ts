@@ -31,11 +31,6 @@ export const decryptLink = <A extends Action, C>(
     senderPublicKey,
   }) as LinkBody<A, C>
 
-  // // HACK figure out why localfirst/auth is getting a JSON string here
-  // if (typeof decryptedLinkBody === 'string')
-  //   decryptedLinkBody = JSON.parse(decryptedLinkBody) as LinkBody<A, C>
-  // // if (typeof decryptedLinkBody === 'string') console.error({ decryptedLinkBody })
-
   return {
     hash: hashEncryptedLink(encryptedBody),
     body: decryptedLinkBody,
