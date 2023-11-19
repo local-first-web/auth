@@ -1,5 +1,5 @@
 import { cast } from 'server/cast.js'
-import { TeamState } from '../index.js'
+import type { TeamState } from '../index.js'
 import { member, device, server, hasServer } from './index.js'
 
 export const memberByDeviceId = (

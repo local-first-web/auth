@@ -20,7 +20,6 @@ import {
 import { randomKey, signatures, symmetric, type Base58 } from '@localfirst/crypto'
 import * as identity from 'connection/identity.js'
 import { type Challenge } from 'connection/types.js'
-import { type LocalUserContext } from 'team/context.js'
 import * as devices from 'device/index.js'
 import { redactDevice, type Device } from 'device/index.js'
 import { EventEmitter } from 'eventemitter3'
@@ -31,6 +30,7 @@ import * as lockbox from 'lockbox/index.js'
 import { ADMIN, type Role } from 'role/index.js'
 import { cast } from 'server/cast.js'
 import { type Host, type Server } from 'server/types.js'
+import { type LocalUserContext } from 'team/context.js'
 import { KeyType, VALID, assert, debug, scopesMatch } from 'util/index.js'
 import { ADMIN_SCOPE, ALL, TEAM_SCOPE, initialState } from './constants.js'
 import { membershipResolver as resolver } from './membershipResolver.js'
@@ -41,7 +41,6 @@ import { maybeDeserialize, serializeTeamGraph } from './serialize.js'
 import type {
   EncryptedEnvelope,
   InviteResult,
-  LookupIdentityResult,
   Member,
   SignedEnvelope,
   TeamAction,

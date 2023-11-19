@@ -1,5 +1,5 @@
 import { createKeyset, redactKeys } from '@localfirst/crdx'
-import { EventEmitter } from 'eventemitter3'
+import type { EventEmitter } from 'eventemitter3'
 import { type Host, type Server, type ServerWithSecrets } from 'server/index.js'
 import { KeyType } from 'util/index.js'
 import {

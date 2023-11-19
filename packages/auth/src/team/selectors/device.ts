@@ -29,4 +29,3 @@ const getDevice = (state: TeamState, deviceId: string, options = { includeRemove
     (options.includeRemoved ? state.removedDevices.find(d => d.deviceId === deviceId) : undefined)
   )
 }
-;``
