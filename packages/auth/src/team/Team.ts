@@ -489,7 +489,7 @@ export class Team extends EventEmitter {
    */
   public inviteDevice({
     seed = invitations.randomSeed(),
-    expiration = (Date.now() + 30 * 60 * 1000) as UnixTimestamp, // 30 minutes
+    expiration = (Date.now() + 30 * 60 * 1000) as UnixTimestamp,
   }: {
     /** A secret to be passed to the device via a side channel. If not provided, one will be randomly generated. */
     seed?: string
@@ -497,22 +497,26 @@ export class Team extends EventEmitter {
     /** Time when the invitation expires. Defaults to 30 minutes from now. */
     expiration?: UnixTimestamp
   } = {}): InviteResult {
-    assert(!this.isServer, "Server can't invite a device")
+    assert(!this.isServer, "Servers can't invite a device")
 
     seed = normalize(seed)
 
     // Generate invitation
-
-    const { userId } = this
-
     const maxUses = 1 // Can't invite multiple devices with the same invitation
-    const invitation = invitations.create({ seed, expiration, maxUses, userId })
+    const invitation = invitations.create({ seed, expiration, maxUses, userId: this.userId })
+
+    const starterKeys = invitations.generateStarterKeys(seed)
+    const userLockboxForStarterKeys = lockbox.create(this.context.user.keys, starterKeys)
+
     const { id } = invitation
 
     // Post invitation to graph
     this.dispatch({
       type: 'INVITE_DEVICE',
-      payload: { invitation },
+      payload: {
+        invitation,
+        lockboxes: [userLockboxForStarterKeys],
+      },
     })
 
     // Return the secret invitation seed (to pass on to invitee) and the invitation id (which could be used to revoke later)
