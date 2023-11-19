@@ -84,6 +84,16 @@ describe('Team', () => {
       expect(alice.team.memberWasRemoved(charlie.userId)).toBe(false) // Charlie was never a member
     })
 
+    it('only admins can remove members', () => {
+      const { alice, bob, charlie } = setup('alice', { user: 'bob', admin: false }, 'charlie')
+
+      // Bob can't remove Charlie because Bob's not an admin
+      expect(() => bob.team.remove(charlie.userId)).toThrow()
+
+      // Alice can remove Charlie because Alice is an admin
+      expect(() => alice.team.remove(charlie.userId)).not.toThrow()
+    })
+
     it('rotates keys after removing a member', () => {
       const { alice, bob } = setup('alice', { user: 'bob', admin: true })
 
