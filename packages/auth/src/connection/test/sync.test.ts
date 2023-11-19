@@ -697,7 +697,7 @@ describe('connection', () => {
         await connect(alice, bob)
         await connect(alice, charlie)
 
-        // 👩🏾 Alice removes Bob from the team
+        // 👩🏾 Alice removes 👨🏻‍🦲 Bob from the team
         alice.team.remove(bob.userId)
         await anyDisconnected(alice, bob)
 
@@ -708,7 +708,7 @@ describe('connection', () => {
         // This will now be encrypted with the new team keys
         alice.team.addRole('managers')
 
-        // this only works if we wait for two `updated` events - not sure why ¯\_(ツ)_/¯
+        // wait for 👳🏽‍♂️ Charlie to get both changes
         await anyUpdated(alice, charlie)
         await anyUpdated(alice, charlie)
 

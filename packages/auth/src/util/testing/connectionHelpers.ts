@@ -133,8 +133,8 @@ export const all = async (
 ) =>
   Promise.all(
     connections.map(async connection => {
-      if (event === 'disconnected' && connection.state === 'disconnected') return true
-      if (event === 'connected' && connection.state === 'connected') return true
+      if (event === 'disconnected' && connection.state === 'disconnected') return connection
+      if (event === 'connected' && connection.state === 'connected') return connection
       return eventPromise(connection, event)
     })
   )
@@ -145,8 +145,8 @@ export const any = async (
 ) =>
   Promise.any(
     connections.map(async connection => {
-      if (event === 'disconnected' && connection.state === 'disconnected') return true
-      if (event === 'connected' && connection.state === 'connected') return true
+      if (event === 'disconnected' && connection.state === 'disconnected') return connection
+      if (event === 'connected' && connection.state === 'connected') return connection
       return eventPromise(connection, event)
     })
   )
