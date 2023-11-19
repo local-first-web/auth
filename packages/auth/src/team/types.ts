@@ -12,7 +12,7 @@ import type {
   ROOT,
   Sequence,
 } from '@localfirst/crdx'
-import type { Client, LocalContext } from 'context/index.js'
+import type { Client, LocalContext } from 'team/context.js'
 import type { Device } from 'device/index.js'
 import type { Invitation, InvitationState } from 'invitation/types.js'
 import type { Lockbox } from 'lockbox/index.js'

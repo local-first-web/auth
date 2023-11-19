@@ -1,7 +1,7 @@
 import { createKeyring, createUser, type UserWithSecrets } from '@localfirst/crdx'
 import { createId } from '@paralleldrive/cuid2'
 import type { Connection, InitialContext } from 'connection/index.js'
-import type { LocalUserContext } from 'context/index.js'
+import type { LocalUserContext } from 'team/context.js'
 import type { DeviceWithSecrets } from 'device/index.js'
 import * as devices from 'device/index.js'
 import { ADMIN } from 'role/index.js'

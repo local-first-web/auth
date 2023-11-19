@@ -20,7 +20,7 @@ import {
 import { randomKey, signatures, symmetric, type Base58 } from '@localfirst/crypto'
 import * as identity from 'connection/identity.js'
 import { type Challenge } from 'connection/types.js'
-import { type LocalUserContext } from 'context/index.js'
+import { type LocalUserContext } from 'team/context.js'
 import * as devices from 'device/index.js'
 import { redactDevice, type Device } from 'device/index.js'
 import { EventEmitter } from 'eventemitter3'
