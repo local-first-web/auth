@@ -278,19 +278,6 @@ export class Team extends EventEmitter {
     }
   }
 
-  public add = (user: User, roles: string[] = []) => {
-    const member = { ...user, roles }
-
-    // Make lockboxes for the new member
-    const lockboxes = this.createMemberLockboxes(member)
-
-    // Post the member to the graph
-    this.dispatch({
-      type: 'ADD_MEMBER',
-      payload: { member, roles, lockboxes },
-    })
-  }
-
   /** Remove a member from the team */
   public remove = (userId: string) => {
     // Create new keys & lockboxes for any keys this person had access to
