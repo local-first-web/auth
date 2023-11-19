@@ -24,11 +24,9 @@ import type { ValidationResult } from 'util/index.js'
 
 /** A member is a user that belongs to a team. */
 export type Member = {
-  // TODO enforce uniqueness
   /** Unique ID populated on creation. */
   userId: string
 
-  // TODO enforce uniqueness
   /** Username (or email). Must be unique but is not used for lookups. Only provided to connect
    * human identities with other systems. */
   userName: string
@@ -80,9 +78,6 @@ export const isNewTeam = (options: NewOrExisting): options is NewTeamOptions =>
   'teamName' in options
 
 // ********* ACTIONS
-
-// TODO: the content of lockboxes needs to be validated
-// e.g. only an admin can add lockboxes for others
 
 type BasePayload = {
   // Every action might include new lockboxes

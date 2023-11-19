@@ -790,51 +790,6 @@ describe('connection', () => {
         // GRRR foiled again
         await any([eveOnBobsPhone, heyCharlie], 'disconnected')
       })
-
-      it.todo("Eve steals Bob's laptop; Alice heals the team") // , async () => {
-      //   const { alice, bob, charlie } = setup('alice', 'bob', 'charlie')
-      //   await connect(alice, bob)
-      //   await connect(alice, charlie)
-      //   expect(alice.team.adminKeys().generation).toBe(0)
-      //   expect(alice.team.teamKeys().generation).toBe(0)
-
-      //   // Eve steals Bob's laptop, so Alice removes Bob's laptop from the team
-      //   alice.team.removeDevice(bob.userId, 'laptop')
-
-      //   // Alice can see that Bob has no devices
-      //   expect(alice.team.members(bob.userId).devices).toHaveLength(0)
-
-      //   await updated(alice, charlie)
-
-      //   // The keys have been rotated
-      //   expect(charlie.team.adminKeys().generation).toBe(1)
-      //   expect(charlie.team.teamKeys().generation).toBe(1)
-
-      //   // Eve tries to connect to Charlie from Bob's laptop, but she can't
-      //   connect(bob, charlie)
-
-      //   // GRRR foiled again
-      //   await disconnection(bob, charlie)
-
-      //   const { seed } = alice.team.inviteDevice()
-
-      //   const phoneContext = {
-      //     userName: bob.userName,
-      //     device: bob.phone,
-      //     invitationSeed: seed,
-      //   } as InviteeDeviceInitialContext
-
-      //   const join = joinTestChannel(new TestChannel())
-
-      //   const aliceBobPhone = await join(alice.connectionContext).start()
-      //   const bobPhone = await join(phoneContext).start()
-
-      //   await all([aliceBobPhone, bobPhone], 'connected')
-
-      //   // TODO: This will require a distinct workflow. Alice can't admit Bob's device because she's not Bob.
-      //   // When a user admits their own device, they create a lockbox for the device so that it has the user keys.
-      //   // In this case, Bob's old user keys are gone forever, so the device needs to be able to generate new ones.
-      // })
     })
   })
 })

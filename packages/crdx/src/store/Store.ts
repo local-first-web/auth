@@ -129,11 +129,10 @@ export class Store<S, A extends Action, C = Record<string, unknown>> extends Eve
     } as A
 
     if (keys === undefined) {
-      // no keys provided, so use the last keys we used
-      // TODO: if there are multiple heads, we'll have a bunch of edge cases to sort out. For now just picking the first one.
-      const lastHash = this.graph.head[0]
-      const lastPublicKey = this.graph.encryptedLinks[lastHash].recipientPublicKey
-      keys = this.keyring[lastPublicKey]
+      // no keys provided, so use the same keys used for the previous link
+      const prevHash = this.graph.head.sort()[0] // if multiple heads, use the first one
+      const prevPublicKey = this.graph.encryptedLinks[prevHash].recipientPublicKey
+      keys = this.keyring[prevPublicKey]
     } else {
       // record this key in our keyring
       this.keyring[keys.encryption.publicKey] = keys

@@ -226,8 +226,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     // Update queue
     this.incomingMessageQueue = queue
 
-    // TODO: detect hang when we've got message N+1 and message N doesn't come in for a while?
-
     // send any messages that are ready to go out
     for (const m of nextMessages) {
       if (this.started && !this.machine.state.done) {
@@ -606,7 +604,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     joinedTheRightTeam: (context, event) => {
       // Make sure my invitation exists on the signature chain of the team I'm about to join.
       // This check prevents an attack in which a fake team pretends to accept my invitation.
-      // TODO: cover with test
       const { payload } = event as AcceptInvitationMessage
       const { serializedGraph, teamKeyring } = payload
       const state = getTeamState(serializedGraph, teamKeyring)
@@ -668,7 +665,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     return localMessage.payload
   }
 
-  // TODO: This business with storing the error in context and then retrieving it and using it as details and storing something else in context.error is pretty gross
   private fail(type: ConnectionErrorType) {
     return assign<ConnectionContext, ConnectionMessage>({
       error: context => {

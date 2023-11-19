@@ -1,8 +1,8 @@
 import { type Member, type TeamLink, type TeamState } from './types.js'
 
 /**
- * This function is used as an alternative reducer for invalid links; the normal reducer just
- * returns the result of this function.
+ * This function is used as an alternative reducer for invalid links. When the normal reducer comes
+ * across invalid links, it defers to this function.
  *
  * Invalid links are actions that were flagged to be discarded by the MembershipResolver when
  * dealing with conflicting concurrent actions.

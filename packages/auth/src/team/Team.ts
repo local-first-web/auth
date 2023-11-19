@@ -227,7 +227,6 @@ export class Team extends EventEmitter {
     assert(challenge.type === DEVICE) // We always authenticate as devices
     const deviceId = challenge.name
 
-    // TODO: clean up all this silliness with servers pretending to be users or devices
     const device = this.hasServer(deviceId)
       ? this.servers(deviceId)
       : this.device(deviceId, { includeRemoved: true })
@@ -400,9 +399,6 @@ export class Team extends EventEmitter {
 
   /** ************** DEVICES */
 
-  // TODO: All of these functions should take just a deviceId now that we have it and it's
-  // guaranteed to be unique. This would be a breaking change.
-
   /** Returns true if the given member has a device by the given name */
   public hasDevice = (deviceId: string, options?: LookupOptions): boolean =>
     select.hasDevice(this.state, deviceId, options)
@@ -428,8 +424,6 @@ export class Team extends EventEmitter {
       },
     })
   }
-
-  // TODO: get rid of the (userId, deviceName) pattern and just use deviceId everywhere
 
   /** Returns true if the device was once on the team but was removed */
   public deviceWasRemoved = (deviceId: string) => {
@@ -565,7 +559,6 @@ export class Team extends EventEmitter {
   /** Check whether (1) the invitation is still valid, and (2) the proof of invitation checks out. */
   public validateInvitation = (proof: ProofOfInvitation) => {
     const { id } = proof
-    // TODO: These invitation errors really should be structured & instead of returning messages we should return codes
     if (!this.hasInvitation(id)) {
       return invitations.fail("This invitation code doesn't match.")
     }
@@ -622,15 +615,6 @@ export class Team extends EventEmitter {
     const invitation = this.getInvitation(id)
     const { userId } = invitation
 
-    // TODO: In this setup, a device can only be admitted by the user whose device it is. This works
-    // fine when peers connect directly to each other, but it doesn't work for star-shaped networks
-    // where every device connects to a sync server.
-    //
-    // The reason it's set up this way is because the user has the user-level secret keys and can
-    // store them in a lockbox for the device.
-    //
-    // If we want an arbitrary member (or server) to be able to admit a device, we need another mechanism to
-    // get the user-level secret keys to the device.
     assert(this.userId === userId, "Can't admit someone else's device")
 
     // Now we can add the userId to the device and post it to the graph
@@ -705,12 +689,6 @@ export class Team extends EventEmitter {
       payload: { server, lockboxes },
     })
   }
-
-  // TODO: If we wanted to restrict the server's read access to application data (as opposed to the
-  // team membership data), we would currently have to create a new role that is only for human
-  // members (and ensure that every member was added to it), and encrypt the application data with
-  // that role's keys. It might make more sense to separate out the **graph keys** (for encrypting
-  // the team graph) from the **team keys** (for encrypting data for human members of the team).
 
   /** Removes a server from the team. */
   public removeServer = (host: string) => {
@@ -870,7 +848,6 @@ export class Team extends EventEmitter {
       return
     }
 
-    // TODO: should we introduce a random delay here, so these don't pile up?
     for (const userId of this.state.pendingKeyRotations) {
       // We don't know if the user was added to any other roles, so we're just preemptively rotating
       // all lockboxes *we* can see (since we're an admin, we have access to all keys)
