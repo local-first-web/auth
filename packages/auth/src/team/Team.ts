@@ -98,19 +98,19 @@ export class Team extends EventEmitter {
       // Team & role secrets are never stored in plaintext, only encrypted into individual
       // lockboxes. Here we generate new keysets for the team and for the admin role, and store
       // these in new lockboxes for the founding member
-      const teamLockbox = lockbox.create(options.teamKeys, user.keys)
+      const lockboxTeamKeysForMember = lockbox.create(options.teamKeys, user.keys)
       const adminKeys = createKeyset(ADMIN_SCOPE, this.seed)
-      const adminLockbox = lockbox.create(adminKeys, user.keys)
+      const lockboxAdminKeysForMember = lockbox.create(adminKeys, user.keys)
 
       // We also store the founding user's keys in a lockbox for the user's device
-      const deviceLockbox = lockbox.create(user.keys, this.context.device.keys)
+      const lockboxUserKeysForDevice = lockbox.create(user.keys, this.context.device.keys)
 
       // We're creating a new graph; this information is to be recorded in the root link
       const rootPayload = {
         name: options.teamName,
         rootMember: redactUser(user),
         rootDevice: devices.redactDevice(device),
-        lockboxes: [teamLockbox, adminLockbox, deviceLockbox],
+        lockboxes: [lockboxTeamKeysForMember, lockboxAdminKeysForMember, lockboxUserKeysForDevice],
       }
 
       // Create CRDX store
@@ -257,10 +257,10 @@ export class Team extends EventEmitter {
 
     if (device) {
       // Post the member's device to the graph
-      const deviceLockbox = lockbox.create(user.keys, device.keys)
+      const lockboxUserKeysForDevice = lockbox.create(user.keys, device.keys)
       this.dispatch({
         type: 'ADD_DEVICE',
-        payload: { device, lockboxes: [deviceLockbox] },
+        payload: { device, lockboxes: [lockboxUserKeysForDevice] },
       })
     }
   }
@@ -322,12 +322,12 @@ export class Team extends EventEmitter {
     const roleKeys = createKeyset({ type: KeyType.ROLE, name: role.roleName }, this.seed)
 
     // Make a lockbox for the admin role, so that all admins can access this role's keys
-    const lockboxForAdmin = lockbox.create(roleKeys, this.adminKeys())
+    const lockboxRoleKeysForAdmins = lockbox.create(roleKeys, this.adminKeys())
 
     // Post the role to the graph
     this.dispatch({
       type: 'ADD_ROLE',
-      payload: { ...role, lockboxes: [lockboxForAdmin] },
+      payload: { ...role, lockboxes: [lockboxRoleKeysForAdmins] },
     })
   }
 
@@ -345,12 +345,12 @@ export class Team extends EventEmitter {
   public addMemberRole = (userId: string, roleName: string) => {
     // Make a lockbox for the role
     const member = this.members(userId)
-    const roleLockbox = lockbox.create(this.roleKeys(roleName), member.keys)
+    const lockboxRoleKeysForMember = lockbox.create(this.roleKeys(roleName), member.keys)
 
     // Post the member role to the graph
     this.dispatch({
       type: 'ADD_MEMBER_ROLE',
-      payload: { userId, roleName, lockboxes: [roleLockbox] },
+      payload: { userId, roleName, lockboxes: [lockboxRoleKeysForMember] },
     })
   }
 
@@ -576,13 +576,8 @@ export class Team extends EventEmitter {
 
     const { id } = proof
 
-    // TODO: make lockbox naming consistent?
-    // lockbox_TeamKeysForMember
-    // lockbox_UserKeysForDevice
-    // lockbox_AdminKeysForMember
-
     // we know the team keys, so we can put them in a lockbox for the new member now (even if we're not an admin)
-    const teamKeysLockbox = lockbox.create(this.teamKeys(), memberKeys)
+    const lockboxTeamKeysForMember = lockbox.create(this.teamKeys(), memberKeys)
 
     // Post admission to the graph
     this.dispatch({
@@ -591,12 +586,12 @@ export class Team extends EventEmitter {
         id,
         userName,
         memberKeys: redactKeys(memberKeys),
-        lockboxes: [teamKeysLockbox],
+        lockboxes: [lockboxTeamKeysForMember],
       },
     })
   }
 
-  /** A member calls this to admit a new device for themselves based on proof of invitation */
+  /** An existing team member calls this to admit a new device based on proof of invitation */
   public admitDevice = (proof: ProofOfInvitation, firstUseDevice: devices.FirstUseDevice) => {
     const validation = this.validateInvitation(proof)
     if (!validation.isValid) throw validation.error
@@ -610,16 +605,12 @@ export class Team extends EventEmitter {
     // Now we can add the userId to the device and post it to the graph
     const device: Device = { ...firstUseDevice, userId }
 
-    // Store the user keys in a lockbox for the new device
-    const deviceLockbox = lockbox.create(this.context.user.keys, device.keys)
-
     // Post admission to the graph
     this.dispatch({
       type: 'ADMIT_DEVICE',
       payload: {
         id,
         device,
-        lockboxes: [deviceLockbox],
       },
     })
   }
@@ -628,16 +619,17 @@ export class Team extends EventEmitter {
   public join = (teamKeyring: Keyring) => {
     assert(!this.isServer, "Can't join as member on server")
 
+    const { user, device } = this.context
     const teamKeys = getLatestGeneration(teamKeyring)
 
-    const deviceLockbox = lockbox.create(this.context.user.keys, this.context.device.keys)
-    const device = redactDevice(this.context.device)
+    const lockboxUserKeysForDevice = lockbox.create(user.keys, device.keys)
+
     this.dispatch(
       {
         type: 'ADD_DEVICE',
         payload: {
-          device,
-          lockboxes: [deviceLockbox],
+          device: redactDevice(device),
+          lockboxes: [lockboxUserKeysForDevice],
         },
       },
       teamKeys
@@ -851,8 +843,10 @@ export class Team extends EventEmitter {
 
   private readonly createMemberLockboxes = (member: Member) => {
     const roleKeys = member.roles.map(this.roleKeys)
-    const createLockbox = (keys: KeysetWithSecrets) => lockbox.create(keys, member.keys)
-    return [...roleKeys, this.teamKeys()].map(createLockbox)
+    const createLockboxRoleKeysForMember = (keys: KeysetWithSecrets) => {
+      return lockbox.create(keys, member.keys)
+    }
+    return [...roleKeys, this.teamKeys()].map(createLockboxRoleKeysForMember)
   }
 
   /**
