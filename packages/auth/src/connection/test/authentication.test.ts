@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest'
 import { ADMIN } from 'role/index.js'
 import * as teams from 'team/index.js'
 import {
@@ -7,7 +6,6 @@ import {
   anyDisconnected,
   anyUpdated,
   connect,
-  connectPhoneWithInvitation,
   connectWithInvitation,
   disconnect,
   disconnection,
@@ -16,7 +14,8 @@ import {
   setup,
   tryToConnect,
 } from 'util/testing/index.js'
-import { InviteeDeviceInitialContext } from '../types.js'
+import { describe, expect, it } from 'vitest'
+import type { InviteeDeviceInitialContext } from '../types.js'
 
 describe('connection', () => {
   describe('authentication', () => {
