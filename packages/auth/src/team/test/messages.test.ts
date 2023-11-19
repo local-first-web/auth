@@ -25,7 +25,7 @@ describe('Team', () => {
       expect(messages[0]).toEqual(message)
     })
 
-    // TODO: assuming for now this is the behavior we want
+    // assuming for now this is the behavior we want
     it('a non-admin member cannot add messages', () => {
       const { bob } = setup(['alice', { user: 'bob', admin: false }])
 
