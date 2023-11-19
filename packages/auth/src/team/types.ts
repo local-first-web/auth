@@ -41,10 +41,6 @@ export type Member = {
 
   /** Devices that the member has added, along with their public */
   devices?: Device[]
-
-  // TODO: are we using this?
-  /** Array of all the public keys that the member has had, including the current ones */
-  keyHistory?: Keyset[]
 }
 
 // ********* TEAM CONSTRUCTOR
