@@ -1,8 +1,8 @@
 import type { Base58, Keyring, UserWithSecrets } from '@localfirst/crdx'
 import type { FirstUseDeviceWithSecrets } from 'device/index.js'
 import { KeyType, assert } from 'util/index.js'
-import { getTeamState } from './getTeamState.js'
-import * as select from './selectors/index.js'
+import { getTeamState } from '../team/getTeamState.js'
+import * as select from '../team/selectors/index.js'
 
 const { USER } = KeyType
 

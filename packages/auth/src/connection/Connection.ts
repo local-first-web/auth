@@ -35,7 +35,7 @@ import { redactDevice } from 'device/index.js'
 import { EventEmitter } from 'eventemitter3'
 import * as invitations from 'invitation/index.js'
 import { getTeamState } from 'team/getTeamState.js'
-import { getDeviceUserFromGraph } from 'team/getDeviceUserFromGraph.js'
+import { getDeviceUserFromGraph } from 'connection/getDeviceUserFromGraph.js'
 import {
   Team,
   decryptTeamGraph,
@@ -210,7 +210,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
    * messages will be delivered in the intended order (according to the `index` field on the message)
    */
   public deliver(serializedMessage: string) {
-    const message = insistentlyParseJson(serializedMessage) as ConnectionMessage
+    const message = JSON.parse(serializedMessage) as ConnectionMessage
     assert(
       isNumberedConnectionMessage(message),
       `Can only deliver numbered connection messages; received 
@@ -689,15 +689,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 }
 
 const isMember = (context: ConnectionContext) => context.team !== undefined
-
-const insistentlyParseJson = (json: unknown) => {
-  let result = json
-  while (typeof result === 'string') {
-    result = JSON.parse(result)
-  }
-
-  return result
-}
 
 // FOR DEBUGGING
 
