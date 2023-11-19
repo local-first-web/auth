@@ -7,6 +7,7 @@ import {
 import type { EventEmitter } from 'eventemitter3'
 import { expect } from 'vitest'
 import { TestChannel } from './TestChannel.js'
+import { eventPromise } from './eventPromise.js'
 import { joinTestChannel } from './joinTestChannel.js'
 import { type UserStuff } from './setup.js'
 
@@ -132,19 +133,9 @@ export const all = async (
 ) =>
   Promise.all(
     connections.map(async connection => {
-      if (event === 'disconnected' && connection.state === 'disconnected') {
-        return true
-      }
-
-      if (event === 'connected' && connection.state === 'connected') {
-        return true
-      }
-
-      return new Promise(resolve => {
-        connection.on(event, () => {
-          resolve(true)
-        })
-      })
+      if (event === 'disconnected' && connection.state === 'disconnected') return true
+      if (event === 'connected' && connection.state === 'connected') return true
+      return eventPromise(connection, event)
     })
   )
 
@@ -154,18 +145,8 @@ export const any = async (
 ) =>
   Promise.any(
     connections.map(async connection => {
-      if (event === 'disconnected' && connection.state === 'disconnected') {
-        return true
-      }
-
-      if (event === 'connected' && connection.state === 'connected') {
-        return true
-      }
-
-      return new Promise(resolve => {
-        connection.on(event, () => {
-          resolve(true)
-        })
-      })
+      if (event === 'disconnected' && connection.state === 'disconnected') return true
+      if (event === 'connected' && connection.state === 'connected') return true
+      return eventPromise(connection, event)
     })
   )

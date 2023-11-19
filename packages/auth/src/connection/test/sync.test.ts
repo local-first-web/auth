@@ -708,7 +708,7 @@ describe('connection', () => {
         // This will now be encrypted with the new team keys
         alice.team.addRole('managers')
 
-        // HACK: this only works if we wait for two `updated` events - not sure why
+        // this only works if we wait for two `updated` events - not sure why ¯\_(ツ)_/¯
         await anyUpdated(alice, charlie)
         await anyUpdated(alice, charlie)
 

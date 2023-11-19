@@ -1,7 +1,7 @@
 import { createKeyset, redactKeys } from '@localfirst/crdx'
-import type { EventEmitter } from 'eventemitter3'
-import { type Host, type Server, type ServerWithSecrets } from 'server/index.js'
+import type { Host, Server, ServerWithSecrets } from 'server/index.js'
 import { KeyType } from 'util/index.js'
+import { eventPromise } from 'util/testing/eventPromise.js'
 import {
   TestChannel,
   all,
@@ -300,10 +300,3 @@ type ServerStuff = {
   connectionContext: InitialContext
   connection: Record<string, Connection>
 }
-
-export const eventPromise = async (emitter: EventEmitter, event: string) =>
-  new Promise<any>(resolve => {
-    emitter.once(event, d => {
-      resolve(d)
-    })
-  })
