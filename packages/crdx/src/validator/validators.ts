@@ -1,9 +1,9 @@
 ﻿import { ROOT, VALID } from 'constants.js'
-import { getRoot } from 'graph/graph.js'
+import { getRoot } from 'graph/getRoot.js'
 import { hashEncryptedLink } from 'graph/hashLink.js'
 import { memoize } from 'util/index.js'
 import { ValidationError, type ValidatorSet } from './types.js'
-import { Link, Graph } from 'index.js'
+import type { Link, Graph } from 'index.js'
 import { hash } from '@localfirst/crypto'
 
 const _validators: ValidatorSet = {

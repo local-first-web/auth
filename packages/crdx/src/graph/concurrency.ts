@@ -1,8 +1,9 @@
 import { memoize, type Hash } from 'util/index.js'
-import { getHashes, getLink } from './graph.js'
-import { isPredecessorHash } from './predecessors.js'
-import { isSuccessorHash } from './successors.js'
-import { type Action, type Graph, type Link } from './types.js'
+import { getLink } from './getLink.js'
+import { getHashes } from './getHashes.js'
+import { isPredecessorHash } from './isPredecessor.js'
+import { isSuccessorHash } from './isSuccessor.js'
+import type { Action, Graph, Link } from './types.js'
 
 /** Returns all links that are concurrent with the given link. */
 export const getConcurrentLinks = <A extends Action, C>(

@@ -1,6 +1,6 @@
-import { type Action, type Graph, type Link } from 'graph/types.js'
+import type { Action, Graph, Link } from 'graph/types.js'
 import { memoize, type Hash } from 'util/index.js'
-import { getLink } from './graph.js'
+import { getLink } from './getLink.js'
 
 /**
  * Returns the hashes of the children of the link with the given hash.
