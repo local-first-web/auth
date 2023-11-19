@@ -77,6 +77,6 @@ export const asymmetric = {
       keyToBytes(senderPublicKey!),
       keyToBytes(recipientSecretKey)
     )
-    return unpack(decrypted) as Payload
+    return unpack(decrypted)
   },
 }
