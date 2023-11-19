@@ -127,58 +127,6 @@ describe('membershipResolver', () => {
     expectMergedResult(aGraph, bGraph, 'ROOT,ADD:bob,REMOVE:admin:bob')
   })
 
-  // TODO: This doesn't really tell us anything since it doesn't cover INVITE_MEMBER, which is how
-  // members are actually added
-  it("doesn't allow a member who is removed to be concurrently added back", () => {
-    // 👩🏾 Alice creates a graph and adds Charlie
-    let { aGraph, keys } = setup()
-
-    aGraph = append({
-      graph: aGraph,
-      action: ADD_CHARLIE,
-      user: alice.user,
-      context: alice.graphContext,
-      keys,
-    })
-
-    // 👩🏾 🡒 👨🏻‍🦲 Alice shares the graph with Bob
-    let bGraph = clone(aGraph)
-
-    // 🔌❌ Now Alice and Bob are disconnected
-
-    // 👩🏾 Alice removes Charlie
-    aGraph = append({
-      graph: aGraph,
-      action: REMOVE_CHARLIE,
-      user: alice.user,
-      context: alice.graphContext,
-      keys,
-    })
-    expect(summary(aGraph)).toEqual('ROOT,ADD:bob,ADD:charlie,REMOVE:charlie')
-
-    // 👨🏻‍🦲 Bob removes Charlie then adds him back
-    bGraph = append({
-      graph: bGraph,
-      action: REMOVE_CHARLIE,
-      user: bob.user,
-      context: bob.graphContext,
-      keys,
-    })
-    bGraph = append({
-      graph: bGraph,
-      action: ADD_CHARLIE,
-      user: bob.user,
-      context: bob.graphContext,
-      keys,
-    })
-    expect(summary(bGraph)).toEqual('ROOT,ADD:bob,ADD:charlie,REMOVE:charlie,ADD:charlie')
-
-    // 🔌✔ Alice and Bob reconnect and synchronize graphs
-
-    // ✅ Charlie isn't added back
-    expectMergedResult(aGraph, bGraph, 'ROOT,ADD:bob,ADD:charlie,REMOVE:charlie,REMOVE:charlie')
-  })
-
   it('resolves mutual concurrent removals in favor of the team founder', () => {
     // 👩🏾 🡒 👨🏻‍🦲 Alice creates a graph and shares it with Bob
     let { aGraph, bGraph, keys } = setup()
