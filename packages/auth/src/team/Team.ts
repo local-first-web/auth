@@ -7,7 +7,6 @@ import type {
   Payload,
   Store,
   UnixTimestamp,
-  User,
   UserWithSecrets,
 } from '@localfirst/crdx'
 import {
@@ -483,9 +482,6 @@ export class Team extends EventEmitter {
    *  Once an existing device (Bob's laptop or Alice or Charlie) verifies Bob's phone's proof, they
    *  send it the team graph. Using the graph, the phone instantiates the team, then adds itself as
    *  a device.
-   *
-   *  Note: A member can only invite their own devices. A non-admin member can only remove their own
-   *  device; an admin member can remove a device for anyone.
    */
   public inviteDevice({
     seed = invitations.randomSeed(),
@@ -505,8 +501,11 @@ export class Team extends EventEmitter {
     const maxUses = 1 // Can't invite multiple devices with the same invitation
     const invitation = invitations.create({ seed, expiration, maxUses, userId: this.userId })
 
+    // In order for the invited device to be able to access the user's keys, we put the user keys in
+    // a lockbox that can be opened by an ephemeral keyset generated from the secret invitation
+    // seed.
     const starterKeys = invitations.generateStarterKeys(seed)
-    const userLockboxForStarterKeys = lockbox.create(this.context.user.keys, starterKeys)
+    const lockboxUserKeysForDeviceStarterKeys = lockbox.create(this.context.user.keys, starterKeys)
 
     const { id } = invitation
 
@@ -515,7 +514,7 @@ export class Team extends EventEmitter {
       type: 'INVITE_DEVICE',
       payload: {
         invitation,
-        lockboxes: [userLockboxForStarterKeys],
+        lockboxes: [lockboxUserKeysForDeviceStarterKeys],
       },
     })
 
@@ -598,9 +597,7 @@ export class Team extends EventEmitter {
 
     const { id } = proof
     const invitation = this.getInvitation(id)
-    const { userId } = invitation
-
-    assert(this.userId === userId, "Can't admit someone else's device")
+    const userId = invitation.userId!
 
     // Now we can add the userId to the device and post it to the graph
     const device: Device = { ...firstUseDevice, userId }

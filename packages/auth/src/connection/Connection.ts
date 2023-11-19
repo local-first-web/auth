@@ -8,7 +8,6 @@ import {
   redactKeys,
   type DecryptFnParams,
   type SyncState,
-  type UserWithSecrets,
 } from '@localfirst/crdx'
 import { asymmetric, randomKey, symmetric, type Hash, type Payload } from '@localfirst/crypto'
 import { deriveSharedKey } from 'connection/deriveSharedKey.js'
@@ -333,33 +332,35 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     joinTeam: assign((context, event) => {
       const { payload } = event as AcceptInvitationMessage
       const { serializedGraph, teamKeyring } = payload
-      const { user, device } = context
+      const { device, invitationSeed } = context
 
-      const rehydrateTeam = (user: UserWithSecrets) =>
-        new Team({ source: serializedGraph, context: { user, device }, teamKeyring })
+      // We've been given the serialized and encrypted graph, and the team keyring. We can decrypt
+      // the graph and reconstruct the team.
 
-      // Join the team
-      if (user !== undefined) {
-        // Joining as a new member
-
-        // Reconstruct team from serialized graph
-        const team = rehydrateTeam(user)
-
-        // Add our current device to the team chain
-        team.join(teamKeyring)
-
-        return { team }
-      } else {
-        // Joining as a new device for an existing member.
-        // We don't know our user id or user keys yet, so we need to get those from the graph.
+      const getDeviceUser = () => {
+        // If we're joining as a new device for an existing member, we don't know our user id or
+        // user keys yet, so we need to get those from the graph.
         const { id: invitationId } = this.myProofOfInvitation(context)
-        const user = getDeviceUserFromGraph({ serializedGraph, teamKeyring, device, invitationId })
 
-        // Now we can rehydrate the graph
-        const team = rehydrateTeam(user)
-
-        return { user, team }
+        // We use the invitation seed to generate the starter keys for the new device.
+        // We can use these to unlock a lockbox on the team graph that contains our user keys.
+        const starterKeys = invitations.generateStarterKeys(invitationSeed!)
+        return getDeviceUserFromGraph({
+          serializedGraph,
+          teamKeyring,
+          starterKeys,
+          invitationId,
+        })
       }
+      const user = context.user ?? getDeviceUser()
+
+      // Reconstruct team from serialized graph
+      const team = new Team({ source: serializedGraph, context: { user, device }, teamKeyring })
+
+      // Add our current device to the team chain
+      team.join(teamKeyring)
+
+      return { user, team }
     }),
 
     // AUTHENTICATING

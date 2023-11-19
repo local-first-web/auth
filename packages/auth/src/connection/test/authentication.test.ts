@@ -196,7 +196,7 @@ describe('connection', () => {
         expect(alice.team.members(bob.userId).devices).toHaveLength(2)
       })
 
-      it.todo('lets a different member admit an invited device', async () => {
+      it('lets a different member admit an invited device', async () => {
         const { alice, bob } = setup('alice', 'bob')
 
         await connect(alice, bob)
@@ -214,9 +214,9 @@ describe('connection', () => {
         }
         const join = joinTestChannel(new TestChannel())
         const aliceConnection = join(alice.connectionContext).start()
-        const phoneConnection = join(phoneContext).start()
+        const bobPhoneConnection = join(phoneContext).start()
 
-        await all([aliceConnection, phoneConnection], 'connected')
+        await all([aliceConnection, bobPhoneConnection], 'connected')
 
         alice.team = aliceConnection.team!
 

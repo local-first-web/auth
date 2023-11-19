@@ -17,9 +17,10 @@ import {
   loadTeam,
   type Connection,
   type InitialContext,
+  type InviteeDeviceInitialContext,
   type MemberInitialContext,
   type Team,
-} from '../../index.js'
+} from 'index.js'
 
 describe('Team', () => {
   describe('a server', () => {
@@ -143,10 +144,10 @@ describe('Team', () => {
       })
       const { seed: bobInvite } = alice.team.inviteMember()
 
-      // The server learns about the invitation by connecting with alice
+      // The server learns about the invitation by connecting with Alice
       await connectWithServer(alice, server)
 
-      // Now if bob connects to the server, the server can admit him
+      // Now if Bob connects to the server, the server can admit him
       server.team.admitMember(invitation.generateProof(bobInvite), bob.user.keys, bob.userId)
       expect(server.team.members().length).toBe(2)
     })
@@ -186,7 +187,40 @@ describe('Team', () => {
       expect(bob.team.roles('MANAGER')).toBeDefined()
     })
 
-    it.todo('can admit a device invited by a member', () => {})
+    it('can admit a device invited by a member', async () => {
+      const { server, alice, bob } = setup('alice', 'bob')
+      const { seed } = bob.team.inviteDevice()
+
+      // Bob's laptop connects to the server, so now it knows about the invitation
+      await connectWithServer(bob, server)
+
+      // Bob's laptop disconnects from the server
+      bob.connection[host].stop()
+      server.connection[bob.userId].stop()
+
+      // Bob's phone connects to the server
+      const phoneContext: InviteeDeviceInitialContext = {
+        userName: bob.userName,
+        device: bob.phone!,
+        invitationSeed: seed,
+      }
+      const join = joinTestChannel(new TestChannel())
+      const serverConnection = join(server.connectionContext).start()
+      const phoneConnection = join(phoneContext).start()
+      await all([serverConnection, phoneConnection], 'connected')
+
+      // const phoneTeam = phoneConnection.team!
+
+      // Bob reconnects to the server
+      await connectWithServer(bob, server)
+
+      // 👨🏻‍🦲👍📱 Bob's phone is added to his list of devices
+      expect(bob.team.members(bob.userId).devices).toHaveLength(2)
+
+      // ✅ 👩🏾👍📱 Alice knows about Bob's phone
+      await connectWithServer(alice, server)
+      expect(alice.team.members(bob.userId).devices).toHaveLength(2)
+    })
 
     it('can change its own keys', async () => {
       const { alice } = setupHumans('alice', 'bob')

@@ -1,6 +1,6 @@
 import { type UserWithSecrets, createKeyset, type UnixTimestamp } from '@localfirst/crdx'
 import { redactDevice } from 'index.js'
-import { generateProof } from 'invitation/index.js'
+import { generateProof, generateStarterKeys } from 'invitation/index.js'
 import * as teams from 'team/index.js'
 import { KeyType } from 'util/index.js'
 import { setup } from 'util/testing/index.js'
@@ -258,24 +258,30 @@ describe('Team', () => {
         const serializedGraph = aliceLaptop.team.save()
         const teamKeyring = aliceLaptop.team.teamKeyring()
 
-        // 📱 Alice's phone needs to get Alice's user keys from the graph in order to instantiate the team
-        const keys = teams.getDeviceUserFromGraph({
+        // 📱 Alice's phone needs to get her user keys.
+
+        // To do that, she uses the invitation seed to generate starter keys, which she can use to
+        // unlock a lockbox stored on the graph containing her user keys.
+        const starterKeys = generateStarterKeys(seed)
+        const aliceUser = teams.getDeviceUserFromGraph({
           serializedGraph,
           teamKeyring,
-          device: alicePhone,
+          starterKeys,
           invitationId: proofOfInvitation.id,
         })
-        const { userId } = alicePhone
-        const user: UserWithSecrets = { userId, userName: userId, keys }
 
-        const phoneTeam = teams.load(serializedGraph, { user, device: alicePhone }, teamKeyring)
+        const phoneTeam = teams.load(
+          serializedGraph,
+          { user: aliceUser, device: alicePhone },
+          teamKeyring
+        )
 
         // ✅ Now Alice has 💻📱 two devices on the signature chain
         expect(phoneTeam.members(aliceLaptop.userId).devices).toHaveLength(2)
         expect(aliceLaptop.team.members(aliceLaptop.userId).devices).toHaveLength(2)
       })
 
-      it("doesn't let someone else admit Alice's device", () => {
+      it("lets someone else admit Alice's device", () => {
         const { alice, bob } = setup('alice', 'bob')
 
         // 👩🏾 Alice only has 💻 one device on the signature chain
@@ -294,12 +300,7 @@ describe('Team', () => {
         bob.team = teams.load(savedTeam, bob.localContext, alice.team.teamKeys())
 
         // 📱 Alice's phone connects with 👨🏻‍🦲 Bob and she presents the proof
-        const tryToAdmitPhone = () => {
-          bob.team.admitDevice(proofOfInvitation, redactDevice(alice.phone!))
-        }
-
-        // ❌ Alice's phone can only present its invitation to one of Alice's other devices
-        expect(tryToAdmitPhone).toThrow("Can't admit someone else's device")
+        bob.team.admitDevice(proofOfInvitation, redactDevice(alice.phone!))
       })
     })
   })
