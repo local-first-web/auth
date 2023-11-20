@@ -25,6 +25,7 @@
   "dependencies": {
     "@localfirst/crdx": "^4.2.0",
     "@localfirst/crypto": "^4.2.0",
+    "@paralleldrive/cuid2": "^2.2.2",
     "buffer": "^6.0.3",
     "debug": "^4.3.4",
     "eventemitter3": "^5.0.1",
