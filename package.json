@@ -1,6 +1,6 @@
 {
   "name": "@localfirst/auth-monorepo",
-  "version": "0.0.0",
+  "version": "5.0.0",
   "private": true,
   "author": {
     "name": "Herb Caudill",
