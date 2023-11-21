@@ -26,7 +26,7 @@
     "test:run": "vitest run",
     "test:log": "yarn workspace @localfirst/auth test:log",
     "watch": "lerna run watch --stream --parallel",
-    "prerelease": "yarn build && yarn test",
+    "prerelease": "yarn build && yarn test:run",
     "release": "lerna publish --no-private --yes"
   },
   "devDependencies": {
