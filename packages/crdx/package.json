@@ -1,7 +1,7 @@
 {
   "name": "@localfirst/crdx",
   "author": "herb@devresults.com",
-  "version": "4.2.0",
+  "version": "5.0.0",
   "license": "MIT",
   "repository": "https://github.com/local-first-web/auth/packages/crdx",
   "private": false,
@@ -22,7 +22,7 @@
     "watch": "yarn build --watch"
   },
   "dependencies": {
-    "@localfirst/crypto": "^4.2.0",
+    "@localfirst/crypto": "^5.0.0",
     "@paralleldrive/cuid2": "^2.2.2",
     "events": "3",
     "lodash-es": "^4.17.21"
