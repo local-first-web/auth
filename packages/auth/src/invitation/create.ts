@@ -15,7 +15,7 @@ export const create = ({
   maxUses = 1, // By default an invitation can only be used once
   expiration = 0 as UnixTimestamp, // By default an invitation never expires
   userId,
-}: CreateOptions): Invitation => {
+}: Params): Invitation => {
   seed = normalize(seed)
 
   // The ID of the invitation is derived from the seed
@@ -28,7 +28,7 @@ export const create = ({
   return { id, publicKey, expiration, maxUses, userId }
 }
 
-type CreateOptions = {
+type Params = {
   /** A randomly generated secret to be passed to Bob via a side channel */
   seed: string
 

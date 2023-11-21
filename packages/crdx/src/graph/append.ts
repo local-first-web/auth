@@ -6,30 +6,13 @@ import type { KeysetWithSecrets } from 'keyset/index.js'
 import type { UserWithSecrets } from 'user/index.js'
 import type { UnixTimestamp } from 'util/index.js'
 
-type AppendParams<A extends Action, C> = {
-  /** The graph to append a link to. */
-  graph: Graph<A, C> | typeof EMPTY_GRAPH
-
-  /** The action (type & payload) being added to the graph. */
-  action: A
-
-  /** User object for the author of this link. */
-  user: UserWithSecrets
-
-  /** Any additional context provided by the application. */
-  context?: C
-
-  /** Keyset used to encrypt & decrypt the link. */
-  keys: KeysetWithSecrets
-}
-
 export const append = <A extends Action, C>({
   graph,
   action,
   user,
   context = {} as C,
   keys,
-}: AppendParams<A, C>): Graph<A, C> => {
+}: Params<A, C>): Graph<A, C> => {
   // the "sender" of this encrypted link is the user authoring the link
   const { publicKey: senderPublicKey, secretKey: senderSecretKey } = user.keys.encryption
 
@@ -86,4 +69,21 @@ export const append = <A extends Action, C>({
       [hash]: link,
     },
   }
+}
+
+type Params<A extends Action, C> = {
+  /** The graph to append a link to. */
+  graph: Graph<A, C> | typeof EMPTY_GRAPH
+
+  /** The action (type & payload) being added to the graph. */
+  action: A
+
+  /** User object for the author of this link. */
+  user: UserWithSecrets
+
+  /** Any additional context provided by the application. */
+  context?: C
+
+  /** Keyset used to encrypt & decrypt the link. */
+  keys: KeysetWithSecrets
 }

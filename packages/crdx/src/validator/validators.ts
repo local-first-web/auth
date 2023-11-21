@@ -1,8 +1,10 @@
-﻿import { ValidationError, type ValidatorSet } from './types.js'
-import { ROOT, VALID } from 'constants.js'
-import { getRoot } from 'graph/graph.js'
+﻿import { ROOT, VALID } from 'constants.js'
+import { getRoot } from 'graph/getRoot.js'
 import { hashEncryptedLink } from 'graph/hashLink.js'
 import { memoize } from 'util/index.js'
+import { ValidationError, type ValidatorSet } from './types.js'
+import type { Link, Graph } from 'index.js'
+import { hash } from '@localfirst/crypto'
 
 const _validators: ValidatorSet = {
   /** Does this link's hash check out? */
@@ -83,7 +85,11 @@ export const fail = (msg: string, args?: any) => {
 
 const memoizeFunctionMap = (source: ValidatorSet) => {
   const result = {} as ValidatorSet
-  for (const key in source) result[key] = memoize(source[key])
+  const memoizeResolver = (link: Link<any, any>, graph: Graph<any, any>) => {
+    return `${hash('memoize', link)}:${hash('memoize', graph)}`
+  }
+
+  for (const key in source) result[key] = memoize(source[key], memoizeResolver)
   return result
 }
 

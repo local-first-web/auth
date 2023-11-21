@@ -1,4 +1,5 @@
-import { getHashes, getParents } from './graph.js'
+import { getHashes } from './getHashes.js'
+import { getParents } from './getParents.js'
 import { type Action, type Graph, type LinkMap } from './types.js'
 import { type Hash } from 'util/index.js'
 

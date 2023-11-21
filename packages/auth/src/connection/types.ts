@@ -1,18 +1,24 @@
-import {
-  type Base58,
-  type Hash,
-  type KeyScope,
-  type Keyset,
-  type SyncState,
-  type UnixTimestamp,
-  type UserWithSecrets,
+import type {
+  Base58,
+  Hash,
+  KeyScope,
+  Keyset,
+  SyncState,
+  UnixTimestamp,
+  UserWithSecrets,
 } from '@localfirst/crdx'
-import { type DeviceWithSecrets } from 'device/index.js'
-import { type ProofOfInvitation } from 'invitation/index.js'
-import { type Member, type Team } from 'team/index.js'
-import { type ActionFunction, type AssignAction, type ConditionPredicate } from 'xstate'
-import { type ConnectionErrorPayload } from './errors.js'
-import { type ConnectionMessage } from './message.js'
+import type {
+  Device,
+  DeviceWithSecrets,
+  FirstUseDevice,
+  FirstUseDeviceWithSecrets,
+} from 'device/index.js'
+import type { ProofOfInvitation } from 'invitation/index.js'
+import type { ServerWithSecrets } from 'server/index.js'
+import type { Member, Team } from 'team/index.js'
+import type { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
+import type { ConnectionErrorPayload } from './errors.js'
+import type { ConnectionMessage } from './message.js'
 
 export type ConnectionEvents = {
   /** state change in the connection */
@@ -31,11 +37,11 @@ export type ConnectionEvents = {
   connected: () => void
 
   /**
-  * We've successfully joined a team using an invitation. This event provides the team graph and
-  * the user's info (including keys). (When we're joining as a new device for an existing user,
-  * this is how we get the user's keys.) This event gives the application a chance to persist the
-  * team graph and the user's info.
-  */
+   * We've successfully joined a team using an invitation. This event provides the team graph and
+   * the user's info (including keys). (When we're joining as a new device for an existing user,
+   * this is how we get the user's keys.) This event gives the application a chance to persist the
+   * team graph and the user's info.
+   */
   joined: ({ team, user }: { team: Team; user: UserWithSecrets }) => void
 
   /** The team graph has been updated. This event gives the application a chance to persist the changes. */
@@ -70,45 +76,28 @@ export type InviteeMemberInitialContext = {
 
 export type InviteeDeviceInitialContext = {
   userName: string
-  userId: string
-  device: DeviceWithSecrets
+  device: FirstUseDeviceWithSecrets
   invitationSeed: string
 }
 
 export type InviteeInitialContext = InviteeMemberInitialContext | InviteeDeviceInitialContext
 
-/** The type of the initial context depends on whether we are already a member, or we've just been
- * invited and are connecting to the team for the first time. */
-export type InitialContext = MemberInitialContext | InviteeInitialContext
-
-// Type guard: MemberInitialContext vs InviteeInitialContext
-export const isInvitee = (c: InitialContext | ConnectionContext): c is InviteeInitialContext =>
-  !('team' in c)
-
-export type ConnectionParams = {
-  /** A function to send messages to our peer. This how you hook this up to your network stack. */
-  sendMessage: SendFunction
-
-  /** The initial context. */
-  context: InitialContext
-
-  /** The peer's user id, if we know it */
-  peerUserId?: string
+export type ServerInitialContext = {
+  server: ServerWithSecrets
+  team: Team
 }
 
-export type ErrorPayload = {
-  message: string
-  details?: any
-}
+export type InitialContext = MemberInitialContext | InviteeInitialContext | ServerInitialContext
 
 export type ConnectionContext = {
   theyHaveInvitation?: boolean
-  theirIdentityClaim?: KeyScope
-  theirUserName?: string
 
+  theirDeviceId?: string
+
+  theirUserName?: string
   theirProofOfInvitation?: ProofOfInvitation
   theirUserKeys?: Keyset
-  theirDeviceKeys?: Keyset
+  theirDevice?: Device | FirstUseDevice
 
   challenge?: Challenge
   peer?: Member
@@ -117,12 +106,18 @@ export type ConnectionContext = {
   theirEncryptedSeed?: Base58
   sessionKey?: Base58
   error?: ErrorPayload
-  device: DeviceWithSecrets
-
   syncState?: SyncState
-} & Partial<MemberInitialContext> &
+
+  device: DeviceWithSecrets | FirstUseDeviceWithSecrets
+} & Partial<InviteeDeviceInitialContext> &
   Partial<InviteeMemberInitialContext> &
-  Partial<InviteeDeviceInitialContext>
+  Partial<ServerInitialContext> &
+  Partial<MemberInitialContext>
+
+export type ErrorPayload = {
+  message: string
+  details?: any
+}
 
 export type StateMachineAction =
   | ActionFunction<ConnectionContext, ConnectionMessage>
@@ -181,3 +176,18 @@ export type ConnectionState = {
     disconnected: Record<string, unknown>
   }
 }
+
+// TYPE GUARDS
+
+type C = InitialContext | ConnectionContext
+export const isMember = (c: C): c is MemberInitialContext => !isInvitee(c)
+
+export const isInvitee = (c: C): c is InviteeInitialContext => 'invitationSeed' in c
+
+export const isInviteeMember = (c: C): c is InviteeMemberInitialContext =>
+  isInvitee(c) && 'user' in c
+
+export const isInviteeDevice = (c: C): c is InviteeDeviceInitialContext =>
+  isInvitee(c) && !isInviteeMember(c)
+
+export const isServer = (c: C): c is ServerInitialContext => 'server' in c

@@ -1,7 +1,6 @@
-import { memoize } from 'lodash-es'
-import { getLink } from './graph.js'
-import { type Action, type Link, type Graph } from 'graph/types.js'
-import { type Hash } from 'util/index.js'
+import type { Action, Graph, Link } from 'graph/types.js'
+import { memoize, type Hash } from 'util/index.js'
+import { getLink } from './getLink.js'
 
 /**
  * Returns the hashes of the children of the link with the given hash.

@@ -7,6 +7,7 @@ import {
 import type { EventEmitter } from 'eventemitter3'
 import { expect } from 'vitest'
 import { TestChannel } from './TestChannel.js'
+import { eventPromise } from './eventPromise.js'
 import { joinTestChannel } from './joinTestChannel.js'
 import { type UserStuff } from './setup.js'
 
@@ -25,26 +26,30 @@ export const connect = async (a: UserStuff, b: UserStuff) => {
   await connection(a, b)
 }
 
-/** Connects a (a member) with b (invited using the given seed). */
-export const connectWithInvitation = async (a: UserStuff, b: UserStuff, seed: string) => {
-  b.connectionContext = {
-    user: b.user,
-    device: b.device,
+/** Connects a member with an invitee. */
+export const connectWithInvitation = async (
+  member: UserStuff,
+  invitee: UserStuff,
+  seed: string
+) => {
+  invitee.connectionContext = {
+    user: invitee.user,
+    device: invitee.device,
     invitationSeed: seed,
   } as InviteeMemberInitialContext
 
-  return connect(a, b).then(() => {
+  return connect(member, invitee).then(() => {
     // The connection now has the team object, so let's update our user stuff
-    b.team = b.connection[a.deviceId].team!
+    invitee.team = invitee.connection[member.deviceId].team!
   })
 }
 
 export const connectPhoneWithInvitation = async (user: UserStuff, seed: string) => {
-  const phoneContext = {
-    userId: user.userId,
-    device: user.phone,
+  const phoneContext: InviteeDeviceInitialContext = {
+    userName: user.user.userName,
+    device: user.phone!,
     invitationSeed: seed,
-  } as InviteeDeviceInitialContext
+  }
 
   const join = joinTestChannel(new TestChannel())
 
@@ -86,7 +91,6 @@ export const connection = async (a: UserStuff, b: UserStuff) => {
 
   const sharedKey = connections[0].sessionKey
   for (const connection of connections) {
-    expect(connection.state).toEqual('connected')
     // ✅ They've converged on a shared secret key
     expect(connection.sessionKey).toEqual(sharedKey)
   }
@@ -129,19 +133,9 @@ export const all = async (
 ) =>
   Promise.all(
     connections.map(async connection => {
-      if (event === 'disconnected' && connection.state === 'disconnected') {
-        return true
-      }
-
-      if (event === 'connected' && connection.state === 'connected') {
-        return true
-      }
-
-      return new Promise(resolve => {
-        connection.on(event, () => {
-          resolve(true)
-        })
-      })
+      if (event === 'disconnected' && connection.state === 'disconnected') return connection
+      if (event === 'connected' && connection.state === 'connected') return connection
+      return eventPromise(connection, event)
     })
   )
 
@@ -151,18 +145,8 @@ export const any = async (
 ) =>
   Promise.any(
     connections.map(async connection => {
-      if (event === 'disconnected' && connection.state === 'disconnected') {
-        return true
-      }
-
-      if (event === 'connected' && connection.state === 'connected') {
-        return true
-      }
-
-      return new Promise(resolve => {
-        connection.on(event, () => {
-          resolve(true)
-        })
-      })
+      if (event === 'disconnected' && connection.state === 'disconnected') return connection
+      if (event === 'connected' && connection.state === 'connected') return connection
+      return eventPromise(connection, event)
     })
   )

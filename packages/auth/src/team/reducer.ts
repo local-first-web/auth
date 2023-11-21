@@ -1,10 +1,13 @@
-import { type Reducer, ROOT } from '@localfirst/crdx'
+import { ROOT, type Reducer } from '@localfirst/crdx'
+import { ADMIN } from 'role/index.js'
+import { clone, composeTransforms } from 'util/index.js'
 import { invalidLinkReducer } from './invalidLinkReducer.js'
 import { setHead } from './setHead.js'
 import {
   addDevice,
   addMember,
   addMemberRoles,
+  addMessage,
   addRole,
   addServer,
   changeDeviceKeys,
@@ -30,9 +33,6 @@ import {
   type Transform,
 } from './types.js'
 import { validate } from './validate.js'
-import { type Device } from 'device/index.js'
-import { ADMIN } from 'role/index.js'
-import { clone, composeTransforms } from 'util/index.js'
 
 /**
  * Each link has a `type` and a `payload`, just like a Redux action. So we can derive a `TeamState`
@@ -133,9 +133,9 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     case 'REMOVE_DEVICE': {
-      const { userId, deviceName } = action.payload
+      const { deviceId } = action.payload
       return [
-        removeDevice(userId, deviceName), // Remove this device from the member's list of devices
+        removeDevice(deviceId), // Remove this device from the member's list of devices
       ]
     }
 
@@ -192,13 +192,7 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     case 'ADMIT_DEVICE': {
-      const { id, userId, deviceName, deviceKeys } = action.payload
-
-      const device: Device = {
-        userId,
-        deviceName,
-        keys: deviceKeys,
-      }
+      const { id, device } = action.payload
 
       return [
         useInvitation(id), // Mark the invitation as used
@@ -245,6 +239,20 @@ const getTransforms = (action: TeamAction): Transform[] => {
       const { keys } = action.payload
       return [
         changeServerKeys(keys), // Replace this server's public keys with the ones provided
+      ]
+    }
+
+    case 'MESSAGE': {
+      const { message } = action.payload
+      return [
+        addMessage(message), // Add the message to the team's message log
+      ]
+    }
+
+    case 'SET_TEAM_NAME': {
+      const { teamName } = action.payload
+      return [
+        setTeamName(teamName), // Set the team's name
       ]
     }
 

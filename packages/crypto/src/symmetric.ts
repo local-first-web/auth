@@ -62,7 +62,7 @@ const decrypt = (
 ): Payload => {
   const cipherBytes = keyToBytes(cipher)
   const decrypted = decryptBytes(cipherBytes, password)
-  return unpack(decrypted) as Payload
+  return unpack(decrypted)
 }
 
 export const symmetric = { encryptBytes, decryptBytes, encrypt, decrypt }

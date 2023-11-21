@@ -12,7 +12,7 @@ import type {
   ROOT,
   Sequence,
 } from '@localfirst/crdx'
-import type { Client, LocalContext } from 'context/index.js'
+import type { Client, LocalContext } from 'team/context.js'
 import type { Device } from 'device/index.js'
 import type { Invitation, InvitationState } from 'invitation/types.js'
 import type { Lockbox } from 'lockbox/index.js'
@@ -24,14 +24,12 @@ import type { ValidationResult } from 'util/index.js'
 
 /** A member is a user that belongs to a team. */
 export type Member = {
-  // TODO enforce uniqueness
   /** Unique ID populated on creation. */
   userId: string
 
-  // TODO enforce uniqueness
   /** Username (or email). Must be unique but is not used for lookups. Only provided to connect
    * human identities with other systems. */
-  userName?: string
+  userName: string
 
   /** The member's public keys */
   keys: Keyset
@@ -41,10 +39,6 @@ export type Member = {
 
   /** Devices that the member has added, along with their public */
   devices?: Device[]
-
-  // TODO: are we using this?
-  /** Array of all the public keys that the member has had, including the current ones */
-  keyHistory?: Keyset[]
 }
 
 // ********* TEAM CONSTRUCTOR
@@ -84,9 +78,6 @@ export const isNewTeam = (options: NewOrExisting): options is NewTeamOptions =>
   'teamName' in options
 
 // ********* ACTIONS
-
-// TODO: the content of lockboxes needs to be validated
-// e.g. only an admin can add lockboxes for others
 
 type BasePayload = {
   // Every action might include new lockboxes
@@ -156,8 +147,7 @@ export type AddDeviceAction = {
 export type RemoveDeviceAction = {
   type: 'REMOVE_DEVICE'
   payload: BasePayload & {
-    userId: string
-    deviceName: string
+    deviceId: string
   }
 }
 
@@ -195,9 +185,7 @@ export type AdmitDeviceAction = {
   type: 'ADMIT_DEVICE'
   payload: BasePayload & {
     id: Base58 // Invitation ID
-    userId: string // User name of the device's owner
-    deviceName: string // Name given to the device by the owner
-    deviceKeys: Keyset // Device keys provided by the new device
+    device: Device
   }
 }
 
@@ -243,6 +231,20 @@ export type ChangeServerKeysAction = {
   }
 }
 
+export type MessageAction = {
+  type: 'MESSAGE'
+  payload: BasePayload & {
+    message: unknown
+  }
+}
+
+export type SetTeamNameAction = {
+  type: 'SET_TEAM_NAME'
+  payload: BasePayload & {
+    teamName: string
+  }
+}
+
 export type TeamAction =
   | RootAction
   | AddMemberAction
@@ -264,6 +266,8 @@ export type TeamAction =
   | AddServerAction
   | RemoveServerAction
   | ChangeServerKeysAction
+  | MessageAction
+  | SetTeamNameAction
 
 export type TeamContext = {
   deviceId: string
@@ -294,6 +298,7 @@ export type TeamState = {
   servers: Server[]
   lockboxes: Lockbox[]
   invitations: InvitationMap
+  messages: unknown[]
 
   // We keep track of removed members and devices primarily so that we deliver the correct message
   // to them when we refuse to connect
@@ -339,7 +344,6 @@ export type InviteResult = {
 }
 export type LookupIdentityResult =
   | 'VALID_DEVICE'
-  | 'MEMBER_UNKNOWN'
   | 'MEMBER_REMOVED'
   | 'DEVICE_UNKNOWN'
   | 'DEVICE_REMOVED'

@@ -1,7 +1,7 @@
-import { type User, type UserWithSecrets } from '@localfirst/crdx'
-import { type Server, type ServerWithSecrets } from './types.js'
-import { type Device, type DeviceWithSecrets } from 'device/index.js'
-import { type Member } from 'team/index.js'
+import type { User, UserWithSecrets } from '@localfirst/crdx'
+import type { Server, ServerWithSecrets } from './types.js'
+import type { Device, DeviceWithSecrets } from 'device/index.js'
+import type { Member } from 'team/index.js'
 
 const toMember = (server: Server): Member => ({
   userId: server.host,
@@ -21,6 +21,7 @@ const toDevice = <T extends Server | ServerWithSecrets>(server: T) =>
   ({
     userId: server.host,
     deviceName: server.host,
+    deviceId: server.host,
     keys: server.keys,
   }) as T extends Server ? Device : DeviceWithSecrets
 

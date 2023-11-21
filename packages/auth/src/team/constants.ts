@@ -13,6 +13,7 @@ export const initialState: TeamState = {
   roles: [],
   lockboxes: [],
   invitations: {},
+  messages: [],
   removedMembers: [],
   removedDevices: [],
   removedServers: [],

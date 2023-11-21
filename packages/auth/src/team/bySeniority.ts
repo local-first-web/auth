@@ -1,6 +1,6 @@
 import { isPredecessor } from '@localfirst/crdx'
 import { type TeamGraph, type TeamLink } from 'team/types.js'
-import assert from 'node:assert'
+import { assert } from '../util/index.js'
 
 export const bySeniority = (chain: TeamGraph) => (a: string, b: string) => {
   // If one of these created the chain, they win
@@ -21,8 +21,6 @@ export const bySeniority = (chain: TeamGraph) => (a: string, b: string) => {
   }
 
   const [addedA, addedB] = [a, b].map(linkThatAddedMember)
-
-  // TODO: if both users were added concurrently, need to have a default sort
 
   // if A was added first, A comes first in the sort
   if (isPredecessor(chain, addedA, addedB)) return -1

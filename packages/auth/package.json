@@ -25,12 +25,11 @@
   "dependencies": {
     "@localfirst/crdx": "^4.2.0",
     "@localfirst/crypto": "^4.2.0",
+    "@paralleldrive/cuid2": "^2.2.2",
     "buffer": "^6.0.3",
     "debug": "^4.3.4",
     "eventemitter3": "^5.0.1",
-    "fast-memoize": "^2.5.2",
     "lodash-es": "^4.17.21",
-    "memize": "^2.1.0",
     "xstate": "4.26"
   },
   "publishConfig": {

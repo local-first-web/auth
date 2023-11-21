@@ -25,16 +25,11 @@ export const decryptLink = <A extends Action, C>(
   const keyset = keyring[recipientPublicKey]
   assert(keyset, `Can't decrypt link: don't have the correct keyset`)
 
-  let decryptedLinkBody = asymmetric.decrypt({
+  const decryptedLinkBody = asymmetric.decrypt({
     cipher: encryptedBody,
     recipientSecretKey: keyset.encryption.secretKey,
     senderPublicKey,
   }) as LinkBody<A, C>
-
-  // HACK figure out why localfirst/auth is getting a JSON string here
-  if (typeof decryptedLinkBody === 'string')
-    decryptedLinkBody = JSON.parse(decryptedLinkBody) as LinkBody<A, C>
-  // if (typeof decryptedLinkBody === 'string') console.error({ decryptedLinkBody })
 
   return {
     hash: hashEncryptedLink(encryptedBody),

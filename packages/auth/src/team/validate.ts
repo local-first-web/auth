@@ -1,4 +1,6 @@
 import { ROOT } from '@localfirst/crdx'
+import { invitationCanBeUsed } from 'invitation/index.js'
+import { VALID, ValidationError, actionFingerprint, debug, truncateHashes } from 'util/index.js'
 import { isAdminOnlyAction } from './isAdminOnlyAction.js'
 import * as select from './selectors/index.js'
 import {
@@ -8,11 +10,8 @@ import {
   type TeamStateValidatorSet,
   type ValidationArgs,
 } from './types.js'
-import { parseDeviceId } from 'device/index.js'
-import { invitationCanBeUsed } from 'invitation/index.js'
-import { actionFingerprint, debug, truncateHashes, VALID, ValidationError } from 'util/index.js'
 
-const log = debug('lf:auth:validate')
+const log = debug.extend('validate')
 
 export const validate: TeamStateValidator = (...args: ValidationArgs) => {
   for (const key in validators) {
@@ -34,10 +33,9 @@ const validators: TeamStateValidatorSet = {
     const { type, userId } = action
 
     // At root link, team doesn't yet have members
-    if (type === ROOT) {
-      return VALID
-    }
+    if (type === ROOT) return VALID
 
+    // Certain actions are allowed to be performed by non-members
     if (isAdminOnlyAction(action)) {
       const isntAdmin = !select.memberIsAdmin(previousState, userId)
       if (isntAdmin) {
@@ -48,38 +46,23 @@ const validators: TeamStateValidatorSet = {
     return VALID
   },
 
-  // TODO: the public key that this is encrypted with should be the author's public encryption key at that time.
-  // signatureKeyIsCorrect: (...args) => {
-  //   const [prevState, link] = args
-  //   const action = link.body
-  //   const { type } = action
-
-  //   // at root link, team doesn't yet have members
-  //   if (type === ROOT) return VALID
-
-  //   const { userId } = link.signed
-  //   const author = select.member(prevState, userId)
-  //   // TODO: test this case
-  //   if (link.signed.key !== author.keys.signature) {
-  //     const msg = `Wrong signature key. Link is signed with ${link.signed.key}, but ${userId}'s signature key is ${author.keys.signature}`
-  //     return fail(msg, ...args)
-  //   }
-  //   return VALID
-  // },
-
+  /** Unless I'm an admin, I can't change anyone's keys but my own */
   canOnlyChangeYourOwnKeys(...args) {
     const [previousState, link] = args
     const author = link.body.userId
+
+    // Only admins can change another user's keys
     const authorIsAdmin = select.memberIsAdmin(previousState, author)
     if (!authorIsAdmin) {
       if (link.body.type === 'CHANGE_MEMBER_KEYS') {
         const target = link.body.payload.keys.name
-        // Only admins can change another user's keys
         if (author !== target) {
           return fail("Can't change another user's keys.", ...args)
         }
       } else if (link.body.type === 'CHANGE_DEVICE_KEYS') {
-        const target = parseDeviceId(link.body.payload.keys.name).userId
+        const deviceId = link.body.payload.keys.name
+        const device = select.device(previousState, deviceId)
+        const { userId: target } = device
         if (author !== target) {
           return fail("Can't change another user's device keys.", ...args)
         }
@@ -89,7 +72,7 @@ const validators: TeamStateValidatorSet = {
     return VALID
   },
 
-  // Check for ADMIT with invitations that are revoked OR have been used more than maxUses OR are expired
+  /** Check for ADMIT with invitations that are revoked OR have been used more than maxUses OR are expired */
   cantAdmitWithInvalidInvitation(...args) {
     const [previousState, link] = args
     if (link.body.type === 'ADMIT_MEMBER' || link.body.type === 'ADMIT_DEVICE') {

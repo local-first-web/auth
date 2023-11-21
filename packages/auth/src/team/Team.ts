@@ -7,7 +7,6 @@ import type {
   Payload,
   Store,
   UnixTimestamp,
-  User,
   UserWithSecrets,
 } from '@localfirst/crdx'
 import {
@@ -20,15 +19,8 @@ import {
 import { randomKey, signatures, symmetric, type Base58 } from '@localfirst/crypto'
 import * as identity from 'connection/identity.js'
 import { type Challenge } from 'connection/types.js'
-import { type LocalUserContext } from 'context/index.js'
 import * as devices from 'device/index.js'
-import {
-  getDeviceId,
-  parseDeviceId,
-  redactDevice,
-  type Device,
-  type DeviceWithSecrets,
-} from 'device/index.js'
+import { redactDevice, type Device } from 'device/index.js'
 import { EventEmitter } from 'eventemitter3'
 import * as invitations from 'invitation/index.js'
 import { type ProofOfInvitation } from 'invitation/index.js'
@@ -37,6 +29,7 @@ import * as lockbox from 'lockbox/index.js'
 import { ADMIN, type Role } from 'role/index.js'
 import { cast } from 'server/cast.js'
 import { type Host, type Server } from 'server/types.js'
+import { type LocalUserContext } from 'team/context.js'
 import { KeyType, VALID, assert, debug, scopesMatch } from 'util/index.js'
 import { ADMIN_SCOPE, ALL, TEAM_SCOPE, initialState } from './constants.js'
 import { membershipResolver as resolver } from './membershipResolver.js'
@@ -44,18 +37,17 @@ import { redactUser } from './redactUser.js'
 import { reducer } from './reducer.js'
 import * as select from './selectors/index.js'
 import { maybeDeserialize, serializeTeamGraph } from './serialize.js'
-import { isNewTeam } from './types.js'
 import type {
   EncryptedEnvelope,
+  InviteResult,
   Member,
   SignedEnvelope,
   TeamAction,
   TeamGraph,
   TeamOptions,
   TeamState,
-  InviteResult,
-  LookupIdentityResult,
 } from './types.js'
+import { isNewTeam } from './types.js'
 
 const { DEVICE, USER } = KeyType
 /**
@@ -92,32 +84,32 @@ export class Team extends EventEmitter {
         user: cast.toUser(server),
       }
     }
+    const { device, user } = this.context
 
-    this.log = debug(`lf:auth:team:${this.userName}`)
+    this.log = debug.extend(`team:${this.userName}`)
 
     // Initialize a CRDX store for the team
     if (isNewTeam(options)) {
-      assert(!this.isServer, 'Cannot create a team on a server')
-
       // Create a new team with the current user as founding member
-      const { device, user } = this.context
+
+      assert(!this.isServer, `Servers can't create teams`)
 
       // Team & role secrets are never stored in plaintext, only encrypted into individual
       // lockboxes. Here we generate new keysets for the team and for the admin role, and store
       // these in new lockboxes for the founding member
-      const teamLockbox = lockbox.create(options.teamKeys, user.keys)
+      const lockboxTeamKeysForMember = lockbox.create(options.teamKeys, user.keys)
       const adminKeys = createKeyset(ADMIN_SCOPE, this.seed)
-      const adminLockbox = lockbox.create(adminKeys, user.keys)
+      const lockboxAdminKeysForMember = lockbox.create(adminKeys, user.keys)
 
-      // We also store the user's keys in a lockbox for the user's device
-      const deviceLockbox = lockbox.create(user.keys, this.context.device.keys)
+      // We also store the founding user's keys in a lockbox for the user's device
+      const lockboxUserKeysForDevice = lockbox.create(user.keys, this.context.device.keys)
 
       // We're creating a new graph; this information is to be recorded in the root link
       const rootPayload = {
         name: options.teamName,
         rootMember: redactUser(user),
         rootDevice: devices.redactDevice(device),
-        lockboxes: [teamLockbox, adminLockbox, deviceLockbox],
+        lockboxes: [lockboxTeamKeysForMember, lockboxAdminKeysForMember, lockboxUserKeysForDevice],
       }
 
       // Create CRDX store
@@ -131,16 +123,13 @@ export class Team extends EventEmitter {
       })
     } else {
       // Rehydrate a team from an existing graph
-      const graph = maybeDeserialize(options.source, options.teamKeyring)
-      const { user } = this.context
-
       // Create CRDX store
       this.store = createStore({
         user,
         reducer,
         resolver,
         initialState,
-        graph,
+        graph: maybeDeserialize(options.source, options.teamKeyring),
         keys: options.teamKeyring,
       })
     }
@@ -154,6 +143,8 @@ export class Team extends EventEmitter {
     })
   }
 
+  /** ************** PUBLIC API */
+
   public get graph() {
     return this.store.getGraph() as TeamGraph
   }
@@ -163,11 +154,16 @@ export class Team extends EventEmitter {
     return this.graph.root
   }
 
-  /** ************** CONTEXT */
-
-  private get isServer() {
-    return 'server' in this.context
+  /** Returns this team's user-facing name. */
+  public get teamName() {
+    return this.state.teamName
   }
+
+  public setTeamName(teamName: string) {
+    this.dispatch({ type: 'SET_TEAM_NAME', payload: { teamName } })
+  }
+
+  /** ************** CONTEXT */
 
   public get userName() {
     if (this.context.user) {
@@ -185,6 +181,10 @@ export class Team extends EventEmitter {
     return this.context.device.userId // Device is always known
   }
 
+  private get isServer() {
+    return 'server' in this.context
+  }
+
   /** ************** TEAM STATE
    *
    * All the logic for *reading* team state is in selectors (see `/team/selectors`).
@@ -198,11 +198,6 @@ export class Team extends EventEmitter {
    * public-facing outputs (for example, the resulting lockboxesInScope, or the signed links) are
    * posted on the graph.
    */
-
-  /** Returns this team's user-facing name. */
-  public get teamName() {
-    return this.state.teamName
-  }
 
   public save = () => serializeTeamGraph(this.graph)
 
@@ -226,42 +221,6 @@ export class Team extends EventEmitter {
     this.emit('updated', { head: this.graph.head })
   }
 
-  public lookupIdentity = (identityClaim: KeyScope): LookupIdentityResult => {
-    assert(identityClaim.type === DEVICE) // We always authenticate as devices
-    const deviceId = identityClaim.name
-    const { userId, deviceName } = parseDeviceId(deviceId)
-    if (this.memberWasRemoved(userId) || this.serverWasRemoved(userId)) {
-      return 'MEMBER_REMOVED'
-    }
-
-    if (!this.has(userId) && !this.hasServer(userId)) {
-      return 'MEMBER_UNKNOWN'
-    }
-
-    if (this.deviceWasRemoved(userId, deviceName)) {
-      return 'DEVICE_REMOVED'
-    }
-
-    if (!this.hasDevice(userId, deviceName) && !this.hasServer(userId)) {
-      return 'DEVICE_UNKNOWN'
-    }
-
-    return 'VALID_DEVICE'
-  }
-
-  public verifyIdentityProof = (challenge: Challenge, proof: Base58) => {
-    assert(challenge.type === DEVICE) // We always authenticate as devices
-    const deviceId = challenge.name
-    const { userId, deviceName } = parseDeviceId(deviceId)
-
-    const device = this.hasServer(userId)
-      ? this.servers(userId)
-      : this.device(userId, deviceName, { includeRemoved: true })
-
-    const validation = identity.verify(challenge, proof, device.keys)
-    return validation.isValid
-  }
-
   /** ************** MEMBERS */
 
   /** Returns true if the team has a member with the given userId */
@@ -270,7 +229,7 @@ export class Team extends EventEmitter {
   /** Returns a list of all members on the team */
   public members(): Member[] // Overload: all members
   /** Returns the member with the given user name */
-  public members(userId: string, options?: { includeRemoved: boolean }): Member // Overload: one member
+  public members(userId: string, options?: LookupOptions): Member // Overload: one member
   //
   public members(userId: string = ALL, options = { includeRemoved: true }): Member | Member[] {
     return userId === ALL //
@@ -297,25 +256,12 @@ export class Team extends EventEmitter {
 
     if (device) {
       // Post the member's device to the graph
-      const deviceLockbox = lockbox.create(user.keys, device.keys)
+      const lockboxUserKeysForDevice = lockbox.create(user.keys, device.keys)
       this.dispatch({
         type: 'ADD_DEVICE',
-        payload: { device, lockboxes: [deviceLockbox] },
+        payload: { device, lockboxes: [lockboxUserKeysForDevice] },
       })
     }
-  }
-
-  public add = (user: User, roles: string[] = []) => {
-    const member = { ...user, roles }
-
-    // Make lockboxes for the new member
-    const lockboxes = this.createMemberLockboxes(member)
-
-    // Post the member to the graph
-    this.dispatch({
-      type: 'ADD_MEMBER',
-      payload: { member, roles, lockboxes },
-    })
   }
 
   /** Remove a member from the team */
@@ -375,12 +321,12 @@ export class Team extends EventEmitter {
     const roleKeys = createKeyset({ type: KeyType.ROLE, name: role.roleName }, this.seed)
 
     // Make a lockbox for the admin role, so that all admins can access this role's keys
-    const lockboxForAdmin = lockbox.create(roleKeys, this.adminKeys())
+    const lockboxRoleKeysForAdmins = lockbox.create(roleKeys, this.adminKeys())
 
     // Post the role to the graph
     this.dispatch({
       type: 'ADD_ROLE',
-      payload: { ...role, lockboxes: [lockboxForAdmin] },
+      payload: { ...role, lockboxes: [lockboxRoleKeysForAdmins] },
     })
   }
 
@@ -398,12 +344,12 @@ export class Team extends EventEmitter {
   public addMemberRole = (userId: string, roleName: string) => {
     // Make a lockbox for the role
     const member = this.members(userId)
-    const roleLockbox = lockbox.create(this.roleKeys(roleName), member.keys)
+    const lockboxRoleKeysForMember = lockbox.create(this.roleKeys(roleName), member.keys)
 
     // Post the member role to the graph
     this.dispatch({
       type: 'ADD_MEMBER_ROLE',
-      payload: { userId, roleName, lockboxes: [roleLockbox] },
+      payload: { userId, roleName, lockboxes: [lockboxRoleKeysForMember] },
     })
   }
 
@@ -427,41 +373,51 @@ export class Team extends EventEmitter {
   /** ************** DEVICES */
 
   /** Returns true if the given member has a device by the given name */
-  public hasDevice = (userId: string, deviceName: string): boolean =>
-    select.hasDevice(this.state, userId, deviceName)
+  public hasDevice = (deviceId: string, options?: LookupOptions): boolean =>
+    select.hasDevice(this.state, deviceId, options)
 
   /** Find a member's device by name */
-  public device = (
-    userId: string,
-    deviceName: string,
-    options = { includeRemoved: false }
-  ): Device => select.device(this.state, userId, deviceName, options)
+  public device(deviceId: string, options?: LookupOptions): Device {
+    return select.device(this.state, deviceId, options)
+  }
 
   /** Remove a member's device */
-  public removeDevice = (userId: string, deviceName: string) => {
-    if (!this.hasDevice(userId, deviceName)) {
-      return
-    }
+  public removeDevice = (deviceId: string) => {
+    if (!this.hasDevice(deviceId)) return
 
     // Create new keys & lockboxes for any keys this device had access to
-    const deviceId = getDeviceId({ userId, deviceName })
     const lockboxes = this.rotateKeys({ type: DEVICE, name: deviceId })
 
     // Post the removal to the graph
     this.dispatch({
       type: 'REMOVE_DEVICE',
       payload: {
-        userId,
-        deviceName,
+        deviceId,
         lockboxes,
       },
     })
   }
 
   /** Returns true if the device was once on the team but was removed */
-  public deviceWasRemoved = (userId: string, deviceName: string) => {
-    const deviceId = getDeviceId({ userId, deviceName })
+  public deviceWasRemoved = (deviceId: string) => {
     return select.deviceWasRemoved(this.state, deviceId)
+  }
+
+  /** Looks for a member that has this device. If none is found, return  */
+  public memberByDeviceId = (deviceId: string, options?: LookupOptions) => {
+    return select.memberByDeviceId(this.state, deviceId, options)
+  }
+
+  public verifyIdentityProof = (challenge: Challenge, proof: Base58) => {
+    assert(challenge.type === DEVICE) // We always authenticate as devices
+    const deviceId = challenge.name
+
+    const device = this.hasServer(deviceId)
+      ? this.servers(deviceId)
+      : this.device(deviceId, { includeRemoved: true })
+
+    const validation = identity.verify(challenge, proof, device.keys)
+    return validation.isValid
   }
 
   /** ************** INVITATIONS */
@@ -526,13 +482,10 @@ export class Team extends EventEmitter {
    *  Once an existing device (Bob's laptop or Alice or Charlie) verifies Bob's phone's proof, they
    *  send it the team graph. Using the graph, the phone instantiates the team, then adds itself as
    *  a device.
-   *
-   *  Note: A member can only invite their own devices. A non-admin member can only remove their own
-   *  device; an admin member can remove a device for anyone.
    */
   public inviteDevice({
     seed = invitations.randomSeed(),
-    expiration = (Date.now() + 30 * 60 * 1000) as UnixTimestamp, // 30 minutes
+    expiration = (Date.now() + 30 * 60 * 1000) as UnixTimestamp,
   }: {
     /** A secret to be passed to the device via a side channel. If not provided, one will be randomly generated. */
     seed?: string
@@ -540,22 +493,29 @@ export class Team extends EventEmitter {
     /** Time when the invitation expires. Defaults to 30 minutes from now. */
     expiration?: UnixTimestamp
   } = {}): InviteResult {
-    assert(!this.isServer, "Server can't invite a device")
+    assert(!this.isServer, "Servers can't invite a device")
 
     seed = normalize(seed)
 
     // Generate invitation
-
-    const { userId } = this
-
     const maxUses = 1 // Can't invite multiple devices with the same invitation
-    const invitation = invitations.create({ seed, expiration, maxUses, userId })
+    const invitation = invitations.create({ seed, expiration, maxUses, userId: this.userId })
+
+    // In order for the invited device to be able to access the user's keys, we put the user keys in
+    // a lockbox that can be opened by an ephemeral keyset generated from the secret invitation
+    // seed.
+    const starterKeys = invitations.generateStarterKeys(seed)
+    const lockboxUserKeysForDeviceStarterKeys = lockbox.create(this.context.user.keys, starterKeys)
+
     const { id } = invitation
 
     // Post invitation to graph
     this.dispatch({
       type: 'INVITE_DEVICE',
-      payload: { invitation },
+      payload: {
+        invitation,
+        lockboxes: [lockboxUserKeysForDeviceStarterKeys],
+      },
     })
 
     // Return the secret invitation seed (to pass on to invitee) and the invitation id (which could be used to revoke later)
@@ -588,7 +548,6 @@ export class Team extends EventEmitter {
   /** Check whether (1) the invitation is still valid, and (2) the proof of invitation checks out. */
   public validateInvitation = (proof: ProofOfInvitation) => {
     const { id } = proof
-    // TODO: These invitation errors really should be structured & instead of returning messages we should return codes
     if (!this.hasInvitation(id)) {
       return invitations.fail("This invitation code doesn't match.")
     }
@@ -612,19 +571,12 @@ export class Team extends EventEmitter {
     userName: string // The new member's desired user-facing name
   ) => {
     const validation = this.validateInvitation(proof)
-    if (!validation.isValid) {
-      throw validation.error
-    }
+    if (!validation.isValid) throw validation.error
 
     const { id } = proof
 
-    // TODO: make lockbox naming consistent?
-    // lockbox_TeamKeysForMember
-    // lockbox_UserKeysForDevice
-    // lockbox_AdminKeysForMember
-
     // we know the team keys, so we can put them in a lockbox for the new member now (even if we're not an admin)
-    const teamKeysLockbox = lockbox.create(this.teamKeys(), memberKeys)
+    const lockboxTeamKeysForMember = lockbox.create(this.teamKeys(), memberKeys)
 
     // Post admission to the graph
     this.dispatch({
@@ -633,34 +585,29 @@ export class Team extends EventEmitter {
         id,
         userName,
         memberKeys: redactKeys(memberKeys),
-        lockboxes: [teamKeysLockbox],
+        lockboxes: [lockboxTeamKeysForMember],
       },
     })
   }
 
-  /** A member calls this to admit a new device for themselves based on proof of invitation */
-  public admitDevice = (proof: ProofOfInvitation, device: DeviceWithSecrets | Device) => {
+  /** An existing team member calls this to admit a new device based on proof of invitation */
+  public admitDevice = (proof: ProofOfInvitation, firstUseDevice: devices.FirstUseDevice) => {
     const validation = this.validateInvitation(proof)
-    if (!validation.isValid) {
-      throw validation.error
-    }
+    if (!validation.isValid) throw validation.error
 
     const { id } = proof
-    const { userId, deviceName, keys } = device
+    const invitation = this.getInvitation(id)
+    const userId = invitation.userId!
 
-    assert(this.userId === userId, "Can't admit someone else's device")
-
-    const deviceLockbox = lockbox.create(this.context.user.keys, keys)
+    // Now we can add the userId to the device and post it to the graph
+    const device: Device = { ...firstUseDevice, userId }
 
     // Post admission to the graph
     this.dispatch({
       type: 'ADMIT_DEVICE',
       payload: {
         id,
-        userId,
-        deviceName,
-        deviceKeys: redactKeys(keys),
-        lockboxes: [deviceLockbox],
+        device,
       },
     })
   }
@@ -669,16 +616,17 @@ export class Team extends EventEmitter {
   public join = (teamKeyring: Keyring) => {
     assert(!this.isServer, "Can't join as member on server")
 
+    const { user, device } = this.context
     const teamKeys = getLatestGeneration(teamKeyring)
 
-    const deviceLockbox = lockbox.create(this.context.user.keys, this.context.device.keys)
-    const device = redactDevice(this.context.device)
+    const lockboxUserKeysForDevice = lockbox.create(user.keys, device.keys)
+
     this.dispatch(
       {
         type: 'ADD_DEVICE',
         payload: {
-          device,
-          lockboxes: [deviceLockbox],
+          device: redactDevice(device),
+          lockboxes: [lockboxUserKeysForDevice],
         },
       },
       teamKeys
@@ -721,12 +669,6 @@ export class Team extends EventEmitter {
     })
   }
 
-  // TODO: If we wanted to restrict the server's read access to application data (as opposed to the
-  // team membership data), we would currently have to create a new role that is only for human
-  // members (and ensure that every member was added to it), and encrypt the application data with
-  // that role's keys. It might make more sense to separate out the **graph keys** (for encrypting
-  // the team graph) from the **team keys** (for encrypting data for human members of the team).
-
   /** Removes a server from the team. */
   public removeServer = (host: string) => {
     this.dispatch({
@@ -753,6 +695,17 @@ export class Team extends EventEmitter {
   public serverWasRemoved = (host: Host) => select.serverWasRemoved(this.state, host)
 
   public hasServer = (host: Host) => select.hasServer(this.state, host)
+
+  /** ************** MESSAGES */
+
+  public addMessage = (message: unknown) => {
+    this.dispatch({
+      type: 'MESSAGE',
+      payload: { message },
+    })
+  }
+
+  public messages = <T = unknown>() => select.messages(this.state) as T[]
 
   /** ************** CRYPTO */
 
@@ -874,7 +827,6 @@ export class Team extends EventEmitter {
       return
     }
 
-    // TODO: should we introduce a random delay here, so these don't pile up?
     for (const userId of this.state.pendingKeyRotations) {
       // We don't know if the user was added to any other roles, so we're just preemptively rotating
       // all lockboxes *we* can see (since we're an admin, we have access to all keys)
@@ -888,8 +840,10 @@ export class Team extends EventEmitter {
 
   private readonly createMemberLockboxes = (member: Member) => {
     const roleKeys = member.roles.map(this.roleKeys)
-    const createLockbox = (keys: KeysetWithSecrets) => lockbox.create(keys, member.keys)
-    return [...roleKeys, this.teamKeys()].map(createLockbox)
+    const createLockboxRoleKeysForMember = (keys: KeysetWithSecrets) => {
+      return lockbox.create(keys, member.keys)
+    }
+    return [...roleKeys, this.teamKeys()].map(createLockboxRoleKeysForMember)
   }
 
   /**
@@ -933,4 +887,8 @@ export class Team extends EventEmitter {
 
     return newLockboxes
   }
+}
+
+type LookupOptions = {
+  includeRemoved: boolean
 }

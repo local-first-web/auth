@@ -7,9 +7,7 @@ export const removeMember =
     const removedMember = state.members.find(m => m.userId === userId) // The member that was removed
 
     const removedMembers = [...state.removedMembers]
-    if (removedMember) {
-      removedMembers.push(removedMember)
-    }
+    if (removedMember) removedMembers.push(removedMember)
 
     return {
       ...state,
