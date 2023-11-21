@@ -8,10 +8,16 @@ import { load } from '../load.js'
 describe('Team', () => {
   describe('createTeam', () => {
     it('returns a new team', () => {
-      const user = createUser('alice', 'Alice McUser')
-      const device = createDevice('alice', 'laptop')
+      const user = createUser('alice')
+      const device = createDevice(user.userId, 'laptop')
       const team = createTeam('Spies Я Us', { user, device })
       expect(team.teamName).toBe('Spies Я Us')
+    })
+
+    it(`doesn't allow creating a team where the device's userId doesn't match the user's`, () => {
+      const user = createUser('alice')
+      const device = createDevice('alice', 'laptop') // <- should be alice.userId instead of 'alice'
+      expect(() => createTeam('Spies Я Us', { user, device })).toThrow()
     })
 
     it('saves & loads', () => {

@@ -220,6 +220,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     this.logMessage('in', message, message.index)
 
+    // this.machine.send(message)
     const { queue, nextMessages } = orderedDelivery(this.incomingMessageQueue, message)
 
     // Update queue

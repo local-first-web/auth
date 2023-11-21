@@ -26,6 +26,19 @@ export const validate: TeamStateValidator = (...args: ValidationArgs) => {
 }
 
 const validators: TeamStateValidatorSet = {
+  rootDeviceBelongsToRootUser(...args) {
+    const [_previousState, link] = args
+    const { type, payload } = link.body
+    if (type !== 'ROOT') return VALID
+
+    const { rootDevice, rootMember } = payload
+    if (rootDevice.userId !== rootMember.userId) {
+      const msg = 'The founding device must belong to the founding member (userIds must match).'
+      return fail(msg, ...args)
+    }
+    return VALID
+  },
+
   /** The user who made these changes was a member with appropriate rights at the time */
   mustBeAdmin(...args) {
     const [previousState, link] = args
@@ -42,7 +55,6 @@ const validators: TeamStateValidatorSet = {
         return fail(`Member '${userId}' is not an admin`, ...args)
       }
     }
-
     return VALID
   },
 
@@ -68,7 +80,6 @@ const validators: TeamStateValidatorSet = {
         }
       }
     }
-
     return VALID
   },
 
@@ -80,7 +91,6 @@ const validators: TeamStateValidatorSet = {
       const invitation = select.getInvitation(previousState, id)
       return invitationCanBeUsed(invitation, link.body.timestamp)
     }
-
     return VALID
   },
 }
