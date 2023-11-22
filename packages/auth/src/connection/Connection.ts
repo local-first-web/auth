@@ -76,7 +76,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   private outgoingMessageIndex = 0
   private started = false
 
-  log: debug.Debugger = debug.extend('connection')
+  log = debug.extend('connection')
 
   constructor({ sendMessage, context }: Params) {
     super()
