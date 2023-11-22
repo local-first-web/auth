@@ -1,4 +1,4 @@
-import process from 'node:process'
+import process from 'process'
 import { memoize } from 'lodash-es'
 import sodium from 'libsodium-wrappers-sumo'
 import { type Base58 } from './types.js'
