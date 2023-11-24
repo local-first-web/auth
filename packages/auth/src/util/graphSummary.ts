@@ -8,5 +8,5 @@ export const graphSummary = (graph: TeamGraph) => {
     .filter(l => !l.isInvalid)
     .map(l => actionFingerprint(l))
     .join(',')
-  return links // `${chain.head.slice(0, 5)}:${links}`
+  return links
 }
