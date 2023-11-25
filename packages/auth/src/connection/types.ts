@@ -152,51 +152,46 @@ export type Condition = ConditionPredicate<ConnectionContext, ConnectionMessage>
 
 export type ConnectionState = {
   states: {
-    awaitingIdentityClaim: Record<string, unknown>
-
+    awaitingIdentityClaim: {}
     authenticating: {
       states: {
         checkingInvitations: {
           states: {
-            checkingForInvitations: Record<string, unknown>
-            awaitingInvitationAcceptance: Record<string, unknown>
-            validatingInvitation: Record<string, unknown>
+            checkingForInvitations: {}
+            awaitingInvitationAcceptance: {}
+            validatingInvitation: {}
           }
         }
         checkingIdentity: {
           states: {
             provingMyIdentity: {
               states: {
-                awaitingIdentityChallenge: Record<string, unknown>
-                awaitingIdentityAcceptance: Record<string, unknown>
-                doneProvingMyIdentity: Record<string, unknown>
+                awaitingIdentityChallenge: {}
+                awaitingIdentityAcceptance: {}
+                doneProvingMyIdentity: {}
               }
             }
             verifyingTheirIdentity: {
               states: {
-                challengingIdentity: Record<string, unknown>
-                awaitingIdentityProof: Record<string, unknown>
-                doneVerifyingTheirIdentity: Record<string, unknown>
+                challengingIdentity: {}
+                awaitingIdentityProof: {}
+                doneVerifyingTheirIdentity: {}
               }
             }
           }
         }
-        doneAuthenticating: Record<string, unknown>
+        doneAuthenticating: {}
       }
     }
-
-    synchronizing: Record<string, unknown>
-
+    synchronizing: {}
     negotiating: {
       states: {
-        awaitingSeed: Record<string, unknown>
-        doneNegotiating: Record<string, unknown>
+        awaitingSeed: {}
+        doneNegotiating: {}
       }
     }
-
-    connected: Record<string, unknown>
-
-    disconnected: Record<string, unknown>
+    connected: {}
+    disconnected: {}
   }
 }
 

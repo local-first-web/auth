@@ -250,6 +250,11 @@ describe('Team', () => {
       const { alice } = setupHumans('alice', 'bob')
       const { server, serverWithSecrets } = createServer(host)
       alice.team.addServer(server)
+
+      const host2 = 'foo.com'
+      const { server: server2 } = createServer(host2)
+      alice.team.addServer(server2)
+
       const savedGraph = alice.team.save()
       const aliceTeamKeys = alice.team.teamKeys()
       const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, aliceTeamKeys)

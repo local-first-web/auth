@@ -5,6 +5,7 @@ export const isAdminOnlyAction = (action: TeamLinkBody) => {
   const nonAdminActions: Array<TeamAction['type']> = [
     'INVITE_DEVICE',
     'ADD_DEVICE',
+    'REMOVE_DEVICE',
     'CHANGE_MEMBER_KEYS',
     'CHANGE_DEVICE_KEYS',
     'CHANGE_SERVER_KEYS',

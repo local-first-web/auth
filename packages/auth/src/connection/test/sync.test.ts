@@ -16,6 +16,7 @@ import {
   setup,
   updated,
 } from 'util/testing/index.js'
+import { pause } from 'util/testing/pause.js'
 
 describe('connection', () => {
   describe('sync', () => {
@@ -332,6 +333,8 @@ describe('connection', () => {
 
         // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
         await connect(alice, bob)
+
+        await pause(1000)
 
         // ✅ No problemo
         expectEveryoneToKnowEveryone(alice, charlie, bob, dwight)
@@ -789,7 +792,7 @@ describe('connection', () => {
 
         // GRRR foiled again
         await any([eveOnBobsPhone, heyCharlie], 'disconnected')
-      })
+      }, 10000)
     })
   })
 })

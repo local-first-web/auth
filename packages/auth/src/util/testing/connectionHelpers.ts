@@ -65,7 +65,7 @@ export const expectEveryoneToKnowEveryone = (...members: UserStuff[]) => {
   for (const a of members) {
     for (const b of members) {
       if (!a.team.has(b.userId)) {
-        throw new Error(`${a.userId} does not have ${b.userId} on their team`)
+        throw new Error(`${a.userName} does not have ${b.userName} on their team`)
       }
     }
   }

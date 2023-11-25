@@ -10,16 +10,17 @@ describe('connection', () => {
     await connect(alice, bob)
   })
 
-  it('should connect even with a delay', async () => {
+  it('should connect even with a delayed start', async () => {
     const { alice, bob } = setup('alice', 'bob')
 
     const join = joinTestChannel(new TestChannel())
 
     const bobConnection = join(bob.connectionContext)
     const aliceConnection = join(alice.connectionContext)
-    await pause(1)
-    bobConnection.start()
+
     aliceConnection.start()
+    await pause(100)
+    bobConnection.start()
 
     await all([aliceConnection, bobConnection], 'connected')
   })

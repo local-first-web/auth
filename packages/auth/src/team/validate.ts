@@ -58,6 +58,26 @@ const validators: TeamStateValidatorSet = {
     return VALID
   },
 
+  /** Unless I'm an admin, I can't remove anyone's devices but my own */
+  canOnlyRemoveYourOwnDevices(...args) {
+    const [previousState, link] = args
+    const author = link.body.userId
+
+    // Only admins can remove another user's devices
+    const authorIsAdmin = select.memberIsAdmin(previousState, author)
+    if (!authorIsAdmin) {
+      if (link.body.type === 'REMOVE_DEVICE') {
+        const target = link.body.payload.deviceId
+        const device = select.device(previousState, target)
+        const deviceOwner = device.userId
+        if (author !== deviceOwner) {
+          return fail("Can't remove another user's device.", ...args)
+        }
+      }
+    }
+    return VALID
+  },
+
   /** Unless I'm an admin, I can't change anyone's keys but my own */
   canOnlyChangeYourOwnKeys(...args) {
     const [previousState, link] = args

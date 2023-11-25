@@ -18,12 +18,31 @@ describe('Team', () => {
       expect(alice.team.members(bob.userId).devices).toHaveLength(1)
     })
 
+    it(`Bob can remove Bob's device`, () => {
+      const { bob } = setup()
+      bob.team.removeDevice(bob.device.deviceId)
+      expect(bob.team.members(bob.userId)?.devices ?? []).toHaveLength(0)
+    })
+
     it("Alice can remove Bob's device", () => {
       const { alice, bob } = setup()
       alice.team.removeDevice(bob.device.deviceId)
       expect(alice.team.members(bob.userId).devices).toHaveLength(0)
+    })
 
-      // deviceWasRemoved works as expected
+    it("Bob cannot remove Alice's device", () => {
+      const { alice, bob } = setup()
+      const aliceDevice = bob.team.members(alice.userId).devices![0].deviceId
+      const tryToRemoveDevice = () => {
+        bob.team.removeDevice(aliceDevice)
+      }
+
+      expect(tryToRemoveDevice).toThrowError()
+    })
+
+    it('deviceWasRemoved works as expected', () => {
+      const { alice, bob } = setup()
+      alice.team.removeDevice(bob.device.deviceId)
       expect(alice.team.deviceWasRemoved(alice.device.deviceId)).toBe(false) // Device still exists
       expect(alice.team.deviceWasRemoved(bob.device.deviceId)).toBe(true) // Device was removed
       expect(alice.team.deviceWasRemoved(bob.phone!.deviceId)).toBe(false) // Device never existed
@@ -45,16 +64,6 @@ describe('Team', () => {
 
       const getDevice = () => alice.team.device(bobDevice, { includeRemoved: true })
       expect(getDevice).not.toThrow()
-    })
-
-    it("Bob cannot remove Alice's device", () => {
-      const { alice, bob } = setup()
-      const aliceDevice = bob.team.members(alice.userId).devices![0].deviceId
-      const tryToRemoveDevice = () => {
-        bob.team.removeDevice(aliceDevice)
-      }
-
-      expect(tryToRemoveDevice).toThrowError()
     })
 
     it('can look up a device by deviceId', () => {
