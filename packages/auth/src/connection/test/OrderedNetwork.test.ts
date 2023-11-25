@@ -6,154 +6,226 @@ const timeout = 10
 
 describe('OrderedNetwork', () => {
   const setup = () => {
-    const service = new OrderedNetwork<TestMessage>({ timeout })
     const received: number[] = []
     const requested: number[] = []
-    service
+    const sent: number[] = []
+
+    const network = new OrderedNetwork<TestMessage>({
+      sendMessage: message => sent.push(message.index),
+      timeout,
+    })
+
+    network
       .on('message', message => received.push(message.index))
       .on('request', index => requested.push(index))
-    return { service, received, requested }
+
+    return { network, received, requested, sent }
   }
 
-  it('emits messages', () => {
-    const { service, received } = setup()
-    service.start()
-    service.deliver({ index: 0 })
-    service.deliver({ index: 1 })
-    service.deliver({ index: 2 })
-    expect(received).toEqual([0, 1, 2])
+  describe('outgoing', () => {
+    it('sends messages', () => {
+      const { network, sent } = setup()
+      network //
+        .start()
+        .send({})
+        .send({})
+      expect(sent).toEqual([0, 1])
+    })
+
+    it('sends messages queued before start', () => {
+      const { network, sent } = setup()
+      network //
+        .send({})
+        .send({})
+        .start()
+      expect(sent).toEqual([0, 1])
+    })
+
+    it('sends messages queued while stopped', () => {
+      const { network, sent } = setup()
+      network //
+        .start()
+        .send({})
+        .stop()
+        .send({})
+        .start()
+      expect(sent).toEqual([0, 1])
+    })
+
+    it('resends messages on request', () => {
+      const { network, sent } = setup()
+      network //
+        .start()
+        .send({})
+        .send({})
+        .resend(0)
+      expect(sent).toEqual([0, 1, 0])
+    })
+
+    it('throws when asked to resend a nonexistent message', () => {
+      const { network } = setup()
+      network //
+        .start()
+        .send({})
+        .send({})
+        .send({})
+      expect(() => network.resend(42)).toThrow()
+    })
   })
 
-  it('when messages are received out of order, emits them in order', () => {
-    const { service, received } = setup()
-    service
-      .start()
-      .deliver({ index: 0 })
-      .deliver({ index: 2 }) // <- out of order
-      .deliver({ index: 1 })
-    expect(received).toEqual([0, 1, 2])
-  })
+  describe('incoming', () => {
+    it('emits messages', () => {
+      const { network, received } = setup()
+      network //
+        .start()
+        .receive({ index: 0 })
+        .receive({ index: 1 })
+        .receive({ index: 2 })
+      expect(received).toEqual([0, 1, 2])
+    })
 
-  it('ignores duplicate messages', () => {
-    const { service, received } = setup()
-    service
-      .start()
-      .deliver({ index: 0 })
-      .deliver({ index: 1 })
-      .deliver({ index: 1 }) // <- duplicate
-      .deliver({ index: 2 })
-      .deliver({ index: 0 }) // <- duplicate
-      .deliver({ index: 2 }) // <- duplicate
-    expect(received).toEqual([0, 1, 2])
-  })
+    it('when messages are received out of order, emits them in order', () => {
+      const { network, received } = setup()
+      network
+        .start()
+        .receive({ index: 0 })
+        .receive({ index: 2 }) // <- out of order
+        .receive({ index: 1 })
+      expect(received).toEqual([0, 1, 2])
+    })
 
-  it('emits messages received before start', () => {
-    const { service, received } = setup()
+    it('ignores duplicate messages', () => {
+      const { network, received } = setup()
+      network
+        .start()
+        .receive({ index: 0 })
+        .receive({ index: 1 })
+        .receive({ index: 1 }) // <- duplicate
+        .receive({ index: 2 })
+        .receive({ index: 0 }) // <- duplicate
+        .receive({ index: 2 }) // <- duplicate
+      expect(received).toEqual([0, 1, 2])
+    })
 
-    // the service is not started yet
-    service.deliver({ index: 0 })
-    service.deliver({ index: 1 })
-    service.deliver({ index: 2 })
+    it('emits messages received before start', () => {
+      const { network, received } = setup()
 
-    // Nothing is emitted
-    expect(received).toEqual([])
+      // the network is not started yet
+      network //
+        .receive({ index: 0 })
+        .receive({ index: 1 })
+        .receive({ index: 2 })
 
-    // once the service is started, messages are emitted in order
-    service.start()
-    expect(received).toEqual([0, 1, 2])
-  })
+      // Nothing is received
+      expect(received).toEqual([])
 
-  it('requests missing messages', async () => {
-    const { service, received, requested } = setup()
-    service.start()
-    service.deliver({ index: 0 })
-    // service.deliver({ index: 1 }) // <- missing
-    // service.deliver({ index: 2 }) // <- missing
-    service.deliver({ index: 3 })
-    service.deliver({ index: 4 })
+      // once the network is started, messages are received in order
+      network.start()
+      expect(received).toEqual([0, 1, 2])
+    })
 
-    // messages 3 & 4 are not emitted because 1 & 2 are missing
-    expect(received).toEqual([0])
+    it('requests missing messages', async () => {
+      const { network, received, requested } = setup()
+      network //
+        .start()
+        .receive({ index: 0 })
+        // .receive({ index: 1 }) // <- missing
+        // .receive({ index: 2 }) // <- missing
+        .receive({ index: 3 })
+        .receive({ index: 4 })
 
-    // after a delay, the service requests a resend for the missing messages
-    await pause(timeout * 2)
-    expect(requested).toEqual([1, 2])
+      // messages 3 & 4 are not received because 1 & 2 are missing
+      expect(received).toEqual([0])
 
-    // we respond with the missing messages
-    service.deliver({ index: 1 })
-    service.deliver({ index: 2 })
+      // after a delay, the network requests a resend for the missing messages
+      await pause(timeout * 2)
+      expect(requested).toEqual([1, 2])
 
-    // once the missing messages are received, they are emitted in order
-    expect(received).toEqual([0, 1, 2, 3, 4])
-  })
+      // we respond with the missing messages
+      network //
+        .receive({ index: 1 })
+        .receive({ index: 2 })
 
-  it('cancels the request if the missing message is received before the timeout', async () => {
-    const { service, received, requested } = setup()
-    service.start()
-    service.deliver({ index: 0 })
-    // service.deliver({ index: 1 }) <- missing
-    // service.deliver({ index: 2 }) <- missing
-    service.deliver({ index: 3 })
-    service.deliver({ index: 4 })
+      // once the missing messages are received, they are emitted in order
+      expect(received).toEqual([0, 1, 2, 3, 4])
+    })
 
-    // messages 3 & 4 are not emitted because 1 & 2 are missing
-    expect(received).toEqual([0])
+    it('cancels the request if the missing message is received before the timeout', async () => {
+      const { network, received, requested } = setup()
+      network
+        .start()
+        .receive({ index: 0 })
+        // .receive({ index: 1 }) <- missing
+        // .receive({ index: 2 }) <- missing
+        .receive({ index: 3 })
+        .receive({ index: 4 })
 
-    // after a short delay, the missing messages arrive
-    await pause(timeout / 2)
-    service.deliver({ index: 1 })
-    service.deliver({ index: 2 })
+      // messages 3 & 4 are not emitted because 1 & 2 are missing
+      expect(received).toEqual([0])
 
-    // since the missing messages arrived within the delay, we don't request a resend
-    expect(requested).toEqual([])
+      // after a short delay, the missing messages arrive
+      await pause(timeout / 2)
+      network //
+        .receive({ index: 1 })
+        .receive({ index: 2 })
 
-    // once the missing messages are received, they are emitted in order
-    expect(received).toEqual([0, 1, 2, 3, 4])
-  })
+      // since the missing messages arrived within the delay, we don't request a resend
+      expect(requested).toEqual([])
 
-  it(`re-requests a message if it still doesn't come`, async () => {
-    const { service, received, requested } = setup()
-    service.start()
-    service.deliver({ index: 0 })
-    // service.deliver({ index: 1 }) <- missing
-    service.deliver({ index: 2 })
+      // once the missing messages are received, they are emitted in order
+      expect(received).toEqual([0, 1, 2, 3, 4])
+    })
 
-    // after a delay, the service requests a resend for the missing message
-    await pause(timeout * 2)
-    expect(requested).toEqual([1])
+    it(`re-requests a message if it still doesn't come`, async () => {
+      const { network, received, requested } = setup()
+      network
+        .start()
+        .receive({ index: 0 })
+        // .receive({ index: 1 }) <- missing
+        .receive({ index: 2 })
 
-    // a new message comes but we still don't have the missing message
-    service.deliver({ index: 3 })
+      // after a delay, the network requests a resend for the missing message
+      await pause(timeout * 2)
+      expect(requested).toEqual([1])
 
-    // so we request it again
-    await pause(timeout * 2)
-    expect(requested).toEqual([1, 1])
-  })
+      // a new message comes but we still don't have the missing message
+      network.receive({ index: 3 })
 
-  it('does not deliver messages while stopped', async () => {
-    const { service, received } = setup()
-    service.start()
-    service.deliver({ index: 0 })
-    expect(received).toEqual([0])
+      // so we request it again
+      await pause(timeout * 2)
+      expect(requested).toEqual([1, 1])
+    })
 
-    service.stop()
-    service.deliver({ index: 1 })
-    expect(received).toEqual([0])
-  })
+    it('does not receive messages while stopped', async () => {
+      const { network, received } = setup()
+      network //
+        .start()
+        .receive({ index: 0 })
+      expect(received).toEqual([0])
 
-  it('can be restarted after being stopped', async () => {
-    const { service, received } = setup()
-    service.start()
-    service.deliver({ index: 0 })
-    expect(received).toEqual([0])
+      network //
+        .stop()
+        .receive({ index: 1 })
+      expect(received).toEqual([0])
+    })
 
-    service.stop()
-    service.deliver({ index: 1 })
-    expect(received).toEqual([0])
+    it('can be restarted after being stopped', async () => {
+      const { network, received } = setup()
+      network //
+        .start()
+        .receive({ index: 0 })
+      expect(received).toEqual([0])
 
-    service.start()
-    service.deliver({ index: 2 })
-    expect(received).toEqual([0, 1, 2])
+      network //
+        .stop()
+        .receive({ index: 1 })
+      expect(received).toEqual([0])
+
+      network //
+        .start()
+        .receive({ index: 2 })
+      expect(received).toEqual([0, 1, 2])
+    })
   })
 })
 

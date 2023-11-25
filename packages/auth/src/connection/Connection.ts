@@ -70,12 +70,9 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   private readonly sendFn: SendFunction
   private readonly machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
 
-  // TODO: this should be in the OrderedNetwork
-  private outgoingMessageIndex = 0
-
   private started = false
 
-  private orderedNetwork = new OrderedNetwork<ConnectionMessage>()
+  private orderedNetwork: OrderedNetwork<ConnectionMessage>
 
   log = debug.extend('connection')
 
@@ -83,6 +80,15 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     super()
 
     this.sendFn = sendMessage
+
+    this.orderedNetwork = new OrderedNetwork<ConnectionMessage>({
+      sendMessage: message => {
+        const { index } = message
+        this.logMessage('out', message)
+        const serialized = JSON.stringify(message)
+        sendMessage(serialized)
+      },
+    })
 
     this.orderedNetwork
       .start() //
@@ -127,9 +133,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     // kick off the connection by requesting our peer's identity
     this.sendMessage({ type: 'REQUEST_IDENTITY' })
-
-    // Process any stored messages we might have received before starting
-    for (const m of storedMessages) this.deliver(m)
 
     return this
   }
@@ -218,8 +221,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
    */
   public deliver(serializedMessage: string) {
     const message = JSON.parse(serializedMessage) as NumberedMessage<ConnectionMessage>
-    this.logMessage('in', message, message.index)
-    this.orderedNetwork.deliver(message)
+    this.logMessage('in', message)
+    this.orderedNetwork.receive(message)
   }
 
   /** Sends an encrypted message to our peer. */
@@ -642,13 +645,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   // PRIVATE
 
-  // TODO: move this functionality to the OrderedNetwork
   private readonly sendMessage = (message: ConnectionMessage) => {
-    // Add a sequential index to any outgoing messages
-    const index = this.outgoingMessageIndex++
-    const messageWithIndex = { ...message, index }
-    this.logMessage('out', message, index)
-    this.sendFn(JSON.stringify(messageWithIndex))
+    this.orderedNetwork.send(message)
   }
 
   private readonly throwError = (type: ConnectionErrorType, details?: any) => {
@@ -670,10 +668,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     })
   }
 
-  private logMessage(direction: 'in' | 'out', message: ConnectionMessage, index: number) {
+  private logMessage(direction: 'in' | 'out', message: NumberedMessage<ConnectionMessage>) {
     const arrow = direction === 'in' ? '<-' : '->'
     const peerUserName = this.context.peer?.userName ?? '?'
-    this.log(`${arrow}${peerUserName} #${index} ${messageSummary(message)}`)
+    this.log(`${arrow}${peerUserName} #${message.index} ${messageSummary(message)}`)
   }
 
   private myProofOfInvitation(context: ConnectionContext) {

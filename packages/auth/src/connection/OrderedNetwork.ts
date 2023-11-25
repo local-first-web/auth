@@ -1,20 +1,30 @@
 import { EventEmitter } from 'eventemitter3'
+import { SendFunction } from './types.js'
 
 /**
- * Receives numbered incoming messages and emits them in order. If a message is missing after a delay, asks
+ * Receives numbered inbound messages and emits them in order. If a message is missing after a delay, asks
  * for it to be sent (or resent).
  *
- * Numbers and sends outgoing messages, and responds to requests for missing messages.
+ * Numbers and sends outbound messages, and responds to requests for missing messages.
  */
 export class OrderedNetwork<T> extends EventEmitter<OrderedNetworkEvents<T>> {
-  #received: Record<number, NumberedMessage<T>> = {}
-  #nextIndex = 0
   #started = false
-  #timeout: number
-  #waiting: Record<number, TimeoutId> = {}
 
-  constructor({ timeout = 1000 }: Options = {}) {
+  #inbound: Record<number, NumberedMessage<T>> = {}
+  #nextInbound = 0
+  #waiting: Record<number, TimeoutId> = {}
+  #timeout: number
+
+  #outbound: Record<number, NumberedMessage<T>> = {}
+  #nextOutbound = 0
+  #sendMessage: (message: NumberedMessage<T>) => void
+
+  constructor({ sendMessage, timeout = 1000 }: Options<T>) {
     super()
+    this.#sendMessage = (message: NumberedMessage<T>) => {
+      this.#nextOutbound = message.index + 1
+      sendMessage(message)
+    }
     this.#timeout = timeout
   }
 
@@ -24,7 +34,8 @@ export class OrderedNetwork<T> extends EventEmitter<OrderedNetworkEvents<T>> {
    */
   public start() {
     this.#started = true
-    this.#processQueue()
+    this.#processInbound()
+    this.#processOutbound()
     return this
   }
 
@@ -37,39 +48,81 @@ export class OrderedNetwork<T> extends EventEmitter<OrderedNetworkEvents<T>> {
   }
 
   /**
-   * Queues incoming messages and, if we're started, emits them in order.
+   * Assigns a number to the message and sends it.
    */
-  public deliver(message: NumberedMessage<T>) {
-    const { index } = message
-    if (!this.#received[index]) {
-      this.#received[index] = message
-      if (this.#started) this.#processQueue()
-    }
+  public send(message: T) {
+    const index = highestIndex(this.#outbound) + 1
+    const numberedMessage = { ...message, index }
+    this.#outbound[index] = numberedMessage
+    if (this.#started) this.#sendMessage(numberedMessage)
     return this
   }
 
   /**
-   * Emits any messages that are next in sequence, and requests any missing messages.
+   * Resends a message that was previously sent.
    */
-  #processQueue = () => {
-    while (this.#received[this.#nextIndex]) {
-      const message = this.#received[this.#nextIndex]
-      this.#nextIndex++
+  public resend(index: number) {
+    const message = this.#outbound[index]
+    if (!message)
+      throw new Error(`Received resend request for message #${index}, which doesn't exist.`)
+    this.#sendMessage(message)
+    return this
+  }
+
+  /**
+   * Queues inbound messages and, if we're started, emits them in order.
+   */
+  public receive(message: NumberedMessage<T>) {
+    const { index } = message
+    if (!this.#inbound[index]) {
+      this.#inbound[index] = message
+      if (this.#started) this.#processInbound()
+    }
+    return this
+  }
+
+  #processOutbound = () => {
+    // send outbound messages in order
+    while (this.#outbound[this.#nextOutbound]) {
+      const message = this.#outbound[this.#nextOutbound]
+      this.#sendMessage(message)
+    }
+  }
+
+  /**
+   * Receives any messages that are pending in the inbound queue, and requests any missing messages.
+   */
+  #processInbound = () => {
+    // emit received messages in order
+    while (this.#inbound[this.#nextInbound]) {
+      const message = this.#inbound[this.#nextInbound]
+      this.#nextInbound++
       this.emit('message', message)
     }
     // identify missing messages
-    const highest = Math.max(...Object.keys(this.#received).map(Number))
-    for (let i = this.#nextIndex; i < highest; i++) {
+    const highest = highestIndex(this.#inbound)
+    for (let i = this.#nextInbound; i < highest; i++) {
       if (this.#waiting[i]) continue // already waiting
       // wait for the message to come
       this.#waiting[i] = setTimeout(() => {
         // if it still hasn't come, request it
-        if (!this.#received[i]) this.emit('request', i)
+        if (!this.#inbound[i]) this.emit('request', i)
         delete this.#waiting[i]
       }, this.#timeout)
     }
   }
 }
+
+// HELPERS
+
+function highestIndex(queue: Record<number, any>) {
+  return Math.max(...Object.keys(queue).map(Number), -1)
+}
+
+const serialize = <T>(message: NumberedMessage<T>) => JSON.stringify(message)
+const deserialize = <T>(message: string) => JSON.parse(message) as NumberedMessage<T>
+
+// TYPES
 
 export type NumberedMessage<T> = T & { index: number }
 
@@ -78,7 +131,10 @@ export type OrderedNetworkEvents<T> = {
   request: (index: number) => void
 }
 
-type Options = {
+type Options<T> = {
+  /** Send function */
+  sendMessage: (message: NumberedMessage<T>) => void
+
   /** Time to wait (in ms) before requesting a missing message */
   timeout?: number
 }
