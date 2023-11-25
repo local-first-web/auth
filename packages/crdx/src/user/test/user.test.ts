@@ -1,7 +1,7 @@
 import { asymmetric, signatures, symmetric } from '@localfirst/crypto'
 import { describe, expect, it } from 'vitest'
 import 'util/testing/expect/toLookLikeKeyset'
-import { createUser } from 'user/index.js'
+import { createUser, redactUser } from 'user/index.js'
 
 describe('user', () => {
   it('creates a new user', () => {
@@ -49,6 +49,17 @@ describe('user', () => {
       const cipher = symmetric.encrypt(message, secretKey)
       const decrypted = symmetric.decrypt(cipher, secretKey)
       expect(decrypted).toEqual(message)
+    })
+  })
+
+  describe('redaction', () => {
+    it('redacts user keys', () => {
+      const bob = createUser('bob')
+      const redacted = redactUser(bob)
+      expect(redacted).toHaveProperty('keys')
+      expect(redacted.keys).toHaveProperty('signature')
+      expect(redacted.keys).toHaveProperty('encryption')
+      expect(redacted.keys).not.toHaveProperty('secretKey')
     })
   })
 })

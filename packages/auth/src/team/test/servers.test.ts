@@ -42,6 +42,30 @@ describe('Team', () => {
       expect(alice.team.serverWasRemoved(host)).toBe(true)
     })
 
+    it("throws if a named server doesn't exist on the team", () => {
+      const { alice } = setupHumans('alice')
+      expect(() => alice.team.servers('foo.com')).toThrow()
+    })
+
+    it('can be re-added after being removed', () => {
+      const { alice } = setupHumans('alice')
+
+      // Add server
+      const { server } = createServer(host)
+      alice.team.addServer(server)
+      expect(alice.team.servers().length).toBe(1)
+
+      // Remove server
+      alice.team.removeServer(host)
+      expect(alice.team.servers().length).toBe(0)
+      expect(alice.team.serverWasRemoved(host)).toBe(true)
+
+      // Add server again
+      alice.team.addServer(server)
+      expect(alice.team.servers().length).toBe(1)
+      expect(alice.team.serverWasRemoved(host)).toBe(false)
+    })
+
     it("can't be added by a non-admin member", () => {
       const { bob } = setupHumans('alice', { user: 'bob', admin: false })
 

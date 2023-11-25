@@ -133,6 +133,11 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     // kick off the connection by requesting our peer's identity
     this.sendMessage({ type: 'REQUEST_IDENTITY' })
 
+    // TODO: test with messages received before starting
+
+    // Process any stored messages we might have received before starting
+    for (const m of storedMessages) this.deliver(m)
+
     return this
   }
 

@@ -65,14 +65,5 @@
     "trailingComma": "es5",
     "useTabs": false,
     "printWidth": 100
-  },
-  "wallaby": {
-    "autoDetect": true,
-    "runMode": "onsave",
-    "slowTestThreshold": 1000,
-    "lowCoverageThreshold": 99,
-    "hints": {
-      "ignoreCoverageForFile": "ignore file coverage"
-    }
   }
 }

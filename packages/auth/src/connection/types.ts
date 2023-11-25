@@ -180,7 +180,6 @@ export type ConnectionState = {
 // TYPE GUARDS
 
 type C = InitialContext | ConnectionContext
-export const isMember = (c: C): c is MemberInitialContext => !isInvitee(c)
 
 export const isInvitee = (c: C): c is InviteeInitialContext => 'invitationSeed' in c
 

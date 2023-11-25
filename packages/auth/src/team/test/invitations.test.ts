@@ -1,4 +1,5 @@
-import { type UserWithSecrets, createKeyset, type UnixTimestamp } from '@localfirst/crdx'
+import { createKeyset, type UnixTimestamp } from '@localfirst/crdx'
+import { signatures } from '@localfirst/crypto'
 import { redactDevice } from 'index.js'
 import { generateProof, generateStarterKeys } from 'invitation/index.js'
 import * as teams from 'team/index.js'
@@ -28,7 +29,7 @@ describe('Team', () => {
         expect(alice.team.has(bob.userId)).toBe(true)
       })
 
-      it('lets you use a key of your choosing', () => {
+      it('lets you use a secret invitation seed of your choosing', () => {
         const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
         // 👩🏾 Alice invites 👨🏻‍🦲 Bob by sending him a secret key of her choosing
@@ -43,7 +44,7 @@ describe('Team', () => {
         expect(alice.team.has(bob.userId)).toBe(true)
       })
 
-      it('normalizes the secret key', () => {
+      it('normalizes the a secret invitation seed ', () => {
         const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
         // 👩🏾 Alice invites 👨🏻‍🦲 Bob
@@ -233,74 +234,99 @@ describe('Team', () => {
         // ❌ 👳🏽‍♂️ Charlie is not on the team
         expect(bob.team.has(charlie.userId)).toBe(false)
       })
-    })
 
-    describe('devices', () => {
-      it('creates and accepts an invitation for a device', () => {
-        const { alice: aliceLaptop } = setup('alice')
-        const alicePhone = aliceLaptop.phone!
+      it("won't accept proof of invitation with an invalid signature", () => {
+        const { alice, eve } = setup('alice', 'eve')
+        const { team } = alice
 
-        // 👩🏾 Alice only has 💻 one device on the signature chain
-        expect(aliceLaptop.team.members(aliceLaptop.userId).devices).toHaveLength(1)
+        // 👩🏾 Alice invites 👨🏻‍🦲 Bob by sending him a random secret key
+        const { seed: _seed } = alice.team.inviteMember()
 
-        // 💻 on her laptop, Alice generates an invitation for her phone
-        const { seed } = aliceLaptop.team.inviteDevice()
+        // 🦹‍♀️ Eve is a member of the group and she wants to hijack Bob's invitation for her
+        // nefarious purposes. so she tries to create a proof of invitation.
 
-        // 📱 Alice gets the seed to her phone, perhaps by typing it in or by scanning a QR code.
+        // She can get the id from the graph
+        const invitation = Object.values(team.state.invitations)[0]
+        const { id } = invitation
 
-        // Alice's phone uses the seed to generate her starter keys and her proof of invitation
-        const proofOfInvitation = generateProof(seed)
+        const payload = { id }
+        const signature = signatures.sign(payload, eve.user.keys.signature.secretKey)
+        const badProof = { id, signature }
 
-        // 📱 Alice's phone connects with 💻 her laptop and presents the proof
-        aliceLaptop.team.admitDevice(proofOfInvitation, redactDevice(alicePhone))
+        // 🦹‍♀️ Eve shows 👩🏾 Alice her proof of invitation
+        const submitBadProof = () => team.admitMember(badProof, eve.user.keys, 'bob')
 
-        // 👍 The proof was good, so the laptop sends the phone the team's graph and keyring
-        const serializedGraph = aliceLaptop.team.save()
-        const teamKeyring = aliceLaptop.team.teamKeyring()
-
-        // 📱 Alice's phone needs to get her user keys.
-
-        // To do that, she uses the invitation seed to generate starter keys, which she can use to
-        // unlock a lockbox stored on the graph containing her user keys.
-        const starterKeys = generateStarterKeys(seed)
-        const aliceUser = teams.getDeviceUserFromGraph({
-          serializedGraph,
-          teamKeyring,
-          starterKeys,
-          invitationId: proofOfInvitation.id,
-        })
-
-        const phoneTeam = teams.load(
-          serializedGraph,
-          { user: aliceUser, device: alicePhone },
-          teamKeyring
-        )
-
-        // ✅ Now Alice has 💻📱 two devices on the signature chain
-        expect(phoneTeam.members(aliceLaptop.userId).devices).toHaveLength(2)
-        expect(aliceLaptop.team.members(aliceLaptop.userId).devices).toHaveLength(2)
+        // 🦹‍♀️ GRRR I would've got away with it too, if it weren't for you meddling cryptographic algorithms!
+        expect(submitBadProof).toThrow('Signature provided is not valid')
       })
 
-      it("lets someone else admit Alice's device", () => {
-        const { alice, bob } = setup('alice', 'bob')
+      describe('devices', () => {
+        it('creates and accepts an invitation for a device', () => {
+          const { alice: aliceLaptop } = setup('alice')
+          const alicePhone = aliceLaptop.phone!
 
-        // 👩🏾 Alice only has 💻 one device on the signature chain
-        expect(alice.team.members(alice.userId).devices).toHaveLength(1)
+          // 👩🏾 Alice only has 💻 one device on the signature chain
+          expect(aliceLaptop.team.members(aliceLaptop.userId).devices).toHaveLength(1)
 
-        // 💻 on her laptop, Alice generates an invitation for her phone
-        const { seed } = alice.team.inviteDevice()
+          // 💻 on her laptop, Alice generates an invitation for her phone
+          const { seed } = aliceLaptop.team.inviteDevice()
 
-        // 📱 Alice gets the seed to her phone, perhaps by typing it in or by scanning a QR code.
+          // 📱 Alice gets the seed to her phone, perhaps by typing it in or by scanning a QR code.
 
-        // Alice's phone uses the seed to generate her starter keys and her proof of invitation
-        const proofOfInvitation = generateProof(seed)
+          // Alice's phone uses the seed to generate her starter keys and her proof of invitation
+          const proofOfInvitation = generateProof(seed)
 
-        // 👨🏻‍🦲 Bob syncs up with Alice
-        const savedTeam = alice.team.save()
-        bob.team = teams.load(savedTeam, bob.localContext, alice.team.teamKeys())
+          // 📱 Alice's phone connects with 💻 her laptop and presents the proof
+          aliceLaptop.team.admitDevice(proofOfInvitation, redactDevice(alicePhone))
 
-        // 📱 Alice's phone connects with 👨🏻‍🦲 Bob and she presents the proof
-        bob.team.admitDevice(proofOfInvitation, redactDevice(alice.phone!))
+          // 👍 The proof was good, so the laptop sends the phone the team's graph and keyring
+          const serializedGraph = aliceLaptop.team.save()
+          const teamKeyring = aliceLaptop.team.teamKeyring()
+
+          // 📱 Alice's phone needs to get her user keys.
+
+          // To do that, she uses the invitation seed to generate starter keys, which she can use to
+          // unlock a lockbox stored on the graph containing her user keys.
+          const starterKeys = generateStarterKeys(seed)
+          const aliceUser = teams.getDeviceUserFromGraph({
+            serializedGraph,
+            teamKeyring,
+            starterKeys,
+            invitationId: proofOfInvitation.id,
+          })
+
+          const phoneTeam = teams.load(
+            serializedGraph,
+            { user: aliceUser, device: alicePhone },
+            teamKeyring
+          )
+
+          // ✅ Now Alice has 💻📱 two devices on the signature chain
+          expect(phoneTeam.members(aliceLaptop.userId).devices).toHaveLength(2)
+          expect(aliceLaptop.team.members(aliceLaptop.userId).devices).toHaveLength(2)
+        })
+
+        it("lets someone else admit Alice's device", () => {
+          const { alice, bob } = setup('alice', 'bob')
+
+          // 👩🏾 Alice only has 💻 one device on the signature chain
+          expect(alice.team.members(alice.userId).devices).toHaveLength(1)
+
+          // 💻 on her laptop, Alice generates an invitation for her phone
+          const { seed } = alice.team.inviteDevice()
+
+          // 📱 Alice gets the seed to her phone, perhaps by typing it in or by scanning a QR code.
+
+          // Alice's phone uses the seed to generate her starter keys and her proof of invitation
+          const proofOfInvitation = generateProof(seed)
+
+          // 👨🏻‍🦲 Bob syncs up with Alice
+          const savedTeam = alice.team.save()
+          bob.team = teams.load(savedTeam, bob.localContext, alice.team.teamKeys())
+
+          // 📱 Alice's phone connects with 👨🏻‍🦲 Bob and she presents the proof
+          bob.team.admitDevice(proofOfInvitation, redactDevice(alice.phone!))
+        })
       })
     })
   })

@@ -49,6 +49,8 @@ export const decryptTeamGraph = ({
   const keyring = createKeyring(teamKeys)
 
   const { encryptedLinks, childMap, root } = encryptedGraph
+
+  // ignore coverage
   const links = encryptedGraph.links ?? {}
 
   /** Recursively decrypts a link and its children. */
