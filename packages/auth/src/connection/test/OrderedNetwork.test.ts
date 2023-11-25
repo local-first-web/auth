@@ -1,12 +1,12 @@
 import { pause } from 'util/testing/pause.js'
 import { describe, expect, it } from 'vitest'
-import { NumberedMessage, OrderedMessageService } from '../OrderedMessageService.js'
+import { OrderedNetwork } from '../OrderedNetwork.js'
 
 const timeout = 20
 
-describe('OrderedMessageService', () => {
+describe('OrderedNetwork', () => {
   const setup = () => {
-    const service = new OrderedMessageService<TestMessage>({ timeout })
+    const service = new OrderedNetwork<TestMessage>({ timeout })
     const received: number[] = []
     const requested: number[] = []
     service.on('message', message => received.push(message.index))

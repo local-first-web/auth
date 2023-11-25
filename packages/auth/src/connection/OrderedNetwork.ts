@@ -1,11 +1,10 @@
 import { EventEmitter } from 'eventemitter3'
-import { ConnectionMessage, NumberedConnectionMessage } from './message.js'
 
 /**
  * Receives numbered messages and emits them in order. If a message is missing after a delay, asks
  * for it to be sent (or resent).
  */
-export class OrderedMessageService<T> extends EventEmitter<OrderedMessageServiceEvents<T>> {
+export class OrderedNetwork<T> extends EventEmitter<OrderedNetworkEvents<T>> {
   #received: Record<number, NumberedMessage<T>> = {}
   #nextIndex = 0
   #started = false
@@ -68,7 +67,7 @@ export class OrderedMessageService<T> extends EventEmitter<OrderedMessageService
 
 export type NumberedMessage<T> = T & { index: number }
 
-export type OrderedMessageServiceEvents<T> = {
+export type OrderedNetworkEvents<T> = {
   message: (message: NumberedMessage<T>) => void
   request: (index: number) => void
 }
