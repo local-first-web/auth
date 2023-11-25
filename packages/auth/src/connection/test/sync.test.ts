@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { type MemberInitialContext } from '../types.js'
+import { type MemberContext } from '../types.js'
 import { ADMIN } from 'role/index.js'
 import {
   TestChannel,
@@ -776,7 +776,7 @@ describe('connection', () => {
         expect(charlie.team.members(bob.userId).devices).toHaveLength(1)
 
         // Eve tries to connect to Charlie from Bob's phone, but she can't
-        const phoneContext: MemberInitialContext = {
+        const phoneContext: MemberContext = {
           device: bob.phone!,
           user: bob.user,
           team: bob.team,

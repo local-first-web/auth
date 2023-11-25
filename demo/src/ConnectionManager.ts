@@ -1,5 +1,5 @@
 ﻿import * as auth from '@localfirst/auth'
-import { type InviteeMemberInitialContext, type MemberInitialContext } from '@localfirst/auth'
+import { type InviteeMemberContext, type MemberContext } from '@localfirst/auth'
 import { Client, type PeerEventPayload } from '@localfirst/relay-client'
 import { Mutex, withTimeout } from 'async-mutex'
 import debug from 'debug'
@@ -15,7 +15,7 @@ const INVITATION_TIMEOUT = 20 * 1000 // in ms
  * Wraps a Relay client and creates a Connection instance for each peer we connect to.
  */
 export class ConnectionManager extends EventEmitter {
-  private context: auth.InitialContext
+  private context: auth.Context
   private readonly client: Client
   private connections: Record<UserName, Connection> = {}
   private readonly connectingMutex = withTimeout(new Mutex(), INVITATION_TIMEOUT)
@@ -97,8 +97,8 @@ export class ConnectionManager extends EventEmitter {
       connection
         .on('joined', ({ team, user }) => {
           // no longer an invitee - update our context for future connections
-          const { device } = this.context as InviteeMemberInitialContext
-          this.context = { device, user, team } as MemberInitialContext
+          const { device } = this.context as InviteeMemberContext
+          this.context = { device, user, team } as MemberContext
           this.emit('joined', { team, user })
         })
         .on('connected', () => {
@@ -152,5 +152,5 @@ export class ConnectionManager extends EventEmitter {
 type ConnectionManagerOptions = {
   teamName: string
   urls: string[]
-  context: auth.InitialContext
+  context: auth.Context
 }

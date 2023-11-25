@@ -1,13 +1,13 @@
 import { Connection } from 'connection/Connection.js'
-import { isServer, type InitialContext, type SendFunction } from 'connection/types.js'
-import { pause } from './pause.js'
+import { isServerContext, type Context } from 'connection/types.js'
 import { type TestChannel } from './TestChannel.js'
+import { pause } from './pause.js'
 
 /** Returns a function that can be used to join a specific test channel */
-export const joinTestChannel = (channel: TestChannel) => (context: InitialContext) => {
-  const id = isServer(context) ? context.server.host : context.device.deviceId
+export const joinTestChannel = (channel: TestChannel) => (context: Context) => {
+  const id = isServerContext(context) ? context.server.host : context.device.deviceId
   // Hook up send
-  const sendMessage: SendFunction = message => {
+  const sendMessage = (message: string) => {
     channel.write(id, message)
   }
 

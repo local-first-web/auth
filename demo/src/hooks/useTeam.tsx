@@ -90,7 +90,7 @@ export const useTeam = () => {
     connect(teamName, context)
   }
 
-  const connect = (teamName: string, context: auth.InitialContext) => {
+  const connect = (teamName: string, context: auth.Context) => {
     const connectionManager = new ConnectionManager({
       teamName,
       urls: relayUrls,

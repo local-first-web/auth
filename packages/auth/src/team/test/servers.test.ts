@@ -16,9 +16,9 @@ import {
   invitation,
   loadTeam,
   type Connection,
-  type InitialContext,
-  type InviteeDeviceInitialContext,
-  type MemberInitialContext,
+  type Context,
+  type InviteeDeviceContext,
+  type MemberContext,
   type Team,
 } from 'index.js'
 
@@ -223,7 +223,7 @@ describe('Team', () => {
       server.connection[bob.userId].stop()
 
       // Bob's phone connects to the server
-      const phoneContext: InviteeDeviceInitialContext = {
+      const phoneContext: InviteeDeviceContext = {
         userName: bob.userName,
         device: bob.phone!,
         invitationSeed: seed,
@@ -353,7 +353,7 @@ const setup = (...humanUsers: SetupConfig) => {
     if (team) {
       const newTeam = loadTeam(savedGraph, { user, device }, teamKeys)
       userStuff.team = newTeam
-      const connectionContext = userStuff.connectionContext as MemberInitialContext
+      const connectionContext = userStuff.connectionContext as MemberContext
       connectionContext.team = newTeam
     }
   }
@@ -381,6 +381,6 @@ type ServerStuff = {
   server: Server
   serverWithSecrets: ServerWithSecrets
   team: Team
-  connectionContext: InitialContext
+  connectionContext: Context
   connection: Record<string, Connection>
 }

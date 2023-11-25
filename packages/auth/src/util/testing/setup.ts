@@ -1,11 +1,6 @@
 import { createKeyring, createUser, type UserWithSecrets } from '@localfirst/crdx'
 import { createId } from '@paralleldrive/cuid2'
-import type {
-  Connection,
-  InitialContext,
-  InviteeInitialContext,
-  MemberInitialContext,
-} from 'connection/index.js'
+import type { Connection, Context, InviteeContext, MemberContext } from 'connection/index.js'
 import type { LocalUserContext } from 'team/context.js'
 import type { DeviceWithSecrets } from 'device/index.js'
 import * as devices from 'device/index.js'
@@ -107,7 +102,7 @@ export const setup = (..._config: SetupConfig) => {
       ? teams.load(graph, localContext, createKeyring(teamKeys)) // Members get a copy of the source team
       : teams.createTeam(userName, localContext, randomSeed) // Non-members get a dummy empty placeholder team
 
-    const connectionContext: InitialContext = member
+    const connectionContext: Context = member
       ? { user, device, team }
       : { user, device, invitationSeed: '' }
 
@@ -173,7 +168,7 @@ export type UserStuff = {
   phoneStuff?: UserStuff
   localContext: LocalUserContext
   graphContext: TeamContext
-  connectionContext: MemberInitialContext | InviteeInitialContext
+  connectionContext: MemberContext | InviteeContext
   connection: Record<string, Connection>
   getState: (peer: string) => any
 }

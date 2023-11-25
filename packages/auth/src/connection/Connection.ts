@@ -53,34 +53,40 @@ import type {
   ConnectionContext,
   ConnectionEvents,
   ConnectionState,
-  InitialContext,
-  SendFunction,
-  ServerInitialContext,
+  Context,
+  IdentityClaim,
+  ServerContext,
   StateMachineAction,
 } from './types.js'
-import { isInvitee, isInviteeDevice, isInviteeMember, isServer } from './types.js'
+import {
+  isInviteeClaim,
+  isInviteeContext,
+  isInviteeDeviceContext,
+  isInviteeMemberClaim,
+  isInviteeMemberContext,
+  isMemberClaim,
+  isMemberContext,
+  isServerContext,
+} from './types.js'
 
 const { DEVICE } = KeyType
 
 /**
  * Wraps a state machine (using [XState](https://xstate.js.org/docs/)) that
- * implements the connection protocol. The XState configuration is in `machine.ts`.
+ * implements the connection protocol.
  */
 export class Connection extends EventEmitter<ConnectionEvents> {
-  private readonly sendFn: SendFunction
+  /** The interpreted state machine. Its XState configuration is in `machine.ts`. */
   private readonly machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
-
   private started = false
-
   private orderedNetwork: OrderedNetwork<ConnectionMessage>
-
-  log = debug.extend('connection')
+  private log = debug.extend('connection')
 
   constructor({ sendMessage, context }: Params) {
     super()
 
-    this.sendFn = sendMessage
-
+    // To send messages to our peer, we give them to the ordered network,
+    // which will deliver them using the
     this.orderedNetwork = new OrderedNetwork<ConnectionMessage>({
       sendMessage: message => {
         this.logMessage('out', message)
@@ -89,11 +95,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       },
     })
 
-    this.orderedNetwork
-      .start() //
-      .on('message', message => {
-        this.machine.send(message)
-      })
+    // When we receive a message from our peer, pass it to the state machine
+    this.orderedNetwork.on('message', message => {
+      this.machine.send(message)
+    })
 
     const userName =
       'server' in context
@@ -102,17 +107,16 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         ? context.userName
         : 'user' in context
         ? context.user.userName
-        : ''
+        : // ignore coverage
+          ''
     this.log = this.log.extend(userName)
 
-    const initialContext: InitialContext = isServer(context)
-      ? extendServerContext(context)
-      : context
+    const Context: Context = isServerContext(context) ? extendServerContext(context) : context
 
     // Instantiate the state machine
     this.machine = interpret(
       createMachine(machine, { actions: this.actions, guards: this.guards }) //
-        .withContext(initialContext as ConnectionContext)
+        .withContext(Context as ConnectionContext)
     )
       // emit and log all transitions
       .onTransition((state, event) => {
@@ -128,6 +132,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   public start = (storedMessages: string[] = []) => {
     this.log('starting')
     this.machine.start()
+    this.orderedNetwork.start()
     this.started = true
 
     // kick off the connection by requesting our peer's identity
@@ -150,6 +155,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     }
 
     this.removeAllListeners()
+    this.orderedNetwork.stop()
     this.machine.stop()
     this.machine.state.done = true
     this.log('machine stopped')
@@ -241,15 +247,15 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendIdentityClaim'`) */
   private readonly actions: Record<string, StateMachineAction> = {
-    sendIdentityClaim: async context => {
-      const createIdentityClaim = (context: ConnectionContext) => {
-        if (isMember(context)) {
+    sendIdentityClaim: assign(context => {
+      const createIdentityClaim = (context: ConnectionContext): IdentityClaim => {
+        if (isMemberContext(context)) {
           // I'm already a member
           return {
             deviceId: context.device.deviceId,
           }
         }
-        if (isInviteeMember(context)) {
+        if (isInviteeMemberContext(context)) {
           // I'm a new user and I have an invitation
           const { userName, keys } = context.user
           return {
@@ -259,7 +265,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             device: redactDevice(context.device),
           }
         }
-        if (isInviteeDevice(context)) {
+        if (isInviteeDeviceContext(context)) {
           // I'm a new device for an existing user and I have an invitation
           const { userName, device } = context
           return {
@@ -268,26 +274,26 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             device: redactDevice(device),
           }
         }
-        throw new Error('Invalid context') // that should have been exhaustive
+        // ignore coverage - that should have been exhaustive
+        throw new Error('Invalid context')
       }
 
+      const ourIdentityClaim = createIdentityClaim(context)
       this.sendMessage({
         type: 'CLAIM_IDENTITY',
-        payload: createIdentityClaim(context),
+        payload: ourIdentityClaim,
       })
-    },
+
+      return { ourIdentityClaim }
+    }),
 
     receiveIdentityClaim: assign((_, event) => {
-      const { payload: p } = event as ClaimIdentityMessage
-      if ('userName' in p) this.log = this.log.extend(p.userName)
+      const { payload } = event as ClaimIdentityMessage
+      if ('userName' in payload) this.log = this.log.extend(payload.userName)
 
       return {
-        theirDeviceId: 'deviceId' in p ? p.deviceId : undefined,
-        theyHaveInvitation: 'proofOfInvitation' in p,
-        theirProofOfInvitation: 'proofOfInvitation' in p ? p.proofOfInvitation : undefined,
-        theirUserKeys: 'userKeys' in p ? p.userKeys : undefined,
-        theirDevice: 'device' in p ? p.device : undefined,
-        theirUserName: 'userName' in p ? p.userName : undefined,
+        theirIdentityClaim: payload,
+        theirDevice: 'device' in payload ? payload.device : undefined,
       }
     }),
 
@@ -295,23 +301,27 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     acceptInvitation: assign(context => {
       // Admit them to the team
-      const { team, theirProofOfInvitation, theirUserKeys, theirUserName, theirDevice } = context
+      const { team, theirIdentityClaim } = context
 
       assert(team)
-      assert(theirProofOfInvitation)
+      assert(theirIdentityClaim)
+      assert(isInviteeClaim(theirIdentityClaim))
+
+      const { proofOfInvitation } = theirIdentityClaim
 
       const admit = () => {
-        if (theirUserKeys !== undefined) {
+        if (isInviteeMemberClaim(theirIdentityClaim)) {
           // New member
-          assert(theirUserName)
-          team.admitMember(theirProofOfInvitation, theirUserKeys, theirUserName)
-          const userId = theirUserKeys.name
+          const { userName, userKeys } = theirIdentityClaim
+          assert(userName)
+          team.admitMember(proofOfInvitation, userKeys, userName)
+          const userId = userKeys.name
           return team.members(userId)
         } else {
           // New device for existing member
-          assert(theirDevice)
-          team.admitDevice(theirProofOfInvitation, theirDevice)
-          const { deviceId } = theirDevice
+          const { device } = theirIdentityClaim
+          team.admitDevice(proofOfInvitation, device)
+          const { deviceId } = device
           const { userId } = team.memberByDeviceId(deviceId)
           return team.members(userId)
         }
@@ -367,13 +377,17 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     // AUTHENTICATING
 
     confirmIdentityExists: assign(context => {
-      const deviceId = context.theirDeviceId
-      if (deviceId === undefined) return {} // If they haven't sent a deviceId, they're not on the team yet
-      if (context.team === undefined) return {} // If we're not on the team yet, we don't have a way of knowing if the peer is
+      const { team, theirIdentityClaim } = context
+      assert(theirIdentityClaim)
+      assert(team) // If we're not on the team yet, we don't have a way of knowing if the peer is
+
+      assert(isMemberClaim(theirIdentityClaim)) // This is only for members authenticating witih deviceId
+
+      const { deviceId } = theirIdentityClaim
 
       try {
-        const device = context.team.device(deviceId, { includeRemoved: true })
-        const user = context.team.memberByDeviceId(deviceId, { includeRemoved: true })
+        const device = team.device(deviceId, { includeRemoved: true })
+        const user = team.memberByDeviceId(deviceId, { includeRemoved: true })
 
         this.log = this.log.extend(user.userName)
 
@@ -390,9 +404,11 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     challengeIdentity: assign({
       challenge: context => {
-        const { theirDeviceId } = context
-        assert(theirDeviceId)
-        const challenge = identity.challenge({ type: DEVICE, name: theirDeviceId })
+        const { theirIdentityClaim } = context
+        assert(theirIdentityClaim)
+        assert(isMemberClaim(theirIdentityClaim))
+        const { deviceId } = theirIdentityClaim
+        const challenge = identity.challenge({ type: DEVICE, name: deviceId })
         this.sendMessage({
           type: 'CHALLENGE_IDENTITY',
           payload: { challenge },
@@ -581,23 +597,27 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   // GUARDS
 
-  /** These are referred to by name in `connectionMachine` (e.g. `cond: 'iHaveInvitation'`) */
+  /** These are referred to by name in `connectionMachine` (e.g. `cond: 'weHaveInvitation'`) */
   private readonly guards: Record<string, Condition> = {
-    //
     // INVITATIONS
 
-    iHaveInvitation: context => isInvitee(context),
+    weHaveInvitation: context => isInviteeContext(context),
 
-    theyHaveInvitation: context => context.theyHaveInvitation!,
+    theyHaveInvitation: context => isInviteeClaim(context.theirIdentityClaim!),
 
-    bothHaveInvitation: (...args) =>
-      this.guards.iHaveInvitation(...args) && this.guards.theyHaveInvitation(...args),
+    bothHaveInvitation: (...args) => {
+      const weHaveInvitation = this.guards.weHaveInvitation(...args)
+      const theyHaveInvitation = this.guards.theyHaveInvitation(...args)
+      return weHaveInvitation && theyHaveInvitation
+    },
 
     invitationProofIsValid: context => {
-      const { team, theirProofOfInvitation } = context
+      const { team, theirIdentityClaim } = context
       assert(team)
-      assert(theirProofOfInvitation)
-      const validation = team.validateInvitation(theirProofOfInvitation)
+      assert(theirIdentityClaim)
+      assert(isInviteeClaim(theirIdentityClaim))
+      const { proofOfInvitation } = theirIdentityClaim
+      const validation = team.validateInvitation(proofOfInvitation)
       if (validation.isValid) return true
       context.error = validation.error
       return false
@@ -615,6 +635,18 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     // IDENTITY
 
+    bothSentIdentityClaim: context => {
+      return context.ourIdentityClaim !== undefined && context.theirIdentityClaim !== undefined
+    },
+
+    identityProofIsValid(context, event) {
+      const { team } = context
+      assert(team)
+      const { payload } = event as ProveIdentityMessage
+      const { challenge, proof } = payload
+      return team.verifyIdentityProof(challenge, proof)
+    },
+
     peerWasRemoved(context) {
       const { team, peer, theirDevice } = context
       assert(team)
@@ -624,14 +656,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       const memberWasRemoved = team.memberWasRemoved(peer.userId)
       const deviceWasRemoved = team.deviceWasRemoved(theirDevice.deviceId)
       return serverWasRemoved || memberWasRemoved || deviceWasRemoved
-    },
-
-    identityProofIsValid(context, event) {
-      const { team } = context
-      assert(team)
-      const { payload } = event as ProveIdentityMessage
-      const { challenge, proof } = payload
-      return team.verifyIdentityProof(challenge, proof)
     },
 
     // SYNCHRONIZATION
@@ -674,7 +698,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   private logMessage(direction: 'in' | 'out', message: NumberedMessage<ConnectionMessage>) {
     const arrow = direction === 'in' ? '<-' : '->'
-    const peerUserName = this.context.peer?.userName ?? '?'
+    const peerUserName = this.started ? this.context.peer?.userName ?? '?' : '?'
     this.log(`${arrow}${peerUserName} #${message.index} ${messageSummary(message)}`)
   }
 
@@ -684,7 +708,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   }
 }
 
-const isMember = (context: ConnectionContext) => context.team !== undefined
+const currentUserIsMember = (context: ConnectionContext) => context.team !== undefined
 
 // FOR DEBUGGING
 
@@ -708,17 +732,17 @@ const stateSummary = (state = 'disconnected'): string =>
 
 export type Params = {
   /** A function to send messages to our peer. This how you hook this up to your network stack. */
-  sendMessage: SendFunction
+  sendMessage: (message: string) => void
 
   /** The initial context. */
-  context: InitialContext
+  context: Context
 }
 
 /**
  * A server is conceptually kind of a user and kind of a device. This little hack lets us avoid
  * creating special logic for servers all over the place.
  */
-const extendServerContext = (context: ServerInitialContext) => {
+const extendServerContext = (context: ServerContext) => {
   const { keys, host } = context.server
   return {
     ...context,
