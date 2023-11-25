@@ -9,8 +9,9 @@ describe('OrderedNetwork', () => {
     const service = new OrderedNetwork<TestMessage>({ timeout })
     const received: number[] = []
     const requested: number[] = []
-    service.on('message', message => received.push(message.index))
-    service.on('request', index => requested.push(index))
+    service
+      .on('message', message => received.push(message.index))
+      .on('request', index => requested.push(index))
     return { service, received, requested }
   }
 
@@ -25,22 +26,24 @@ describe('OrderedNetwork', () => {
 
   it('when messages are received out of order, emits them in order', () => {
     const { service, received } = setup()
-    service.start()
-    service.deliver({ index: 0 })
-    service.deliver({ index: 2 }) // <- out of order
-    service.deliver({ index: 1 })
+    service
+      .start()
+      .deliver({ index: 0 })
+      .deliver({ index: 2 }) // <- out of order
+      .deliver({ index: 1 })
     expect(received).toEqual([0, 1, 2])
   })
 
   it('ignores duplicate messages', () => {
     const { service, received } = setup()
-    service.start()
-    service.deliver({ index: 0 })
-    service.deliver({ index: 1 })
-    service.deliver({ index: 1 }) // <- duplicate
-    service.deliver({ index: 2 })
-    service.deliver({ index: 0 }) // <- duplicate
-    service.deliver({ index: 2 }) // <- duplicate
+    service
+      .start()
+      .deliver({ index: 0 })
+      .deliver({ index: 1 })
+      .deliver({ index: 1 }) // <- duplicate
+      .deliver({ index: 2 })
+      .deliver({ index: 0 }) // <- duplicate
+      .deliver({ index: 2 }) // <- duplicate
     expect(received).toEqual([0, 1, 2])
   })
 

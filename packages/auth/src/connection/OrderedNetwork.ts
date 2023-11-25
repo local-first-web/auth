@@ -23,6 +23,7 @@ export class OrderedNetwork<T> extends EventEmitter<OrderedNetworkEvents<T>> {
   public start() {
     this.#started = true
     this.#processQueue()
+    return this
   }
 
   /**
@@ -30,16 +31,19 @@ export class OrderedNetwork<T> extends EventEmitter<OrderedNetworkEvents<T>> {
    */
   public stop() {
     this.#started = false
+    return this
   }
 
   /**
    * Queues incoming messages and, if we're started, emits them in order.
    */
-  public deliver(message: NumberedMessage<T>): void {
+  public deliver(message: NumberedMessage<T>) {
     const { index } = message
-    if (this.#received[index]) return // already received
-    this.#received[index] = message
-    if (this.#started) this.#processQueue()
+    if (!this.#received[index]) {
+      this.#received[index] = message
+      if (this.#started) this.#processQueue()
+    }
+    return this
   }
 
   /**
