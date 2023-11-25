@@ -270,6 +270,32 @@ describe('Team', () => {
       expect(teamKeys1.encryption.publicKey).not.toEqual(teamKeys0.encryption.publicKey)
       expect(teamKeys1.generation).toBe(1)
     })
+
+    it(`can't change another server's keys`, async () => {
+      const { alice } = setupHumans('alice', 'bob')
+      const { server, serverWithSecrets } = createServer(host)
+      alice.team.addServer(server)
+
+      const host2 = 'foo.com'
+      const { server: server2 } = createServer(host2)
+      alice.team.addServer(server2)
+
+      const savedGraph = alice.team.save()
+      const aliceTeamKeys = alice.team.teamKeys()
+      const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, aliceTeamKeys)
+
+      expect(serverTeam.teamKeys().generation).toBe(0)
+      expect(serverTeam.servers(host2).keys.generation).toBe(0)
+
+      // server tries to change another server's keys
+      expect(() => {
+        serverTeam.changeKeys(createKeyset({ type: KeyType.SERVER, name: host2 }))
+      }).toThrow()
+
+      // No keys have been rotated
+      expect(serverTeam.teamKeys().generation).toBe(0)
+      expect(serverTeam.servers(host2).keys.generation).toBe(0)
+    })
   })
 })
 

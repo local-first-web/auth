@@ -1,4 +1,4 @@
-// ignore coverage
+// ignore file coverage
 export function truncateHashes<T>(arg: T, i = 0): T {
   if (i > 10) return arg
   if (typeof arg === 'string') {

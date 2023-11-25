@@ -9,6 +9,7 @@ export const keyToBytes = (x: string, encoding: Encoding = 'base58'): Uint8Array
     return base58.decode(x)
   }
 
+  // ignore coverage
   throw new Error(`Unknown encoding: ${encoding as string}`)
 }
 

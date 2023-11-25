@@ -1,6 +1,11 @@
 import { createKeyring, createUser, type UserWithSecrets } from '@localfirst/crdx'
 import { createId } from '@paralleldrive/cuid2'
-import type { Connection, InitialContext } from 'connection/index.js'
+import type {
+  Connection,
+  InitialContext,
+  InviteeInitialContext,
+  MemberInitialContext,
+} from 'connection/index.js'
 import type { LocalUserContext } from 'team/context.js'
 import type { DeviceWithSecrets } from 'device/index.js'
 import * as devices from 'device/index.js'
@@ -168,7 +173,7 @@ export type UserStuff = {
   phoneStuff?: UserStuff
   localContext: LocalUserContext
   graphContext: TeamContext
-  connectionContext: InitialContext
+  connectionContext: MemberInitialContext | InviteeInitialContext
   connection: Record<string, Connection>
   getState: (peer: string) => any
 }

@@ -1,4 +1,5 @@
-// ignore coverage
+// ignore file coverage
+
 import { expect } from 'vitest'
 
 expect.extend({

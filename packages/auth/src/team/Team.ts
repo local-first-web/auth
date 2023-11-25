@@ -805,7 +805,7 @@ export class Team extends EventEmitter {
       ? 'CHANGE_DEVICE_KEYS'
       : isForUser
       ? 'CHANGE_MEMBER_KEYS'
-      : 'CHANGE_SERVER_KEYS'
+      : 'CHANGE_SERVER_KEYS' //?
 
     const keys = redactKeys(newKeys)
     this.dispatch({ type, payload: { keys, lockboxes } })
