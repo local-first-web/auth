@@ -1,8 +1,10 @@
 import { EventEmitter } from 'eventemitter3'
 
 /**
- * Receives numbered messages and emits them in order. If a message is missing after a delay, asks
+ * Receives numbered incoming messages and emits them in order. If a message is missing after a delay, asks
  * for it to be sent (or resent).
+ *
+ * Numbers and sends outgoing messages, and responds to requests for missing messages.
  */
 export class OrderedNetwork<T> extends EventEmitter<OrderedNetworkEvents<T>> {
   #received: Record<number, NumberedMessage<T>> = {}

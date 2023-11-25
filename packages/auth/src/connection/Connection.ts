@@ -17,26 +17,23 @@ import {
   type ErrorMessage,
   type LocalErrorMessage,
 } from 'connection/errors.js'
+import { getDeviceUserFromGraph } from 'connection/getDeviceUserFromGraph.js'
 import * as identity from 'connection/identity.js'
 import {
-  isNumberedConnectionMessage,
   type AcceptInvitationMessage,
   type ChallengeIdentityMessage,
   type ClaimIdentityMessage,
   type ConnectionMessage,
   type DisconnectMessage,
   type EncryptedMessage,
-  type NumberedConnectionMessage,
   type ProveIdentityMessage,
   type SeedMessage,
   type SyncMessage,
 } from 'connection/message.js'
-import { orderedDelivery } from 'connection/orderedDelivery.js'
 import { redactDevice } from 'device/index.js'
 import { EventEmitter } from 'eventemitter3'
 import * as invitations from 'invitation/index.js'
 import { getTeamState } from 'team/getTeamState.js'
-import { getDeviceUserFromGraph } from 'connection/getDeviceUserFromGraph.js'
 import {
   Team,
   decryptTeamGraph,
@@ -49,6 +46,7 @@ import { arraysAreEqual } from 'util/arraysAreEqual.js'
 import { KeyType, assert, debug } from 'util/index.js'
 import { syncMessageSummary } from 'util/testing/messageSummary.js'
 import { assign, createMachine, interpret, type Interpreter } from 'xstate'
+import { NumberedMessage, OrderedNetwork } from './OrderedNetwork.js'
 import { machine } from './machine.js'
 import type {
   Condition,
@@ -66,15 +64,18 @@ const { DEVICE } = KeyType
 
 /**
  * Wraps a state machine (using [XState](https://xstate.js.org/docs/)) that
- * implements the connection protocol. The XState configuration is in `protocolMachine`.
+ * implements the connection protocol. The XState configuration is in `machine.ts`.
  */
 export class Connection extends EventEmitter<ConnectionEvents> {
   private readonly sendFn: SendFunction
   private readonly machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
 
-  private incomingMessageQueue: Record<number, NumberedConnectionMessage> = {}
+  // TODO: this should be in the OrderedNetwork
   private outgoingMessageIndex = 0
+
   private started = false
+
+  private orderedNetwork = new OrderedNetwork<ConnectionMessage>()
 
   log = debug.extend('connection')
 
@@ -83,17 +84,25 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     this.sendFn = sendMessage
 
+    this.orderedNetwork
+      .start() //
+      .on('message', message => {
+        this.machine.send(message)
+      })
+
+    const userName =
+      'server' in context
+        ? context.server.host
+        : 'userName' in context
+        ? context.userName
+        : 'user' in context
+        ? context.user.userName
+        : ''
+    this.log = this.log.extend(userName)
+
     const initialContext: InitialContext = isServer(context)
       ? extendServerContext(context)
       : context
-
-    const userName =
-      'userName' in initialContext
-        ? initialContext.userName
-        : 'user' in initialContext
-        ? initialContext.user.userName
-        : ''
-    this.log = this.log.extend(userName)
 
     // Instantiate the state machine
     this.machine = interpret(
@@ -184,14 +193,9 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     return this.context.peer
   }
 
-  /** Sends an encrypted message to the peer we're connected with */
-  public send = (message: Payload) => {
-    const { sessionKey } = this.context
-    assert(sessionKey)
-    const encryptedMessage = symmetric.encrypt(message, sessionKey)
-    this.sendMessage({ type: 'ENCRYPTED_MESSAGE', payload: encryptedMessage })
-  }
+  // TODO: should this be private?
 
+  /** Generates and sends a sync message to our peer */
   public sendSyncMessage(chain: TeamGraph, previousSyncState: SyncState = initSyncState()) {
     const [syncState, syncMessage] = generateMessage(chain, previousSyncState)
 
@@ -206,37 +210,26 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     return syncState
   }
 
+  // TODO: should this be private?
+
   /**
-   * Passes an incoming message from the peer on to this protocol machine, guaranteeing that
-   * messages will be delivered in the intended order (according to the `index` field on the message)
+   * Adds incoming messages from the peer to the OrderedNetwork's incoming message queue, which will
+   * pass them to the state machine in order.
    */
   public deliver(serializedMessage: string) {
-    const message = JSON.parse(serializedMessage) as ConnectionMessage
-    assert(
-      isNumberedConnectionMessage(message),
-      `Can only deliver numbered connection messages; received 
-      ${JSON.stringify(message, null, 2)}`
-    )
-
+    const message = JSON.parse(serializedMessage) as NumberedMessage<ConnectionMessage>
     this.logMessage('in', message, message.index)
-
-    // this.machine.send(message)
-    const { queue, nextMessages } = orderedDelivery(this.incomingMessageQueue, message)
-
-    // Update queue
-    this.incomingMessageQueue = queue
-
-    // send any messages that are ready to go out
-    for (const m of nextMessages) {
-      if (this.started && !this.machine.state.done) {
-        const peerUserName = this.context.peer?.userName ?? '?'
-        this.log(`delivering #${m.index} from ${peerUserName} %o`, m)
-        this.machine.send(m)
-      } else {
-        this.log(`stopped, not delivering #${m.index}`)
-      }
-    }
+    this.orderedNetwork.deliver(message)
   }
+
+  /** Sends an encrypted message to our peer. */
+  public send = (message: Payload) => {
+    const { sessionKey } = this.context
+    assert(sessionKey)
+    const encryptedMessage = symmetric.encrypt(message, sessionKey)
+    this.sendMessage({ type: 'ENCRYPTED_MESSAGE', payload: encryptedMessage })
+  }
+
   // ACTIONS
 
   /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendIdentityClaim'`) */
@@ -649,6 +642,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   // PRIVATE
 
+  // TODO: move this functionality to the OrderedNetwork
   private readonly sendMessage = (message: ConnectionMessage) => {
     // Add a sequential index to any outgoing messages
     const index = this.outgoingMessageIndex++

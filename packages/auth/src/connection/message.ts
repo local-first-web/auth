@@ -118,35 +118,3 @@ export type ConnectionMessage =
   | ReadyMessage
   | SeedMessage
   | SyncMessage
-
-export type NumberedConnectionMessage = ConnectionMessage & {
-  index: number
-}
-
-const messageTypes = new Set([
-  'ACCEPT_IDENTITY',
-  'ACCEPT_INVITATION',
-  'CHALLENGE_IDENTITY',
-  'CLAIM_IDENTITY',
-  'DISCONNECT',
-  'ENCRYPTED_MESSAGE',
-  'ERROR',
-  'LOCAL_ERROR',
-  'LOCAL_UPDATE',
-  'PROVE_IDENTITY',
-  'REJECT_IDENTITY',
-  'REQUEST_IDENTITY',
-  'SEED',
-  'SYNC',
-])
-
-export function isNumberedConnectionMessage(
-  message: ConnectionMessage
-): message is NumberedConnectionMessage {
-  return (
-    'index' in message &&
-    typeof message.index === 'number' && //
-    'type' in message &&
-    messageTypes.has(message.type)
-  )
-}
