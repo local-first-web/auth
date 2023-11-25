@@ -119,9 +119,6 @@ function highestIndex(queue: Record<number, any>) {
   return Math.max(...Object.keys(queue).map(Number), -1)
 }
 
-const serialize = <T>(message: NumberedMessage<T>) => JSON.stringify(message)
-const deserialize = <T>(message: string) => JSON.parse(message) as NumberedMessage<T>
-
 // TYPES
 
 export type NumberedMessage<T> = T & { index: number }

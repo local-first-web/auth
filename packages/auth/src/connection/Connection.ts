@@ -83,7 +83,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     this.orderedNetwork = new OrderedNetwork<ConnectionMessage>({
       sendMessage: message => {
-        const { index } = message
         this.logMessage('out', message)
         const serialized = JSON.stringify(message)
         sendMessage(serialized)
