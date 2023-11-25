@@ -380,7 +380,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       const { team, theirIdentityClaim } = context
       assert(theirIdentityClaim)
       assert(team) // If we're not on the team yet, we don't have a way of knowing if the peer is
-
       assert(isMemberClaim(theirIdentityClaim)) // This is only for members authenticating witih deviceId
 
       const { deviceId } = theirIdentityClaim
@@ -402,19 +401,17 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       }
     }),
 
-    challengeIdentity: assign({
-      challenge: context => {
-        const { theirIdentityClaim } = context
-        assert(theirIdentityClaim)
-        assert(isMemberClaim(theirIdentityClaim))
-        const { deviceId } = theirIdentityClaim
-        const challenge = identity.challenge({ type: DEVICE, name: deviceId })
-        this.sendMessage({
-          type: 'CHALLENGE_IDENTITY',
-          payload: { challenge },
-        })
-        return challenge
-      },
+    challengeIdentity: assign(context => {
+      const { theirIdentityClaim } = context
+      assert(theirIdentityClaim)
+      assert(isMemberClaim(theirIdentityClaim))
+      const { deviceId } = theirIdentityClaim
+      const challenge = identity.challenge({ type: DEVICE, name: deviceId })
+      this.sendMessage({
+        type: 'CHALLENGE_IDENTITY',
+        payload: { challenge },
+      })
+      return { challenge }
     }),
 
     proveIdentity: (context, event) => {
@@ -442,23 +439,21 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       })
     },
 
-    sendSyncMessage: assign({
-      syncState: context => {
-        assert(context.team)
-        const previousSyncState = context.syncState ?? initSyncState()
+    sendSyncMessage: assign(context => {
+      assert(context.team)
+      const previousSyncState = context.syncState ?? initSyncState()
 
-        const [syncState, syncMessage] = generateMessage(context.team.graph, previousSyncState)
+      const [syncState, syncMessage] = generateMessage(context.team.graph, previousSyncState)
 
-        // Undefined message means we're already synced
-        if (syncMessage) {
-          this.log('sending sync message', syncMessageSummary(syncMessage))
-          this.sendMessage({ type: 'SYNC', payload: syncMessage })
-        } else {
-          this.log('no sync message to send')
-        }
+      // Undefined message means we're already synced
+      if (syncMessage) {
+        this.log('sending sync message', syncMessageSummary(syncMessage))
+        this.sendMessage({ type: 'SYNC', payload: syncMessage })
+      } else {
+        this.log('no sync message to send')
+      }
 
-        return syncState
-      },
+      return { syncState }
     }),
 
     receiveSyncMessage: assign((context, event) => {
@@ -494,7 +489,11 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     // NEGOTIATING
 
-    generateSeed: assign({ seed: _ => randomKey() }),
+    generateSeed: assign(context => {
+      return {
+        seed: randomKey(),
+      }
+    }),
 
     sendSeed: context => {
       const { user, peer, seed } = context
@@ -513,7 +512,9 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     receiveSeed: assign((_, event) => {
       const { payload } = event as SeedMessage
-      return { theirEncryptedSeed: payload.encryptedSeed }
+      return {
+        theirEncryptedSeed: payload.encryptedSeed,
+      }
     }),
 
     deriveSharedKey: assign({
@@ -549,34 +550,30 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     // FAILURE
 
-    receiveError: assign({
-      error: (_, event) => {
-        const error = (event as ErrorMessage).payload
-        this.log('receiveError %o', error)
+    receiveError: assign((_, event) => {
+      const error = (event as ErrorMessage).payload
+      this.log('receiveError %o', error)
 
-        // Bubble the error up
-        this.emit('remoteError', error)
+      // Bubble the error up
+      this.emit('remoteError', error)
 
-        // Store the error in context
-        return error
-      },
+      // Store the error in context
+      return { error }
     }),
 
-    sendError: assign({
-      error: (_, event) => {
-        const error = (event as LocalErrorMessage).payload
-        this.log('sendError %o', error)
+    sendError: assign((_, event) => {
+      const error = (event as LocalErrorMessage).payload
+      this.log('sendError %o', error)
 
-        // Send error to peer
-        const remoteMessage = buildError(error.type, error.details, 'REMOTE')
-        this.sendMessage(remoteMessage)
+      // Send error to peer
+      const remoteMessage = buildError(error.type, error.details, 'REMOTE')
+      this.sendMessage(remoteMessage)
 
-        // Bubble the error up
-        this.emit('localError', error)
+      // Bubble the error up
+      this.emit('localError', error)
 
-        // Store the error in context
-        return error
-      },
+      // Store the error in context
+      return { error }
     }),
 
     rejectIdentityProof: this.fail('IDENTITY_PROOF_INVALID'),
