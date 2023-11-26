@@ -71,7 +71,7 @@ export type LocalUpdateMessage = {
 export type SeedMessage = {
   type: 'SEED'
   payload: {
-    encryptedSeed: Base58
+    encryptedSeed: Uint8Array
   }
 }
 

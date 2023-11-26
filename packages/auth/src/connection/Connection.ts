@@ -9,7 +9,7 @@ import {
   type DecryptFnParams,
   type SyncState,
 } from '@localfirst/crdx'
-import { asymmetric, randomKey, symmetric, type Hash, type Payload } from '@localfirst/crypto'
+import { asymmetric, randomKeyBytes, symmetric, type Hash, type Payload } from '@localfirst/crypto'
 import { deriveSharedKey } from 'connection/deriveSharedKey.js'
 import {
   buildError,
@@ -33,6 +33,7 @@ import {
 import { redactDevice } from 'device/index.js'
 import { EventEmitter } from 'eventemitter3'
 import * as invitations from 'invitation/index.js'
+import { pack, unpack } from 'msgpackr'
 import { getTeamState } from 'team/getTeamState.js'
 import {
   Team,
@@ -68,7 +69,6 @@ import {
   isMemberContext,
   isServerContext,
 } from './types.js'
-import { pack, unpack } from 'msgpackr'
 
 const { DEVICE } = KeyType
 
@@ -492,14 +492,14 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     generateSeed: assign(context => {
       return {
-        seed: randomKey(),
+        seed: randomKeyBytes(),
       }
     }),
 
     sendSeed: context => {
       const { user, peer, seed } = context
 
-      const encryptedSeed = asymmetric.encrypt({
+      const encryptedSeed = asymmetric.encryptBytes({
         secret: seed!,
         recipientPublicKey: peer!.keys.encryption,
         senderSecretKey: user!.keys.encryption.secretKey,
@@ -528,7 +528,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         // Their encrypted seed is stored in context
         assert(theirEncryptedSeed)
         // Decrypt it:
-        const theirSeed = asymmetric.decrypt({
+        const theirSeed = asymmetric.decryptBytes({
           cipher: theirEncryptedSeed,
           senderPublicKey: peer!.keys.encryption,
           recipientSecretKey: user!.keys.encryption.secretKey,
