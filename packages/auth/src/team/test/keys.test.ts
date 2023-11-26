@@ -60,24 +60,6 @@ describe('Team', () => {
       expect(teamKeys2.generation).toBe(1) // The team keys were rotated, so these are new
     })
 
-    it('after changing his device keys, Bob still has team keys', () => {
-      const { bob } = setup('alice', 'bob')
-
-      // Bob has team keys
-      const teamKeys = bob.team.teamKeys()
-      expect(teamKeys).toLookLikeKeyset()
-      expect(teamKeys.generation).toBe(0)
-
-      // Bob changes his device keys
-      const newKeys = createKeyset({ type: DEVICE, name: bob.device.deviceId })
-      bob.team.changeKeys(newKeys)
-
-      // Bob still has access to team keys
-      const teamKeys2 = bob.team.teamKeys()
-      expect(teamKeys2).toLookLikeKeyset()
-      expect(teamKeys2.generation).toBe(1) // The team keys were rotated, so these are new
-    })
-
     it("Alice can change Bob's keys", () => {
       const { alice, bob } = setup('alice', { user: 'bob', admin: false })
 
@@ -142,28 +124,6 @@ describe('Team', () => {
       const tryToChangeBobsKeys = () => {
         eve.team.dispatch({
           type: 'CHANGE_MEMBER_KEYS',
-          payload: {
-            keys: redactKeys(newKeys),
-            lockboxes,
-          },
-        })
-      }
-
-      expect(tryToChangeBobsKeys).toThrow()
-    })
-
-    it("Eve can't change Bob's device keys", () => {
-      const { bob, eve } = setup('alice', 'bob', { user: 'eve', admin: false })
-
-      const { deviceId } = bob.device
-      const newKeys = createKeyset({ type: DEVICE, name: deviceId })
-
-      // @ts-expect-error - rotateKeys is private, but eve don't care
-      const lockboxes = eve.team.rotateKeys(newKeys)
-
-      const tryToChangeBobsKeys = () => {
-        eve.team.dispatch({
-          type: 'CHANGE_DEVICE_KEYS',
           payload: {
             keys: redactKeys(newKeys),
             lockboxes,

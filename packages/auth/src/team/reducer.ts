@@ -207,13 +207,6 @@ const getTransforms = (action: TeamAction): Transform[] => {
       ]
     }
 
-    case 'CHANGE_DEVICE_KEYS': {
-      const { keys } = action.payload
-      return [
-        changeDeviceKeys(keys), // Replace this device's public keys with the ones provided
-      ]
-    }
-
     case 'ROTATE_KEYS': {
       const { userId } = action.payload
       return [

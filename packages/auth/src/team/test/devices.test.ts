@@ -88,7 +88,7 @@ describe('Team', () => {
       expect(getDevice).toThrow()
     })
 
-    it.only('rotates keys after removing a device', () => {
+    it('rotates keys after removing a device', () => {
       const { alice, bob } = setup()
 
       // Keys have never been rotated

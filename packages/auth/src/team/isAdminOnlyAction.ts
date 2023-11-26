@@ -7,7 +7,6 @@ export const isAdminOnlyAction = (action: TeamLinkBody) => {
     'ADD_DEVICE',
     'REMOVE_DEVICE',
     'CHANGE_MEMBER_KEYS',
-    'CHANGE_DEVICE_KEYS',
     'CHANGE_SERVER_KEYS',
     'ADMIT_MEMBER',
     'ADMIT_DEVICE',

@@ -196,13 +196,6 @@ export type ChangeMemberKeysAction = {
   }
 }
 
-export type ChangeDeviceKeysAction = {
-  type: 'CHANGE_DEVICE_KEYS'
-  payload: BasePayload & {
-    keys: Keyset
-  }
-}
-
 export type RotateKeysAction = {
   type: 'ROTATE_KEYS'
   payload: BasePayload & {
@@ -261,7 +254,6 @@ export type TeamAction =
   | AdmitMemberAction
   | AdmitDeviceAction
   | ChangeMemberKeysAction
-  | ChangeDeviceKeysAction
   | RotateKeysAction
   | AddServerAction
   | RemoveServerAction
