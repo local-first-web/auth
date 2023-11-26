@@ -537,12 +537,12 @@ describe('connection', () => {
 
         expect(bob.team.has(charlie.userId)).toBe(true)
 
-        // // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
+        // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
         await connect(alice, bob)
 
-        // // ✅ Bob's invitation is discarded, because Bob concurrently lost admin privileges
-        // expect(alice.team.has(charlie.userId)).toBe(false)
-        // expect(bob.team.has(charlie.userId)).toBe(false)
+        // ✅ Bob's invitation is discarded, because Bob concurrently lost admin privileges
+        expect(alice.team.has(charlie.userId)).toBe(false)
+        expect(bob.team.has(charlie.userId)).toBe(false)
       })
 
       it('resolves circular concurrent demotions', async () => {
@@ -703,6 +703,7 @@ describe('connection', () => {
         // 👩🏾 Alice removes 👨🏻‍🦲 Bob from the team
         alice.team.remove(bob.userId)
         await anyDisconnected(alice, bob)
+        await anyUpdated(alice, charlie)
 
         // The team keys have been rotated
         expect(alice.team.teamKeys().generation).toBe(1)
@@ -711,8 +712,7 @@ describe('connection', () => {
         // This will now be encrypted with the new team keys
         alice.team.addRole('managers')
 
-        // wait for 👳🏽‍♂️ Charlie to get both changes
-        await anyUpdated(alice, charlie)
+        // wait for 👳🏽‍♂️ Charlie to get changes
         await anyUpdated(alice, charlie)
 
         // Charlie can decrypt the last link Alice created
