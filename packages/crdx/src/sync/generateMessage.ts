@@ -33,18 +33,11 @@ export const generateMessage = <A extends Action, C>(
   const ourHead = graph.head
   const theirHead = their.head
 
-  // CASE 0: There's a problem
-
-  // CASE 0A: Their last message caused an error; let them know
+  // CASE 0: Their last message caused an error; let them know
   if (our.reportedError) {
     message.error = our.reportedError
     delete our.reportedError
     return [state, message]
-  }
-
-  // CASE 0B: They tell us that we caused an error; stop trying to sync
-  if (their.reportedError) {
-    return [state, undefined]
   }
 
   // CASE 1: We synced up in the last round, and they know we synced up, so we're done

@@ -10,7 +10,6 @@ import {
   addMessage,
   addRole,
   addServer,
-  changeDeviceKeys,
   changeMemberKeys,
   changeServerKeys,
   collectLockboxes,

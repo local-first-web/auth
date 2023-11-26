@@ -49,6 +49,23 @@ describe('Team', () => {
       expect(alice.team.deviceWasRemoved(bob.phone!.deviceId)).toBe(false) // Device never existed
     })
 
+    it('throws when trying to remove a removed device', () => {
+      const { alice, bob } = setup()
+      const bobDevice = alice.team.members(bob.userId).devices![0].deviceId
+      alice.team.removeDevice(bobDevice)
+
+      const removeAgain = () => alice.team.removeDevice(bobDevice)
+      expect(removeAgain).toThrow()
+    })
+
+    it('throws when trying to remove a nonexistent device', () => {
+      const { alice, bob } = setup()
+      const bobDevice = alice.team.members(bob.userId).devices![0].deviceId
+
+      const remove = () => alice.team.removeDevice('pizza')
+      expect(remove).toThrow()
+    })
+
     it('throws when trying to access a removed device', () => {
       const { alice, bob } = setup()
       const bobDevice = alice.team.members(bob.userId).devices![0].deviceId

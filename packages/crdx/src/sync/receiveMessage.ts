@@ -41,7 +41,6 @@ export const receiveMessage = <A extends Action, C>(
       need: their.need ?? [],
       encryptedLinks: { ...prevState.their.encryptedLinks, ...their.links },
       parentMap: { ...prevState.their.parentMap, ...their.parentMap },
-      reportedError: their.error,
     },
   }
 

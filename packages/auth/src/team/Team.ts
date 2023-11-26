@@ -166,19 +166,11 @@ export class Team extends EventEmitter {
   /** ************** CONTEXT */
 
   public get userName() {
-    if (this.context.user) {
-      return this.context.user.userId
-    }
-
-    return this.context.device.userId // Device is always known
+    return this.context.user.userId
   }
 
   public get userId() {
-    if (this.context.user) {
-      return this.context.user.userId
-    }
-
-    return this.context.device.userId // Device is always known
+    return this.context.user.userId
   }
 
   private get isServer() {
@@ -389,7 +381,7 @@ export class Team extends EventEmitter {
 
   /** Remove a member's device */
   public removeDevice = (deviceId: string) => {
-    if (!this.hasDevice(deviceId)) return
+    if (!this.hasDevice(deviceId)) throw new Error(`Device ${deviceId} not found`)
 
     // Create new keys & lockboxes for any keys this device had access to
     const lockboxes = this.rotateKeys({ type: DEVICE, name: deviceId })
@@ -538,13 +530,7 @@ export class Team extends EventEmitter {
   }
 
   /** Returns true if the invitation has ever existed in this team (even if it's been used or revoked) */
-  public hasInvitation(id: Base58): boolean
-  public hasInvitation(proof: ProofOfInvitation): boolean
-  public hasInvitation(proofOrId: Base58 | ProofOfInvitation): boolean {
-    const id =
-      typeof proofOrId === 'string' //
-        ? proofOrId // String id was passed
-        : proofOrId.id // Proof of invitation was passed
+  public hasInvitation(id: Base58): boolean {
     return select.hasInvitation(this.state, id)
   }
 
@@ -554,17 +540,13 @@ export class Team extends EventEmitter {
   /** Check whether (1) the invitation is still valid, and (2) the proof of invitation checks out. */
   public validateInvitation = (proof: ProofOfInvitation) => {
     const { id } = proof
-    if (!this.hasInvitation(id)) {
-      return invitations.fail("This invitation code doesn't match.")
-    }
+    if (!this.hasInvitation(id)) return invitations.fail("This invitation code doesn't match.")
 
     const invitation = this.getInvitation(id)
 
     // Make sure the invitation hasn't already been used, hasn't expired, and hasn't been revoked
     const canBeUsedResult = invitations.invitationCanBeUsed(invitation, Date.now())
-    if (canBeUsedResult !== VALID) {
-      return canBeUsedResult
-    }
+    if (canBeUsedResult !== VALID) return canBeUsedResult
 
     // Validate the proof of invitation
     return invitations.validate(proof, invitation)
