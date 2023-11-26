@@ -3,14 +3,15 @@
 import process from 'process'
 import { memoize } from 'lodash-es'
 import sodium from 'libsodium-wrappers-sumo'
-import { type Base58 } from './types.js'
+import { Password, type Base58 } from './types.js'
 import { base58, keyToBytes } from './util/index.js'
 
-/** Derives a key from a low-entropy input, such as a password. Current version of libsodium
- * uses the Argon2id algorithm, although that may change in later versions. */
-
-export const stretch = memoize((password: string) => {
-  const passwordBytes = keyToBytes(password, base58.detect(password) ? 'base58' : 'utf8')
+/**
+ * Derives a key from a low-entropy input, such as a password. Current version of libsodium
+ * uses the Argon2id algorithm, although that may change in later versions.
+ */
+export const stretch = memoize((password: Password) => {
+  const passwordBytes = typeof password === 'string' ? keyToBytes(password, 'utf8') : password
   const salt = base58.decode('H5B4DLSXw5xwNYFdz1Wr6e' as Base58)
   if (passwordBytes.length >= 16) {
     return sodium.crypto_generichash(32, passwordBytes, salt)

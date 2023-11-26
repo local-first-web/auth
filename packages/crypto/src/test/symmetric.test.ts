@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { symmetric } from '..'
+import { base58, symmetric } from '..'
 
 const { encrypt, decrypt } = symmetric
 
@@ -29,7 +29,7 @@ describe('crypto', () => {
       expect(attemptToDecrypt).toThrow()
     })
 
-    test('encrypt/decrypt bytes', () => {
+    test('encryptBytes/decryptBytes', () => {
       const secret = {
         foo: 'bar',
         pizza: 42,
@@ -38,6 +38,13 @@ describe('crypto', () => {
       const encrypted = symmetric.encryptBytes(secret, password)
       const decrypted = symmetric.decryptBytes(encrypted, password)
       expect(decrypted).toEqual(secret)
+    })
+
+    test('byte array as password', () => {
+      const bytePassword = new Uint8Array([1, 2, 3, 4, 5])
+      const encrypted = symmetric.encryptBytes(plaintext, bytePassword)
+      const decrypted = symmetric.decryptBytes(encrypted, bytePassword)
+      expect(decrypted).toEqual(plaintext)
     })
   })
 })

@@ -29,3 +29,4 @@ export type Cipher = {
 }
 
 export type Encoder = (b: Uint8Array) => string
+export type Password = string | Uint8Array
