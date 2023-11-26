@@ -28,5 +28,16 @@ describe('crypto', () => {
       const attemptToDecrypt = () => decrypt(cipher, 'nachopassword')
       expect(attemptToDecrypt).toThrow()
     })
+
+    test('encrypt/decrypt bytes', () => {
+      const secret = {
+        foo: 'bar',
+        pizza: 42,
+      }
+
+      const encrypted = symmetric.encryptBytes(secret, password)
+      const decrypted = symmetric.decryptBytes(encrypted, password)
+      expect(decrypted).toEqual(secret)
+    })
   })
 })

@@ -33,7 +33,8 @@ const decryptBytes = (
 ): Uint8Array => {
   const key = stretch(password)
   const { nonce, message } = unpack(cipher) as Cipher
-  return sodium.crypto_secretbox_open_easy(message, nonce, key)
+  const decrypted = sodium.crypto_secretbox_open_easy(message, nonce, key)
+  return unpack(decrypted)
 }
 
 /**
@@ -61,8 +62,7 @@ const decrypt = (
   password: string
 ): Payload => {
   const cipherBytes = keyToBytes(cipher)
-  const decrypted = decryptBytes(cipherBytes, password)
-  return unpack(decrypted)
+  return decryptBytes(cipherBytes, password)
 }
 
 export const symmetric = { encryptBytes, decryptBytes, encrypt, decrypt }
