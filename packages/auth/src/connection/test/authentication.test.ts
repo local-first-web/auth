@@ -117,7 +117,7 @@ describe('connection', () => {
 
         // ✅
         expectEveryoneToKnowEveryone(alice, bob, charlie)
-      }, 10000)
+      })
 
       it('after being admitted, invitee has team keys', async () => {
         const { alice, bob } = setup('alice', { user: 'bob', member: false })
