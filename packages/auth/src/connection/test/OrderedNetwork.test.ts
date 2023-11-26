@@ -2,7 +2,7 @@ import { pause } from 'util/testing/pause.js'
 import { describe, expect, it } from 'vitest'
 import { OrderedNetwork } from '../OrderedNetwork.js'
 
-const timeout = 20
+const timeout = 10
 
 describe('OrderedNetwork', () => {
   const setup = () => {
