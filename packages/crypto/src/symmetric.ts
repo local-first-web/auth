@@ -8,7 +8,7 @@ import { base58, keyToBytes } from './util/index.js'
  * Symmetrically encrypts a byte array.
  */
 const encryptBytes = (
-  /** The byte array to encrypt */
+  /** The plaintext or object to encrypt */
   payload: Payload,
   /** The password used to encrypt */
   password: string
