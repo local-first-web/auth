@@ -7,7 +7,7 @@ export const open = memoize(
   (lockbox: Lockbox, decryptionKeys: KeysetWithSecrets): KeysetWithSecrets => {
     const { encryptionKey, encryptedPayload } = lockbox
 
-    const decrypted = asymmetric.decrypt({
+    const decrypted = asymmetric.decryptBytes({
       cipher: encryptedPayload,
       senderPublicKey: encryptionKey.publicKey,
       recipientSecretKey: decryptionKeys.encryption.secretKey,
