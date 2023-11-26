@@ -9,13 +9,14 @@ import { base58, keyToBytes } from './util/index.js'
  */
 const encryptBytes = (
   /** The byte array to encrypt */
-  payload: Uint8Array,
+  payload: Payload,
   /** The password used to encrypt */
   password: string
 ): Uint8Array => {
+  const messageBytes = pack(payload)
   const key = stretch(password)
   const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES)
-  const encrypted = sodium.crypto_secretbox_easy(payload, nonce, key)
+  const encrypted = sodium.crypto_secretbox_easy(messageBytes, nonce, key)
   const cipher: Cipher = { nonce, message: encrypted }
   const cipherBytes = pack(cipher)
   return cipherBytes
@@ -45,8 +46,7 @@ const encrypt = (
   /** The password used to encrypt */
   password: string
 ): Base58 => {
-  const messageBytes = pack(payload)
-  const cipherBytes = encryptBytes(messageBytes, password)
+  const cipherBytes = encryptBytes(payload, password)
   const cipher = base58.encode(cipherBytes)
   return cipher
 }
