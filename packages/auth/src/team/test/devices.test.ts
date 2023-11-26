@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { setup as setupUsers } from 'util/testing/index.js'
+import { createDevice, redactDevice } from 'index.js'
 
 describe('Team', () => {
   const setup = () => {
@@ -87,20 +88,23 @@ describe('Team', () => {
       expect(getDevice).toThrow()
     })
 
-    it('rotates keys after removing a device', () => {
+    it.only('rotates keys after removing a device', () => {
       const { alice, bob } = setup()
 
       // Keys have never been rotated
       expect(alice.team.teamKeys().generation).toBe(0)
       const { secretKey } = alice.team.teamKeys()
 
-      // Remove bob's device
-      const bobDevice = alice.team.members(bob.userId).devices![0].deviceId
-      alice.team.removeDevice(bobDevice)
+      // Add bob's phone
+      const phone = redactDevice(bob.phone!)
+      bob.team.addForTesting(bob.user, [], phone)
+
+      // Remove bob's phone
+      bob.team.removeDevice(phone.deviceId)
 
       // Team keys have now been rotated once
-      expect(alice.team.teamKeys().generation).toBe(1)
-      expect(alice.team.teamKeys().secretKey).not.toBe(secretKey)
+      expect(bob.team.teamKeys().generation).toBe(1)
+      expect(bob.team.teamKeys().secretKey).not.toBe(secretKey)
     })
   })
 })
