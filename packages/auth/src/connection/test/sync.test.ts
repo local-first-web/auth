@@ -1,5 +1,3 @@
-import { describe, expect, it } from 'vitest'
-import { type MemberContext } from '../types.js'
 import { ADMIN } from 'role/index.js'
 import {
   TestChannel,
@@ -17,6 +15,8 @@ import {
   updated,
 } from 'util/testing/index.js'
 import { pause } from 'util/testing/pause.js'
+import { describe, expect, it } from 'vitest'
+import { type MemberContext } from '../types.js'
 
 describe('connection', () => {
   describe('sync', () => {
@@ -333,8 +333,7 @@ describe('connection', () => {
 
         // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
         await connect(alice, bob)
-
-        await pause(1000)
+        await pause(100)
 
         // ✅ No problemo
         expectEveryoneToKnowEveryone(alice, charlie, bob, dwight)
@@ -759,7 +758,7 @@ describe('connection', () => {
 
         // Bob invites his phone and it joins
         const { seed } = bob.team.inviteDevice()
-        await Promise.all([connectPhoneWithInvitation(bob, seed), anyUpdated(alice, bob)])
+        await Promise.all([connectPhoneWithInvitation(bob, seed), pause(10)])
 
         // Bob and Alice know about Bob's phone
         expect(bob.team.members(bob.userId).devices).toHaveLength(2)
@@ -771,11 +770,10 @@ describe('connection', () => {
         bob.team.removeDevice(bob.phone!.deviceId)
         expect(bob.team.members(bob.userId).devices).toHaveLength(1)
 
-        // Alice can see that Bob only has one device
-        await anyUpdated(alice, bob)
-        expect(alice.team.members(bob.userId).devices).toHaveLength(1)
+        await pause(10)
 
-        await anyUpdated(bob, charlie)
+        // Alice and Charlie can see that Bob only has one device
+        expect(alice.team.members(bob.userId).devices).toHaveLength(1)
         expect(charlie.team.members(bob.userId).devices).toHaveLength(1)
 
         // Eve tries to connect to Charlie from Bob's phone, but she can't
@@ -792,7 +790,7 @@ describe('connection', () => {
 
         // GRRR foiled again
         await any([eveOnBobsPhone, heyCharlie], 'disconnected')
-      }, 10000)
+      })
     })
   })
 })
