@@ -68,6 +68,7 @@ import {
   isMemberContext,
   isServerContext,
 } from './types.js'
+import { pack, unpack } from 'msgpackr'
 
 const { DEVICE } = KeyType
 
@@ -90,7 +91,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     this.orderedNetwork = new OrderedNetwork<ConnectionMessage>({
       sendMessage: message => {
         this.logMessage('out', message)
-        const serialized = JSON.stringify(message)
+        const serialized = pack(message)
         sendMessage(serialized)
       },
     })
@@ -229,8 +230,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
    * Adds incoming messages from the peer to the OrderedNetwork's incoming message queue, which will
    * pass them to the state machine in order.
    */
-  public deliver(serializedMessage: string) {
-    const message = JSON.parse(serializedMessage) as NumberedMessage<ConnectionMessage>
+  public deliver(serializedMessage: Uint8Array) {
+    const message = unpack(serializedMessage) as NumberedMessage<ConnectionMessage>
     this.logMessage('in', message)
     this.orderedNetwork.receive(message)
   }
@@ -729,7 +730,7 @@ const stateSummary = (state = 'disconnected'): string =>
 
 export type Params = {
   /** A function to send messages to our peer. This how you hook this up to your network stack. */
-  sendMessage: (message: string) => void
+  sendMessage: (message: Uint8Array) => void
 
   /** The initial context. */
   context: Context

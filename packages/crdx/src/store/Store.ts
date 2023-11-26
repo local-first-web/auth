@@ -58,13 +58,13 @@ export class Store<S, A extends Action, C = Record<string, unknown>> extends Eve
       // no graph provided, so we'll create a new one
       assert(isKeyset(keys), 'If no graph is provided, only pass a single keyset, not a keyring.')
       this.graph = createGraph({ user, rootPayload, keys })
-    } else if (typeof graph === 'string') {
+    } else if (isGraph(graph)) {
+      // graph provided
+      this.graph = graph
+    } else {
       // serialized graph was provided, so deserialize it
       assert(keys)
       this.graph = deserialize(graph, keys)
-    } else {
-      // graph provided
-      this.graph = graph
     }
 
     this.context = context
@@ -192,3 +192,6 @@ export class Store<S, A extends Action, C = Record<string, unknown>> extends Eve
     this.emit('updated', { head: this.graph.head })
   }
 }
+
+const isGraph = <A extends Action, C>(source: Uint8Array | Graph<A, C>): source is Graph<A, C> =>
+  source?.hasOwnProperty('root')

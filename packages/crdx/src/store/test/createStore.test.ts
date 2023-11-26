@@ -73,7 +73,7 @@ describe('createStore', () => {
     const rootLink = getRoot(tamperedGraph)
     rootLink.body.userId = eve.userId // she replaces Alice's user info in the root with Eve
     graph.encryptedLinks[tamperedGraph.root] = {
-      encryptedBody: asymmetric.encrypt({
+      encryptedBody: asymmetric.encryptBytes({
         secret: rootLink.body,
         recipientPublicKey: keys.encryption.publicKey,
         senderSecretKey: eve.keys.encryption.secretKey,

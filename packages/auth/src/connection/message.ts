@@ -49,7 +49,7 @@ export type RejectIdentityMessage = {
 export type AcceptInvitationMessage = {
   type: 'ACCEPT_INVITATION'
   payload: {
-    serializedGraph: string
+    serializedGraph: Uint8Array
     teamKeyring: Keyring
   }
 }

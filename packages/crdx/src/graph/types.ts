@@ -93,7 +93,7 @@ export type EncryptedLink = {
    * The body of the link, encrypted asymmetrically with authentication (using libsodium's
    * `crypto_box`) using the author's SK and the team's PK.
    */
-  encryptedBody: Base58
+  encryptedBody: Uint8Array
 
   /**
    * Public key of the author of the link, at the time of authoring. After decryption, it is up to

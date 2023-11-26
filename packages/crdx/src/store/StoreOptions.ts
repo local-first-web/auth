@@ -28,7 +28,7 @@ export type StoreOptions<S, A extends Action, C> = {
   initialState?: S
 
   /** For pre-existing stores: A graph to preload, e.g. from saved state. */
-  graph?: string | Graph<A, C>
+  graph?: Uint8Array | Graph<A, C>
 
   /** For new stores: Additional information to include in the root node  */
   rootPayload?: unknown

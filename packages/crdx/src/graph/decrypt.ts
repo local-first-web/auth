@@ -25,8 +25,10 @@ export const decryptLink = <A extends Action, C>(
   const keyset = keyring[recipientPublicKey]
   assert(keyset, `Can't decrypt link: don't have the correct keyset`)
 
-  const decryptedLinkBody = asymmetric.decrypt({
-    cipher: encryptedBody,
+  const cipher = toUint8Array(encryptedBody)
+
+  const decryptedLinkBody = asymmetric.decryptBytes({
+    cipher,
     recipientSecretKey: keyset.encryption.secretKey,
     senderPublicKey,
   }) as LinkBody<A, C>
@@ -91,3 +93,13 @@ export type DecryptFn = <A extends Action, C>({
   encryptedGraph,
   keys,
 }: DecryptFnParams<A, C>) => Graph<A, C>
+
+// buffer to uint8array
+const toUint8Array = (buf: Buffer | Uint8Array) => {
+  return !isBuffer(buf)
+    ? new Uint8Array(buf)
+    : new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength)
+}
+
+const isBuffer = (buf: Buffer | Uint8Array): buf is Buffer =>
+  'buffer' in buf && 'byteOffset' in buf && 'byteLength' in buf
