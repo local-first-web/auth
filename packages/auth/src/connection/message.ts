@@ -79,7 +79,7 @@ export type SeedMessage = {
 
 export type EncryptedMessage = {
   type: 'ENCRYPTED_MESSAGE'
-  payload: Base58
+  payload: Uint8Array
 }
 
 export type ConnectionMessage =

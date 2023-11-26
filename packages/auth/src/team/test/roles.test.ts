@@ -316,7 +316,7 @@ describe('Team', () => {
 
       // But with a little effort...
       const decryptUsingSavedKey = (message: teams.EncryptedEnvelope) => () =>
-        symmetric.decrypt(message.contents, copyOfKeysInCaseTheyKickMeOut.secretKey)
+        symmetric.decryptBytes(message.contents, copyOfKeysInCaseTheyKickMeOut.secretKey)
 
       // 👨🏻‍🦲 Bob can still see the old message using his saved key, because it was encrypted before he
       // was kicked out (can't undisclose what you've disclosed)

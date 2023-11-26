@@ -324,7 +324,7 @@ export type ValidationArgs = [TeamState, TeamLink]
 // ********* CRYPTO
 
 export type EncryptedEnvelope = {
-  contents: Base58
+  contents: Uint8Array
   recipient: KeyMetadata
 }
 

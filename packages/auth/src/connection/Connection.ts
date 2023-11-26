@@ -240,7 +240,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   public send = (message: Payload) => {
     const { sessionKey } = this.context
     assert(sessionKey)
-    const encryptedMessage = symmetric.encrypt(message, sessionKey)
+    const encryptedMessage = symmetric.encryptBytes(message, sessionKey)
     this.sendMessage({ type: 'ENCRYPTED_MESSAGE', payload: encryptedMessage })
   }
 
@@ -545,7 +545,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       const { sessionKey } = context
       assert(sessionKey)
       const { payload: encryptedMessage } = event as EncryptedMessage
-      const decryptedMessage = symmetric.decrypt(encryptedMessage, sessionKey)
+      const decryptedMessage = symmetric.decryptBytes(encryptedMessage, sessionKey)
       this.emit('message', decryptedMessage)
     },
 

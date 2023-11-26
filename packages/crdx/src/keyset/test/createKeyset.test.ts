@@ -48,14 +48,14 @@ describe('create', () => {
     const message = 'The dolphin leaps at twilight'
 
     // Alice encrypts a message for Bob
-    const encrypted = asymmetric.encrypt({
+    const encrypted = asymmetric.encryptBytes({
       secret: message,
       recipientPublicKey: bob.publicKey,
       senderSecretKey: alice.secretKey,
     })
 
     // Bob decrypts it
-    const decrypted = asymmetric.decrypt({
+    const decrypted = asymmetric.decryptBytes({
       cipher: encrypted,
       senderPublicKey: alice.publicKey,
       recipientSecretKey: bob.secretKey,

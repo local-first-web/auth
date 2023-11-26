@@ -28,14 +28,14 @@ describe('user', () => {
       const bobKeys = asymmetric.keyPair()
 
       // Charlie encrypts a message for Bob
-      const cipher = asymmetric.encrypt({
+      const cipher = asymmetric.encryptBytes({
         secret: message,
         recipientPublicKey: bobKeys.publicKey,
         senderSecretKey: charlieKeys.secretKey,
       })
 
       // Bob decrypts the message
-      const decrypted = asymmetric.decrypt({
+      const decrypted = asymmetric.decryptBytes({
         cipher,
         senderPublicKey: charlieKeys.publicKey,
         recipientSecretKey: bobKeys.secretKey,
@@ -46,8 +46,8 @@ describe('user', () => {
     it('provides a working keyset for symmetric encryption', () => {
       const bob = createUser('bob')
       const { secretKey } = bob.keys
-      const cipher = symmetric.encrypt(message, secretKey)
-      const decrypted = symmetric.decrypt(cipher, secretKey)
+      const cipher = symmetric.encryptBytes(message, secretKey)
+      const decrypted = symmetric.decryptBytes(cipher, secretKey)
       expect(decrypted).toEqual(message)
     })
   })
