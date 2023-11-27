@@ -1,5 +1,6 @@
 export * from './Team.js'
 export * from './constants.js'
+export * from './context.js'
 export * from './createTeam.js'
 export * from './decryptTeamGraph.js'
 export * from '../connection/getDeviceUserFromGraph.js'
