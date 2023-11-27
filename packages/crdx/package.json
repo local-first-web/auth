@@ -18,13 +18,16 @@
   "scripts": {
     "build": "tsup",
     "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly --declaration",
+    "preinstall": "npx only-allow pnpm",
     "test": "vitest",
     "watch": "yarn build --watch"
   },
   "dependencies": {
+    "@types/lodash-es": "^4.17.11",
     "@localfirst/crypto": "^5.0.0",
     "@paralleldrive/cuid2": "^2.2.2",
-    "events": "3",
+    "eventemitter3": "^5.0.1",
+    "msgpackr": "^1.9.9",
     "lodash-es": "^4.17.21"
   },
   "publishConfig": {
