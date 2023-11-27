@@ -24,4 +24,29 @@ describe('connection', () => {
 
     await all([aliceConnection, bobConnection], 'connected')
   })
+
+  it('should connect even when messages are dropped', () => {
+    const { alice, bob } = setup('alice', 'bob')
+
+    const join = joinTestChannel(new BadChannel()) // <- BadChannel drops messages
+
+    const aliceConnection = join(alice.connectionContext).start()
+    const bobConnection = join(bob.connectionContext).start()
+
+    return all([aliceConnection, bobConnection], 'connected')
+  })
 })
+
+import { EventEmitter } from 'eventemitter3'
+
+/**
+ * This channel is like TestChannel but it drops one message
+ */
+export class BadChannel extends TestChannel {
+  private messageCount = 0
+  write(senderId: string, message: Uint8Array) {
+    this.messageCount++
+    if (this.messageCount === 3) return // <- drop the third message we see
+    super.write(senderId, message)
+  }
+}

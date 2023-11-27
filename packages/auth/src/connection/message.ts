@@ -13,6 +13,13 @@ export type DisconnectMessage = {
   }
 }
 
+export type RequestResendMessage = {
+  type: 'REQUEST_RESEND'
+  payload: {
+    index: number
+  }
+}
+
 // Identity
 
 export type ClaimIdentityMessage = {
@@ -96,3 +103,4 @@ export type ConnectionMessage =
   | ReadyMessage
   | SeedMessage
   | SyncMessage
+  | RequestResendMessage
