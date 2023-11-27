@@ -16,9 +16,9 @@ import {
   invitation,
   loadTeam,
   type Connection,
-  type InitialContext,
-  type InviteeDeviceInitialContext,
-  type MemberInitialContext,
+  type Context,
+  type InviteeDeviceContext,
+  type MemberContext,
   type Team,
 } from 'index.js'
 
@@ -40,6 +40,30 @@ describe('Team', () => {
       alice.team.removeServer(host)
       expect(alice.team.servers().length).toBe(0)
       expect(alice.team.serverWasRemoved(host)).toBe(true)
+    })
+
+    it("throws if a named server doesn't exist on the team", () => {
+      const { alice } = setupHumans('alice')
+      expect(() => alice.team.servers('foo.com')).toThrow()
+    })
+
+    it('can be re-added after being removed', () => {
+      const { alice } = setupHumans('alice')
+
+      // Add server
+      const { server } = createServer(host)
+      alice.team.addServer(server)
+      expect(alice.team.servers().length).toBe(1)
+
+      // Remove server
+      alice.team.removeServer(host)
+      expect(alice.team.servers().length).toBe(0)
+      expect(alice.team.serverWasRemoved(host)).toBe(true)
+
+      // Add server again
+      alice.team.addServer(server)
+      expect(alice.team.servers().length).toBe(1)
+      expect(alice.team.serverWasRemoved(host)).toBe(false)
     })
 
     it("can't be added by a non-admin member", () => {
@@ -199,7 +223,7 @@ describe('Team', () => {
       server.connection[bob.userId].stop()
 
       // Bob's phone connects to the server
-      const phoneContext: InviteeDeviceInitialContext = {
+      const phoneContext: InviteeDeviceContext = {
         userName: bob.userName,
         device: bob.phone!,
         invitationSeed: seed,
@@ -226,6 +250,11 @@ describe('Team', () => {
       const { alice } = setupHumans('alice', 'bob')
       const { server, serverWithSecrets } = createServer(host)
       alice.team.addServer(server)
+
+      const host2 = 'foo.com'
+      const { server: server2 } = createServer(host2)
+      alice.team.addServer(server2)
+
       const savedGraph = alice.team.save()
       const aliceTeamKeys = alice.team.teamKeys()
       const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, aliceTeamKeys)
@@ -245,6 +274,32 @@ describe('Team', () => {
       // The team keys were rotated, so these are new
       expect(teamKeys1.encryption.publicKey).not.toEqual(teamKeys0.encryption.publicKey)
       expect(teamKeys1.generation).toBe(1)
+    })
+
+    it(`can't change another server's keys`, async () => {
+      const { alice } = setupHumans('alice', 'bob')
+      const { server, serverWithSecrets } = createServer(host)
+      alice.team.addServer(server)
+
+      const host2 = 'foo.com'
+      const { server: server2 } = createServer(host2)
+      alice.team.addServer(server2)
+
+      const savedGraph = alice.team.save()
+      const aliceTeamKeys = alice.team.teamKeys()
+      const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, aliceTeamKeys)
+
+      expect(serverTeam.teamKeys().generation).toBe(0)
+      expect(serverTeam.servers(host2).keys.generation).toBe(0)
+
+      // server tries to change another server's keys
+      expect(() => {
+        serverTeam.changeKeys(createKeyset({ type: KeyType.SERVER, name: host2 }))
+      }).toThrow()
+
+      // No keys have been rotated
+      expect(serverTeam.teamKeys().generation).toBe(0)
+      expect(serverTeam.servers(host2).keys.generation).toBe(0)
     })
   })
 })
@@ -303,7 +358,7 @@ const setup = (...humanUsers: SetupConfig) => {
     if (team) {
       const newTeam = loadTeam(savedGraph, { user, device }, teamKeys)
       userStuff.team = newTeam
-      const connectionContext = userStuff.connectionContext as MemberInitialContext
+      const connectionContext = userStuff.connectionContext as MemberContext
       connectionContext.team = newTeam
     }
   }
@@ -331,6 +386,6 @@ type ServerStuff = {
   server: Server
   serverWithSecrets: ServerWithSecrets
   team: Team
-  connectionContext: InitialContext
+  connectionContext: Context
   connection: Record<string, Connection>
 }

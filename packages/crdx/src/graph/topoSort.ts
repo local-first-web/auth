@@ -81,5 +81,3 @@ export const byHash: LinkComparator = (a, b) =>
     ? -1 //
     : a.hash > b.hash
     ? 1
-    : // ignore coverage - never happens
-      0

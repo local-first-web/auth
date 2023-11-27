@@ -22,7 +22,7 @@ const getDevice = (state: TeamState, deviceId: string, options = { includeRemove
   if (hasServer(state, deviceId)) {
     return cast.toDevice(server(state, deviceId))
   }
-  const members = state.members.concat(options.includeRemoved ? state.removedMembers ?? [] : [])
+  const members = state.members.concat(options.includeRemoved ? state.removedMembers : [])
   const allDevices = members.flatMap(m => m.devices ?? [])
   return (
     allDevices.find(d => d.deviceId === deviceId) ??

@@ -1,5 +1,5 @@
 import * as auth from '@localfirst/auth'
-import { type MemberInitialContext } from '@localfirst/auth'
+import { type MemberContext } from '@localfirst/auth'
 import { useTeam } from '../hooks/useTeam'
 import { devices, users } from '../peers'
 import { assert } from '../util/assert'
@@ -10,8 +10,7 @@ import { OnlineToggle } from './OnlineToggle.js'
 import { StatusIndicator } from './StatusIndicator.js'
 
 export const Team = () => {
-  const { team, user, device, online, connect, disconnect, connectionStatus } =
-    useTeam()
+  const { team, user, device, online, connect, disconnect, connectionStatus } = useTeam()
 
   assert(team) // we know we're on a team if we're showing this component
   assert(user)
@@ -20,8 +19,7 @@ export const Team = () => {
 
   const userBelongsToTeam = team.has(userId)
   const userIsAdmin = userBelongsToTeam && team.memberIsAdmin(userId)
-  const adminCount = () =>
-    team.members().filter(m => team.memberIsAdmin(m.userId)).length
+  const adminCount = () => team.members().filter(m => team.memberIsAdmin(m.userId)).length
 
   return (
     <>
@@ -39,7 +37,7 @@ export const Team = () => {
               isOnline={online}
               onChange={isConnected => {
                 if (isConnected) {
-                  const context = { user, device, team } as MemberInitialContext
+                  const context = { user, device, team } as MemberContext
                   connect(team.teamName, context)
                 } else {
                   disconnect()
@@ -64,25 +62,19 @@ export const Team = () => {
                 : 'Click to make team admin'
 
               return (
-                <tr
-                  key={m.userName}
-                  className="border-t border-b border-gray-200 group"
-                >
+                <tr key={m.userName} className="border-t border-b border-gray-200 group">
                   {/* Admin icon */}
                   <td className="w-2">
                     {userIsAdmin ? (
                       <button
                         disabled={!userIsAdmin || memberIsOnlyAdmin}
                         onClick={() => {
-                          if (memberIsAdmin)
-                            team.removeMemberRole(m.userId, auth.ADMIN)
+                          if (memberIsAdmin) team.removeMemberRole(m.userId, auth.ADMIN)
                           else team.addMemberRole(m.userId, auth.ADMIN)
                         }}
                         title={adminToggleTitle}
                         className={`px-1 m-1 hover:opacity-25 cursor-pointer ${
-                          memberIsAdmin
-                            ? 'opacity-100'
-                            : 'opacity-0 disabled:opacity-0'
+                          memberIsAdmin ? 'opacity-100' : 'opacity-0 disabled:opacity-0'
                         }`}
                         children="👑"
                       />
@@ -102,9 +94,7 @@ export const Team = () => {
                   <td className="flex py-2">
                     {m.devices?.map(d => {
                       const emoji = devices[d.deviceName].emoji
-                      const status =
-                        connectionStatus[auth.device.getDeviceId(d)] ||
-                        'disconnected'
+                      const status = connectionStatus[auth.device.getDeviceId(d)] || 'disconnected'
                       const isThisDevice = d.keys.name === device.keys.name
                       return isThisDevice ? null : (
                         <div
@@ -145,10 +135,7 @@ export const Team = () => {
       {/* Chain visualization */}
       <div className="border-t p-4">
         <CardLabel>Signature chain</CardLabel>
-        <GraphDiagram
-          graph={team.graph}
-          id={device.keys.name.replace(/::/, '-')}
-        />
+        <GraphDiagram graph={team.graph} id={device.keys.name.replace(/::/, '-')} />
       </div>
     </>
   )

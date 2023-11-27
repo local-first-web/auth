@@ -15,7 +15,7 @@ import {
   tryToConnect,
 } from 'util/testing/index.js'
 import { describe, expect, it } from 'vitest'
-import type { InviteeDeviceInitialContext } from '../types.js'
+import type { InviteeDeviceContext } from '../types.js'
 
 describe('connection', () => {
   describe('authentication', () => {
@@ -175,7 +175,7 @@ describe('connection', () => {
         const { seed } = bob.team.inviteDevice()
 
         // 💻<->📱📧 Bob's phone and laptop connect and the phone joins
-        const phoneContext: InviteeDeviceInitialContext = {
+        const phoneContext: InviteeDeviceContext = {
           userName: bob.userName,
           device: bob.phone!,
           invitationSeed: seed,
@@ -207,7 +207,7 @@ describe('connection', () => {
         const { seed } = bob.team.inviteDevice()
 
         // 💻<->📱📧 Bob's phone and Alice's laptop connect and the phone joins
-        const phoneContext: InviteeDeviceInitialContext = {
+        const phoneContext: InviteeDeviceContext = {
           userName: bob.userName,
           device: bob.phone!,
           invitationSeed: seed,

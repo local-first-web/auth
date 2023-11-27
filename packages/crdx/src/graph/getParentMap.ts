@@ -110,15 +110,6 @@ export const getTails = (linkMap: LinkMap): Hash[] => {
   return tails
 }
 
-/**
- * Returns false if there are parent hashes that are not in the map.
- */
-export const isComplete = (linkMap: LinkMap) => {
-  const allDependencies = Object.values(linkMap).flat()
-  const isMissing = (hash: Hash) => !(hash in linkMap)
-  return !allDependencies.some(d => isMissing(d))
-}
-
 export const getChildMap = <A extends Action, C>(graph: Graph<A, C>): LinkMap => {
   const childMap = {} as LinkMap
   for (const hash of getHashes(graph))

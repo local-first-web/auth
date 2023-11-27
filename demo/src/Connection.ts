@@ -65,7 +65,7 @@ const bubbleEvents = (source: EventEmitter<any>, target: EventEmitter<any>, even
 
 type ConnectionParams = {
   socket: WebSocket
-  context: auth.InitialContext
+  context: auth.Context
   peerUserName: string
   storedMessages?: string[]
 }

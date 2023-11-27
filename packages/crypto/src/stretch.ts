@@ -1,3 +1,5 @@
+// ignore file coverage
+
 import process from 'process'
 import { memoize } from 'lodash-es'
 import sodium from 'libsodium-wrappers-sumo'

@@ -1,5 +1,4 @@
 import { EventEmitter } from 'eventemitter3'
-import { SendFunction } from './types.js'
 
 /**
  * Receives numbered inbound messages and emits them in order. If a message is missing after a delay, asks

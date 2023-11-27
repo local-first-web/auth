@@ -14,11 +14,18 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
   id: 'connection',
   initial: 'awaitingIdentityClaim',
 
+  // TODO: if we have their identity claim, AND we've sent our identity claim, we can go to `authenticating`
   on: {
     REQUEST_IDENTITY: {
       actions: 'sendIdentityClaim',
       target: 'awaitingIdentityClaim',
     },
+
+    CLAIM_IDENTITY: {
+      actions: ['receiveIdentityClaim'],
+      target: 'awaitingIdentityClaim',
+    },
+
     ERROR: { actions: 'receiveError', target: '#disconnected' }, // Remote error (sent by peer)
     LOCAL_ERROR: { actions: 'sendError', target: '#disconnected' }, // Local error (detected by us, sent to peer)
   },
@@ -26,11 +33,9 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
   states: {
     awaitingIdentityClaim: {
       id: 'awaitingIdentityClaim',
-      on: {
-        CLAIM_IDENTITY: {
-          actions: ['receiveIdentityClaim'],
-          target: 'authenticating',
-        },
+      always: {
+        cond: 'bothSentIdentityClaim',
+        target: 'authenticating',
       },
     },
 
@@ -53,12 +58,15 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
 
                 // If I have an invitation, wait for acceptance
                 {
-                  cond: 'iHaveInvitation',
+                  cond: 'weHaveInvitation',
                   target: 'awaitingInvitationAcceptance',
                 },
 
                 // If they have an invitation, validate it
-                { cond: 'theyHaveInvitation', target: 'validatingInvitation' },
+                {
+                  cond: 'theyHaveInvitation', //
+                  target: 'validatingInvitation',
+                },
 
                 // Otherwise, we can proceed directly to authentication
                 { target: '#checkingIdentity' },
@@ -116,7 +124,7 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
                 awaitingIdentityChallenge: {
                   // If we just presented an invitation, they already know who we are
                   always: {
-                    cond: 'iHaveInvitation',
+                    cond: 'weHaveInvitation',
                     target: 'doneProvingMyIdentity',
                   },
 

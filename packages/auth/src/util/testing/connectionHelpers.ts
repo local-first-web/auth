@@ -1,9 +1,6 @@
 // ignore file coverage
 import { type Connection, type ConnectionEvents } from 'connection/index.js'
-import {
-  type InviteeDeviceInitialContext,
-  type InviteeMemberInitialContext,
-} from 'connection/types.js'
+import { type InviteeDeviceContext, type InviteeMemberContext } from 'connection/types.js'
 import type { EventEmitter } from 'eventemitter3'
 import { expect } from 'vitest'
 import { TestChannel } from './TestChannel.js'
@@ -36,7 +33,7 @@ export const connectWithInvitation = async (
     user: invitee.user,
     device: invitee.device,
     invitationSeed: seed,
-  } as InviteeMemberInitialContext
+  } as InviteeMemberContext
 
   return connect(member, invitee).then(() => {
     // The connection now has the team object, so let's update our user stuff
@@ -45,7 +42,7 @@ export const connectWithInvitation = async (
 }
 
 export const connectPhoneWithInvitation = async (user: UserStuff, seed: string) => {
-  const phoneContext: InviteeDeviceInitialContext = {
+  const phoneContext: InviteeDeviceContext = {
     userName: user.user.userName,
     device: user.phone!,
     invitationSeed: seed,
@@ -68,7 +65,7 @@ export const expectEveryoneToKnowEveryone = (...members: UserStuff[]) => {
   for (const a of members) {
     for (const b of members) {
       if (!a.team.has(b.userId)) {
-        throw new Error(`${a.userId} does not have ${b.userId} on their team`)
+        throw new Error(`${a.userName} does not have ${b.userName} on their team`)
       }
     }
   }

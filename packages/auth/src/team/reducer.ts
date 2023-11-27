@@ -257,11 +257,13 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     default: {
+      // ignore coverage
       throw unrecognizedLinkType(action)
     }
   }
 }
 
+// ignore coverage
 function unrecognizedLinkType(action: never) {
   const { type } = action as TeamAction
   return new Error(`Unrecognized link type: ${type}`)

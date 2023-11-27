@@ -1,33 +1,9 @@
-import type { Base58, Hash, Keyring, Keyset, SyncMessage as SyncPayload } from '@localfirst/crdx'
-import type { Challenge } from 'connection/types.js'
-import type { Device, FirstUseDevice } from 'index.js'
-import type { ProofOfInvitation } from 'invitation/index.js'
+import type { Base58, Hash, Keyring, SyncMessage as SyncPayload } from '@localfirst/crdx'
+import type { Challenge, IdentityClaim } from 'connection/types.js'
 import type { ErrorMessage, LocalErrorMessage } from './errors.js'
 
 export type ReadyMessage = {
   type: 'REQUEST_IDENTITY'
-}
-
-export type ClaimIdentityMessage = {
-  type: 'CLAIM_IDENTITY'
-  payload:
-    | {
-        // I'm already a member, I just send my deviceId
-        deviceId: string
-      }
-    | {
-        // I'm a new user and I have an invitation
-        proofOfInvitation: ProofOfInvitation
-        userName: string
-        userKeys: Keyset
-        device: Device
-      }
-    | {
-        // I'm a new device for an existing user and I have an invitation
-        proofOfInvitation: ProofOfInvitation
-        userName: string
-        device: FirstUseDevice
-      }
 }
 
 export type DisconnectMessage = {
@@ -37,17 +13,12 @@ export type DisconnectMessage = {
   }
 }
 
-// Invitations
-
-export type AcceptInvitationMessage = {
-  type: 'ACCEPT_INVITATION'
-  payload: {
-    serializedGraph: string
-    teamKeyring: Keyring
-  }
-}
-
 // Identity
+
+export type ClaimIdentityMessage = {
+  type: 'CLAIM_IDENTITY'
+  payload: IdentityClaim
+}
 
 export type ChallengeIdentityMessage = {
   type: 'CHALLENGE_IDENTITY'
@@ -75,7 +46,14 @@ export type RejectIdentityMessage = {
   }
 }
 
-// Update (synchronization)
+export type AcceptInvitationMessage = {
+  type: 'ACCEPT_INVITATION'
+  payload: {
+    serializedGraph: string
+    teamKeyring: Keyring
+  }
+}
+// Synchronization
 
 export type SyncMessage = {
   type: 'SYNC'

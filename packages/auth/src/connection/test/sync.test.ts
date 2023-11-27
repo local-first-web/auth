@@ -1,5 +1,3 @@
-import { describe, expect, it } from 'vitest'
-import { type MemberInitialContext } from '../types.js'
 import { ADMIN } from 'role/index.js'
 import {
   TestChannel,
@@ -16,6 +14,9 @@ import {
   setup,
   updated,
 } from 'util/testing/index.js'
+import { pause } from 'util/testing/pause.js'
+import { describe, expect, it } from 'vitest'
+import { type MemberContext } from '../types.js'
 
 describe('connection', () => {
   describe('sync', () => {
@@ -332,6 +333,7 @@ describe('connection', () => {
 
         // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
         await connect(alice, bob)
+        await pause(100)
 
         // ✅ No problemo
         expectEveryoneToKnowEveryone(alice, charlie, bob, dwight)
@@ -534,12 +536,12 @@ describe('connection', () => {
 
         expect(bob.team.has(charlie.userId)).toBe(true)
 
-        // // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
+        // 👩🏾<->👨🏻‍🦲 Alice and Bob connect
         await connect(alice, bob)
 
-        // // ✅ Bob's invitation is discarded, because Bob concurrently lost admin privileges
-        // expect(alice.team.has(charlie.userId)).toBe(false)
-        // expect(bob.team.has(charlie.userId)).toBe(false)
+        // ✅ Bob's invitation is discarded, because Bob concurrently lost admin privileges
+        expect(alice.team.has(charlie.userId)).toBe(false)
+        expect(bob.team.has(charlie.userId)).toBe(false)
       })
 
       it('resolves circular concurrent demotions', async () => {
@@ -700,6 +702,7 @@ describe('connection', () => {
         // 👩🏾 Alice removes 👨🏻‍🦲 Bob from the team
         alice.team.remove(bob.userId)
         await anyDisconnected(alice, bob)
+        await anyUpdated(alice, charlie)
 
         // The team keys have been rotated
         expect(alice.team.teamKeys().generation).toBe(1)
@@ -708,8 +711,7 @@ describe('connection', () => {
         // This will now be encrypted with the new team keys
         alice.team.addRole('managers')
 
-        // wait for 👳🏽‍♂️ Charlie to get both changes
-        await anyUpdated(alice, charlie)
+        // wait for 👳🏽‍♂️ Charlie to get changes
         await anyUpdated(alice, charlie)
 
         // Charlie can decrypt the last link Alice created
@@ -756,7 +758,7 @@ describe('connection', () => {
 
         // Bob invites his phone and it joins
         const { seed } = bob.team.inviteDevice()
-        await Promise.all([connectPhoneWithInvitation(bob, seed), anyUpdated(alice, bob)])
+        await Promise.all([connectPhoneWithInvitation(bob, seed), pause(10)])
 
         // Bob and Alice know about Bob's phone
         expect(bob.team.members(bob.userId).devices).toHaveLength(2)
@@ -768,15 +770,14 @@ describe('connection', () => {
         bob.team.removeDevice(bob.phone!.deviceId)
         expect(bob.team.members(bob.userId).devices).toHaveLength(1)
 
-        // Alice can see that Bob only has one device
-        await anyUpdated(alice, bob)
-        expect(alice.team.members(bob.userId).devices).toHaveLength(1)
+        await pause(10)
 
-        await anyUpdated(bob, charlie)
+        // Alice and Charlie can see that Bob only has one device
+        expect(alice.team.members(bob.userId).devices).toHaveLength(1)
         expect(charlie.team.members(bob.userId).devices).toHaveLength(1)
 
         // Eve tries to connect to Charlie from Bob's phone, but she can't
-        const phoneContext: MemberInitialContext = {
+        const phoneContext: MemberContext = {
           device: bob.phone!,
           user: bob.user,
           team: bob.team,

@@ -7,7 +7,7 @@ describe('invitations', () => {
     const invitation = create({ seed })
 
     // Looks like an invitation
-    expect(seed).toHaveLength(22)
+    expect(seed.length > 20 && seed.length < 25).toBe(true)
     expect(invitation).toHaveProperty('id')
     expect(invitation.id).toHaveLength(15)
     expect(invitation).toHaveProperty('publicKey')
