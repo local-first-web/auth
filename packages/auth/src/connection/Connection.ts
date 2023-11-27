@@ -95,11 +95,22 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         sendMessage(serialized)
       },
     })
+      .on('message', message => {
+        this.logMessage('in', message)
+        // Handle requests from the peer to resend messages that they missed
+        if (message.type === 'REQUEST_RESEND') {
+          const { index } = message.payload
+          this.orderedNetwork.resend(index)
+          return
+        }
 
-    // When we receive a message from our peer, pass it to the state machine
-    this.orderedNetwork.on('message', message => {
-      this.machine.send(message)
-    })
+        // Pass other messages from peer to the state machine
+        this.machine.send(message)
+      })
+      .on('request', index => {
+        // Send out requests to resend messages that we missed
+        this.sendMessage({ type: 'REQUEST_RESEND', payload: { index } })
+      })
 
     // ignore coverage
     const userName =
@@ -203,7 +214,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
    */
   public deliver(serializedMessage: Uint8Array) {
     const message = unpack(serializedMessage) as NumberedMessage<ConnectionMessage>
-    this.logMessage('in', message)
     this.orderedNetwork.receive(message)
   }
 
