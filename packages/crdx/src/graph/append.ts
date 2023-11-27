@@ -29,7 +29,7 @@ export const append = <A extends Action, C>({
   }
 
   // create encrypted body
-  const encryptedBody = asymmetric.encrypt({
+  const encryptedBody = asymmetric.encryptBytes({
     secret: body,
     recipientPublicKey,
     senderSecretKey,

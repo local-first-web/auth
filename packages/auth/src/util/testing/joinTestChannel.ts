@@ -7,7 +7,7 @@ import { pause } from './pause.js'
 export const joinTestChannel = (channel: TestChannel) => (context: Context) => {
   const id = isServerContext(context) ? context.server.host : context.device.deviceId
   // Hook up send
-  const sendMessage = (message: string) => {
+  const sendMessage = (message: Uint8Array) => {
     channel.write(id, message)
   }
 

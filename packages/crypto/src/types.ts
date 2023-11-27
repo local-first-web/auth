@@ -23,27 +23,10 @@ export type SignedMessage = {
   publicKey: Base58
 }
 
-export type EncryptParams = {
-  /** The plaintext to encrypt */
-  secret: Payload
-  /** The public key of the intended recipient */
-  recipientPublicKey: Base58
-  /** The secret key of the sender (optional). If not provided, an ephemeral keypair will be generated, and the public key included as metadata. */
-  senderSecretKey?: Base58
-}
-
-export type DecryptParams = {
-  /** The encrypted data, encoded in msgpack format as a base58 string */
-  cipher: Base58
-  /** The public key of the sender (optional). If not provided, an ephemeral public key is assumed to be included in the cipher metadata. */
-  senderPublicKey?: Base58
-  /** The secret key of the recipient */
-  recipientSecretKey: Base58
-}
-
 export type Cipher = {
   nonce: Uint8Array
   message: Uint8Array
 }
 
 export type Encoder = (b: Uint8Array) => string
+export type Password = string | Uint8Array

@@ -1,16 +1,17 @@
-import { hash, type Base58, base58 } from '@localfirst/crypto'
+import { hash, hashBytes, type Base58, base58 } from '@localfirst/crypto'
 import { HashPurpose } from 'util/index.js'
 
 /**
  * Takes two seeds (in this case, provided by each of two peers that are connecting) and
  * deterministically derives a shared key.
  */
-export const deriveSharedKey = (seed1: Base58, seed2: Base58): Base58 => {
-  const concatenatedSeeds = [seed1, seed2]
+export const deriveSharedKey = <T extends Base58 | Uint8Array>(a: T, b: T): T => {
+  const aBytes = typeof a === 'string' ? base58.decode(a) : (a as Uint8Array)
+  const bBytes = typeof b === 'string' ? base58.decode(b) : (b as Uint8Array)
+  const concatenatedSeeds = [aBytes, bBytes]
     .sort() // Ensure that the seeds are in a predictable order
-    .map(s => base58.decode(s)) // Convert to byte arrays
-    .reduce((a, b) => new Uint8Array([...a, ...b]), new Uint8Array()) // Concatenate
+    .reduce((result, seed) => new Uint8Array([...result, ...seed]), new Uint8Array()) // Concatenate
 
-  const sharedKey = hash(HashPurpose.SHARED_KEY, concatenatedSeeds)
-  return sharedKey
+  const hashFn = typeof a === 'string' ? hash : hashBytes
+  return hashFn(HashPurpose.SHARED_KEY, concatenatedSeeds) as T
 }

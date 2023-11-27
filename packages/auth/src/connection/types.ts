@@ -115,21 +115,24 @@ export type Challenge = KeyScope & {
 }
 
 export type ConnectionContext = {
+  device: DeviceWithSecrets | FirstUseDeviceWithSecrets
+
   ourIdentityClaim?: IdentityClaim
   theirIdentityClaim?: IdentityClaim
 
-  theirDevice?: Device | FirstUseDevice
-
   challenge?: Challenge
+
+  theirDevice?: Device | FirstUseDevice
   peer?: Member
+
+  seed?: Uint8Array
+  theirEncryptedSeed?: Uint8Array
+  sessionKey?: Uint8Array
+
   theirHead?: Hash
-  seed?: Base58
-  theirEncryptedSeed?: Base58
-  sessionKey?: Base58
-  error?: ErrorPayload
   syncState?: SyncState
 
-  device: DeviceWithSecrets | FirstUseDeviceWithSecrets
+  error?: ErrorPayload
 } & Partial<InviteeDeviceContext> &
   Partial<InviteeMemberContext> &
   Partial<ServerContext> &

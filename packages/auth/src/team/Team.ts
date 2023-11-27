@@ -720,7 +720,7 @@ export class Team extends EventEmitter {
     const scope = roleName ? { type: KeyType.ROLE, name: roleName } : TEAM_SCOPE
     const { secretKey, generation } = this.keys(scope)
     return {
-      contents: symmetric.encrypt(payload, secretKey),
+      contents: symmetric.encryptBytes(payload, secretKey),
       recipient: { ...scope, generation },
     }
   }
@@ -728,7 +728,7 @@ export class Team extends EventEmitter {
   /** Decrypt a payload using keys available to the current user. */
   public decrypt = (message: EncryptedEnvelope): Payload => {
     const { secretKey } = this.keys(message.recipient)
-    return symmetric.decrypt(message.contents, secretKey)
+    return symmetric.decryptBytes(message.contents, secretKey)
   }
 
   /** Sign a message using the current user's keys. */

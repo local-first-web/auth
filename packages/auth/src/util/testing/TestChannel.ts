@@ -2,7 +2,7 @@ import { EventEmitter } from 'eventemitter3'
 
 export class TestChannel extends EventEmitter {
   private peers = 0
-  private readonly buffer: Array<{ senderId: string; msg: string }> = []
+  private readonly buffer: Array<{ senderId: string; msg: Uint8Array }> = []
 
   addPeer() {
     this.peers += 1
@@ -11,14 +11,14 @@ export class TestChannel extends EventEmitter {
       while (this.buffer.length > 0) {
         const { senderId, msg } = this.buffer.pop() as {
           senderId: string
-          msg: string
+          msg: Uint8Array
         }
         this.emit('data', senderId, msg)
       }
     }
   }
 
-  write(senderId: string, message: string) {
+  write(senderId: string, message: Uint8Array) {
     if (this.peers > 1) {
       // At least one peer besides us connected
       this.emit('data', senderId, message)

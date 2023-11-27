@@ -22,7 +22,7 @@ export const create = (
     : redactedRecipientKeys.encryption
 
   // Encrypt the lockbox's contents
-  const encryptedPayload = asymmetric.encrypt({
+  const encryptedPayload = asymmetric.encryptBytes({
     secret: contents,
     recipientPublicKey,
     senderSecretKey: encryptionKeys.secretKey,

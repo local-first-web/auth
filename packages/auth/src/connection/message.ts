@@ -49,7 +49,7 @@ export type RejectIdentityMessage = {
 export type AcceptInvitationMessage = {
   type: 'ACCEPT_INVITATION'
   payload: {
-    serializedGraph: string
+    serializedGraph: Uint8Array
     teamKeyring: Keyring
   }
 }
@@ -71,7 +71,7 @@ export type LocalUpdateMessage = {
 export type SeedMessage = {
   type: 'SEED'
   payload: {
-    encryptedSeed: Base58
+    encryptedSeed: Uint8Array
   }
 }
 
@@ -79,7 +79,7 @@ export type SeedMessage = {
 
 export type EncryptedMessage = {
   type: 'ENCRYPTED_MESSAGE'
-  payload: Base58
+  payload: Uint8Array
 }
 
 export type ConnectionMessage =

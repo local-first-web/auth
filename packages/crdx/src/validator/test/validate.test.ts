@@ -81,7 +81,7 @@ describe('graphs', () => {
 
         // 🦹‍♀️ She reencrypts the link with her private key
         graph.encryptedLinks[graph.root] = {
-          encryptedBody: asymmetric.encrypt({
+          encryptedBody: asymmetric.encryptBytes({
             secret: rootLink.body,
             recipientPublicKey: keys.encryption.publicKey,
             senderSecretKey: eve.keys.encryption.secretKey,
@@ -104,7 +104,7 @@ describe('graphs', () => {
         const oldRootHash = graph.root
 
         // 🦹‍♀️ She reencrypts the link with her private key
-        const encryptedBody = asymmetric.encrypt({
+        const encryptedBody = asymmetric.encryptBytes({
           secret: rootLink.body,
           recipientPublicKey: keys.encryption.publicKey,
           senderSecretKey: eve.keys.encryption.secretKey,
@@ -141,7 +141,7 @@ describe('graphs', () => {
 
         // 🦹‍♀️ She reencrypts the link with her private key
         graph.encryptedLinks[headHash] = {
-          encryptedBody: asymmetric.encrypt({
+          encryptedBody: asymmetric.encryptBytes({
             secret: headLink.body,
             recipientPublicKey: keys.encryption.publicKey,
             senderSecretKey: eve.keys.encryption.secretKey,
@@ -165,7 +165,7 @@ describe('graphs', () => {
 
         // 🦹‍♀️ She reencrypts the link with her private key
         graph.encryptedLinks[linkHash] = {
-          encryptedBody: asymmetric.encrypt({
+          encryptedBody: asymmetric.encryptBytes({
             secret: link.body,
             recipientPublicKey: keys.encryption.publicKey,
             senderSecretKey: eve.keys.encryption.secretKey,

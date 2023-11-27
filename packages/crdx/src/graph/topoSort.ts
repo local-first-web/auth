@@ -75,9 +75,11 @@ type TopoSortOptions = {
   comparator?: LinkComparator
 }
 
+// ignore coverage
 /** By default, we use the links' hashes to order them in an arbitrary but predictable sequence. */
 export const byHash: LinkComparator = (a, b) =>
   a.hash < b.hash
     ? -1 //
     : a.hash > b.hash
     ? 1
+    : 0

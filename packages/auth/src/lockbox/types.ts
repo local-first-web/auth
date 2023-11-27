@@ -28,5 +28,5 @@ export type Lockbox = {
   contents: KeyManifest
 
   /** The encrypted keyset */
-  encryptedPayload: Base58
+  encryptedPayload: Uint8Array
 }

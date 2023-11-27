@@ -11,7 +11,7 @@ export const getDeviceUserFromGraph = ({
   starterKeys,
   invitationId,
 }: {
-  serializedGraph: string
+  serializedGraph: Uint8Array
   teamKeyring: Keyring
   starterKeys: KeysetWithSecrets
   invitationId: Base58

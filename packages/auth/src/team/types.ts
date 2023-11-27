@@ -56,7 +56,7 @@ export type NewTeamOptions = {
 export type ExistingTeamOptions = {
   /** The `TeamGraph` representing the team's state, to be rehydrated.
    *  Can be serialized or not. */
-  source: string | TeamGraph
+  source: Uint8Array | TeamGraph
 
   /** The team keys need to be provided for encryption and decryption. It's up to the application to persist these somewhere.  */
   teamKeyring: Keyring
@@ -324,7 +324,7 @@ export type ValidationArgs = [TeamState, TeamLink]
 // ********* CRYPTO
 
 export type EncryptedEnvelope = {
-  contents: Base58
+  contents: Uint8Array
   recipient: KeyMetadata
 }
 

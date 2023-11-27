@@ -4,7 +4,7 @@ import { type LocalContext } from 'team/context.js'
 import { Team } from 'team/Team.js'
 
 export const load = (
-  source: string | TeamGraph,
+  source: Uint8Array | TeamGraph,
   context: LocalContext,
   teamKeys: KeysetWithSecrets | Keyring
 ) => {

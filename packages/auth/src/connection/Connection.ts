@@ -9,7 +9,7 @@ import {
   type DecryptFnParams,
   type SyncState,
 } from '@localfirst/crdx'
-import { asymmetric, randomKey, symmetric, type Hash, type Payload } from '@localfirst/crypto'
+import { asymmetric, randomKeyBytes, symmetric, type Hash, type Payload } from '@localfirst/crypto'
 import { deriveSharedKey } from 'connection/deriveSharedKey.js'
 import {
   buildError,
@@ -33,6 +33,7 @@ import {
 import { redactDevice } from 'device/index.js'
 import { EventEmitter } from 'eventemitter3'
 import * as invitations from 'invitation/index.js'
+import { pack, unpack } from 'msgpackr'
 import { getTeamState } from 'team/getTeamState.js'
 import {
   Team,
@@ -90,7 +91,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     this.orderedNetwork = new OrderedNetwork<ConnectionMessage>({
       sendMessage: message => {
         this.logMessage('out', message)
-        const serialized = JSON.stringify(message)
+        const serialized = pack(message)
         sendMessage(serialized)
       },
     })
@@ -229,8 +230,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
    * Adds incoming messages from the peer to the OrderedNetwork's incoming message queue, which will
    * pass them to the state machine in order.
    */
-  public deliver(serializedMessage: string) {
-    const message = JSON.parse(serializedMessage) as NumberedMessage<ConnectionMessage>
+  public deliver(serializedMessage: Uint8Array) {
+    const message = unpack(serializedMessage) as NumberedMessage<ConnectionMessage>
     this.logMessage('in', message)
     this.orderedNetwork.receive(message)
   }
@@ -239,7 +240,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   public send = (message: Payload) => {
     const { sessionKey } = this.context
     assert(sessionKey)
-    const encryptedMessage = symmetric.encrypt(message, sessionKey)
+    const encryptedMessage = symmetric.encryptBytes(message, sessionKey)
     this.sendMessage({ type: 'ENCRYPTED_MESSAGE', payload: encryptedMessage })
   }
 
@@ -491,14 +492,14 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     generateSeed: assign(context => {
       return {
-        seed: randomKey(),
+        seed: randomKeyBytes(),
       }
     }),
 
     sendSeed: context => {
       const { user, peer, seed } = context
 
-      const encryptedSeed = asymmetric.encrypt({
+      const encryptedSeed = asymmetric.encryptBytes({
         secret: seed!,
         recipientPublicKey: peer!.keys.encryption,
         senderSecretKey: user!.keys.encryption.secretKey,
@@ -527,7 +528,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         // Their encrypted seed is stored in context
         assert(theirEncryptedSeed)
         // Decrypt it:
-        const theirSeed = asymmetric.decrypt({
+        const theirSeed = asymmetric.decryptBytes({
           cipher: theirEncryptedSeed,
           senderPublicKey: peer!.keys.encryption,
           recipientSecretKey: user!.keys.encryption.secretKey,
@@ -544,7 +545,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       const { sessionKey } = context
       assert(sessionKey)
       const { payload: encryptedMessage } = event as EncryptedMessage
-      const decryptedMessage = symmetric.decrypt(encryptedMessage, sessionKey)
+      const decryptedMessage = symmetric.decryptBytes(encryptedMessage, sessionKey)
       this.emit('message', decryptedMessage)
     },
 
@@ -729,7 +730,7 @@ const stateSummary = (state = 'disconnected'): string =>
 
 export type Params = {
   /** A function to send messages to our peer. This how you hook this up to your network stack. */
-  sendMessage: (message: string) => void
+  sendMessage: (message: Uint8Array) => void
 
   /** The initial context. */
   context: Context
