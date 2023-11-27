@@ -16,6 +16,7 @@ import {
 } from 'util/testing/index.js'
 import { describe, expect, it } from 'vitest'
 import type { InviteeDeviceContext } from '../types.js'
+import { pause } from 'util/testing/pause.js'
 
 describe('connection', () => {
   describe('authentication', () => {
@@ -194,6 +195,61 @@ describe('connection', () => {
 
         // ✅ 👩🏾👍📱 Alice knows about Bob's phone
         expect(alice.team.members(bob.userId).devices).toHaveLength(2)
+      })
+
+      it('lets a member invite a device, remove it, and then add it back', async () => {
+        const { alice, bob } = setup('alice', 'bob')
+        await connect(alice, bob)
+
+        // Bob invites and admits his phone
+
+        const phone = bob.phone!
+
+        {
+          const { seed } = bob.team.inviteDevice()
+          const phoneContext: InviteeDeviceContext = {
+            userName: bob.userName,
+            device: phone,
+            invitationSeed: seed,
+          }
+          const join = joinTestChannel(new TestChannel())
+          const laptopConnection = join(bob.connectionContext).start()
+          const phoneConnection = join(phoneContext).start()
+          await all([laptopConnection, phoneConnection], 'connected')
+
+          bob.team = laptopConnection.team!
+
+          expect(bob.team.members(bob.userId).devices).toHaveLength(2)
+          expect(alice.team.members(bob.userId).devices).toHaveLength(2)
+
+          // Bob removes his phone
+          laptopConnection.stop()
+          bob.team.removeDevice(phone.deviceId)
+          await anyUpdated(alice, bob)
+          await pause(50)
+
+          expect(bob.team.members(bob.userId).devices).toHaveLength(1)
+          expect(alice.team.members(bob.userId).devices).toHaveLength(1)
+        }
+        {
+          // Bob invites his phone again
+
+          const { seed } = bob.team.inviteDevice()
+          const phoneContext: InviteeDeviceContext = {
+            userName: bob.userName,
+            device: phone,
+            invitationSeed: seed,
+          }
+          const join = joinTestChannel(new TestChannel())
+          const laptopConnection = join(bob.connectionContext).start()
+          const phoneConnection = join(phoneContext).start()
+          await all([laptopConnection, phoneConnection], 'connected')
+
+          bob.team = laptopConnection.team!
+
+          expect(bob.team.members(bob.userId).devices).toHaveLength(2)
+          expect(alice.team.members(bob.userId).devices).toHaveLength(2)
+        }
       })
 
       it('lets a different member admit an invited device', async () => {

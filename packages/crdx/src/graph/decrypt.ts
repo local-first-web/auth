@@ -94,6 +94,7 @@ export type DecryptFn = <A extends Action, C>({
   keys,
 }: DecryptFnParams<A, C>) => Graph<A, C>
 
+// ignore coverage
 // buffer to uint8array
 const toUint8Array = (buf: Buffer | Uint8Array) => {
   return !isBuffer(buf)

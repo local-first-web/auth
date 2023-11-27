@@ -1,6 +1,6 @@
 import { createKeyset, type UnixTimestamp } from '@localfirst/crdx'
 import { signatures } from '@localfirst/crypto'
-import { redactDevice } from 'index.js'
+import { FirstUseDevice, redactDevice } from 'index.js'
 import { generateProof, generateStarterKeys } from 'invitation/index.js'
 import * as teams from 'team/index.js'
 import { KeyType } from 'util/index.js'
@@ -326,6 +326,34 @@ describe('Team', () => {
 
           // 📱 Alice's phone connects with 👨🏻‍🦲 Bob and she presents the proof
           bob.team.admitDevice(proofOfInvitation, redactDevice(alice.phone!))
+        })
+
+        it("won't accept proof of invitation with an invalid signature", () => {
+          const { alice, eve } = setup('alice', 'eve')
+
+          // 👩🏾 Alice only has 💻 one device on the signature chain
+          expect(alice.team.members(alice.userId).devices).toHaveLength(1)
+
+          // 💻 on her laptop, Alice generates an invitation for her phone
+          const { seed } = alice.team.inviteDevice()
+
+          // 🦹‍♀️ Eve is a member of the group and she wants to hijack Alice's device invitation
+          // for her nefarious purposes. so she tries to create a proof of invitation.
+
+          // She can get the id from the graph
+          const invitation = Object.values(alice.team.state.invitations)[0]
+          const { id } = invitation
+
+          const payload = { id }
+          const signature = signatures.sign(payload, eve.user.keys.signature.secretKey)
+          const badProof = { id, signature }
+
+          // 🦹‍♀️ Eve shows 👩🏾 Alice her proof of invitation
+          const submitBadProof = () =>
+            alice.team.admitDevice(badProof, redactDevice(eve.device) as FirstUseDevice)
+
+          // 🦹‍♀️ GRRR I would've got away with it too, if it weren't for you meddling cryptographic algorithms!
+          expect(submitBadProof).toThrow('Signature provided is not valid')
         })
       })
     })

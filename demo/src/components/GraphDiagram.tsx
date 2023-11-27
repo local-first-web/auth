@@ -1,9 +1,4 @@
-import {
-  type TeamLink,
-  type TeamLinkBody,
-  type TeamGraph,
-  type Hash,
-} from '@localfirst/auth'
+import { type TeamLink, type TeamLinkBody, type TeamGraph, type Hash } from '@localfirst/auth'
 import React, { type FC } from 'react'
 import { theme } from '../mermaid.theme'
 import { devices, users } from '../peers'
@@ -17,10 +12,7 @@ const getId = (s: string) =>
     .replaceAll(/\W/g, '') // remove non alphanumeric chars
     .slice(0, 5) // truncate
 
-export const GraphDiagram: FC<{ graph: TeamGraph; id: string }> = ({
-  graph: chain,
-  id,
-}) => {
+export const GraphDiagram: FC<{ graph: TeamGraph; id: string }> = ({ graph: chain, id }) => {
   const chartHeader = [
     `graph TD`, // TD = top-down
     `classDef merge fill:#fc3,font-weight:bold,stroke-width:3px,text-align:center`, // css for merge nodes
@@ -36,10 +28,7 @@ export const GraphDiagram: FC<{ graph: TeamGraph; id: string }> = ({
     return mermaidEdgeFromLink(link)
   })
 
-  const chart = chartHeader
-    .concat(chartNodes)
-    .concat(chartEdges)
-    .join(LINE_BREAK)
+  const chart = chartHeader.concat(chartNodes).concat(chartEdges).join(LINE_BREAK)
 
   return (
     <div className="ChainDiagram">
@@ -119,7 +108,7 @@ const actionSummary = (action: TeamLinkBody) => {
     }
 
     case 'REMOVE_DEVICE': {
-      return `${action.payload.userId}::${action.payload.deviceName}`
+      return `${action.payload.deviceId}`
     }
 
     case 'INVITE_MEMBER':
@@ -132,15 +121,14 @@ const actionSummary = (action: TeamLinkBody) => {
     }
 
     case 'ADMIT_DEVICE': {
-      return action.payload.deviceName
+      return action.payload.device.deviceName
     }
 
     case 'ADMIT_MEMBER': {
       return action.payload.memberKeys.name
     }
 
-    case 'CHANGE_MEMBER_KEYS':
-    case 'CHANGE_DEVICE_KEYS': {
+    case 'CHANGE_MEMBER_KEYS': {
       return action.payload.keys.name
     }
 

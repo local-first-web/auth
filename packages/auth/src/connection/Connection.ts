@@ -101,6 +101,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       this.machine.send(message)
     })
 
+    // ignore coverage
     const userName =
       'server' in context
         ? context.server.host
@@ -108,8 +109,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         ? context.userName
         : 'user' in context
         ? context.user.userName
-        : // ignore coverage
-          ''
+        : ''
     this.log = this.log.extend(userName)
 
     const Context: Context = isServerContext(context) ? extendServerContext(context) : context
@@ -139,11 +139,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     // kick off the connection by requesting our peer's identity
     this.sendMessage({ type: 'REQUEST_IDENTITY' })
 
-    // TODO: test with messages received before starting
-
-    // Process any stored messages we might have received before starting
-    for (const m of storedMessages) this.deliver(m)
-
     return this
   }
 
@@ -165,13 +160,12 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   /** Returns the current state of the protocol machine. */
   public get state() {
-    if (!this.started) return 'not started'
-
+    assert(this.started)
     return this.machine.state.value
   }
 
   public get context(): ConnectionContext {
-    if (!this.started) throw new Error("Can't get context; machine not started")
+    assert(this.started)
     return this.machine.state.context
   }
 
@@ -202,29 +196,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   public get sessionKey() {
     return this.context.sessionKey
   }
-
-  public get peer() {
-    return this.context.peer
-  }
-
-  // TODO: should this be private?
-
-  /** Generates and sends a sync message to our peer */
-  public sendSyncMessage(chain: TeamGraph, previousSyncState: SyncState = initSyncState()) {
-    const [syncState, syncMessage] = generateMessage(chain, previousSyncState)
-
-    // Undefined message means we're already synced
-    if (syncMessage) {
-      this.log('sending sync message', syncMessageSummary(syncMessage))
-      this.sendMessage({ type: 'SYNC', payload: syncMessage })
-    } else {
-      this.log('no sync message to send')
-    }
-
-    return syncState
-  }
-
-  // TODO: should this be private?
 
   /**
    * Adds incoming messages from the peer to the OrderedNetwork's incoming message queue, which will
@@ -433,10 +404,11 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     listenForTeamUpdates: context => {
       assert(context.team)
-      context.team.addListener('updated', ({ head }: { head: Hash[] }) => {
+      context.team.on('updated', ({ head }: { head: Hash[] }) => {
         if (!this.machine.state.done) {
           this.machine.send({ type: 'LOCAL_UPDATE', payload: { head } }) // Send update event to local machine
         }
+        this.emit('updated')
       })
     },
 
@@ -461,6 +433,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       const { team, device } = context
       assert(team)
 
+      // ignore coverage
       const previousSyncState = context.syncState ?? initSyncState()
       const syncMessage = (event as SyncMessage).payload
 
@@ -589,7 +562,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     onConnected: () => this.emit('connected'),
     onJoined: () => this.emit('joined', { team: this.team!, user: this.user! }),
-    onUpdated: () => this.emit('updated'),
     onDisconnected: (_, event) => this.emit('disconnected', event),
   }
 
@@ -665,8 +637,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       const lastCommonHead = syncState?.lastCommonHead
       return arraysAreEqual(ourHead, lastCommonHead)
     },
-
-    headsAreDifferent: (...args) => !this.guards.headsAreEqual(...args),
   }
 
   // PRIVATE
@@ -706,8 +676,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   }
 }
 
-const currentUserIsMember = (context: ConnectionContext) => context.team !== undefined
-
 // FOR DEBUGGING
 
 const messageSummary = (message: ConnectionMessage) =>
@@ -718,11 +686,10 @@ const messageSummary = (message: ConnectionMessage) =>
 
 const isString = (state: any): state is string => typeof state === 'string'
 
-const stateSummary = (state = 'disconnected'): string =>
+// ignore coverage
+const stateSummary = (state: any): string =>
   isString(state)
-    ? state === 'done'
-      ? ''
-      : state
+    ? state
     : Object.keys(state)
         .map(key => `${key}:${stateSummary(state[key])}`)
         .filter(s => s.length)

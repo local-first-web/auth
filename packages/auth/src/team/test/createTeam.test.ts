@@ -12,6 +12,7 @@ describe('Team', () => {
       const device = createDevice(user.userId, 'laptop')
       const team = createTeam('Spies Я Us', { user, device })
       expect(team.teamName).toBe('Spies Я Us')
+      expect(team.id).toBeDefined()
     })
 
     it(`doesn't allow creating a team where the device's userId doesn't match the user's`, () => {

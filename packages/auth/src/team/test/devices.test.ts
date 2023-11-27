@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { setup as setupUsers } from 'util/testing/index.js'
+import { createDevice, redactDevice } from 'index.js'
 
 describe('Team', () => {
   const setup = () => {
@@ -48,6 +49,23 @@ describe('Team', () => {
       expect(alice.team.deviceWasRemoved(bob.phone!.deviceId)).toBe(false) // Device never existed
     })
 
+    it('throws when trying to remove a removed device', () => {
+      const { alice, bob } = setup()
+      const bobDevice = alice.team.members(bob.userId).devices![0].deviceId
+      alice.team.removeDevice(bobDevice)
+
+      const removeAgain = () => alice.team.removeDevice(bobDevice)
+      expect(removeAgain).toThrow()
+    })
+
+    it('throws when trying to remove a nonexistent device', () => {
+      const { alice, bob } = setup()
+      const bobDevice = alice.team.members(bob.userId).devices![0].deviceId
+
+      const remove = () => alice.team.removeDevice('pizza')
+      expect(remove).toThrow()
+    })
+
     it('throws when trying to access a removed device', () => {
       const { alice, bob } = setup()
       const bobDevice = alice.team.members(bob.userId).devices![0].deviceId
@@ -94,13 +112,16 @@ describe('Team', () => {
       expect(alice.team.teamKeys().generation).toBe(0)
       const { secretKey } = alice.team.teamKeys()
 
-      // Remove bob's device
-      const bobDevice = alice.team.members(bob.userId).devices![0].deviceId
-      alice.team.removeDevice(bobDevice)
+      // Add bob's phone
+      const phone = redactDevice(bob.phone!)
+      bob.team.addForTesting(bob.user, [], phone)
+
+      // Remove bob's phone
+      bob.team.removeDevice(phone.deviceId)
 
       // Team keys have now been rotated once
-      expect(alice.team.teamKeys().generation).toBe(1)
-      expect(alice.team.teamKeys().secretKey).not.toBe(secretKey)
+      expect(bob.team.teamKeys().generation).toBe(1)
+      expect(bob.team.teamKeys().secretKey).not.toBe(secretKey)
     })
   })
 })

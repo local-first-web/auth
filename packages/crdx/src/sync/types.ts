@@ -15,9 +15,6 @@ export type SyncState = {
 
     /** Hashes of links they asked for in the last message. */
     need: Hash[]
-
-    /** The last error they sent us */
-    reportedError?: ValidationError
   }
 
   our: {

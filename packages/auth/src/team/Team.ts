@@ -166,19 +166,11 @@ export class Team extends EventEmitter {
   /** ************** CONTEXT */
 
   public get userName() {
-    if (this.context.user) {
-      return this.context.user.userId
-    }
-
-    return this.context.device.userId // Device is always known
+    return this.context.user.userId
   }
 
   public get userId() {
-    if (this.context.user) {
-      return this.context.user.userId
-    }
-
-    return this.context.device.userId // Device is always known
+    return this.context.user.userId
   }
 
   private get isServer() {
@@ -238,21 +230,27 @@ export class Team extends EventEmitter {
   }
 
   /**
-   * Add a member to the team. Since this method assumes that you know the member's secret keys, it
-   * only makes sense for unit tests. In real-world scenarios, you'll need to use the `team.invite`
-   * workflow to add members without relying on some kind of public key infrastructure.
+   * Adds a member to the team, along with an (optional) device. Since this method assumes that you
+   * know the member's secret keys, it only makes sense for unit tests. In real-world scenarios,
+   * you'll need to use the `team.invite` workflow to add members without relying on some kind of
+   * public key infrastructure.
+   *
+   * This can be used to add a device for an existing member - just pass the existing user as the
+   * first argument.
    */
   public addForTesting = (user: UserWithSecrets, roles: string[] = [], device?: Device) => {
     const member = { ...redactUser(user), roles }
 
-    // Make lockboxes for the new member
-    const lockboxes = this.createMemberLockboxes(member)
+    if (!this.has(member.userId)) {
+      // Make lockboxes for the new member
+      const lockboxes = this.createMemberLockboxes(member)
 
-    // Post the member to the graph
-    this.dispatch({
-      type: 'ADD_MEMBER',
-      payload: { member, roles, lockboxes },
-    })
+      // Post the member to the graph
+      this.dispatch({
+        type: 'ADD_MEMBER',
+        payload: { member, roles, lockboxes },
+      })
+    }
 
     if (device) {
       // Post the member's device to the graph
@@ -383,7 +381,7 @@ export class Team extends EventEmitter {
 
   /** Remove a member's device */
   public removeDevice = (deviceId: string) => {
-    if (!this.hasDevice(deviceId)) return
+    if (!this.hasDevice(deviceId)) throw new Error(`Device ${deviceId} not found`)
 
     // Create new keys & lockboxes for any keys this device had access to
     const lockboxes = this.rotateKeys({ type: DEVICE, name: deviceId })
@@ -532,13 +530,7 @@ export class Team extends EventEmitter {
   }
 
   /** Returns true if the invitation has ever existed in this team (even if it's been used or revoked) */
-  public hasInvitation(id: Base58): boolean
-  public hasInvitation(proof: ProofOfInvitation): boolean
-  public hasInvitation(proofOrId: Base58 | ProofOfInvitation): boolean {
-    const id =
-      typeof proofOrId === 'string' //
-        ? proofOrId // String id was passed
-        : proofOrId.id // Proof of invitation was passed
+  public hasInvitation(id: Base58): boolean {
     return select.hasInvitation(this.state, id)
   }
 
@@ -548,17 +540,13 @@ export class Team extends EventEmitter {
   /** Check whether (1) the invitation is still valid, and (2) the proof of invitation checks out. */
   public validateInvitation = (proof: ProofOfInvitation) => {
     const { id } = proof
-    if (!this.hasInvitation(id)) {
-      return invitations.fail("This invitation code doesn't match.")
-    }
+    if (!this.hasInvitation(id)) return invitations.fail("This invitation code doesn't match.")
 
     const invitation = this.getInvitation(id)
 
     // Make sure the invitation hasn't already been used, hasn't expired, and hasn't been revoked
     const canBeUsedResult = invitations.invitationCanBeUsed(invitation, Date.now())
-    if (canBeUsedResult !== VALID) {
-      return canBeUsedResult
-    }
+    if (canBeUsedResult !== VALID) return canBeUsedResult
 
     // Validate the proof of invitation
     return invitations.validate(proof, invitation)
@@ -790,35 +778,27 @@ export class Team extends EventEmitter {
    */
   public changeKeys = (newKeys: KeysetWithSecrets) => {
     const { device, user } = this.context
-    const isForUser = newKeys.type === USER
-    const isForDevice = newKeys.type === DEVICE
-    const isForServer = newKeys.type === KeyType.SERVER
+    const { type } = newKeys
 
-    const oldKeys: KeysetWithSecrets = isForDevice ? device.keys : user.keys
+    assert(type !== DEVICE, "Can't change device keys")
+    const isForUser = type === USER
+    const isForServer = type === KeyType.SERVER
+
+    const oldKeys: KeysetWithSecrets = user.keys
     newKeys.generation = oldKeys.generation + 1
 
     // Treat the old keys as compromised, and generate new lockboxes for any keys they could see
     const lockboxes = this.rotateKeys(newKeys)
 
     // Post our new public keys to the graph
-    const type = isForDevice
-      ? 'CHANGE_DEVICE_KEYS'
-      : isForUser
-      ? 'CHANGE_MEMBER_KEYS'
-      : 'CHANGE_SERVER_KEYS'
+    const action = isForUser ? 'CHANGE_MEMBER_KEYS' : 'CHANGE_SERVER_KEYS'
 
     const keys = redactKeys(newKeys)
-    this.dispatch({ type, payload: { keys, lockboxes } })
+    this.dispatch({ type: action, payload: { keys, lockboxes } })
 
-    // Update our user and/or device keys in context
-    // (a server plays the role of both a user and a device)
-    if (isForServer || isForDevice) {
-      device.keys = newKeys
-    }
-
-    if (isForServer || isForUser) {
-      user.keys = newKeys
-    }
+    // Update our keys in context
+    if (isForServer || isForUser) user.keys = newKeys
+    if (isForServer) device.keys = newKeys // (a server plays the role of both a user and a device)
   }
 
   private checkForPendingKeyRotations() {

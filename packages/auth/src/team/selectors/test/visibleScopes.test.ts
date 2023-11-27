@@ -53,27 +53,26 @@ describe('visibleScopes', () => {
 
   it('after rotating keys, can still see the same scopes', () => {
     const { alice } = setup('alice')
-    const { type, name } = alice.device.keys
+    const { type, name } = alice.user.keys
 
-    const getDeviceScopes = () => {
+    const getUserScopes = () => {
       return select.visibleScopes(alice.team.state, { type, name })
     }
 
-    const changeDeviceKeys = () => {
+    const changeUserKeys = () => {
       alice.team.changeKeys(createKeyset({ type, name }))
     }
 
-    expect(getDeviceScopes()).toEqual([
-      { type: USER, name: alice.userId },
+    expect(getUserScopes()).toEqual([
       { type: TEAM, name: TEAM },
       { type: ROLE, name: ADMIN },
     ])
 
     // Rotating the keys creates new lockboxes, but we don't see duplicate scopes
-    changeDeviceKeys()
-    expect(getDeviceScopes().length).toBe(3)
+    changeUserKeys()
+    expect(getUserScopes().length).toBe(2)
 
-    changeDeviceKeys()
-    expect(getDeviceScopes().length).toBe(3)
+    changeUserKeys()
+    expect(getUserScopes().length).toBe(2)
   })
 })

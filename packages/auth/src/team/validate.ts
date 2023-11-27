@@ -91,13 +91,6 @@ const validators: TeamStateValidatorSet = {
         if (author !== target) {
           return fail("Can't change another user's keys.", ...args)
         }
-      } else if (link.body.type === 'CHANGE_DEVICE_KEYS') {
-        const deviceId = link.body.payload.keys.name
-        const device = select.device(previousState, deviceId)
-        const target = device.userId
-        if (author !== target) {
-          return fail("Can't change another user's device keys.", ...args)
-        }
       } else if (link.body.type === 'CHANGE_SERVER_KEYS') {
         const target = link.body.payload.keys.name
         if (author !== target) {

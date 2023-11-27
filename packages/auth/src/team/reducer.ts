@@ -10,7 +10,6 @@ import {
   addMessage,
   addRole,
   addServer,
-  changeDeviceKeys,
   changeMemberKeys,
   changeServerKeys,
   collectLockboxes,
@@ -204,13 +203,6 @@ const getTransforms = (action: TeamAction): Transform[] => {
       const { keys } = action.payload
       return [
         changeMemberKeys(keys), // Replace this member's public keys with the ones provided
-      ]
-    }
-
-    case 'CHANGE_DEVICE_KEYS': {
-      const { keys } = action.payload
-      return [
-        changeDeviceKeys(keys), // Replace this device's public keys with the ones provided
       ]
     }
 

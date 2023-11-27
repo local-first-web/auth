@@ -178,6 +178,22 @@ describe('graphs', () => {
         expect(validate(graph)).not.toBeValid()
       })
 
+      test('a link is missing', () => {
+        const graph = setupGraph()
+        const headLink = getHead(graph)[0]
+        const prevLink = headLink.body.prev[0]
+        delete graph.links[prevLink] // eslint-disable-line @typescript-eslint/no-dynamic-delete
+        expect(validate(graph)).not.toBeValid()
+      })
+
+      test('a link is missing from the encryptedLinks', () => {
+        const graph = setupGraph()
+        const headLink = getHead(graph)[0]
+        const prevLink = headLink.body.prev[0]
+        delete graph.encryptedLinks[prevLink] // eslint-disable-line @typescript-eslint/no-dynamic-delete
+        expect(validate(graph)).not.toBeValid()
+      })
+
       test(`timestamp out of order`, () => {
         const IN_THE_PAST = new Date('2020-01-01').getTime()
         const graph = setupGraph()

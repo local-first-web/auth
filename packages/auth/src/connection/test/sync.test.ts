@@ -169,6 +169,8 @@ describe('connection', () => {
           anyUpdated(bob, charlie),
         ])
 
+        await pause(50)
+
         // ✅ 👩🏾 Bob is up to date with Alice's changes
         expect(bob.team.hasRole('managers')).toBe(true)
 
@@ -201,6 +203,8 @@ describe('connection', () => {
           updated(alice, charlie),
         ])
 
+        await pause(50)
+
         // ✅ All three get the three new roles
         expect(bob.team.hasRole('ALICES_FRIENDS')).toBe(true)
         expect(charlie.team.hasRole('ALICES_FRIENDS')).toBe(true)
@@ -228,6 +232,8 @@ describe('connection', () => {
         await connect(alice, bob)
         await connect(bob, charlie)
         await connect(alice, charlie)
+
+        await pause(50)
 
         // ✅ All three get the three new roles
         expect(bob.team.hasRole('ALICES_FRIENDS')).toBe(true)

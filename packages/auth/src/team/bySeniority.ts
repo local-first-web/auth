@@ -4,13 +4,8 @@ import { assert } from '../util/index.js'
 
 export const bySeniority = (chain: TeamGraph) => (a: string, b: string) => {
   // If one of these created the chain, they win
-  if (isFounder(chain, a)) {
-    return -1
-  }
-
-  if (isFounder(chain, b)) {
-    return 1
-  }
+  if (isFounder(chain, a)) return -1
+  if (isFounder(chain, b)) return 1
 
   const linkThatAddedMember = (userId: string) => {
     const addedMember = (link: TeamLink) =>
@@ -23,8 +18,9 @@ export const bySeniority = (chain: TeamGraph) => (a: string, b: string) => {
   const [addedA, addedB] = [a, b].map(linkThatAddedMember)
 
   // if A was added first, A comes first in the sort
+  // ignore coverage
   if (isPredecessor(chain, addedA, addedB)) return -1
-  return 1
+  else return 1
 }
 
 const isFounder = (chain: TeamGraph, userId: string) => {
