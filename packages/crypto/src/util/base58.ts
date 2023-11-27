@@ -1,5 +1,6 @@
 import { type Base58 } from '../types.js'
-import { encode, decode } from 'bs58'
+import bs58 from 'bs58'
+const { encode, decode } = bs58
 
 export const base58 = {
   encode: (b: Uint8Array) => encode(b) as Base58,
