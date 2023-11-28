@@ -31,7 +31,7 @@ const decryptBytes = (
   cipher: Uint8Array,
   /** The password used to encrypt */
   password: Password
-): Uint8Array => {
+): Payload => {
   const key = stretch(password)
   const { nonce, message } = unpack(cipher) as Cipher
   const decrypted = sodium.crypto_secretbox_open_easy(message, nonce, key)
