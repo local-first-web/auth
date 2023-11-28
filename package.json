@@ -50,16 +50,5 @@
     "vite-tsconfig-paths": "^4.2.1",
     "vitest": "^0.34.6",
     "xo": "^0.56.0"
-  },
-  "prettier": {
-    "arrowParens": "avoid",
-    "bracketSpacing": true,
-    "endOfLine": "auto",
-    "semi": false,
-    "singleQuote": true,
-    "tabWidth": 2,
-    "trailingComma": "es5",
-    "useTabs": false,
-    "printWidth": 100
   }
 }

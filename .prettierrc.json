@@ -1,0 +1,22 @@
+{
+  "arrowParens": "avoid",
+  "bracketSpacing": true,
+  "endOfLine": "auto",
+  "semi": false,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "trailingComma": "es5",
+  "useTabs": false,
+  "printWidth": 100,
+  "overrides": [
+    {
+      "files": "*.json5",
+      "options": {
+        "singleQuote": false,
+        "quoteProps": "preserve",
+        "trailingComma": "none",
+        "parser": "json5"
+      }
+    }
+  ]
+}
