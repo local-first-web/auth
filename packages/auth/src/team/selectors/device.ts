@@ -2,7 +2,7 @@ import { type TeamState } from 'team/types.js'
 import { assert } from 'util/index.js'
 import { server } from './server.js'
 import { hasServer } from './hasServer.js'
-import { cast } from 'server/cast.js'
+import { castServer } from 'server/castServer.js'
 
 export const hasDevice = (
   state: TeamState,
@@ -20,7 +20,7 @@ export const device = (state: TeamState, deviceId: string, options = { includeRe
 
 const getDevice = (state: TeamState, deviceId: string, options = { includeRemoved: false }) => {
   if (hasServer(state, deviceId)) {
-    return cast.toDevice(server(state, deviceId))
+    return castServer.toDevice(server(state, deviceId))
   }
   const members = state.members.concat(options.includeRemoved ? state.removedMembers : [])
   const allDevices = members.flatMap(m => m.devices ?? [])

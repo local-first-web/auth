@@ -25,4 +25,4 @@ const toDevice = <T extends Server | ServerWithSecrets>(server: T) =>
     keys: server.keys,
   }) as T extends Server ? Device : DeviceWithSecrets
 
-export const cast = { toMember, toUser, toDevice }
+export const castServer = { toMember, toUser, toDevice }

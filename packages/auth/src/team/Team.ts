@@ -27,7 +27,7 @@ import { type ProofOfInvitation } from 'invitation/index.js'
 import { normalize } from 'invitation/normalize.js'
 import * as lockbox from 'lockbox/index.js'
 import { ADMIN, type Role } from 'role/index.js'
-import { cast } from 'server/cast.js'
+import { castServer } from 'server/castServer.js'
 import { type Host, type Server } from 'server/types.js'
 import { type LocalUserContext } from 'team/context.js'
 import { KeyType, VALID, assert, debug, scopesMatch } from 'util/index.js'
@@ -80,8 +80,8 @@ export class Team extends EventEmitter {
       const { server } = options.context
       this.context = {
         ...options.context,
-        device: cast.toDevice(server),
-        user: cast.toUser(server),
+        device: castServer.toDevice(server),
+        user: castServer.toUser(server),
       }
     }
     const { device, user } = this.context
@@ -649,7 +649,7 @@ export class Team extends EventEmitter {
    * other.)
    */
   public addServer = (server: Server) => {
-    const lockboxes = this.createMemberLockboxes(cast.toMember(server))
+    const lockboxes = this.createMemberLockboxes(castServer.toMember(server))
 
     this.dispatch({
       type: 'ADD_SERVER',
