@@ -22,8 +22,7 @@
     "build": "tsup",
     "build:declaration": "tsc -p tsconfig.build.json --emitDeclarationOnly --declaration",
     "preinstall": "npx only-allow pnpm",
-    "test": "vitest",
-    "watch": "yarn build --watch"
+    "test": "vitest"
   },
   "dependencies": {
     "@herbcaudill/base-x": "^4.0.6",

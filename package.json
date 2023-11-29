@@ -11,9 +11,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "run-s build:all build:declaration",
-    "build:all": "pnpm -r build",
-    "build:declaration": "pnpm -r build:declaration",
+    "build": "pnpm -r build",
     "dev:demo": "pnpm -F @localfirst/auth-demo dev",
     "dev:cy:demo": "pnpm -F @localfirst/auth-demo dev:cy",
     "dev:cy": "run-p watch dev:cy:demo",
