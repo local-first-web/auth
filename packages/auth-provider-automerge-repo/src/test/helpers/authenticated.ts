@@ -1,6 +1,5 @@
 import { Repo } from '@automerge/automerge-repo'
-import { eventPromise } from '../../eventPromise.js'
-import { pause } from './pause.js'
+import { pause, eventPromise } from '@localfirst/auth-shared'
 import { UserStuff } from './setup.js'
 
 export const authenticatedInTime = async (a: UserStuff, b: UserStuff, timeout = 1000) => {

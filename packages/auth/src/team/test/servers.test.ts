@@ -1,7 +1,7 @@
 import { createKeyset, redactKeys } from '@localfirst/crdx'
 import type { Host, Server, ServerWithSecrets } from 'server/index.js'
 import { KeyType } from 'util/index.js'
-import { eventPromise } from 'util/testing/eventPromise.js'
+import { eventPromise } from '@localfirst/auth-shared'
 import {
   TestChannel,
   all,

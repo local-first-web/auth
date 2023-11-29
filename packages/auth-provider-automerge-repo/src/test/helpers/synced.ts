@@ -1,5 +1,5 @@
 import { expect } from 'vitest'
-import { eventPromise } from '../../eventPromise.js'
+import { eventPromise } from '@localfirst/auth-shared'
 import { UserStuff, TestDoc } from './setup.js'
 
 export const synced = async (a: UserStuff, b: UserStuff) => {

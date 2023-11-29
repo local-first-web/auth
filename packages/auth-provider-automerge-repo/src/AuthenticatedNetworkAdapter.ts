@@ -1,5 +1,5 @@
 import { NetworkAdapter, RepoMessage } from '@automerge/automerge-repo'
-import { eventPromise } from './eventPromise.js'
+import { eventPromise } from '@localfirst/auth-shared'
 
 /**
  * An AuthenticatedNetworkAdapter is a NetworkAdapter that wraps another NetworkAdapter and

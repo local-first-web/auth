@@ -14,7 +14,7 @@ import {
   setup,
   updated,
 } from 'util/testing/index.js'
-import { pause } from 'util/testing/pause.js'
+import { pause } from '@localfirst/auth-shared'
 import { describe, expect, it } from 'vitest'
 import { type MemberContext } from '../types.js'
 

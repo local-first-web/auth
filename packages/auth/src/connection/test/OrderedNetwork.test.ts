@@ -1,4 +1,4 @@
-import { pause } from 'util/testing/pause.js'
+import { pause } from '@localfirst/auth-shared'
 import { describe, expect, it } from 'vitest'
 import { OrderedNetwork } from '../OrderedNetwork.js'
 

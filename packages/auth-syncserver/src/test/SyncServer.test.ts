@@ -1,4 +1,4 @@
-import { eventPromise } from './helpers/eventPromise.js'
+import { eventPromise } from '@localfirst/auth-shared'
 import { Team, createTeam, loadTeam, device } from '@localfirst/auth'
 import { describe, expect, it } from 'vitest'
 import { host, setup } from './helpers/setup.js'
@@ -114,5 +114,3 @@ const lookLikeServerKeys = (maybeKeyset: any) =>
   maybeKeyset.generation === 0 &&
   typeof maybeKeyset.encryption === 'string' &&
   typeof maybeKeyset.signature === 'string'
-
-const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))

@@ -1,13 +1,13 @@
 import { PeerId, Repo } from '@automerge/automerge-repo'
 import { MessageChannelNetworkAdapter } from '@automerge/automerge-repo-network-messagechannel'
+import { NodeFSStorageAdapter } from '@automerge/automerge-repo-storage-nodefs'
 import * as Auth from '@localfirst/auth'
+import { eventPromise } from '@localfirst/auth-shared'
 import { describe, expect, it } from 'vitest'
 import { AuthProvider } from '../AuthProvider.js'
 import { authenticated, authenticatedInTime } from './helpers/authenticated.js'
-import { eventPromise } from '../eventPromise.js'
 import { UserStuff, getStorageDirectory, setup } from './helpers/setup.js'
 import { synced } from './helpers/synced.js'
-import { NodeFSStorageAdapter } from '@automerge/automerge-repo-storage-nodefs'
 
 describe('localfirst/auth provider', () => {
   it('does not authenticate users that do not belong to any teams', async () => {
