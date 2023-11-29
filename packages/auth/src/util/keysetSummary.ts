@@ -1,5 +1,5 @@
 import { type Keyset, type KeysetWithSecrets } from '@localfirst/crdx'
-import { truncateHashes } from 'util/index.js'
+import { truncateHashes } from '@localfirst/auth-shared'
 
 export const keysetSummary = (keyset: Keyset | KeysetWithSecrets) => {
   const { name, generation, encryption } = keyset

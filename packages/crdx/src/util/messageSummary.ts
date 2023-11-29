@@ -1,5 +1,5 @@
 import { type NetworkMessage } from 'util/testing/Network.js'
-import { truncateHashes } from './truncateHashes.js'
+import { truncateHashes } from '@localfirst/auth-shared'
 import { type SyncMessage } from 'sync/index.js'
 
 export const logMessages = (msgs: NetworkMessage[]) => {
