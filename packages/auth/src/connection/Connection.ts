@@ -1,5 +1,6 @@
 /* eslint-disable object-shorthand */
 
+import { assert, debug } from '@localfirst/auth-shared'
 import {
   generateMessage,
   headsAreEqual,
@@ -7,7 +8,6 @@ import {
   receiveMessage,
   redactKeys,
   type DecryptFnParams,
-  type SyncState,
 } from '@localfirst/crdx'
 import { asymmetric, randomKeyBytes, symmetric, type Hash, type Payload } from '@localfirst/crypto'
 import { deriveSharedKey } from 'connection/deriveSharedKey.js'
@@ -35,16 +35,10 @@ import { EventEmitter } from 'eventemitter3'
 import * as invitations from 'invitation/index.js'
 import { pack, unpack } from 'msgpackr'
 import { getTeamState } from 'team/getTeamState.js'
-import {
-  Team,
-  decryptTeamGraph,
-  type TeamAction,
-  type TeamContext,
-  type TeamGraph,
-} from 'team/index.js'
+import { Team, decryptTeamGraph, type TeamAction, type TeamContext } from 'team/index.js'
 import * as select from 'team/selectors/index.js'
 import { arraysAreEqual } from 'util/arraysAreEqual.js'
-import { KeyType, assert, debug } from 'util/index.js'
+import { KeyType } from 'util/index.js'
 import { syncMessageSummary } from 'util/testing/messageSummary.js'
 import { assign, createMachine, interpret, type Interpreter } from 'xstate'
 import { NumberedMessage, OrderedNetwork } from './OrderedNetwork.js'
@@ -81,7 +75,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   private readonly machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
   private started = false
   private orderedNetwork: OrderedNetwork<ConnectionMessage>
-  private log = debug.extend('connection')
+  private log = debug.extend('auth:connection')
 
   constructor({ sendMessage, context }: Params) {
     super()
@@ -117,10 +111,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       'server' in context
         ? context.server.host
         : 'userName' in context
-        ? context.userName
-        : 'user' in context
-        ? context.user.userName
-        : ''
+          ? context.userName
+          : 'user' in context
+            ? context.user.userName
+            : ''
     this.log = this.log.extend(userName)
 
     const Context: Context = isServerContext(context) ? extendServerContext(context) : context

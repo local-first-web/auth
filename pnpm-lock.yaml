@@ -11,9 +11,18 @@ importers:
       '@herbcaudill/random':
         specifier: ^0.3.0
         version: 0.3.0
+      '@types/body-parser':
+        specifier: ^1.19.5
+        version: 1.19.5
+      '@types/cors':
+        specifier: ^2.8.17
+        version: 2.8.17
       '@types/debug':
         specifier: ^4.1.12
         version: 4.1.12
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.21
       '@types/libsodium-wrappers-sumo':
         specifier: ^0.7.8
         version: 0.7.8
@@ -23,6 +32,9 @@ importers:
       '@types/node':
         specifier: ^18.18.13
         version: 18.18.13
+      '@types/ws':
+        specifier: ^8.5.10
+        version: 8.5.10
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -183,9 +195,6 @@ importers:
       '@paralleldrive/cuid2':
         specifier: ^2.2.2
         version: 2.2.2
-      debug:
-        specifier: ^4.3.4
-        version: 4.3.4(supports-color@8.1.1)
       eventemitter3:
         specifier: ^5.0.1
         version: 5.0.1
@@ -207,9 +216,9 @@ importers:
       '@localfirst/auth':
         specifier: workspace:*
         version: link:../auth
-      debug:
-        specifier: ^4.3.4
-        version: 4.3.4(supports-color@8.1.1)
+      '@localfirst/auth-shared':
+        specifier: workspace:*
+        version: link:../shared
       eventemitter3:
         specifier: ^5.0.1
         version: 5.0.1
@@ -244,15 +253,15 @@ importers:
       '@localfirst/auth-provider-automerge-repo':
         specifier: workspace:*
         version: link:../auth-provider-automerge-repo
+      '@localfirst/auth-shared':
+        specifier: workspace:*
+        version: link:../shared
       body-parser:
         specifier: ^1.20.2
         version: 1.20.2
       cors:
         specifier: ^2.8.5
         version: 2.8.5
-      debug:
-        specifier: ^4.3.4
-        version: 4.3.4(supports-color@8.1.1)
       express:
         specifier: ^4.18.2
         version: 4.18.2
@@ -263,18 +272,6 @@ importers:
         specifier: ^8.14.2
         version: 8.14.2
     devDependencies:
-      '@types/body-parser':
-        specifier: ^1.19.5
-        version: 1.19.5
-      '@types/cors':
-        specifier: ^2.8.17
-        version: 2.8.17
-      '@types/express':
-        specifier: ^4.17.21
-        version: 4.17.21
-      '@types/ws':
-        specifier: ^8.5.10
-        version: 8.5.10
       portfinder:
         specifier: ^1.0.32
         version: 1.0.32
@@ -284,6 +281,9 @@ importers:
 
   packages/crdx:
     dependencies:
+      '@localfirst/auth-shared':
+        specifier: workspace:*
+        version: link:../shared
       '@localfirst/crypto':
         specifier: workspace:*
         version: link:../crypto
@@ -305,9 +305,6 @@ importers:
 
   packages/crypto:
     dependencies:
-      '@herbcaudill/base-x':
-        specifier: ^4.0.6
-        version: 4.0.6
       '@types/lodash-es':
         specifier: ^4.17.12
         version: 4.17.12
@@ -862,10 +859,6 @@ packages:
   /@gar/promisify@1.1.3:
     resolution: {integrity: sha512-k2Ty1JcVojjJFwrg/ThKi2ujJ7XNLYaFGNB/bWT9wGR+oSMJHMa5w+CUq6p/pVrKeNNgA7pCqEcjSnHVoqJQFw==}
     dev: true
-
-  /@herbcaudill/base-x@4.0.6:
-    resolution: {integrity: sha512-9BaPxLhtOGn5Os1gnG223StA8BvOm2vm8Unatj6nLoEV1lL8PVDyhsZV1yJXSSWEc8aHnQAJG5+NbvGMveaqeQ==}
-    dev: false
 
   /@herbcaudill/random@0.3.0:
     resolution: {integrity: sha512-PQQ8Wym+y7Eh1LLQTJziLAwxiXwBCxmap2OLMwLykOxIUVBFoIezODVMraxqGlrRl+KYrpOiN+Cx0QtbAZAwCg==}

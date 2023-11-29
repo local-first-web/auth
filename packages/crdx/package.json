@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@localfirst/crypto": "workspace:*",
+    "@localfirst/auth-shared": "workspace:*",
     "@paralleldrive/cuid2": "^2.2.2",
     "@types/lodash-es": "^4.17.12",
     "eventemitter3": "^5.0.1",

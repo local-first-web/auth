@@ -1,13 +1,14 @@
+import { assert } from '@localfirst/auth-shared'
 import { createKeyring, createUser, type UserWithSecrets } from '@localfirst/crdx'
 import { createId } from '@paralleldrive/cuid2'
 import type { Connection, Context, InviteeContext, MemberContext } from 'connection/index.js'
-import type { LocalUserContext } from 'team/context.js'
 import type { DeviceWithSecrets } from 'device/index.js'
 import * as devices from 'device/index.js'
 import { ADMIN } from 'role/index.js'
+import type { LocalUserContext } from 'team/context.js'
 import type { Team, TeamContext } from 'team/index.js'
 import * as teams from 'team/index.js'
-import { arrayToMap, assert } from 'util/index.js'
+import { arrayToMap } from 'util/index.js'
 
 export type SetupConfig = Array<Array<TestUserSettings | string> | TestUserSettings | string>
 

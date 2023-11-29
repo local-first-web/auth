@@ -1,24 +1,25 @@
+import { assert } from '@localfirst/auth-shared'
 import { EventEmitter } from 'eventemitter3'
-import { type StoreOptions } from './StoreOptions.js'
-import { type Reducer } from './types.js'
 import {
-  type Action,
   append,
   baseResolver,
   createGraph,
   deserialize,
   getHead,
-  type Graph,
   merge,
-  type Resolver,
   serialize,
+  type Action,
+  type Graph,
+  type Resolver,
 } from 'graph/index.js'
 import { createKeyring } from 'keyset/createKeyring.js'
 import { isKeyset, type Keyring, type KeysetWithSecrets } from 'keyset/index.js'
 import { type UserWithSecrets } from 'user/index.js'
-import { assert, type Optional } from 'util/index.js'
+import { type Optional } from 'util/index.js'
 import { validate, type ValidatorSet } from 'validator/index.js'
+import { type StoreOptions } from './StoreOptions.js'
 import { makeMachine } from './makeMachine.js'
+import { type Reducer } from './types.js'
 
 /**
  * A CRDX `Store` is intended to work very much like a Redux store.

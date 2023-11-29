@@ -1,5 +1,4 @@
 import { PeerId, Repo } from '@automerge/automerge-repo'
-import { AuthProvider } from '@localfirst/auth-provider-automerge-repo'
 import { NodeWSServerAdapter } from '@automerge/automerge-repo-network-websocket'
 import { NodeFSStorageAdapter } from '@automerge/automerge-repo-storage-nodefs'
 import {
@@ -12,6 +11,8 @@ import {
   createKeyset,
   redactKeys,
 } from '@localfirst/auth'
+import { AuthProvider } from '@localfirst/auth-provider-automerge-repo'
+import { debug } from '@localfirst/auth-shared'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import express, { ErrorRequestHandler } from 'express'
@@ -19,7 +20,6 @@ import fs from 'fs'
 import { Server as HttpServer } from 'http'
 import path from 'path'
 import { WebSocketServer } from 'ws'
-import { debug } from './debug.js'
 
 /**
  * This is a sync server for use with automerge-repo and the AuthProvider.
@@ -40,7 +40,7 @@ export class LocalFirstAuthSyncServer {
   storageDir: string
   publicKeys: Keyset
 
-  log = debug
+  log = debug.extend('auth:syncserver')
 
   constructor(
     /**

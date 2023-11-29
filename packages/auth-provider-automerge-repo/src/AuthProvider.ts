@@ -4,7 +4,7 @@ import * as Auth from '@localfirst/auth'
 import { EventEmitter } from 'eventemitter3'
 import { pack, unpack } from 'msgpackr'
 import { AuthenticatedNetworkAdapter as AuthNetworkAdapter } from './AuthenticatedNetworkAdapter.js'
-import { debug } from './debug.js'
+import { debug } from '@localfirst/auth-shared'
 import { forwardEvents } from './forwardEvents.js'
 import type {
   Config,
@@ -55,7 +55,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   #peers: Map<NetworkAdapter, PeerId[]> = new Map()
   storage: StorageAdapter
 
-  #log = debug.extend('auth-localfirst')
+  #log = debug.extend('auth:provider-automerge-repo')
 
   constructor({ device, user, storage }: Config) {
     super()

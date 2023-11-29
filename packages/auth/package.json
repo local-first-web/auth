@@ -28,7 +28,6 @@
     "@localfirst/crdx": "workspace:*",
     "@localfirst/crypto": "workspace:*",
     "@paralleldrive/cuid2": "^2.2.2",
-    "debug": "^4.3.4",
     "eventemitter3": "^5.0.1",
     "lodash-es": "^4.17.21",
     "msgpackr": "^1.10.0",

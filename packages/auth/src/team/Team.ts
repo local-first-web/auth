@@ -30,7 +30,8 @@ import { ADMIN, type Role } from 'role/index.js'
 import { castServer } from 'server/castServer.js'
 import { type Host, type Server } from 'server/types.js'
 import { type LocalUserContext } from 'team/context.js'
-import { KeyType, VALID, assert, debug, scopesMatch } from 'util/index.js'
+import { KeyType, VALID, scopesMatch } from 'util/index.js'
+import { assert, debug } from '@localfirst/auth-shared'
 import { ADMIN_SCOPE, ALL, TEAM_SCOPE, initialState } from './constants.js'
 import { membershipResolver as resolver } from './membershipResolver.js'
 import { redactUser } from './redactUser.js'
@@ -86,7 +87,7 @@ export class Team extends EventEmitter {
     }
     const { device, user } = this.context
 
-    this.log = debug.extend(`team:${this.userName}`)
+    this.log = debug.extend(`auth:team:${this.userName}`)
 
     // Initialize a CRDX store for the team
     if (isNewTeam(options)) {

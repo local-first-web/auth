@@ -1,7 +1,6 @@
 // ignore file coverage
 import _debug from 'debug'
 
-console.log({ _debug })
 const originalFormatArgs = _debug.formatArgs
 
 _debug.formatArgs = function (args: any[]) {
@@ -52,6 +51,6 @@ export function truncateHashes<T>(arg: T): T {
   return arg
 }
 
-export const debug = _debug('lf:auth-syncserver')
+export const debug = _debug('localfirst')
 
 type RegexReplacer = (substring: string, ...args: any[]) => string

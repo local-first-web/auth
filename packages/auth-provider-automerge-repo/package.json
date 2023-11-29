@@ -16,7 +16,7 @@
   "dependencies": {
     "@automerge/automerge-repo": "link:..\\..\\..\\..\\automerge\\automerge-repo\\packages\\automerge-repo",
     "@localfirst/auth": "workspace:*",
-    "debug": "^4.3.4",
+    "@localfirst/auth-shared": "workspace:*",
     "eventemitter3": "^5.0.1",
     "msgpackr": "^1.10.0"
   },

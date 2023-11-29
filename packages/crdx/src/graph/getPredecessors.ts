@@ -1,5 +1,6 @@
 import { uniq } from 'lodash-es'
-import { memoize, type Hash, assert } from 'util/index.js'
+import { memoize, type Hash } from 'util/index.js'
+import { assert } from '@localfirst/auth-shared'
 import { getLink } from './getLink.js'
 import type { Graph, Action, Link } from './types.js'
 

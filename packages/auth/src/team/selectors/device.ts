@@ -1,5 +1,5 @@
 import { type TeamState } from 'team/types.js'
-import { assert } from 'util/index.js'
+import { assert } from '@localfirst/auth-shared'
 import { server } from './server.js'
 import { hasServer } from './hasServer.js'
 import { castServer } from 'server/castServer.js'
