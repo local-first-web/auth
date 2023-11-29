@@ -1,29 +1,12 @@
 {
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "baseUrl": "./",
-    "declaration": true,
-    "esModuleInterop": true,
-    "importHelpers": true,
-    "jsx": "react",
-    "lib": [
-      "dom",
-      "esnext"
-    ],
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitReturns": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "outDir": "./dist",
-    "resolveJsonModule": true,
-    "rootDir": "./src",
-    "sourceMap": true,
-    "strict": true,
-    "strictPropertyInitialization": false,
-    "target": "esnext"
+    "baseUrl": ".",
+    "outDir": "dist",
+    "rootDir": "src",
   },
   "include": [
-    "src"
-  ],
+    "src",
+    "@types"
+  ]
 }
