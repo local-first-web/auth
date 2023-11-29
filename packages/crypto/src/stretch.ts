@@ -1,12 +1,10 @@
 // ignore file coverage
 
 import process from 'process'
-import { memoize as _memoize } from 'lodash-es'
+import { memoize } from '@localfirst/auth-shared'
 import sodium from 'libsodium-wrappers-sumo'
 import { Password, type Base58 } from './types.js'
 import { base58, keyToBytes } from './util/index.js'
-
-const memoize = _memoize as Memoize
 
 /**
  * Derives a key from a low-entropy input, such as a password. Current version of libsodium
@@ -36,6 +34,3 @@ export const stretch = memoize((password: Password) => {
     sodium.crypto_pwhash_ALG_DEFAULT
   )
 })
-
-type AnyFn = (...args: any[]) => any
-type Memoize = <F extends AnyFn>(f: F, _resolver?: (...args: Parameters<F>) => ReturnType<F>) => F

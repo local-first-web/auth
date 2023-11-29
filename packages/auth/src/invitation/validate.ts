@@ -1,6 +1,7 @@
+import { memoize } from '@localfirst/auth-shared'
 import { signatures } from '@localfirst/crypto'
 import { type Invitation, type InvitationState, type ProofOfInvitation } from 'invitation/types.js'
-import { memoize, VALID, type ValidationResult } from 'util/index.js'
+import { VALID, type ValidationResult } from 'util/index.js'
 
 export const invitationCanBeUsed = (invitation: InvitationState, timeOfUse: number) => {
   const { revoked, maxUses, uses, expiration } = invitation

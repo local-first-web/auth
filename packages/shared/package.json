@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "debug": "^4.3.4",
-    "eventemitter3": "^5.0.1"
+    "eventemitter3": "^5.0.1",
+    "lodash-es": "^4.17.21"
   }
 }

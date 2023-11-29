@@ -305,6 +305,9 @@ importers:
 
   packages/crypto:
     dependencies:
+      '@localfirst/auth-shared':
+        specifier: workspace:*
+        version: link:../shared
       '@types/lodash-es':
         specifier: ^4.17.12
         version: 4.17.12
@@ -329,6 +332,9 @@ importers:
       eventemitter3:
         specifier: ^5.0.1
         version: 5.0.1
+      lodash-es:
+        specifier: ^4.17.21
+        version: 4.17.21
 
 packages:
 
