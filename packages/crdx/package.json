@@ -23,8 +23,7 @@
     "watch": "pnpm build --watch"
   },
   "dependencies": {
-    "@types/lodash-es": "^4.17.11",
-    "@localfirst/crypto": "^5.0.0",
+    "@localfirst/crypto": "workspace:*",
     "@paralleldrive/cuid2": "^2.2.2",
     "eventemitter3": "^5.0.1",
     "msgpackr": "^1.9.9",

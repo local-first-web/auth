@@ -24,8 +24,9 @@
     "watch": "pnpm build --watch"
   },
   "dependencies": {
-    "@localfirst/crdx": "^5.0.0",
-    "@localfirst/crypto": "^5.0.0",
+    "@localfirst/auth-shared": "workspace:*",
+    "@localfirst/crdx": "workspace:*",
+    "@localfirst/crypto": "workspace:*",
     "@paralleldrive/cuid2": "^2.2.2",
     "debug": "^4.3.4",
     "eventemitter3": "^5.0.1",

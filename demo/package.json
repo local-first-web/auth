@@ -22,7 +22,7 @@
   "dependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
     "@ibm/plex": "^6.2.0",
-    "@localfirst/auth": "^4.1.9",
+    "@localfirst/auth": "workspace:*",
     "@localfirst/relay": "^3.6.2",
     "@localfirst/relay-client": "^3.6.2",
     "@paralleldrive/cuid2": "^2.2.2",
