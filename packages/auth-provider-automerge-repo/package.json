@@ -9,7 +9,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsup",
-    "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly --declaration",
+    "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly",
     "test": "vitest",
     "test:log": "cross-env DEBUG='lf*,automerge*' DEBUG_COLORS=1 vitest --reporter basic"
   },
