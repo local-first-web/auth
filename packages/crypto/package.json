@@ -25,12 +25,11 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@herbcaudill/base-x": "^4.0.6",
-    "@types/lodash-es": "^4.17.11",
+    "@types/lodash-es": "^4.17.12",
     "bs58": "^5.0.0",
     "libsodium-wrappers-sumo": "^0.7.13",
     "lodash-es": "^4.17.21",
-    "msgpackr": "^1.9.9"
+    "msgpackr": "^1.10.0"
   },
   "publishConfig": {
     "access": "public"
