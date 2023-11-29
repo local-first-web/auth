@@ -24,7 +24,25 @@ const { encryptBytes, decryptBytes } = Auth.symmetric
  * This class is used to wrap automerge-repo network adapters so that they authenticate peers and
  * encrypt network traffic, using [localfirst/auth](https://github.com/local-first-web/auth).
  *
- * To use, create a AuthProvider, using the same and wrap your network adapter(s) with its `wrap` method.
+ * To use:
+ *
+ * 1. Create a AuthProvider, using the same storage adapter that the repo will use:
+ *
+ *    ```ts
+ *    const storage = new SomeStorageAdapter()
+ *    const auth = new AuthProvider({ user, device, storage })
+ *    ```
+ * 2. Wrap your network adapter(s) with its `wrap` method.
+ *    ```ts
+ *   const adapter = new SomeNetworkAdapter()
+ *   const authenticatedAdapter = auth.wrap(adapter)
+ *   ```
+ * 3. Pass the wrapped adapters to the repo.
+ *   ```ts
+ *  const repo = new Repo({
+ *    storage,
+ *    network: [authenticatedAdapter],
+ *  })
  */
 export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   #adapters: AuthNetworkAdapter<NetworkAdapter>[] = []
