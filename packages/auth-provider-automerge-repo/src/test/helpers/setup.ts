@@ -33,9 +33,9 @@ export const setup = <T extends string>(userNames = ['alice', 'bob', 'charlie'] 
 
   const users = userNames.reduce<Record<string, UserStuff>>((result, userName) => {
     const storageDir = getStorageDirectory(userName)
+    const storage = new NodeFSStorageAdapter(storageDir)
 
     const setupRepo = (ports: MessagePort[]) => {
-      const storage = new NodeFSStorageAdapter(storageDir)
       const authProvider = new AuthProvider({ user, device, storage })
 
       const repo = new Repo({
