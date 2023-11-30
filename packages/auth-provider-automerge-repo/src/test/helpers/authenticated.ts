@@ -1,6 +1,6 @@
-import { Repo } from '@automerge/automerge-repo'
-import { pause, eventPromise } from '@localfirst/auth-shared'
-import { UserStuff } from './setup.js'
+import { type Repo } from '@automerge/automerge-repo'
+import { eventPromise, pause } from '@localfirst/auth-shared'
+import { type UserStuff } from './setup.js'
 
 export const authenticatedInTime = async (a: UserStuff, b: UserStuff, timeout = 1000) => {
   const authWorked = authenticated(a.repo, b.repo).then(() => true)
@@ -9,7 +9,7 @@ export const authenticatedInTime = async (a: UserStuff, b: UserStuff, timeout = 
   return Promise.race([authWorked, authTimedOut])
 }
 
-export const authenticated = (a: Repo, b: Repo) => {
+export const authenticated = async (a: Repo, b: Repo) => {
   return Promise.all([
     eventPromise(a.networkSubsystem, 'peer'),
     eventPromise(b.networkSubsystem, 'peer'),

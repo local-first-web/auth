@@ -1,9 +1,8 @@
 import { TEST_GRAPH_KEYS as keys } from 'util/testing/setup.js'
 import { describe, expect, test } from 'vitest'
-import { type RootAction } from 'graph/index.js'
 import { createStore } from 'store/index.js'
-import { type Reducer } from 'store/types.js'
 import { createUser } from 'user/index.js'
+import { counterReducer } from './shared/counterReducer.js'
 
 /*
 This is intended to be the simplest possible proof of concept: An increment-only counter. There is
@@ -71,46 +70,3 @@ describe('counter', () => {
     })
   })
 })
-
-// Counter
-
-// action types
-
-export type CounterAction = IncrementAction
-
-export type IncrementAction =
-  | RootAction
-  | {
-      type: 'INCREMENT'
-      payload: number
-    }
-
-// state
-
-export type CounterState = {
-  value: number
-}
-
-// reducer
-
-export const counterReducer: Reducer<CounterState, CounterAction> = (state, link) => {
-  const action = link.body
-  switch (action.type) {
-    case 'ROOT': {
-      return { value: 0 }
-    }
-
-    case 'INCREMENT': {
-      const step = action.payload ?? 1
-      return {
-        ...state,
-        value: state.value + step,
-      }
-    }
-
-    default: {
-      // ignore coverage
-      return state
-    }
-  }
-}

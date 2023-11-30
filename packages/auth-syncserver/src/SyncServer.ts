@@ -1,23 +1,23 @@
-import { PeerId, Repo } from '@automerge/automerge-repo'
+import { Repo, type PeerId } from '@automerge/automerge-repo'
 import { NodeWSServerAdapter } from '@automerge/automerge-repo-network-websocket'
 import { NodeFSStorageAdapter } from '@automerge/automerge-repo-storage-nodefs'
 import {
-  Keyring,
-  Keyset,
-  KeysetWithSecrets,
-  ServerWithSecrets,
   Team,
   castServer,
   createKeyset,
   redactKeys,
+  type Keyring,
+  type Keyset,
+  type KeysetWithSecrets,
+  type ServerWithSecrets,
 } from '@localfirst/auth'
 import { AuthProvider } from '@localfirst/auth-provider-automerge-repo'
 import { debug } from '@localfirst/auth-shared'
 import bodyParser from 'body-parser'
 import cors from 'cors'
-import express, { ErrorRequestHandler } from 'express'
+import express, { type ErrorRequestHandler } from 'express'
 import fs from 'fs'
-import { Server as HttpServer } from 'http'
+import { type Server as HttpServer } from 'http'
 import path from 'path'
 import { WebSocketServer } from 'ws'
 
@@ -36,7 +36,6 @@ import { WebSocketServer } from 'ws'
 export class LocalFirstAuthSyncServer {
   socket: WebSocketServer
   server: HttpServer
-  host: string
   storageDir: string
   publicKeys: Keyset
 
@@ -47,9 +46,8 @@ export class LocalFirstAuthSyncServer {
      * A unique name for this server - probably its domain name or IP address. This should match the
      * name added to the localfirst/auth team.
      */
-    host: string
+    private readonly host: string
   ) {
-    this.host = host
     this.log.extend(host)
   }
 
@@ -60,7 +58,7 @@ export class LocalFirstAuthSyncServer {
       silent?: boolean
     } = {}
   ) {
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<void>(resolve => {
       const { port = 3000, storageDir = 'automerge-repo-data', silent = false } = options
       this.storageDir = storageDir
 
@@ -96,7 +94,7 @@ export class LocalFirstAuthSyncServer {
         storage,
         // Since this is a server, we don't share generously — meaning we only sync documents they
         // already know about and can ask for by ID.
-        sharePolicy: async peerId => false,
+        sharePolicy: async _peerId => false,
       })
 
       // Set up the server
@@ -127,7 +125,7 @@ export class LocalFirstAuthSyncServer {
         })
 
         /** Endpoint to register a team. */
-        .post('/teams', (req, res) => {
+        .post('/teams', async (req, res) => {
           this.log('POST /teams %o', req.body)
           const { serializedGraph, teamKeyring } = req.body as {
             serializedGraph: Uint8Array
@@ -135,7 +133,7 @@ export class LocalFirstAuthSyncServer {
           }
 
           // rehydrate the team using the serialized graph and the keys passed in the request
-          //! TODO: check that this team doesn't already exist, otherwise someone could slip you a fake team
+          // ! TODO: check that this team doesn't already exist, otherwise someone could slip you a fake team
           const team = new Team({
             source: objectToUint8Array(serializedGraph),
             context: { server },
@@ -143,7 +141,7 @@ export class LocalFirstAuthSyncServer {
           })
 
           // add the team to our auth provider
-          auth.addTeam(team)
+          await auth.addTeam(team)
           res.end()
         })
 
@@ -169,12 +167,12 @@ export class LocalFirstAuthSyncServer {
     })
   }
 
-  close(payload: any) {
+  close(payload?: any) {
     this.log('socket closed %o', payload)
     this.server.close()
   }
 
-  #getKeys = () => {
+  readonly #getKeys = () => {
     const keysPath = path.join(this.storageDir, '__SERVER_KEYS.json')
     if (fs.existsSync(keysPath)) {
       // retrieve from storage
@@ -193,7 +191,7 @@ export class LocalFirstAuthSyncServer {
 /**
  *
  */
-function objectToUint8Array(obj: { [key: number]: number }): Uint8Array {
+function objectToUint8Array(obj: Record<number, number>): Uint8Array {
   const arr = Object.values(obj)
   return new Uint8Array(arr)
 }

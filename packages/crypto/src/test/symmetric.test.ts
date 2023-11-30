@@ -1,5 +1,5 @@
-import { describe, test, expect } from 'vitest'
-import { base58, symmetric } from '..'
+import { describe, expect, test } from 'vitest'
+import { symmetric } from '../index.js'
 
 const { encrypt, decrypt } = symmetric
 

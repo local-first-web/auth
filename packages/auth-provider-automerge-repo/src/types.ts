@@ -1,6 +1,5 @@
-import { DocumentId, Message, PeerId, StorageAdapter } from '@automerge/automerge-repo'
-
-import * as Auth from '@localfirst/auth'
+import type { DocumentId, Message, PeerId, StorageAdapter } from '@automerge/automerge-repo'
+import type * as Auth from '@localfirst/auth'
 
 /** The team's ID is used as the ID for a share */
 export type ShareId = Auth.Hash & { __shareId: true }
@@ -80,7 +79,7 @@ export type ErrorPayload = Auth.ConnectionErrorPayload & {
   peerId: PeerId
 }
 
-export interface AuthProviderEvents {
+export type AuthProviderEvents = {
   /** We've loaded any persisted state so for example you can ask for a team */
   ready: () => void
 

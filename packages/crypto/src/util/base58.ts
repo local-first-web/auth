@@ -1,5 +1,6 @@
-import { type Base58 } from '../types.js'
 import bs58 from 'bs58'
+import { type Base58 } from '../types.js'
+
 const { encode, decode } = bs58
 
 export const base58 = {

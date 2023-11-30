@@ -92,6 +92,11 @@ module.exports = {
 
     // default is kebabCase
     'unicorn/filename-case': [ERROR, { cases: { camelCase: true, pascalCase: true } }],
+
+    // don't flag wallaby magic comment `//?`
+    'spaced-comment': [ERROR, ALWAYS, { block: { markers: ['?'], balanced: true } }],
+
+    'ava/no-import-test-files': [ERROR, { files: ['*.test.ts'] }],
   },
 
   overrides: [],

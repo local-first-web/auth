@@ -97,11 +97,11 @@ export type DecryptFn = <A extends Action, C>({
 
 // ignore coverage
 // buffer to uint8array
-const toUint8Array = (buf: Buffer | Uint8Array) => {
+const toUint8Array = (buf: globalThis.Buffer | Uint8Array) => {
   return !isBuffer(buf)
     ? new Uint8Array(buf)
     : new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength)
 }
 
-const isBuffer = (buf: Buffer | Uint8Array): buf is Buffer =>
+const isBuffer = (buf: globalThis.Buffer | Uint8Array): buf is globalThis.Buffer =>
   'buffer' in buf && 'byteOffset' in buf && 'byteLength' in buf

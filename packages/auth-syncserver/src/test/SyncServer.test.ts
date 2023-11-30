@@ -1,5 +1,5 @@
+import { createTeam, device, loadTeam, type Team } from '@localfirst/auth'
 import { eventPromise } from '@localfirst/auth-shared'
-import { Team, createTeam, loadTeam, device } from '@localfirst/auth'
 import { describe, expect, it } from 'vitest'
 import { host, setup } from './helpers/setup.js'
 
@@ -26,13 +26,13 @@ describe('LocalFirstAuthSyncServer', () => {
   })
 
   it('Alice can create a team', async () => {
-    const { users, url, server } = await setup(['alice'])
+    const { users, url } = await setup(['alice'])
     const { alice } = users
 
     // create a team
     const teamContext = { user: alice.user, device: alice.device }
     const team = createTeam('team A', teamContext)
-    alice.authProvider.addTeam(team)
+    await alice.authProvider.addTeam(team)
 
     // get the server's public keys
     const response = await fetch(`http://${url}/keys`)
@@ -57,14 +57,14 @@ describe('LocalFirstAuthSyncServer', () => {
   })
 
   it('Allows two users to communicate', async () => {
-    const { users, url, server } = await setup(['alice', 'bob'])
+    const { users, url } = await setup(['alice', 'bob'])
     const { alice, bob } = users
 
     // create a team
     const teamContext = { user: alice.user, device: alice.device }
 
     const aliceTeam: Team = createTeam('team A', teamContext)
-    alice.authProvider.addTeam(aliceTeam)
+    await alice.authProvider.addTeam(aliceTeam)
     aliceTeam.addForTesting(bob.user, [], device.redactDevice(bob.device))
 
     // get the server's public keys
@@ -98,7 +98,7 @@ describe('LocalFirstAuthSyncServer', () => {
 
     await eventPromise(bob.repo.networkSubsystem, 'peer')
 
-    //Now we are going to test that Bob is going to see alice's changes to the team
+    // Now we are going to test that Bob is going to see alice's changes to the team
     aliceTeam.addRole('MANAGERS')
 
     // We need to wait Bob team to get updated so we can check that both teams are in sync

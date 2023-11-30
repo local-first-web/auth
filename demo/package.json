@@ -11,7 +11,7 @@
   "private": false,
   "type": "module",
   "scripts": {
-    "dev:relay": "cross-env DEBUG='lf*' DEBUG_COLORS=1 node ./scripts/start-relay-server.js",
+    "dev:relay": "cross-env DEBUG='localfirst*' DEBUG_COLORS=1 node ./scripts/start-relay-server.js",
     "dev:serve": "vite --force --port 3000",
     "dev": "run-p dev:relay dev:serve",
     "dev:cy": "cross-env CYPRESS_REMOTE_DEBUGGING_PORT=9222 run-p dev test:cy",

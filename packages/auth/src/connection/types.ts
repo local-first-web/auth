@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-types */
 // ignore file coverage
 
 import type {

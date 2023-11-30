@@ -41,7 +41,7 @@ import { arraysAreEqual } from 'util/arraysAreEqual.js'
 import { KeyType } from 'util/index.js'
 import { syncMessageSummary } from 'util/testing/messageSummary.js'
 import { assign, createMachine, interpret, type Interpreter } from 'xstate'
-import { NumberedMessage, OrderedNetwork } from './OrderedNetwork.js'
+import { type NumberedMessage, OrderedNetwork } from './OrderedNetwork.js'
 import { machine } from './machine.js'
 import type {
   Condition,
@@ -74,7 +74,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   /** The interpreted state machine. Its XState configuration is in `machine.ts`. */
   private readonly machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
   private started = false
-  private orderedNetwork: OrderedNetwork<ConnectionMessage>
+  private readonly orderedNetwork: OrderedNetwork<ConnectionMessage>
   private log = debug.extend('auth:connection')
 
   constructor({ sendMessage, context }: Params) {
@@ -135,7 +135,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   // PUBLIC API
 
   /** Starts the protocol machine. Returns this Protocol object. */
-  public start = (storedMessages: string[] = []) => {
+  public start = () => {
     this.log('starting')
     this.machine.start()
     this.orderedNetwork.start()
@@ -467,10 +467,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     // NEGOTIATING
 
-    generateSeed: assign(context => {
-      return {
-        seed: randomKeyBytes(),
-      }
+    generateSeed: assign(_context => {
+      return { seed: randomKeyBytes() }
     }),
 
     sendSeed: context => {

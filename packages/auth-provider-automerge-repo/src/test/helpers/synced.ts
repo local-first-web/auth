@@ -1,6 +1,6 @@
 import { expect } from 'vitest'
 import { eventPromise } from '@localfirst/auth-shared'
-import { UserStuff, TestDoc } from './setup.js'
+import { type UserStuff, type TestDoc } from './setup.js'
 
 export const synced = async (a: UserStuff, b: UserStuff) => {
   // a makes a document
@@ -13,7 +13,7 @@ export const synced = async (a: UserStuff, b: UserStuff) => {
   const bHandle = b.repo.find<TestDoc>(aHandle.documentId)
   const bDoc = await bHandle.doc()
 
-  expect(bDoc.foo).toBe('bar')
+  expect(bDoc?.foo).toBe('bar')
 
   // b makes a change
   bHandle.change(d => {
@@ -23,7 +23,7 @@ export const synced = async (a: UserStuff, b: UserStuff) => {
   // a receives the change
   await eventPromise(aHandle, 'change')
   const aDoc = await aHandle.doc()
-  expect(aDoc.foo).toBe('baz')
+  expect(aDoc?.foo).toBe('baz')
 
   return true
 }

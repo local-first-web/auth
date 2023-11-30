@@ -11,7 +11,7 @@
     "build": "tsup",
     "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly",
     "test": "vitest",
-    "test:log": "cross-env DEBUG='lf*,automerge*' DEBUG_COLORS=1 vitest --reporter basic"
+    "test:log": "cross-env DEBUG='localfirst*' DEBUG_COLORS=1 vitest --reporter basic"
   },
   "dependencies": {
     "@automerge/automerge-repo": "link:..\\..\\..\\..\\automerge\\automerge-repo\\packages\\automerge-repo",

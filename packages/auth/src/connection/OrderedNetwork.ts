@@ -12,11 +12,11 @@ export class OrderedNetwork<T> extends EventEmitter<OrderedNetworkEvents<T>> {
   #inbound: Record<number, NumberedMessage<T>> = {}
   #nextInbound = 0
   #waiting: Record<number, TimeoutId> = {}
-  #timeout: number
+  readonly #timeout: number
 
   #outbound: Record<number, NumberedMessage<T>> = {}
   #nextOutbound = 0
-  #sendMessage: (message: NumberedMessage<T>) => void
+  readonly #sendMessage: (message: NumberedMessage<T>) => void
 
   constructor({ sendMessage, timeout = 1000 }: Options<T>) {
     super()
@@ -80,7 +80,7 @@ export class OrderedNetwork<T> extends EventEmitter<OrderedNetworkEvents<T>> {
     return this
   }
 
-  #processOutbound = () => {
+  #processOutbound() {
     // send outbound messages in order
     while (this.#outbound[this.#nextOutbound]) {
       const message = this.#outbound[this.#nextOutbound]
@@ -91,7 +91,7 @@ export class OrderedNetwork<T> extends EventEmitter<OrderedNetworkEvents<T>> {
   /**
    * Receives any messages that are pending in the inbound queue, and requests any missing messages.
    */
-  #processInbound = () => {
+  #processInbound() {
     // emit received messages in order
     while (this.#inbound[this.#nextInbound]) {
       const message = this.#inbound[this.#nextInbound]
@@ -106,6 +106,9 @@ export class OrderedNetwork<T> extends EventEmitter<OrderedNetworkEvents<T>> {
       this.#waiting[i] = setTimeout(() => {
         // if it still hasn't come, request it
         if (!this.#inbound[i]) this.emit('request', i)
+
+        // TODO use maps instead
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
         delete this.#waiting[i]
       }, this.#timeout)
     }

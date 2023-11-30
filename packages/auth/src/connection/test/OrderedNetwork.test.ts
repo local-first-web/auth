@@ -177,7 +177,7 @@ describe('OrderedNetwork', () => {
     })
 
     it(`re-requests a message if it still doesn't come`, async () => {
-      const { network, received, requested } = setup()
+      const { network, requested } = setup()
       network
         .start()
         .receive({ index: 0 })
@@ -229,4 +229,5 @@ describe('OrderedNetwork', () => {
   })
 })
 
+// eslint-disable-next-line @typescript-eslint/ban-types
 type TestMessage = {}

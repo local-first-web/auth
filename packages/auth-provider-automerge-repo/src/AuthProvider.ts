@@ -1,23 +1,32 @@
-import type { DocumentId, PeerId, RepoMessage, StorageAdapter } from '@automerge/automerge-repo'
-import { NetworkAdapter } from '@automerge/automerge-repo'
+/* eslint-disable @typescript-eslint/no-dynamic-delete */
+// TODO use maps instead of objects for #invitations etc?
+
+import type {
+  DocumentId,
+  NetworkAdapter,
+  PeerId,
+  RepoMessage,
+  StorageAdapter,
+} from '@automerge/automerge-repo'
 import * as Auth from '@localfirst/auth'
+import { debug, eventPromise } from '@localfirst/auth-shared'
 import { EventEmitter } from 'eventemitter3'
 import { pack, unpack } from 'msgpackr'
 import { AuthenticatedNetworkAdapter as AuthNetworkAdapter } from './AuthenticatedNetworkAdapter.js'
-import { debug } from '@localfirst/auth-shared'
 import { forwardEvents } from './forwardEvents.js'
 import type {
+  AuthProviderEvents,
   Config,
   Invitation,
   LocalFirstAuthMessage,
   LocalFirstAuthMessagePayload,
-  AuthProviderEvents,
   SerializedShare,
   SerializedState,
   Share,
   ShareId,
 } from './types.js'
 import { isAuthMessage, isDeviceInvitation } from './types.js'
+
 const { encryptBytes, decryptBytes } = Auth.symmetric
 
 /**
@@ -45,14 +54,14 @@ const { encryptBytes, decryptBytes } = Auth.symmetric
  *  })
  */
 export class AuthProvider extends EventEmitter<AuthProviderEvents> {
-  #adapters: AuthNetworkAdapter<NetworkAdapter>[] = []
-  #device: Auth.DeviceWithSecrets
+  readonly #adapters: Array<AuthNetworkAdapter<NetworkAdapter>> = []
+  readonly #device: Auth.DeviceWithSecrets
   #user?: Auth.UserWithSecrets
   #invitations = {} as Record<ShareId, Invitation>
   #shares = {} as Record<ShareId, Share>
   #connections = {} as Record<ShareId, Record<PeerId, Auth.Connection>>
   #messageStore = {} as Record<ShareId, Record<PeerId, Uint8Array[]>>
-  #peers: Map<NetworkAdapter, PeerId[]> = new Map()
+  readonly #peers = new Map<NetworkAdapter, PeerId[]>()
   storage: StorageAdapter
 
   #log = debug.extend('auth:provider-automerge-repo')
@@ -64,7 +73,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     this.#device = device
 
     // We might already have our user info, unless we're a new device using an invitation
-    if (user && user.userName) {
+    if (user?.userName) {
       this.#user = user
       this.#log = this.#log.extend(user.userName)
     }
@@ -75,7 +84,11 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     })
     // Load any existing state from storage
     this.storage = storage
-    this.#loadState().then(() => this.emit('ready'))
+    this.#loadState()
+      .then(() => this.emit('ready'))
+      .catch(error => {
+        throw error as Error
+      })
   }
 
   /**
@@ -96,6 +109,8 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     // try to authenticate new peers; if we succeed, we forward the peer-candidate to the network subsystem
     baseAdapter
       .on('peer-candidate', ({ peerId }) => {
+        // TODO: we need to store the storageId and isEphemeral in order to provide that info in the peer-candidate event
+
         this.#log('peer-candidate %o', peerId)
         this.#addPeer(baseAdapter, peerId)
 
@@ -107,33 +122,24 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
       // Intercept any incoming messages and pass them to the Auth.Connection.
       .on('message', message => {
-        try {
-          this.#log('message from adapter %o', message)
+        this.#log('message from adapter %o', message)
 
-          if (!isAuthMessage(message)) throw new Error('Not an auth message')
-          const { senderId, payload } = message
-          const { shareId, serializedConnectionMessage } = payload as LocalFirstAuthMessagePayload
+        if (!isAuthMessage(message)) throw new Error('Not an auth message')
+        const { senderId, payload } = message
+        const { shareId, serializedConnectionMessage } = payload as LocalFirstAuthMessagePayload
 
-          // If we don't have a connection for this message, store it until we do
-          if (!(shareId in this.#connections)) {
-            this.#log('no connection yet, storing message')
-            this.#storeMessage(shareId, senderId, serializedConnectionMessage)
-            return
-          }
-
-          // Pass message to the auth connection
-          const connection = this.#getConnection(shareId, senderId)
-
-          this.#log('delivering message to connection %o', message)
-          connection.deliver(serializedConnectionMessage)
-        } catch (e) {
-          // Surface any errors to the repo
-          this.#log(`error`, e)
-          authAdapter.emit('error', {
-            peerId: message.senderId,
-            error: e,
-          })
+        // If we don't have a connection for this message, store it until we do
+        if (!(shareId in this.#connections)) {
+          this.#log('no connection yet, storing message')
+          this.#storeMessage(shareId, senderId, serializedConnectionMessage)
+          return
         }
+
+        // Pass message to the auth connection
+        const connection = this.#getConnection(shareId, senderId)
+
+        this.#log('delivering message to connection %o', message)
+        connection.deliver(serializedConnectionMessage)
       })
 
       .on('peer-disconnected', ({ peerId }) => {
@@ -157,8 +163,8 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     const shareId = team.id
     this.#shares[shareId] = { shareId, team, documentIds: new Set() }
     await this.#saveState()
-    team.on('updated', () => {
-      this.#saveState()
+    team.on('updated', async () => {
+      await this.#saveState()
     })
     await this.#createConnectionsForShare(shareId)
   }
@@ -175,12 +181,14 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     await this.#createConnectionsForShare(shareId)
   }
 
+  // eslint-disable-next-line unused-imports/no-unused-vars
   public addDocuments(shareId: ShareId, documentIds: DocumentId[]) {
     throw new Error('not implemented')
     // const share = this.getShare(shareId)
     // documentIds.forEach(id => share.documentIds.add(id))
   }
 
+  // eslint-disable-next-line unused-imports/no-unused-vars
   public removeDocuments(shareId: ShareId, documentIds: DocumentId[]) {
     throw new Error('not implemented')
     // const share = this.getShare(shareId)
@@ -193,7 +201,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
    * We might get messages from a peer before we've set up an Auth.Connection with them.
    * We store these messages until there's a connection to hand them off to.
    */
-  #storeMessage = (shareId: ShareId, peerId: PeerId, message: Uint8Array) => {
+  readonly #storeMessage = (shareId: ShareId, peerId: PeerId, message: Uint8Array) => {
     const messages = this.#messageStore[shareId]?.[peerId] || []
     this.#messageStore[shareId] = {
       ...this.#messageStore[shareId],
@@ -201,7 +209,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     }
   }
 
-  #getStoredMessages = (shareId: ShareId, peerId: PeerId) => {
+  readonly #getStoredMessages = (shareId: ShareId, peerId: PeerId) => {
     return this.#messageStore[shareId]?.[peerId] || []
   }
 
@@ -210,7 +218,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
    * shared secret key for the session, and sync up the team graph. This communication happens
    * over a network adapter that we've wrapped.
    */
-  #createConnection = async <T extends NetworkAdapter>({
+  readonly #createConnection = async <T extends NetworkAdapter>({
     shareId,
     peerId,
     authAdapter: authenticatedAdapter,
@@ -219,13 +227,13 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     peerId: PeerId
     authAdapter: AuthNetworkAdapter<T>
   }) => {
-    this.#log('creating connection', { shareId, peerId })
+    this.#log('creating connection %o', { shareId, peerId })
     const { baseAdapter } = authenticatedAdapter
 
     const connection = new Auth.Connection({
       context: this.#getContextForShare(shareId),
       // The Auth connection uses the base adapter as its network transport
-      sendMessage: serializedConnectionMessage => {
+      sendMessage(serializedConnectionMessage) {
         const authMessage: LocalFirstAuthMessage = {
           type: 'auth',
           senderId: baseAdapter.peerId!,
@@ -247,7 +255,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
         // Create a share with this team
         this.#user = user
 
-        this.addTeam(team)
+        await this.addTeam(team)
 
         await this.#saveState()
 
@@ -262,7 +270,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
         // Let the application know
         this.emit('connected', { shareId, peerId })
         // Let the repo know we've got a new peer
-        authenticatedAdapter.emit('peer-candidate', { peerId })
+        authenticatedAdapter.emit('peer-candidate', { peerId, isEphemeral: false })
       })
 
       .on('message', message => {
@@ -311,7 +319,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     this.#log('adding peer %o', peerId)
 
     // Track each peer by the adapter uses to connect to it
-    const peers = this.#peers.get(baseAdapter) || []
+    const peers = this.#peers.get(baseAdapter) ?? []
     if (!peers.includes(peerId)) {
       peers.push(peerId)
       this.#peers.set(baseAdapter, peers)
@@ -327,7 +335,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     // Let the repo know
     for (const authenticatedAdapter of this.#adapters) {
       // Find the adapter that has this peer
-      const peers = this.#peers.get(authenticatedAdapter.baseAdapter) || []
+      const peers = this.#peers.get(authenticatedAdapter.baseAdapter) ?? []
       if (peers.includes(peerId)) {
         authenticatedAdapter.emit('peer-disconnected', { peerId })
         break
@@ -335,13 +343,16 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     }
   }
 
-  #getConnection = (shareId: ShareId, peerId: PeerId) => {
-    const connection = this.#connections[shareId]?.[peerId]
-    if (!connection) throw new Error(`Connection not found`)
+  readonly #getConnection = (shareId: ShareId, peerId: PeerId) => {
+    const connections = this.#connections[shareId]
+    if (!connections) throw new Error(`No connections for share ${shareId}`)
+
+    const connection = connections[peerId]
+    if (!connection) throw new Error(`Connection not found for peer ${peerId} on share ${shareId}`)
     return connection
   }
 
-  #removeConnection = (shareId: ShareId, peerId: PeerId) => {
+  readonly #removeConnection = (shareId: ShareId, peerId: PeerId) => {
     const connections = this.#connections[shareId]
     if (connections && peerId in connections) {
       const connection = connections[peerId]
@@ -354,7 +365,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   async #saveState() {
     const shares = {} as SerializedState
     for (const shareId in this.#shares) {
-      const share = this.#shares[shareId as ShareId] as Share
+      const share = this.#shares[shareId as ShareId]
       shares[shareId as ShareId] = {
         shareId,
         encryptedTeam: share.team.save(),
@@ -373,29 +384,39 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     const serializedState = await this.storage.load(STORAGE_KEY)
     if (!serializedState) return
 
-    const savedShares = unpack(serializedState) as SerializedState
-    for (const shareId in savedShares) {
-      this.#log('loading state', shareId)
-      const share = savedShares[shareId as ShareId] as SerializedShare
-
-      const { encryptedTeam, encryptedTeamKeys } = share
-      const teamKeys = decryptBytes(
-        encryptedTeamKeys,
-        this.#device.keys.secretKey
-      ) as Auth.KeysetWithSecrets
-
-      const context = { device: this.#device, user: this.#user }
-
-      const team = Auth.loadTeam(encryptedTeam, context, teamKeys)
-      this.addTeam(team)
+    const tryUnpack = (serializedState: Uint8Array) => {
+      try {
+        return unpack(serializedState) as SerializedState
+      } catch (error) {
+        console.error('error unpacking state: %o', { error, serializedState })
+        throw error as Error
+      }
     }
+    const savedShares = tryUnpack(serializedState)
+
+    await Promise.all(
+      Object.values(savedShares).map(async share => {
+        const { shareId, encryptedTeam, encryptedTeamKeys } = share
+        this.#log('loading state', shareId)
+
+        const teamKeys = decryptBytes(
+          encryptedTeamKeys,
+          this.#device.keys.secretKey
+        ) as Auth.KeysetWithSecrets
+
+        const context = { device: this.#device, user: this.#user }
+
+        const team = await Auth.loadTeam(encryptedTeam, context, teamKeys)
+        return this.addTeam(team)
+      })
+    )
   }
 
   #allShareIds() {
     return [...Object.keys(this.#shares), ...Object.keys(this.#invitations)] as ShareId[]
   }
 
-  #getContextForShare = (shareId: ShareId) => {
+  readonly #getContextForShare = (shareId: ShareId) => {
     const device = this.#device
     const user = this.#user
     const invitation = this.#invitations[shareId]
@@ -430,23 +451,26 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   /** Go through all our peers and try to connect in case they're on the team */
   async #createConnectionsForShare(shareId: ShareId) {
     this.#log('createConnectionsForShare', shareId)
-    for (const authenticatedAdapter of this.#adapters) {
-      const peerIds = this.#peers.get(authenticatedAdapter.baseAdapter) || []
-      this.#log('creating connections for %o', peerIds)
-      for (const peerId of peerIds) {
-        const connection = this.#connections[shareId]?.[peerId]
-        if (!connection)
-          await this.#createConnection({
-            shareId,
-            peerId,
-            authAdapter: authenticatedAdapter,
-          })
-      }
-    }
+    await Promise.all(
+      Object.values(this.#adapters).map(async authenticatedAdapter => {
+        const peerIds = this.#peers.get(authenticatedAdapter.baseAdapter) ?? []
+        this.#log('creating connections for %o', peerIds)
+        return peerIds.map(async peerId => {
+          const connection = this.#connections[shareId]?.[peerId]
+          if (!connection) {
+            return this.#createConnection({
+              shareId,
+              peerId,
+              authAdapter: authenticatedAdapter,
+            })
+          }
+        })
+      })
+    )
   }
 
   /** Returns the shareId to use for encrypting the given message */
-  #getShareIdForMessage = ({ documentId, targetId }: RepoMessage) => {
+  readonly #getShareIdForMessage = ({ targetId }: RepoMessage) => {
     // Since the raw network adapters don't know anything about ShareIds, when we're given a message
     // to encrypt and send out, we need to figure out which auth connection it belongs to, in order
     // to retrieve the right session key to use for encryption.

@@ -1,6 +1,6 @@
 import { createKeyset, type UnixTimestamp } from '@localfirst/crdx'
 import { signatures } from '@localfirst/crypto'
-import { FirstUseDevice, redactDevice } from 'index.js'
+import { type FirstUseDevice, redactDevice } from 'index.js'
 import { generateProof, generateStarterKeys } from 'invitation/index.js'
 import * as teams from 'team/index.js'
 import { KeyType } from 'util/index.js'
@@ -335,7 +335,7 @@ describe('Team', () => {
           expect(alice.team.members(alice.userId).devices).toHaveLength(1)
 
           // 💻 on her laptop, Alice generates an invitation for her phone
-          const { seed } = alice.team.inviteDevice()
+          const _seed = alice.team.inviteDevice().seed
 
           // 🦹‍♀️ Eve is a member of the group and she wants to hijack Alice's device invitation
           // for her nefarious purposes. so she tries to create a proof of invitation.

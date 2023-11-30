@@ -3,7 +3,7 @@
 import process from 'process'
 import { memoize } from '@localfirst/auth-shared'
 import sodium from 'libsodium-wrappers-sumo'
-import { Password, type Base58 } from './types.js'
+import { type Password, type Base58 } from './types.js'
 import { base58, keyToBytes } from './util/index.js'
 
 /**

@@ -1,14 +1,14 @@
-import { PeerId, Repo } from '@automerge/automerge-repo'
+import { type PeerId, Repo } from '@automerge/automerge-repo'
+import { BrowserWebSocketClientAdapter } from '@automerge/automerge-repo-network-websocket'
 import { NodeFSStorageAdapter } from '@automerge/automerge-repo-storage-nodefs'
 import * as Auth from '@localfirst/auth'
+import { AuthProvider } from '@localfirst/auth-provider-automerge-repo'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { rimraf } from 'rimraf'
-import { AuthProvider } from '@localfirst/auth-provider-automerge-repo'
 import { getPortPromise as getAvailablePort } from 'portfinder'
+import { rimraf } from 'rimraf'
 import { LocalFirstAuthSyncServer } from '../../index.js'
-import { BrowserWebSocketClientAdapter } from '@automerge/automerge-repo-network-websocket'
 
 export const host = 'localhost'
 
@@ -22,37 +22,34 @@ export const setup = async <T extends string>(userNames = [] as T[]) => {
     storageDir: getStorageDirectory('server'),
   })
 
-  const users = userNames.reduce(
-    (result, userName) => {
-      const storageDir = getStorageDirectory(userName)
-      const user = Auth.createUser(userName)
-      const device = Auth.createDevice(user.userId, `${userName}'s device`)
-      const context = { user, device }
-      const storage = new NodeFSStorageAdapter(storageDir)
-      const authProvider = new AuthProvider({ user, device, storage })
-      const socketAdapter = authProvider.wrap(new BrowserWebSocketClientAdapter(`ws://${url}`))
-      const repo = new Repo({
-        peerId: device.deviceId as PeerId,
-        network: [socketAdapter],
-        storage,
-      })
+  const users = userNames.reduce<Record<string, UserStuff>>((result, userName) => {
+    const storageDir = getStorageDirectory(userName)
+    const user = Auth.createUser(userName)
+    const device = Auth.createDevice(user.userId, `${userName}'s device`)
+    const context = { user, device }
+    const storage = new NodeFSStorageAdapter(storageDir)
+    const authProvider = new AuthProvider({ user, device, storage })
+    const socketAdapter = authProvider.wrap(new BrowserWebSocketClientAdapter(`ws://${url}`))
+    const repo = new Repo({
+      peerId: device.deviceId as PeerId,
+      network: [socketAdapter],
+      storage,
+    })
 
-      return {
-        ...result,
-        [userName]: { user, device, context, authProvider, repo },
-      }
-    },
-    {} as Record<string, UserStuff>
-  )
+    return {
+      ...result,
+      [userName]: { user, device, context, authProvider, repo },
+    }
+  }, {})
 
   const teardown = () => {
     // close the server connections and disconnect all clients
     server.close()
     rimraf.sync(getStorageDirectory('server'))
     // clear storage directories
-    userNames.forEach(userName => {
+    for (const userName of userNames) {
       rimraf.sync(getStorageDirectory(userName))
-    })
+    }
   }
 
   return { users, teardown, url, server }
