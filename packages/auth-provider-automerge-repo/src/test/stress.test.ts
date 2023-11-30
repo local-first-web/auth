@@ -4,7 +4,7 @@ import { authenticatedInTime } from './helpers/authenticated.js'
 import { setup } from './helpers/setup.js'
 import { synced } from './helpers/synced.js'
 
-describe.skip('persistence stress test', async () => {
+describe('persistence stress test', async () => {
   const N = 50
 
   for (let i = 0; i < N; i++) {
