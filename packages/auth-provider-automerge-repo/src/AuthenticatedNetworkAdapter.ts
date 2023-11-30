@@ -14,7 +14,17 @@ export class AuthenticatedNetworkAdapter<T extends NetworkAdapter> //
   #isReady = false
 
   send = (msg: RepoMessage) => {
-    this.sendFn(msg)
+    // wait for base adapter to be ready
+    if (!this.#isReady) {
+      eventPromise(this.baseAdapter, 'ready') //
+        .then(() => this.sendFn(msg))
+        .catch(error => {
+          throw error as Error
+        })
+    } else {
+      // send immediately
+      this.sendFn(msg)
+    }
   }
 
   /**
