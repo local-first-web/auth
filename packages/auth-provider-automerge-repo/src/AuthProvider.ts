@@ -379,15 +379,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     const serializedState = await this.storage.load(STORAGE_KEY)
     if (!serializedState) return
 
-    const tryUnpack = (serializedState: Uint8Array) => {
-      try {
-        return unpack(serializedState) as SerializedState
-      } catch (error) {
-        console.error('error unpacking state: %o', { error, serializedState })
-        throw error as Error
-      }
-    }
-    const savedShares = tryUnpack(serializedState)
+    const savedShares = unpack(serializedState) as SerializedState
 
     await Promise.all(
       Object.values(savedShares).map(async share => {
