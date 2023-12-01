@@ -271,7 +271,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
         // Let the application know
         this.emit('connected', { shareId, peerId })
         // Let the repo know we've got a new peer
-        authAdapter.emit('peer-candidate', { peerId, isEphemeral: false })
+        authAdapter.emit('peer-candidate', { peerId, peerMetadata: {} })
       })
 
       .on('message', message => {
