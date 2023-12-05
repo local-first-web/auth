@@ -1,4 +1,4 @@
-import { NetworkAdapter, type RepoMessage } from '@automerge/automerge-repo'
+import { Message, NetworkAdapter } from '@automerge/automerge-repo'
 import { eventPromise } from '@localfirst/auth-shared'
 
 /**
@@ -13,7 +13,7 @@ export class AuthenticatedNetworkAdapter<T extends NetworkAdapter> //
 
   isReady = false
 
-  send = (msg: RepoMessage) => {
+  send = (msg: Message) => {
     // wait for base adapter to be ready
     if (!this.isReady) {
       eventPromise(this.baseAdapter, 'ready') //
@@ -34,7 +34,7 @@ export class AuthenticatedNetworkAdapter<T extends NetworkAdapter> //
    */
   constructor(
     public baseAdapter: T,
-    private readonly sendFn: (msg: RepoMessage) => void
+    private readonly sendFn: (msg: Message) => void
   ) {
     super()
 
