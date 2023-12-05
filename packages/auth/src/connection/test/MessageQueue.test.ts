@@ -1,16 +1,16 @@
 import { pause } from '@localfirst/auth-shared'
 import { describe, expect, it } from 'vitest'
-import { OrderedNetwork } from '../OrderedNetwork.js'
+import { MessageQueue } from '../MessageQueue.js'
 
 const timeout = 10
 
-describe('OrderedNetwork', () => {
+describe('MessageQueue', () => {
   const setup = () => {
     const received: number[] = []
     const requested: number[] = []
     const sent: number[] = []
 
-    const network = new OrderedNetwork<TestMessage>({
+    const network = new MessageQueue<TestMessage>({
       sendMessage: message => sent.push(message.index),
       timeout,
     })

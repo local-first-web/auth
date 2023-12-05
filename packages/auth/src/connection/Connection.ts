@@ -41,7 +41,7 @@ import { arraysAreEqual } from 'util/arraysAreEqual.js'
 import { KeyType } from 'util/index.js'
 import { syncMessageSummary } from 'util/testing/messageSummary.js'
 import { assign, createMachine, interpret, type Interpreter } from 'xstate'
-import { type NumberedMessage, OrderedNetwork } from './OrderedNetwork.js'
+import { type NumberedMessage, MessageQueue } from './MessageQueue.js'
 import { machine } from './machine.js'
 import type {
   Condition,
@@ -74,7 +74,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   /** The interpreted state machine. Its XState configuration is in `machine.ts`. */
   private readonly machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
   private started = false
-  private readonly orderedNetwork: OrderedNetwork<ConnectionMessage>
+  private readonly messageQueue: MessageQueue<ConnectionMessage>
   private log = debug.extend('auth:connection')
 
   constructor({ sendMessage, context }: Params) {
@@ -82,7 +82,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     // To send messages to our peer, we give them to the ordered network,
     // which will deliver them using the
-    this.orderedNetwork = new OrderedNetwork<ConnectionMessage>({
+    this.messageQueue = new MessageQueue<ConnectionMessage>({
       sendMessage: message => {
         this.logMessage('out', message)
         const serialized = pack(message)
@@ -94,7 +94,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         // Handle requests from the peer to resend messages that they missed
         if (message.type === 'REQUEST_RESEND') {
           const { index } = message.payload
-          this.orderedNetwork.resend(index)
+          this.messageQueue.resend(index)
           return
         }
 
@@ -138,7 +138,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   public start = () => {
     this.log('starting')
     this.machine.start()
-    this.orderedNetwork.start()
+    this.messageQueue.start()
     this.started = true
 
     // kick off the connection by requesting our peer's identity
@@ -154,13 +154,13 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       this.machine.send(disconnectMessage) // Send disconnect event to local machine
       try {
         this.sendMessage(disconnectMessage) // Send disconnect message to peer
-      } catch (error) {
+      } catch {
         // our connection to the peer may already be gone by this point, don't throw
       }
     }
 
     this.removeAllListeners()
-    this.orderedNetwork.stop()
+    this.messageQueue.stop()
     this.machine.stop()
     this.machine.state.done = true
     this.log('machine stopped')
@@ -207,12 +207,12 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   }
 
   /**
-   * Adds incoming messages from the peer to the OrderedNetwork's incoming message queue, which will
+   * Adds incoming messages from the peer to the MessageQueue's incoming message queue, which will
    * pass them to the state machine in order.
    */
   public deliver(serializedMessage: Uint8Array) {
     const message = unpack(serializedMessage) as NumberedMessage<ConnectionMessage>
-    this.orderedNetwork.receive(message)
+    this.messageQueue.receive(message)
   }
 
   /** Sends an encrypted message to our peer. */
@@ -647,7 +647,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   // PRIVATE
 
   private readonly sendMessage = (message: ConnectionMessage) => {
-    this.orderedNetwork.send(message)
+    this.messageQueue.send(message)
   }
 
   private readonly throwError = (type: ConnectionErrorType, details?: any) => {

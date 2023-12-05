@@ -6,7 +6,7 @@ import { EventEmitter } from 'eventemitter3'
  *
  * Numbers and sends outbound messages, and responds to requests for missing messages.
  */
-export class OrderedNetwork<T> extends EventEmitter<OrderedNetworkEvents<T>> {
+export class MessageQueue<T> extends EventEmitter<MessageQueueEvents<T>> {
   #started = false
 
   #inbound: Record<number, NumberedMessage<T>> = {}
@@ -125,7 +125,7 @@ function highestIndex(queue: Record<number, any>) {
 
 export type NumberedMessage<T> = T & { index: number }
 
-export type OrderedNetworkEvents<T> = {
+export type MessageQueueEvents<T> = {
   message: (message: NumberedMessage<T>) => void
   request: (index: number) => void
 }
