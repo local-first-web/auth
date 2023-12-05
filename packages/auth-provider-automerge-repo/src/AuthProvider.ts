@@ -231,6 +231,12 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     this.#log('creating connection %o', { shareId, peerId })
     const { baseAdapter } = authAdapter
 
+    // wait until the adapter is ready
+    await new Promise<void>(resolve => {
+      if (authAdapter.isReady) resolve()
+      else baseAdapter.once('ready', () => resolve())
+    })
+
     const connection = new Auth.Connection({
       context: this.#getContextForShare(shareId),
       // The Auth connection uses the base adapter as its network transport
