@@ -11,6 +11,9 @@ const timeout = {
 }
 
 export const machine: MachineConfig<ConnectionContext, ConnectionState, ConnectionMessage> = {
+  // @ts-ignore
+  predictableActionArguments: true,
+
   id: 'connection',
   initial: 'awaitingIdentityClaim',
 
