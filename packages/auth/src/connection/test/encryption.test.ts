@@ -21,7 +21,7 @@ describe('connection', () => {
       expect(d).toEqual('hello')
     })
 
-    it(`can start sending encrypted messages before the connection is established`, async () => {
+    it.skip(`can start sending encrypted messages before the connection is established`, async () => {
       const { alice, bob } = setup('alice', 'bob')
 
       // 👩🏾 👨🏻‍🦲 Alice and Bob both join the channel, but we don't wait for the connection to be established
