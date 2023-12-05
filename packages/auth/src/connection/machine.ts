@@ -14,7 +14,6 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
   id: 'connection',
   initial: 'awaitingIdentityClaim',
 
-  // TODO: if we have their identity claim, AND we've sent our identity claim, we can go to `authenticating`
   on: {
     REQUEST_IDENTITY: {
       actions: 'sendIdentityClaim',
