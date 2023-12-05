@@ -213,9 +213,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   /** Sends an encrypted message to our peer. */
   public send = (message: Payload) => {
-    const { sessionKey } = this.context
-    assert(sessionKey)
-    const encryptedMessage = symmetric.encryptBytes(message, sessionKey)
+    assert(this.sessionKey)
+    const encryptedMessage = symmetric.encryptBytes(message, this.sessionKey)
     this.sendMessage({ type: 'ENCRYPTED_MESSAGE', payload: encryptedMessage })
   }
 
