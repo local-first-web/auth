@@ -151,8 +151,12 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   public stop = () => {
     if (this.started && !this.machine.state.done) {
       const disconnectMessage = { type: 'DISCONNECT' } as DisconnectMessage
-      this.sendMessage(disconnectMessage) // Send disconnect message to peer
       this.machine.send(disconnectMessage) // Send disconnect event to local machine
+      try {
+        this.sendMessage(disconnectMessage) // Send disconnect message to peer
+      } catch (error) {
+        // our connection to the peer may already be gone by this point, don't throw
+      }
     }
 
     this.removeAllListeners()
