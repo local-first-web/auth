@@ -11,11 +11,11 @@ export class AuthenticatedNetworkAdapter<T extends NetworkAdapter> //
   connect: typeof NetworkAdapter.prototype.connect
   disconnect: typeof NetworkAdapter.prototype.disconnect
 
-  #isReady = false
+  isReady = false
 
   send = (msg: RepoMessage) => {
     // wait for base adapter to be ready
-    if (!this.#isReady) {
+    if (!this.isReady) {
       eventPromise(this.baseAdapter, 'ready') //
         .then(() => this.sendFn(msg))
         .catch(error => {
@@ -43,7 +43,7 @@ export class AuthenticatedNetworkAdapter<T extends NetworkAdapter> //
     this.disconnect = this.baseAdapter.disconnect.bind(this.baseAdapter)
 
     baseAdapter.on('ready', () => {
-      this.#isReady = true
+      this.isReady = true
     })
   }
 }
