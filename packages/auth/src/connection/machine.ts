@@ -11,7 +11,7 @@ const timeout = {
 }
 
 export const machine: MachineConfig<ConnectionContext, ConnectionState, ConnectionMessage> = {
-  // @ts-ignore
+  // @ts-expect-error bug in xstate types?
   predictableActionArguments: true,
 
   id: 'connection',
