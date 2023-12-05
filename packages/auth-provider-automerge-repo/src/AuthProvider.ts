@@ -6,7 +6,7 @@ import type {
   StorageAdapter,
 } from '@automerge/automerge-repo'
 import * as Auth from '@localfirst/auth'
-import { debug } from '@localfirst/auth-shared'
+import { debug, eventPromise } from '@localfirst/auth-shared'
 import { EventEmitter } from 'eventemitter3'
 import { pack, unpack } from 'msgpackr'
 import { AuthenticatedNetworkAdapter as AuthNetworkAdapter } from './AuthenticatedNetworkAdapter.js'
@@ -101,7 +101,15 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       this.#log('sending message from connection %o', message)
       const shareId = this.#getShareIdForMessage(message)
       const connection = this.#getConnection(shareId, message.targetId)
-      connection.send(message)
+
+      // wait for connection to be ready before sending
+      awaitConnected(connection)
+        .then(() => {
+          connection.send(message)
+        })
+        .catch(error => {
+          this.#log('error sending message from connection %o', error)
+        })
     }
     const authAdapter = new AuthNetworkAdapter(baseAdapter, send)
 
@@ -488,3 +496,8 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 }
 
 const STORAGE_KEY = ['AuthProvider', 'shares']
+
+const awaitConnected = async (connection: Auth.Connection) => {
+  if (connection.state === 'connected') return
+  return eventPromise(connection, 'connected')
+}
