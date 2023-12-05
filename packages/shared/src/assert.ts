@@ -3,7 +3,7 @@ export function assert<T>(value: T | undefined, message?: string): asserts value
 export function assert(value: any, message = 'Assertion failed') {
   if (value === false || value === null || value === undefined) {
     const error = new Error(trimLines(message))
-    error.stack = removeLine(error.stack, 'assert.ts')
+    error.stack = removeLine(error.stack, 'assert.js')
     throw error
   }
 }
