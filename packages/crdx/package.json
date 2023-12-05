@@ -19,8 +19,7 @@
     "build": "tsup",
     "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly",
     "preinstall": "npx only-allow pnpm",
-    "test": "vitest",
-    "watch": "pnpm build --watch"
+    "test": "vitest"
   },
   "dependencies": {
     "@localfirst/crypto": "workspace:*",

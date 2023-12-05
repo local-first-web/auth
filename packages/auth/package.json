@@ -20,8 +20,7 @@
     "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly",
     "preinstall": "npx only-allow pnpm",
     "test": "vitest",
-    "test:log": "cross-env DEBUG='localfirst*' DEBUG_COLORS=1 vitest --reporter basic",
-    "watch": "pnpm build --watch"
+    "test:log": "cross-env DEBUG='localfirst*' DEBUG_COLORS=1 vitest --reporter basic"
   },
   "dependencies": {
     "@localfirst/auth-shared": "workspace:*",
