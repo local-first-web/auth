@@ -2,7 +2,7 @@ import type {
   DocumentId,
   NetworkAdapter,
   PeerId,
-  RepoMessage,
+  Message,
   StorageAdapter,
 } from '@automerge/automerge-repo'
 import * as Auth from '@localfirst/auth'
@@ -97,7 +97,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   wrap = (baseAdapter: NetworkAdapter) => {
     // All repo messages for this adapter are handled by the Auth.Connection, which encrypts them
     // and guarantees authenticity.
-    const send = (message: RepoMessage) => {
+    const send = (message: Message) => {
       this.#log('sending message from connection %o', message)
       const shareId = this.#getShareIdForMessage(message)
       const connection = this.#getConnection(shareId, message.targetId)
@@ -276,7 +276,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
       .on('message', message => {
         // Forward messages that arrive via the connection's encrypted channel to the repo
-        authAdapter.emit('message', message as RepoMessage)
+        authAdapter.emit('message', message as Message)
       })
 
       .on('updated', async () => {
@@ -453,7 +453,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   }
 
   /** Returns the shareId to use for encrypting the given message */
-  readonly #getShareIdForMessage = ({ targetId }: RepoMessage) => {
+  readonly #getShareIdForMessage = ({ targetId }: Message) => {
     // Since the raw network adapters don't know anything about ShareIds, when we're given a message
     // to encrypt and send out, we need to figure out which auth connection it belongs to, in order
     // to retrieve the right session key to use for encryption.
