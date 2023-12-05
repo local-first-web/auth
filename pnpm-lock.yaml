@@ -205,8 +205,8 @@ importers:
         specifier: ^1.10.0
         version: 1.10.0
       xstate:
-        specifier: ~4.26.1
-        version: 4.26.1
+        specifier: ^4.38.3
+        version: 4.38.3
 
   packages/auth-provider-automerge-repo:
     dependencies:
@@ -11579,8 +11579,8 @@ packages:
       - supports-color
     dev: true
 
-  /xstate@4.26.1:
-    resolution: {integrity: sha512-JLofAEnN26l/1vbODgsDa+Phqa61PwDlxWu8+2pK+YbXf+y9pQSDLRvcYH2H1kkeUBA5fGp+xFL/zfE8jNMw4g==}
+  /xstate@4.38.3:
+    resolution: {integrity: sha512-SH7nAaaPQx57dx6qvfcIgqKRXIh4L0A1iYEqim4s1u7c9VoCgzZc+63FY90AKU4ZzOC2cfJzTnpO4zK7fCUzzw==}
     dev: false
 
   /xtend@4.0.2:

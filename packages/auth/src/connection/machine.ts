@@ -11,7 +11,6 @@ const timeout = {
 }
 
 export const machine: MachineConfig<ConnectionContext, ConnectionState, ConnectionMessage> = {
-  // @ts-expect-error bug in xstate types?
   predictableActionArguments: true,
 
   id: 'connection',
@@ -82,7 +81,7 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
                   // Make sure the team I'm joining is actually the one that invited me
                   {
                     cond: 'joinedTheRightTeam',
-                    actions: ['joinTeam', 'onJoined'],
+                    actions: ['joinTeam'],
                     target: '#checkingIdentity',
                   },
 

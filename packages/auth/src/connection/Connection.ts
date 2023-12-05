@@ -40,14 +40,13 @@ import * as select from 'team/selectors/index.js'
 import { arraysAreEqual } from 'util/arraysAreEqual.js'
 import { KeyType } from 'util/index.js'
 import { syncMessageSummary } from 'util/testing/messageSummary.js'
-import { assign, createMachine, interpret, type Interpreter } from 'xstate'
-import { type NumberedMessage, MessageQueue } from './MessageQueue.js'
+import { assign, createMachine, interpret } from 'xstate'
+import { MessageQueue, type NumberedMessage } from './MessageQueue.js'
 import { machine } from './machine.js'
 import type {
   Condition,
   ConnectionContext,
   ConnectionEvents,
-  ConnectionState,
   Context,
   IdentityClaim,
   ServerContext,
@@ -72,7 +71,7 @@ const { DEVICE } = KeyType
  */
 export class Connection extends EventEmitter<ConnectionEvents> {
   /** The interpreted state machine. Its XState configuration is in `machine.ts`. */
-  private readonly machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
+  private readonly machine
   private started = false
   private readonly messageQueue: MessageQueue<ConnectionMessage>
   private log = debug.extend('auth:connection')
@@ -350,6 +349,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       // Add our current device to the team chain
       team.join(teamKeyring)
 
+      this.emit('joined', { team, user })
+
       return { user, team }
     }),
 
@@ -566,7 +567,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     // EVENTS FOR EXTERNAL LISTENERS
 
     onConnected: () => this.emit('connected'),
-    onJoined: () => this.emit('joined', { team: this.team!, user: this.user! }),
     onDisconnected: (_, event) => this.emit('disconnected', event),
   }
 
