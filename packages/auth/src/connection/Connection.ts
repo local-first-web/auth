@@ -134,7 +134,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   // PUBLIC API
 
   /** Starts the protocol machine. Returns this Protocol object. */
-  public start = () => {
+  public start = (storedMessages: Uint8Array[] = []) => {
     this.log('starting')
     this.machine.start()
     this.messageQueue.start()
@@ -142,6 +142,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     // kick off the connection by requesting our peer's identity
     this.sendMessage({ type: 'REQUEST_IDENTITY' })
+
+    for (const m of storedMessages) this.deliver(m)
 
     return this
   }
