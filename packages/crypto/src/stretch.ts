@@ -1,9 +1,9 @@
 // ignore file coverage
 
-import process from 'process'
-import { memoize } from '@localfirst/auth-shared'
 import sodium from 'libsodium-wrappers-sumo'
-import { type Password, type Base58 } from './types.js'
+import { memoize } from '@localfirst/auth-shared'
+import process from 'process'
+import type { Password, Base58 } from './types.js'
 import { base58, keyToBytes } from './util/index.js'
 
 /**
@@ -18,7 +18,7 @@ export const stretch = memoize((password: Password) => {
   } // It's long enough -- just hash to expand it to 32 bytes
 
   // during testing we use stretch parameters that are faster, but consequently less secure
-  const isProd = process.env.NODE_ENV === 'production'
+  const isProd = process?.env.NODE_ENV === 'production'
   const opsLimit = isProd
     ? sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE
     : sodium.crypto_pwhash_OPSLIMIT_MIN
