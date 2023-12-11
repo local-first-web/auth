@@ -137,10 +137,6 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
         // If we don't have a connection for this message, store it until we do
         if (!this.#connections.has([shareId, senderId])) {
-          this.#log(
-            `didn't find connection for [${shareId}, ${senderId}]. available keys: %o`,
-            this.#connections.keys()
-          )
           this.#storeMessage(shareId, senderId, serializedConnectionMessage)
           return
         }

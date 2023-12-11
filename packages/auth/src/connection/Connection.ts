@@ -653,6 +653,9 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   private readonly throwError = (type: ConnectionErrorType, details?: any) => {
     const detailedMessage =
       details && 'message' in details ? (details.message as string) : undefined
+
+    this.log('error: %s %o', type, details)
+
     // Force error state locally
     const localMessage = buildError(type, detailedMessage, 'LOCAL')
     this.machine.send(localMessage)
