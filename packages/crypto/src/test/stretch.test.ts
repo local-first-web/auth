@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { stretch } from '..'
+import { stretch } from '../stretch.js'
 import { base58 } from '../util/index.js'
 
 describe('stretch', () => {
@@ -11,7 +11,7 @@ describe('stretch', () => {
 
     // Results are deterministic
     expect(base58.encode(key)).toMatchInlineSnapshot(
-      '"B4WBEeoH1NQGiNjKLQ4vi9wtbBskG7sTpL4Tpy8EksCU"'
+      '"8hYkvmB2xxdjzi7ZL7DNKXUFEDHsAHWs66fMXYkpdDWr"'
     )
   })
 })

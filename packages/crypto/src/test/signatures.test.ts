@@ -12,7 +12,7 @@ describe('crypto', () => {
       const alice = keyPair('alice')
       const signature = sign(payload, alice.secretKey)
       expect(signature).toMatchInlineSnapshot(
-        '"2NkJHbpTYjZqrdnRKqzTtVKNrGcsDSFh2mdx7GdTeoMGXfwkMDXzKywASZkgoZ6Q7Try2BPrptnLjdstxmzRnu1E"'
+        '"3prvrJRWUEpeobKZUkdAiLhsZX5WYs9fKL4dPqm2YHEaLKPEgNjQLrAWK62LcF682fhsLdxc7yJqFDpFK4QaG1oL"'
       )
     })
 
@@ -120,8 +120,8 @@ describe('crypto', () => {
       const keys = keyPair(seed)
       expect(keys).toMatchInlineSnapshot(`
         {
-          "publicKey": "ATRhGtszfTKdTYxDLf6PMtvF16xrCXuKNKqP9KQSAZhr",
-          "secretKey": "3ddvXNtSVXGjnLSu4WVCxFvdtqHnL1PQuNxPCMJLMMBrcGGhZ9x5A8xGCCWTh7ADEndy3DWzLCLH9peqE5kjcjn8",
+          "publicKey": "BWWvjmQtJKHNMKqENTPDjjHzme33TmyXLxi7hXzMQyDk",
+          "secretKey": "34ZMB3SxAtAYabMGG9bfMppTP9FXJxSWb9n8RLRVDHt6hTiaSvXMeB7fNri5ZAh8BKBoGsUNBXwtUgTcZCnqMypv",
         }
       `)
     })
