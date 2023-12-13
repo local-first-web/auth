@@ -3,8 +3,8 @@ width="300" alt="@localfirst/auth logo" />
 
 ## Local-first auth provider for Automerge Repo
 
-This is an `AuthProvider` that uses the [localfirst/auth](https://github.com/local-first-web/auth)
-library to provide Automerge Repo with authentication and end-to-end encryption, without the need
+This is an `AuthProvider` that uses the [localfirst/auth](/local-first-web/auth)
+library to provide [Automerge Repo](/automerge/automerge-repo) with authentication and end-to-end encryption, without the need
 for a central server.
 
 It works by wrapping the network provider(s) used by the `Repo`.
@@ -19,16 +19,21 @@ import { AuthProvider } from '@localfirst/auth-provider-automerge-repo'
 
 // Create the user & device, or retrieve them from storage.
 // These objects include secret keys, so need to be stored securely.
-const alice = createUser('alice')
-const aliceLaptop = createDevice(alice.userId, 'ALICE-MACBOOK-2023')
-const aliceContext = { user: alice, device: aliceLaptop }
+const user = createUser('alice')
+const device = createDevice(alice.userId, 'ALICE-MACBOOK-2023')
 
-const aliceAuthProvider = new AuthProvider(aliceContext)
+// Use the same storage adapter for the `AuthProvider` and the `Repo.`
+const storage = new SomeStorageAdapter()
 
-const repo = new Repo({
-  network: [SomeNetworkAdapter],
-  storage: SomeStorageAdapter,
-})
+// Instantiate the auth provider.
+const authProvider = new AuthProvider({ user, device, storage })
+
+// Use it to wrap your network adapter.
+const adapter = new SomeNetworkAdapter()
+const network = [authProvider.wrap(adapter)]
+
+// Instantiate the repo.
+const repo = new Repo({ network, storage })
 ```
 
 The context for authentication is a localfirst/auth `Team`. For example, Alice might create a team
@@ -36,11 +41,11 @@ and invite Bob to it.
 
 ```ts
 // Alice creates a team
-const aliceTeam = Auth.createTeam('team A', aliceContext)
-aliceAuthProvider.addTeam(aliceTeam)
+const team = Auth.createTeam('team A', aliceContext)
+authProvider.addTeam(team)
 
 // Alice creates an invitation code to send to Bob
-const { seed: bobInviteCode } = aliceTeam.inviteMember()
+const { seed: bobInviteCode } = team.inviteMember()
 ```
 
 Alice now needs to communicate this code, along with the team's ID, to Bob, using an existing
@@ -50,17 +55,13 @@ email; or she could create a QR code for Bob to scan; or she could read it to hi
 Bob sets up his auth provider and his repo much like Alice did:
 
 ```ts
-const bob = createUser('bob')
-const bobLaptop = createDevice(bob.userId, 'BOB-IPHONE-2023')
-const bobContext = { user: bob, device: bobLaptop }
-
-const bobAuthProvider = new AuthProvider(bobContext)
-
-const repo = new Repo({
-  network: [SomeNetworkAdapter],
-  storage: SomeStorageAdapter,
-  auth: bobAuthProvider,
-})
+const user = createUser('bob')
+const device = createDevice(bob.userId, 'BOB-IPHONE-2023')
+const storage = new SomeStorageAdapter()
+const authProvider = new AuthProvider({ user, device, storage })
+const adapter = new SomeNetworkAdapter()
+const network = [authProvider.wrap(adapter)]
+const repo = new Repo({ network, storage })
 ```
 
 Rather than add a `Team` to the provider, Bob registers his invitation:
@@ -73,7 +74,7 @@ bobAuthProvider.addInvitation({
 ```
 
 If all goes well, Alice's repo and Bob's repo will each receive a `peer` event, just like without
-the auth provider -- but with an authenticated peer on the other end, and an encrypted channel for
+the auth provider — but with an authenticated peer on the other end, and an encrypted channel for
 communication.
 
 Here's how that works under the hood:
@@ -97,6 +98,6 @@ authenticated and safe from eavesdropping.
 
 ### Authenticated sync server
 
-In a star-shaped network relying on a sync server, the sync server needs to use the auth provider as
-well for this to work. You can use [@localfirst/auth-syncserver](../auth-syncserver/) for that
-purpose, or use it as a reference implementation.
+For this to work with a sync server in a star-shaped network, the sync server needs to use the auth
+provider as well. For that we have [@localfirst/auth-syncserver](../auth-syncserver/), a drop-in
+replacement for the [Automerge Repo sync server](/automerge/automerge-repo-sync-server).
