@@ -98,7 +98,7 @@ export const useTeam = () => {
     })
 
       // when we connect to the relay, set our online status to true and expose our connection status
-      .on('server.connect', () => {
+      .on('server-connect', () => {
         setPeerState(prev => ({
           ...prev,
           online: true,
@@ -115,7 +115,7 @@ export const useTeam = () => {
       })
 
       // when we disconnect from the relay, set our online status to false and clear our connection status
-      .on('server.disconnect', () => {
+      .on('server-disconnect', () => {
         setPeerState(prev => ({
           ...prev,
           online: false,
