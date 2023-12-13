@@ -1,4 +1,4 @@
-import { Message, NetworkAdapter } from '@automerge/automerge-repo'
+import { type Message, NetworkAdapter } from '@automerge/automerge-repo'
 import { eventPromise } from '@localfirst/auth-shared'
 
 /**
