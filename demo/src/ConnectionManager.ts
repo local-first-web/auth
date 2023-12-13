@@ -1,11 +1,12 @@
-﻿import * as auth from '@localfirst/auth'
+﻿import * as Auth from '@localfirst/auth'
 import { type InviteeMemberContext, type MemberContext } from '@localfirst/auth'
-import { Client, type PeerEventPayload } from '@localfirst/relay-client'
 import { Mutex, withTimeout } from 'async-mutex'
 import debug from 'debug'
-import { Connection } from './Connection'
-import { EventEmitter } from './EventEmitter'
-import { type ConnectionStatus, type UserName } from './types'
+import { ConnectionStatus } from 'types.js'
+import { EventEmitter } from './EventEmitter.js'
+import { DemoConnection } from 'DemoConnection.js'
+import { Client } from '@localfirst/relay/Client.js'
+import WebSocket from 'isomorphic-ws'
 
 // It shouldn't take longer than this to present an invitation and have it accepted. If this time
 // expires, we'll try presenting the invitation to someone else.
@@ -15,9 +16,9 @@ const INVITATION_TIMEOUT = 20 * 1000 // in ms
  * Wraps a Relay client and creates a Connection instance for each peer we connect to.
  */
 export class ConnectionManager extends EventEmitter {
-  private context: auth.Context
+  private context: Auth.MemberContext | Auth.InviteeContext
   private readonly client: Client
-  private connections: Record<UserName, Connection> = {}
+  private connections: Record<string, DemoConnection> = {}
   private readonly connectingMutex = withTimeout(new Mutex(), INVITATION_TIMEOUT)
 
   /**
@@ -25,7 +26,7 @@ export class ConnectionManager extends EventEmitter {
    * e.g.
    *    {alice: 'connected', bob: 'connecting', charlie: 'disconnected'}
    */
-  public connectionStatus: Record<UserName, ConnectionStatus> = {}
+  public connectionStatus: Record<string, ConnectionStatus> = {}
 
   public teamName: string
 
@@ -40,19 +41,21 @@ export class ConnectionManager extends EventEmitter {
   }
 
   private connectServer(url: string): Client {
-    const deviceId = auth.device.getDeviceId(this.context.device)
-    const client = new Client({ userName: deviceId, url })
+    const deviceId = this.context.device.deviceId
+    const client = new Client({ peerId: deviceId, url })
 
     client
-      .on('server.connect', () => {
+      .on('server-connect', () => {
         client.join(this.teamName)
-        this.emit('server.connect')
+        this.emit('server-connect')
       })
-      .on('peer.connect', async ({ userName: peerUserName, socket }: PeerEventPayload) => {
+      .on('peer-connect', async ({ socket }) => {
         // in case we're not able to start the connection immediately (e.g. because there's a mutex
         // lock), store any messages we receive, so we can deliver them when we start it
-        const storedMessages: string[] = []
-        socket.addEventListener('message', ({ data: message }) => {
+        const storedMessages: Uint8Array[] = []
+        socket.addEventListener('message', event => {
+          const message = event.data as Uint8Array
+          console.log('storing message', typeof message, message)
           storedMessages.push(message)
         })
 
@@ -62,11 +65,11 @@ export class ConnectionManager extends EventEmitter {
         const iHaveInvitation = 'invitationSeed' in this.context && this.context.invitationSeed
         if (iHaveInvitation) {
           await this.connectingMutex.runExclusive(async () => {
-            await this.connectPeer(socket, peerUserName, storedMessages)
+            await this.connectPeer(socket, deviceId, storedMessages)
           })
         } else {
           this.log('connecting without mutex')
-          this.connectPeer(socket, peerUserName, storedMessages)
+          this.connectPeer(socket, deviceId, storedMessages)
         }
       })
     return client
@@ -77,21 +80,21 @@ export class ConnectionManager extends EventEmitter {
     for (const p of allPeers) this.disconnectPeer(p)
     this.client.disconnectServer()
     this.connections = {}
-    this.emit('server.disconnect')
+    this.emit('server-disconnect')
   }
 
   private readonly connectPeer = async (
     socket: WebSocket,
-    peerUserName: string,
-    storedMessages: string[]
+    peerId: string,
+    storedMessages: Uint8Array[]
   ) =>
     new Promise<void>((resolve, reject) => {
       this.log('connecting with context', this.context)
       // connect with a new peer
-      const connection = new Connection({
+      const connection = new DemoConnection({
         socket,
         context: this.context,
-        peerUserName,
+        peerId,
         storedMessages,
       })
       connection
@@ -106,8 +109,8 @@ export class ConnectionManager extends EventEmitter {
           resolve()
         })
         .on('change', state => {
-          this.updateStatus(peerUserName, state)
-          this.emit('change', { userName: peerUserName, state })
+          this.updateStatus(peerId, state)
+          this.emit('change', { peerId: peerId, state })
         })
         .on('localError', type => {
           this.emit('localError', type)
@@ -116,35 +119,35 @@ export class ConnectionManager extends EventEmitter {
           this.emit('remoteError', type)
         })
         .on('disconnected', event => {
-          this.disconnectPeer(peerUserName, event)
+          this.disconnectPeer(peerId, event)
           resolve()
         })
 
-      this.connections[peerUserName] = connection
+      this.connections[peerId] = connection
     })
 
-  private readonly disconnectPeer = (userName: string, event?: any) => {
+  private readonly disconnectPeer = (peerId: string, event?: any) => {
     // if we have this connection, disconnect it
-    if (this.connections[userName]) {
-      this.connections[userName].disconnect()
-      delete this.connections[userName]
+    if (this.connections[peerId]) {
+      this.connections[peerId].disconnect()
+      delete this.connections[peerId]
     }
 
     // notify relay server
-    this.client.disconnectPeer(userName)
+    this.client.disconnectPeer(peerId)
 
     // update our state object for the app's benefit
-    this.updateStatus(userName, 'disconnected')
+    this.updateStatus(peerId, 'disconnected')
 
-    this.emit('disconnected', userName, event)
+    this.emit('disconnected', peerId, event)
   }
 
-  private readonly updateStatus = (userName: UserName, state: string) => {
-    this.log('updating status', userName, state)
+  private readonly updateStatus = (peerId: string, state: string) => {
+    this.log('updating status', peerId, state)
     // we recreate the whole object so that react reacts
     this.connectionStatus = {
       ...this.connectionStatus,
-      [userName]: state,
+      [peerId]: state,
     }
   }
 }
@@ -152,5 +155,5 @@ export class ConnectionManager extends EventEmitter {
 type ConnectionManagerOptions = {
   teamName: string
   urls: string[]
-  context: auth.Context
+  context: Auth.InviteeContext | Auth.MemberContext
 }

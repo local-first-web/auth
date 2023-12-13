@@ -1,14 +1,9 @@
 import { type UnixTimestamp } from '@localfirst/auth'
 import ClipboardJS from 'clipboard'
-import React, {
-  type MutableRefObject,
-  useEffect,
-  useRef,
-  useState,
-} from 'react'
-import { useTeam } from '../hooks/useTeam'
-import { assert } from '../util/assert'
+import React, { type MutableRefObject, useEffect, useRef, useState } from 'react'
+import { assert } from '@localfirst/auth-shared'
 import { Button } from './Button.js'
+import { useTeam } from 'hooks/useTeam.js'
 
 const SECOND = 1
 const MINUTE = 60 * SECOND
@@ -17,11 +12,7 @@ const DAY = 24 * HOUR
 const WEEK = 7 * DAY
 
 export const Invite = () => {
-  type State =
-    | 'inactive'
-    | 'adding_device'
-    | 'inviting_members'
-    | 'showing_member_invite'
+  type State = 'inactive' | 'adding_device' | 'inviting_members' | 'showing_member_invite'
 
   const [state, setState] = useState<State>('inactive')
   const [seed, setSeed] = useState<string>()
@@ -33,8 +24,7 @@ export const Invite = () => {
   assert(team)
   assert(user)
 
-  const copyInvitationSeedButton =
-    useRef() as MutableRefObject<HTMLButtonElement>
+  const copyInvitationSeedButton = useRef() as MutableRefObject<HTMLButtonElement>
 
   useEffect(() => {
     let c: ClipboardJS
@@ -81,11 +71,7 @@ export const Invite = () => {
         <div>
           <div className="Invite flex gap-2">
             {/* anyone can "invite" a device */}
-            <Button
-              color="primary"
-              className="my-2 mr-2"
-              onClick={inviteDevice}
-            >
+            <Button color="primary" className="my-2 mr-2" onClick={inviteDevice}>
               Add a device
             </Button>
             {/* sonly admins can invite users */}
@@ -177,11 +163,7 @@ export const Invite = () => {
                 </Button>
               </div>
               <div>
-                <Button
-                  className="InviteButton mt-1"
-                  color="primary"
-                  onClick={inviteMembers}
-                >
+                <Button className="InviteButton mt-1" color="primary" onClick={inviteMembers}>
                   Invite
                 </Button>
               </div>
@@ -222,5 +204,4 @@ export const Invite = () => {
 
 // TODO: style invited members who haven't joined yet
 
-const randomSeed = () =>
-  '0000'.replaceAll('0', () => Math.floor(Math.random() * 10).toString())
+const randomSeed = () => '0000'.replaceAll('0', () => Math.floor(Math.random() * 10).toString())

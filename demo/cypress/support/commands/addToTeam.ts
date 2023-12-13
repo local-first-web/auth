@@ -1,5 +1,5 @@
-import { peer } from '../helpers'
-import { type CommandFn } from '../types'
+import { peer } from '../helpers.js'
+import { type CommandFn } from '../types.js'
 
 export const addToTeam: CommandFn = (subject, userName: string) => {
   const s = () => cy.wrap(subject)

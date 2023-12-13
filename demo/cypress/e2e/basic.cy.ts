@@ -1,4 +1,4 @@
-import { alice, bob, show } from '../support/helpers'
+import { alice, bob, show } from '../support/helpers.js'
 
 it('We load the page', () => {
   // we see just one peer, Alice

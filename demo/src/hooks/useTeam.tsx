@@ -1,11 +1,11 @@
 import * as auth from '@localfirst/auth'
 import { createId } from '@paralleldrive/cuid2'
 import * as React from 'react'
-import { teamContext } from '../components/TeamProvider'
-import { ConnectionManager } from '../ConnectionManager'
 import { type AlertInfo, type PeerState } from '../types.js'
-import { assert } from '../util/assert'
-import { randomTeamName } from '../util/randomTeamName'
+import { assert } from '@localfirst/auth-shared'
+import { ConnectionManager } from 'ConnectionManager.js'
+import { teamContext } from 'components/TeamProvider.js'
+import { randomTeamName } from 'util/randomTeamName.js'
 
 // TODO: make this an environment var
 const relayUrls = ['ws://localhost:8080']
@@ -90,7 +90,7 @@ export const useTeam = () => {
     connect(teamName, context)
   }
 
-  const connect = (teamName: string, context: auth.Context) => {
+  const connect = (teamName: string, context: auth.InviteeContext | auth.MemberContext) => {
     const connectionManager = new ConnectionManager({
       teamName,
       urls: relayUrls,

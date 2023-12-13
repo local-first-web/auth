@@ -1,5 +1,3 @@
-import { colors, fontSize } from 'tailwindcss/defaultTheme'
-
 export const theme = {
   theme: 'base',
   securityLevel: 'loose',

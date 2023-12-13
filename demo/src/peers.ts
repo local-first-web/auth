@@ -1,4 +1,4 @@
-﻿import { arrayToMap } from './util/arrayToMap'
+﻿import { arrayToMap } from './util/arrayToMap.js'
 
 export const devices = {
   laptop: { name: 'laptop', emoji: '💻' },

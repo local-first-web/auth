@@ -1,5 +1,5 @@
-import { peer } from '../helpers'
-import { type CommandFn } from '../types'
+import { peer } from '../helpers.js'
+import { type CommandFn } from '../types.js'
 
 export const addDevice: CommandFn = (subject, deviceName: string) => {
   const s = () => cy.wrap(subject)

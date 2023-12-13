@@ -1,6 +1,6 @@
 import React from 'react'
-import { useTeam } from '../hooks/useTeam'
-import { type PeerInfo } from '../peers'
+import { useTeam } from '../hooks/useTeam.js'
+import { type PeerInfo } from '../peers.js'
 import { Alerts } from './Alerts.js'
 import { Avatar } from './Avatar.js'
 import { CreateOrJoinTeam } from './CreateOrJoinTeam.js'
@@ -27,18 +27,11 @@ export const Peer = ({ peerInfo, onHide }: PeerProps) => {
 
   return (
     <ErrorBoundary>
-      <div
-        title={peerInfo.id}
-        className="Peer group max-w-sm flex-1 bg-white shadow-md relative"
-      >
+      <div title={peerInfo.id} className="Peer group max-w-sm flex-1 bg-white shadow-md relative">
         <HideButton onClick={hide}></HideButton>
         <div className="Header flex items-center bg-teal-500 max-h-20">
           <div className="pl-4 py-4">
-            <Avatar
-              size="lg"
-              className="bg-opacity-75"
-              children={peerInfo.user.emoji}
-            />
+            <Avatar size="lg" className="bg-opacity-75" children={peerInfo.user.emoji} />
           </div>
           <h1
             className="text-white text-2xl font-extrabold flex-grow"

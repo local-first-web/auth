@@ -1,5 +1,5 @@
-﻿import React from 'react'
-import { useTeam } from '../hooks/useTeam'
+﻿import { useTeam } from 'hooks/useTeam.js'
+import React from 'react'
 
 export const Alerts = () => {
   const { alerts, clearAlert } = useTeam()

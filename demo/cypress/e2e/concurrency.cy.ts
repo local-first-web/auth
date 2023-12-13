@@ -11,7 +11,7 @@ import {
   charlieToCharlie,
   dwight,
   show,
-} from '../support/helpers'
+} from '../support/helpers.js'
 
 it(`Alice and Bob concurrently make non-conflicting changes`, () => {
   show('Bob:laptop')
