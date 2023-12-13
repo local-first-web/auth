@@ -1,0 +1,62 @@
+name: Release
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Publish package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+          registry-url: "https://registry.npmjs.org"
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          run_install: false
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
+      - name: Install dependencies
+        id: deps
+        run: |
+          pnpm install
+      - name: Build release
+        id: build_release
+        run: |
+          pnpm build
+      - name: Run Tests
+        id: tests
+        run: |
+          pnpm test
+      - name: Publish Release
+        if: steps.tests.outcome == 'success'
+        run: |
+          if [ "$NODE_AUTH_TOKEN" = "" ]; then
+            echo "You need a NPM_TOKEN secret in order to publish."
+            false
+          fi
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          echo //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN} > .npmrc
+          EXTRA_ARGS=""
+          if [[ $VERSION == *"alpha."* ]] || [[ $VERSION == *"beta."* ]] || [[ $VERSION == *"rc."* ]]; then
+            echo "Is pre-release version"
+            EXTRA_ARGS="$EXTRA_ARGS --dist-tag next"
+          fi
+          npm publish ${VERSION} --force-publish $EXTRA_ARGS
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Tag release
+        if: steps.tests.outcome == 'success'
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
