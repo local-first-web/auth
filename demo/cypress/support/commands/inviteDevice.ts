@@ -1,16 +1,17 @@
+import { NOLOG, wrap } from '../helpers'
 import { type CommandFn } from '../types.js'
 
 export const inviteDevice: CommandFn = subject => {
-  const s = () => cy.wrap(subject)
+  const s = () => wrap(subject)
   // click invite button
-  s().findByText('Add a device').click()
+  s().findByText('Add a device', NOLOG).click(NOLOG)
 
   // capture invitation code
   return s()
     .get('pre.InvitationCode')
     .then(pre => {
-      s().findByText('Copy').click()
-      const code = cy.wrap(pre).invoke('text')
+      s().findByText('Copy', NOLOG).click(NOLOG)
+      const code = wrap(pre).invoke(NOLOG, 'text')
       return code
     })
 }

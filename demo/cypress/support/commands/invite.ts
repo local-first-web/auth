@@ -1,3 +1,4 @@
+import { NOLOG, wrap } from '../helpers'
 import { type CommandFn } from '../types.js'
 
 export const SECOND = 1
@@ -13,25 +14,29 @@ export type InviteOptions = {
 
 export const invite: CommandFn = (subject, options: InviteOptions = {}) => {
   const { maxUses = 1, expiration = MINUTE } = options
-  const s = () => cy.wrap(subject)
+  const s = () => wrap(subject)
   // click invite button
-  s().findByText('Invite members').click()
+  s().findByText('Invite members', NOLOG).click(NOLOG)
 
   // set max uses
-  s().findByLabelText('How many people can use this invitation code?').select(maxUses.toString())
+  s()
+    .findByLabelText('How many people can use this invitation code?', NOLOG)
+    .select(maxUses.toString(), NOLOG)
 
   // set expiration
-  s().findByLabelText('When does this invitation code expire?').select(expiration.toString())
+  s()
+    .findByLabelText('When does this invitation code expire?', NOLOG)
+    .select(expiration.toString(), NOLOG)
 
   // press invite button
-  s().findByText('Invite').click()
+  s().findByText('Invite', NOLOG).click(NOLOG)
 
   // capture invitation code
   return s()
-    .get('pre.InvitationCode')
+    .get('pre.InvitationCode', NOLOG)
     .then(pre => {
-      s().findByText('Copy').click()
-      const code = cy.wrap(pre).invoke('text')
+      s().findByText('Copy', NOLOG).click(NOLOG)
+      const code = wrap(pre).invoke(NOLOG, 'text')
       return code
     })
 }

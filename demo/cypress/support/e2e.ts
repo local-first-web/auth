@@ -11,13 +11,14 @@ import './assertions/have.member.js'
 import './assertions/be.onStartScreen.js'
 
 import { type CommandFn } from './types.js'
+import { wrapCommand } from './helpers'
 export { type CommandFn } from './types.js'
 
 const commands = _commands as Record<string, CommandFn>
 
 for (const key in commands) {
   const command = commands[key]
-  Cypress.Commands.add(key, { prevSubject: true }, command)
+  Cypress.Commands.add(key, { prevSubject: true }, wrapCommand(key, command))
 }
 
 declare global {

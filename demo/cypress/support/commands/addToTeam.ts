@@ -1,8 +1,8 @@
-import { peer } from '../helpers.js'
+import { NOLOG, peer, wrap } from '../helpers.js'
 import { type CommandFn } from '../types.js'
 
 export const addToTeam: CommandFn = (subject, userName: string) => {
-  const s = () => cy.wrap(subject)
+  const s = () => wrap(subject)
   return s()
     .invite()
     .then(code => {
