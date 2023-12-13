@@ -1,13 +1,15 @@
 <img src="https://raw.githubusercontent.com/local-first-web/branding/main/svg/auth-h.svg"
 width="300" alt="@localfirst/auth logo" />
 
-# Local-first auth provider for Automerge Repo
+## Local-first auth provider for Automerge Repo
 
 This is an `AuthProvider` that uses the [localfirst/auth](https://github.com/local-first-web/auth)
 library to provide Automerge Repo with authentication and end-to-end encryption, without the need
 for a central server.
 
-## Making an authenticated connection
+It works by wrapping the network provider(s) used by the `Repo`.
+
+### Making an authenticated connection
 
 A `AuthProvider` is configured with information about the local user and device.
 
@@ -26,7 +28,6 @@ const aliceAuthProvider = new AuthProvider(aliceContext)
 const repo = new Repo({
   network: [SomeNetworkAdapter],
   storage: SomeStorageAdapter,
-  auth: aliceAuthProvider,
 })
 ```
 
@@ -77,10 +78,9 @@ communication.
 
 Here's how that works under the hood:
 
-- The `AuthProvider` wraps the network adapter so it can intercept its messages and
-  events.
-- When the adapter connects and emits a `peer-candidate` event, we run the localfirst/auth
-  connection protocol over that channel.
+- The `AuthProvider` wraps the network adapter so it can intercept its messages and events.
+- We intercept the adapter's `peer-candidate` event, and before surfacing it to the repo we run the
+  localfirst/auth connection protocol over that channel.
 - In this case, Bob sends Alice cryptographic proof that he has the invitation code; and Alice can
   use that proof to validate his invitation and admit him to the team. He gives her his public keys,
   which she records on the team.
@@ -95,4 +95,8 @@ The repo can then go about its business of synchronizing documents, but with the
 every peer ID reported by the network has been authenticated, and that all traffic is also
 authenticated and safe from eavesdropping.
 
-##
+### Authenticated sync server
+
+In a star-shaped network relying on a sync server, the sync server needs to use the auth provider as
+well for this to work. You can use [@localfirst/auth-syncserver](../auth-syncserver/) for that
+purpose, or use it as a reference implementation.
