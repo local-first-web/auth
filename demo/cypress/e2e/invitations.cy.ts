@@ -1,7 +1,7 @@
 import { SECOND } from '../support/commands/invite.js'
 import { alice, alicePhone, bob, charlie, eve, show } from '../support/helpers.js'
 
-it.only('Alice invites Bob', () => {
+it('Alice invites Bob', () => {
   show('Bob:laptop')
 
   alice().should('not.have.member', 'Bob')
@@ -56,10 +56,10 @@ it(`Bob mistypes his invitation code`, () => {
 it(`Bob's invitation expires`, () => {
   show('Bob:laptop')
   alice()
-    .invite({ expiration: Number(SECOND) }) // invitation expires in 1 second
+    .invite({ expiration: 1 * SECOND }) // invitation expires in 1 second
     .then(code => {
       // but we wait 2 seconds before joining
-      cy.wait(2 * SECOND).then(() => {
+      cy.wait(2000).then(() => {
         return bob().join(code, { expectToFail: true })
       })
 
