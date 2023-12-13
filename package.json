@@ -23,8 +23,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:log": "pnpm -F @localfirst/auth test:log",
-    "prerelease": "pnpm build && pnpm test:run",
-    "release": "lerna publish --no-private --yes",
+    "version": "lerna version --no-push --no-commit-hooks --yes",
     "watch": "lerna watch -- pnpm build"
   },
   "devDependencies": {
