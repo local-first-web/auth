@@ -2,7 +2,10 @@ import { type RegexReplacer } from './debug.js'
 
 // ignore coverage
 
-export function truncateHashes<T>(arg: T): T {
+export function truncateHashes<T>(arg: T, depth = 0): T {
+  depth += 1
+  if (depth > 10) return arg
+
   if (typeof arg === 'string') {
     const transforms: Array<[RegExp, string | RegexReplacer]> = [
       // strip ANSI color codes
@@ -27,14 +30,14 @@ export function truncateHashes<T>(arg: T): T {
   }
 
   if (Array.isArray(arg)) {
-    return arg.map(truncateHashes) as T
+    return arg.map(element => truncateHashes(element, depth)) as T
   }
 
   if (typeof arg === 'object') {
     const object = {} as any
     for (const prop in arg) {
       const value = arg[prop]
-      object[truncateHashes(prop)] = truncateHashes(value)
+      object[truncateHashes(prop, depth)] = truncateHashes(value, depth)
     }
 
     return object
