@@ -96,6 +96,7 @@ export const Team = () => {
                     {m.devices?.map(d => {
                       const emoji = devices[d.deviceName].emoji
                       const status = connectionStatus[d.deviceId] || 'disconnected'
+                      // only show for other devices
                       const isThisDevice = d.keys.name === device.keys.name
                       return isThisDevice ? null : (
                         <div
