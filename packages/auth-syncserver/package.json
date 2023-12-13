@@ -24,6 +24,7 @@
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "msgpackr": "^1.10.0",
+    "isomorphic-ws": "^5.0.0",
     "ws": "^8.14.2"
   },
   "devDependencies": {
