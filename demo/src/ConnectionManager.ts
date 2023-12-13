@@ -41,21 +41,20 @@ export class ConnectionManager extends EventEmitter {
   }
 
   private connectServer(url: string): Client {
-    const deviceId = this.context.device.deviceId
-    const client = new Client({ peerId: deviceId, url })
+    const ourPeerId = this.context.device.deviceId // our peerId
+    const client = new Client({ peerId: ourPeerId, url })
 
     client
       .on('server-connect', () => {
         client.join(this.teamName)
         this.emit('server-connect')
       })
-      .on('peer-connect', async ({ socket }) => {
+      .on('peer-connect', async ({ peerId, socket }) => {
         // in case we're not able to start the connection immediately (e.g. because there's a mutex
         // lock), store any messages we receive, so we can deliver them when we start it
         const storedMessages: Uint8Array[] = []
         socket.addEventListener('message', event => {
           const message = event.data as Uint8Array
-          console.log('storing message', typeof message, message)
           storedMessages.push(message)
         })
 
@@ -65,11 +64,11 @@ export class ConnectionManager extends EventEmitter {
         const iHaveInvitation = 'invitationSeed' in this.context && this.context.invitationSeed
         if (iHaveInvitation) {
           await this.connectingMutex.runExclusive(async () => {
-            await this.connectPeer(socket, deviceId, storedMessages)
+            await this.connectPeer(socket, peerId, storedMessages)
           })
         } else {
           this.log('connecting without mutex')
-          this.connectPeer(socket, deviceId, storedMessages)
+          this.connectPeer(socket, peerId, storedMessages)
         }
       })
     return client
