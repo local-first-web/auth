@@ -53,10 +53,10 @@ Then we register the server with the team.
 team.addServer({ host, keys })
 ```
 
-On the team, the server is treated more or less like a device with no user. The server can't make
+On the team, the server is treated more or less like a device with no user. The server **can't** make
 any changes to the team's membership etc.; it can only relay changes made by team members.
 
-But the server can verify invitations and admit new members and devices to the team.
+But the server **can** verify invitations and admit new members and devices to the team.
 
 Any number of servers can be registered with a team.
 
