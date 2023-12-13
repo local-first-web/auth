@@ -1,12 +1,9 @@
 // ignore file coverage
 
-import process from 'process'
-import { memoize as _memoize } from 'lodash-es'
 import sodium from 'libsodium-wrappers-sumo'
-import { Password, type Base58 } from './types.js'
+import { memoize } from '@localfirst/auth-shared'
+import type { Password, Base58 } from './types.js'
 import { base58, keyToBytes } from './util/index.js'
-
-const memoize = _memoize as Memoize
 
 /**
  * Derives a key from a low-entropy input, such as a password. Current version of libsodium
@@ -16,17 +13,12 @@ export const stretch = memoize((password: Password) => {
   const passwordBytes = typeof password === 'string' ? keyToBytes(password, 'utf8') : password
   const salt = base58.decode('H5B4DLSXw5xwNYFdz1Wr6e' as Base58)
   if (passwordBytes.length >= 16) {
+    // It's long enough -- just hash to expand it to 32 bytes
     return sodium.crypto_generichash(32, passwordBytes, salt)
-  } // It's long enough -- just hash to expand it to 32 bytes
+  }
 
-  // during testing we use stretch parameters that are faster, but consequently less secure
-  const isProd = process.env.NODE_ENV === 'production'
-  const opsLimit = isProd
-    ? sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE
-    : sodium.crypto_pwhash_OPSLIMIT_MIN
-  const memLimit = isProd
-    ? sodium.crypto_pwhash_MEMLIMIT_INTERACTIVE
-    : sodium.crypto_pwhash_MEMLIMIT_MIN
+  const opsLimit = sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE
+  const memLimit = sodium.crypto_pwhash_MEMLIMIT_INTERACTIVE
   return sodium.crypto_pwhash(
     32,
     passwordBytes,
@@ -36,6 +28,3 @@ export const stretch = memoize((password: Password) => {
     sodium.crypto_pwhash_ALG_DEFAULT
   )
 })
-
-type AnyFn = (...args: any[]) => any
-type Memoize = <F extends AnyFn>(f: F, _resolver?: (...args: Parameters<F>) => ReturnType<F>) => F

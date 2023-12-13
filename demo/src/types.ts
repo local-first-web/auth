@@ -1,5 +1,6 @@
 ﻿import type * as auth from '@localfirst/auth'
-import { type ConnectionManager } from 'ConnectionManager'
+import { ConnectionManager } from 'ConnectionManager.js'
+import * as React from 'react'
 
 export type UserName = string
 export type ConnectionStatus = string

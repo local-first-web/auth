@@ -5,21 +5,20 @@
     "declarationMap": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "incremental": true,
     "importHelpers": true,
     "jsx": "react",
-    "lib": ["dom", "esnext"],
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitReturns": true,
+    "lib": [
+      "DOM",
+      "ESNext"
+    ],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "noUnusedLocals": false,
-    "noUnusedParameters": false,
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
     "strictPropertyInitialization": false,
-    "target": "esnext",
-    "useUnknownInCatchVariables": false
+    "target": "ESNext",
+    "useUnknownInCatchVariables": true
   }
 }

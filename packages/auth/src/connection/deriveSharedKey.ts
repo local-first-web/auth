@@ -6,12 +6,20 @@ import { HashPurpose } from 'util/index.js'
  * deterministically derives a shared key.
  */
 export const deriveSharedKey = <T extends Base58 | Uint8Array>(a: T, b: T): T => {
-  const aBytes = typeof a === 'string' ? base58.decode(a) : (a as Uint8Array)
-  const bBytes = typeof b === 'string' ? base58.decode(b) : (b as Uint8Array)
+  const aBytes: Uint8Array = typeof a === 'string' ? base58.decode(a) : a
+  const bBytes: Uint8Array = typeof b === 'string' ? base58.decode(b) : b
   const concatenatedSeeds = [aBytes, bBytes]
-    .sort() // Ensure that the seeds are in a predictable order
+    .sort(byteArraySortComparator) // Ensure that the seeds are in a predictable order
     .reduce((result, seed) => new Uint8Array([...result, ...seed]), new Uint8Array()) // Concatenate
 
   const hashFn = typeof a === 'string' ? hash : hashBytes
   return hashFn(HashPurpose.SHARED_KEY, concatenatedSeeds) as T
+}
+
+const byteArraySortComparator = (a: Uint8Array, b: Uint8Array) => {
+  const aString = a.toString()
+  const bString = b.toString()
+  if (aString < bString) return -1
+  if (aString > bString) return 1
+  return 0
 }

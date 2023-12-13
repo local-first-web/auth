@@ -1,28 +1,12 @@
 {
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "baseUrl": "./src",
-    "declaration": true,
-    "declarationMap": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "importHelpers": true,
-    "jsx": "react",
-    "lib": ["dom", "esnext"],
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "noEmit": false,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitReturns": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
+    "baseUrl": "src",
     "outDir": "dist",
-    "rootDir": "./src",
-    "skipLibCheck": true,
-    "sourceMap": true,
-    "strict": true,
-    "strictPropertyInitialization": false,
-    "target": "esnext",
-    "useUnknownInCatchVariables": false
+    "rootDir": "src",
   },
-  "include": ["src", "@types"]
+  "include": [
+    "src",
+    "@types",
+  ]
 }

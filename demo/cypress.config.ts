@@ -1,4 +1,5 @@
 import { defineConfig } from 'cypress'
+import createBundler from '@bahmutov/cypress-esbuild-preprocessor'
 
 export default defineConfig({
   e2e: {
@@ -13,6 +14,7 @@ export default defineConfig({
     experimentalRunAllSpecs: true,
 
     setupNodeEvents(on) {
+      on('file:preprocessor', createBundler())
       on('before:browser:launch', (browser: any = {}, launchOptions: any) => {
         if (browser.family === 'chromium' && browser.name !== 'electron' && browser.isHeaded) {
           // auto open devtools

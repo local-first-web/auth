@@ -10,7 +10,8 @@ import {
 } from './types.js'
 import { createKeyring } from 'keyset/createKeyring.js'
 import { type Keyring, type KeysetWithSecrets } from 'keyset/index.js'
-import { assert, type Hash } from 'util/index.js'
+import { type Hash } from 'util/index.js'
+import { assert } from '@localfirst/auth-shared'
 
 /**
  * Decrypts a single link of a graph, given the graph keys at the time the link was authored.
@@ -96,11 +97,11 @@ export type DecryptFn = <A extends Action, C>({
 
 // ignore coverage
 // buffer to uint8array
-const toUint8Array = (buf: Buffer | Uint8Array) => {
+const toUint8Array = (buf: globalThis.Buffer | Uint8Array) => {
   return !isBuffer(buf)
     ? new Uint8Array(buf)
     : new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength)
 }
 
-const isBuffer = (buf: Buffer | Uint8Array): buf is Buffer =>
+const isBuffer = (buf: globalThis.Buffer | Uint8Array): buf is globalThis.Buffer =>
   'buffer' in buf && 'byteOffset' in buf && 'byteLength' in buf

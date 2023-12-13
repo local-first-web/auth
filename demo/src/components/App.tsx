@@ -1,6 +1,6 @@
 import * as auth from '@localfirst/auth'
 import React from 'react'
-import { type PeerInfo, peers as allPeers } from '../peers'
+import { type PeerInfo, peers as allPeers } from '../peers.js'
 import { type PeerState, type Storage, type StoredPeerState } from '../types.js'
 import { Chooser } from './Chooser.js'
 import { Peer } from './Peer.js'

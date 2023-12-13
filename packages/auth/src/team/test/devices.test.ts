@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { redactDevice } from 'index.js'
 import { setup as setupUsers } from 'util/testing/index.js'
-import { createDevice, redactDevice } from 'index.js'
+import { describe, expect, it } from 'vitest'
 
 describe('Team', () => {
   const setup = () => {
@@ -60,7 +60,7 @@ describe('Team', () => {
 
     it('throws when trying to remove a nonexistent device', () => {
       const { alice, bob } = setup()
-      const bobDevice = alice.team.members(bob.userId).devices![0].deviceId
+      const _bobDevice = alice.team.members(bob.userId).devices![0].deviceId
 
       const remove = () => alice.team.removeDevice('pizza')
       expect(remove).toThrow()

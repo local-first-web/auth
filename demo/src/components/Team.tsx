@@ -1,8 +1,9 @@
 import * as auth from '@localfirst/auth'
 import { type MemberContext } from '@localfirst/auth'
-import { useTeam } from '../hooks/useTeam'
-import { devices, users } from '../peers'
-import { assert } from '../util/assert'
+import { assert } from '@localfirst/auth-shared'
+import * as React from 'react'
+import { useTeam } from '../hooks/useTeam.js'
+import { devices, users } from '../peers.js'
 import { CardLabel } from './CardLabel.js'
 import { GraphDiagram } from './GraphDiagram.js'
 import { Invite } from './Invite.js'
@@ -58,8 +59,8 @@ export const Team = () => {
               const adminToggleTitle = memberIsOnlyAdmin
                 ? `Can't remove the only admin`
                 : memberIsAdmin
-                ? 'Team admin (click to remove)'
-                : 'Click to make team admin'
+                  ? 'Team admin (click to remove)'
+                  : 'Click to make team admin'
 
               return (
                 <tr key={m.userName} className="border-t border-b border-gray-200 group">
@@ -94,7 +95,8 @@ export const Team = () => {
                   <td className="flex py-2">
                     {m.devices?.map(d => {
                       const emoji = devices[d.deviceName].emoji
-                      const status = connectionStatus[auth.device.getDeviceId(d)] || 'disconnected'
+                      const status = connectionStatus[d.deviceId] || 'disconnected'
+                      // only show for other devices
                       const isThisDevice = d.keys.name === device.keys.name
                       return isThisDevice ? null : (
                         <div

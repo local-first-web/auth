@@ -17,21 +17,20 @@
   },
   "scripts": {
     "build": "tsup",
-    "build:declaration": "tsc -p tsconfig.build.json --emitDeclarationOnly --declaration",
+    "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly",
     "preinstall": "npx only-allow pnpm",
     "test": "vitest",
-    "test:log": "cross-env DEBUG='lf*' DEBUG_COLORS=1 vitest --reporter basic",
-    "watch": "yarn build --watch"
+    "test:log": "cross-env DEBUG='localfirst*' DEBUG_COLORS=1 vitest --reporter basic"
   },
   "dependencies": {
-    "@localfirst/crdx": "^5.0.0",
-    "@localfirst/crypto": "^5.0.0",
+    "@localfirst/auth-shared": "workspace:*",
+    "@localfirst/crdx": "workspace:*",
+    "@localfirst/crypto": "workspace:*",
     "@paralleldrive/cuid2": "^2.2.2",
-    "debug": "^4.3.4",
     "eventemitter3": "^5.0.1",
     "lodash-es": "^4.17.21",
-    "msgpackr": "^1.9.9",
-    "xstate": "4.26"
+    "msgpackr": "^1.10.0",
+    "xstate": "^4.38.3"
   },
   "publishConfig": {
     "access": "public"

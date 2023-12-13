@@ -1,7 +1,8 @@
+import { assert, memoize } from '@localfirst/auth-shared'
 import { uniq } from 'lodash-es'
-import { memoize, type Hash, assert } from 'util/index.js'
+import { type Hash } from 'util/index.js'
 import { getLink } from './getLink.js'
-import type { Graph, Action, Link } from './types.js'
+import type { Action, Graph, Link } from './types.js'
 
 export const memoizeResolver = (graph: Graph<any, any>, hash: Hash) =>
   `${graph.head.join('')}:${hash}`

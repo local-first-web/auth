@@ -1,4 +1,4 @@
-import { alice, bob, bobToAlice, bobToBob, show } from '../support/helpers'
+import { alice, bob, bobToAlice, bobToBob, show } from '../support/helpers.js'
 
 it('Alice disconnects and reconnects', () => {
   show('Bob:laptop')

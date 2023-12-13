@@ -14,7 +14,7 @@ import {
   setup,
   updated,
 } from 'util/testing/index.js'
-import { pause } from 'util/testing/pause.js'
+import { pause } from '@localfirst/auth-shared'
 import { describe, expect, it } from 'vitest'
 import { type MemberContext } from '../types.js'
 
@@ -178,7 +178,7 @@ describe('connection', () => {
         expect(charlie.team.hasRole('managers')).toBe(true)
       })
 
-      it('syncs up three ways - changes made after connecting', async () => {
+      it('syncs up  three ways - changes made after connecting', async () => {
         const { alice, bob, charlie } = setup('alice', 'bob', 'charlie')
 
         // 👩🏾<->👨🏻‍🦲<->👳🏽‍♂️ Alice, Bob, and Charlie all connect to each other

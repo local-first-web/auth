@@ -34,21 +34,22 @@ module.exports = {
 
     // DISABLED RULES
 
-    'guard-for-in': OFF, // not necessary with typescript
+    '@typescript-eslint/consistent-type-assertions': OFF, // sometimes you need to assert
     '@typescript-eslint/no-empty-function': OFF, // don't see the problem
     '@typescript-eslint/no-implicit-any-catch': OFF, // deprecated
-    '@typescript-eslint/consistent-type-assertions': OFF, // sometimes you need to assert
-    'capitalized-comments': OFF, // case in point this comment
-    'n/file-extension-in-import': OFF, // duplicate of import/extensions
-    'unicorn/no-array-reduce': OFF, // sometimes I like to reduce
-    'unicorn/prevent-abbreviations': OFF, // gets mad about "numLikes" etc.
-    'import/no-extraneous-dependencies': OFF, // haven't figured out how to make this work with monorepo
-    'unicorn/prefer-spread': OFF, // don't find [...a] readable compared to a.split('')
-    'default-case': OFF, // not necessary with typescript
-    'unicorn/prefer-node-protocol': OFF, // false positives with /util folder
-    'no-else-return': OFF, // don't agree
     '@typescript-eslint/padding-line-between-statements': OFF, // leave formatting to prettierjs
+    'capitalized-comments': OFF, // case in point this comment
+    'default-case': OFF, // not necessary with typescript
+    'guard-for-in': OFF, // not necessary with typescript
+    'import/no-extraneous-dependencies': OFF, // haven't figured out how to make this work with monorepo
+    'n/file-extension-in-import': OFF, // duplicate of import/extensions
+    'n/prefer-global/process': OFF, // use globalThis
+    'no-else-return': OFF, // don't agree
+    'unicorn/no-array-reduce': OFF, // sometimes I like to reduce
     'unicorn/no-negated-condition': OFF, // sometimes prefer to keep conditions in a certain order
+    'unicorn/prefer-node-protocol': OFF, // false positives with /util folder
+    'unicorn/prefer-spread': OFF, // don't find [...a] readable compared to a.split('')
+    'unicorn/prevent-abbreviations': OFF, // gets mad about "numLikes" etc.
 
     // DISABLED FOR EXPEDIENCY, MIGHT REVISIT
     'max-params': OFF,
@@ -92,6 +93,11 @@ module.exports = {
 
     // default is kebabCase
     'unicorn/filename-case': [ERROR, { cases: { camelCase: true, pascalCase: true } }],
+
+    // don't flag wallaby magic comment `//?`
+    'spaced-comment': [ERROR, ALWAYS, { block: { markers: ['?'], balanced: true } }],
+
+    'ava/no-import-test-files': [ERROR, { files: ['*.test.ts'] }],
   },
 
   overrides: [],

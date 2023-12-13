@@ -1,5 +1,5 @@
 import { TestChannel, all, connect, joinTestChannel, setup } from 'util/testing/index.js'
-import { pause } from 'util/testing/pause.js'
+import { pause } from '@localfirst/auth-shared'
 import { describe, it } from 'vitest'
 
 describe('connection', () => {
@@ -25,7 +25,7 @@ describe('connection', () => {
     await all([aliceConnection, bobConnection], 'connected')
   })
 
-  it('should connect even when messages are dropped', () => {
+  it('should connect even when messages are dropped', async () => {
     const { alice, bob } = setup('alice', 'bob')
 
     const join = joinTestChannel(new BadChannel()) // <- BadChannel drops messages
@@ -33,11 +33,9 @@ describe('connection', () => {
     const aliceConnection = join(alice.connectionContext).start()
     const bobConnection = join(bob.connectionContext).start()
 
-    return all([aliceConnection, bobConnection], 'connected')
+    await all([aliceConnection, bobConnection], 'connected')
   })
 })
-
-import { EventEmitter } from 'eventemitter3'
 
 /**
  * This channel is like TestChannel but it drops one message

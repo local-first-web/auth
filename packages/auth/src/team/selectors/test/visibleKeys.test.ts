@@ -5,7 +5,7 @@ import { ADMIN } from 'role/index.js'
 import { KeyType, getScope } from 'util/index.js'
 import { setup } from 'util/testing/index.js'
 
-const { USER, DEVICE, TEAM, ROLE } = KeyType
+const { USER, TEAM, ROLE } = KeyType
 
 describe('visibleKeys', () => {
   it('alice can see admin and team keys', () => {

@@ -62,7 +62,8 @@ export const validate = <A extends Action, C>(
         } catch (error) {
           // any errors thrown cause validation to fail and are returned with the validation result
           // ignore coverage
-          return fail(error.message as string, error)
+          const { message } = error as Error
+          return fail(message, error)
         }
       }
 

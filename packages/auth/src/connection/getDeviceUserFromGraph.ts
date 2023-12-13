@@ -1,5 +1,6 @@
 import type { Base58, Keyring, KeysetWithSecrets, UserWithSecrets } from '@localfirst/crdx'
-import { KeyType, assert } from 'util/index.js'
+import { KeyType } from 'util/index.js'
+import { assert } from '@localfirst/auth-shared'
 import { getTeamState } from '../team/getTeamState.js'
 import * as select from '../team/selectors/index.js'
 

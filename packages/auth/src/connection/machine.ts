@@ -11,10 +11,11 @@ const timeout = {
 }
 
 export const machine: MachineConfig<ConnectionContext, ConnectionState, ConnectionMessage> = {
+  predictableActionArguments: true,
+
   id: 'connection',
   initial: 'awaitingIdentityClaim',
 
-  // TODO: if we have their identity claim, AND we've sent our identity claim, we can go to `authenticating`
   on: {
     REQUEST_IDENTITY: {
       actions: 'sendIdentityClaim',
@@ -80,7 +81,7 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
                   // Make sure the team I'm joining is actually the one that invited me
                   {
                     cond: 'joinedTheRightTeam',
-                    actions: ['joinTeam', 'onJoined'],
+                    actions: ['joinTeam'],
                     target: '#checkingIdentity',
                   },
 

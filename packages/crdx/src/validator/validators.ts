@@ -1,10 +1,10 @@
-﻿import { ROOT, VALID } from 'constants.js'
+﻿import { memoize } from '@localfirst/auth-shared'
+import { hash } from '@localfirst/crypto'
+import { ROOT, VALID } from 'constants.js'
 import { getRoot } from 'graph/getRoot.js'
 import { hashEncryptedLink } from 'graph/hashLink.js'
-import { memoize } from 'util/index.js'
+import type { Graph, Link } from 'index.js'
 import { ValidationError, type ValidatorSet } from './types.js'
-import type { Link, Graph } from 'index.js'
-import { hash } from '@localfirst/crypto'
 
 const _validators: ValidatorSet = {
   /** Does this link's hash check out? */
@@ -45,9 +45,9 @@ const _validators: ValidatorSet = {
         ? `The ROOT link has to be the link referenced by the graph \`root\` property` // ROOT but isn't graph root
         : `The ROOT link cannot have any predecessors` // ROOT but has prev link
       : // not ROOT
-      hasNoPrevLink
-      ? `Non-ROOT links must have predecessors` // not ROOT but has no prev link
-      : 'The link referenced by the graph `root` property must be a ROOT link' // not ROOT but is the graph root
+        hasNoPrevLink
+        ? `Non-ROOT links must have predecessors` // not ROOT but has no prev link
+        : 'The link referenced by the graph `root` property must be a ROOT link' // not ROOT but is the graph root
     return fail(message, { link, graph })
   },
 

@@ -1,12 +1,17 @@
-﻿import { type CommandFn } from '../types'
+﻿import { NOLOG, wrap } from '../helpers'
+import { type CommandFn } from '../types.js'
 
 export const toggleOnline: CommandFn = subject => {
-  const s = () => cy.wrap(subject)
+  const s = () => wrap(subject)
   return s()
-    .find('.OnlineToggle')
-    .invoke('attr', 'title')
+    .find('.OnlineToggle', NOLOG)
+    .invoke(NOLOG, 'attr', 'title')
     .then(prevState => {
-      s().find('.OnlineToggle').click().invoke('attr', 'title').should('not.equal', prevState)
+      s()
+        .find('.OnlineToggle', NOLOG)
+        .click(NOLOG)
+        .invoke(NOLOG, 'attr', 'title')
+        .should('not.equal', prevState)
     })
     .then(() => subject)
 }

@@ -1,3 +1,4 @@
+import { pause } from '@localfirst/auth-shared'
 import { ADMIN } from 'role/index.js'
 import * as teams from 'team/index.js'
 import {
@@ -16,7 +17,6 @@ import {
 } from 'util/testing/index.js'
 import { describe, expect, it } from 'vitest'
 import type { InviteeDeviceContext } from '../types.js'
-import { pause } from 'util/testing/pause.js'
 
 describe('connection', () => {
   describe('authentication', () => {

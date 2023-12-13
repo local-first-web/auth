@@ -1,10 +1,10 @@
 // ignore file coverage
+import { eventPromise } from '@localfirst/auth-shared'
 import { type Connection, type ConnectionEvents } from 'connection/index.js'
 import { type InviteeDeviceContext, type InviteeMemberContext } from 'connection/types.js'
 import type { EventEmitter } from 'eventemitter3'
 import { expect } from 'vitest'
 import { TestChannel } from './TestChannel.js'
-import { eventPromise } from './eventPromise.js'
 import { joinTestChannel } from './joinTestChannel.js'
 import { type UserStuff } from './setup.js'
 

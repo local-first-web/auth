@@ -1,5 +1,5 @@
-import { SECOND } from '../support/commands/invite'
-import { alice, alicePhone, bob, charlie, eve, show } from '../support/helpers'
+import { SECOND } from '../support/commands/invite.js'
+import { alice, alicePhone, bob, charlie, eve, show } from '../support/helpers.js'
 
 it('Alice invites Bob', () => {
   show('Bob:laptop')
@@ -16,27 +16,6 @@ it('Alice invites Bob', () => {
   alice().should('have.member', 'Bob')
   bob().should('have.member', 'Alice')
 })
-
-// TODO: test persistence separately
-// it(`We hide and show Bob's device`, () => {
-//   show('Bob:laptop')
-//   alice().addToTeam('Bob')
-
-//   // we hide Bob's device
-//   bob().hide()
-
-//   // we show Bob's device again
-//   show('Bob:laptop')
-//   cy.get('.Peer').should('have.length', 2)
-//   bob().toggleOnline()
-
-//   // Bob rejoins the team
-
-//   // Alice sees that Bob is reconnected
-//   alice()
-//     .peerConnectionStatus('Bob')
-//     .should('equal', 'connected')
-// })
 
 it('Alice invites Bob and Charlie with a single code', () => {
   alice().should('not.have.member', 'Bob')
@@ -77,10 +56,10 @@ it(`Bob mistypes his invitation code`, () => {
 it(`Bob's invitation expires`, () => {
   show('Bob:laptop')
   alice()
-    .invite({ expiration: Number(SECOND) }) // invitation expires in 1 second
+    .invite({ expiration: 1 * SECOND }) // invitation expires in 1 second
     .then(code => {
       // but we wait 2 seconds before joining
-      cy.wait(2 * SECOND).then(() => {
+      cy.wait(2000).then(() => {
         return bob().join(code, { expectToFail: true })
       })
 

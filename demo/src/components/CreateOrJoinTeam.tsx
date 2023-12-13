@@ -1,12 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useTeam } from '../hooks/useTeam'
+import { useTeam } from '../hooks/useTeam.js'
 import { Button } from './Button.js'
 
 export const CreateOrJoinTeam = () => {
   const { joinTeam, createTeam } = useTeam()
 
-  const invitationSeedInput =
-    useRef() as React.MutableRefObject<HTMLInputElement>
+  const invitationSeedInput = useRef() as React.MutableRefObject<HTMLInputElement>
 
   type State = 'inactive' | 'joining' | 'done'
   const [state, setState] = useState<State>('inactive')
@@ -21,11 +20,7 @@ export const CreateOrJoinTeam = () => {
           <div className="border-r p-4">
             <p>Starting something new?</p>
             <p className="py-2">
-              <Button
-                color="primary"
-                className="w-full justify-center"
-                onClick={createTeam}
-              >
+              <Button color="primary" className="w-full justify-center" onClick={createTeam}>
                 Create team
               </Button>
             </p>

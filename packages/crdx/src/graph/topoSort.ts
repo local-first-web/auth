@@ -81,5 +81,5 @@ export const byHash: LinkComparator = (a, b) =>
   a.hash < b.hash
     ? -1 //
     : a.hash > b.hash
-    ? 1
-    : 0
+      ? 1
+      : 0

@@ -1,15 +1,15 @@
+import { assert } from '@localfirst/auth-shared'
+import { append, createGraph, headsAreEqual, type Graph } from 'graph/index.js'
+import { generateMessage, initSyncState, receiveMessage } from 'sync/index.js'
+import { createUser, type UserWithSecrets } from 'user/index.js'
 import {
-  type Network,
   expectNotToBeSynced,
   expectToBeSynced,
   setupWithNetwork,
+  type Network,
 } from 'util/testing/Network.js'
 import { TEST_GRAPH_KEYS as keys } from 'util/testing/setup.js'
 import { describe, expect, it, vitest } from 'vitest'
-import { type Graph, append, createGraph, headsAreEqual } from 'graph/index.js'
-import { generateMessage, initSyncState, receiveMessage } from 'sync/index.js'
-import { type UserWithSecrets, createUser } from 'user/index.js'
-import { assert } from 'util/index.js'
 
 const { setSystemTime } = vitest.useFakeTimers()
 

@@ -1,5 +1,6 @@
 /* eslint-disable object-shorthand */
 
+import { assert, debug } from '@localfirst/auth-shared'
 import {
   generateMessage,
   headsAreEqual,
@@ -7,7 +8,6 @@ import {
   receiveMessage,
   redactKeys,
   type DecryptFnParams,
-  type SyncState,
 } from '@localfirst/crdx'
 import { asymmetric, randomKeyBytes, symmetric, type Hash, type Payload } from '@localfirst/crypto'
 import { deriveSharedKey } from 'connection/deriveSharedKey.js'
@@ -35,25 +35,18 @@ import { EventEmitter } from 'eventemitter3'
 import * as invitations from 'invitation/index.js'
 import { pack, unpack } from 'msgpackr'
 import { getTeamState } from 'team/getTeamState.js'
-import {
-  Team,
-  decryptTeamGraph,
-  type TeamAction,
-  type TeamContext,
-  type TeamGraph,
-} from 'team/index.js'
+import { Team, decryptTeamGraph, type TeamAction, type TeamContext } from 'team/index.js'
 import * as select from 'team/selectors/index.js'
 import { arraysAreEqual } from 'util/arraysAreEqual.js'
-import { KeyType, assert, debug } from 'util/index.js'
+import { KeyType } from 'util/index.js'
 import { syncMessageSummary } from 'util/testing/messageSummary.js'
-import { assign, createMachine, interpret, type Interpreter } from 'xstate'
-import { NumberedMessage, OrderedNetwork } from './OrderedNetwork.js'
+import { assign, createMachine, interpret } from 'xstate'
+import { MessageQueue, type NumberedMessage } from './MessageQueue.js'
 import { machine } from './machine.js'
 import type {
   Condition,
   ConnectionContext,
   ConnectionEvents,
-  ConnectionState,
   Context,
   IdentityClaim,
   ServerContext,
@@ -78,17 +71,17 @@ const { DEVICE } = KeyType
  */
 export class Connection extends EventEmitter<ConnectionEvents> {
   /** The interpreted state machine. Its XState configuration is in `machine.ts`. */
-  private readonly machine: Interpreter<ConnectionContext, ConnectionState, ConnectionMessage>
+  private readonly machine
   private started = false
-  private orderedNetwork: OrderedNetwork<ConnectionMessage>
-  private log = debug.extend('connection')
+  private readonly messageQueue: MessageQueue<ConnectionMessage>
+  private log = debug.extend('auth:connection')
 
   constructor({ sendMessage, context }: Params) {
     super()
 
     // To send messages to our peer, we give them to the ordered network,
     // which will deliver them using the
-    this.orderedNetwork = new OrderedNetwork<ConnectionMessage>({
+    this.messageQueue = new MessageQueue<ConnectionMessage>({
       sendMessage: message => {
         this.logMessage('out', message)
         const serialized = pack(message)
@@ -100,7 +93,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         // Handle requests from the peer to resend messages that they missed
         if (message.type === 'REQUEST_RESEND') {
           const { index } = message.payload
-          this.orderedNetwork.resend(index)
+          this.messageQueue.resend(index)
           return
         }
 
@@ -117,10 +110,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       'server' in context
         ? context.server.host
         : 'userName' in context
-        ? context.userName
-        : 'user' in context
-        ? context.user.userName
-        : ''
+          ? context.userName
+          : 'user' in context
+            ? context.user.userName
+            : ''
     this.log = this.log.extend(userName)
 
     const Context: Context = isServerContext(context) ? extendServerContext(context) : context
@@ -141,14 +134,16 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   // PUBLIC API
 
   /** Starts the protocol machine. Returns this Protocol object. */
-  public start = (storedMessages: string[] = []) => {
+  public start = (storedMessages: Uint8Array[] = []) => {
     this.log('starting')
     this.machine.start()
-    this.orderedNetwork.start()
+    this.messageQueue.start()
     this.started = true
 
     // kick off the connection by requesting our peer's identity
     this.sendMessage({ type: 'REQUEST_IDENTITY' })
+
+    for (const m of storedMessages) this.deliver(m)
 
     return this
   }
@@ -157,12 +152,16 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   public stop = () => {
     if (this.started && !this.machine.state.done) {
       const disconnectMessage = { type: 'DISCONNECT' } as DisconnectMessage
-      this.sendMessage(disconnectMessage) // Send disconnect message to peer
       this.machine.send(disconnectMessage) // Send disconnect event to local machine
+      try {
+        this.sendMessage(disconnectMessage) // Send disconnect message to peer
+      } catch {
+        // our connection to the peer may already be gone by this point, don't throw
+      }
     }
 
     this.removeAllListeners()
-    this.orderedNetwork.stop()
+    this.messageQueue.stop()
     this.machine.stop()
     this.machine.state.done = true
     this.log('machine stopped')
@@ -209,19 +208,18 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   }
 
   /**
-   * Adds incoming messages from the peer to the OrderedNetwork's incoming message queue, which will
+   * Adds incoming messages from the peer to the MessageQueue's incoming message queue, which will
    * pass them to the state machine in order.
    */
   public deliver(serializedMessage: Uint8Array) {
     const message = unpack(serializedMessage) as NumberedMessage<ConnectionMessage>
-    this.orderedNetwork.receive(message)
+    this.messageQueue.receive(message)
   }
 
   /** Sends an encrypted message to our peer. */
   public send = (message: Payload) => {
-    const { sessionKey } = this.context
-    assert(sessionKey)
-    const encryptedMessage = symmetric.encryptBytes(message, sessionKey)
+    assert(this.sessionKey)
+    const encryptedMessage = symmetric.encryptBytes(message, this.sessionKey)
     this.sendMessage({ type: 'ENCRYPTED_MESSAGE', payload: encryptedMessage })
   }
 
@@ -353,6 +351,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       // Add our current device to the team chain
       team.join(teamKeyring)
 
+      this.emit('joined', { team, user })
+
       return { user, team }
     }),
 
@@ -473,10 +473,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     // NEGOTIATING
 
-    generateSeed: assign(context => {
-      return {
-        seed: randomKeyBytes(),
-      }
+    generateSeed: assign(_context => {
+      return { seed: randomKeyBytes() }
     }),
 
     sendSeed: context => {
@@ -571,7 +569,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     // EVENTS FOR EXTERNAL LISTENERS
 
     onConnected: () => this.emit('connected'),
-    onJoined: () => this.emit('joined', { team: this.team!, user: this.user! }),
     onDisconnected: (_, event) => this.emit('disconnected', event),
   }
 
@@ -652,12 +649,15 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   // PRIVATE
 
   private readonly sendMessage = (message: ConnectionMessage) => {
-    this.orderedNetwork.send(message)
+    this.messageQueue.send(message)
   }
 
   private readonly throwError = (type: ConnectionErrorType, details?: any) => {
     const detailedMessage =
       details && 'message' in details ? (details.message as string) : undefined
+
+    this.log('error: %s %o', type, details)
+
     // Force error state locally
     const localMessage = buildError(type, detailedMessage, 'LOCAL')
     this.machine.send(localMessage)

@@ -35,4 +35,5 @@ const isGraph = (source: Uint8Array | TeamGraph): source is TeamGraph =>
   source?.hasOwnProperty('root')
 
 // buffer to uint8array
-const toUint8Array = (buf: Buffer) => new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength)
+const toUint8Array = (buf: globalThis.Buffer) =>
+  new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength)

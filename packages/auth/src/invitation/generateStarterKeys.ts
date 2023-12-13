@@ -1,6 +1,6 @@
 import { createKeyset, EPHEMERAL_SCOPE } from '@localfirst/crdx'
 import { normalize } from './normalize.js'
-import { memoize } from 'util/index.js'
+import { memoize } from '@localfirst/auth-shared'
 
 /**
  * This will be Bob's first-use keyset; as soon as he's admitted, he'll provide keys of his own

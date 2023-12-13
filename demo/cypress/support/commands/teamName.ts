@@ -1,6 +1,7 @@
-import { type CommandFn } from '../types'
+import { NOLOG, wrap } from '../helpers'
+import { type CommandFn } from '../types.js'
 
 export const teamName: CommandFn = subject => {
-  const s = () => cy.wrap(subject)
-  return s().find('.TeamName').invoke('text')
+  const s = () => wrap(subject)
+  return s().find('.TeamName', NOLOG).invoke(NOLOG, 'text')
 }

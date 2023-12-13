@@ -1,4 +1,5 @@
-﻿import { type CommandFn } from '../types'
+﻿import { NOLOG, wrap } from '../helpers'
+import { type CommandFn } from '../types.js'
 
 export const adminButton: CommandFn = (subject, userName: string) =>
-  cy.wrap(subject).teamMember(userName).findByText('👑')
+  wrap(subject).teamMember(userName).findByText('👑', NOLOG)

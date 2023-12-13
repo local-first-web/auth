@@ -1,7 +1,7 @@
 import { type TeamLink, type TeamLinkBody, type TeamGraph, type Hash } from '@localfirst/auth'
 import React, { type FC } from 'react'
-import { theme } from '../mermaid.theme'
-import { devices, users } from '../peers'
+import { theme } from '../mermaid.theme.js'
+import { devices, users } from '../peers.js'
 import { Mermaid } from './Mermaid.js'
 
 const LINE_BREAK = '\n'

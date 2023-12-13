@@ -1,6 +1,7 @@
+import { debug, truncateHashes } from '@localfirst/auth-shared'
 import { ROOT } from '@localfirst/crdx'
 import { invitationCanBeUsed } from 'invitation/index.js'
-import { VALID, ValidationError, actionFingerprint, debug, truncateHashes } from 'util/index.js'
+import { VALID, ValidationError, actionFingerprint } from 'util/index.js'
 import { isAdminOnlyAction } from './isAdminOnlyAction.js'
 import * as select from './selectors/index.js'
 import {
@@ -11,7 +12,7 @@ import {
   type ValidationArgs,
 } from './types.js'
 
-const log = debug.extend('validate')
+const log = debug.extend('auth:validate')
 
 export const validate: TeamStateValidator = (...args: ValidationArgs) => {
   for (const key in validators) {
@@ -65,14 +66,14 @@ const validators: TeamStateValidatorSet = {
 
     // Only admins can remove another user's devices
     const authorIsAdmin = select.memberIsAdmin(previousState, author)
-    if (!authorIsAdmin) {
-      if (link.body.type === 'REMOVE_DEVICE') {
-        const target = link.body.payload.deviceId
-        const device = select.device(previousState, target)
-        const deviceOwner = device.userId
-        if (author !== deviceOwner) {
-          return fail("Can't remove another user's device.", ...args)
-        }
+    if (authorIsAdmin) return VALID
+
+    if (link.body.type === 'REMOVE_DEVICE') {
+      const target = link.body.payload.deviceId
+      const device = select.device(previousState, target)
+      const deviceOwner = device.userId
+      if (author !== deviceOwner) {
+        return fail("Can't remove another user's device.", ...args)
       }
     }
     return VALID

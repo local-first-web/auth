@@ -1,6 +1,6 @@
 import { isPredecessor } from '@localfirst/crdx'
 import { type TeamGraph, type TeamLink } from 'team/types.js'
-import { assert } from '../util/index.js'
+import { assert } from '@localfirst/auth-shared'
 
 export const bySeniority = (chain: TeamGraph) => (a: string, b: string) => {
   // If one of these created the chain, they win
@@ -19,8 +19,7 @@ export const bySeniority = (chain: TeamGraph) => (a: string, b: string) => {
 
   // if A was added first, A comes first in the sort
   // ignore coverage
-  if (isPredecessor(chain, addedA, addedB)) return -1
-  else return 1
+  return isPredecessor(chain, addedA, addedB) ? -1 : 1
 }
 
 const isFounder = (chain: TeamGraph, userId: string) => {

@@ -2,7 +2,7 @@ import { type UserWithSecrets } from '@localfirst/crdx'
 import { type DeviceWithSecrets } from 'device/index.js'
 import { type ServerWithSecrets } from 'server/index.js'
 
-export type LocalContext = LocalUserContext | ServerContext
+export type LocalContext = LocalUserContext | LocalServerContext
 
 export type LocalUserContext = {
   user: UserWithSecrets
@@ -10,7 +10,7 @@ export type LocalUserContext = {
   client?: Client
 }
 
-export type ServerContext = {
+export type LocalServerContext = {
   server: ServerWithSecrets
   client?: Client
 }

@@ -1,0 +1,28 @@
+{
+  "name": "@localfirst/auth-provider-automerge-repo",
+  "version": "0.0.50",
+  "description": "Authentication provider for automerge-repo using localfirst/auth",
+  "repository": "https://github.com/local-first-web/auth/packages/auth-provider-automerge-repo",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsup",
+    "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "test": "vitest",
+    "test:log": "cross-env DEBUG='localfirst*' DEBUG_COLORS=1 vitest --reporter basic"
+  },
+  "dependencies": {
+    "@automerge/automerge-repo": "link:..\\..\\..\\..\\automerge\\automerge-repo\\packages\\automerge-repo",
+    "@localfirst/auth": "workspace:*",
+    "@localfirst/auth-shared": "workspace:*",
+    "eventemitter3": "^5.0.1",
+    "msgpackr": "^1.10.0"
+  },
+  "devDependencies": {
+    "@automerge/automerge-repo-network-messagechannel": "link:..\\..\\..\\..\\automerge\\automerge-repo\\packages\\automerge-repo-network-messagechannel",
+    "@automerge/automerge-repo-storage-nodefs": "link:..\\..\\..\\..\\automerge\\automerge-repo\\packages\\automerge-repo-storage-nodefs",
+    "rimraf": "^5.0.5"
+  }
+}
