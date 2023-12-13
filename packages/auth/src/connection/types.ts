@@ -206,15 +206,15 @@ export type ConnectionState = {
 type C = Context | ConnectionContext
 
 export const isMemberContext = (c: C): c is MemberContext => {
-  return 'team' in c
+  return 'team' in c && c.team !== undefined
 }
 
 export const isInviteeContext = (c: C): c is InviteeContext => {
-  return 'invitationSeed' in c
+  return 'invitationSeed' in c && c.invitationSeed !== undefined
 }
 
 export const isInviteeMemberContext = (c: C): c is InviteeMemberContext => {
-  return isInviteeContext(c) && 'user' in c
+  return isInviteeContext(c) && 'user' in c && c.user !== undefined
 }
 
 export const isInviteeDeviceContext = (c: C): c is InviteeDeviceContext => {
@@ -222,17 +222,17 @@ export const isInviteeDeviceContext = (c: C): c is InviteeDeviceContext => {
 }
 
 export const isServerContext = (c: C): c is ServerContext => {
-  return 'server' in c
+  return 'server' in c && c.server !== undefined
 }
 
 // identity claim
 
 export const isMemberClaim = (claim: IdentityClaim): claim is MemberIdentityClaim => {
-  return 'deviceId' in claim
+  return 'deviceId' in claim && claim.deviceId !== undefined
 }
 
 export const isInviteeMemberClaim = (claim: IdentityClaim): claim is InviteeMemberIdentityClaim => {
-  return isInviteeClaim(claim) && 'userKeys' in claim
+  return isInviteeClaim(claim) && 'userKeys' in claim && claim.userKeys !== undefined
 }
 
 export const isInviteeDeviceClaim = (claim: IdentityClaim): claim is InviteeDeviceIdentityClaim => {
@@ -240,5 +240,5 @@ export const isInviteeDeviceClaim = (claim: IdentityClaim): claim is InviteeDevi
 }
 
 export const isInviteeClaim = (claim: IdentityClaim): claim is InviteeDeviceIdentityClaim => {
-  return 'proofOfInvitation' in claim
+  return 'proofOfInvitation' in claim && claim.proofOfInvitation !== undefined
 }
