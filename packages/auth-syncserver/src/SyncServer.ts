@@ -34,7 +34,7 @@ import { WebSocketServer } from 'isomorphic-ws'
  * authenticate with the server.
  */
 export class LocalFirstAuthSyncServer {
-  socket: WebSocketServer
+  webSocketServer: WebSocketServer
   server: HttpServer
   storageDir: string
   publicKeys: Keyset
@@ -68,11 +68,10 @@ export class LocalFirstAuthSyncServer {
       const keys = this.#getKeys()
       this.publicKeys = redactKeys(keys)
 
-      // Create the socket we will use. localfirst/auth will use this to send and receive
-      // authentication messages, and Automerge Repo will use it to send and receive sync messages
-      this.socket = new WebSocketServer({ noServer: true })
+      // localfirst/auth will use this to send and receive authentication messages, and Automerge Repo will use it to send and receive sync messages
+      this.webSocketServer = new WebSocketServer({ noServer: true })
 
-      this.socket.on('close', (payload: any) => {
+      this.webSocketServer.on('close', (payload: any) => {
         this.close(payload)
       })
 
@@ -85,7 +84,7 @@ export class LocalFirstAuthSyncServer {
       const auth = new AuthProvider({ user, device, storage })
 
       // Set up the repo
-      const adapter = new NodeWSServerAdapter(this.socket)
+      const adapter = new NodeWSServerAdapter(this.webSocketServer)
       const _repo = new Repo({
         peerId,
         // Use the auth provider to wrap our network adapter
@@ -160,8 +159,8 @@ export class LocalFirstAuthSyncServer {
        * event, which is handled by the NodeWSServerAdapter.
        */
       this.server.on('upgrade', (request, socket, head) => {
-        this.socket.handleUpgrade(request, socket, head, socket => {
-          this.socket.emit('connection', socket, request)
+        this.webSocketServer.handleUpgrade(request, socket, head, socket => {
+          this.webSocketServer.emit('connection', socket, request)
         })
       })
     })
