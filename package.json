@@ -23,7 +23,11 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:log": "pnpm -F @localfirst/auth test:log",
-    "version": "lerna version --no-push --no-commit-hooks --yes",
+    "version:alpha": "lerna version prerelease --preid=alpha --yes",
+    "version:beta": "lerna version prerelease --preid=beta --yes",
+    "version:patch": "lerna version patch --yes",
+    "version:minor": "lerna version minor --yes",
+    "version:major": "lerna version major --yes",
     "watch": "lerna watch -- pnpm build"
   },
   "devDependencies": {
