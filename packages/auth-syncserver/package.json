@@ -6,7 +6,14 @@
   "license": "MIT",
   "private": false,
   "type": "module",
-  "main": "dist/index.js",
+  "exports": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly",
@@ -14,17 +21,15 @@
     "test:log": "cross-env DEBUG='localfirst*' DEBUG_COLORS=1 vitest --reporter basic"
   },
   "dependencies": {
-    "@automerge/automerge-repo": "1.1.0-alpha.6",
-    "@automerge/automerge-repo-network-websocket": "1.1.0-alpha.6",
-    "@automerge/automerge-repo-storage-nodefs": "1.1.0-alpha.6",
+    "@automerge/automerge-repo": "link:../../../../automerge/automerge-repo/packages/automerge-repo",
+    "@automerge/automerge-repo-network-websocket": "link:../../../../automerge/automerge-repo/packages/automerge-repo-network-websocket",
+    "@automerge/automerge-repo-storage-nodefs": "link:../../../../automerge/automerge-repo/packages/automerge-repo-storage-nodefs",
     "@localfirst/auth": "workspace:*",
     "@localfirst/auth-shared": "workspace:*",
     "@localfirst/auth-provider-automerge-repo": "workspace:*",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "msgpackr": "^1.10.0",
-    "isomorphic-ws": "^5.0.0",
     "ws": "^8.14.2"
   },
   "devDependencies": {

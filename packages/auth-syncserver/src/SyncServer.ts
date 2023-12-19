@@ -19,7 +19,7 @@ import express, { type ErrorRequestHandler } from 'express'
 import fs from 'fs'
 import { type Server as HttpServer } from 'http'
 import path from 'path'
-import { WebSocketServer } from 'isomorphic-ws'
+import { WebSocketServer } from 'ws'
 
 /**
  * This is a sync server for use with automerge-repo and the AuthProvider.
