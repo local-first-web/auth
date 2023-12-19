@@ -144,7 +144,6 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
         // Pass message to the auth connection
         const connection = this.#getConnection(shareId, senderId)
 
-        this.#log('delivering message to connection %o', message)
         connection.deliver(serializedConnectionMessage)
       })
 
@@ -323,6 +322,8 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
     // Track the connection
     this.#connections.set([shareId, peerId], connection)
+
+    // TODO: await connected?
   }
 
   #addPeer(baseAdapter: NetworkAdapter, peerId: PeerId) {
