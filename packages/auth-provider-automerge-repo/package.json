@@ -6,7 +6,14 @@
   "license": "MIT",
   "private": false,
   "type": "module",
-  "main": "dist/index.js",
+  "exports": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly",
@@ -14,15 +21,15 @@
     "test:log": "cross-env DEBUG='localfirst*' DEBUG_COLORS=1 vitest --reporter basic"
   },
   "dependencies": {
-    "@automerge/automerge-repo": "1.1.0-alpha.6",
+    "@automerge/automerge-repo": "link:../../../../automerge/automerge-repo/packages/automerge-repo",
     "@localfirst/auth": "workspace:*",
     "@localfirst/auth-shared": "workspace:*",
     "eventemitter3": "^5.0.1",
     "msgpackr": "^1.10.0"
   },
   "devDependencies": {
-    "@automerge/automerge-repo-network-messagechannel": "1.1.0-alpha.6",
-    "@automerge/automerge-repo-storage-nodefs": "1.1.0-alpha.6",
+    "@automerge/automerge-repo-network-messagechannel": "link:../../../../automerge/automerge-repo/packages/automerge-repo-network-messagechannel",
+    "@automerge/automerge-repo-storage-nodefs": "link:../../../../automerge/automerge-repo/packages/automerge-repo-storage-nodefs",
     "rimraf": "^5.0.5"
   }
 }

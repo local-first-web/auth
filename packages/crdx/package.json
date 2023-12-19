@@ -5,16 +5,15 @@
   "license": "MIT",
   "repository": "https://github.com/local-first-web/auth/packages/crdx",
   "private": false,
-  "files": [
-    "dist"
-  ],
   "type": "module",
-  "main": "./dist/index.js",
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "engines": {
-    "node": ">=14"
+    "node": ">=18"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly",
