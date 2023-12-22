@@ -15,7 +15,7 @@ module.exports = {
     '*.cjs',
     '*.js',
     // or with the demo
-    'demo/**/*',
+    'demos/**/*',
   ],
 
   rules: {

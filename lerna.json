@@ -6,7 +6,8 @@
   },
   "npmClient": "pnpm",
   "packages": [
-    "packages/*"
+    "packages/*",
+    "demos/*"
   ],
   "useNx": true
 }
