@@ -417,6 +417,12 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     )
   }
 
+  getShare(shareId: ShareId) {
+    const share = this.#shares.get(shareId)
+    if (!share) throw new Error(`Share not found`)
+    return share
+  }
+
   #allShareIds() {
     return [...this.#shares.keys(), ...this.#invitations.keys()]
   }
