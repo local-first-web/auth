@@ -63,7 +63,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   readonly #storedMessages = new CompositeMap<[ShareId, PeerId], Uint8Array[]>()
   readonly #peers = new Map<NetworkAdapter, PeerId[]>()
 
-  #log = debug.extend('auth:provider-automerge-repo')
+  #log = debug.extend('auth-provider')
 
   constructor({ device, user, storage }: Config) {
     super()
