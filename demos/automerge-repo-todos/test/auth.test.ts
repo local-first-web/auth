@@ -59,7 +59,7 @@ test.describe('Invitations', () => {
   })
 
   test('uses an invitation', async ({ context }) => {
-    // This noise causes the test to fail intermittently when run in isolation
+    // This ensures that there's more than one team on the sync server
     const noise = await newBrowser(context)
     noise.createTeam('noise', `noise team`)
 

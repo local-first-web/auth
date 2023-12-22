@@ -470,8 +470,46 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     // to retrieve the right session key to use for encryption.
 
     // First we need to find all shareIds for which we have connections with the target peer
-    const shareIdsForPeer = this.#allShareIds().filter(shareId =>
-      this.#connections.has([shareId, targetId])
+
+    // TODO:
+    //
+    // When the base network adapter gives the AuthProvider a peer candidate, the AuthProvider
+    // optimistically tries to make an authenticated connection using every team it knows about. If
+    // both peers are on a team, the auth connection succeeds; the other connections don't succeed
+    // and are eventually cleaned up. But in the meantime, we have multiple connections for the
+    // peer. So when Alice connects, for a short while the server will have one connection in
+    // Alice's name for every team it knows about.
+    //
+    // When the repo wants to send a sync message to Alice, we don't currently have a really
+    // principled way of choosing which auth connection to send it over; we just pick one
+    // arbitrarily in that case.
+    //
+    // If Alice actually is on two teams and we have two authenticated connections with her, that's
+    // OK -- it really doesn't matter which connection the messages goes through. But you do need to
+    // choose a connection that is going to succeed, and the more teams the server knows about, the
+    // lower our chances of picking the right one.
+    //
+    // This explains why we originally were only getting the failure when other tests were running -
+    // not because they were changing the timing or anything, but because they were adding other
+    // teams to the same sync server. It also explains why we couldn't reproduce the failure by
+    // hand, because we were generally dealing with a fresh sync server that only knew about our
+    // team.
+    //
+    // I've gotten the test to pass consistently by only choosing from connections that have already
+    // succeeded. But that's a kind of brittle solution, because the repo could give you a message
+    // for a peer while you're still authenticating.
+    //
+    // I think the principled way to solve this is to add a step before spinning up any auth
+    // connections, where you say what team(s) you want to use to connect. If I'm Alice connecting
+    // directly with Bob, we'll just each say all the teams we're on and then just connect on any
+    // that we have in common. If I'm a sync server, I probably wouldn't give the full list of teams
+    // I know about; instead I'd wait for the peer to tell me their teams, and I'd just repeat back
+    // that list (assuming I'm on every team on the list). (Kind of analogous to the
+    // "generous"/"okToAdvertise" business with documents.)
+    const shareIdsForPeer = this.#allShareIds().filter(
+      shareId =>
+        this.#connections.has([shareId, targetId]) &&
+        this.#getConnection(shareId, targetId).state === 'connected'
     )
 
     if (shareIdsForPeer.length === 0) {
