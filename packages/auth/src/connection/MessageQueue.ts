@@ -1,5 +1,7 @@
 import { EventEmitter } from 'eventemitter3'
+import { debug } from '@localfirst/auth-shared'
 
+const log = debug.extend('message-queue')
 /**
  * Receives numbered inbound messages and emits them in order. If a message is missing after a delay, asks
  * for it to be sent (or resent).
@@ -53,6 +55,7 @@ export class MessageQueue<T> extends EventEmitter<MessageQueueEvents<T>> {
     const index = highestIndex(this.#outbound) + 1
     const numberedMessage = { ...message, index }
     this.#outbound[index] = numberedMessage
+    log('send %o', numberedMessage)
     if (this.#started) this.#sendMessage(numberedMessage)
     return this
   }
@@ -64,6 +67,7 @@ export class MessageQueue<T> extends EventEmitter<MessageQueueEvents<T>> {
     const message = this.#outbound[index]
     if (!message)
       throw new Error(`Received resend request for message #${index}, which doesn't exist.`)
+    log('resend %o', message)
     this.#sendMessage(message)
     return this
   }
@@ -73,6 +77,7 @@ export class MessageQueue<T> extends EventEmitter<MessageQueueEvents<T>> {
    */
   public receive(message: NumberedMessage<T>) {
     const { index } = message
+    log('receive %o', message)
     if (!this.#inbound[index]) {
       this.#inbound[index] = message
       if (this.#started) this.#processInbound()
@@ -82,6 +87,7 @@ export class MessageQueue<T> extends EventEmitter<MessageQueueEvents<T>> {
 
   #processOutbound() {
     // send outbound messages in order
+    log('processOutbound')
     while (this.#outbound[this.#nextOutbound]) {
       const message = this.#outbound[this.#nextOutbound]
       this.#sendMessage(message)
@@ -92,6 +98,7 @@ export class MessageQueue<T> extends EventEmitter<MessageQueueEvents<T>> {
    * Receives any messages that are pending in the inbound queue, and requests any missing messages.
    */
   #processInbound() {
+    log('processInbound')
     // emit received messages in order
     while (this.#inbound[this.#nextInbound]) {
       const message = this.#inbound[this.#nextInbound]
