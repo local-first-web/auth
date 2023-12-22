@@ -11,7 +11,7 @@ import {
   type KeysetWithSecrets,
   type ServerWithSecrets,
 } from '@localfirst/auth'
-import { AuthProvider } from '@localfirst/auth-provider-automerge-repo'
+import { AuthProvider, type ShareId } from '@localfirst/auth-provider-automerge-repo'
 import { debug } from '@localfirst/auth-shared'
 import bodyParser from 'body-parser'
 import cors from 'cors'
@@ -132,13 +132,15 @@ export class LocalFirstAuthSyncServer {
           }
 
           // rehydrate the team using the serialized graph and the keys passed in the request
-          // ! TODO: check that this team doesn't already exist, otherwise someone could slip you a fake team
           const team = new Team({
             source: objectToUint8Array(serializedGraph),
             context: { server },
             teamKeyring,
           })
 
+          if (auth.hasTeam(team.id)) {
+            res.status(500).send(`Team ${team.id} already registered`)
+          }
           // add the team to our auth provider
           await auth.addTeam(team)
           res.end()

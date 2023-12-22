@@ -30,8 +30,7 @@ describe('LocalFirstAuthSyncServer', () => {
     const { alice } = users
 
     // create a team
-    const teamContext = { user: alice.user, device: alice.device }
-    const team = createTeam('team A', teamContext)
+    const team = createTeam('team A', { user: alice.user, device: alice.device })
     await alice.authProvider.addTeam(team)
 
     // get the server's public keys
@@ -56,7 +55,50 @@ describe('LocalFirstAuthSyncServer', () => {
     expect(peerId).toEqual(host)
   })
 
-  it('Allows two users to communicate', async () => {
+  it(`Eve can't replace the team on the sync server`, async () => {
+    const { users, url } = await setup(['alice', 'eve'])
+    const { alice } = users
+
+    // Alice creates a team and registers it with the server
+    const team = createTeam('team A', { user: alice.user, device: alice.device })
+    await alice.authProvider.addTeam(team)
+
+    const keysResponse = await fetch(`http://${url}/keys`)
+    const keys = await keysResponse.json()
+
+    team.addServer({ host, keys })
+
+    const serializedGraph = team.save()
+    const teamKeyring = team.teamKeyring()
+
+    await fetch(`http://${url}/teams`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ serializedGraph, teamKeyring }),
+    })
+
+    const { peerId } = await eventPromise(alice.repo.networkSubsystem, 'peer')
+    expect(peerId).toEqual(host)
+
+    // Eve tries to re-register the team with the server
+
+    // The server's policy is to reject a team registration if the team already exists. We're
+    // providing the same serialized graph that Alice provided, but imagine that Eve has somehow
+    // modified it to have the same id but to give herself admin privileges. (In reality Eve can't
+    // tamper with the team graph in this way - the team ID is the team's root hash, and every link
+    // in the graph is signed and hashed, so Eve can't modify the it without invalidating it
+    // - but this adds an extra layer of security.)
+
+    const response = await fetch(`http://${url}/teams`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ serializedGraph, teamKeyring }),
+    })
+    expect(response.status).toBe(500)
+    expect(await response.text()).toContain('already registered')
+  })
+
+  it('Alice and Bob can communicate', async () => {
     const { users, url } = await setup(['alice', 'bob'])
     const { alice, bob } = users
 
@@ -74,19 +116,20 @@ describe('LocalFirstAuthSyncServer', () => {
     // add the server's public keys to the team
     aliceTeam.addServer({ host, keys })
 
+    await Promise.all([
     // register the team with the server
-    // (we don't await this because otherwise peer will fire before we're listening)
-    void fetch(`http://${url}/teams`, {
+      fetch(`http://${url}/teams`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         serializedGraph: aliceTeam.save(),
         teamKeyring: aliceTeam.teamKeyring(),
       }),
-    })
+      }),
 
     // when we're authenticated, we get a peer event
-    await eventPromise(alice.repo.networkSubsystem, 'peer')
+      eventPromise(alice.repo.networkSubsystem, 'peer'),
+    ])
 
     // We are making sure that bob is on the same team as alice and the server
     const bobTeam = loadTeam(
