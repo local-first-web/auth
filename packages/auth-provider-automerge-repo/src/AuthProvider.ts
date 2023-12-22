@@ -103,6 +103,13 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       const connection = this.#getConnection(shareId, message.targetId)
 
       // wait for connection to be ready before sending
+
+      const awaitConnected = async (connection: AbstractConnection) => {
+        this.#log('awaitConnected (%s)', connection.state)
+        if (connection.state === 'connected') return
+        return eventPromise(connection, 'connected')
+      }
+
       awaitConnected(connection)
         .then(() => {
           connection.send(message)
@@ -531,8 +538,3 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 }
 
 const STORAGE_KEY = ['AuthProvider', 'shares']
-
-const awaitConnected = async (connection: Auth.Connection) => {
-  if (connection.state === 'connected') return
-  return eventPromise(connection, 'connected')
-}
