@@ -132,7 +132,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     // add automatic logging to all events
     this.emit = (event, ...args) => {
-      this.log(`emit ${event} %o`, args)
+      this.log(`emit ${event} %o`, ...args)
       return super.emit(event, ...args)
     }
   }
