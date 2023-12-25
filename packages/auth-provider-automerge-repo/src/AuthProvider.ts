@@ -94,7 +94,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
    * Intercept the network adapter's events. For each new peer, we create a localfirst/auth
    * connection and use it to mutually authenticate before forwarding the peer-candidate event.
    */
-  wrap = (baseAdapter: NetworkAdapter) => {
+  public wrap = (baseAdapter: NetworkAdapter) => {
     // All repo messages for this adapter are handled by the Auth.Connection, which encrypts them
     // and guarantees authenticity.
     const send = (message: Message) => {
@@ -171,6 +171,12 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     return authAdapter
   }
 
+  public getShare(shareId: ShareId) {
+    const share = this.#shares.get(shareId)
+    if (!share) throw new Error(`Share not found`)
+    return share
+  }
+
   public async addTeam(team: Auth.Team) {
     this.#log('adding team %o', team.teamName)
     const shareId = team.id
@@ -218,12 +224,12 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
    * We might get messages from a peer before we've set up an Auth.Connection with them.
    * We store these messages until there's a connection to hand them off to.
    */
-  readonly #storeMessage = (shareId: ShareId, peerId: PeerId, message: Uint8Array) => {
+  #storeMessage(shareId: ShareId, peerId: PeerId, message: Uint8Array) {
     const messages = this.#getStoredMessages(shareId, peerId)
     this.#storedMessages.set([shareId, peerId], [...messages, message])
   }
 
-  readonly #getStoredMessages = (shareId: ShareId, peerId: PeerId) => {
+  #getStoredMessages(shareId: ShareId, peerId: PeerId) {
     return this.#storedMessages.get([shareId, peerId]) ?? []
   }
 
@@ -232,7 +238,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
    * shared secret key for the session, and sync up the team graph. This communication happens
    * over a network adapter that we've wrapped.
    */
-  readonly #createConnection = async <T extends NetworkAdapter>({
+  async #createConnection<T extends NetworkAdapter>({
     shareId,
     peerId,
     authAdapter,
@@ -240,7 +246,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     shareId: ShareId
     peerId: PeerId
     authAdapter: AuthNetworkAdapter<T>
-  }) => {
+  }) {
     this.#log('creating connection %o', { shareId, peerId })
     const { baseAdapter } = authAdapter
 
@@ -364,13 +370,13 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     }
   }
 
-  readonly #getConnection = (shareId: ShareId, peerId: PeerId) => {
+  #getConnection(shareId: ShareId, peerId: PeerId) {
     const connection = this.#connections.get([shareId, peerId])
     if (!connection) throw new Error(`Connection not found for peer ${peerId} on share ${shareId}`)
     return connection
   }
 
-  readonly #removeConnection = (shareId: ShareId, peerId: PeerId) => {
+  #removeConnection(shareId: ShareId, peerId: PeerId) {
     const connection = this.#connections.get([shareId, peerId])
     if (connection) {
       connection.stop()
@@ -420,17 +426,11 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     )
   }
 
-  getShare(shareId: ShareId) {
-    const share = this.#shares.get(shareId)
-    if (!share) throw new Error(`Share not found`)
-    return share
-  }
-
   #allShareIds() {
     return [...this.#shares.keys(), ...this.#invitations.keys()]
   }
 
-  readonly #getContextForShare = (shareId: ShareId) => {
+  #getContextForShare(shareId: ShareId) {
     const device = this.#device
     const user = this.#user
     const invitation = this.#invitations.get(shareId)
@@ -480,7 +480,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   }
 
   /** Returns the shareId to use for encrypting the given message */
-  readonly #getShareIdForMessage = ({ targetId }: Message) => {
+  #getShareIdForMessage({ targetId }: Message) {
     // Since the raw network adapters don't know anything about ShareIds, when we're given a message
     // to encrypt and send out, we need to figure out which auth connection it belongs to, in order
     // to retrieve the right session key to use for encryption.
