@@ -62,10 +62,11 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   readonly #connections = new CompositeMap<[ShareId, PeerId], Auth.Connection>()
   readonly #storedMessages = new CompositeMap<[ShareId, PeerId], Uint8Array[]>()
   readonly #peers = new Map<NetworkAdapter, PeerId[]>()
+  readonly #servers: string[]
 
   #log = debug.extend('auth-provider')
 
-  constructor({ device, user, storage }: Config) {
+  constructor({ device, user, storage, servers = [] }: Config) {
     super()
 
     // We always are given the local device's info & keys
@@ -81,6 +82,9 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       userName: user?.userName,
       deviceId: device.deviceId,
     })
+
+    this.#servers = asArray(servers)
+
     // Load any existing state from storage
     this.storage = storage
     this.#loadState()
@@ -175,6 +179,39 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     const share = this.#shares.get(shareId)
     if (!share) throw new Error(`Share not found`)
     return share
+  }
+
+  public async createTeam(teamName: string) {
+    const team = await Auth.createTeam(teamName, {
+      device: this.#device,
+      user: this.#user,
+    })
+
+    await Promise.all(
+      this.#servers.map(async url => {
+        const host = url.split(':')[0] // omit port
+
+        // get the server's public keys
+        const response = await fetch(`http://${url}/keys`)
+        const keys = await response.json()
+
+        // add the server's public keys to the team
+        team.addServer({ host, keys })
+
+        // register the team with the server
+        await fetch(`http://${url}/teams`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            serializedGraph: team.save(),
+            teamKeyring: team.teamKeyring(),
+          }),
+        })
+      })
+    )
+    await this.addTeam(team)
+
+    return team
   }
 
   public async addTeam(team: Auth.Team) {
@@ -547,3 +584,5 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 }
 
 const STORAGE_KEY = ['AuthProvider', 'shares']
+
+export const asArray = <T>(x: T | T[]): T[] => (Array.isArray(x) ? x : [x])

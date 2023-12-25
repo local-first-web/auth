@@ -13,6 +13,12 @@ export type Config = {
 
   /** We need to be given some way to persist our state */
   storage: StorageAdapter
+
+  /**
+   * If we're using one or more sync servers, we provide their hostnames.
+   * For example, `localhost:3000` or `syncserver.mydomain.com`.
+   */
+  servers?: string | string[]
 }
 
 export type LocalFirstAuthMessagePayload = {
