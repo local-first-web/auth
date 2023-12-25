@@ -28,7 +28,7 @@ export const setup = async <T extends string>(userNames = [] as T[]) => {
     const device = Auth.createDevice(user.userId, `${userName}'s device`)
     const context = { user, device }
     const storage = new NodeFSStorageAdapter(storageDir)
-    const authProvider = new AuthProvider({ user, device, storage, servers: url })
+    const authProvider = new AuthProvider({ user, device, storage, server: url })
     const socketAdapter = authProvider.wrap(new BrowserWebSocketClientAdapter(`ws://${url}`))
     const repo = new Repo({
       peerId: device.deviceId as PeerId,

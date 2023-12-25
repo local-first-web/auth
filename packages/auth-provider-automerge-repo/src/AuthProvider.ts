@@ -62,11 +62,11 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   readonly #connections = new CompositeMap<[ShareId, PeerId], Auth.Connection>()
   readonly #storedMessages = new CompositeMap<[ShareId, PeerId], Uint8Array[]>()
   readonly #peers = new Map<NetworkAdapter, PeerId[]>()
-  readonly #servers: string[]
+  readonly #server: string[]
 
   #log = debug.extend('auth-provider')
 
-  constructor({ device, user, storage, servers = [] }: Config) {
+  constructor({ device, user, storage, server = [] }: Config) {
     super()
 
     // We always are given the local device's info & keys
@@ -83,7 +83,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       deviceId: device.deviceId,
     })
 
-    this.#servers = asArray(servers)
+    this.#server = asArray(server)
 
     // Load any existing state from storage
     this.storage = storage
@@ -202,7 +202,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
    */
   public async registerTeam(team: Auth.Team) {
     await Promise.all(
-      this.#servers.map(async url => {
+      this.#server.map(async url => {
         // url could be "localhost:3000" or "syncserver.example.com"
         const host = url.split(':')[0] // omit port
 

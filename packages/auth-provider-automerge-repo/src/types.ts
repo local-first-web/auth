@@ -18,7 +18,7 @@ export type Config = {
    * If we're using one or more sync servers, we provide their hostnames.
    * For example, `localhost:3000` or `syncserver.mydomain.com`.
    */
-  servers?: string | string[]
+  server?: string | string[]
 }
 
 export type LocalFirstAuthMessagePayload = {
