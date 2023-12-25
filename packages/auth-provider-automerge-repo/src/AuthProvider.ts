@@ -175,20 +175,35 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     return authAdapter
   }
 
+  /**
+   * Returns the share with the given id. Throws an error if the shareId doesn't exist.
+   */
   public getShare(shareId: ShareId) {
     const share = this.#shares.get(shareId)
     if (!share) throw new Error(`Share not found`)
     return share
   }
 
+  /**
+   * Creates a team and registers it with all of our sync servers.
+   */
   public async createTeam(teamName: string) {
     const team = await Auth.createTeam(teamName, {
       device: this.#device,
       user: this.#user,
     })
 
+    await this.registerTeam(team)
+    return team
+  }
+
+  /**
+   * Registers an existing team with all of our sync servers.
+   */
+  public async registerTeam(team: Auth.Team) {
     await Promise.all(
       this.#servers.map(async url => {
+        // url could be "localhost:3000" or "syncserver.example.com"
         const host = url.split(':')[0] // omit port
 
         // get the server's public keys
@@ -210,10 +225,11 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       })
     )
     await this.addTeam(team)
-
-    return team
   }
 
+  /**
+   * Creates a share for a team we're already a member of.
+   */
   public async addTeam(team: Auth.Team) {
     this.#log('adding team %o', team.teamName)
     const shareId = team.id
@@ -226,15 +242,27 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     await this.#createConnectionsForShare(shareId)
   }
 
+  /**
+   * Returns true if there is a share containing a team with the given id.
+   */
   public hasTeam(shareId: ShareId) {
     return this.#shares.has(shareId) && this.#shares.get(shareId)?.team !== undefined
   }
 
+  /**
+   * Returns the team with the given id. Throws an error if the shareId doesn't exist or if it
+   * doesn't have a team (is anonymous).
+   */
   public getTeam(shareId: ShareId) {
     const share = this.getShare(shareId)
+    if (!share.team) throw new Error(`Share ${shareId} does not have a team`)
     return share.team
   }
 
+  /**
+   * Creates a share for a team we've been invited to, either as a new member or as a new device for
+   * an existing member.
+   */
   public async addInvitation(invitation: Invitation) {
     const { shareId } = invitation
     this.#invitations.set(shareId, invitation)
