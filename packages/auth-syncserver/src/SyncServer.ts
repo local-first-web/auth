@@ -11,7 +11,7 @@ import {
   type KeysetWithSecrets,
   type ServerWithSecrets,
 } from '@localfirst/auth'
-import { AuthProvider, type ShareId } from '@localfirst/auth-provider-automerge-repo'
+import { AuthProvider } from '@localfirst/auth-provider-automerge-repo'
 import { debug } from '@localfirst/auth-shared'
 import bodyParser from 'body-parser'
 import cors from 'cors'
