@@ -31,7 +31,7 @@
     "version:patch": "lerna version patch --yes",
     "version:minor": "lerna version minor --yes",
     "version:major": "lerna version major --yes",
-    "watch": "lerna watch -- pnpm build"
+    "watch": "lerna watch -- lerna run build --scope=\\$LERNA_PACKAGE_NAME --include-dependents"
   },
   "devDependencies": {
     "@herbcaudill/random": "^0.3.0",
