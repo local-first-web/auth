@@ -183,9 +183,12 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     await this.#createConnectionsForShare(shareId)
   }
 
+  public hasTeam(shareId: ShareId) {
+    return this.#shares.has(shareId) && this.#shares.get(shareId)?.team !== undefined
+  }
+
   public getTeam(shareId: ShareId) {
-    const share = this.#shares.get(shareId)
-    if (!share) throw new Error(`Share not found`)
+    const share = this.getShare(shareId)
     return share.team
   }
 
