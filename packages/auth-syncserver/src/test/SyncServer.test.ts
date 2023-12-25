@@ -1,4 +1,4 @@
-import { createTeam, device, loadTeam, type Team } from '@localfirst/auth'
+import { createTeam, device, loadTeam } from '@localfirst/auth'
 import { eventPromise } from '@localfirst/auth-shared'
 import { describe, expect, it } from 'vitest'
 import { host, setup } from './helpers/setup.js'
@@ -99,35 +99,33 @@ describe('LocalFirstAuthSyncServer', () => {
   })
 
   it('Alice and Bob can communicate', async () => {
-    const { users, url } = await setup(['alice', 'bob'])
+    const { users } = await setup(['alice', 'bob'])
     const { alice, bob } = users
 
-    // create a team
-    const teamContext = { user: alice.user, device: alice.device }
+    // Alice creates a team
+    const aliceTeam = await alice.authProvider.createTeam('team A')
 
-    const aliceTeam: Team = createTeam('team A', teamContext)
-    await alice.authProvider.addTeam(aliceTeam)
+    // Alice puts Bob on her team
     aliceTeam.addForTesting(bob.user, [], device.redactDevice(bob.device))
 
-    // get the server's public keys
-    const response = await fetch(`http://${url}/keys`)
-    const keys = await response.json()
+    // Alice authenticates
+    await eventPromise(alice.repo.networkSubsystem, 'peer')
 
     // add the server's public keys to the team
     aliceTeam.addServer({ host, keys })
 
     await Promise.all([
-    // register the team with the server
+      // register the team with the server
       fetch(`http://${url}/teams`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        serializedGraph: aliceTeam.save(),
-        teamKeyring: aliceTeam.teamKeyring(),
-      }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serializedGraph: aliceTeam.save(),
+          teamKeyring: aliceTeam.teamKeyring(),
+        }),
       }),
 
-    // when we're authenticated, we get a peer event
+      // when we're authenticated, we get a peer event
       eventPromise(alice.repo.networkSubsystem, 'peer'),
     ])
 
@@ -139,12 +137,13 @@ describe('LocalFirstAuthSyncServer', () => {
     )
     await bob.authProvider.addTeam(bobTeam)
 
+    // Bob authenticates
     await eventPromise(bob.repo.networkSubsystem, 'peer')
 
-    // Now we are going to test that Bob is going to see alice's changes to the team
+    // Bob should see Alice's change
     aliceTeam.addRole('MANAGERS')
 
-    // We need to wait Bob team to get updated so we can check that both teams are in sync
+    // Wait for Bob's team to get updated so we can check that both teams are in sync
     await eventPromise(bobTeam, 'updated')
 
     expect(bobTeam.hasRole('MANAGERS')).toBe(true)
