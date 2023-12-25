@@ -104,7 +104,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
       // wait for connection to be ready before sending
 
-      const awaitConnected = async (connection: AbstractConnection) => {
+      const awaitConnected = async (connection: Auth.Connection) => {
         this.#log('awaitConnected (%s)', connection.state)
         if (connection.state === 'connected') return
         return eventPromise(connection, 'connected')
