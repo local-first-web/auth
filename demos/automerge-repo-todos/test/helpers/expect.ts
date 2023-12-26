@@ -4,8 +4,9 @@ import { pause } from '@localfirst/auth-shared'
 
 export const expect = baseExpect.extend({
   async toBeLoggedIn(page: Page, name: string = 'Herb') {
-    // check for user name
-    const userNameText = page.getByText(name)
+    const firstCell = page.getByRole('cell')
+    const userNameText = firstCell.getByText(name)
+    await userNameText.click()
     const check = await userNameText.isVisible()
 
     if (check) {
