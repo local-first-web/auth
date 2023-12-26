@@ -1,5 +1,5 @@
+import { pause } from '@localfirst/auth-shared'
 import { type BrowserContext, type ConsoleMessage, type Page } from '@playwright/test'
-import { assert, pause } from '@localfirst/auth-shared'
 import { expect } from '../helpers/expect'
 
 export const newBrowser = async (context: BrowserContext) => {
@@ -27,9 +27,7 @@ export class BasePage {
     await this.page.goto('/')
 
     // feed browser logs to test output
-    this.page.on('console', msg => {
-      this.log(msg)
-    })
+    this.page.on('console', msg => this.log(msg))
 
     // enable debug logging
     await this.page.evaluate(`window.localStorage.setItem('debug', '*')`)
@@ -104,7 +102,20 @@ export class BasePage {
 
     await this.page.getByLabel('Invitation code').fill(invitationCode)
     await this.pressButton('Join')
-    await this.page.getByRole('button', { name: 'Clear completed' }).isVisible()
-    await pause(1000)
+  }
+
+  todos(index?: number) {
+    const todos = this.page.locator('ul > li').getByRole('textbox')
+    return index === undefined ? todos : todos.nth(index)
+  }
+
+  async addTodo(text: string) {
+    const newTodo = this.page.getByPlaceholder('Add a new todo')
+    await newTodo.fill(text)
+    await newTodo.press('Enter')
+  }
+
+  async toggleTodo(index: number) {
+    await this.page.getByRole('checkbox').nth(index).click()
   }
 }

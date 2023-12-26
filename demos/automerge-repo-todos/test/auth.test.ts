@@ -2,53 +2,50 @@ import { test } from '@playwright/test'
 import { newBrowser } from './helpers/basePage'
 import { expect } from './helpers/expect'
 
-const userName = 'herb'
-const teamName = 'DevResults'
-
 test.describe('Create team', () => {
   test('creates a team', async ({ context }) => {
-    const app = await newBrowser(context)
-    await app.createTeam(userName, teamName)
-    await app.expect.toBeLoggedIn()
+    const alice = await newBrowser(context)
+    await alice.createTeam('alice', 'alice & friends')
+    await alice.expect.toBeLoggedIn('alice')
   })
 
   test('can use the enter key to submit', async ({ context }) => {
-    const app = await newBrowser(context)
-    await app.enterFirstName(userName)
-    await app.pressEnter()
+    const alice = await newBrowser(context)
+    await alice.enterFirstName('alice')
+    await alice.pressEnter()
 
     // press "create a team"
 
-    await app.pressButton('Create')
+    await alice.pressButton('Create')
 
     // provide team name
-    await app.enterTeamName(teamName)
-    await app.pressEnter()
+    await alice.enterTeamName('alice & friends')
+    await alice.pressEnter()
 
-    await app.expect.toBeLoggedIn()
+    await alice.expect.toBeLoggedIn('alice')
   })
 
   test('team is persisted', async ({ context }) => {
-    const app = await newBrowser(context)
-    await app.createTeam(userName, teamName)
-    await app.expect.toBeLoggedIn()
+    const alice = await newBrowser(context)
+    await alice.createTeam('alice', 'alice & friends')
+    await alice.expect.toBeLoggedIn('alice')
 
-    await app.reload()
+    await alice.reload()
 
-    await app.expect.toBeLoggedIn()
+    await alice.expect.toBeLoggedIn('alice')
   })
 
   test('logs in with an arbitrary name', async ({ context }) => {
-    const app = await newBrowser(context)
-    await app.createTeam('reginald', teamName)
-    await app.expect.toBeLoggedIn('reginald')
+    const alice = await newBrowser(context)
+    await alice.createTeam('reginald', 'alice & friends')
+    await alice.expect.toBeLoggedIn('reginald')
   })
 })
 
 test.describe('Invitations', () => {
   test('creates a member invitation', async ({ context }) => {
     const alice = await newBrowser(context)
-    await alice.createTeam('alice', teamName)
+    await alice.createTeam('alice', 'alice & friends')
     const invitationCode = await alice.createMemberInvitation()
 
     expect(invitationCode.length).toBeGreaterThan(50)
@@ -64,7 +61,7 @@ test.describe('Invitations', () => {
     noise.createTeam('noise', `noise team`)
 
     const alice = await newBrowser(context)
-    await alice.createTeam('alice', teamName)
+    await alice.createTeam('alice', 'alice & friends')
 
     const invitationCode = await alice.createMemberInvitation()
 

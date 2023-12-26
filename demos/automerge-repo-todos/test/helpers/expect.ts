@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-inferrable-types */
-import { expect as baseExpect, type Page } from '@playwright/test'
 import { pause } from '@localfirst/auth-shared'
+import { expect as baseExpect, type Page } from '@playwright/test'
 
 export const expect = baseExpect.extend({
-  async toBeLoggedIn(page: Page, name: string = 'Herb') {
+  async toBeLoggedIn(page: Page, name: string) {
     const firstCell = page.getByRole('cell')
     const userNameText = firstCell.getByText(name)
     await userNameText.click()
