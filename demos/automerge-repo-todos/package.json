@@ -10,8 +10,7 @@
     "dev:open": "pnpm dev:start --open",
     "dev:syncserver": "cross-env DEBUG=localfirst*,automerge* NODE_ENV=development node ./syncserver.js",
     "preview": "vite preview",
-    "test:pw": "cross-env DEBUG=* run-p dev:start dev:syncserver test:pw:exec",
-    "test:pw:exec": "playwright test --project=chromium",
+    "test:pw": "cross-env DEBUG=localfirst*,automerge* playwright test --project=chromium",
     "test:pw:ui": "cross-env PLAYWRIGHT_UI=1 run-p dev:start dev:syncserver test:pw:exec:ui",
     "test:pw:exec:ui": "pnpm test:pw:exec --ui"
   },
