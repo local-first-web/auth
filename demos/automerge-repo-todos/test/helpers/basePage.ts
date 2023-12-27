@@ -26,14 +26,17 @@ export class BasePage {
   async start() {
     await this.page.goto('/')
 
-    // feed browser logs to test output
-    this.page.on('console', msg => this.log(msg))
+    const debug = process.env.DEBUG
+    if (debug) {
+      // feed browser logs to test output
+      this.page.on('console', msg => this.log(msg))
 
-    // enable debug logging
-    await this.page.evaluate(`window.localStorage.setItem('debug', '*')`)
-    // reload so these take effect
-    await pause(500)
-    await this.page.reload()
+      // enable debug logging
+      await this.page.evaluate(`window.localStorage.setItem('debug', '${debug}')`)
+      // reload so these take effect
+      await pause(500)
+      await this.page.reload()
+    }
     return this
   }
 
