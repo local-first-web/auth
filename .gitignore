@@ -1,6 +1,8 @@
 .cache
 .dev-sync-server-data
 .DS_Store
+.flaky
+.logs
 .nx
 .pnp
 .pnp.js
@@ -20,7 +22,6 @@ dist
 node_modules
 package-lock.json
 pnpm-works
+runner-results
 yalc.lock
 yarn.lock
-.flaky
-.logs

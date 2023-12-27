@@ -3,15 +3,16 @@ import createBundler from '@bahmutov/cypress-esbuild-preprocessor'
 
 export default defineConfig({
   e2e: {
-    projectId: 'demo',
+    projectId: 'taco',
     baseUrl: 'http://localhost:3000',
+
     fixturesFolder: false,
     video: false,
     viewportWidth: 1600,
     viewportHeight: 1200,
     defaultCommandTimeout: 10000,
 
-    experimentalRunAllSpecs: true,
+    // experimentalRunAllSpecs: true,
 
     setupNodeEvents(on) {
       on('file:preprocessor', createBundler())
