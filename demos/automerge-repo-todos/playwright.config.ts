@@ -43,18 +43,16 @@ export default defineConfig({
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
 
-  webServer: isPlaywrightUI
-    ? []
-    : [
-        {
-          command: 'pnpm dev:start',
-          url: 'http://localhost:3000',
-          reuseExistingServer: false,
-        },
-        {
-          command: 'pnpm dev:syncserver',
-          url: 'http://localhost:3030',
-          reuseExistingServer: false,
-        },
-      ],
+  webServer: [
+    {
+      command: 'pnpm dev:start',
+      url: 'http://localhost:3000',
+      reuseExistingServer: false,
+    },
+    {
+      command: 'pnpm dev:syncserver',
+      url: 'http://localhost:3030',
+      reuseExistingServer: false,
+    },
+  ],
 })
