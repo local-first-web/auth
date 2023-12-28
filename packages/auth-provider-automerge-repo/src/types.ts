@@ -1,29 +1,10 @@
 /* eslint-disable @typescript-eslint/ban-types */
 
-import type { DocumentId, Message, PeerId, StorageAdapter } from '@automerge/automerge-repo'
+import type { DocumentId, Message, PeerId } from '@automerge/automerge-repo'
 import type * as Auth from '@localfirst/auth'
 
 /** The team's ID is used as the ID for a share */
 export type ShareId = Auth.Hash & { __shareId: true }
-
-export type Config = {
-  /** We always have the local device's info and keys */
-  device: Auth.DeviceWithSecrets
-
-  /** We have our user info, unless we're a new device using an invitation */
-  user?: Auth.UserWithSecrets
-
-  /** We need to be given some way to persist our state */
-  storage: StorageAdapter
-
-  /**
-   * If we're using one or more sync servers, we provide their hostnames. The hostname should
-   * include the domain, as well as the port (if any). It should not include the protocol (e.g.
-   * `https://` or `ws://`) or any path (e.g. `/sync`). For example, `localhost:3000` or
-   * `syncserver.mydomain.com`.
-   */
-  server?: string | string[]
-}
 
 export type LocalFirstAuthMessagePayload = {
   shareId: ShareId
