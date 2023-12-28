@@ -3,14 +3,14 @@ import { BrowserWebSocketClientAdapter } from '@automerge/automerge-repo-network
 import { IndexedDBStorageAdapter } from '@automerge/automerge-repo-storage-indexeddb'
 import * as Auth from '@localfirst/auth'
 import { AuthProvider } from '@localfirst/auth-provider-automerge-repo'
-import { debug, eventPromise, pause } from '@localfirst/auth-shared'
+import { debug, eventPromise } from '@localfirst/auth-shared'
 import cx from 'classnames'
 import { useState } from 'react'
 import type { SharedState } from '../types'
-import { addServerToTeam } from '../util/addServerToTeam'
-import { getSyncServerWebsocketUrl } from '../util/getSyncServer'
 import { storeRootDocumentIdOnTeam } from '../util/storeRootDocumentIdOnTeam'
+import { host, wsUrl } from '../util/syncServerUrl'
 import { type SetupCallback } from './FirstUseSetup'
+import { createRepoWithAuth } from '../util/createRepoWithAuth'
 
 export const CreateTeam = ({ userName, onSetup }: Props) => {
   const log = debug.extend(`create-team:${userName}`)
@@ -18,46 +18,22 @@ export const CreateTeam = ({ userName, onSetup }: Props) => {
 
   const createTeam = async () => {
     if (!teamName || teamName.length === 0) return
+
+    // Create user and device
     const user = Auth.createUser(userName)
     const device = Auth.createDevice(user.userId, 'device')
-    const team = Auth.createTeam(teamName, { user, device })
-
     log('created user', { user: userName, deviceId: device.deviceId })
 
-    const storage = new IndexedDBStorageAdapter()
-    const auth = new AuthProvider({ user, device, storage })
+    // Create repo and auth provider
+    const { auth, repo } = await createRepoWithAuth(user, device)
 
-    const url = getSyncServerWebsocketUrl()
-    const adapter = new BrowserWebSocketClientAdapter(url)
-    const authAdapter = auth.wrap(adapter)
+    // Create team, register it with server, and wait for connection
+    const team = await auth.createTeam(teamName)
 
-    // Create new automerge-repo with websocket adapter
-    const repo = new Repo({
-      peerId: device.deviceId as PeerId,
-      network: [authAdapter],
-      storage,
-    })
-
-    await Promise.all([
-      eventPromise(authAdapter, 'ready'),
-      eventPromise(auth, 'ready'),
-      eventPromise(repo.networkSubsystem, 'ready'),
-    ])
-
-    await addServerToTeam(team)
-    await auth.addTeam(team)
-
-    await eventPromise(auth, 'connected')
-    await pause(500)
-
+    // Create root document
     const handle = repo.create<SharedState>()
     const rootDocumentId = handle.documentId
-
-    handle.change(s => {
-      s.todos = []
-    })
-    const doc = await handle.doc()
-
+    handle.change(s => (s.todos = []))
     log(`created root document ${rootDocumentId}`)
 
     storeRootDocumentIdOnTeam(team, rootDocumentId)

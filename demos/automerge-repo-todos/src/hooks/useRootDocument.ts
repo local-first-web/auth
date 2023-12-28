@@ -1,8 +1,11 @@
 import { stringifyAutomergeUrl, type AutomergeUrl } from '@automerge/automerge-repo'
 import { useDocument } from '@automerge/automerge-repo-react-hooks'
-import { type SharedState } from '../types'
 import { assert } from '@localfirst/auth-shared'
-import { useRootDocumentId } from './useRootDocumentId'
+import { useSelector } from 'react-redux'
+import { selectRootDocumentId } from '../store/selectors'
+import { type SharedState } from '../types'
+
+export const useRootDocumentId = () => useSelector(selectRootDocumentId)
 
 export const useRootDocument = () => {
   const rootDocumentId = useRootDocumentId()
