@@ -271,6 +271,9 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     await this.#createConnectionsForShare(shareId)
   }
 
+  /**
+   * Adds a public share, allowing unauthenticated connections with anyone who knows the shareId.
+   */
   public async addPublicShare(shareId: ShareId) {
     this.#log('add public share %s', shareId)
     const share = this.#shares.get(shareId)
