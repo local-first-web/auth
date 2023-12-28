@@ -111,25 +111,7 @@ describe('LocalFirstAuthSyncServer', () => {
     // Alice authenticates
     await eventPromise(alice.repo.networkSubsystem, 'peer')
 
-    // add the server's public keys to the team
-    aliceTeam.addServer({ host, keys })
-
-    await Promise.all([
-      // register the team with the server
-      fetch(`http://${url}/teams`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          serializedGraph: aliceTeam.save(),
-          teamKeyring: aliceTeam.teamKeyring(),
-        }),
-      }),
-
-      // when we're authenticated, we get a peer event
-      eventPromise(alice.repo.networkSubsystem, 'peer'),
-    ])
-
-    // We are making sure that bob is on the same team as alice and the server
+    // Give Bob a copy of the team
     const bobTeam = loadTeam(
       aliceTeam.graph,
       { user: bob.user, device: bob.device },
