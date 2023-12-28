@@ -201,6 +201,8 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
    * Registers an existing team with all of our sync servers.
    */
   public async registerTeam(team: Auth.Team) {
+    await this.addTeam(team)
+
     await Promise.all(
       this.#server.map(async url => {
         // url could be "localhost:3000" or "syncserver.example.com"
@@ -224,7 +226,6 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
         })
       })
     )
-    await this.addTeam(team)
   }
 
   /**
