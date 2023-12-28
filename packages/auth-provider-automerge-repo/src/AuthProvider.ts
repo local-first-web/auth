@@ -271,6 +271,18 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     await this.#createConnectionsForShare(shareId)
   }
 
+  public async addPublicShare(shareId: ShareId) {
+    this.#log('add public share %s', shareId)
+    const share = this.#shares.get(shareId)
+
+    if (!share) {
+      this.#shares.set(shareId, { shareId })
+      await this.#saveState()
+    }
+
+    await this.#createConnectionsForShare(shareId)
+  }
+
   // eslint-disable-next-line unused-imports/no-unused-vars
   public addDocuments(shareId: ShareId, documentIds: DocumentId[]) {
     throw new Error('not implemented')
@@ -283,18 +295,6 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     throw new Error('not implemented')
     // const share = this.getShare(shareId)
     // documentIds.forEach(id => share.documentIds.delete(id))
-  }
-
-  public async addPublicShare(shareId: ShareId) {
-    this.#log('add public share %s', shareId)
-    const share = this.#shares.get(shareId)
-
-    if (!share) {
-      this.#shares.set(shareId, { shareId })
-      await this.#saveState()
-    }
-
-    await this.#createConnectionsForShare(shareId)
   }
 
   // PRIVATE
