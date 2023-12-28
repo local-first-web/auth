@@ -146,13 +146,3 @@ export type AuthMessage<TPayload = any> = {
 }
 
 export const isAuthMessage = (msg: any): msg is AuthMessage => msg.type === 'auth'
-
-// TRANSFORMATION
-
-/** A Transform consists of two functions, for transforming inbound and outbound messages, respectively. */
-export type Transform = {
-  inbound: MessageTransformer
-  outbound: MessageTransformer
-}
-
-export type MessageTransformer = (msg: any) => any
