@@ -41,12 +41,14 @@ export const isEncryptedMessage = (
 ): message is EncryptedMessage => message.type === 'encrypted'
 
 /**
- * A share is a set of document IDs that are shared with one or more users. The group is represented by a
- * localfirst/auth `Team` instance.
+ * A share represents a set of users who have access to some set of documents. It can contain a
+ * localfirst/auth `Team`, which can be queried for users, roles, keys, etc. If no team is provided,
+ * it is an "anonymous share", indicating that the documents can be shared with anonymous users as
+ * long as they have the share ID.
  */
 export type Share = {
   shareId: ShareId
-  team: Auth.Team
+  team?: Auth.Team
 
   /** If no document IDs are specified, then all documents are assumed to be shared */
   documentIds?: Set<DocumentId>
@@ -55,10 +57,14 @@ export type Share = {
 /** To save our state, we serialize each share */
 export type SerializedShare = {
   shareId: ShareId
-  encryptedTeam: Uint8Array
-  encryptedTeamKeys: Uint8Array
   documentIds: DocumentId[]
-}
+} & (
+  | {}
+  | {
+      encryptedTeam: Uint8Array
+      encryptedTeamKeys: Uint8Array
+    }
+)
 
 export type SerializedState = Record<ShareId, SerializedShare>
 

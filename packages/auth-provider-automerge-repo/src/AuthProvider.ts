@@ -1,15 +1,18 @@
 import type {
   DocumentId,
+  Message,
   NetworkAdapter,
   PeerId,
-  Message,
   StorageAdapter,
 } from '@automerge/automerge-repo'
 import * as Auth from '@localfirst/auth'
 import { debug, eventPromise } from '@localfirst/auth-shared'
+import { type AbstractConnection } from 'AbstractConnection.js'
+import { AnonymousConnection } from 'AnonymousConnection.js'
 import { EventEmitter } from 'eventemitter3'
 import { pack, unpack } from 'msgpackr'
 import { AuthenticatedNetworkAdapter as AuthNetworkAdapter } from './AuthenticatedNetworkAdapter.js'
+import { CompositeMap } from './CompositeMap.js'
 import { forwardEvents } from './forwardEvents.js'
 import type {
   AuthProviderEvents,
@@ -23,7 +26,6 @@ import type {
   ShareId,
 } from './types.js'
 import { isAuthMessage, isDeviceInvitation } from './types.js'
-import { CompositeMap } from './CompositeMap.js'
 
 const { encryptBytes, decryptBytes } = Auth.symmetric
 
@@ -59,7 +61,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   readonly #adapters: Array<AuthNetworkAdapter<NetworkAdapter>> = []
   readonly #invitations = new Map<ShareId, Invitation>()
   readonly #shares = new Map<ShareId, Share>()
-  readonly #connections = new CompositeMap<[ShareId, PeerId], Auth.Connection>()
+  readonly #connections = new CompositeMap<[ShareId, PeerId], AbstractConnection>()
   readonly #storedMessages = new CompositeMap<[ShareId, PeerId], Uint8Array[]>()
   readonly #peers = new Map<NetworkAdapter, PeerId[]>()
   readonly #server: string[]
@@ -108,7 +110,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
       // wait for connection to be ready before sending
 
-      const awaitConnected = async (connection: Auth.Connection) => {
+      const awaitConnected = async (connection: AbstractConnection) => {
         this.#log('awaitConnected (%s)', connection.state)
         if (connection.state === 'connected') return
         return eventPromise(connection, 'connected')
@@ -284,6 +286,18 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     // documentIds.forEach(id => share.documentIds.delete(id))
   }
 
+  public async addAnonymousShare(shareId: ShareId) {
+    this.#log('add anonymous share %s', shareId)
+    const share = this.#shares.get(shareId)
+
+    if (!share) {
+      this.#shares.set(shareId, { shareId })
+      await this.#saveState()
+    }
+
+    await this.#createConnectionsForShare(shareId)
+  }
+
   // PRIVATE
 
   /**
@@ -322,19 +336,33 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       else baseAdapter.once('ready', () => resolve())
     })
 
-    const connection = new Auth.Connection({
-      context: this.#getContextForShare(shareId),
-      // The Auth connection uses the base adapter as its network transport
-      sendMessage(serializedConnectionMessage) {
-        const authMessage: LocalFirstAuthMessage = {
-          type: 'auth',
-          senderId: baseAdapter.peerId!,
-          targetId: peerId,
-          payload: { shareId, serializedConnectionMessage },
-        }
-        baseAdapter.send(authMessage)
-      },
-    })
+    const context = this.#getContextForShare(shareId)
+
+    // The Auth connection uses the base adapter as its network transport
+    const sendMessage = (serializedConnectionMessage: Uint8Array) => {
+      const authMessage: LocalFirstAuthMessage = {
+        type: 'auth',
+        senderId: baseAdapter.peerId!,
+        targetId: peerId,
+        payload: { shareId, serializedConnectionMessage },
+      }
+      baseAdapter.send(authMessage)
+    }
+
+    const connection =
+      context === 'anonymous'
+        ? new AnonymousConnection({
+            shareId,
+            sendMessage,
+          })
+        : new Auth.Connection({
+            context,
+            sendMessage,
+          })
+
+    // Track the connection
+    this.#log('setting connection %o', { shareId, peerId })
+    this.#connections.set([shareId, peerId], connection)
 
     connection
       .on('joined', async ({ team, user }) => {
@@ -444,7 +472,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
   #removeConnection(shareId: ShareId, peerId: PeerId) {
     const connection = this.#connections.get([shareId, peerId])
-    if (connection) {
+    if (connection && connection.state !== 'disconnected') {
       connection.stop()
       this.#connections.delete([shareId, peerId])
     }
@@ -454,13 +482,16 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   async #saveState() {
     const shares = {} as SerializedState
     for (const share of this.#shares.values()) {
-      const { shareId, team, documentIds } = share
-      shares[shareId] = {
-        shareId,
-        encryptedTeam: share.team.save(),
-        encryptedTeamKeys: encryptBytes(team.teamKeyring(), this.#device.keys.secretKey),
-        documentIds: Array.from(documentIds ?? []),
-      } as SerializedShare
+      const { shareId, team } = share
+      const documentIds = Array.from(share.documentIds ?? [])
+      shares[shareId] = team
+        ? ({
+            shareId,
+            encryptedTeam: team.save(),
+            encryptedTeamKeys: encryptBytes(team.teamKeyring(), this.#device.keys.secretKey),
+            documentIds,
+          } as SerializedShare)
+        : { shareId, documentIds }
     }
     const serializedState = pack(shares)
 
@@ -476,18 +507,22 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
     await Promise.all(
       Object.values(savedShares).map(async share => {
-        const { shareId, encryptedTeam, encryptedTeamKeys } = share
-        this.#log('loading state', shareId)
+        if ('encryptedTeam' in share) {
+          const { shareId, encryptedTeam, encryptedTeamKeys } = share
+          this.#log('loading state', shareId)
 
-        const teamKeys = decryptBytes(
-          encryptedTeamKeys,
-          this.#device.keys.secretKey
-        ) as Auth.KeysetWithSecrets
+          const teamKeys = decryptBytes(
+            encryptedTeamKeys,
+            this.#device.keys.secretKey
+          ) as Auth.KeysetWithSecrets
 
-        const context = { device: this.#device, user: this.#user }
+          const context = { device: this.#device, user: this.#user }
 
-        const team = await Auth.loadTeam(encryptedTeam, context, teamKeys)
-        return this.addTeam(team)
+          const team = await Auth.loadTeam(encryptedTeam, context, teamKeys)
+          return this.addTeam(team)
+        } else {
+          return this.addAnonymousShare(share.shareId)
+        }
       })
     )
   }
@@ -501,14 +536,18 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     const user = this.#user
     const invitation = this.#invitations.get(shareId)
     const share = this.#shares.get(shareId)
-    if (share)
+    if (share) {
+      if (!share.team) {
+        return 'anonymous'
+      }
+
       // this is a share we're already a member of
       return {
         device,
         user,
         team: share.team,
       } as Auth.MemberContext
-    else if (invitation)
+    } else if (invitation)
       if (isDeviceInvitation(invitation))
         // this is a share we've been invited to as a device
         return {

@@ -295,6 +295,55 @@ describe('auth provider for automerge-repo', () => {
 
     teardown()
   })
+
+  it('allows peers to connect without authenticating via an anonymous share', async () => {
+    const {
+      users: { alice, bob },
+      teardown,
+    } = setup(['alice', 'bob'])
+
+    const shareId = 'anonymous-share' as ShareId
+    await alice.authProvider.addAnonymousShare(shareId)
+    await bob.authProvider.addAnonymousShare(shareId)
+
+    const authWorked = await authenticatedInTime(alice, bob)
+    expect(authWorked).toBe(true)
+    await synced(alice, bob)
+
+    teardown()
+  })
+
+  it('persists anonymous shares', async () => {
+    const {
+      users: { alice, bob },
+      teardown,
+    } = setup(['alice', 'bob'])
+
+    const shareId = 'anonymous-share' as ShareId
+    await alice.authProvider.addAnonymousShare(shareId)
+    await bob.authProvider.addAnonymousShare(shareId)
+
+    const authWorked = await authenticatedInTime(alice, bob)
+    expect(authWorked).toBe(true)
+    await synced(alice, bob)
+
+    // Alice and Bob both close and reopen their apps
+
+    // reconnect via a new channel
+    const channel = new MessageChannel()
+    const { port1: aliceToBob, port2: bobToAlice } = channel
+
+    // instantiate new authProviders and repos using this channel
+    const alice2 = alice.restart([aliceToBob])
+    const bob2 = bob.restart([bobToAlice])
+
+    // they're able to authenticate and sync
+    const authWorkedAgain = await authenticatedInTime(alice2, bob2)
+    expect(authWorkedAgain).toBe(true)
+    await synced(alice2, bob2)
+
+    teardown()
+  })
 })
 
 // HELPERS
