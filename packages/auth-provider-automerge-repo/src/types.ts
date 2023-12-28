@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/ban-types */
+
 import type { DocumentId, Message, PeerId, StorageAdapter } from '@automerge/automerge-repo'
 import type * as Auth from '@localfirst/auth'
 
