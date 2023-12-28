@@ -15,8 +15,10 @@ export type Config = {
   storage: StorageAdapter
 
   /**
-   * If we're using one or more sync servers, we provide their hostnames.
-   * For example, `localhost:3000` or `syncserver.mydomain.com`.
+   * If we're using one or more sync servers, we provide their hostnames. The hostname should
+   * include the domain, as well as the port (if any). It should not include the protocol (e.g.
+   * `https://` or `ws://`) or any path (e.g. `/sync`). For example, `localhost:3000` or
+   * `syncserver.mydomain.com`.
    */
   server?: string | string[]
 }
