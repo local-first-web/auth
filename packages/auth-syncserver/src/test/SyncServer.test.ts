@@ -1,7 +1,8 @@
 import { createTeam, device, loadTeam } from '@localfirst/auth'
 import { eventPromise } from '@localfirst/auth-shared'
-import { describe, expect, it } from 'vitest'
+import { expect, it } from 'vitest'
 import { host, setup } from './helpers/setup.js'
+import { type ShareId } from '@localfirst/auth-provider-automerge-repo'
 
 it('should start a server', async () => {
   const { url } = await setup()
@@ -129,25 +130,26 @@ it('Alice and Bob can communicate', async () => {
 
   expect(bobTeam.hasRole('MANAGERS')).toBe(true)
 })
-it('Alice and Bob can communicate over an anonymous share', async () => {
+
+it('Alice and Bob can communicate over a public share', async () => {
   const { users, url } = await setup(['alice', 'bob'])
   const { alice, bob } = users
 
-  const shareId = 'anonymous-todo-app' as ShareId
+  const shareId = 'public-todo-app' as ShareId
 
   await Promise.all([
-    // Alice creates an anonymous share
-    alice.authProvider.addAnonymousShare(shareId),
+    // Alice creates a tpublic share
+    alice.authProvider.addPublicShare(shareId),
 
     // She registers it with the server
-    fetch(`http://${url}/anonymous-shares`, {
+    fetch(`http://${url}/public-shares`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ shareId }),
     }),
 
     // She tells Bob about it
-    bob.authProvider.addAnonymousShare(shareId),
+    bob.authProvider.addPublicShare(shareId),
 
     // Alice and Bob establish an unauthenticated connection
     eventPromise(alice.repo.networkSubsystem, 'peer'),
@@ -164,7 +166,7 @@ it('Alice and Bob can communicate over an anonymous share', async () => {
   await eventPromise(bobDocHandle, 'change')
   expect(bobDocHandle.docSync()).toStrictEqual({ foo: 'alice' })
 
-  // Note: Without any kind of authorization control, adding an anonymous share to an auth
+  // Note: Without any kind of authorization control, adding a public share to an auth
   // provider is equivalent to just using the adapter without an auth provider. Every document
   // that is added to the repo will now be available to anyone who knows the shareId.
   // The next step would be to wire up the repo's `sharePolicy` to an authorization provider

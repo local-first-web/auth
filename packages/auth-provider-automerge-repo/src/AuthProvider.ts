@@ -24,7 +24,7 @@ import type {
   Share,
   ShareId,
 } from './types.js'
-import { isAuthMessage, isDeviceInvitation } from './types.js'
+import { isAuthMessage, isDeviceInvitation, isPrivateShare } from './types.js'
 
 const { encryptBytes, decryptBytes } = Auth.symmetric
 
@@ -248,16 +248,16 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
    * Returns true if there is a share containing a team with the given id.
    */
   public hasTeam(shareId: ShareId) {
-    return this.#shares.has(shareId) && this.#shares.get(shareId)?.team !== undefined
+    return this.#shares.has(shareId) && isPrivateShare(this.getShare(shareId))
   }
 
   /**
    * Returns the team with the given id. Throws an error if the shareId doesn't exist or if it
-   * doesn't have a team (is anonymous).
+   * doesn't have a team (is public).
    */
   public getTeam(shareId: ShareId) {
     const share = this.getShare(shareId)
-    if (!share.team) throw new Error(`Share ${shareId} does not have a team`)
+    if (!isPrivateShare(share)) throw new Error(`Share ${shareId} is public`)
     return share.team
   }
 
@@ -285,8 +285,8 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     // documentIds.forEach(id => share.documentIds.delete(id))
   }
 
-  public async addAnonymousShare(shareId: ShareId) {
-    this.#log('add anonymous share %s', shareId)
+  public async addPublicShare(shareId: ShareId) {
+    this.#log('add public share %s', shareId)
     const share = this.#shares.get(shareId)
 
     if (!share) {
@@ -481,13 +481,13 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   async #saveState() {
     const shares = {} as SerializedState
     for (const share of this.#shares.values()) {
-      const { shareId, team } = share
+      const { shareId } = share
       const documentIds = Array.from(share.documentIds ?? [])
-      shares[shareId] = team
+      shares[shareId] = isPrivateShare(share)
         ? ({
             shareId,
-            encryptedTeam: team.save(),
-            encryptedTeamKeys: encryptBytes(team.teamKeyring(), this.#device.keys.secretKey),
+            encryptedTeam: share.team.save(),
+            encryptedTeamKeys: encryptBytes(share.team.teamKeyring(), this.#device.keys.secretKey),
             documentIds,
           } as SerializedShare)
         : { shareId, documentIds }
@@ -520,7 +520,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
           const team = await Auth.loadTeam(encryptedTeam, context, teamKeys)
           return this.addTeam(team)
         } else {
-          return this.addAnonymousShare(share.shareId)
+          return this.addPublicShare(share.shareId)
         }
       })
     )
@@ -536,7 +536,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     const invitation = this.#invitations.get(shareId)
     const share = this.#shares.get(shareId)
     if (share) {
-      if (!share.team) {
+      if (!isPrivateShare(share)) {
         return 'anonymous'
       }
 

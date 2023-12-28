@@ -11,7 +11,7 @@ import {
   type KeysetWithSecrets,
   type ServerWithSecrets,
 } from '@localfirst/auth'
-import { AuthProvider, ShareId } from '@localfirst/auth-provider-automerge-repo'
+import { AuthProvider, type ShareId } from '@localfirst/auth-provider-automerge-repo'
 import { debug } from '@localfirst/auth-shared'
 import bodyParser from 'body-parser'
 import cors from 'cors'
@@ -146,12 +146,12 @@ export class LocalFirstAuthSyncServer {
           res.end()
         })
 
-        .post('/anonymous-shares', async (req, res) => {
-          this.log('POST /anonymous-shares %o', req.body)
+        .post('/public-shares', async (req, res) => {
+          this.log('POST /public-shares %o', req.body)
           const { shareId } = req.body as {
             shareId: ShareId
           }
-          await auth.addAnonymousShare(shareId)
+          await auth.addPublicShare(shareId)
           res.end()
         })
 

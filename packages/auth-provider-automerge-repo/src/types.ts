@@ -1,10 +1,95 @@
-/* eslint-disable @typescript-eslint/ban-types */
-
 import type { DocumentId, Message, PeerId } from '@automerge/automerge-repo'
 import type * as Auth from '@localfirst/auth'
 
-/** The team's ID is used as the ID for a share */
+// SHARES
+
 export type ShareId = Auth.Hash & { __shareId: true }
+
+/**
+ * A share represents a set of users who have access to some set of documents. There are two types
+ * of shares:
+ * - A public share is a share that is not associated with a team. It is identified by a share
+ *   ID, which is an arbitrary string. Its documents are available to anyone who has the share ID.
+ * - A private share is a share that is associated with a {@link Auth.Team}. It is
+ *   identified by the team ID, and its documents are only available to team members. The team can
+ *   be queried for users, roles, keys, etc.
+ */
+export type Share = PublicShare | PrivateShare
+
+export type PublicShare = {
+  /**
+   * The share ID is an arbitrary string for public (anonymous) shares, and the team ID for private
+   * (authenticated) shares.
+   */
+  shareId: ShareId
+
+  /** If no document IDs are specified, then all documents are assumed to be shared. */
+  documentIds?: Set<DocumentId>
+}
+
+export type PrivateShare = PublicShare & {
+  /** The team that is used for enforcing authenticated access to this share */
+  team: Auth.Team
+}
+
+export const isPrivateShare = (share: Share): share is PrivateShare =>
+  'team' in share && share.team !== undefined
+
+/** To save our state, we serialize each share. */
+export type SerializedState = Record<ShareId, SerializedShare>
+
+export type SerializedShare = SerializedPublicShare | SerializedPrivateShare
+
+export type SerializedPublicShare = {
+  shareId: ShareId
+  documentIds: DocumentId[]
+}
+
+export type SerializedPrivateShare = SerializedPublicShare & {
+  encryptedTeam: Uint8Array
+  encryptedTeamKeys: Uint8Array
+}
+
+// INVITATIONS
+
+/**
+ * There are two ways for a device to join a team with an invitation:
+ *
+ * - If we're a new member joining a team for the first time, we just provide the share ID (which is
+ *   the team ID) and the secret invitation code we were given.
+ * - If we're a new device being added by an existing member, we also provide
+ */
+export type Invitation = DeviceInvitation | MemberInvitation
+
+export type MemberInvitation = {
+  shareId: ShareId
+  invitationSeed: string
+}
+
+export type DeviceInvitation = MemberInvitation & {
+  userName: string
+  userId: string
+}
+
+export const isDeviceInvitation = (invitation: Invitation): invitation is DeviceInvitation => {
+  return 'userName' in invitation && 'userId' in invitation
+}
+
+// MESSAGES
+
+/** Sent by an {@link AuthProvider} to authenticate a peer */
+export type AuthMessage<TPayload = any> = {
+  type: 'auth'
+
+  /** The peer ID of the sender of this message */
+  senderId: PeerId
+
+  /** The peer ID of the recipient of this message */
+  targetId: PeerId
+
+  /** The payload of the auth message (up to the specific auth provider) */
+  payload: TPayload
+}
 
 export type LocalFirstAuthMessagePayload = {
   shareId: ShareId
@@ -25,51 +110,9 @@ export const isEncryptedMessage = (
   message: Message | EncryptedMessage
 ): message is EncryptedMessage => message.type === 'encrypted'
 
-/**
- * A share represents a set of users who have access to some set of documents. It can contain a
- * localfirst/auth `Team`, which can be queried for users, roles, keys, etc. If no team is provided,
- * it is an "anonymous share", indicating that the documents can be shared with anonymous users as
- * long as they have the share ID.
- */
-export type Share = {
-  shareId: ShareId
-  team?: Auth.Team
+export const isAuthMessage = (msg: any): msg is AuthMessage => msg.type === 'auth'
 
-  /** If no document IDs are specified, then all documents are assumed to be shared */
-  documentIds?: Set<DocumentId>
-}
-
-/** To save our state, we serialize each share */
-export type SerializedShare = {
-  shareId: ShareId
-  documentIds: DocumentId[]
-} & (
-  | {}
-  | {
-      encryptedTeam: Uint8Array
-      encryptedTeamKeys: Uint8Array
-    }
-)
-
-export type SerializedState = Record<ShareId, SerializedShare>
-
-export type DeviceInvitation = {
-  shareId: ShareId
-  userName: string
-  userId: string
-  invitationSeed: string
-}
-
-export type MemberInvitation = {
-  shareId: ShareId
-  invitationSeed: string
-}
-
-export type Invitation = DeviceInvitation | MemberInvitation
-
-export const isDeviceInvitation = (invitation: Invitation): invitation is DeviceInvitation => {
-  return 'userName' in invitation && 'userId' in invitation
-}
+// EVENTS
 
 export type ErrorPayload = Auth.ConnectionErrorPayload & {
   shareId: ShareId
@@ -113,19 +156,3 @@ export type AuthProviderEvents = {
     event?: Auth.ConnectionMessage
   }) => void
 }
-
-/** Sent by an {@link AuthProvider} to authenticate a peer */
-export type AuthMessage<TPayload = any> = {
-  type: 'auth'
-
-  /** The peer ID of the sender of this message */
-  senderId: PeerId
-
-  /** The peer ID of the recipient of this message */
-  targetId: PeerId
-
-  /** The payload of the auth message (up to the specific auth provider) */
-  payload: TPayload
-}
-
-export const isAuthMessage = (msg: any): msg is AuthMessage => msg.type === 'auth'

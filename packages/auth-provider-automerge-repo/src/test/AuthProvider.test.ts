@@ -3,6 +3,7 @@ import { MessageChannelNetworkAdapter } from '@automerge/automerge-repo-network-
 import { NodeFSStorageAdapter } from '@automerge/automerge-repo-storage-nodefs'
 import * as Auth from '@localfirst/auth'
 import { eventPromise } from '@localfirst/auth-shared'
+import { type ShareId } from 'types.js'
 import { describe, expect, it } from 'vitest'
 import { AuthProvider } from '../AuthProvider.js'
 import { authenticated, authenticatedInTime } from './helpers/authenticated.js'
@@ -296,15 +297,15 @@ describe('auth provider for automerge-repo', () => {
     teardown()
   })
 
-  it('allows peers to connect without authenticating via an anonymous share', async () => {
+  it('allows peers to connect without authenticating via a public share', async () => {
     const {
       users: { alice, bob },
       teardown,
     } = setup(['alice', 'bob'])
 
-    const shareId = 'anonymous-share' as ShareId
-    await alice.authProvider.addAnonymousShare(shareId)
-    await bob.authProvider.addAnonymousShare(shareId)
+    const shareId = 'public-share-1' as ShareId
+    await alice.authProvider.addPublicShare(shareId)
+    await bob.authProvider.addPublicShare(shareId)
 
     const authWorked = await authenticatedInTime(alice, bob)
     expect(authWorked).toBe(true)
@@ -313,15 +314,15 @@ describe('auth provider for automerge-repo', () => {
     teardown()
   })
 
-  it('persists anonymous shares', async () => {
+  it('persists public shares', async () => {
     const {
       users: { alice, bob },
       teardown,
     } = setup(['alice', 'bob'])
 
-    const shareId = 'anonymous-share' as ShareId
-    await alice.authProvider.addAnonymousShare(shareId)
-    await bob.authProvider.addAnonymousShare(shareId)
+    const shareId = 'public-share-2' as ShareId
+    await alice.authProvider.addPublicShare(shareId)
+    await bob.authProvider.addPublicShare(shareId)
 
     const authWorked = await authenticatedInTime(alice, bob)
     expect(authWorked).toBe(true)
