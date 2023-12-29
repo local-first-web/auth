@@ -24,6 +24,7 @@
     "@automerge/automerge-repo": "1.1.0-alpha.7",
     "@localfirst/auth": "workspace:*",
     "@localfirst/auth-shared": "workspace:*",
+    "@localfirst/crypto": "workspace:*",
     "eventemitter3": "^5.0.1",
     "msgpackr": "^1.10.0"
   },
