@@ -281,10 +281,34 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   }
 
   /**
-   * Adds a public share, allowing unauthenticated connections with anyone who knows the shareId.
+   * Creates a new public share that can be joined by anyone who knows the share ID, and registers
+   * it with all of our sync servers.
    */
-  public async addPublicShare(shareId: ShareId) {
-    this.#log('add public share %s', shareId)
+  public async createPublicShare(shareId: ShareId) {
+    this.#log('joining public share %s', shareId)
+    await this.registerPublicShare(shareId)
+    await this.joinPublicShare(shareId)
+  }
+
+  /**
+   * Registers a share with all of our sync servers.
+   */
+  public async registerPublicShare(shareId: ShareId) {
+    const registrations = this.#server.map(async url => {
+      await fetch(`http://${url}/public-shares`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shareId }),
+      })
+    })
+    await Promise.all(registrations)
+  }
+
+  /**
+   * Joins a public share that already exists.
+   */
+  public async joinPublicShare(shareId: ShareId) {
+    this.#log('joining public share %s', shareId)
     const share = this.#shares.get(shareId)
 
     if (!share) {
@@ -530,7 +554,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
           const team = await Auth.loadTeam(encryptedTeam, context, teamKeys)
           return this.addTeam(team)
         } else {
-          return this.addPublicShare(share.shareId)
+          return this.joinPublicShare(share.shareId)
         }
       })
     )
