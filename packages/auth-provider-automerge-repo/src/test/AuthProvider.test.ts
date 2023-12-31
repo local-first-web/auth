@@ -304,8 +304,8 @@ describe('auth provider for automerge-repo', () => {
     } = setup(['alice', 'bob'])
 
     const shareId = 'public-share-1' as ShareId
-    await alice.authProvider.addPublicShare(shareId)
-    await bob.authProvider.addPublicShare(shareId)
+    await alice.authProvider.joinPublicShare(shareId)
+    await bob.authProvider.joinPublicShare(shareId)
 
     const authWorked = await authenticatedInTime(alice, bob)
     expect(authWorked).toBe(true)
@@ -321,8 +321,8 @@ describe('auth provider for automerge-repo', () => {
     } = setup(['alice', 'bob'])
 
     const shareId = 'public-share-2' as ShareId
-    await alice.authProvider.addPublicShare(shareId)
-    await bob.authProvider.addPublicShare(shareId)
+    await alice.authProvider.joinPublicShare(shareId)
+    await bob.authProvider.joinPublicShare(shareId)
 
     const authWorked = await authenticatedInTime(alice, bob)
     expect(authWorked).toBe(true)
