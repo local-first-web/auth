@@ -1,16 +1,11 @@
-import { Repo, type PeerId } from '@automerge/automerge-repo'
-import { BrowserWebSocketClientAdapter } from '@automerge/automerge-repo-network-websocket'
-import { IndexedDBStorageAdapter } from '@automerge/automerge-repo-storage-indexeddb'
 import * as Auth from '@localfirst/auth'
-import { AuthProvider } from '@localfirst/auth-provider-automerge-repo'
-import { debug, eventPromise } from '@localfirst/auth-shared'
+import { debug } from '@localfirst/auth-shared'
 import cx from 'classnames'
 import { useState } from 'react'
 import type { SharedState } from '../types'
-import { storeRootDocumentIdOnTeam } from '../util/storeRootDocumentIdOnTeam'
-import { host, wsUrl } from '../util/syncServerUrl'
-import { type SetupCallback } from './FirstUseSetup'
 import { createRepoWithAuth } from '../util/createRepoWithAuth'
+import { storeRootDocumentIdOnTeam } from '../util/storeRootDocumentIdOnTeam'
+import { type SetupCallback } from './FirstUseSetup'
 
 export const CreateTeam = ({ userName, onSetup }: Props) => {
   const log = debug.extend(`create-team:${userName}`)
