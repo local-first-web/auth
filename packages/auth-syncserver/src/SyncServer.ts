@@ -151,7 +151,7 @@ export class LocalFirstAuthSyncServer {
           const { shareId } = req.body as {
             shareId: ShareId
           }
-          await auth.addPublicShare(shareId)
+          await auth.joinPublicShare(shareId)
           res.end()
         })
 
