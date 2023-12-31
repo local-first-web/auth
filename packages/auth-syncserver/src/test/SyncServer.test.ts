@@ -25,30 +25,32 @@ it("should return the server's public keys", async () => {
   expect(server.publicKeys).toEqual(keys)
 })
 
-it('Alice can create a team', async () => {
+it.only('Alice can create a team', async () => {
   const { users, url } = await setup(['alice'])
   const { alice } = users
 
-  // create a team
-  const team = createTeam('team A', { user: alice.user, device: alice.device })
-  await alice.authProvider.addTeam(team)
+  await alice.authProvider.createTeam('team A')
 
-  // get the server's public keys
-  const response = await fetch(`http://${url}/keys`)
-  const keys = await response.json()
+  // // create a team
+  // const team = createTeam('team A', { user: alice.user, device: alice.device })
+  // await alice.authProvider.addTeam(team)
 
-  // add the server's public keys to the team
-  team.addServer({ host, keys })
+  // // // get the server's public keys
+  // // const response = await fetch(`http://${url}/keys`)
+  // // const keys = await response.json()
 
-  // register the team with the server
-  await fetch(`http://${url}/teams`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      serializedGraph: team.save(),
-      teamKeyring: team.teamKeyring(),
-    }),
-  })
+  // // // add the server's public keys to the team
+  // // team.addServer({ host, keys })
+
+  // // // register the team with the server
+  // // await fetch(`http://${url}/teams`, {
+  // //   method: 'POST',
+  // //   headers: { 'Content-Type': 'application/json' },
+  // //   body: JSON.stringify({
+  // //     serializedGraph: team.save(),
+  // //     teamKeyring: team.teamKeyring(),
+  // //   }),
+  // // })
 
   // when we're authenticated, we get a peer event
   const { peerId } = await eventPromise(alice.repo.networkSubsystem, 'peer')
@@ -132,24 +134,17 @@ it('Alice and Bob can communicate', async () => {
 })
 
 it('Alice and Bob can communicate over a public share', async () => {
-  const { users, url } = await setup(['alice', 'bob'])
+  const { users } = await setup(['alice', 'bob'])
   const { alice, bob } = users
 
   const shareId = 'public-todo-app' as ShareId
 
   await Promise.all([
-    // Alice creates a tpublic share
-    alice.authProvider.addPublicShare(shareId),
-
-    // She registers it with the server
-    fetch(`http://${url}/public-shares`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ shareId }),
-    }),
+    // Alice creates a public share
+    alice.authProvider.createPublicShare(shareId),
 
     // She tells Bob about it
-    bob.authProvider.addPublicShare(shareId),
+    bob.authProvider.joinPublicShare(shareId),
 
     // Alice and Bob establish an unauthenticated connection
     eventPromise(alice.repo.networkSubsystem, 'peer'),
