@@ -1,5 +1,6 @@
-import { type Message, NetworkAdapter } from '@automerge/automerge-repo'
+import { NetworkAdapter, type Message } from '@automerge/automerge-repo'
 import { eventPromise } from '@localfirst/auth-shared'
+import { type ShareId } from 'types.js'
 
 /**
  * An AuthenticatedNetworkAdapter is a NetworkAdapter that wraps another NetworkAdapter and
@@ -13,7 +14,24 @@ export class AuthenticatedNetworkAdapter<T extends NetworkAdapter> //
 
   isReady = false
 
-  send = (msg: Message) => {
+  constructor(
+    public baseAdapter: T,
+    private readonly sendFn: (msg: Message) => void,
+    private readonly shareIds: ShareId[] = []
+  ) {
+    super()
+
+    // pass through the base adapter's connect & disconnect methods
+    this.connect = this.baseAdapter.connect.bind(this.baseAdapter)
+    this.disconnect = this.baseAdapter.disconnect.bind(this.baseAdapter)
+
+    baseAdapter.on('ready', () => {
+      this.isReady = true
+      this.emit('ready', { network: this })
+    })
+  }
+
+  send(msg: Message) {
     // wait for base adapter to be ready
     if (!this.isReady) {
       eventPromise(this.baseAdapter, 'ready') //
@@ -25,25 +43,5 @@ export class AuthenticatedNetworkAdapter<T extends NetworkAdapter> //
       // send immediately
       this.sendFn(msg)
     }
-  }
-
-  /**
-   * The AuthProvider wraps a NetworkAdapter
-   * @param baseAdapter
-   * @param send
-   */
-  constructor(
-    public baseAdapter: T,
-    private readonly sendFn: (msg: Message) => void
-  ) {
-    super()
-
-    // pass through the base adapter's connect & disconnect methods
-    this.connect = this.baseAdapter.connect.bind(this.baseAdapter)
-    this.disconnect = this.baseAdapter.disconnect.bind(this.baseAdapter)
-
-    baseAdapter.on('ready', () => {
-      this.isReady = true
-    })
   }
 }
