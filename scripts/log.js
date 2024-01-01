@@ -54,12 +54,14 @@ function cleanLogs(output) {
     // etc.
   }
 
-  const deviceIds = [...output.matchAll(/userName: '(\w+)', deviceId: '(\w+)'/g)].map(match => {
-    return {
-      userName: match[1],
-      deviceId: match[2],
+  const deviceIds = [...output.matchAll(/user(?:Name)?: '?(\w+)'?, deviceId: '?(\w+)'?/g)].map(
+    match => {
+      return {
+        userName: match[1],
+        deviceId: match[2],
+      }
     }
-  })
+  )
 
   const teamIds = [...output.matchAll(/shareId: '(\w+)'/g)].map((match, i) => ({
     teamName: `TEAM-${i + 1}`,
