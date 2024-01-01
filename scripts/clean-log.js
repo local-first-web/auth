@@ -5,18 +5,18 @@ import { fileURLToPath } from 'url'
 import { promisify } from 'util'
 const exec = promisify(_exec)
 
-// ensure outputDir exists
-const __dirname = fileURLToPath(new URL('.', import.meta.url))
-const outputDir = path.join(__dirname, '..', '.logs')
-if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir)
-const prevFile = path.join(outputDir, 'prev.txt')
-const outputFile = path.join(outputDir, 'log.txt')
+// // ensure outputDir exists
+// const __dirname = fileURLToPath(new URL('.', import.meta.url))
+// const outputDir = path.join(__dirname, '..', '.logs')
+// if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir)
+// const prevFile = path.join(outputDir, 'prev.txt')
+// const outputFile = path.join(outputDir, 'log.txt')
 
-if (fs.existsSync(outputFile)) {
-  fs.writeFileSync(prevFile, fs.readFileSync(outputFile).toString())
-} else {
-  fs.writeFileSync(prevFile, '')
-}
+// if (fs.existsSync(outputFile)) {
+//   fs.writeFileSync(prevFile, fs.readFileSync(outputFile).toString())
+// } else {
+//   fs.writeFileSync(prevFile, '')
+// }
 
 const output = []
 process.stdin
@@ -28,7 +28,8 @@ process.stdin
     const trimmed = output.map(line => line.trim())
     const filtered = trimmed.filter(filterLogs)
     const cleaned = cleanLogs(filtered.join('\n'))
-    fs.writeFileSync(outputFile, cleaned)
+    // fs.writeFileSync(outputFile, cleaned)
+    process.stdout.write(cleaned)
   })
 
 function filterLogs(line) {
@@ -177,11 +178,11 @@ function cleanLogs(output) {
   return transforms.reduce((acc, [rx, replacement]) => acc.replaceAll(rx, replacement), output)
 }
 
-function readFile(filename) {
-  return fs.readFileSync(path.join(outputDir, filename), 'utf8')
-}
+// function readFile(filename) {
+//   return fs.readFileSync(path.join(outputDir, filename), 'utf8')
+// }
 
-function writeFile(filename, content) {
-  const stringified = typeof content === 'string' ? content : JSON.stringify(content)
-  fs.writeFileSync(path.join(outputDir, filename), stringified)
-}
+// function writeFile(filename, content) {
+//   const stringified = typeof content === 'string' ? content : JSON.stringify(content)
+//   fs.writeFileSync(path.join(outputDir, filename), stringified)
+// }
