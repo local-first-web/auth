@@ -48,8 +48,7 @@ describe('auth provider for automerge-repo', () => {
       teardown,
     } = setup(['alice', 'bob'])
 
-    const aliceTeam = Auth.createTeam('team A', alice.context)
-    await alice.authProvider.addTeam(aliceTeam)
+    const aliceTeam = await alice.authProvider.createTeam('team A')
 
     // Simulate Bob already being on Alice's team and having a copy of the team
     const bobTeam = putUserOnTeam(aliceTeam, bob)
