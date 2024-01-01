@@ -25,32 +25,11 @@ it("should return the server's public keys", async () => {
   expect(server.publicKeys).toEqual(keys)
 })
 
-it.only('Alice can create a team', async () => {
-  const { users, url } = await setup(['alice'])
+it('Alice can create a team', async () => {
+  const { users } = await setup(['alice'])
   const { alice } = users
 
   await alice.authProvider.createTeam('team A')
-
-  // // create a team
-  // const team = createTeam('team A', { user: alice.user, device: alice.device })
-  // await alice.authProvider.addTeam(team)
-
-  // // // get the server's public keys
-  // // const response = await fetch(`http://${url}/keys`)
-  // // const keys = await response.json()
-
-  // // // add the server's public keys to the team
-  // // team.addServer({ host, keys })
-
-  // // // register the team with the server
-  // // await fetch(`http://${url}/teams`, {
-  // //   method: 'POST',
-  // //   headers: { 'Content-Type': 'application/json' },
-  // //   body: JSON.stringify({
-  // //     serializedGraph: team.save(),
-  // //     teamKeyring: team.teamKeyring(),
-  // //   }),
-  // // })
 
   // when we're authenticated, we get a peer event
   const { peerId } = await eventPromise(alice.repo.networkSubsystem, 'peer')
