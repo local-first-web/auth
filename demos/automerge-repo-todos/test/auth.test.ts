@@ -14,7 +14,6 @@ test('can use the enter key to submit', async ({ context }) => {
   await alice.pressEnter()
 
   // press "create a team"
-
   await alice.pressButton('Create')
 
   // provide team name
@@ -53,7 +52,8 @@ test('creates a member invitation', async ({ context }) => {
 })
 
 test('uses an invitation', async ({ context }) => {
-  // This ensures that there's more than one team on the sync server
+  // This ensures that there's more than one team on the sync server, since that was causing
+  // intermittent test failures at one point.
   const noise = await newBrowser(context)
   noise.createTeam('noise', `noise team`)
 
