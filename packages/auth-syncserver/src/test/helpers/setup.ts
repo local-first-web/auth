@@ -19,7 +19,7 @@ export const setup = async <T extends string>(userNames = [] as T[]) => {
   await server.listen({
     port,
     silent: true,
-    storageDir: getStorageDirectory('server'),
+    storageDir: getStorageDirectory(`server-${Math.random().toString(36).slice(2)}`),
   })
 
   const users = userNames.reduce<Record<string, UserStuff>>((result, userName) => {
