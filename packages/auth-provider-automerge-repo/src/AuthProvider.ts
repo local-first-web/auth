@@ -6,8 +6,7 @@ import type {
   StorageAdapter,
 } from '@automerge/automerge-repo'
 import * as Auth from '@localfirst/auth'
-import { debug, memoize } from '@localfirst/auth-shared'
-import { hash } from '@localfirst/crypto'
+import { debug, pause } from '@localfirst/auth-shared'
 import { type AbstractConnection } from 'AbstractConnection.js'
 import { AnonymousConnection } from 'AnonymousConnection.js'
 import { EventEmitter } from 'eventemitter3'
@@ -66,6 +65,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   readonly #storedMessages = new CompositeMap<[ShareId, PeerId], Uint8Array[]>()
   readonly #peers = new Map<NetworkAdapter, PeerId[]>()
   readonly #server: string[]
+  readonly #peerShareIds = new Map<PeerId, Set<ShareId>>()
 
   #log = debug.extend('auth-provider')
 
@@ -121,21 +121,15 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     }
     const authAdapter = new AuthNetworkAdapter(baseAdapter, send)
 
-    // try to authenticate new peers; if we succeed, we forward the peer-candidate to the network subsystem
     baseAdapter
-      .on('peer-candidate', ({ peerId }) => {
-        // TODO: we need to store the storageId and isEphemeral in order to provide that info in the peer-candidate event
-        this.#log('peer-candidate %o', peerId)
-        this.#addPeer(baseAdapter, peerId)
 
-        // Send a join message with a list of hashes of our shareIds.
-        const joinMessage: JoinMessage = {
-          type: 'join-shares',
-          senderId: baseAdapter.peerId!,
-          targetId: peerId,
-          hashedShareIds: this.#allShareIds().map(hashShareId),
-        }
-        baseAdapter.send(joinMessage)
+      .on('peer-candidate', ({ peerId }) => {
+        // Try to authenticate new peers; if we succeed, we forward the peer-candidate to the network subsystem
+
+        // TODO: we need to store the storageId and isEphemeral in order to provide that info in the
+        // peer event
+        this.#log('peer-candidate %o', peerId)
+        this.#addPeer(authAdapter, peerId)
       })
 
       // Intercept any incoming messages and pass them to the Auth.Connection.
@@ -143,12 +137,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
         this.#log('message from adapter %o', message)
 
         if (isJoinMessage(message)) {
-          // When we get a join message, determine the intersection of our shareIds and theirs,
-          // and create connections for those shares
-          const { senderId, hashedShareIds: theirHashes } = message
-          const commonShareIds = privateIntersection(theirHashes, this.#allShareIds())
-          for (const shareId of commonShareIds)
-            void this.#createConnection({ shareId, peerId: senderId, authAdapter })
+          this.#receiveJoinMessage(authAdapter, message)
         } else if (isAuthMessage(message)) {
           const { senderId, payload } = message
 
@@ -250,6 +239,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     team.on('updated', async () => {
       await this.#saveState()
     })
+
     await this.#createConnectionsForShare(shareId)
   }
 
@@ -362,6 +352,16 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     peerId: PeerId
     authAdapter: AuthNetworkAdapter<T>
   }) {
+    const peerHasShare = this.#peerShareIds.get(peerId)?.has(shareId)
+    const weHaveShare = this.#allShareIds().includes(shareId)
+    const connectionAlreadyExists = this.#connections.has([shareId, peerId])
+    this.#log('maybe creating connection %o', {
+      peerHasShare,
+      weHaveShare,
+      connectionAlreadyExists,
+    })
+    if (!peerHasShare || !weHaveShare || connectionAlreadyExists) return
+
     this.#log('creating connection %o', { shareId, peerId })
     const { baseAdapter } = authAdapter
 
@@ -373,7 +373,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
     const context = this.#getContextForShare(shareId)
 
-    // The Auth connection uses the base adapter as its network transport
+    // The auth connection uses the base adapter as its network transport
     const sendMessage = (serializedConnectionMessage: Uint8Array) => {
       const authMessage: LocalFirstAuthMessage = {
         type: 'auth',
@@ -386,14 +386,8 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
     const connection =
       context === 'anonymous'
-        ? new AnonymousConnection({
-            shareId,
-            sendMessage,
-          })
-        : new Auth.Connection({
-            context,
-            sendMessage,
-          })
+        ? new AnonymousConnection({ shareId, sendMessage })
+        : new Auth.Connection({ context, sendMessage })
 
     // Track the connection
     this.#log('setting connection %o', { shareId, peerId })
@@ -402,16 +396,16 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     connection
       .on('joined', async ({ team, user }) => {
         // When we successfully join a team, the connection gives us the team graph and the user's
-        // info (including keys). (When we're joining as a new device for an existing user, this
-        // is how we get the user's keys.)
+        // info (including keys).
 
-        if (user !== this.#user) this.#log = this.#log.extend(user.userName)
+        // When we're joining as a new device for an existing user, this is how we get the user's id and keys.
+        this.#user = user
+        this.#log = this.#log.extend(user.userName)
 
         // Create a share with this team
-        this.#user = user
-
         await this.addTeam(team)
 
+        // TODO: remove this, we already do it in addTeam
         await this.#saveState()
 
         // remove the used invitation as we no longer need it & don't want to present it to others
@@ -469,14 +463,51 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     this.#connections.set([shareId, peerId], connection)
   }
 
-  #addPeer(baseAdapter: NetworkAdapter, peerId: PeerId) {
+  #addPeer(authAdapter: AuthNetworkAdapter<NetworkAdapter>, peerId: PeerId) {
     this.#log('adding peer %o', peerId)
 
-    // Track each peer by the adapter uses to connect to it
-    const peers = this.#peers.get(baseAdapter) ?? []
+    // Track each peer by the adapter used to connect to it
+    const peers = this.#peers.get(authAdapter.baseAdapter) ?? []
     if (!peers.includes(peerId)) {
       peers.push(peerId)
-      this.#peers.set(baseAdapter, peers)
+      this.#peers.set(authAdapter.baseAdapter, peers)
+    }
+
+    void pause(1).then(() => {
+      this.#sendJoinMessage(authAdapter, peerId)
+    })
+  }
+
+  /**
+   * Any time we learn of a new peer, we want to send our list of shareIds.
+   */
+  #sendJoinMessage(
+    authAdapter: AuthNetworkAdapter<NetworkAdapter>,
+    peerId: PeerId,
+    shareIds = this.#allShareIds()
+  ) {
+    // Send a join message with a list of hashes of our shareIds.
+    const joinMessage: JoinMessage = {
+      type: 'join-shares',
+      senderId: authAdapter.baseAdapter.peerId!,
+      targetId: peerId,
+      shareIds,
+    }
+    this.#log('sending join message %o', joinMessage)
+    authAdapter.baseAdapter.send(joinMessage)
+  }
+
+  /**
+   * Any time we receive shareIds from a peer, we want to add them to a list of shareIds that we keep for
+   * each peer, and create connections for any shares that we have in common.
+   */
+  #receiveJoinMessage(authAdapter: AuthNetworkAdapter<NetworkAdapter>, message: JoinMessage) {
+    this.#log('received join message %o', message)
+    const { senderId, shareIds } = message
+    this.#peerShareIds.set(senderId, this.#peerShareIds.get(senderId) ?? new Set<ShareId>())
+    for (const shareId of shareIds) {
+      this.#peerShareIds.get(senderId)!.add(shareId)
+      void this.#createConnection({ shareId, peerId: senderId, authAdapter })
     }
   }
 
@@ -603,15 +634,14 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   /** Go through all our peers and try to connect in case they're on the team */
   async #createConnectionsForShare(shareId: ShareId) {
     this.#log('createConnectionsForShare', shareId)
+
     await Promise.all(
       this.#adapters.map(async authAdapter => {
         const peerIds = this.#peers.get(authAdapter.baseAdapter) ?? []
         this.#log('creating connections for %o', peerIds)
         return peerIds.map(async peerId => {
-          const connection = this.#connections.get([shareId, peerId])
-          if (!connection) {
-            return this.#createConnection({ shareId, peerId, authAdapter })
-          }
+          this.#sendJoinMessage(authAdapter, peerId, [shareId])
+          return this.#createConnection({ shareId, peerId, authAdapter })
         })
       })
     )
@@ -648,12 +678,7 @@ const STORAGE_KEY = ['localfirst-auth', 'auth-provider-automerge-repo', 'shares'
 
 const asArray = <T>(x: T | T[]): T[] => (Array.isArray(x) ? x : [x])
 
-const privateIntersection = (theirHashes: Auth.Base58[], ourShareIds: ShareId[]) => {
-  const theirSet = new Set(theirHashes)
-  return ourShareIds.filter(shareId => theirSet.has(hashShareId(shareId)))
-}
-
-const hashShareId = memoize((shareId: ShareId) => hash('SHARE_ID_PRIVATE_INTERSECTION', shareId))
+// const hashShareId = memoize((shareId: ShareId) => hash('SHARE_ID_PRIVATE_INTERSECTION', shareId))
 
 // TYPES
 

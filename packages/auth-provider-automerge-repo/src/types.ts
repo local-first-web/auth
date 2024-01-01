@@ -159,7 +159,7 @@ export type AuthProviderEvents = {
 
 export type JoinMessage = Message & {
   type: 'join-shares'
-  hashedShareIds: Auth.Base58[]
+  shareIds: ShareId[]
 }
 
 export const isJoinMessage = (message: Message): message is JoinMessage =>
