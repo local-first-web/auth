@@ -52,7 +52,8 @@ describe('auth provider for automerge-repo', () => {
 
     // Simulate Bob already being on Alice's team and having a copy of the team
     const bobTeam = putUserOnTeam(aliceTeam, bob)
-    await bob.authProvider.addTeam(bobTeam)
+
+    void bob.authProvider.addTeam(bobTeam)
 
     // they're able to authenticate and sync
     const authWorked = await authenticatedInTime(alice, bob)
@@ -76,7 +77,7 @@ describe('auth provider for automerge-repo', () => {
     const { seed: bobInviteCode } = aliceTeam.inviteMember()
 
     // Bob uses the invitation to join
-    await bob.authProvider.addInvitation({
+    void bob.authProvider.addInvitation({
       shareId: aliceTeam.id,
       invitationSeed: bobInviteCode,
     })
@@ -200,8 +201,8 @@ describe('auth provider for automerge-repo', () => {
     await alice.authProvider.addTeam(aliceTeam)
 
     // Simulate Bob and Charlie already being on Alice's team and having a copy of the team
-    await bob.authProvider.addTeam(putUserOnTeam(aliceTeam, bob))
-    await charlie.authProvider.addTeam(putUserOnTeam(aliceTeam, charlie))
+    void bob.authProvider.addTeam(putUserOnTeam(aliceTeam, bob))
+    void charlie.authProvider.addTeam(putUserOnTeam(aliceTeam, charlie))
 
     // they're able to authenticate and sync
 
@@ -227,9 +228,9 @@ describe('auth provider for automerge-repo', () => {
     await alice.authProvider.addTeam(aliceTeam)
 
     // Simulate the others already being on Alice's team and having a copy of the team
-    await bob.authProvider.addTeam(putUserOnTeam(aliceTeam, bob))
-    await charlie.authProvider.addTeam(putUserOnTeam(aliceTeam, charlie))
-    await dwight.authProvider.addTeam(putUserOnTeam(aliceTeam, dwight))
+    void bob.authProvider.addTeam(putUserOnTeam(aliceTeam, bob))
+    void charlie.authProvider.addTeam(putUserOnTeam(aliceTeam, charlie))
+    void dwight.authProvider.addTeam(putUserOnTeam(aliceTeam, dwight))
 
     // they're able to authenticate and sync
 
@@ -303,8 +304,8 @@ describe('auth provider for automerge-repo', () => {
     } = setup(['alice', 'bob'])
 
     const shareId = 'public-share-1' as ShareId
-    await alice.authProvider.joinPublicShare(shareId)
-    await bob.authProvider.joinPublicShare(shareId)
+    void alice.authProvider.joinPublicShare(shareId)
+    void bob.authProvider.joinPublicShare(shareId)
 
     const authWorked = await authenticatedInTime(alice, bob)
     expect(authWorked).toBe(true)
@@ -320,14 +321,13 @@ describe('auth provider for automerge-repo', () => {
     } = setup(['alice', 'bob'])
 
     const shareId = 'public-share-2' as ShareId
-    await alice.authProvider.joinPublicShare(shareId)
+    void alice.authProvider.joinPublicShare(shareId)
 
-    // await pause(100)
-    await bob.authProvider.joinPublicShare(shareId)
+    void bob.authProvider.joinPublicShare(shareId)
 
     const authWorked = await authenticatedInTime(alice, bob)
-    expect(authWorked).toBe(true)
     await synced(alice, bob)
+    expect(authWorked).toBe(true)
 
     // Alice and Bob both close and reopen their apps
 
