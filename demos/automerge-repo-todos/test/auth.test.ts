@@ -51,7 +51,7 @@ test('creates a member invitation', async ({ context }) => {
   await alice.expect.toBeLoggedIn('alice')
 })
 
-test.only('uses an invitation', async ({ context }) => {
+test('uses an invitation', async ({ context }) => {
   // This ensures that there's more than one team on the sync server, since that was causing
   // intermittent test failures at one point.
   const noise = await newBrowser(context)
