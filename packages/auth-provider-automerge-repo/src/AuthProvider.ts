@@ -137,18 +137,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
           this.#peers.set(authAdapter.baseAdapter, peers)
         }
 
-        // TODO:
-        // - if this pause is eliminated, the tests pass.
-        // - if the pause is 0, the public share tests fail intermittently.
-        // - if the pause is 100, the tests pass.
-        //
-        // Obviously this shouldn't be so sensitive to tiny differences in timing.
-
-        // Theories:
-
-        void pause(0).then(() => {
-          this.#sendJoinMessage(authAdapter, peerId)
-        })
+        this.#sendJoinMessage(authAdapter, peerId)
       })
 
       // Intercept any incoming messages and pass them to the Auth.Connection.
@@ -362,7 +351,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
    * shared secret key for the session, and sync up the team graph. This communication happens
    * over a network adapter that we've wrapped.
    */
-  async #createConnection<T extends NetworkAdapter>({
+  async #maybeCreateConnection<T extends NetworkAdapter>({
     shareId,
     peerId,
     authAdapter,
@@ -375,6 +364,8 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     const weHaveShare = this.#allShareIds().includes(shareId)
     const connectionAlreadyExists = this.#connections.has([shareId, peerId])
     this.#log('maybe creating connection %o', {
+      shareId,
+      peerId,
       peerHasShare,
       weHaveShare,
       connectionAlreadyExists,
@@ -435,6 +426,8 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       })
 
       .on('connected', () => {
+        // If this is an Auth connection, we've successfully authenticated.
+
         // Let the application know
         this.emit('connected', { shareId, peerId })
         // Let the repo know we've got a new peer
@@ -442,18 +435,19 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       })
 
       .on('message', message => {
-        // Forward messages that arrive via the connection's encrypted channel to the repo
+        // Forward messages that arrive via the connection's channel to the repo. In the case of an
+        // Auth connection, these have been decrypted and authenticated.
         authAdapter.emit('message', message as Message)
       })
 
       .on('updated', async () => {
-        // Team state has changed, so save our entire state
+        // (Auth connection only) Team state has changed, so save our entire state.
         await this.#saveState()
       })
 
       .on('localError', event => {
-        // These are errors that are detected locally, e.g. a peer tries to join with an invalid
-        // invitation
+        // (Auth connection only) These are errors that are detected locally, e.g. a peer tries to join with an invalid
+        // invitation.
         this.#log(`localError: ${JSON.stringify(event)}`)
 
         // Let the application know, e.g. to let me decide if I want to allow the peer to retry
@@ -461,8 +455,8 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       })
 
       .on('remoteError', event => {
-        // These are errors that are detected on the peer and reported to us, e.g. a peer rejects
-        // an invitation we tried to join with
+        // (Auth connection only) These are errors that are detected on the peer and reported to us,
+        // e.g. a peer rejects an invitation we tried to join with
         this.#log(`remoteError: ${JSON.stringify(event)}`)
 
         // Let the application know, e.g. to let me retry
@@ -483,7 +477,8 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   }
 
   /**
-   * Any time we learn of a new peer, we want to send our list of shareIds.
+   * Send a list of our shareIds so we only try to connect on shares that we have in common. We send
+   * this when we first connect with a peer, and whenever we add a new share.
    */
   #sendJoinMessage(
     authAdapter: AuthNetworkAdapter<NetworkAdapter>,
@@ -502,7 +497,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   }
 
   /**
-   * Any time we receive shareIds from a peer, we want to add them to a list of shareIds that we keep for
+   * Any time we receive shareIds from a peer, we add them to a list of shareIds that we keep for
    * each peer, and create connections for any shares that we have in common.
    */
   #receiveJoinMessage(authAdapter: AuthNetworkAdapter<NetworkAdapter>, message: JoinMessage) {
@@ -511,7 +506,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     this.#peerShareIds.set(senderId, this.#peerShareIds.get(senderId) ?? new Set<ShareId>())
     for (const shareId of shareIds) {
       this.#peerShareIds.get(senderId)!.add(shareId)
-      void this.#createConnection({ shareId, peerId: senderId, authAdapter })
+      void this.#maybeCreateConnection({ shareId, peerId: senderId, authAdapter })
     }
   }
 
@@ -645,7 +640,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
         this.#log('creating connections for %o', peerIds)
         return peerIds.map(async peerId => {
           this.#sendJoinMessage(authAdapter, peerId, [shareId])
-          return this.#createConnection({ shareId, peerId, authAdapter })
+          return this.#maybeCreateConnection({ shareId, peerId, authAdapter })
         })
       })
     )
