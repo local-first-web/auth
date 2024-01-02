@@ -321,6 +321,8 @@ describe('auth provider for automerge-repo', () => {
 
     const shareId = 'public-share-2' as ShareId
     await alice.authProvider.joinPublicShare(shareId)
+
+    // await pause(100)
     await bob.authProvider.joinPublicShare(shareId)
 
     const authWorked = await authenticatedInTime(alice, bob)

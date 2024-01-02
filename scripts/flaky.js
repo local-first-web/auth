@@ -3,17 +3,20 @@ import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { promisify } from 'util'
+// const cmd = 'pnpm test:log AuthProvider -- -t "persists public"'
 
 const exec = promisify(_exec)
 
 // ensure outputDir exists
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
-const outputDir = path.join(__dirname, '../../..', '.logs')
+const outputDir = path.join(__dirname, '..', '.logs')
 if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir)
 
 // option to reuse the last test run (useful for tweaking the cleanup function without having to wait for tests to rerun)
-const flag = process.argv[2]
+const flag = process.argv[3]
 const reuse = flag === '-r' || flag === '--reuse'
+
+const cmd = process.argv[2]
 
 const output = {
   good: undefined,
@@ -51,11 +54,7 @@ if (reuse) {
 // clean up both sets of logs and output good.txt and bad.txt
 for (const key in output) {
   console.log(`Writing ${key}.txt `)
-  const outputLines = output[key].split('\n')
-  const filtered = outputLines.filter(filterLogs)
-  const combined = filtered.join('\n')
-  const cleaned = cleanLogs(combined)
-  writeFile(`${key}.txt`, cleaned)
+  await exec(`cat .logs/${key}.raw.txt | node ./scripts/clean-log.js > .logs/${key}.txt`)
 }
 
 // commit everything so we can diff runs with each other
@@ -66,7 +65,7 @@ await exec(`git commit -a -m "update flaky test output"`)
 async function runTest() {
   try {
     // pipe stdout and stderr to log.txt
-    await exec(`pnpm test:pw &> ${outputDir}/log.txt`)
+    await exec(`${cmd} &> ${outputDir}/log.txt`)
     // test passed
     return true
   } catch (error) {

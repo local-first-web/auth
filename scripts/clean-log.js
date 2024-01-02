@@ -5,19 +5,6 @@ import { fileURLToPath } from 'url'
 import { promisify } from 'util'
 const exec = promisify(_exec)
 
-// // ensure outputDir exists
-// const __dirname = fileURLToPath(new URL('.', import.meta.url))
-// const outputDir = path.join(__dirname, '..', '.logs')
-// if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir)
-// const prevFile = path.join(outputDir, 'prev.txt')
-// const outputFile = path.join(outputDir, 'log.txt')
-
-// if (fs.existsSync(outputFile)) {
-//   fs.writeFileSync(prevFile, fs.readFileSync(outputFile).toString())
-// } else {
-//   fs.writeFileSync(prevFile, '')
-// }
-
 const output = []
 process.stdin
   .on('data', data => {
@@ -25,24 +12,8 @@ process.stdin
   })
 
   .on('end', () => {
-    const trimmed = output.map(line => line.trim())
-    const filtered = trimmed.filter(filterLogs)
-    const cleaned = cleanLogs(filtered.join('\n'))
-    // fs.writeFileSync(outputFile, cleaned)
-    process.stdout.write(cleaned)
+    process.stdout.write(cleanLogs(output.map(line => line.trim()).join('\n')))
   })
-
-function filterLogs(line) {
-  return (
-    line.length > 0 &&
-    !line.startsWith('>') &&
-    !line.startsWith('RUN') &&
-    !line.startsWith('[vite]') &&
-    !line.startsWith('Download the React DevTools') &&
-    !line.includes('websocket:') &&
-    !line.includes('Adapters ready')
-  )
-}
 
 // Reduce visual noise to a minimum in the logs
 function cleanLogs(output) {
@@ -55,25 +26,6 @@ function cleanLogs(output) {
     // etc.
   }
 
-  const deviceIds = [...output.matchAll(/user(?:Name)?: '?(\w+)'?, deviceId: '?(\w+)'?/g)].map(
-    match => {
-      return {
-        userName: match[1],
-        deviceId: match[2],
-      }
-    }
-  )
-
-  const teamIds = [...output.matchAll(/shareId: '(\w+)'/g)].map((match, i) => ({
-    teamName: `TEAM-${i + 1}`,
-    teamId: match[1],
-  }))
-
-  const documentIds = [...output.matchAll(/create.*?document (\w+)/gi)].map((match, i) => ({
-    documentName: `DOC-${i + 1}`,
-    documentId: match[1],
-  }))
-
   // replace all instances of any given hash with a single letter
   // this makes it possible to diff different runs of the test
   function tokenize(match, p1) {
@@ -85,6 +37,7 @@ function cleanLogs(output) {
 
   const prefixes = [
     ['message-queue ', 'msg-queue'],
+    ['messagechannel ', 'msg-chan'],
     ['connection:', 'auth-conn'],
     ['auth-provider:', 'auth-prov'],
     ['network:', 'network'],
@@ -92,7 +45,7 @@ function cleanLogs(output) {
     ['syncserver ', 'server'],
     ['collectionsync ', 'col-sync'],
     ['remote-heads-subscriptions ', 'heads'],
-    ['dochandle:', 'handle'],
+    ['dochandle:', 'dochandle'],
     ['docsync:', 'doc-sync'],
     ['storage-subsystem ', 'storage'],
     ['stdout:', '*'],
@@ -103,12 +56,19 @@ function cleanLogs(output) {
   )
 
   const transforms = [
-    // strip ANSI color codes
-    [/\u001B\[\d+m/g, ''],
-    [/\[[0-9;]+m/g, ''],
-
     // Remove quotes
     [/"|'|`/g, ''],
+
+    [/\>.*?$/gm, ''],
+    [/RUN.*?$/gm, ''],
+    [/\[vite\].*?$/gm, ''],
+    [/Download the React DevTools.*?$/gm, ''],
+    [/websocket:.*?$/gm, ''],
+    [/Adapters ready.*?$/gm, ''],
+
+    // Remove ANSI escape codes
+    [/\u001B\[\d+m/g, ''],
+    [/\[[0-9;]+m/g, ''],
 
     // Remove prefixes
     [/\[WebServer\]|localfirst\:|auth\:|automerge-repo\:|/g, ''],
@@ -128,27 +88,37 @@ function cleanLogs(output) {
     [/^stdout.*\n/gm, 'stdout:'],
 
     // replace deviceIds with userNames
-    ...deviceIds.map(({ userName, deviceId }) => [new RegExp(deviceId, 'g'), userName]),
+    ...[...output.matchAll(/user(?:Name)?: '?(\w+)'?, deviceId: '?(\w+)'?/g)] //
+      .map(match => ({ userName: match[1], deviceId: match[2] }))
+      .map(({ userName, deviceId }) => [new RegExp(deviceId, 'g'), userName]),
 
     // tokenize teamIds as TEAM-1 etc
-    ...teamIds.map(({ teamId, teamName }) => [new RegExp(teamId, 'g'), teamName]),
+    ...[...output.matchAll(/shareId: '?(\w+)'?/g)]
+      .map((match, i) => ({
+        teamName: `TEAM-${i + 1}`,
+        teamId: match[1],
+      }))
+      .map(({ teamId, teamName }) => [new RegExp(teamId, 'g'), teamName]),
 
-    // tokenize documentIds as DOC-1 etc
-    ...documentIds.map(({ documentId, documentName }) => [
-      new RegExp(documentId, 'g'),
-      documentName,
-    ]),
-    //  truncated documentIds
-    ...documentIds.map(({ documentId, documentName }) => [
-      new RegExp(documentId.slice(0, 5), 'g'),
-      documentName,
-    ]),
+    ...[...output.matchAll(/create.*?document (\w+)/gi)]
+      .map((match, i) => ({
+        documentName: `DOC-${i + 1}`,
+        documentId: match[1],
+      }))
+      .flatMap(({ documentId, documentName }) => [
+        // tokenize documentIds as DOC-1 etc
+        [new RegExp(documentId, 'g'), documentName],
+        //  truncated documentIds
+        [new RegExp(documentId.slice(0, 5), 'g'), documentName],
+      ]),
 
     // Tokenize remaining hashes
-    [/\b(?=\w*\d)(\w{10,})\b/g, tokenize],
+    [/\b(?=\w*\d)((?:\w|-){10,})\b/g, tokenize],
 
     // Remove buffers
-    [/(<Buffer(\w|\s|\.)+(>|$))|({\s*0:[0-9:,]+})|\[(\s|\d|,)+\d+?(]|$)/g, '...'],
+    // [/(<Buffer(\w|\s|\.)+(>|$))/gm, '...'],
+    [/({\s*0:[0-9:,]+})|\[(\s|\d|,)+\d+?(]|$)/gm, '...'],
+    [/\s*(([0-9]+,)\s+){4,}(\.\.\. \d+ more items)?\s*/g, '...'],
 
     [/\[Object]/gi, '{...}'],
     [/\[Array]/gi, '[...]'],
@@ -164,6 +134,11 @@ function cleanLogs(output) {
     [/localhost/gi, '🤖'],
     [/phone/gi, '📱'],
 
+    [/(connected)/gi, ' ✅ $1'],
+    [/(passed)/gi, ' ✅ $1'],
+    [/(disconnected)/gi, ' ❌ $1'],
+    [/(error)/gi, ' ❌ $1'],
+
     // Collapse whitespace
     [/( |\t)+/g, ' '],
     [/^\s+/gm, ''],
@@ -177,12 +152,3 @@ function cleanLogs(output) {
   ]
   return transforms.reduce((acc, [rx, replacement]) => acc.replaceAll(rx, replacement), output)
 }
-
-// function readFile(filename) {
-//   return fs.readFileSync(path.join(outputDir, filename), 'utf8')
-// }
-
-// function writeFile(filename, content) {
-//   const stringified = typeof content === 'string' ? content : JSON.stringify(content)
-//   fs.writeFileSync(path.join(outputDir, filename), stringified)
-// }

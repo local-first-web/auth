@@ -127,9 +127,28 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
         // Try to authenticate new peers; if we succeed, we forward the peer-candidate to the network subsystem
 
         // TODO: we need to store the storageId and isEphemeral in order to provide that info in the
-        // peer event
+        // peer-candidate event
         this.#log('peer-candidate %o', peerId)
-        this.#addPeer(authAdapter, peerId)
+
+        // Track each peer by the adapter used to connect to it
+        const peers = this.#peers.get(authAdapter.baseAdapter) ?? []
+        if (!peers.includes(peerId)) {
+          peers.push(peerId)
+          this.#peers.set(authAdapter.baseAdapter, peers)
+        }
+
+        // TODO:
+        // - if this pause is eliminated, the tests pass.
+        // - if the pause is 0, the public share tests fail intermittently.
+        // - if the pause is 100, the tests pass.
+        //
+        // Obviously this shouldn't be so sensitive to tiny differences in timing.
+
+        // Theories:
+
+        void pause(0).then(() => {
+          this.#sendJoinMessage(authAdapter, peerId)
+        })
       })
 
       // Intercept any incoming messages and pass them to the Auth.Connection.
@@ -461,21 +480,6 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
     // Track the connection
     this.#connections.set([shareId, peerId], connection)
-  }
-
-  #addPeer(authAdapter: AuthNetworkAdapter<NetworkAdapter>, peerId: PeerId) {
-    this.#log('adding peer %o', peerId)
-
-    // Track each peer by the adapter used to connect to it
-    const peers = this.#peers.get(authAdapter.baseAdapter) ?? []
-    if (!peers.includes(peerId)) {
-      peers.push(peerId)
-      this.#peers.set(authAdapter.baseAdapter, peers)
-    }
-
-    void pause(1).then(() => {
-      this.#sendJoinMessage(authAdapter, peerId)
-    })
   }
 
   /**
