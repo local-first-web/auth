@@ -13,7 +13,7 @@ export class AnonymousConnection extends AbstractConnection {
   constructor({ shareId, sendMessage }: AnonymousConnectionParams) {
     super()
     this.#shareId = shareId
-    this.#log = debug.extend(`auth:provider-automerge-repo:anonymous-connection:${this.#shareId}`)
+    this.#log = debug.extend(`auth:anonymous-connection:${this.#shareId}`)
 
     this.#sendMessage = (message: Message | AnonymousConnectionMessages) => {
       const serialized = pack(message)
