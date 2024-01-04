@@ -56,9 +56,7 @@ describe('auth provider for automerge-repo', () => {
     void bob.authProvider.addTeam(bobTeam)
 
     // they're able to authenticate and sync
-    const authWorked = await authenticatedInTime(alice, bob)
-    expect(authWorked).toBe(true)
-
+    await authenticated(alice, bob)
     await synced(alice, bob)
 
     teardown()
@@ -83,8 +81,7 @@ describe('auth provider for automerge-repo', () => {
     })
 
     // they're able to authenticate and sync
-    const authWorked = await authenticatedInTime(alice, bob)
-    expect(authWorked).toBe(true)
+    await authenticated(alice, bob)
 
     await synced(alice, bob)
 
@@ -134,7 +131,10 @@ describe('auth provider for automerge-repo', () => {
     })
 
     // Alice's phone is able to authenticate using the invitation
-    await authenticated(laptopRepo, phoneRepo) // ✅
+    await Promise.all([
+      eventPromise(laptopRepo.networkSubsystem, 'peer'),
+      eventPromise(phoneRepo.networkSubsystem, 'peer'),
+    ])
 
     laptopToPhone.close()
     phoneToLaptop.close()
@@ -205,13 +205,11 @@ describe('auth provider for automerge-repo', () => {
     void charlie.authProvider.addTeam(putUserOnTeam(aliceTeam, charlie))
 
     // they're able to authenticate and sync
-
-    const authWorked = await Promise.all([
-      authenticatedInTime(alice, bob),
-      authenticatedInTime(charlie, bob),
-      authenticatedInTime(alice, charlie),
+    await Promise.all([
+      authenticated(alice, bob),
+      authenticated(charlie, bob),
+      authenticated(alice, charlie),
     ])
-    expect(authWorked.every(Boolean)).toBe(true)
 
     await Promise.all([synced(alice, bob), synced(alice, charlie), synced(bob, charlie)]) // ✅
 
@@ -275,8 +273,7 @@ describe('auth provider for automerge-repo', () => {
     })
 
     // they're able to authenticate and sync
-    const authWorked = await authenticatedInTime(alice, bob)
-    expect(authWorked).toBe(true) // ✅
+    await authenticated(alice, bob)
     await synced(alice, bob) // ✅
 
     // Alice and Bob both close and reopen their apps
@@ -290,8 +287,7 @@ describe('auth provider for automerge-repo', () => {
     const bob2 = bob.restart([bobToAlice])
 
     // they're able to authenticate and sync
-    const authWorkedAgain = await authenticatedInTime(alice2, bob2)
-    expect(authWorkedAgain).toBe(true) // ✅
+    await authenticated(alice2, bob2)
     await synced(alice2, bob2) // ✅
 
     teardown()
@@ -325,9 +321,8 @@ describe('auth provider for automerge-repo', () => {
 
     void bob.authProvider.joinPublicShare(shareId)
 
-    const authWorked = await authenticatedInTime(alice, bob)
+    await authenticated(alice, bob)
     await synced(alice, bob)
-    expect(authWorked).toBe(true)
 
     // Alice and Bob both close and reopen their apps
 
@@ -340,8 +335,7 @@ describe('auth provider for automerge-repo', () => {
     const bob2 = bob.restart([bobToAlice])
 
     // they're able to authenticate and sync
-    const authWorkedAgain = await authenticatedInTime(alice2, bob2)
-    expect(authWorkedAgain).toBe(true)
+    await authenticated(alice2, bob2)
     await synced(alice2, bob2)
 
     teardown()
