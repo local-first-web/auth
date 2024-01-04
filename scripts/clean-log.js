@@ -49,6 +49,7 @@ function cleanLogs(output) {
     ['docsync:', 'doc-sync'],
     ['storage-subsystem ', 'storage'],
     ['stdout:', '*'],
+    ['anonymous-auth-conn', 'anon-conn'],
   ]
   const prefixColWidth = prefixes.reduce(
     (acc, [, replacement]) => Math.max(acc, replacement.length),
@@ -59,12 +60,11 @@ function cleanLogs(output) {
     // Remove quotes
     [/"|'|`/g, ''],
 
-    [/\>.*?$/gm, ''],
-    [/RUN.*?$/gm, ''],
-    [/\[vite\].*?$/gm, ''],
-    [/Download the React DevTools.*?$/gm, ''],
-    [/websocket:.*?$/gm, ''],
-    [/Adapters ready.*?$/gm, ''],
+    [/^\>.*?$/gm, ''],
+    [/^RUN.*?$/gm, ''],
+    [/^\[vite\].*?$/gm, ''],
+    [/^Download the React DevTools.*?$/gm, ''],
+    [/^.*websocket:.*?$/gm, ''],
 
     // Remove ANSI escape codes
     [/\u001B\[\d+m/g, ''],
@@ -116,7 +116,7 @@ function cleanLogs(output) {
     [/\b(?=\w*\d)((?:\w|-){10,})\b/g, tokenize],
 
     // Remove buffers
-    // [/(<Buffer(\w|\s|\.)+(>|$))/gm, '...'],
+    [/(<Buffer(\w|\s|\.)+(>|$))/gm, '...'],
     [/({\s*0:[0-9:,]+})|\[(\s|\d|,)+\d+?(]|$)/gm, '...'],
     [/\s*(([0-9]+,)\s+){4,}(\.\.\. \d+ more items)?\s*/g, '...'],
 

@@ -58,7 +58,7 @@ for (const key in output) {
 }
 
 // commit everything so we can diff runs with each other
-await exec(`git commit -a -m "update flaky test output"`)
+// await exec(`git commit -a -m "update flaky test output"`)
 
 // HELPERS
 
