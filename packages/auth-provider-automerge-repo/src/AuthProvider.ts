@@ -485,12 +485,24 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     peerId: PeerId,
     shareIds = this.#allShareIds()
   ) {
+    // omit shares for which we already have an active connection
+    const newShareIds = shareIds.filter(
+      shareId =>
+        !(
+          this.#connections.has([shareId, peerId]) &&
+          this.#getConnection(shareId, peerId).state === 'connected'
+        )
+    )
+
+    // don't send join message if we don't have any new shares to report
+    if (newShareIds.length === 0) return
+
     // Send a join message with a list of hashes of our shareIds.
     const joinMessage: JoinMessage = {
       type: 'join-shares',
       senderId: authAdapter.baseAdapter.peerId!,
       targetId: peerId,
-      shareIds,
+      shareIds: newShareIds,
     }
 
     this.#log('sending join message %o', joinMessage)
