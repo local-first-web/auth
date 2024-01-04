@@ -123,7 +123,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
     baseAdapter
 
-      .on('peer-candidate', ({ peerId }) => {
+      .on('peer-candidate', async ({ peerId }) => {
         // Try to authenticate new peers; if we succeed, we forward the peer-candidate to the network subsystem
 
         // TODO: we need to store the storageId and isEphemeral in order to provide that info in the
@@ -137,7 +137,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
           this.#peers.set(authAdapter.baseAdapter, peers)
         }
 
-        this.#sendJoinMessage(authAdapter, peerId)
+        await this.#sendJoinMessage(authAdapter, peerId)
       })
 
       // Intercept any incoming messages and pass them to the Auth.Connection.
@@ -480,7 +480,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
    * Send a list of our shareIds so we only try to connect on shares that we have in common. We send
    * this when we first connect with a peer, and whenever we add a new share.
    */
-  #sendJoinMessage(
+  async #sendJoinMessage(
     authAdapter: AuthNetworkAdapter<NetworkAdapter>,
     peerId: PeerId,
     shareIds = this.#allShareIds()
@@ -492,7 +492,9 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       targetId: peerId,
       shareIds,
     }
+
     this.#log('sending join message %o', joinMessage)
+    await pause(1)
     authAdapter.baseAdapter.send(joinMessage)
   }
 
@@ -639,7 +641,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
         const peerIds = this.#peers.get(authAdapter.baseAdapter) ?? []
         this.#log('creating connections for %o', peerIds)
         return peerIds.map(async peerId => {
-          this.#sendJoinMessage(authAdapter, peerId, [shareId])
+          await this.#sendJoinMessage(authAdapter, peerId, [shareId])
           return this.#maybeCreateConnection({ shareId, peerId, authAdapter })
         })
       })
