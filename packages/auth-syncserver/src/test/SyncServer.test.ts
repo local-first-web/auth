@@ -1,8 +1,8 @@
 import { createTeam, device, loadTeam } from '@localfirst/auth'
+import { type ShareId } from '@localfirst/auth-provider-automerge-repo'
 import { eventPromise } from '@localfirst/auth-shared'
 import { expect, it } from 'vitest'
 import { host, setup } from './helpers/setup.js'
-import { type ShareId } from '@localfirst/auth-provider-automerge-repo'
 
 it('should start a server', async () => {
   const { url } = await setup()
