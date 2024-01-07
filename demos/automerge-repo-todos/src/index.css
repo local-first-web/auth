@@ -12,7 +12,7 @@ h4 {
 
 .button {
   @apply inline-flex items-center rounded border border-transparent;
-  @apply font-medium focus:outline-none focus:ring-2;
+  @apply font-medium focus:outline-none focus:ring-2 focus:ring-offset-1;
   @apply disabled:opacity-40;
 }
 
@@ -54,5 +54,5 @@ h4 {
 /* Inputs */
 
 .textbox-auth {
-  @apply rounded-md font-bold border py-1 px-3 rounded-md font-bold;
+  @apply rounded-md font-bold border py-1 px-3;
 }
