@@ -134,10 +134,10 @@ function cleanLogs(output) {
     [/localhost/gi, '🤖'],
     [/phone/gi, '📱'],
 
-    [/(connected)/gi, ' ✅ $1'],
-    [/(passed)/gi, ' ✅ $1'],
-    [/(disconnected)/gi, ' ❌ $1'],
-    [/(error)/gi, ' ❌ $1'],
+    [/(\bconnected\b)/gi, ' ✅ $1'],
+    [/(\bpassed\b)/gi, ' ✅ $1'],
+    [/(\bdisconnected\b)/gi, ' ❌ $1'],
+    [/(\berror\b)/gi, ' ❌ $1'],
 
     // Collapse whitespace
     [/( |\t)+/g, ' '],
