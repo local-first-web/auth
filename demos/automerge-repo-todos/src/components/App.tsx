@@ -111,7 +111,7 @@ export function App() {
             </span> */}
 
                 {/* filter */}
-                <ul className="flex-1 flex space-x-1 cursor-pointer">
+                <ul className="flex-1 flex space-x-2 cursor-pointer">
                   {Object.keys(Filter).map(k => {
                     const key = k as Filter
                     const active = key === filter
