@@ -1,3 +1,58 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Headings */
+
+h4 {
+  @apply font-bold text-sm;
+}
+
+/* Buttons */
+
+.button {
+  @apply inline-flex items-center rounded border border-transparent;
+  @apply font-medium focus:outline-none focus:ring-2;
+  @apply disabled:opacity-40;
+}
+
+.button-xs {
+  @apply text-xs px-2.5 py-1.5;
+}
+.button-sm {
+  @apply text-sm px-3 py-2;
+}
+.button-md {
+  @apply text-base px-4 py-2;
+}
+.button-lg {
+  @apply text-lg px-4 py-2;
+}
+.button-xl {
+  @apply text-xl px-6 py-3;
+}
+
+.button-primary {
+  @apply bg-primary-600 hover:bg-primary-700 focus:ring-primary-500 text-white border-transparent;
+}
+.button-secondary {
+  @apply bg-secondary-600 hover:bg-secondary-700 focus:ring-secondary-500 text-white border-transparent;
+}
+.button-white {
+  @apply bg-white hover:bg-gray-50 focus:ring-gray-500 text-gray-700 border-gray-300;
+}
+.button-neutral {
+  @apply bg-neutral-600 hover:bg-neutral-700 focus:ring-neutral-500 text-white border-transparent;
+}
+.button-danger {
+  @apply bg-danger-600 hover:bg-danger-700 focus:ring-danger-500 text-white border-transparent;
+}
+.button-warning {
+  @apply bg-warning-600 hover:bg-warning-700 focus:ring-warning-500 text-white border-transparent;
+}
+
+/* Inputs */
+
+.textbox-auth {
+  @apply rounded-md font-bold border py-1 px-3 rounded-md font-bold;
+}

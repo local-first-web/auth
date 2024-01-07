@@ -37,7 +37,7 @@ export const CreateTeam = ({ userName, onSetup }: Props) => {
 
   return (
     <form
-      className={cx(['flex flex-col space-y-4 border rounded-md p-6 m-6', 'w-full', 'sm:w-[25em]'])}
+      className={cx(['flex flex-col space-y-4 p-4'])}
       onSubmit={e => {
         e.preventDefault()
         createTeam()
@@ -47,7 +47,13 @@ export const CreateTeam = ({ userName, onSetup }: Props) => {
         <label htmlFor="teamName">Enter a name for your team:</label>
       </p>
 
-      <div className={cx(['flex w-full ', 'flex-col space-y-2', 'sm:flex-row sm:space-x-2'])}>
+      <div
+        className={cx([
+          'm-auto',
+          'flex flex-col space-y-2',
+          'sm:flex-row sm:space-x-2 sm:space-y-0',
+        ])}
+      >
         <input
           id="teamName"
           name="teamName"
@@ -62,7 +68,11 @@ export const CreateTeam = ({ userName, onSetup }: Props) => {
           ])}
           placeholder=""
         />
-        <button type="button" className="justify-center" onClick={createTeam}>
+        <button
+          type="button"
+          className="button button-sm button-primary justify-center"
+          onClick={createTeam}
+        >
           Create team
         </button>
       </div>

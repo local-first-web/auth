@@ -9,7 +9,7 @@ import type { AuthProvider } from '@localfirst/auth-provider-automerge-repo'
 export const FirstUseSetup = ({ userName, onSetup }: Props) => {
   const [state, setState] = useState<State>('INITIAL')
 
-  const Card = ({
+  const FirstUseOption = ({
     icon,
     label,
     buttonText,
@@ -22,17 +22,19 @@ export const FirstUseSetup = ({ userName, onSetup }: Props) => {
     state: State
     className?: string
   }) => (
-    <div className={` p-6 ${className}`}>
-      <div className="text-center basis-1/3">
-        <span className="text-6xl">{icon}</span>
-        <p>{label}</p>
-        <button
-          className="my-4 w-full text-center"
-          autoFocus={true}
-          onClick={() => setState(state)}
-        >
-          {buttonText}
-        </button>
+    <div className={`p-6  ${className}`}>
+      <div className="flex flex-col space-y-6 text-center basis-1/3">
+        <span className="h-12 text-6xl">{icon}</span>
+        <p className="h-18"> {label}</p>
+        <p>
+          <button
+            className="button button-sm button-primary"
+            autoFocus={true}
+            onClick={() => setState(state)}
+          >
+            {buttonText}
+          </button>
+        </p>
       </div>
     </div>
   )
@@ -41,19 +43,19 @@ export const FirstUseSetup = ({ userName, onSetup }: Props) => {
     case 'INITIAL': {
       return (
         <div className="flex my-8 gap-8 content-center items-center">
-          <Card
+          <FirstUseOption
             icon="💌"
             label="Have an invitation code?"
             buttonText="Join a team"
             state="JOIN_AS_MEMBER"
           />
-          <Card
+          <FirstUseOption
             icon="📱"
             label="Already joined on another device?"
             buttonText="Authorize this device"
             state="JOIN_AS_DEVICE"
           />
-          <Card
+          <FirstUseOption
             icon="🙋"
             label="Starting something new?"
             buttonText="Create a team"

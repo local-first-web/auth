@@ -6,22 +6,18 @@ import { useRootDocument } from '../hooks/useRootDocument'
 import { ExtendedArray, Filter, TodoData } from '../types.js'
 import { TeamAdmin } from './TeamAdmin.js'
 import { Todo } from './Todo.js'
+import { Card } from './Card'
+import { Layout } from './Layout'
 
 export function App() {
-  // const { url } = useBootstrap({
-  //   onNoDocument: repo => {
-  //     const handle = repo.create<SharedState>()
-  //     handle.change(d => (d.todos = []))
-  //     return handle
-  //   },
-  // })
-
-  const [state, changeState] = useRootDocument()
+  const repo = useRepo()
 
   const newTodoInput = useRef<HTMLInputElement>(null)
   const [filter, setFilter] = useState<Filter>(Filter.all)
 
-  const repo = useRepo()
+  const [state, changeState] = useRootDocument()
+
+  if (!state) return 'Loading...'
 
   const destroy = (url: AutomergeUrl) => {
     changeState(s => {
@@ -50,116 +46,113 @@ export function App() {
     }
   }
 
-  if (!state) return 'NO STATE??'
-
   return (
-    <>
-      <div className="flex h-screen pt-2 pb-96 bg-primary-50">
-        <div className="flex flex-col gap-2 m-auto w-4/5 max-w-xl">
-          <div className="border border-neutral-300 shadow-md rounded-md bg-white p-2">
-            <TeamAdmin />
-          </div>
-          <div className="border border-neutral-300 shadow-md rounded-md bg-white">
-            {/* new todo form */}
-            <header>
-              <form
-                onSubmit={e => {
-                  e.preventDefault()
-                  if (!newTodoInput.current) return
+    <div className="flex flex-row w-full ">
+      <div className="w-1/4 bg-white h-full p-4">
+        <TeamAdmin />
+      </div>
+      <div className="flex-grow ">
+        <Layout>
+          <div className="">
+            <Card>
+              {/* new todo form */}
+              <header>
+                <form
+                  onSubmit={e => {
+                    e.preventDefault()
+                    if (!newTodoInput.current) return
 
-                  const newTodoText = newTodoInput.current.value.trim()
+                    const newTodoText = newTodoInput.current.value.trim()
 
-                  // don't create empty todos
-                  if (newTodoText.length === 0) return
+                    // don't create empty todos
+                    if (newTodoText.length === 0) return
 
-                  const handle = repo.create<TodoData>()
-                  const url = handle.url
-                  handle.change(t => {
-                    t.url = url
-                    t.content = newTodoText
-                    t.completed = false
-                  })
+                    const handle = repo.create<TodoData>()
+                    const url = handle.url
+                    handle.change(t => {
+                      t.url = url
+                      t.content = newTodoText
+                      t.completed = false
+                    })
 
-                  // update state with new todo
-                  changeState(s => {
-                    s.todos.push(url)
-                  })
+                    // update state with new todo
+                    changeState(s => {
+                      s.todos.push(url)
+                    })
 
-                  // clear input
-                  newTodoInput.current.value = ''
-                }}
-              >
-                <input
-                  className="w-full p-3 rounded-md"
-                  placeholder="Add a new todo"
-                  ref={newTodoInput}
-                  autoFocus={true}
-                />
-              </form>
-            </header>
+                    // clear input
+                    newTodoInput.current.value = ''
+                  }}
+                >
+                  <input
+                    className="w-full p-3 rounded-md"
+                    placeholder="Add a new todo"
+                    ref={newTodoInput}
+                    autoFocus={true}
+                  />
+                </form>
+              </header>
 
-            {/* todos */}
-            <section>
-              <ul className="border-y divide-y divide-solid">
-                {state.todos.map(url => (
-                  <Todo key={url} url={url} onDestroy={url => destroy(url)} filter={filter} />
-                ))}
-              </ul>
-            </section>
+              {/* todos */}
+              <section>
+                <ul className="border-y divide-y divide-solid">
+                  {state.todos.map(url => (
+                    <Todo key={url} url={url} onDestroy={url => destroy(url)} filter={filter} />
+                  ))}
+                </ul>
+              </section>
 
-            {/* footer tools */}
-            <footer className="p-3 flex justify-between items-center text-sm">
-              {/* remaining count */}
-              {/* <span className="flex-1">
+              {/* footer tools */}
+              <footer className="py-3 flex justify-between items-center text-sm">
+                {/* remaining count */}
+                {/* <span className="flex-1">
               <strong>{incompleteCount}</strong>{" "}
               {pluralize(incompleteCount, "item")} left
             </span> */}
 
-              {/* filter */}
-              <ul className="flex-1 flex space-x-1 cursor-pointer">
-                {Object.keys(Filter).map(k => {
-                  const key = k as Filter
-                  const active = key === filter
+                {/* filter */}
+                <ul className="flex-1 flex space-x-1 cursor-pointer">
+                  {Object.keys(Filter).map(k => {
+                    const key = k as Filter
+                    const active = key === filter
 
-                  const buttonStyle = cx({
-                    ['text-gray-500 hover:text-gray-700 px-3 py-2 font-medium text-sm rounded-md']:
-                      !active,
-                    ['bg-gray-100 text-gray-700 px-3 py-2 font-medium text-sm rounded-md']: active,
-                  })
+                    const buttonStyle = cx({
+                      'button button-sm ': true,
+                      'button-white': !active,
+                      'button-neutral': active,
+                    })
 
-                  return (
-                    <li className="leading-none" key={`filter-${key}`}>
-                      <button
-                        className={buttonStyle}
-                        onClick={e => {
-                          e.preventDefault()
-                          setFilter(key)
-                        }}
-                      >
-                        {key}
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-              <div className="flex-1 text-right">
-                <button
-                  className={cx(
-                    'leading-none border py-2 px-4 rounded-md',
-                    'hover:border-primary-600 hover:bg-primary-500 hover:text-white'
-                  )}
-                  onClick={e => {
-                    e.preventDefault()
-                    destroyCompleted()
-                  }}
-                >
-                  Clear completed
-                </button>
-              </div>
-            </footer>
+                    return (
+                      <li className="leading-none" key={`filter-${key}`}>
+                        <button
+                          className={buttonStyle}
+                          onClick={e => {
+                            e.preventDefault()
+                            setFilter(key)
+                          }}
+                        >
+                          {key}
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+                <div className="flex-1 text-right">
+                  <button
+                    className={cx('button button-sm button-primary')}
+                    onClick={e => {
+                      e.preventDefault()
+                      destroyCompleted()
+                    }}
+                  >
+                    Clear completed
+                  </button>
+                </div>
+              </footer>
+            </Card>
           </div>
-        </div>
+        </Layout>
       </div>
-    </>
+    </div>
   )
 }

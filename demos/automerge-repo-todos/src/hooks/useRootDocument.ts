@@ -5,10 +5,8 @@ import { useSelector } from 'react-redux'
 import { selectRootDocumentId } from '../store/selectors'
 import { type SharedState } from '../types'
 
-export const useRootDocumentId = () => useSelector(selectRootDocumentId)
-
 export const useRootDocument = () => {
-  const rootDocumentId = useRootDocumentId()
+  const rootDocumentId = useSelector(selectRootDocumentId)
   assert(rootDocumentId)
   const rootDocumentUrl: AutomergeUrl = stringifyAutomergeUrl({
     documentId: rootDocumentId,

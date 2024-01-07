@@ -4,6 +4,7 @@ import { App } from './components/App.js'
 import { LocalFirstAuthProvider } from './components/LocalFirstAuthProvider'
 import './index.css'
 import { store } from './store'
+import { Layout } from './components/Layout'
 
 ReactDOM.createRoot(document.querySelector('#root')!).render(
   <StoreProvider store={store}>

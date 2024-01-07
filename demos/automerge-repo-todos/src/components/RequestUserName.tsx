@@ -10,7 +10,7 @@ export const RequestUserName = ({ onSubmit }: Props) => {
 
   return (
     <form
-      className={cx(['flex flex-col space-y-4 border rounded-md p-6 m-6', 'w-full', 'sm:w-[25em]'])}
+      className={cx(['flex flex-col space-y-4 p-4'])}
       onSubmit={e => {
         e.preventDefault()
         submitUserName()
@@ -19,7 +19,13 @@ export const RequestUserName = ({ onSubmit }: Props) => {
       <p className="text-center">
         <label htmlFor="userName">Enter your first name to get started:</label>
       </p>
-      <div className={cx(['flex w-full ', 'flex-col space-y-2', 'sm:flex-row sm:space-x-2'])}>
+      <div
+        className={cx([
+          'm-auto',
+          'flex flex-col space-y-2',
+          'sm:flex-row sm:space-x-2 sm:space-y-0',
+        ])}
+      >
         <input
           id="userName"
           name="userName"
@@ -27,14 +33,14 @@ export const RequestUserName = ({ onSubmit }: Props) => {
           autoFocus={true}
           value={userName}
           onChange={e => setUserName(e.target.value)}
-          className={cx([
-            'border py-1 px-3 flex-grow rounded-md font-bold',
-            'text-sm',
-            'sm:text-base',
-          ])}
+          className="textbox-auth flex-grow"
           placeholder=""
         />
-        <button type="button" className="justify-center" onClick={submitUserName}>
+        <button
+          type="button"
+          className="button button-sm button-primary justify-center sm:justify-stretch"
+          onClick={submitUserName}
+        >
           Continue
         </button>
       </div>

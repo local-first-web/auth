@@ -32,7 +32,7 @@ export const JoinAsMember = ({ userName, onSetup }: Props) => {
 
   return (
     <form
-      className={cx(['flex flex-col space-y-4 border rounded-md p-6 m-6', 'w-full', 'sm:w-[35em]'])}
+      className={cx(['flex flex-col space-y-4 p-4'])}
       onSubmit={async e => {
         e.preventDefault()
         await joinTeam()
@@ -42,7 +42,7 @@ export const JoinAsMember = ({ userName, onSetup }: Props) => {
         <label htmlFor="invitationCode">Enter your invitation code:</label>
       </p>
 
-      <div className={cx(['flex w-full ', 'flex-col space-y-2', 'sm:flex-row sm:space-x-2'])}>
+      <div className={cx(['flex flex-col space-y-2', 'sm:flex-row sm:space-x-2 sm:space-y-0'])}>
         <input
           id="invitationCode"
           name="invitationCode"
@@ -50,10 +50,14 @@ export const JoinAsMember = ({ userName, onSetup }: Props) => {
           autoFocus={true}
           value={invitationCode}
           onChange={e => setInvitationCode(e.target.value)}
-          className={cx(['border px-3 flex-grow rounded-md font-mono', 'text-xs'])}
+          className="textbox-auth flex-grow"
           placeholder=""
         />
-        <button type="button" className="justify-center" onClick={joinTeam}>
+        <button
+          type="button"
+          className="button button-sm button-primary justify-center sm:justify-stretch"
+          onClick={joinTeam}
+        >
           Join team
         </button>
       </div>

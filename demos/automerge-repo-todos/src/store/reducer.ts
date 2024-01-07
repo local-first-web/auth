@@ -1,11 +1,11 @@
-import { createSlice, type PayloadAction } from "@reduxjs/toolkit"
-import type * as Auth from "@localfirst/auth"
-import type { ShareId } from "@localfirst/auth-provider-automerge-repo"
-import type { DocumentId } from "@automerge/automerge-repo"
-import { initialState } from "./initialState"
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
+import type * as Auth from '@localfirst/auth'
+import type { ShareId } from '@localfirst/auth-provider-automerge-repo'
+import type { DocumentId } from '@automerge/automerge-repo'
+import { initialState } from './initialState'
 
 export const { reducer, actions } = createSlice({
-  name: "reducer",
+  name: 'reducer',
   initialState,
   reducers: {
     setUserName(state, action: PayloadAction<string>) {
@@ -33,9 +33,11 @@ export const { reducer, actions } = createSlice({
      * would require the user to re-authorize the device from another device.
      */
     logout(state) {
+      state.userName = undefined
       state.device = undefined
       state.user = undefined
       state.teamId = undefined
+      state.rootDocumentId = undefined
     },
   },
 })
