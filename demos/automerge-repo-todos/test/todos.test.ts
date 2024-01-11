@@ -1,6 +1,5 @@
-import { BrowserContext, test } from '@playwright/test'
-import { newBrowser } from './helpers/basePage'
-import { expect } from './helpers/expect'
+import { BrowserContext, expect, test } from '@playwright/test'
+import { newBrowser } from './helpers/App'
 
 const TODOS = ['buy some cheese', 'feed the cat', 'book a doctors appointment']
 

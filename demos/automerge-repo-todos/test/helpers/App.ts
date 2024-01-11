@@ -1,14 +1,14 @@
 import { pause } from '@localfirst/auth-shared'
 import { type BrowserContext, type ConsoleMessage, type Page } from '@playwright/test'
-import { expect } from '../helpers/expect'
+import { expect } from './expect'
 
 export const newBrowser = async (context: BrowserContext) => {
   const browser = await context.browser()!.newContext()
   const page = await browser.newPage()
-  return new BasePage(page).start()
+  return new App(page).start()
 }
 
-export class BasePage {
+export class App {
   userName?: string
   teamName?: string
 
@@ -47,7 +47,7 @@ export class BasePage {
   }
 
   get expect() {
-    return expect(this.page)
+    return expect(this)(this.page)
   }
 
   async pressButton(name?: string) {
@@ -106,6 +106,12 @@ export class BasePage {
     await this.page.getByLabel('Invitation code').fill(invitationCode)
     await this.pressButton('Join')
   }
+
+  members() {
+    return this.page.locator('table.MemberTable')
+  }
+
+  // TODOS
 
   todos(index?: number) {
     const todos = this.page.locator('ul > li').getByRole('textbox')
