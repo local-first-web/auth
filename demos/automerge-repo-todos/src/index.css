@@ -5,7 +5,7 @@
 /* Headings */
 
 h4 {
-  @apply font-bold text-sm;
+  @apply font-bold;
 }
 
 /* Buttons */
