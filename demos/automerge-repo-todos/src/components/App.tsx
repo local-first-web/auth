@@ -104,12 +104,6 @@ export function App() {
 
               {/* footer tools */}
               <footer className="py-3 flex justify-between items-center text-sm">
-                {/* remaining count */}
-                {/* <span className="flex-1">
-              <strong>{incompleteCount}</strong>{" "}
-              {pluralize(incompleteCount, "item")} left
-            </span> */}
-
                 {/* filter */}
                 <ul className="flex-1 flex space-x-2 cursor-pointer">
                   {Object.keys(Filter).map(k => {
