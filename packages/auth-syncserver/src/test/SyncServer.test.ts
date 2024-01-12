@@ -25,7 +25,7 @@ it("should return the server's public keys", async () => {
   expect(server.publicKeys).toEqual(keys)
 })
 
-it('Alice can create a team', async () => {
+it.only('Alice can create a team', async () => {
   const { users } = await setup(['alice'])
   const { alice } = users
 

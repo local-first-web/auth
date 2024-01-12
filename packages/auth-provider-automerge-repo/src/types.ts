@@ -1,5 +1,6 @@
 import type { DocumentId, Message, PeerId } from '@automerge/automerge-repo'
 import type * as Auth from '@localfirst/auth'
+import { Hash } from 'crypto'
 
 // SHARES
 
@@ -57,7 +58,8 @@ export type SerializedPrivateShare = SerializedPublicShare & {
  *
  * - If we're a new member joining a team for the first time, we just provide the share ID (which is
  *   the team ID) and the secret invitation code we were given.
- * - If we're a new device being added by an existing member, we also provide
+ * - If we're a new device being added by an existing member, we also provide the user's name and
+ *   ID.
  */
 export type Invitation = DeviceInvitation | MemberInvitation
 
@@ -159,7 +161,7 @@ export type AuthProviderEvents = {
 
 export type JoinMessage = Message & {
   type: 'join-shares'
-  shareIds: ShareId[]
+  shareIdHashes: Auth.Base58[]
 }
 
 export const isJoinMessage = (message: Message): message is JoinMessage =>

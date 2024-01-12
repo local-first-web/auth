@@ -92,21 +92,21 @@ function cleanLogs(output) {
       .map(match => ({ userName: match[1], deviceId: match[2] }))
       .map(({ userName, deviceId }) => [new RegExp(deviceId, 'g'), userName]),
 
-    // tokenize teamIds as TEAM-1 etc
-    ...[...output.matchAll(/shareId: '?(\w+)'?/g)]
-      .map((match, i) => ({
-        teamName: `TEAM-${i + 1}`,
-        teamId: match[1],
-      }))
-      .map(({ teamId, teamName }) => [new RegExp(teamId, 'g'), teamName]),
+    // // tokenize teamIds as TEAM-1 etc
+    // ...[...output.matchAll(/shareId: '?(\w+)'?/g)]
+    //   .map((match, i) => ({
+    //     teamName: `TEAM-${i + 1}`,
+    //     teamId: match[1],
+    //   }))
+    //   .map(({ teamId, teamName }) => [new RegExp(teamId, 'g'), teamName]),
 
+    // tokenize documentIds as DOC-1 etc
     ...[...output.matchAll(/create.*?document (\w+)/gi)]
       .map((match, i) => ({
         documentName: `DOC-${i + 1}`,
         documentId: match[1],
       }))
       .flatMap(({ documentId, documentName }) => [
-        // tokenize documentIds as DOC-1 etc
         [new RegExp(documentId, 'g'), documentName],
         //  truncated documentIds
         [new RegExp(documentId.slice(0, 5), 'g'), documentName],
