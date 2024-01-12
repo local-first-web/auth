@@ -1,14 +1,18 @@
 import type { Repo } from '@automerge/automerge-repo'
 import { RepoContext } from '@automerge/automerge-repo-react-hooks'
 import type * as Auth from '@localfirst/auth'
-import type { AuthProvider, ShareId } from '@localfirst/auth-provider-automerge-repo'
+import {
+  getShareId,
+  type AuthProvider,
+  type ShareId,
+} from '@localfirst/auth-provider-automerge-repo'
 import { createContext, useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { actions } from '../store/reducer'
 import {
   selectDevice,
   selectRootDocumentId,
-  selectTeamId,
+  selectShareId,
   selectUser,
   selectUserName,
 } from '../store/selectors'
@@ -20,7 +24,7 @@ import { Card } from './Card'
 import { RequestUserName } from './RequestUserName'
 import { Layout } from './Layout'
 
-const { setDevice, setUser, setTeamId, setUserName, setRootDocumentId } = actions
+const { setDevice, setUser, setShareId, setUserName, setRootDocumentId } = actions
 
 export const LocalFirstAuthContext = createContext<AuthState | undefined>(undefined)
 
@@ -30,7 +34,7 @@ export const LocalFirstAuthProvider = ({ children }: Props) => {
   const device = useSelector(selectDevice)
   const userName = useSelector(selectUserName)
   const user = useSelector(selectUser)
-  const teamId = useSelector(selectTeamId)
+  const shareId = useSelector(selectShareId)
   const rootDocumentId = useSelector(selectRootDocumentId)
 
   // component state
@@ -40,12 +44,12 @@ export const LocalFirstAuthProvider = ({ children }: Props) => {
 
   useEffect(
     () => {
-      if (device && user && teamId && rootDocumentId && (!auth || !repo)) {
+      if (device && user && shareId && rootDocumentId && (!auth || !repo)) {
         // We've used the app before - instantiate the auth provider and the repo.
         createRepoWithAuth(user, device)
           .then(({ auth, repo }) => {
             // Get the team from the auth provider (which will have loaded it from storage).
-            const team = auth.getTeam(teamId)
+            const team = auth.getTeam(shareId)
 
             // Make sure the team has the correct rootDocumentId
             const rootDocumentIdFromTeam = getRootDocumentIdFromTeam(team!)
@@ -78,7 +82,7 @@ export const LocalFirstAuthProvider = ({ children }: Props) => {
       </Layout>
     )
 
-  if (!device || !user || !teamId) {
+  if (!device || !user || !shareId) {
     // This is our first time using the app - obtain device, user, and team
     return (
       <Layout>
@@ -89,7 +93,7 @@ export const LocalFirstAuthProvider = ({ children }: Props) => {
               // Store these in local storage
               dispatch(setUser(user))
               dispatch(setDevice(device))
-              dispatch(setTeamId(team.id as ShareId))
+              dispatch(setShareId(getShareId(team)))
               dispatch(setRootDocumentId(rootDocumentId))
 
               // Store these in component state

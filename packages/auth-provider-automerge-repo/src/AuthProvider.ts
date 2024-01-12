@@ -27,6 +27,7 @@ import type {
   ShareId,
 } from './types.js'
 import { isAuthMessage, isDeviceInvitation, isPrivateShare } from './types.js'
+import { getShareId } from 'getShareId.js'
 
 const { encryptBytes, decryptBytes } = Auth.symmetric
 
@@ -241,20 +242,31 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
    * Creates a private share for a team we're already a member of.
    */
   public async addTeam(team: Auth.Team) {
-    this.#log('adding team %o', team.teamName)
-    const shareId = team.id
-    const share: Share = { shareId, team, documentIds: new Set() }
-    this.#shares.set(shareId, share)
-    await this.#saveState()
-    team.on('updated', async () => {
-      await this.#saveState()
+    const shareId = getShareId(team)
+
+    if (this.hasTeam(shareId)) {
+      this.#log(`not adding team ${shareId} as it already exists`)
+      return
+    }
+
+    this.#log(`adding team ${shareId}`)
+
+    this.#shares.set(shareId, {
+      shareId,
+      team,
+      documentIds: new Set(),
     })
 
+    // persist our state now and whenever the team changes
+    await this.#saveState()
+    team.on('updated', async () => this.#saveState())
+
+    // connect with any peers who also have this share
     await this.#createConnectionsForShare(shareId)
   }
 
   /**
-   * Returns true if there is a share containing a team with the given id.
+   * Returns true if there is a private share with the given id.
    */
   public hasTeam(shareId: ShareId) {
     return this.#shares.has(shareId) && isPrivateShare(this.getShare(shareId))
@@ -431,6 +443,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
         // Let the application know
         this.emit('connected', { shareId, peerId })
+
         // Let the repo know we've got a new peer
         authAdapter.emit('peer-candidate', { peerId, peerMetadata: {} })
       })
@@ -658,12 +671,15 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     throw new Error(`no context for ${shareId}`)
   }
 
-  /** Let our peers know that we're interested in this share, and  */
+  /**
+   * Let our peers know that we're interested in this share, and connect with any peers that have
+   * already said they are interested in it.
+   */
   async #createConnectionsForShare(shareId: ShareId) {
     this.#log('createConnectionsForShare', shareId)
 
     await Promise.all(
-      this.#adapters.map(async authAdapter => {
+      this.#adapters.flatMap(async authAdapter => {
         const peerIds = this.#peers.get(authAdapter.baseAdapter) ?? []
         this.#log('creating connections for %o', peerIds)
         return peerIds.map(async peerId => {

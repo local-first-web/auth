@@ -4,6 +4,10 @@ import { Hash } from 'crypto'
 
 // SHARES
 
+/**
+ * The share ID is an arbitrary string for public (anonymous) shares, and the truncated team ID for
+ * private (authenticated) shares (see `getShareId`).
+ */
 export type ShareId = Auth.Hash & { __shareId: true }
 
 /**
@@ -19,8 +23,8 @@ export type Share = PublicShare | PrivateShare
 
 export type PublicShare = {
   /**
-   * The share ID is an arbitrary string for public (anonymous) shares, and the team ID for private
-   * (authenticated) shares.
+   * The share ID is an arbitrary string for public (anonymous) shares, and the truncated team ID
+   * for private (authenticated) shares.
    */
   shareId: ShareId
 

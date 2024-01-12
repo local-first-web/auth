@@ -43,8 +43,7 @@ test('creates a member invitation', async ({ context }) => {
   await alice.createTeam('Alice', 'Alice & friends')
   const invitationCode = await alice.createMemberInvitation()
 
-  expect(invitationCode.length).toBeGreaterThan(50)
-  expect(invitationCode).toContain('_')
+  expect(invitationCode.length).toBeGreaterThan(12)
 
   await alice.reload()
   await alice.expect.toBeLoggedIn('Alice')

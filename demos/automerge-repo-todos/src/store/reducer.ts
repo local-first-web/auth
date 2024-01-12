@@ -20,8 +20,8 @@ export const { reducer, actions } = createSlice({
       state.user = action.payload
     },
 
-    setTeamId(state, action: PayloadAction<ShareId>) {
-      state.teamId = action.payload
+    setShareId(state, action: PayloadAction<ShareId>) {
+      state.shareId = action.payload
     },
 
     setRootDocumentId(state, action: PayloadAction<DocumentId>) {
@@ -36,7 +36,7 @@ export const { reducer, actions } = createSlice({
       state.userName = undefined
       state.device = undefined
       state.user = undefined
-      state.teamId = undefined
+      state.shareId = undefined
       state.rootDocumentId = undefined
     },
   },

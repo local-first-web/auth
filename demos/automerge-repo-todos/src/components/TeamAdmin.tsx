@@ -6,6 +6,7 @@ import { assert } from '@localfirst/auth-shared'
 import { randomKey } from '@localfirst/crypto'
 import ClipboardJS from 'clipboard'
 import { useAuth } from '../hooks/useAuth'
+import { getShareId } from '@localfirst/auth-provider-automerge-repo'
 
 const SECOND = 1
 const MINUTE = 60 * SECOND
@@ -17,8 +18,6 @@ const INACTIVE = 'INACTIVE'
 const ADDING_DEVICE = 'ADDING_DEVICE'
 const INVITING_MEMBERS = 'INVITING_MEMBERS'
 const SHOWING_MEMBER_INVITE = 'SHOWING_MEMBER_INVITE'
-
-const randomSeed = () => randomKey(6)
 
 export const TeamAdmin = () => {
   type State =
@@ -41,6 +40,7 @@ export const TeamAdmin = () => {
 
   const copyInvitationCodeButton = useRef() as MutableRefObject<HTMLButtonElement>
 
+  // wire up `Copy` button
   useEffect(() => {
     let c: ClipboardJS
     if (copyInvitationCodeButton?.current && invitationCode) {
@@ -52,28 +52,25 @@ export const TeamAdmin = () => {
     }
   }, [copyInvitationCodeButton, invitationCode])
 
-  const inviteMembers = () => {
-    const seed = randomSeed()
+  const createInvitationCode = (seed: string) => {
+    const shareId = getShareId(team)
     setSeed(seed)
-    setInvitationCode(`${team.id}_${seed}`)
+    setInvitationCode(`${shareId}${seed}`)
+  }
 
+  const inviteMembers = () => {
     const maxUses = Number(maxUsesSelect.current.value)
     const now = Date.now()
     const expirationMs = Number(expirationSelect.current.value) * 1000
     const expiration = (now + expirationMs) as UnixTimestamp
-
-    const { id: _id } = team.inviteMember({ seed, maxUses, expiration })
-
+    const { seed } = team.inviteMember({ maxUses, expiration })
+    createInvitationCode(seed)
     setState(SHOWING_MEMBER_INVITE)
   }
 
   const inviteDevice = () => {
-    const seed = randomSeed()
-    setSeed(seed)
-    setInvitationCode(`${team.id}_${seed}`)
-
-    const { id: _id } = team.inviteDevice({ seed })
-
+    const { seed } = team.inviteDevice()
+    createInvitationCode(seed)
     setState(ADDING_DEVICE)
   }
 

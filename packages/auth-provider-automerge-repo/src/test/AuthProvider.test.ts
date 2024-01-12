@@ -9,6 +9,7 @@ import { AuthProvider } from '../AuthProvider.js'
 import { authenticated, authenticatedInTime } from './helpers/authenticated.js'
 import { getStorageDirectory, setup, type UserStuff } from './helpers/setup.js'
 import { synced } from './helpers/synced.js'
+import { getShareId } from 'getShareId.js'
 
 describe('auth provider for automerge-repo', () => {
   it('does not authenticate users that do not belong to any teams', async () => {
@@ -76,7 +77,7 @@ describe('auth provider for automerge-repo', () => {
 
     // Bob uses the invitation to join
     void bob.authProvider.addInvitation({
-      shareId: aliceTeam.id,
+      shareId: getShareId(aliceTeam),
       invitationSeed: bobInviteCode,
     })
 
@@ -124,7 +125,7 @@ describe('auth provider for automerge-repo', () => {
     const { seed: phoneInviteCode } = team.inviteDevice()
 
     await phoneAuth.addInvitation({
-      shareId: team.id,
+      shareId: getShareId(team),
       userId: alice.userId,
       userName: alice.userName,
       invitationSeed: phoneInviteCode,
@@ -154,7 +155,7 @@ describe('auth provider for automerge-repo', () => {
 
     // Eve knows Bob has been invited but doesn't know the code
     await eve.authProvider.addInvitation({
-      shareId: aliceTeam.id,
+      shareId: getShareId(aliceTeam),
       invitationSeed: 'passw0rd',
     })
 
@@ -268,7 +269,7 @@ describe('auth provider for automerge-repo', () => {
 
     // Bob uses the invitation to join
     await bob.authProvider.addInvitation({
-      shareId: aliceTeam.id,
+      shareId: getShareId(aliceTeam),
       invitationSeed: bobInvite,
     })
 
