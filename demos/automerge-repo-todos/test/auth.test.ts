@@ -77,8 +77,6 @@ test('sees new members when they join', async ({ context }) => {
 
   await bob.expect.toBeLoggedIn('Bob')
 
-  // TODO: this test passes if alice reloads, but that shouldn't be necessary; she should see the new member immediately
-
-  // await alice.reload()
+  // Alice sees Bob in the list of members without needing to reload
   await alice.expect.toSeeMember('Bob')
 })

@@ -1,11 +1,13 @@
 import * as Auth from '@localfirst/auth'
 import { useAuth } from '../hooks/useAuth'
+import { useState } from 'react'
 
 export function TeamMembers() {
-  const authState = useAuth()
-  const { user, team } = authState!
-  const { userId } = user
+  const { user, team } = useAuth()
+  const [members, setMembers] = useState(team.members())
+  team.on('updated', () => setMembers(team.members()))
 
+  const { userId } = user
   const userBelongsToTeam = team.has(userId)
   const userIsAdmin = userBelongsToTeam && team.memberIsAdmin(userId)
   const adminCount = () => team.members().filter(m => team.memberIsAdmin(m.userId)).length
@@ -16,7 +18,7 @@ export function TeamMembers() {
       <table className="MemberTable w-full border-collapse text-sm my-3">
         <tbody>
           {/* One row per member */}
-          {team.members()?.map(m => {
+          {members.map(m => {
             const memberIsAdmin = team.memberIsAdmin(m.userId)
             const memberIsOnlyAdmin = memberIsAdmin && adminCount() === 1
             let message = ''
