@@ -5,11 +5,11 @@
   "version": "5.1.1",
   "type": "module",
   "scripts": {
-    "dev": "run-p dev:open dev:syncserver",
+    "dev": "run-p dev:open dev:syncserver:log",
     "dev:start": "vite --port 3000",
     "dev:open": "pnpm dev:start --open",
     "dev:syncserver": "cross-env NODE_ENV=development node ./syncserver.js",
-    "dev:syncserver:log": "cross-env DEBUG=localfirst*,automerge* pnpm log & pnpm dev:syncserver",
+    "dev:syncserver:log": "cross-env DEBUG=localfirst*,automerge* pnpm dev:syncserver",
     "preview": "vite preview",
     "test:pw": "playwright test --project=chromium",
     "test:pw:log": "cross-env DEBUG=localfirst*,automerge* pnpm test:pw"
