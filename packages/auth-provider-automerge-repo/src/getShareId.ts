@@ -1,5 +1,5 @@
 import type { Team } from '@localfirst/auth'
-import { ShareId } from 'types.js'
+import { type ShareId } from 'types.js'
 
 /**
  * We use the first few characters of the team ID as the share ID. The team ID is a hash of the team's
