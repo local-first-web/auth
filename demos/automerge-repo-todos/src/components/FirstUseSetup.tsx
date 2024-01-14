@@ -13,12 +13,14 @@ export const FirstUseSetup = ({ userName, onSetup }: Props) => {
     icon,
     label,
     buttonText,
+    autoFocus,
     state,
     className,
   }: {
     icon: string
     label: React.ReactNode
     buttonText: string
+    autoFocus?: boolean
     state: State
     className?: string
   }) => (
@@ -29,7 +31,7 @@ export const FirstUseSetup = ({ userName, onSetup }: Props) => {
         <p>
           <button
             className="button button-sm button-primary"
-            autoFocus={true}
+            autoFocus={autoFocus}
             onClick={() => setState(state)}
           >
             {buttonText}
@@ -47,6 +49,7 @@ export const FirstUseSetup = ({ userName, onSetup }: Props) => {
             icon="💌"
             label="Have an invitation code?"
             buttonText="Join a team"
+            autoFocus
             state="JOIN_AS_MEMBER"
           />
           <FirstUseOption
