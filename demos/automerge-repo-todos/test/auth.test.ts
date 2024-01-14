@@ -49,7 +49,7 @@ test('creates a member invitation', async ({ context }) => {
   await alice.expect.toBeLoggedIn('Alice')
 })
 
-test('uses an invitation', async ({ context }) => {
+test('uses an invitation to join as member', async ({ context }) => {
   // This ensures that there's more than one team on the sync server, since that was causing
   // intermittent test failures at one point.
   const noise = await newBrowser(context)
@@ -79,4 +79,16 @@ test('sees new members when they join', async ({ context }) => {
 
   // Alice sees Bob in the list of members without needing to reload
   await alice.expect.toSeeMember('Bob')
+})
+
+test('uses an invitation to join as device', async ({ context }) => {
+  const laptop = await newBrowser(context)
+  await laptop.createTeam('Alice', 'Alice & friends')
+
+  const invitationCode = await laptop.createDeviceInvitation()
+
+  const phone = await newBrowser(context)
+  await phone.joinAsDevice('Alice', invitationCode)
+
+  await phone.expect.toBeLoggedIn('Alice')
 })
