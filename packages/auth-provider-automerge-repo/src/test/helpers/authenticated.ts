@@ -1,4 +1,3 @@
-import { type Repo } from '@automerge/automerge-repo'
 import { eventPromise, pause } from '@localfirst/auth-shared'
 import { type UserStuff } from './setup.js'
 
