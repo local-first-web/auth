@@ -97,11 +97,29 @@ export class App {
     return invitationCode
   }
 
+  async createDeviceInvitation() {
+    await this.pressButton('Add a device')
+    await this.pressButton('Copy')
+    await this.page.keyboard.press('Escape')
+    const invitationCode: string = await this.getClipboard()
+    return invitationCode
+  }
+
   async joinAsMember(userName: string, invitationCode: string) {
     await this.enterFirstName(userName)
     await this.pressButton()
 
+    await this.pressButton('Join a team')
+
+    await this.page.getByLabel('Invitation code').fill(invitationCode)
     await this.pressButton('Join')
+  }
+
+  async joinAsDevice(userName: string, invitationCode: string) {
+    await this.enterFirstName(userName)
+    await this.pressButton()
+
+    await this.pressButton('Authorize this device')
 
     await this.page.getByLabel('Invitation code').fill(invitationCode)
     await this.pressButton('Join')
