@@ -6,10 +6,7 @@ import { AuthProvider } from '@localfirst/auth-provider-automerge-repo'
 import { eventPromise } from '@localfirst/auth-shared'
 import { host, wsUrl } from './syncServerUrl'
 
-export async function createRepoWithAuth(
-  user: Auth.UserWithSecrets,
-  device: Auth.DeviceWithSecrets
-) {
+export async function createRepoWithAuth({ user, device }: Params) {
   const storage = new IndexedDBStorageAdapter()
   const auth = new AuthProvider({ user, device, storage, server: host })
 
@@ -26,4 +23,9 @@ export async function createRepoWithAuth(
   await eventPromise(repo.networkSubsystem, 'ready')
 
   return { auth, repo }
+}
+
+type Params = {
+  user?: Auth.UserWithSecrets
+  device: Auth.DeviceWithSecrets
 }

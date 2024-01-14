@@ -107,8 +107,11 @@ describe('auth provider for automerge-repo', () => {
     })
 
     const phoneStorage = new NodeFSStorageAdapter(getStorageDirectory('alice-phone'))
-    const phone = Auth.createDevice(alice.userId, "Alice's phone")
-    const phoneContext = { user: alice, device: phone }
+
+    // TODO: we're using userName instead of userId, because in the real world we don't know our userId yet.
+    // We probably need to update the userId once we know it.
+    const phone = Auth.createDevice(alice.userName, "Alice's phone")
+    const phoneContext = { userName: alice.userName, device: phone }
     const phoneAuth = new AuthProvider({ ...phoneContext, storage: phoneStorage })
 
     const phoneAdapter = new MessageChannelNetworkAdapter(phoneToLaptop)
@@ -126,7 +129,6 @@ describe('auth provider for automerge-repo', () => {
 
     await phoneAuth.addInvitation({
       shareId: getShareId(team),
-      userId: alice.userId,
       userName: alice.userName,
       invitationSeed: phoneInviteCode,
     })

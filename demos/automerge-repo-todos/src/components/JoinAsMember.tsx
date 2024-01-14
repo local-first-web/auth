@@ -15,7 +15,7 @@ export const JoinAsMember = ({ userName, onSetup }: Props) => {
     const user = Auth.createUser(userName) as Auth.UserWithSecrets
     const device = Auth.createDevice(user.userId, 'device')
 
-    const { auth, repo } = await createRepoWithAuth(user, device)
+    const { auth, repo } = await createRepoWithAuth({ user, device })
 
     const teamId = invitationCode.slice(0, 12) // because a ShareId is 12 characters long - see getShareId
     const invitationSeed = invitationCode.slice(12) // the rest of the code is the invitation seed

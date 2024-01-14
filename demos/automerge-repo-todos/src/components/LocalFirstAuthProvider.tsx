@@ -1,11 +1,7 @@
 import type { Repo } from '@automerge/automerge-repo'
 import { RepoContext } from '@automerge/automerge-repo-react-hooks'
 import type * as Auth from '@localfirst/auth'
-import {
-  getShareId,
-  type AuthProvider,
-  type ShareId,
-} from '@localfirst/auth-provider-automerge-repo'
+import { getShareId, type AuthProvider } from '@localfirst/auth-provider-automerge-repo'
 import { createContext, useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { actions } from '../store/reducer'
@@ -19,10 +15,10 @@ import {
 import type { AuthState } from '../types'
 import { createRepoWithAuth } from '../util/createRepoWithAuth'
 import { getRootDocumentIdFromTeam } from '../util/getRootDocumentIdFromTeam'
-import { FirstUseSetup } from './FirstUseSetup'
 import { Card } from './Card'
-import { RequestUserName } from './RequestUserName'
+import { FirstUseSetup } from './FirstUseSetup'
 import { Layout } from './Layout'
+import { RequestUserName } from './RequestUserName'
 
 const { setDevice, setUser, setShareId, setUserName, setRootDocumentId } = actions
 
@@ -46,7 +42,7 @@ export const LocalFirstAuthProvider = ({ children }: Props) => {
     () => {
       if (device && user && shareId && rootDocumentId && (!auth || !repo)) {
         // We've used the app before - instantiate the auth provider and the repo.
-        createRepoWithAuth(user, device)
+        createRepoWithAuth({ user, device })
           .then(({ auth, repo }) => {
             // Get the team from the auth provider (which will have loaded it from storage).
             const team = auth.getTeam(shareId)

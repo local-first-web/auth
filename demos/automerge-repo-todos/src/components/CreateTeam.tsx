@@ -20,7 +20,7 @@ export const CreateTeam = ({ userName, onSetup }: Props) => {
     log('created user', { user: userName, deviceId: device.deviceId })
 
     // Create repo and auth provider
-    const { auth, repo } = await createRepoWithAuth(user, device)
+    const { auth, repo } = await createRepoWithAuth({ user, device })
 
     // Create team, register it with server, and wait for connection
     const team = await auth.createTeam(teamName)

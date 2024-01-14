@@ -4,6 +4,7 @@ import { useState } from 'react'
 
 export function TeamMembers() {
   const { user, team } = useAuth()
+
   const [members, setMembers] = useState(team.members())
   team.on('updated', () => setMembers(team.members()))
 
