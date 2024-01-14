@@ -1,6 +1,5 @@
 import type { DocumentId, Message, PeerId } from '@automerge/automerge-repo'
 import type * as Auth from '@localfirst/auth'
-import { Hash } from 'crypto'
 
 // SHARES
 
@@ -74,7 +73,6 @@ export type MemberInvitation = {
 
 export type DeviceInvitation = MemberInvitation & {
   userName: string
-  userId: string
 }
 
 export const isDeviceInvitation = (invitation: Invitation): invitation is DeviceInvitation => {
