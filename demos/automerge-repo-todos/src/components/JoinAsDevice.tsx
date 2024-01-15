@@ -2,36 +2,34 @@ import * as Auth from '@localfirst/auth'
 import type { ShareId } from '@localfirst/auth-provider-automerge-repo'
 import cx from 'classnames'
 import { useState } from 'react'
+import { createDevice } from '../util/createDevice'
 import { createRepoWithAuth } from '../util/createRepoWithAuth'
-import { eventPromise } from '@localfirst/auth-shared'
-import type { SetupCallback } from './FirstUseSetup'
 import { getRootDocumentIdFromTeam } from '../util/getRootDocumentIdFromTeam'
+import type { SetupCallback } from './FirstUseSetup'
+import { parseInvitationCode } from '../util/parseInvitationCode'
 
 export const JoinAsDevice = ({ userName, onSetup }: Props) => {
   const [invitationCode, setInvitationCode] = useState<string>('')
 
   const joinTeam = async () => {
-    // First use - create new user and device
-
-    // TODO: get device name from UA
-    const device = Auth.createDevice(userName, 'device')
+    // First use - create new device (our user has already been created on another device)
+    const device = createDevice(userName) // we'll temporarily use the userName instead of the userId
 
     const { auth, repo } = await createRepoWithAuth({ device })
 
-    const teamId = invitationCode.slice(0, 12) // because a ShareId is 12 characters long - see getShareId
-    const invitationSeed = invitationCode.slice(12) // the rest of the code is the invitation seed
-    const shareId = teamId as ShareId
+    const { shareId, invitationSeed } = parseInvitationCode(invitationCode)
     auth.addInvitation({ shareId, invitationSeed, userName })
 
-    const user = await new Promise<Auth.User>(resolve =>
-      auth.once('joined', ({ user }) => resolve(user))
-    )
+    // Once we're admitted to the team, we'll get the Team data and our User object
+    auth.once('joined', ({ team, user }) => {
+      // Now we have our real userId, we can update the device
+      device.userId = user.userId
 
-    const team = auth.getTeam(shareId)
-    const rootDocumentId = getRootDocumentIdFromTeam(team)
-    if (!rootDocumentId) throw new Error('No root document ID found on team')
+      const rootDocumentId = getRootDocumentIdFromTeam(team)
+      if (!rootDocumentId) throw new Error('No root document ID found on team')
 
-    onSetup({ device, user, team, auth, repo, rootDocumentId })
+      onSetup({ device, user, team, auth, repo, rootDocumentId })
+    })
   }
 
   return (

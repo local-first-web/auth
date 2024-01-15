@@ -428,9 +428,6 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
         // Create a share with this team
         await this.addTeam(team)
 
-        // TODO: remove this, we already do it in addTeam
-        await this.#saveState()
-
         // remove the used invitation as we no longer need it & don't want to present it to others
         this.#invitations.delete(shareId)
 

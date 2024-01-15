@@ -1,6 +1,6 @@
-import { UAParser } from "ua-parser-js"
+import { UAParser } from 'ua-parser-js'
 
 export const getDeviceNameFromUa = () => {
-  const { browser, os, device } = UAParser(navigator.userAgent) // eslint-disable-line new-cap
+  const { browser, os, device } = UAParser(navigator.userAgent)
   return `${device.model ?? os.name} (${browser.name})`
 }

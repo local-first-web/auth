@@ -1,11 +1,11 @@
 import * as Auth from '@localfirst/auth'
-import type { ShareId } from '@localfirst/auth-provider-automerge-repo'
 import cx from 'classnames'
 import { useState } from 'react'
 import { createRepoWithAuth } from '../util/createRepoWithAuth'
-import { eventPromise } from '@localfirst/auth-shared'
-import type { SetupCallback } from './FirstUseSetup'
 import { getRootDocumentIdFromTeam } from '../util/getRootDocumentIdFromTeam'
+import type { SetupCallback } from './FirstUseSetup'
+import { createDevice } from '../util/createDevice'
+import { parseInvitationCode } from '../util/parseInvitationCode'
 
 export const JoinAsMember = ({ userName, onSetup }: Props) => {
   const [invitationCode, setInvitationCode] = useState<string>('')
@@ -13,21 +13,20 @@ export const JoinAsMember = ({ userName, onSetup }: Props) => {
   const joinTeam = async () => {
     // First use - create new user and device
     const user = Auth.createUser(userName) as Auth.UserWithSecrets
-    const device = Auth.createDevice(user.userId, 'device')
+    const device = createDevice(user.userId)
 
     const { auth, repo } = await createRepoWithAuth({ user, device })
 
-    const teamId = invitationCode.slice(0, 12) // because a ShareId is 12 characters long - see getShareId
-    const invitationSeed = invitationCode.slice(12) // the rest of the code is the invitation seed
-    const shareId = teamId as ShareId
+    const { shareId, invitationSeed } = parseInvitationCode(invitationCode)
     await auth.addInvitation({ shareId, invitationSeed })
-    await eventPromise(auth, 'connected')
 
-    const team = auth.getTeam(shareId)
-    const rootDocumentId = getRootDocumentIdFromTeam(team)
-    if (!rootDocumentId) throw new Error('No root document ID found on team')
+    // Once we're admitted to the team, we'll get the Team data
+    auth.once('joined', ({ team }) => {
+      const rootDocumentId = getRootDocumentIdFromTeam(team)
+      if (!rootDocumentId) throw new Error('No root document ID found on team')
 
-    onSetup({ device, user, team, auth, repo, rootDocumentId })
+      onSetup({ device, user, team, auth, repo, rootDocumentId })
+    })
   }
 
   return (
