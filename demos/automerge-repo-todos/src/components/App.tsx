@@ -3,10 +3,10 @@ import { Layout } from './Layout'
 import { TeamAdmin } from './TeamAdmin.js'
 import { Todos } from './Todos'
 
-export function App() {
+export const App = () => {
   return (
     <div className="flex flex-row w-full ">
-      <div className="w-1/4 bg-white h-full p-4">
+      <div className="w-xs bg-white h-full p-4">
         <TeamAdmin />
       </div>
       <div className="flex-grow ">

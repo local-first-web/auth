@@ -2,7 +2,7 @@ import * as Auth from '@localfirst/auth'
 import { useAuth } from '../hooks/useAuth'
 import { useState } from 'react'
 
-export function TeamMembers() {
+export const TeamMembers = () => {
   const { user, team } = useAuth()
 
   const [members, setMembers] = useState(team.members())

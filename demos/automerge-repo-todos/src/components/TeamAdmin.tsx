@@ -1,42 +1,35 @@
 import { UnixTimestamp } from '@localfirst/auth'
 import { getShareId } from '@localfirst/auth-provider-automerge-repo'
-import { assert } from '@localfirst/auth-shared'
 import ClipboardJS from 'clipboard'
 import { MutableRefObject, useEffect, useRef, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { SignOut } from './SignOut'
+import { SignOutButton } from './SignOutButton'
 import { TeamMembers } from './TeamMembers'
 
 export const TeamAdmin = () => {
-  const [state, setState] = useState<State>(INACTIVE)
-  const [_seed, setSeed] = useState<string>()
+  const [state, setState] = useState<State>(SHOW_MEMBERS)
   const [invitationCode, setInvitationCode] = useState<string>()
 
   const maxUsesSelect = useRef() as MutableRefObject<HTMLSelectElement>
   const expirationSelect = useRef() as MutableRefObject<HTMLSelectElement>
 
-  const authState = useAuth()
-  const { user, team } = authState!
-  assert(team)
-  assert(user)
+  const { user, team } = useAuth()
+  const userBelongsToTeam = team?.has(user.userId)
+  const userIsAdmin = userBelongsToTeam && team?.memberIsAdmin(user.userId)
 
   const copyInvitationCodeButton = useRef() as MutableRefObject<HTMLButtonElement>
 
-  // wire up `Copy` button
+  // wire up `Copy` button when there's a code to be copied
   useEffect(() => {
-    let c: ClipboardJS
-    if (copyInvitationCodeButton?.current && invitationCode) {
-      c = new ClipboardJS(copyInvitationCodeButton.current)
-    }
+    const c = copyInvitationCodeButton.current
+      ? new ClipboardJS(copyInvitationCodeButton.current)
+      : undefined
 
-    return () => {
-      c?.destroy()
-    }
+    return () => c?.destroy()
   }, [copyInvitationCodeButton, invitationCode])
 
   const createInvitationCode = (seed: string) => {
     const shareId = getShareId(team)
-    setSeed(seed)
     setInvitationCode(`${shareId}${seed}`)
   }
 
@@ -53,63 +46,59 @@ export const TeamAdmin = () => {
   const inviteDevice = () => {
     const { seed } = team.inviteDevice()
     createInvitationCode(seed)
-    setState(ADDING_DEVICE)
+    setState(SHOW_DEVICE_INVITE)
   }
 
-  const userBelongsToTeam = team?.has(user.userId)
-  const userIsAdmin = userBelongsToTeam && team?.memberIsAdmin(user.userId)
-
   switch (state) {
-    case INACTIVE: {
+    case SHOW_MEMBERS: {
       // Show team members and invite buttons
       return (
         <>
           <div className="flex flex-col space-y-4">
+            {/* Invite & sign out buttons */}
             <div className="flex flex-row space-x-4">
-              {/* anyone can "invite" a device */}
-              <button className="button button-primary button-sm" onClick={inviteDevice}>
-                Add a device
-              </button>
+              {/* anyone can "invite" their own devices */}
+              <button
+                className="button button-primary button-sm"
+                onClick={inviteDevice}
+                children="Add a device"
+              />
               {/* only admins can invite users */}
               {userIsAdmin ? (
                 <button
                   className="button button-sm button-primary"
-                  onClick={() => {
-                    setState(INVITING_MEMBERS)
-                  }}
-                >
-                  Invite members
-                </button>
+                  onClick={() => setState(INVITING_MEMBERS)}
+                  children="Invite members"
+                />
               ) : null}
-              <SignOut />
+              <SignOutButton />
             </div>
+
+            {/* Member grid */}
             <TeamMembers />
           </div>
         </>
       )
     }
 
-    case ADDING_DEVICE: {
+    case SHOW_DEVICE_INVITE: {
       // Display device invitation code
       return (
         <div>
           <h4>Add a device</h4>
           <p>Enter this code on your device.</p>
           <pre
-            className="InvitationCode my-2 p-3 
-              border border-gray-200 rounded-md bg-gray-100 
-              text-xs whitespace-pre-wrap"
+            className="InvitationCode my-2 p-3 border border-gray-200 rounded-md bg-gray-100 text-xs whitespace-pre-wrap"
             children={invitationCode}
           />
           <div className="mt-1 text-right">
             <button
               className="button button-sm button-primary"
               ref={copyInvitationCodeButton}
-              onClick={() => setState(INACTIVE)}
+              onClick={() => setState(SHOW_MEMBERS)}
               data-clipboard-text={invitationCode}
-            >
-              Copy
-            </button>
+              children="Copy"
+            />
           </div>
         </div>
       )
@@ -125,7 +114,7 @@ export const TeamAdmin = () => {
               How many people can use this invitation code?
               <select
                 ref={maxUsesSelect}
-                className="MaxUses mt-1 w-full border border-gray-200 rounded-md p-2 text-sm"
+                className="mt-1 w-full border border-gray-200 rounded-md p-2 text-sm"
               >
                 <option value={1}>1 person</option>
                 <option value={5}>5 people</option>
@@ -137,8 +126,8 @@ export const TeamAdmin = () => {
               When does this invitation code expire?
               <select
                 ref={expirationSelect}
-                defaultValue={MINUTE}
-                className="Expiration mt-1 w-full border border-gray-200 rounded-md p-2 text-sm"
+                defaultValue={HOUR}
+                className="mt-1 w-full border border-gray-200 rounded-md p-2 text-sm"
               >
                 <option value={SECOND}>in 1 second</option>
                 <option value={MINUTE}>in 1 minute</option>
@@ -154,19 +143,17 @@ export const TeamAdmin = () => {
                 <button
                   className="CancelButton button button-sm button-white mt-1"
                   onClick={() => {
-                    setState(INACTIVE)
+                    setState(SHOW_MEMBERS)
                   }}
-                >
-                  Cancel
-                </button>
+                  children="Cancel"
+                />
               </div>
               <div>
                 <button
                   className="InviteButton button button-sm button-primary mt-1"
                   onClick={inviteMembers}
-                >
-                  Invite
-                </button>
+                  children="Invite"
+                />
               </div>
             </div>
           </div>
@@ -181,20 +168,17 @@ export const TeamAdmin = () => {
           <p className="my-2 font-bold">Here's the invite!</p>
           <p>Send this code to whoever you want to invite.</p>
           <pre
-            className="InvitationCode my-2 p-3 
-              border border-gray-200 rounded-md bg-gray-100 
-              text-xs whitespace-pre-wrap"
+            className="my-2 p-3 border border-gray-200 rounded-md bg-gray-100 text-xs whitespace-pre-wrap"
             children={invitationCode}
           />
           <div className="mt-1 text-right">
             <button
               className="button button-sm button-primary"
               ref={copyInvitationCodeButton}
-              onClick={() => setState(INACTIVE)}
+              onClick={() => setState(SHOW_MEMBERS)}
               data-clipboard-text={invitationCode}
-            >
-              Copy
-            </button>
+              children="Copy"
+            />
           </div>
         </>
       )
@@ -212,13 +196,13 @@ const HOUR = 60 * MINUTE
 const DAY = 24 * HOUR
 const WEEK = 7 * DAY
 
-const INACTIVE = 'INACTIVE'
-const ADDING_DEVICE = 'ADDING_DEVICE'
+const SHOW_MEMBERS = 'SHOW_MEMBERS'
+const SHOW_DEVICE_INVITE = 'SHOW_DEVICE_INVITE'
 const INVITING_MEMBERS = 'INVITING_MEMBERS'
 const SHOWING_MEMBER_INVITE = 'SHOWING_MEMBER_INVITE'
 
 type State =
-  | typeof INACTIVE
-  | typeof ADDING_DEVICE
+  | typeof SHOW_MEMBERS
+  | typeof SHOW_DEVICE_INVITE
   | typeof INVITING_MEMBERS
   | typeof SHOWING_MEMBER_INVITE

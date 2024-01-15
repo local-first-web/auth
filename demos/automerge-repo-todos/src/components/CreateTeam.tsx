@@ -2,9 +2,10 @@ import * as Auth from '@localfirst/auth'
 import cx from 'classnames'
 import { useState } from 'react'
 import type { SharedState } from '../types'
-import { createRepoWithAuth } from '../util/createRepoWithAuth'
+import { initializeAuthRepo } from '../util/initializeAuthRepo'
 import { storeRootDocumentIdOnTeam } from '../util/storeRootDocumentIdOnTeam'
 import { type SetupCallback } from './FirstUseSetup'
+import { createDevice } from '../util/createDevice'
 
 export const CreateTeam = ({ userName, onSetup }: Props) => {
   const [teamName, setTeamName] = useState<string>('')
@@ -12,23 +13,25 @@ export const CreateTeam = ({ userName, onSetup }: Props) => {
   const createTeam = async () => {
     if (!teamName || teamName.length === 0) return
 
-    // First use - create new user and device
+    // Create new user and device
     const user = Auth.createUser(userName)
-    const device = Auth.createDevice(user.userId, 'device')
+    const device = createDevice(user.userId)
 
     // Create repo and auth provider
-    const { auth, repo } = await createRepoWithAuth({ user, device })
+    const { auth, repo } = await initializeAuthRepo({ user, device })
 
-    // Create team, register it with server, and wait for connection
+    // The auth provider creates a team, registers it with the server, and waits for connection
     const team = await auth.createTeam(teamName)
 
-    // Create root document
+    // Since this is a new team, we also need to create a new root document.
     const handle = repo.create<SharedState>()
     const rootDocumentId = handle.documentId
     handle.change(s => (s.todos = []))
 
+    // Store the root document ID on the team so other devices can find it
     storeRootDocumentIdOnTeam(team, rootDocumentId)
-    onSetup({ device, user, team, auth, repo, rootDocumentId })
+
+    onSetup({ device, user, team, auth, repo })
   }
 
   return (
@@ -43,22 +46,15 @@ export const CreateTeam = ({ userName, onSetup }: Props) => {
         <label htmlFor="teamName">Enter a name for your team:</label>
       </p>
 
-      <div
-        className={cx([
-          'm-auto',
-          'flex flex-col space-y-2',
-          'sm:flex-row sm:space-x-2 sm:space-y-0',
-        ])}
-      >
+      <div className="m-auto flex flex-col space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
         <input
+          type="text"
+          className="textbox-auth flex-grow"
           id="teamName"
           name="teamName"
-          type="text"
-          autoFocus={true}
+          autoFocus
           value={teamName}
           onChange={e => setTeamName(e.target.value)}
-          className="textbox-auth flex-grow"
-          placeholder=""
         />
         <button type="submit" className="button button-sm button-primary justify-center">
           Create team

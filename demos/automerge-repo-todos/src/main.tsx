@@ -1,11 +1,11 @@
 import '@ibm/plex/css/ibm-plex.css'
 import ReactDOM from 'react-dom/client'
 import { App } from './components/App.js'
-import { LocalFirstAuthProvider } from './components/LocalFirstAuthProvider'
+import { AuthContextProvider } from './components/AuthContextProvider.js'
 import './index.css'
 
 ReactDOM.createRoot(document.querySelector('#root')!).render(
-  <LocalFirstAuthProvider>
+  <AuthContextProvider>
     <App />
-  </LocalFirstAuthProvider>
+  </AuthContextProvider>
 )
