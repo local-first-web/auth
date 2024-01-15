@@ -7,10 +7,10 @@ import type { SetupCallback } from './FirstUseSetup'
 import { createDevice } from '../util/createDevice'
 import { parseInvitationCode } from '../util/parseInvitationCode'
 
-export const JoinAsMember = ({ userName, onSetup }: Props) => {
+export const JoinTeam = ({ joinAs, userName, onSetup }: Props) => {
   const [invitationCode, setInvitationCode] = useState<string>('')
 
-  const joinTeam = async () => {
+  const joinAsMember = async () => {
     // First use - create new user and device
     const user = Auth.createUser(userName) as Auth.UserWithSecrets
     const device = createDevice(user.userId)
@@ -29,12 +29,34 @@ export const JoinAsMember = ({ userName, onSetup }: Props) => {
     })
   }
 
+  const joinAsDevice = async () => {
+    // First use - create new device (our user has already been created on another device)
+    const device = createDevice(userName) // we'll temporarily use the userName instead of the userId
+
+    const { auth, repo } = await createRepoWithAuth({ device })
+
+    const { shareId, invitationSeed } = parseInvitationCode(invitationCode)
+    auth.addInvitation({ shareId, invitationSeed, userName })
+
+    // Once we're admitted to the team, we'll get the Team data and our User object
+    auth.once('joined', ({ team, user }) => {
+      // Now we have our real userId, we can update the device
+      device.userId = user.userId
+
+      const rootDocumentId = getRootDocumentIdFromTeam(team)
+      if (!rootDocumentId) throw new Error('No root document ID found on team')
+
+      onSetup({ device, user, team, auth, repo, rootDocumentId })
+    })
+  }
+
   return (
     <form
       className={cx(['flex flex-col space-y-4 p-4'])}
       onSubmit={async e => {
         e.preventDefault()
-        await joinTeam()
+        if (joinAs === 'DEVICE') await joinAsDevice()
+        else await joinAsMember()
       }}
     >
       <p className="text-center">
@@ -53,9 +75,8 @@ export const JoinAsMember = ({ userName, onSetup }: Props) => {
           placeholder=""
         />
         <button
-          type="button"
+          type="submit"
           className="button button-sm button-primary justify-center sm:justify-stretch"
-          onClick={joinTeam}
         >
           Join team
         </button>
@@ -65,6 +86,7 @@ export const JoinAsMember = ({ userName, onSetup }: Props) => {
 }
 
 type Props = {
+  joinAs: 'MEMBER' | 'DEVICE'
   userName: string
   onSetup: SetupCallback
 }

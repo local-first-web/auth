@@ -1,5 +1,4 @@
 import * as Auth from '@localfirst/auth'
-import { debug } from '@localfirst/auth-shared'
 import cx from 'classnames'
 import { useState } from 'react'
 import type { SharedState } from '../types'
@@ -8,16 +7,14 @@ import { storeRootDocumentIdOnTeam } from '../util/storeRootDocumentIdOnTeam'
 import { type SetupCallback } from './FirstUseSetup'
 
 export const CreateTeam = ({ userName, onSetup }: Props) => {
-  const log = debug.extend(`create-team:${userName}`)
   const [teamName, setTeamName] = useState<string>('')
 
   const createTeam = async () => {
     if (!teamName || teamName.length === 0) return
 
-    // Create user and device
+    // First use - create new user and device
     const user = Auth.createUser(userName)
     const device = Auth.createDevice(user.userId, 'device')
-    log('created user', { user: userName, deviceId: device.deviceId })
 
     // Create repo and auth provider
     const { auth, repo } = await createRepoWithAuth({ user, device })
@@ -29,7 +26,6 @@ export const CreateTeam = ({ userName, onSetup }: Props) => {
     const handle = repo.create<SharedState>()
     const rootDocumentId = handle.documentId
     handle.change(s => (s.todos = []))
-    log(`created root document ${rootDocumentId}`)
 
     storeRootDocumentIdOnTeam(team, rootDocumentId)
     onSetup({ device, user, team, auth, repo, rootDocumentId })
@@ -61,18 +57,10 @@ export const CreateTeam = ({ userName, onSetup }: Props) => {
           autoFocus={true}
           value={teamName}
           onChange={e => setTeamName(e.target.value)}
-          className={cx([
-            'border py-1 px-3 flex-grow rounded-md font-bold',
-            'text-sm',
-            'sm:text-base',
-          ])}
+          className="textbox-auth flex-grow"
           placeholder=""
         />
-        <button
-          type="button"
-          className="button button-sm button-primary justify-center"
-          onClick={createTeam}
-        >
+        <button type="submit" className="button button-sm button-primary justify-center">
           Create team
         </button>
       </div>

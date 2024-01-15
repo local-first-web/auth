@@ -1,10 +1,9 @@
+import { DocumentId, Repo } from '@automerge/automerge-repo'
 import type * as Auth from '@localfirst/auth'
-import { useState } from 'react'
-import { JoinAsDevice } from './JoinAsDevice'
-import { CreateTeam } from './CreateTeam'
-import { JoinAsMember } from './JoinAsMember'
-import type { DocumentId, Repo } from '@automerge/automerge-repo'
 import type { AuthProvider } from '@localfirst/auth-provider-automerge-repo'
+import { useState } from 'react'
+import { CreateTeam } from './CreateTeam'
+import { JoinTeam } from './JoinTeam'
 
 export const FirstUseSetup = ({ userName, onSetup }: Props) => {
   const [state, setState] = useState<State>('INITIAL')
@@ -27,7 +26,7 @@ export const FirstUseSetup = ({ userName, onSetup }: Props) => {
     <div className={`p-6  ${className}`}>
       <div className="flex flex-col space-y-6 text-center basis-1/3">
         <span className="h-12 text-6xl">{icon}</span>
-        <p className="h-18"> {label}</p>
+        <p className="h-18">{label}</p>
         <p>
           <button
             className="button button-sm button-primary"
@@ -69,11 +68,11 @@ export const FirstUseSetup = ({ userName, onSetup }: Props) => {
     }
 
     case 'JOIN_AS_MEMBER': {
-      return <JoinAsMember userName={userName} onSetup={onSetup} />
+      return <JoinTeam joinAs="MEMBER" userName={userName} onSetup={onSetup} />
     }
 
     case 'JOIN_AS_DEVICE': {
-      return <JoinAsDevice userName={userName} onSetup={onSetup} />
+      return <JoinTeam joinAs="DEVICE" userName={userName} onSetup={onSetup} />
     }
 
     case 'CREATE_TEAM': {
