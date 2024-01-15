@@ -1,12 +1,26 @@
 import { DocumentId, Repo } from '@automerge/automerge-repo'
 import type * as Auth from '@localfirst/auth'
-import type { AuthProvider } from '@localfirst/auth-provider-automerge-repo'
+import { getShareId, type AuthProvider } from '@localfirst/auth-provider-automerge-repo'
 import { useState } from 'react'
 import { CreateTeam } from './CreateTeam'
 import { JoinTeam } from './JoinTeam'
+import { RequestUserName } from './RequestUserName'
+import { useLocalState } from '../hooks/useLocalState'
 
-export const FirstUseSetup = ({ userName, onSetup }: Props) => {
+export const FirstUseSetup = ({ onSetup: _onSetup }: Props) => {
   const [state, setState] = useState<State>('INITIAL')
+
+  const { userName, user, device, shareId, rootDocumentId, updateLocalState } = useLocalState()
+
+  console.log('*** firstUseSetup', { userName, user, device, shareId, rootDocumentId })
+  if (!userName) return <RequestUserName onSubmit={userName => updateLocalState({ userName })} />
+
+  const onSetup: SetupCallback = args => {
+    const { user, device, team, rootDocumentId } = args
+    const shareId = getShareId(team)
+    updateLocalState({ user, device, shareId, rootDocumentId })
+    _onSetup(args)
+  }
 
   const FirstUseOption = ({
     icon,
@@ -83,15 +97,14 @@ export const FirstUseSetup = ({ userName, onSetup }: Props) => {
 }
 
 type Props = {
-  userName: string
   onSetup: SetupCallback
 }
 
 export type State = 'INITIAL' | 'JOIN_AS_MEMBER' | 'JOIN_AS_DEVICE' | 'CREATE_TEAM'
 
 export type SetupCallback = (args: {
-  device: Auth.DeviceWithSecrets
   user: Auth.UserWithSecrets
+  device: Auth.DeviceWithSecrets
   team: Auth.Team
   auth: AuthProvider
   repo: Repo

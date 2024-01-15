@@ -1,43 +1,27 @@
 import type { Repo } from '@automerge/automerge-repo'
 import { RepoContext } from '@automerge/automerge-repo-react-hooks'
 import type * as Auth from '@localfirst/auth'
-import { getShareId, type AuthProvider } from '@localfirst/auth-provider-automerge-repo'
+import { type AuthProvider } from '@localfirst/auth-provider-automerge-repo'
 import { createContext, useEffect, useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { actions } from '../store/reducer'
-import {
-  selectDevice,
-  selectRootDocumentId,
-  selectShareId,
-  selectUser,
-  selectUserName,
-} from '../store/selectors'
+import { useLocalState } from '../hooks/useLocalState'
 import type { AuthState } from '../types'
 import { createRepoWithAuth } from '../util/createRepoWithAuth'
 import { getRootDocumentIdFromTeam } from '../util/getRootDocumentIdFromTeam'
 import { Card } from './Card'
 import { FirstUseSetup } from './FirstUseSetup'
 import { Layout } from './Layout'
-import { RequestUserName } from './RequestUserName'
-
-const { setDevice, setUser, setShareId, setUserName, setRootDocumentId } = actions
 
 export const LocalFirstAuthContext = createContext<AuthState | undefined>(undefined)
 
 export const LocalFirstAuthProvider = ({ children }: Props) => {
-  // persisted state
-  const dispatch = useDispatch()
-  const device = useSelector(selectDevice)
-  const userName = useSelector(selectUserName)
-  const user = useSelector(selectUser)
-  const shareId = useSelector(selectShareId)
-  const rootDocumentId = useSelector(selectRootDocumentId)
-
-  // component state
+  // Persisted state
+  const { userName, user, device, shareId, rootDocumentId, updateLocalState } = useLocalState()
+  // Local (component) state
   const [team, setTeam] = useState<Auth.Team>()
   const [auth, setAuth] = useState<AuthProvider>()
   const [repo, setRepo] = useState<Repo>()
 
+  // On first render, check for persisted state
   useEffect(
     () => {
       if (device && user && shareId && rootDocumentId && (!auth || !repo)) {
@@ -52,7 +36,7 @@ export const LocalFirstAuthProvider = ({ children }: Props) => {
             if (rootDocumentIdFromTeam !== rootDocumentId) {
               throw new Error('Team has a different rootDocumentId')
             }
-            dispatch(setRootDocumentId(rootDocumentId))
+            updateLocalState({ rootDocumentId })
             setTeam(team)
             setAuth(auth)
             setRepo(repo)
@@ -65,34 +49,12 @@ export const LocalFirstAuthProvider = ({ children }: Props) => {
     [] // only run this effect on first render
   )
 
-  if (!userName)
-    return (
-      <Layout>
-        <Card>
-          <RequestUserName
-            onSubmit={(userName: string) => {
-              dispatch(setUserName(userName))
-            }}
-          />
-        </Card>
-      </Layout>
-    )
-
-  if (!device || !user || !shareId) {
-    // This is our first time using the app - obtain device, user, and team
+  if (!userName || !device || !user || !shareId) {
     return (
       <Layout>
         <Card>
           <FirstUseSetup
-            userName={userName}
-            onSetup={async ({ device, user, team, auth, repo, rootDocumentId }) => {
-              // Store these in local storage
-              dispatch(setUser(user))
-              dispatch(setDevice(device))
-              dispatch(setShareId(getShareId(team)))
-              dispatch(setRootDocumentId(rootDocumentId))
-
-              // Store these in component state
+            onSetup={({ team, auth, repo }) => {
               setTeam(team)
               setAuth(auth)
               setRepo(repo)
@@ -103,13 +65,10 @@ export const LocalFirstAuthProvider = ({ children }: Props) => {
     )
   }
 
-  if (rootDocumentId && repo && team && auth) {
+  if (rootDocumentId && team && auth && repo) {
     return (
       <LocalFirstAuthContext.Provider value={{ device, user, team, auth }}>
-        <RepoContext.Provider value={repo}>
-          {/**/}
-          {children}
-        </RepoContext.Provider>
+        <RepoContext.Provider value={repo}>{children}</RepoContext.Provider>
       </LocalFirstAuthContext.Provider>
     )
   }

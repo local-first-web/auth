@@ -1,31 +1,13 @@
+import { UnixTimestamp } from '@localfirst/auth'
+import { getShareId } from '@localfirst/auth-provider-automerge-repo'
+import { assert } from '@localfirst/auth-shared'
+import ClipboardJS from 'clipboard'
 import { MutableRefObject, useEffect, useRef, useState } from 'react'
+import { useAuth } from '../hooks/useAuth'
 import { SignOut } from './SignOut'
 import { TeamMembers } from './TeamMembers'
-import { UnixTimestamp } from '@localfirst/auth'
-import { assert } from '@localfirst/auth-shared'
-import { randomKey } from '@localfirst/crypto'
-import ClipboardJS from 'clipboard'
-import { useAuth } from '../hooks/useAuth'
-import { getShareId } from '@localfirst/auth-provider-automerge-repo'
-
-const SECOND = 1
-const MINUTE = 60 * SECOND
-const HOUR = 60 * MINUTE
-const DAY = 24 * HOUR
-const WEEK = 7 * DAY
-
-const INACTIVE = 'INACTIVE'
-const ADDING_DEVICE = 'ADDING_DEVICE'
-const INVITING_MEMBERS = 'INVITING_MEMBERS'
-const SHOWING_MEMBER_INVITE = 'SHOWING_MEMBER_INVITE'
 
 export const TeamAdmin = () => {
-  type State =
-    | typeof INACTIVE
-    | typeof ADDING_DEVICE
-    | typeof INVITING_MEMBERS
-    | typeof SHOWING_MEMBER_INVITE
-
   const [state, setState] = useState<State>(INACTIVE)
   const [_seed, setSeed] = useState<string>()
   const [invitationCode, setInvitationCode] = useState<string>()
@@ -79,6 +61,7 @@ export const TeamAdmin = () => {
 
   switch (state) {
     case INACTIVE: {
+      // Show team members and invite buttons
       return (
         <>
           <div className="flex flex-col space-y-4">
@@ -107,6 +90,7 @@ export const TeamAdmin = () => {
     }
 
     case ADDING_DEVICE: {
+      // Display device invitation code
       return (
         <div>
           <h4>Add a device</h4>
@@ -132,6 +116,7 @@ export const TeamAdmin = () => {
     }
 
     case INVITING_MEMBERS: {
+      // Display options for creating an invitation for a new member
       return (
         <div>
           <h4>Invite members</h4>
@@ -190,6 +175,7 @@ export const TeamAdmin = () => {
     }
 
     case SHOWING_MEMBER_INVITE: {
+      // Display invitation code for new member
       return (
         <>
           <p className="my-2 font-bold">Here's the invite!</p>
@@ -219,3 +205,20 @@ export const TeamAdmin = () => {
     }
   }
 }
+
+const SECOND = 1
+const MINUTE = 60 * SECOND
+const HOUR = 60 * MINUTE
+const DAY = 24 * HOUR
+const WEEK = 7 * DAY
+
+const INACTIVE = 'INACTIVE'
+const ADDING_DEVICE = 'ADDING_DEVICE'
+const INVITING_MEMBERS = 'INVITING_MEMBERS'
+const SHOWING_MEMBER_INVITE = 'SHOWING_MEMBER_INVITE'
+
+type State =
+  | typeof INACTIVE
+  | typeof ADDING_DEVICE
+  | typeof INVITING_MEMBERS
+  | typeof SHOWING_MEMBER_INVITE
