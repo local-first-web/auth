@@ -1,12 +1,10 @@
-import * as Auth from '@localfirst/auth'
-import type { ShareId } from '@localfirst/auth-provider-automerge-repo'
 import cx from 'classnames'
 import { useState } from 'react'
 import { createDevice } from '../util/createDevice'
 import { createRepoWithAuth } from '../util/createRepoWithAuth'
 import { getRootDocumentIdFromTeam } from '../util/getRootDocumentIdFromTeam'
-import type { SetupCallback } from './FirstUseSetup'
 import { parseInvitationCode } from '../util/parseInvitationCode'
+import type { SetupCallback } from './FirstUseSetup'
 
 export const JoinAsDevice = ({ userName, onSetup }: Props) => {
   const [invitationCode, setInvitationCode] = useState<string>('')
