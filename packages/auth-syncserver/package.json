@@ -21,9 +21,9 @@
     "test:log": "cross-env DEBUG='localfirst*' DEBUG_COLORS=1 vitest --reporter basic"
   },
   "dependencies": {
-    "@automerge/automerge-repo": "link:../../../../automerge/automerge-repo/packages/automerge-repo",
-    "@automerge/automerge-repo-network-websocket": "link:../../../../automerge/automerge-repo/packages/automerge-repo-network-websocket",
-    "@automerge/automerge-repo-storage-nodefs": "link:../../../../automerge/automerge-repo/packages/automerge-repo-storage-nodefs",
+    "@automerge/automerge-repo": "v1.1.0-alpha.7",
+    "@automerge/automerge-repo-network-websocket": "v1.1.0-alpha.7",
+    "@automerge/automerge-repo-storage-nodefs": "v1.1.0-alpha.7",
     "@localfirst/auth": "workspace:*",
     "@localfirst/auth-provider-automerge-repo": "workspace:*",
     "@localfirst/auth-shared": "workspace:*",
