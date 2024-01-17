@@ -152,7 +152,7 @@ export class Team extends EventEmitter {
 
   /** We use the hash of the graph's root as a unique ID for the team. */
   public get id() {
-    return this.graph.root
+    return this.graph.root as Base58
   }
 
   /** Returns this team's user-facing name. */

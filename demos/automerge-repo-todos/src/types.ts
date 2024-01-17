@@ -30,7 +30,7 @@ export type LocalState = {
   userName?: string // the user's name (not the same as the user's id)
   device?: Auth.DeviceWithSecrets // the local lf/auth device
   user?: Auth.UserWithSecrets // the local lf/auth user
-  teamId?: ShareId // the local lf/auth team's id
+  shareId?: ShareId // truncated lf/auth team id
   rootDocumentId?: DocumentId
 }
 

@@ -11,7 +11,7 @@ import {
   type KeysetWithSecrets,
   type ServerWithSecrets,
 } from '@localfirst/auth'
-import { AuthProvider } from '@localfirst/auth-provider-automerge-repo'
+import { AuthProvider, getShareId, type ShareId } from '@localfirst/auth-provider-automerge-repo'
 import { debug } from '@localfirst/auth-shared'
 import bodyParser from 'body-parser'
 import cors from 'cors'
@@ -138,11 +138,21 @@ export class LocalFirstAuthSyncServer {
             teamKeyring,
           })
 
-          if (auth.hasTeam(team.id)) {
+          if (auth.hasTeam(getShareId(team))) {
             res.status(500).send(`Team ${team.id} already registered`)
           }
+
           // add the team to our auth provider
           await auth.addTeam(team)
+          res.end()
+        })
+
+        .post('/public-shares', async (req, res) => {
+          this.log('POST /public-shares %o', req.body)
+          const { shareId } = req.body as {
+            shareId: ShareId
+          }
+          await auth.joinPublicShare(shareId)
           res.end()
         })
 

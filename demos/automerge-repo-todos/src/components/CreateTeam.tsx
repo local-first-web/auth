@@ -1,72 +1,42 @@
-import { Repo, type PeerId } from '@automerge/automerge-repo'
-import { BrowserWebSocketClientAdapter } from '@automerge/automerge-repo-network-websocket'
-import { IndexedDBStorageAdapter } from '@automerge/automerge-repo-storage-indexeddb'
 import * as Auth from '@localfirst/auth'
-import { AuthProvider } from '@localfirst/auth-provider-automerge-repo'
-import { debug, eventPromise, pause } from '@localfirst/auth-shared'
 import cx from 'classnames'
 import { useState } from 'react'
 import type { SharedState } from '../types'
-import { addServerToTeam } from '../util/addServerToTeam'
-import { getSyncServerWebsocketUrl } from '../util/getSyncServer'
+import { initializeAuthRepo } from '../util/initializeAuthRepo'
 import { storeRootDocumentIdOnTeam } from '../util/storeRootDocumentIdOnTeam'
 import { type SetupCallback } from './FirstUseSetup'
+import { createDevice } from '../util/createDevice'
 
 export const CreateTeam = ({ userName, onSetup }: Props) => {
-  const log = debug.extend(`create-team:${userName}`)
   const [teamName, setTeamName] = useState<string>('')
 
   const createTeam = async () => {
     if (!teamName || teamName.length === 0) return
+
+    // Create new user and device
     const user = Auth.createUser(userName)
-    const device = Auth.createDevice(user.userId, 'device')
-    const team = Auth.createTeam(teamName, { user, device })
+    const device = createDevice(user.userId)
 
-    log('created user', { user: userName, deviceId: device.deviceId })
+    // Create repo and auth provider
+    const { auth, repo } = await initializeAuthRepo({ user, device })
 
-    const storage = new IndexedDBStorageAdapter()
-    const auth = new AuthProvider({ user, device, storage })
+    // The auth provider creates a team, registers it with the server, and waits for connection
+    const team = await auth.createTeam(teamName)
 
-    const url = getSyncServerWebsocketUrl()
-    const adapter = new BrowserWebSocketClientAdapter(url)
-    const authAdapter = auth.wrap(adapter)
-
-    // Create new automerge-repo with websocket adapter
-    const repo = new Repo({
-      peerId: device.deviceId as PeerId,
-      network: [authAdapter],
-      storage,
-    })
-
-    await Promise.all([
-      eventPromise(authAdapter, 'ready'),
-      eventPromise(auth, 'ready'),
-      eventPromise(repo.networkSubsystem, 'ready'),
-    ])
-
-    await addServerToTeam(team)
-    await auth.addTeam(team)
-
-    await eventPromise(auth, 'connected')
-    await pause(500)
-
+    // Since this is a new team, we also need to create a new root document.
     const handle = repo.create<SharedState>()
     const rootDocumentId = handle.documentId
+    handle.change(s => (s.todos = []))
 
-    handle.change(s => {
-      s.todos = []
-    })
-    const doc = await handle.doc()
-
-    log(`created root document ${rootDocumentId}`)
-
+    // Store the root document ID on the team so other devices can find it
     storeRootDocumentIdOnTeam(team, rootDocumentId)
-    onSetup({ device, user, team, auth, repo, rootDocumentId })
+
+    onSetup({ device, user, team, auth, repo })
   }
 
   return (
     <form
-      className={cx(['flex flex-col space-y-4 border rounded-md p-6 m-6', 'w-full', 'sm:w-[25em]'])}
+      className={cx(['flex flex-col space-y-4 p-4'])}
       onSubmit={e => {
         e.preventDefault()
         createTeam()
@@ -76,22 +46,17 @@ export const CreateTeam = ({ userName, onSetup }: Props) => {
         <label htmlFor="teamName">Enter a name for your team:</label>
       </p>
 
-      <div className={cx(['flex w-full ', 'flex-col space-y-2', 'sm:flex-row sm:space-x-2'])}>
+      <div className="m-auto flex flex-col space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
         <input
+          type="text"
+          className="textbox-auth flex-grow"
           id="teamName"
           name="teamName"
-          type="text"
-          autoFocus={true}
+          autoFocus
           value={teamName}
           onChange={e => setTeamName(e.target.value)}
-          className={cx([
-            'border py-1 px-3 flex-grow rounded-md font-bold',
-            'text-sm',
-            'sm:text-base',
-          ])}
-          placeholder=""
         />
-        <button type="button" className="justify-center" onClick={createTeam}>
+        <button type="submit" className="button button-sm button-primary justify-center">
           Create team
         </button>
       </div>

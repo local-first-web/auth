@@ -11,7 +11,7 @@ export const Todo = ({ url, onDestroy, filter }: TodoProps) => {
   const [editing, setEditing] = useState(false)
 
   // the content of the todo when editing
-  const [content, setContent] = useState(todo?.content)
+  const [content, setContent] = useState(todo?.content ?? '')
 
   // the input element for editing the todo content
   const contentInput = useRef<HTMLInputElement>(null)
@@ -29,7 +29,7 @@ export const Todo = ({ url, onDestroy, filter }: TodoProps) => {
 
   // update the input when the content of the todo is modified from elsewhere
   useEffect(() => {
-    setContent(todo?.content)
+    setContent(todo?.content ?? '')
   }, [todo?.content])
 
   if (!todo) return null

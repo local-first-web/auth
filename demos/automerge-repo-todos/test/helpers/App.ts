@@ -1,14 +1,14 @@
+import { pause } from '@localfirst/auth-shared'
 import { type BrowserContext, type ConsoleMessage, type Page } from '@playwright/test'
-import { assert, pause } from '@localfirst/auth-shared'
-import { expect } from '../helpers/expect'
+import { expect } from './expect'
 
 export const newBrowser = async (context: BrowserContext) => {
   const browser = await context.browser()!.newContext()
   const page = await browser.newPage()
-  return new BasePage(page).start()
+  return new App(page).start()
 }
 
-export class BasePage {
+export class App {
   userName?: string
   teamName?: string
 
@@ -26,16 +26,17 @@ export class BasePage {
   async start() {
     await this.page.goto('/')
 
-    // feed browser logs to test output
-    this.page.on('console', msg => {
-      this.log(msg)
-    })
+    const debug = process.env.DEBUG
+    if (debug) {
+      // feed browser logs to test output
+      this.page.on('console', msg => this.log(msg))
 
-    // enable debug logging
-    await this.page.evaluate(`window.localStorage.setItem('debug', '*')`)
-    // reload so these take effect
-    await pause(500)
-    await this.page.reload()
+      // enable debug logging
+      await this.page.evaluate(`window.localStorage.setItem('debug', '${debug}')`)
+      // reload so these take effect
+      await pause(500)
+      await this.page.reload()
+    }
     return this
   }
 
@@ -46,7 +47,7 @@ export class BasePage {
   }
 
   get expect() {
-    return expect(this.page)
+    return expect(this)(this.page)
   }
 
   async pressButton(name?: string) {
@@ -96,15 +97,52 @@ export class BasePage {
     return invitationCode
   }
 
+  async createDeviceInvitation() {
+    await this.pressButton('Add a device')
+    await this.pressButton('Copy')
+    await this.page.keyboard.press('Escape')
+    const invitationCode: string = await this.getClipboard()
+    return invitationCode
+  }
+
   async joinAsMember(userName: string, invitationCode: string) {
     await this.enterFirstName(userName)
     await this.pressButton()
 
-    await this.pressButton('Join')
+    await this.pressButton('Join a team')
 
     await this.page.getByLabel('Invitation code').fill(invitationCode)
     await this.pressButton('Join')
-    await this.page.getByRole('button', { name: 'Clear completed' }).isVisible()
-    await pause(1000)
+  }
+
+  async joinAsDevice(userName: string, invitationCode: string) {
+    await this.enterFirstName(userName)
+    await this.pressButton()
+
+    await this.pressButton('Authorize this device')
+
+    await this.page.getByLabel('Invitation code').fill(invitationCode)
+    await this.pressButton('Join')
+  }
+
+  members() {
+    return this.page.locator('table.MemberTable')
+  }
+
+  // TODOS
+
+  todos(index?: number) {
+    const todos = this.page.locator('ul > li').getByRole('textbox')
+    return index === undefined ? todos : todos.nth(index)
+  }
+
+  async addTodo(text: string) {
+    const newTodo = this.page.getByPlaceholder('Add a new todo')
+    await newTodo.fill(text)
+    await newTodo.press('Enter')
+  }
+
+  async toggleTodo(index: number) {
+    await this.page.getByRole('checkbox').nth(index).click()
   }
 }

@@ -1,76 +1,94 @@
-import { test } from '@playwright/test'
-import { newBrowser } from './helpers/basePage'
-import { expect } from './helpers/expect'
+import { expect, test } from '@playwright/test'
+import { newBrowser } from './helpers/App'
 
-const userName = 'herb'
-const teamName = 'DevResults'
-
-test.describe('Create team', () => {
-  test('creates a team', async ({ context }) => {
-    const app = await newBrowser(context)
-    await app.createTeam(userName, teamName)
-    await app.expect.toBeLoggedIn()
-  })
-
-  test('can use the enter key to submit', async ({ context }) => {
-    const app = await newBrowser(context)
-    await app.enterFirstName(userName)
-    await app.pressEnter()
-
-    // press "create a team"
-
-    await app.pressButton('Create')
-
-    // provide team name
-    await app.enterTeamName(teamName)
-    await app.pressEnter()
-
-    await app.expect.toBeLoggedIn()
-  })
-
-  test('team is persisted', async ({ context }) => {
-    const app = await newBrowser(context)
-    await app.createTeam(userName, teamName)
-    await app.expect.toBeLoggedIn()
-
-    await app.reload()
-
-    await app.expect.toBeLoggedIn()
-  })
-
-  test('logs in with an arbitrary name', async ({ context }) => {
-    const app = await newBrowser(context)
-    await app.createTeam('reginald', teamName)
-    await app.expect.toBeLoggedIn('reginald')
-  })
+test('creates a team', async ({ context }) => {
+  const alice = await newBrowser(context)
+  await alice.createTeam('Alice', 'Alice & friends')
+  await alice.expect.toBeLoggedIn('Alice')
 })
 
-test.describe('Invitations', () => {
-  test('creates a member invitation', async ({ context }) => {
-    const alice = await newBrowser(context)
-    await alice.createTeam('alice', teamName)
-    const invitationCode = await alice.createMemberInvitation()
+test('can use the enter key to submit', async ({ context }) => {
+  const alice = await newBrowser(context)
+  await alice.enterFirstName('Alice')
+  await alice.pressEnter()
 
-    expect(invitationCode.length).toBeGreaterThan(50)
-    expect(invitationCode).toContain('_')
+  // press "create a team"
+  await alice.pressButton('Create')
 
-    await alice.reload()
-    await alice.expect.toBeLoggedIn('alice')
-  })
+  // provide team name
+  await alice.enterTeamName('Alice & friends')
+  await alice.pressEnter()
 
-  test('uses an invitation', async ({ context }) => {
-    // This ensures that there's more than one team on the sync server
-    const noise = await newBrowser(context)
-    noise.createTeam('noise', `noise team`)
+  await alice.expect.toBeLoggedIn('Alice')
+})
 
-    const alice = await newBrowser(context)
-    await alice.createTeam('alice', teamName)
+test('team is persisted', async ({ context }) => {
+  const alice = await newBrowser(context)
+  await alice.createTeam('Alice', 'Alice & friends')
+  await alice.expect.toBeLoggedIn('Alice')
 
-    const invitationCode = await alice.createMemberInvitation()
+  await alice.reload()
 
-    const bob = await newBrowser(context)
-    await bob.joinAsMember('bob', invitationCode)
+  await alice.expect.toBeLoggedIn('Alice')
+})
 
-    await bob.expect.toBeLoggedIn('bob')
-  })
+test('logs in with an arbitrary name', async ({ context }) => {
+  const reginald = await newBrowser(context)
+  await reginald.createTeam('Reginald', 'Alice & friends')
+  await reginald.expect.toBeLoggedIn('Reginald')
+})
+
+test('creates a member invitation', async ({ context }) => {
+  const alice = await newBrowser(context)
+  await alice.createTeam('Alice', 'Alice & friends')
+  const invitationCode = await alice.createMemberInvitation()
+
+  expect(invitationCode.length).toBeGreaterThan(12)
+
+  await alice.reload()
+  await alice.expect.toBeLoggedIn('Alice')
+})
+
+test('uses an invitation to join as member', async ({ context }) => {
+  // This ensures that there's more than one team on the sync server, since that was causing
+  // intermittent test failures at one point.
+  const noise = await newBrowser(context)
+  noise.createTeam('noise', `Noise team`)
+
+  const alice = await newBrowser(context)
+  await alice.createTeam('Alice', 'Alice & friends')
+
+  const invitationCode = await alice.createMemberInvitation()
+
+  const bob = await newBrowser(context)
+  await bob.joinAsMember('Bob', invitationCode)
+
+  await bob.expect.toBeLoggedIn('Bob')
+})
+
+test('sees new members when they join', async ({ context }) => {
+  const alice = await newBrowser(context)
+  await alice.createTeam('Alice', 'Alice & friends')
+
+  const invitationCode = await alice.createMemberInvitation()
+
+  const bob = await newBrowser(context)
+  await bob.joinAsMember('Bob', invitationCode)
+
+  await bob.expect.toBeLoggedIn('Bob')
+
+  // Alice sees Bob in the list of members without needing to reload
+  await alice.expect.toSeeMember('Bob')
+})
+
+test('uses an invitation to join as device', async ({ context }) => {
+  const laptop = await newBrowser(context)
+  await laptop.createTeam('Alice', 'Alice & friends')
+
+  const invitationCode = await laptop.createDeviceInvitation()
+
+  const phone = await newBrowser(context)
+  await phone.joinAsDevice('Alice', invitationCode)
+
+  await phone.expect.toBeLoggedIn('Alice')
 })

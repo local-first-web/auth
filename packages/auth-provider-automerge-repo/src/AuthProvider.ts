@@ -1,19 +1,23 @@
 import type {
   DocumentId,
+  Message,
   NetworkAdapter,
   PeerId,
-  Message,
   StorageAdapter,
 } from '@automerge/automerge-repo'
 import * as Auth from '@localfirst/auth'
-import { debug, eventPromise } from '@localfirst/auth-shared'
+import { debug, memoize, pause } from '@localfirst/auth-shared'
+import { hash } from '@localfirst/crypto'
+import { type AbstractConnection } from 'AbstractConnection.js'
+import { AnonymousConnection } from 'AnonymousConnection.js'
 import { EventEmitter } from 'eventemitter3'
 import { pack, unpack } from 'msgpackr'
+import { isJoinMessage, type JoinMessage } from 'types.js'
 import { AuthenticatedNetworkAdapter as AuthNetworkAdapter } from './AuthenticatedNetworkAdapter.js'
+import { CompositeMap } from './CompositeMap.js'
 import { forwardEvents } from './forwardEvents.js'
 import type {
   AuthProviderEvents,
-  Config,
   Invitation,
   LocalFirstAuthMessage,
   LocalFirstAuthMessagePayload,
@@ -22,8 +26,8 @@ import type {
   Share,
   ShareId,
 } from './types.js'
-import { isAuthMessage, isDeviceInvitation } from './types.js'
-import { CompositeMap } from './CompositeMap.js'
+import { isAuthMessage, isDeviceInvitation, isPrivateShare } from './types.js'
+import { getShareId } from 'getShareId.js'
 
 const { encryptBytes, decryptBytes } = Auth.symmetric
 
@@ -59,13 +63,15 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   readonly #adapters: Array<AuthNetworkAdapter<NetworkAdapter>> = []
   readonly #invitations = new Map<ShareId, Invitation>()
   readonly #shares = new Map<ShareId, Share>()
-  readonly #connections = new CompositeMap<[ShareId, PeerId], Auth.Connection>()
+  readonly #connections = new CompositeMap<[ShareId, PeerId], AbstractConnection>()
   readonly #storedMessages = new CompositeMap<[ShareId, PeerId], Uint8Array[]>()
   readonly #peers = new Map<NetworkAdapter, PeerId[]>()
+  readonly #server: string[]
+  readonly #peerShareIdHashes = new Map<PeerId, Set<Auth.Base58>>()
 
   #log = debug.extend('auth-provider')
 
-  constructor({ device, user, storage }: Config) {
+  constructor({ device, user, storage, server = [] }: Config) {
     super()
 
     // We always are given the local device's info & keys
@@ -81,6 +87,9 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       userName: user?.userName,
       deviceId: device.deviceId,
     })
+
+    this.#server = asArray(server)
+
     // Load any existing state from storage
     this.storage = storage
     this.#loadState()
@@ -103,55 +112,61 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       const connection = this.#getConnection(shareId, message.targetId)
 
       // wait for connection to be ready before sending
+      const connected = new Promise<void>(resolve => {
+        if (connection.state === 'connected') resolve()
+        else connection.once('connected', () => resolve())
+      })
 
-      const awaitConnected = async (connection: Auth.Connection) => {
-        this.#log('awaitConnected (%s)', connection.state)
-        if (connection.state === 'connected') return
-        return eventPromise(connection, 'connected')
-      }
-
-      awaitConnected(connection)
-        .then(() => {
-          connection.send(message)
-        })
-        .catch(error => {
-          this.#log('error sending message from connection %o', error)
-        })
+      connected
+        .then(() => connection.send(message))
+        .catch(error => this.#log('error sending message from connection %o', error))
     }
     const authAdapter = new AuthNetworkAdapter(baseAdapter, send)
 
-    // try to authenticate new peers; if we succeed, we forward the peer-candidate to the network subsystem
     baseAdapter
-      .on('peer-candidate', ({ peerId }) => {
-        // TODO: we need to store the storageId and isEphemeral in order to provide that info in the peer-candidate event
 
+      .on('peer-candidate', async ({ peerId }) => {
+        // Try to authenticate new peers; if we succeed, we forward the peer-candidate to the network subsystem
+
+        // TODO: we need to store the storageId and isEphemeral in order to provide that info in the
+        // peer-candidate event
         this.#log('peer-candidate %o', peerId)
-        this.#addPeer(baseAdapter, peerId)
 
-        // We optimistically spin up a connection for each share we have and every unused invitation
-        // we have. Messages regarding shares we're not a member of will be ignored.
-        for (const shareId of this.#allShareIds())
-          void this.#createConnection({ shareId, peerId, authAdapter })
+        // Track each peer by the adapter used to connect to it
+        const peers = this.#peers.get(authAdapter.baseAdapter) ?? []
+        if (!peers.includes(peerId)) {
+          peers.push(peerId)
+          this.#peers.set(authAdapter.baseAdapter, peers)
+          this.#peerShareIdHashes.set(peerId, new Set())
+        }
+
+        await this.#sendJoinMessage(authAdapter, peerId)
       })
 
       // Intercept any incoming messages and pass them to the Auth.Connection.
       .on('message', message => {
         this.#log('message from adapter %o', message)
 
-        if (!isAuthMessage(message)) throw new Error('Not an auth message')
-        const { senderId, payload } = message
-        const { shareId, serializedConnectionMessage } = payload as LocalFirstAuthMessagePayload
+        if (isJoinMessage(message)) {
+          this.#receiveJoinMessage(authAdapter, message)
+        } else if (isAuthMessage(message)) {
+          const { senderId, payload } = message
 
-        // If we don't have a connection for this message, store it until we do
-        if (!this.#connections.has([shareId, senderId])) {
-          this.#storeMessage(shareId, senderId, serializedConnectionMessage)
-          return
+          const { shareId, serializedConnectionMessage } = payload as LocalFirstAuthMessagePayload
+
+          // If we don't have a connection for this message, store it until we do
+          if (!this.#connections.has([shareId, senderId])) {
+            this.#storeMessage(shareId, senderId, serializedConnectionMessage)
+            return
+          }
+
+          // Pass message to the auth connection
+          const connection = this.#getConnection(shareId, senderId)
+
+          connection.deliver(serializedConnectionMessage)
+        } else {
+          throw new Error(`Unhandled message type: ${message.type}}`)
         }
-
-        // Pass message to the auth connection
-        const connection = this.#getConnection(shareId, senderId)
-
-        connection.deliver(serializedConnectionMessage)
       })
 
       .on('peer-disconnected', ({ peerId }) => {
@@ -165,42 +180,154 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       })
 
     // forward all other events from the base adapter to the repo
-    forwardEvents(baseAdapter, authAdapter, ['ready', 'close', 'peer-disconnected', 'error'])
+    forwardEvents(baseAdapter, authAdapter, ['close', 'peer-disconnected', 'error'])
 
     this.#adapters.push(authAdapter)
     return authAdapter
   }
 
+  /**
+   * Returns the share with the given id. Throws an error if the shareId doesn't exist.
+   */
   public getShare(shareId: ShareId) {
     const share = this.#shares.get(shareId)
     if (!share) throw new Error(`Share not found`)
     return share
   }
 
-  public async addTeam(team: Auth.Team) {
-    this.#log('adding team %o', team.teamName)
-    const shareId = team.id
-    const share: Share = { shareId, team, documentIds: new Set() }
-    this.#shares.set(shareId, share)
-    await this.#saveState()
-    team.on('updated', async () => {
-      await this.#saveState()
+  /**
+   * Creates a team and registers it with all of our sync servers.
+   */
+  public async createTeam(teamName: string) {
+    const team = await Auth.createTeam(teamName, {
+      device: this.#device,
+      user: this.#user,
     })
+
+    await this.registerTeam(team)
+    return team
+  }
+
+  /**
+   * Registers an existing team with all of our sync servers.
+   */
+  public async registerTeam(team: Auth.Team) {
+    await this.addTeam(team)
+
+    const registrations = this.#server.map(async url => {
+      // url could be "localhost:3000" or "syncserver.example.com"
+      const host = url.split(':')[0] // omit port
+
+      // get the server's public keys
+      const response = await fetch(`http://${url}/keys`)
+      const keys = await response.json()
+
+      // add the server's public keys to the team
+      team.addServer({ host, keys })
+
+      // register the team with the server
+      await fetch(`http://${url}/teams`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serializedGraph: team.save(),
+          teamKeyring: team.teamKeyring(),
+        }),
+      })
+    })
+    await Promise.all(registrations)
+  }
+
+  /**
+   * Creates a private share for a team we're already a member of.
+   */
+  public async addTeam(team: Auth.Team) {
+    const shareId = getShareId(team)
+
+    if (this.hasTeam(shareId)) {
+      this.#log(`not adding team ${shareId} as it already exists`)
+      return
+    }
+
+    this.#log(`adding team ${shareId}`)
+
+    this.#shares.set(shareId, {
+      shareId,
+      team,
+      documentIds: new Set(),
+    })
+
+    // persist our state now and whenever the team changes
+    await this.#saveState()
+    team.on('updated', async () => this.#saveState())
+
+    // connect with any peers who also have this share
     await this.#createConnectionsForShare(shareId)
   }
 
+  /**
+   * Returns true if there is a private share with the given id.
+   */
   public hasTeam(shareId: ShareId) {
-    return this.#shares.has(shareId) && this.#shares.get(shareId)?.team !== undefined
+    return this.#shares.has(shareId) && isPrivateShare(this.getShare(shareId))
   }
 
+  /**
+   * Returns the team with the given id. Throws an error if the shareId doesn't exist or if it
+   * doesn't have a team (is public).
+   */
   public getTeam(shareId: ShareId) {
     const share = this.getShare(shareId)
+    if (!isPrivateShare(share)) throw new Error(`Share ${shareId} is public`)
     return share.team
   }
 
+  /**
+   * Creates a share for a team we've been invited to, either as a new member or as a new device for
+   * an existing member.
+   */
   public async addInvitation(invitation: Invitation) {
     const { shareId } = invitation
     this.#invitations.set(shareId, invitation)
+    await this.#createConnectionsForShare(shareId)
+  }
+
+  /**
+   * Creates a new public share that can be joined by anyone who knows the share ID, and registers
+   * it with all of our sync servers.
+   */
+  public async createPublicShare(shareId: ShareId) {
+    this.#log('joining public share %s', shareId)
+    await this.registerPublicShare(shareId)
+    await this.joinPublicShare(shareId)
+  }
+
+  /**
+   * Registers a share with all of our sync servers.
+   */
+  public async registerPublicShare(shareId: ShareId) {
+    const registrations = this.#server.map(async url => {
+      await fetch(`http://${url}/public-shares`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shareId }),
+      })
+    })
+    await Promise.all(registrations)
+  }
+
+  /**
+   * Joins a public share that already exists.
+   */
+  public async joinPublicShare(shareId: ShareId) {
+    this.#log('joining public share %s', shareId)
+    const share = this.#shares.get(shareId)
+
+    if (!share) {
+      this.#shares.set(shareId, { shareId })
+      await this.#saveState()
+    }
+
     await this.#createConnectionsForShare(shareId)
   }
 
@@ -234,11 +361,12 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   }
 
   /**
+   * TODO: note that this can also be an anonymous share
    * An Auth.Connection executes the localfirst/auth protocol to authenticate a peer, negotiate a
    * shared secret key for the session, and sync up the team graph. This communication happens
    * over a network adapter that we've wrapped.
    */
-  async #createConnection<T extends NetworkAdapter>({
+  async #maybeCreateConnection<T extends NetworkAdapter>({
     shareId,
     peerId,
     authAdapter,
@@ -247,7 +375,16 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     peerId: PeerId
     authAdapter: AuthNetworkAdapter<T>
   }) {
-    this.#log('creating connection %o', { shareId, peerId })
+    if (!this.#peerShareIdHashes.get(peerId)!.has(hashShareId(shareId))) {
+      this.#log('peer %o does not have share %o', peerId, shareId)
+      return
+    }
+
+    if (this.#connections.has([shareId, peerId])) {
+      this.#log('connection already exists for %o', { shareId, peerId })
+      return
+    }
+
     const { baseAdapter } = authAdapter
 
     // wait until the adapter is ready
@@ -255,35 +392,41 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       if (authAdapter.isReady) resolve()
       else baseAdapter.once('ready', () => resolve())
     })
+    this.#log('creating connection %o', { shareId, peerId })
 
-    const connection = new Auth.Connection({
-      context: this.#getContextForShare(shareId),
-      // The Auth connection uses the base adapter as its network transport
-      sendMessage(serializedConnectionMessage) {
-        const authMessage: LocalFirstAuthMessage = {
-          type: 'auth',
-          senderId: baseAdapter.peerId!,
-          targetId: peerId,
-          payload: { shareId, serializedConnectionMessage },
-        }
-        baseAdapter.send(authMessage)
-      },
-    })
+    const context = this.#getContextForShare(shareId)
+
+    // The auth connection uses the base adapter as its network transport
+    const sendMessage = (serializedConnectionMessage: Uint8Array) => {
+      const authMessage: LocalFirstAuthMessage = {
+        type: 'auth',
+        senderId: baseAdapter.peerId!,
+        targetId: peerId,
+        payload: { shareId, serializedConnectionMessage },
+      }
+      baseAdapter.send(authMessage)
+    }
+
+    const connection =
+      context === 'anonymous'
+        ? new AnonymousConnection({ shareId, sendMessage })
+        : new Auth.Connection({ context, sendMessage })
+
+    // Track the connection
+    this.#log('setting connection %o', { shareId, peerId })
+    this.#connections.set([shareId, peerId], connection)
 
     connection
       .on('joined', async ({ team, user }) => {
         // When we successfully join a team, the connection gives us the team graph and the user's
-        // info (including keys). (When we're joining as a new device for an existing user, this
-        // is how we get the user's keys.)
+        // info (including keys).
 
-        if (user !== this.#user) this.#log = this.#log.extend(user.userName)
+        // When we're joining as a new device for an existing user, this is how we get the user's id and keys.
+        this.#user = user
+        this.#log = this.#log.extend(user.userName)
 
         // Create a share with this team
-        this.#user = user
-
         await this.addTeam(team)
-
-        await this.#saveState()
 
         // remove the used invitation as we no longer need it & don't want to present it to others
         this.#invitations.delete(shareId)
@@ -293,25 +436,29 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       })
 
       .on('connected', () => {
+        // If this is an Auth connection, we've successfully authenticated.
+
         // Let the application know
         this.emit('connected', { shareId, peerId })
+
         // Let the repo know we've got a new peer
         authAdapter.emit('peer-candidate', { peerId, peerMetadata: {} })
       })
 
       .on('message', message => {
-        // Forward messages that arrive via the connection's encrypted channel to the repo
+        // Forward messages that arrive via the connection's channel to the repo. In the case of an
+        // Auth connection, these have been decrypted and authenticated.
         authAdapter.emit('message', message as Message)
       })
 
       .on('updated', async () => {
-        // Team state has changed, so save our entire state
+        // (Auth connection only) Team state has changed, so save our entire state.
         await this.#saveState()
       })
 
       .on('localError', event => {
-        // These are errors that are detected locally, e.g. a peer tries to join with an invalid
-        // invitation
+        // (Auth connection only) These are errors that are detected locally, e.g. a peer tries to join with an invalid
+        // invitation.
         this.#log(`localError: ${JSON.stringify(event)}`)
 
         // Let the application know, e.g. to let me decide if I want to allow the peer to retry
@@ -319,8 +466,8 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       })
 
       .on('remoteError', event => {
-        // These are errors that are detected on the peer and reported to us, e.g. a peer rejects
-        // an invitation we tried to join with
+        // (Auth connection only) These are errors that are detected on the peer and reported to us,
+        // e.g. a peer rejects an invitation we tried to join with
         this.#log(`remoteError: ${JSON.stringify(event)}`)
 
         // Let the application know, e.g. to let me retry
@@ -338,18 +485,66 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
     // Track the connection
     this.#connections.set([shareId, peerId], connection)
-
-    // TODO: await connected?
   }
 
-  #addPeer(baseAdapter: NetworkAdapter, peerId: PeerId) {
-    this.#log('adding peer %o', peerId)
+  /**
+   * Send a list of our shareIds so we only try to connect on shares that we have in common. We send
+   * this when we first connect with a peer, and whenever we add a new share.
+   */
+  async #sendJoinMessage(
+    authAdapter: AuthNetworkAdapter<NetworkAdapter>,
+    peerId: PeerId,
+    shareIds = this.#allShareIds()
+  ) {
+    // omit shares for which we already have an active connection
+    const newShareIds = shareIds.filter(
+      shareId =>
+        !(
+          this.#connections.has([shareId, peerId]) &&
+          this.#getConnection(shareId, peerId).state === 'connected'
+        )
+    )
 
-    // Track each peer by the adapter uses to connect to it
-    const peers = this.#peers.get(baseAdapter) ?? []
-    if (!peers.includes(peerId)) {
-      peers.push(peerId)
-      this.#peers.set(baseAdapter, peers)
+    // don't send join message if we don't have any new shares to report
+    if (newShareIds.length === 0) return
+
+    const hashedShareIds = newShareIds.map(hashShareId)
+    // Send a join message with a list of hashes of our shareIds.
+    const joinMessage: JoinMessage = {
+      type: 'join-shares',
+      senderId: authAdapter.baseAdapter.peerId!,
+      targetId: peerId,
+      shareIdHashes: hashedShareIds,
+    }
+
+    this.#log('sending join message %o', joinMessage)
+    await pause(1)
+    authAdapter.baseAdapter.send(joinMessage)
+  }
+
+  /**
+   * Any time we receive shareIds from a peer, we add them to a list of shareIds that we keep for
+   * each peer, and create connections for any shares that we have in common.
+   */
+  #receiveJoinMessage(authAdapter: AuthNetworkAdapter<NetworkAdapter>, message: JoinMessage) {
+    this.#log('received join message %o', message)
+    const { senderId, shareIdHashes: hashedShareIds } = message
+
+    // make a map of hashed shareIds to our shareIds
+    const ourHashes = new Map(
+      this.#allShareIds().map(shareId => {
+        return [hashShareId(shareId), shareId]
+      })
+    )
+
+    const theirHashes = this.#peerShareIdHashes.get(senderId)! // this is created when we first see a peer
+    for (const hash of hashedShareIds) {
+      theirHashes.add(hash)
+      const shareId = ourHashes.get(hash)
+
+      if (shareId) {
+        void this.#maybeCreateConnection({ shareId, peerId: senderId, authAdapter })
+      }
     }
   }
 
@@ -378,7 +573,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
   #removeConnection(shareId: ShareId, peerId: PeerId) {
     const connection = this.#connections.get([shareId, peerId])
-    if (connection) {
+    if (connection && connection.state !== 'disconnected') {
       connection.stop()
       this.#connections.delete([shareId, peerId])
     }
@@ -388,13 +583,16 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   async #saveState() {
     const shares = {} as SerializedState
     for (const share of this.#shares.values()) {
-      const { shareId, team, documentIds } = share
-      shares[shareId] = {
-        shareId,
-        encryptedTeam: share.team.save(),
-        encryptedTeamKeys: encryptBytes(team.teamKeyring(), this.#device.keys.secretKey),
-        documentIds: Array.from(documentIds ?? []),
-      } as SerializedShare
+      const { shareId } = share
+      const documentIds = Array.from(share.documentIds ?? [])
+      shares[shareId] = isPrivateShare(share)
+        ? ({
+            shareId,
+            encryptedTeam: share.team.save(),
+            encryptedTeamKeys: encryptBytes(share.team.teamKeyring(), this.#device.keys.secretKey),
+            documentIds,
+          } as SerializedShare)
+        : { shareId, documentIds }
     }
     const serializedState = pack(shares)
 
@@ -410,18 +608,22 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
     await Promise.all(
       Object.values(savedShares).map(async share => {
-        const { shareId, encryptedTeam, encryptedTeamKeys } = share
-        this.#log('loading state', shareId)
+        if ('encryptedTeam' in share) {
+          const { shareId, encryptedTeam, encryptedTeamKeys } = share
+          this.#log('loading state', shareId)
 
-        const teamKeys = decryptBytes(
-          encryptedTeamKeys,
-          this.#device.keys.secretKey
-        ) as Auth.KeysetWithSecrets
+          const teamKeys = decryptBytes(
+            encryptedTeamKeys,
+            this.#device.keys.secretKey
+          ) as Auth.KeysetWithSecrets
 
-        const context = { device: this.#device, user: this.#user }
+          const context = { device: this.#device, user: this.#user }
 
-        const team = await Auth.loadTeam(encryptedTeam, context, teamKeys)
-        return this.addTeam(team)
+          const team = await Auth.loadTeam(encryptedTeam, context, teamKeys)
+          return this.addTeam(team)
+        } else {
+          return this.joinPublicShare(share.shareId)
+        }
       })
     )
   }
@@ -435,14 +637,18 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     const user = this.#user
     const invitation = this.#invitations.get(shareId)
     const share = this.#shares.get(shareId)
-    if (share)
+    if (share) {
+      if (!isPrivateShare(share)) {
+        return 'anonymous'
+      }
+
       // this is a share we're already a member of
       return {
         device,
         user,
         team: share.team,
       } as Auth.MemberContext
-    else if (invitation)
+    } else if (invitation)
       if (isDeviceInvitation(invitation))
         // this is a share we've been invited to as a device
         return {
@@ -462,18 +668,20 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     throw new Error(`no context for ${shareId}`)
   }
 
-  /** Go through all our peers and try to connect in case they're on the team */
+  /**
+   * Let our peers know that we're interested in this share, and connect with any peers that have
+   * already said they are interested in it.
+   */
   async #createConnectionsForShare(shareId: ShareId) {
     this.#log('createConnectionsForShare', shareId)
+
     await Promise.all(
-      this.#adapters.map(async authAdapter => {
+      this.#adapters.flatMap(async authAdapter => {
         const peerIds = this.#peers.get(authAdapter.baseAdapter) ?? []
         this.#log('creating connections for %o', peerIds)
         return peerIds.map(async peerId => {
-          const connection = this.#connections.get([shareId, peerId])
-          if (!connection) {
-            return this.#createConnection({ shareId, peerId, authAdapter })
-          }
+          await this.#sendJoinMessage(authAdapter, peerId, [shareId])
+          return this.#maybeCreateConnection({ shareId, peerId, authAdapter })
         })
       })
     )
@@ -487,53 +695,13 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
     // First we need to find all shareIds for which we have connections with the target peer
 
-    // TODO:
-    //
-    // When the base network adapter gives the AuthProvider a peer candidate, the AuthProvider
-    // optimistically tries to make an authenticated connection using every team it knows about. If
-    // both peers are on a team, the auth connection succeeds; the other connections don't succeed
-    // and are eventually cleaned up. But in the meantime, we have multiple connections for the
-    // peer. So when Alice connects, for a short while the server will have one connection in
-    // Alice's name for every team it knows about.
-    //
-    // When the repo wants to send a sync message to Alice, we don't currently have a really
-    // principled way of choosing which auth connection to send it over; we just pick one
-    // arbitrarily in that case.
-    //
-    // If Alice actually is on two teams and we have two authenticated connections with her, that's
-    // OK -- it really doesn't matter which connection the messages goes through. But you do need to
-    // choose a connection that is going to succeed, and the more teams the server knows about, the
-    // lower our chances of picking the right one.
-    //
-    // This explains why we originally were only getting the failure when other tests were running -
-    // not because they were changing the timing or anything, but because they were adding other
-    // teams to the same sync server. It also explains why we couldn't reproduce the failure by
-    // hand, because we were generally dealing with a fresh sync server that only knew about our
-    // team.
-    //
-    // I've gotten the test to pass consistently by only choosing from connections that have already
-    // succeeded. But that's a kind of brittle solution, because the repo could give you a message
-    // for a peer while you're still authenticating.
-    //
-    // I think the principled way to solve this is to add a step before spinning up any auth
-    // connections, where you say what team(s) you want to use to connect. If I'm Alice connecting
-    // directly with Bob, we'll just each say all the teams we're on and then just connect on any
-    // that we have in common. If I'm a sync server, I probably wouldn't give the full list of teams
-    // I know about; instead I'd wait for the peer to tell me their teams, and I'd just repeat back
-    // that list (assuming I'm on every team on the list). (Kind of analogous to the
-    // "generous"/"okToAdvertise" business with documents.)
-    const shareIdsForPeer = this.#allShareIds().filter(
-      shareId =>
-        this.#connections.has([shareId, targetId]) &&
-        this.#getConnection(shareId, targetId).state === 'connected'
+    const shareIdsForPeer = this.#allShareIds().filter(shareId =>
+      this.#connections.has([shareId, targetId])
     )
 
     if (shareIdsForPeer.length === 0) {
       throw new Error(`No share found for peer ${targetId} `)
     }
-
-    // Typically there should be exactly one shareId for a given peer
-    if (shareIdsForPeer.length === 1) return shareIdsForPeer[0]
 
     // However it's possible to have multiple auth connections with the same peer (one for each
     // share we're both a member of). To figure out which one to use, we need to look at the
@@ -546,4 +714,31 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   }
 }
 
-const STORAGE_KEY = ['AuthProvider', 'shares']
+const STORAGE_KEY = ['localfirst-auth', 'auth-provider-automerge-repo', 'shares']
+
+const asArray = <T>(x: T | T[]): T[] => (Array.isArray(x) ? x : [x])
+
+const hashShareId = memoize((shareId: ShareId) => {
+  return hash('HASH_SHARE_ID', shareId)
+})
+
+// TYPES
+
+type Config = {
+  /** We always have the local device's info and keys */
+  device: Auth.DeviceWithSecrets
+
+  /** We have our user info, unless we're a new device using an invitation */
+  user?: Auth.UserWithSecrets
+
+  /** We need to be given some way to persist our state */
+  storage: StorageAdapter
+
+  /**
+   * If we're using one or more sync servers, we provide their hostnames. The hostname should
+   * include the domain, as well as the port (if any). It should not include the protocol (e.g.
+   * `https://` or `ws://`) or any path (e.g. `/sync`). For example, `localhost:3000` or
+   * `syncserver.mydomain.com`.
+   */
+  server?: string | string[]
+}

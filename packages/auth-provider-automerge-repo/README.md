@@ -1,11 +1,10 @@
-<img src="https://raw.githubusercontent.com/local-first-web/branding/main/svg/auth-h.svg"
-width="300" alt="@localfirst/auth logo" />
+<img src="https://raw.githubusercontent.com/local-first-web/branding/main/svg/auth-h.svg" width="300" alt="@localfirst/auth logo" />
 
 ## Local-first auth provider for Automerge Repo
 
-This is an `AuthProvider` that uses the [localfirst/auth](/local-first-web/auth)
-library to provide [Automerge Repo](/automerge/automerge-repo) with authentication and end-to-end encryption, without the need
-for a central server.
+This is an `AuthProvider` that uses the [localfirst/auth](/local-first-web/auth) library to provide
+[Automerge Repo](/automerge/automerge-repo) with authentication and end-to-end encryption, without
+the need for a central server.
 
 It works by wrapping the network provider(s) used by the `Repo`.
 
@@ -36,13 +35,16 @@ const network = [authProvider.wrap(adapter)]
 const repo = new Repo({ network, storage })
 ```
 
-The context for authentication is a localfirst/auth `Team`. For example, Alice might create a team
+The context for authentication is a localfirst/auth team. For example, Alice might create a team
 and invite Bob to it.
 
 ```ts
 // Alice creates a team
-const team = Auth.createTeam('team A', aliceContext)
-authProvider.addTeam(team)
+const team = authProvider.createTeam('team A')
+
+// (this is a shorthand for creating the team yourself and adding it to the team)
+// const team = Auth.createTeam('team A', aliceContext)
+// authProvider.addTeam(team)
 
 // Alice creates an invitation code to send to Bob
 const { seed: bobInviteCode } = team.inviteMember()
@@ -64,7 +66,7 @@ const network = [authProvider.wrap(adapter)]
 const repo = new Repo({ network, storage })
 ```
 
-Rather than add a `Team` to the provider, Bob registers his invitation:
+Bob registers his invitation with the team:
 
 ```ts
 bobAuthProvider.addInvitation({
@@ -101,3 +103,38 @@ authenticated and safe from eavesdropping.
 For this to work with a sync server in a star-shaped network, the sync server needs to use the auth
 provider as well. For that we have [@localfirst/auth-syncserver](../auth-syncserver/), a drop-in
 replacement for the [Automerge Repo sync server](/automerge/automerge-repo-sync-server).
+
+When using the auth provider with a sync server, provide the server's hostname when instantiating:
+
+```ts
+const authProvider = new AuthProvider({
+  user,
+  device,
+  storage,
+  server: 'localhost:3030',
+})
+```
+
+If you use multiple sync servers, you can provide an array:
+
+```ts
+const authProvider = new AuthProvider({
+  user,
+  device,
+  storage,
+  server: ['sync1.example.com', 'sync2.example.com'],
+})
+```
+
+Alternatively, you can add servers to an existing provider:
+
+```ts
+authProvider.addServer('sync3.example.com')
+```
+
+When you use the auth provider to create a team, it will automatically register the new team with the
+server.
+
+```ts
+const team = authProvider.createTeam('team A')
+```

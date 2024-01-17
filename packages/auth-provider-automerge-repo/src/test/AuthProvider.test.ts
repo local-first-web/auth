@@ -3,11 +3,13 @@ import { MessageChannelNetworkAdapter } from '@automerge/automerge-repo-network-
 import { NodeFSStorageAdapter } from '@automerge/automerge-repo-storage-nodefs'
 import * as Auth from '@localfirst/auth'
 import { eventPromise } from '@localfirst/auth-shared'
+import { type ShareId } from 'types.js'
 import { describe, expect, it } from 'vitest'
 import { AuthProvider } from '../AuthProvider.js'
 import { authenticated, authenticatedInTime } from './helpers/authenticated.js'
 import { getStorageDirectory, setup, type UserStuff } from './helpers/setup.js'
 import { synced } from './helpers/synced.js'
+import { getShareId } from 'getShareId.js'
 
 describe('auth provider for automerge-repo', () => {
   it('does not authenticate users that do not belong to any teams', async () => {
@@ -47,17 +49,15 @@ describe('auth provider for automerge-repo', () => {
       teardown,
     } = setup(['alice', 'bob'])
 
-    const aliceTeam = Auth.createTeam('team A', alice.context)
-    await alice.authProvider.addTeam(aliceTeam)
+    const aliceTeam = await alice.authProvider.createTeam('team A')
 
     // Simulate Bob already being on Alice's team and having a copy of the team
     const bobTeam = putUserOnTeam(aliceTeam, bob)
-    await bob.authProvider.addTeam(bobTeam)
+
+    void bob.authProvider.addTeam(bobTeam)
 
     // they're able to authenticate and sync
-    const authWorked = await authenticatedInTime(alice, bob)
-    expect(authWorked).toBe(true)
-
+    await authenticated(alice, bob)
     await synced(alice, bob)
 
     teardown()
@@ -76,14 +76,13 @@ describe('auth provider for automerge-repo', () => {
     const { seed: bobInviteCode } = aliceTeam.inviteMember()
 
     // Bob uses the invitation to join
-    await bob.authProvider.addInvitation({
-      shareId: aliceTeam.id,
+    void bob.authProvider.addInvitation({
+      shareId: getShareId(aliceTeam),
       invitationSeed: bobInviteCode,
     })
 
     // they're able to authenticate and sync
-    const authWorked = await authenticatedInTime(alice, bob)
-    expect(authWorked).toBe(true)
+    await authenticated(alice, bob)
 
     await synced(alice, bob)
 
@@ -108,8 +107,11 @@ describe('auth provider for automerge-repo', () => {
     })
 
     const phoneStorage = new NodeFSStorageAdapter(getStorageDirectory('alice-phone'))
-    const phone = Auth.createDevice(alice.userId, "Alice's phone")
-    const phoneContext = { user: alice, device: phone }
+
+    // TODO: we're using userName instead of userId, because in the real world we don't know our userId yet.
+    // We probably need to update the userId once we know it.
+    const phone = Auth.createDevice(alice.userName, "Alice's phone")
+    const phoneContext = { userName: alice.userName, device: phone }
     const phoneAuth = new AuthProvider({ ...phoneContext, storage: phoneStorage })
 
     const phoneAdapter = new MessageChannelNetworkAdapter(phoneToLaptop)
@@ -126,14 +128,16 @@ describe('auth provider for automerge-repo', () => {
     const { seed: phoneInviteCode } = team.inviteDevice()
 
     await phoneAuth.addInvitation({
-      shareId: team.id,
-      userId: alice.userId,
+      shareId: getShareId(team),
       userName: alice.userName,
       invitationSeed: phoneInviteCode,
     })
 
     // Alice's phone is able to authenticate using the invitation
-    await authenticated(laptopRepo, phoneRepo) // ✅
+    await Promise.all([
+      eventPromise(laptopRepo.networkSubsystem, 'peer'),
+      eventPromise(phoneRepo.networkSubsystem, 'peer'),
+    ])
 
     laptopToPhone.close()
     phoneToLaptop.close()
@@ -153,7 +157,7 @@ describe('auth provider for automerge-repo', () => {
 
     // Eve knows Bob has been invited but doesn't know the code
     await eve.authProvider.addInvitation({
-      shareId: aliceTeam.id,
+      shareId: getShareId(aliceTeam),
       invitationSeed: 'passw0rd',
     })
 
@@ -200,17 +204,15 @@ describe('auth provider for automerge-repo', () => {
     await alice.authProvider.addTeam(aliceTeam)
 
     // Simulate Bob and Charlie already being on Alice's team and having a copy of the team
-    await bob.authProvider.addTeam(putUserOnTeam(aliceTeam, bob))
-    await charlie.authProvider.addTeam(putUserOnTeam(aliceTeam, charlie))
+    void bob.authProvider.addTeam(putUserOnTeam(aliceTeam, bob))
+    void charlie.authProvider.addTeam(putUserOnTeam(aliceTeam, charlie))
 
     // they're able to authenticate and sync
-
-    const authWorked = await Promise.all([
-      authenticatedInTime(alice, bob),
-      authenticatedInTime(charlie, bob),
-      authenticatedInTime(alice, charlie),
+    await Promise.all([
+      authenticated(alice, bob),
+      authenticated(charlie, bob),
+      authenticated(alice, charlie),
     ])
-    expect(authWorked.every(Boolean)).toBe(true)
 
     await Promise.all([synced(alice, bob), synced(alice, charlie), synced(bob, charlie)]) // ✅
 
@@ -227,9 +229,9 @@ describe('auth provider for automerge-repo', () => {
     await alice.authProvider.addTeam(aliceTeam)
 
     // Simulate the others already being on Alice's team and having a copy of the team
-    await bob.authProvider.addTeam(putUserOnTeam(aliceTeam, bob))
-    await charlie.authProvider.addTeam(putUserOnTeam(aliceTeam, charlie))
-    await dwight.authProvider.addTeam(putUserOnTeam(aliceTeam, dwight))
+    void bob.authProvider.addTeam(putUserOnTeam(aliceTeam, bob))
+    void charlie.authProvider.addTeam(putUserOnTeam(aliceTeam, charlie))
+    void dwight.authProvider.addTeam(putUserOnTeam(aliceTeam, dwight))
 
     // they're able to authenticate and sync
 
@@ -269,13 +271,12 @@ describe('auth provider for automerge-repo', () => {
 
     // Bob uses the invitation to join
     await bob.authProvider.addInvitation({
-      shareId: aliceTeam.id,
+      shareId: getShareId(aliceTeam),
       invitationSeed: bobInvite,
     })
 
     // they're able to authenticate and sync
-    const authWorked = await authenticatedInTime(alice, bob)
-    expect(authWorked).toBe(true) // ✅
+    await authenticated(alice, bob)
     await synced(alice, bob) // ✅
 
     // Alice and Bob both close and reopen their apps
@@ -289,9 +290,56 @@ describe('auth provider for automerge-repo', () => {
     const bob2 = bob.restart([bobToAlice])
 
     // they're able to authenticate and sync
-    const authWorkedAgain = await authenticatedInTime(alice2, bob2)
-    expect(authWorkedAgain).toBe(true) // ✅
+    await authenticated(alice2, bob2)
     await synced(alice2, bob2) // ✅
+
+    teardown()
+  })
+
+  it('allows peers to connect without authenticating via a public share', async () => {
+    const {
+      users: { alice, bob },
+      teardown,
+    } = setup(['alice', 'bob'])
+
+    const shareId = 'public-share-1' as ShareId
+    void alice.authProvider.joinPublicShare(shareId)
+    void bob.authProvider.joinPublicShare(shareId)
+
+    const authWorked = await authenticatedInTime(alice, bob)
+    expect(authWorked).toBe(true)
+    await synced(alice, bob)
+
+    teardown()
+  })
+
+  it('persists public shares', async () => {
+    const {
+      users: { alice, bob },
+      teardown,
+    } = setup(['alice', 'bob'])
+
+    const shareId = 'public-share-2' as ShareId
+    void alice.authProvider.joinPublicShare(shareId)
+
+    void bob.authProvider.joinPublicShare(shareId)
+
+    await authenticated(alice, bob)
+    await synced(alice, bob)
+
+    // Alice and Bob both close and reopen their apps
+
+    // reconnect via a new channel
+    const channel = new MessageChannel()
+    const { port1: aliceToBob, port2: bobToAlice } = channel
+
+    // instantiate new authProviders and repos using this channel
+    const alice2 = alice.restart([aliceToBob])
+    const bob2 = bob.restart([bobToAlice])
+
+    // they're able to authenticate and sync
+    await authenticated(alice2, bob2)
+    await synced(alice2, bob2)
 
     teardown()
   })

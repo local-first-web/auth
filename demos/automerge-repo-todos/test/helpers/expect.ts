@@ -1,24 +1,26 @@
 /* eslint-disable @typescript-eslint/no-inferrable-types */
-import { expect as baseExpect, type Page } from '@playwright/test'
 import { pause } from '@localfirst/auth-shared'
+import { expect as _expect, type Page } from '@playwright/test'
+import { App } from './App'
 
-export const expect = baseExpect.extend({
-  async toBeLoggedIn(page: Page, name: string = 'Herb') {
-    const firstCell = page.getByRole('cell')
-    const userNameText = firstCell.getByText(name)
-    await userNameText.click()
-    const check = await userNameText.isVisible()
-
-    if (check) {
+export const expect = (app: App) => {
+  const toSeeMember = async (page: Page, name: string) => {
+    const members = app.members()
+    try {
+      await _expect(members).toContainText(name)
       return {
-        message: () => 'user is logged in',
+        message: () => 'user is visible',
         pass: true,
       }
+    } catch (e: any) {
+      return {
+        message: () => `user is not visible`,
+        pass: false,
+      }
     }
-
-    return {
-      message: () => `user is not logged in`,
-      pass: false,
-    }
-  },
-})
+  }
+  return _expect.extend({
+    toSeeMember,
+    toBeLoggedIn: toSeeMember,
+  })
+}
