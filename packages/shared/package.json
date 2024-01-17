@@ -2,7 +2,7 @@
   "name": "@localfirst/auth-shared",
   "version": "5.2.0",
   "license": "MIT",
-  "private": true,
+  "private": false,
   "author": {
     "name": "Herb Caudill",
     "email": "herb@devresults.com"
