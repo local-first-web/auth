@@ -29,11 +29,11 @@
     "test:pw": "pnpm -F @localfirst/automerge-repo-todos test:pw",
     "test:pw:log": "pnpm -F @localfirst/automerge-repo-todos test:pw:log",
     "test:pw:ui": "pnpm -F @localfirst/automerge-repo-todos test:pw:ui",
-    "version:alpha": "lerna version prerelease --preid=alpha --yes",
-    "version:beta": "lerna version prerelease --preid=beta --yes",
-    "version:patch": "lerna version patch --yes",
-    "version:minor": "lerna version minor --yes",
-    "version:major": "lerna version major --yes",
+    "version:alpha": "lerna publish prerelease --preid=alpha --yes",
+    "version:beta": "lerna publish prerelease --preid=beta --yes",
+    "version:patch": "lerna publish patch --yes",
+    "version:minor": "lerna publish minor --yes",
+    "version:major": "lerna publish major --yes",
     "watch": "lerna watch -- lerna run build --scope=\\$LERNA_PACKAGE_NAME --include-dependents"
   },
   "devDependencies": {
