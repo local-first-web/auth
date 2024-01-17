@@ -21,8 +21,8 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@localfirst/auth-shared": "workspace:*",
-    "@localfirst/crypto": "workspace:*",
+    "@localfirst/auth-shared": "5.3.2",
+    "@localfirst/crypto": "5.3.2",
     "@paralleldrive/cuid2": "^2.2.2",
     "@types/lodash-es": "^4.17.12",
     "eventemitter3": "^5.0.1",
@@ -32,5 +32,5 @@
   "publishConfig": {
     "access": "public"
   },
-  "gitHead": "1497ffec3092c5b03672ebc0ef3fc272eb681f92"
+  "gitHead": "9a7b871e9e34268b32cc6e574189ec2350787b81"
 }

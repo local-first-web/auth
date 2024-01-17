@@ -1,10 +1,17 @@
 {
   "version": "5.3.2",
   "registry": "https://registry.npmjs.org/",
-  "publishConfig": {
-    "access": "public"
-  },
   "npmClient": "pnpm",
-  "packages": ["packages/*", "demos/*"],
-  "useNx": true
+  "packages": [
+    "packages/*",
+    "demos/*"
+  ],
+  "useNx": true,
+  "publish": {
+    "noPrivate": true,
+    "forcePublish": true,
+    "publishConfig": {
+      "access": "public"
+    }
+  }
 }

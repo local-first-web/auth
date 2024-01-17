@@ -26,8 +26,8 @@
   "dependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
     "@ibm/plex": "^6.3.0",
-    "@localfirst/auth": "workspace:*",
-    "@localfirst/auth-shared": "workspace:*",
+    "@localfirst/auth": "5.3.2",
+    "@localfirst/auth-shared": "5.3.2",
     "@localfirst/relay": "^4.2.2",
     "@paralleldrive/cuid2": "^2.2.2",
     "@testing-library/cypress": "^10.0.1",
@@ -72,5 +72,5 @@
   "publishConfig": {
     "access": "public"
   },
-  "gitHead": "1497ffec3092c5b03672ebc0ef3fc272eb681f92"
+  "gitHead": "9a7b871e9e34268b32cc6e574189ec2350787b81"
 }
