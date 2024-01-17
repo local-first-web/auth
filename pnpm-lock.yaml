@@ -195,10 +195,10 @@ importers:
         specifier: ^6.3.0
         version: 6.3.0
       '@localfirst/auth':
-        specifier: workspace:*
+        specifier: ^5.3.3
         version: link:../../packages/auth
       '@localfirst/auth-shared':
-        specifier: workspace:*
+        specifier: ^5.3.3
         version: link:../../packages/shared
       '@localfirst/relay':
         specifier: ^4.2.2
@@ -301,13 +301,13 @@ importers:
   packages/auth:
     dependencies:
       '@localfirst/auth-shared':
-        specifier: workspace:*
+        specifier: ^5.3.3
         version: link:../shared
       '@localfirst/crdx':
-        specifier: workspace:*
+        specifier: ^5.3.3
         version: link:../crdx
       '@localfirst/crypto':
-        specifier: workspace:*
+        specifier: ^5.3.3
         version: link:../crypto
       '@paralleldrive/cuid2':
         specifier: ^2.2.2
@@ -331,13 +331,13 @@ importers:
         specifier: v1.1.0-alpha.7
         version: 1.1.0-alpha.7(@types/node@18.18.13)(typescript@5.3.2)
       '@localfirst/auth':
-        specifier: workspace:*
+        specifier: ^5.3.3
         version: link:../auth
       '@localfirst/auth-shared':
-        specifier: workspace:*
+        specifier: ^5.3.3
         version: link:../shared
       '@localfirst/crypto':
-        specifier: workspace:*
+        specifier: ^5.3.3
         version: link:../crypto
       eventemitter3:
         specifier: ^5.0.1
@@ -368,13 +368,13 @@ importers:
         specifier: v1.1.0-alpha.7
         version: 1.1.0-alpha.7(@types/node@18.18.13)(typescript@5.3.2)
       '@localfirst/auth':
-        specifier: workspace:*
+        specifier: ^5.3.3
         version: link:../auth
       '@localfirst/auth-provider-automerge-repo':
-        specifier: workspace:*
+        specifier: ^5.3.3
         version: link:../auth-provider-automerge-repo
       '@localfirst/auth-shared':
-        specifier: workspace:*
+        specifier: ^5.3.3
         version: link:../shared
       body-parser:
         specifier: ^1.20.2
@@ -399,10 +399,10 @@ importers:
   packages/crdx:
     dependencies:
       '@localfirst/auth-shared':
-        specifier: workspace:*
+        specifier: ^5.3.3
         version: link:../shared
       '@localfirst/crypto':
-        specifier: workspace:*
+        specifier: ^5.3.3
         version: link:../crypto
       '@paralleldrive/cuid2':
         specifier: ^2.2.2
@@ -423,7 +423,7 @@ importers:
   packages/crypto:
     dependencies:
       '@localfirst/auth-shared':
-        specifier: workspace:*
+        specifier: ^5.3.3
         version: link:../shared
       '@types/lodash-es':
         specifier: ^4.17.12

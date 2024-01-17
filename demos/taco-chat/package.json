@@ -1,6 +1,6 @@
 {
   "name": "@localfirst/taco-chat",
-  "version": "5.3.2",
+  "version": "5.3.3",
   "author": {
     "name": "Herb Caudill",
     "email": "herb@devresults.com"
@@ -26,8 +26,8 @@
   "dependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
     "@ibm/plex": "^6.3.0",
-    "@localfirst/auth": "5.3.2",
-    "@localfirst/auth-shared": "5.3.2",
+    "@localfirst/auth": "^5.3.3",
+    "@localfirst/auth-shared": "^5.3.3",
     "@localfirst/relay": "^4.2.2",
     "@paralleldrive/cuid2": "^2.2.2",
     "@testing-library/cypress": "^10.0.1",

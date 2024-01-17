@@ -1,6 +1,6 @@
 {
   "name": "@localfirst/crypto",
-  "version": "5.3.2",
+  "version": "5.3.3",
   "license": "MIT",
   "private": false,
   "author": {
@@ -24,7 +24,7 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@localfirst/auth-shared": "5.3.2",
+    "@localfirst/auth-shared": "^5.3.3",
     "@types/lodash-es": "^4.17.12",
     "bs58": "^5.0.0",
     "libsodium-wrappers-sumo": "^0.7.13",
