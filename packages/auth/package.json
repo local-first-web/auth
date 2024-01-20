@@ -26,9 +26,9 @@
     "test:log": "cross-env DEBUG='localfirst*' DEBUG_COLORS=1 vitest --reporter basic"
   },
   "dependencies": {
-    "@localfirst/auth-shared": "^5.3.3",
-    "@localfirst/crdx": "^5.3.3",
-    "@localfirst/crypto": "^5.3.3",
+    "@localfirst/auth-shared": "workspace:*",
+    "@localfirst/crdx": "workspace:*",
+    "@localfirst/crypto": "workspace:*",
     "@paralleldrive/cuid2": "^2.2.2",
     "eventemitter3": "^5.0.1",
     "lodash-es": "^4.17.21",

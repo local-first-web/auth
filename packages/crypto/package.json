@@ -24,7 +24,7 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@localfirst/auth-shared": "^5.3.3",
+    "@localfirst/auth-shared": "workspace:*",
     "@types/lodash-es": "^4.17.12",
     "bs58": "^5.0.0",
     "libsodium-wrappers-sumo": "^0.7.13",

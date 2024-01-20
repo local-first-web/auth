@@ -21,8 +21,8 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@localfirst/auth-shared": "^5.3.3",
-    "@localfirst/crypto": "^5.3.3",
+    "@localfirst/auth-shared": "workspace:*",
+    "@localfirst/crypto": "workspace:*",
     "@paralleldrive/cuid2": "^2.2.2",
     "@types/lodash-es": "^4.17.12",
     "eventemitter3": "^5.0.1",
