@@ -4,8 +4,6 @@ width="600" alt="@localfirst/auth logo" />
 `@localfirst/auth` is a TypeScript library providing **decentralized authentication and
 authorization** for team collaboration, using a secure chain of cryptographic signatures.
 
-> 🚧 **This is a work in progress**
-
 ## Why
 
 🤝 You're building a [local-first](http://inkandswitch.com/local-first.html) app to enable
