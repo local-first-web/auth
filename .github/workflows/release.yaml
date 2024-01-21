@@ -39,9 +39,6 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.ref }}
-      - name: Copy README from root to auth
-        run: |
-          cp ./README.md ./packages/auth
       - name: Install Dependencies
         id: deps
         run: |
@@ -58,6 +55,7 @@ jobs:
         if: steps.tests.outcome == 'success'
         run: |
           git reset --hard
+          cp ./README.md ./packages/auth
           if [ "$NODE_AUTH_TOKEN" = "" ]; then
             echo "You need a NPM_TOKEN secret in order to publish."
             false
