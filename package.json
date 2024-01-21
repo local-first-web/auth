@@ -1,6 +1,6 @@
 {
   "name": "@localfirst/auth-monorepo",
-  "version": "0.0.0",
+  "version": "5.3.4",
   "private": true,
   "author": {
     "name": "Herb Caudill",
@@ -29,11 +29,6 @@
     "test:pw": "pnpm -F @localfirst/automerge-repo-todos test:pw",
     "test:pw:log": "pnpm -F @localfirst/automerge-repo-todos test:pw:log",
     "test:pw:ui": "pnpm -F @localfirst/automerge-repo-todos test:pw:ui",
-    "version:alpha": "lerna publish prerelease --preid=alpha --yes",
-    "version:beta": "lerna publish prerelease --preid=beta --yes",
-    "version:patch": "lerna publish patch --yes",
-    "version:minor": "lerna publish minor --yes",
-    "version:major": "lerna publish major --yes",
     "watch": "lerna watch -- lerna run build --scope=\\$LERNA_PACKAGE_NAME --include-dependents"
   },
   "devDependencies": {
