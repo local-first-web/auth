@@ -9,7 +9,6 @@
   },
   "description": "Shared utilities for the @localfirst/auth monorepo",
   "type": "module",
-  "main": "./dist/index.js",
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
