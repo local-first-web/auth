@@ -2,7 +2,7 @@ import { randomKey } from '@localfirst/crypto'
 import { IKEY_LENGTH } from 'invitation/create.js'
 
 /**
- * Randomly generates a 16-character base30 string, for example `4kgd5mwq5z4fmfwq`, to be used as
+ * Randomly generates a 16-character base58 string, for example `4kgd5mwq5z4fmfwq`, to be used as
  * the secret key for an invitation.
  *
  * The invitation key is a sent to Bob via a pre-authenticated channel (e.g. WhatsApp). If Alice is
