@@ -2,7 +2,7 @@
   "name": "@localfirst/automerge-repo-todos",
   "repository": "https://github.com/local-first-web/auth/tree/main/demos/automerge-repo-todos",
   "private": true,
-  "version": "5.3.8",
+  "version": "5.3.9",
   "type": "module",
   "scripts": {
     "dev": "run-p dev:open dev:syncserver:log",
