@@ -14,8 +14,8 @@ jobs:
     steps:
       - uses: actions/setup-node@v3
         with:
-          node-version: "18.x"
-          registry-url: "https://registry.npmjs.org"
+          node-version: '18.x'
+          registry-url: 'https://registry.npmjs.org'
       - uses: pnpm/action-setup@v2
         with:
           version: 8
@@ -29,4 +29,4 @@ jobs:
           pnpm install
           pnpm build
       - name: Run tests
-        run: pnpm test
+        run: pnpm test:all

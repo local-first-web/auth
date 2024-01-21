@@ -50,10 +50,11 @@ jobs:
       - name: Run Tests
         id: tests
         run: |
-          pnpm test
+          pnpm test:all
       - name: Publish Release
         if: steps.tests.outcome == 'success'
         run: |
+          git reset --hard
           if [ "$NODE_AUTH_TOKEN" = "" ]; then
             echo "You need a NPM_TOKEN secret in order to publish."
             false
