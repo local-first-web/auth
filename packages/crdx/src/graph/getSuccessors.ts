@@ -1,4 +1,4 @@
-﻿import { memoize } from '@localfirst/auth-shared'
+﻿import { memoize } from '@localfirst/shared'
 import { uniq } from 'lodash-es'
 import { type Hash } from 'util/index.js'
 import { getChildrenHashes } from './children.js'

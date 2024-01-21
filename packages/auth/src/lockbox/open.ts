@@ -1,4 +1,4 @@
-import { memoize } from '@localfirst/auth-shared'
+import { memoize } from '@localfirst/shared'
 import { type KeysetWithSecrets } from '@localfirst/crdx'
 import { asymmetric } from '@localfirst/crypto'
 import { type Lockbox } from 'lockbox/types.js'

@@ -1,4 +1,4 @@
-import { eventPromise, pause } from '@localfirst/auth-shared'
+import { eventPromise, pause } from '@localfirst/shared'
 import { type UserStuff } from './setup.js'
 
 export const authenticatedInTime = async (a: UserStuff, b: UserStuff, timeout = 500) => {

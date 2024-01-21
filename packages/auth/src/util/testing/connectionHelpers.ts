@@ -1,5 +1,5 @@
 // ignore file coverage
-import { eventPromise } from '@localfirst/auth-shared'
+import { eventPromise } from '@localfirst/shared'
 import { type Connection, type ConnectionEvents } from 'connection/index.js'
 import { type InviteeDeviceContext, type InviteeMemberContext } from 'connection/types.js'
 import type { EventEmitter } from 'eventemitter3'

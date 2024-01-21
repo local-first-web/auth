@@ -1,6 +1,6 @@
 import { stringifyAutomergeUrl, type AutomergeUrl } from '@automerge/automerge-repo'
 import { useDocument } from '@automerge/automerge-repo-react-hooks'
-import { assert } from '@localfirst/auth-shared'
+import { assert } from '@localfirst/shared'
 import { type SharedState } from '../types'
 import { useLocalState } from './useLocalState'
 

@@ -1,4 +1,4 @@
-﻿import { memoize } from '@localfirst/auth-shared'
+﻿import { memoize } from '@localfirst/shared'
 import { hash } from '@localfirst/crypto'
 import { ROOT, VALID } from 'constants.js'
 import { getRoot } from 'graph/getRoot.js'

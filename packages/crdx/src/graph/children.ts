@@ -1,4 +1,4 @@
-import { memoize } from '@localfirst/auth-shared'
+import { memoize } from '@localfirst/shared'
 import type { Action, Graph, Link } from 'graph/types.js'
 import { type Hash } from 'util/index.js'
 import { getLink } from './getLink.js'

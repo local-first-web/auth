@@ -24,7 +24,7 @@
     "@ibm/plex": "^6.1.1",
     "@localfirst/auth": "workspace:*",
     "@localfirst/auth-provider-automerge-repo": "workspace:*",
-    "@localfirst/auth-shared": "workspace:*",
+    "@localfirst/shared": "workspace:*",
     "@localfirst/auth-syncserver": "workspace:*",
     "@localfirst/crypto": "workspace:*",
     "@uidotdev/usehooks": "^2.4.1",

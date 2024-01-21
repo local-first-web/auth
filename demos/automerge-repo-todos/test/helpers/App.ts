@@ -1,4 +1,4 @@
-import { pause } from '@localfirst/auth-shared'
+import { pause } from '@localfirst/shared'
 import { type BrowserContext, type ConsoleMessage, type Page } from '@playwright/test'
 import { expect } from './expect'
 

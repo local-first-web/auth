@@ -1,7 +1,7 @@
 // ignore file coverage
 
 import sodium from 'libsodium-wrappers-sumo'
-import { memoize } from '@localfirst/auth-shared'
+import { memoize } from '@localfirst/shared'
 import type { Password, Base58 } from './types.js'
 import { base58, keyToBytes } from './util/index.js'
 

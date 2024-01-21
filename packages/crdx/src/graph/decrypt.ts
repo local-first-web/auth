@@ -11,7 +11,7 @@ import {
 import { createKeyring } from 'keyset/createKeyring.js'
 import { type Keyring, type KeysetWithSecrets } from 'keyset/index.js'
 import { type Hash } from 'util/index.js'
-import { assert } from '@localfirst/auth-shared'
+import { assert } from '@localfirst/shared'
 
 /**
  * Decrypts a single link of a graph, given the graph keys at the time the link was authored.

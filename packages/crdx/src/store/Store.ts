@@ -1,4 +1,4 @@
-import { assert } from '@localfirst/auth-shared'
+import { assert } from '@localfirst/shared'
 import { EventEmitter } from 'eventemitter3'
 import {
   append,

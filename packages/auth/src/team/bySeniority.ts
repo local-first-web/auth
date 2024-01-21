@@ -1,6 +1,6 @@
 import { isPredecessor } from '@localfirst/crdx'
 import { type TeamGraph, type TeamLink } from 'team/types.js'
-import { assert } from '@localfirst/auth-shared'
+import { assert } from '@localfirst/shared'
 
 export const bySeniority = (chain: TeamGraph) => (a: string, b: string) => {
   // If one of these created the chain, they win

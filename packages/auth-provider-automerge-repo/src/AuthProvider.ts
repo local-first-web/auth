@@ -6,7 +6,7 @@ import type {
   StorageAdapter,
 } from '@automerge/automerge-repo'
 import * as Auth from '@localfirst/auth'
-import { debug, memoize, pause } from '@localfirst/auth-shared'
+import { debug, memoize, pause } from '@localfirst/shared'
 import { hash } from '@localfirst/crypto'
 import { type AbstractConnection } from 'AbstractConnection.js'
 import { AnonymousConnection } from 'AnonymousConnection.js'

@@ -3,7 +3,7 @@ import { BrowserWebSocketClientAdapter } from '@automerge/automerge-repo-network
 import { IndexedDBStorageAdapter } from '@automerge/automerge-repo-storage-indexeddb'
 import type * as Auth from '@localfirst/auth'
 import { AuthProvider } from '@localfirst/auth-provider-automerge-repo'
-import { eventPromise } from '@localfirst/auth-shared'
+import { eventPromise } from '@localfirst/shared'
 import { host, wsUrl } from './syncServerUrl'
 
 /**

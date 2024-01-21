@@ -1,4 +1,4 @@
-import { assert, memoize } from '@localfirst/auth-shared'
+import { assert, memoize } from '@localfirst/shared'
 import { uniq } from 'lodash-es'
 import { type Hash } from 'util/index.js'
 import { getLink } from './getLink.js'

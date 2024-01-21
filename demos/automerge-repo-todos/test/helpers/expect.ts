@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-inferrable-types */
-import { pause } from '@localfirst/auth-shared'
+import { pause } from '@localfirst/shared'
 import { expect as _expect, type Page } from '@playwright/test'
 import { App } from './App'
 

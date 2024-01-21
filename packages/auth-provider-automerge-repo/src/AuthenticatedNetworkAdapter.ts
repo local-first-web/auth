@@ -1,5 +1,5 @@
 import { NetworkAdapter, type Message } from '@automerge/automerge-repo'
-import { eventPromise } from '@localfirst/auth-shared'
+import { eventPromise } from '@localfirst/shared'
 import { type ShareId } from 'types.js'
 
 /**

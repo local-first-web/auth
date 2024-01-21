@@ -1,7 +1,7 @@
 import { type UnixTimestamp } from '@localfirst/auth'
 import ClipboardJS from 'clipboard'
 import React, { type MutableRefObject, useEffect, useRef, useState } from 'react'
-import { assert } from '@localfirst/auth-shared'
+import { assert } from '@localfirst/shared'
 import { Button } from './Button.js'
 import { useTeam } from 'hooks/useTeam.js'
 

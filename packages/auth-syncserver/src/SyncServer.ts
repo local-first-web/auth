@@ -12,7 +12,7 @@ import {
   type ServerWithSecrets,
 } from '@localfirst/auth'
 import { AuthProvider, getShareId, type ShareId } from '@localfirst/auth-provider-automerge-repo'
-import { debug } from '@localfirst/auth-shared'
+import { debug } from '@localfirst/shared'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import express, { type ErrorRequestHandler } from 'express'

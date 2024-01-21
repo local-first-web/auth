@@ -1,6 +1,6 @@
 /* eslint-disable object-shorthand */
 
-import { assert, debug } from '@localfirst/auth-shared'
+import { assert, debug } from '@localfirst/shared'
 import {
   generateMessage,
   headsAreEqual,

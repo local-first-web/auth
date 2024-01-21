@@ -1,6 +1,6 @@
 import * as auth from '@localfirst/auth'
 import { type MemberContext } from '@localfirst/auth'
-import { assert } from '@localfirst/auth-shared'
+import { assert } from '@localfirst/shared'
 import * as React from 'react'
 import { useTeam } from '../hooks/useTeam.js'
 import { devices, users } from '../peers.js'

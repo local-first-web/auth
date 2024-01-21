@@ -1,4 +1,4 @@
-import { pause } from '@localfirst/auth-shared'
+import { pause } from '@localfirst/shared'
 import { ADMIN } from 'role/index.js'
 import * as teams from 'team/index.js'
 import {

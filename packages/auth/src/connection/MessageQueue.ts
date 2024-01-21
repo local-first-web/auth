@@ -1,5 +1,5 @@
 import { EventEmitter } from 'eventemitter3'
-import { debug } from '@localfirst/auth-shared'
+import { debug } from '@localfirst/shared'
 
 const log = debug.extend('message-queue')
 /**

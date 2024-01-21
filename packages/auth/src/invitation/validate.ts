@@ -1,4 +1,4 @@
-import { memoize } from '@localfirst/auth-shared'
+import { memoize } from '@localfirst/shared'
 import { signatures } from '@localfirst/crypto'
 import { type Invitation, type InvitationState, type ProofOfInvitation } from 'invitation/types.js'
 import { VALID, type ValidationResult } from 'util/index.js'

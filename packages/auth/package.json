@@ -26,7 +26,7 @@
     "test:log": "cross-env DEBUG='localfirst*' DEBUG_COLORS=1 vitest --reporter basic"
   },
   "dependencies": {
-    "@localfirst/auth-shared": "workspace:*",
+    "@localfirst/shared": "workspace:*",
     "@localfirst/crdx": "workspace:*",
     "@localfirst/crypto": "workspace:*",
     "@paralleldrive/cuid2": "^2.2.2",

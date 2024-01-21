@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { connect, setup } from 'util/testing/index.js'
-import { eventPromise } from '@localfirst/auth-shared'
+import { eventPromise } from '@localfirst/shared'
 
 describe('connection', () => {
   describe('encryption', () => {

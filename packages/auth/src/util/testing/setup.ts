@@ -1,4 +1,4 @@
-import { assert } from '@localfirst/auth-shared'
+import { assert } from '@localfirst/shared'
 import { createKeyring, createUser, type UserWithSecrets } from '@localfirst/crdx'
 import { createId } from '@paralleldrive/cuid2'
 import type { Connection, Context, InviteeContext, MemberContext } from 'connection/index.js'

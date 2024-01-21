@@ -1,4 +1,4 @@
-import { debug, truncateHashes } from '@localfirst/auth-shared'
+import { debug, truncateHashes } from '@localfirst/shared'
 import { ROOT } from '@localfirst/crdx'
 import { invitationCanBeUsed } from 'invitation/index.js'
 import { VALID, ValidationError, actionFingerprint } from 'util/index.js'

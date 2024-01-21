@@ -1,4 +1,4 @@
-import { assert } from '@localfirst/auth-shared'
+import { assert } from '@localfirst/shared'
 import { append, createGraph, headsAreEqual, type Graph } from 'graph/index.js'
 import { generateMessage, initSyncState, receiveMessage } from 'sync/index.js'
 import { createUser, type UserWithSecrets } from 'user/index.js'

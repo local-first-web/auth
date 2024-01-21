@@ -1,7 +1,7 @@
 import { type KeyMetadata, type KeyScope, type KeysetWithSecrets } from '@localfirst/crdx'
 import { keyMap } from './keyMap.js'
 import { type TeamState } from 'team/types.js'
-import { assert } from '@localfirst/auth-shared'
+import { assert } from '@localfirst/shared'
 import { lockboxSummary } from 'util/lockboxSummary.js'
 
 /** Returns the keys for the given scope, if they are in a lockbox that the current device has access to */

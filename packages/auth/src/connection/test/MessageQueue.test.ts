@@ -1,4 +1,4 @@
-import { pause } from '@localfirst/auth-shared'
+import { pause } from '@localfirst/shared'
 import { describe, expect, it } from 'vitest'
 import { MessageQueue } from '../MessageQueue.js'
 

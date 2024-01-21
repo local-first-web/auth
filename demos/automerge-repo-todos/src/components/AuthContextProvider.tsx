@@ -9,7 +9,7 @@ import { initializeAuthRepo } from '../util/initializeAuthRepo'
 import { Card } from './Card'
 import { FirstUseSetup } from './FirstUseSetup'
 import { Layout } from './Layout'
-import { assert } from '@localfirst/auth-shared'
+import { assert } from '@localfirst/shared'
 import { getRootDocumentIdFromTeam } from '../util/getRootDocumentIdFromTeam'
 
 export const AuthContext = createContext<AuthState | undefined>(undefined)
