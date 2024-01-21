@@ -1,6 +1,6 @@
 {
   "name": "@localfirst/auth-provider-automerge-repo",
-  "version": "5.3.7",
+  "version": "5.3.8",
   "description": "Authentication provider for automerge-repo using localfirst/auth",
   "repository": "https://github.com/local-first-web/auth/packages/auth-provider-automerge-repo",
   "license": "MIT",
