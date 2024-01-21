@@ -50,7 +50,7 @@ jobs:
       - name: Run Tests
         id: tests
         run: |
-          pnpm test:all
+          pnpm test
       - name: Publish Release
         if: steps.tests.outcome == 'success'
         run: |
