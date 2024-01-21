@@ -39,6 +39,8 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.ref }}
+      - name: Copy README from root to auth
+          cp ./README.md ./packages/auth
       - name: Install Dependencies
         id: deps
         run: |
