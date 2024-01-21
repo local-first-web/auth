@@ -47,6 +47,18 @@ jobs:
         id: build_release
         run: |
           pnpm build
+      - name: Sync README
+        run: |
+          if ! cmp -s ./README.md ./packages/auth/README.md; then
+            if git diff --quiet HEAD ./README.md; then
+              cp ./packages/auth/README.md ./README.md
+            else
+              cp ./README.md ./packages/auth/README.md
+            fi
+            git add .
+            git commit -m "Sync README.md"
+            git push origin ${{ github.ref }}
+          fi
       - name: Run Tests
         id: tests
         run: |
@@ -54,8 +66,6 @@ jobs:
       - name: Publish Release
         if: steps.tests.outcome == 'success'
         run: |
-          git reset --hard
-          cp ./README.md ./packages/auth
           if [ "$NODE_AUTH_TOKEN" = "" ]; then
             echo "You need a NPM_TOKEN secret in order to publish."
             false
