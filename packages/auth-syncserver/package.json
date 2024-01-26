@@ -1,6 +1,6 @@
 {
   "name": "@localfirst/auth-syncserver",
-  "version": "5.3.16",
+  "version": "5.4.1",
   "description": "Sync server for automerge-repo using localfirst/auth",
   "repository": "https://github.com/local-first-web/auth/packages/auth-syncserver",
   "license": "MIT",
