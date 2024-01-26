@@ -49,6 +49,8 @@ jobs:
           pnpm build
       - name: Sync README
         run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
           if ! cmp -s ./README.md ./packages/auth/README.md; then
             if git diff --quiet HEAD ./README.md; then
               cp ./packages/auth/README.md ./README.md
@@ -70,8 +72,6 @@ jobs:
             echo "You need a NPM_TOKEN secret in order to publish."
             false
           fi
-          git config user.name github-actions
-          git config user.email github-actions@github.com
           echo //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN} > .npmrc
           EXTRA_ARGS=""
           if [[ $VERSION == *"alpha."* ]] || [[ $VERSION == *"beta."* ]] || [[ $VERSION == *"rc."* ]]; then
