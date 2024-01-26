@@ -19,7 +19,6 @@ describe('auth provider for automerge-repo', () => {
     } = setup(['alice', 'bob'])
 
     const authWorked = await authenticatedInTime(alice, bob)
-
     expect(authWorked).toBe(false)
 
     teardown()
@@ -296,6 +295,46 @@ describe('auth provider for automerge-repo', () => {
     teardown()
   })
 
+  it('removes a share and deletes it from storage', async () => {
+    const {
+      users: { alice, bob },
+      teardown,
+    } = setup(['alice', 'bob'])
+    const aliceTeam = Auth.createTeam('team A', alice.context)
+
+    // Alice and Bob are able to connect
+    await alice.authProvider.addTeam(aliceTeam)
+    const { seed: bobInvite } = aliceTeam.inviteMember()
+    await bob.authProvider.addInvitation({
+      shareId: getShareId(aliceTeam),
+      invitationSeed: bobInvite,
+    })
+    await authenticated(alice, bob)
+    await synced(alice, bob) // ✅
+
+    // They reload and still can connect (because the share is persisted)
+    {
+      const channel = new MessageChannel()
+      const { port1: aliceToBob, port2: bobToAlice } = channel
+      const alice2 = alice.restart([aliceToBob])
+      const bob2 = bob.restart([bobToAlice])
+      await authenticated(alice2, bob2)
+      await synced(alice2, bob2) // ✅
+    }
+
+    // Bob deletes the share; this time they can't connect
+    {
+      const shareId = getShareId(aliceTeam)
+      await bob.authProvider.removeShare(shareId) // 👈 Bob deletes the share
+      const channel = new MessageChannel()
+      const { port1: aliceToBob, port2: bobToAlice } = channel
+      const alice2 = alice.restart([aliceToBob])
+      const bob2 = bob.restart([bobToAlice])
+      const authWorked = await authenticatedInTime(alice2, bob2)
+      expect(authWorked).toBe(false) // ❌
+    }
+    teardown()
+  })
   it('allows peers to connect without authenticating via a public share', async () => {
     const {
       users: { alice, bob },
