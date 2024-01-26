@@ -331,6 +331,27 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     await this.#createConnectionsForShare(shareId)
   }
 
+  public async removeShare(shareId: ShareId) {
+    const share = this.#shares.get(shareId)
+
+    if (!share) {
+      this.#log('share %s not found', shareId)
+      return
+    }
+
+    // disconnect from all connections for this share
+    for (const key of this.#connections.keys()) {
+      const [_shareId, _peerId] = key
+      if (_shareId === shareId) {
+        this.#removeConnection(_shareId, _peerId)
+      }
+    }
+
+    // remove the share
+    this.#shares.delete(shareId)
+    await this.#saveState()
+  }
+
   // eslint-disable-next-line unused-imports/no-unused-vars
   public addDocuments(shareId: ShareId, documentIds: DocumentId[]) {
     throw new Error('not implemented')
