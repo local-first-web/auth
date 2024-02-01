@@ -1,4 +1,5 @@
 .cache
+automerge-repo-data
 .dev-sync-server-data
 .DS_Store
 .flaky
