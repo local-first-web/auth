@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { randomKey } from '..'
-import { keyToBytes } from '../util/index.js'
+import { randomKey, randomKeyBytes } from '../randomKey.js'
 
 describe('randomKey', () => {
   it('should return keys of the expected length', () => {
-    expect(keyToBytes(randomKey())).toHaveLength(32)
-    expect(keyToBytes(randomKey(16))).toHaveLength(16)
+    expect(randomKey()).toHaveLength(16)
+    expect(randomKey(8)).toHaveLength(8)
+    expect(randomKeyBytes()).toHaveLength(32)
+    expect(randomKeyBytes(16)).toHaveLength(16)
   })
 })
