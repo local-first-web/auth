@@ -17,7 +17,8 @@ import bodyParser from 'body-parser'
 import cors from 'cors'
 import express, { type ErrorRequestHandler } from 'express'
 import fs from 'fs'
-import { type Server as HttpServer } from 'http'
+import http, { type Server as HttpServer } from 'http'
+import https, { type Server as HttpsServer } from 'https'
 import path from 'path'
 import { WebSocketServer } from 'ws'
 
@@ -35,7 +36,7 @@ import { WebSocketServer } from 'ws'
  */
 export class LocalFirstAuthSyncServer {
   webSocketServer: WebSocketServer
-  server: HttpServer
+  server: HttpServer | HttpsServer
   storageDir: string
   publicKeys: Keyset
 
@@ -56,10 +57,13 @@ export class LocalFirstAuthSyncServer {
       port?: number
       storageDir?: string
       silent?: boolean
+      useHttps?: boolean
+      cert?: string
+      key?: string
     } = {}
   ) {
     return new Promise<void>(resolve => {
-      const { port = 3000, storageDir = 'automerge-repo-data', silent = false } = options
+      const { port = 3000, storageDir = 'automerge-repo-data', silent = false, useHttps = false } = options
       this.storageDir = storageDir
 
       if (!fs.existsSync(storageDir)) fs.mkdirSync(storageDir)
@@ -104,7 +108,18 @@ export class LocalFirstAuthSyncServer {
         res.status(500).send(err.message)
       }
 
-      this.server = express()
+      const app = express()
+
+      if (useHttps && options.cert && options.key) {
+        const cert = fs.readFileSync(options.cert)
+        const key = fs.readFileSync(options.key)
+
+        this.server = https.createServer({ cert, key }, app)
+      } else {
+        this.server = http.createServer(app)
+      }
+
+      app
         // parse application/json
         .use(bodyParser.json())
 
@@ -158,7 +173,7 @@ export class LocalFirstAuthSyncServer {
 
         .use(errorHandler)
 
-        .listen(port, () => {
+      this.server.listen(port, () => {
           if (!silent) {
             console.log(confirmation)
             console.log(`listening on port ${port}`)
