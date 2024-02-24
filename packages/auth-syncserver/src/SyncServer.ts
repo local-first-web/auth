@@ -14,12 +14,18 @@ import {
 import { AuthProvider, getShareId, type ShareId } from '@localfirst/auth-provider-automerge-repo'
 import { debug } from '@localfirst/shared'
 import bodyParser from 'body-parser'
+import chalk from 'chalk'
 import cors from 'cors'
 import express, { type ErrorRequestHandler } from 'express'
 import fs from 'fs'
 import { type Server as HttpServer } from 'http'
+import { fileURLToPath } from 'url'
 import path from 'path'
 import { WebSocketServer } from 'ws'
+
+const _dirname = path.dirname(fileURLToPath(import.meta.url))
+const isDev = process.env.NODE_ENV === 'development'
+const running = fs.readFileSync(path.join(_dirname, 'running.html'), 'utf8')
 
 /**
  * This is a sync server for use with automerge-repo and the AuthProvider.
@@ -97,7 +103,7 @@ export class LocalFirstAuthSyncServer {
       })
 
       // Set up the server
-      const confirmation = `👍 Sync server for Automerge Repo + localfirst/auth running`
+      const confirmation = `🤖 Sync server for Automerge Repo + @localfirst/auth running`
 
       const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
         console.error(err.stack)
@@ -114,7 +120,7 @@ export class LocalFirstAuthSyncServer {
 
         /** So you can visit the sync server in a browser to get confirmation that it's running */
         .get('/', (req, res) => {
-          res.send(confirmation)
+          res.send(running)
         })
 
         /** Endpoint to request the server's public keys. */
@@ -160,8 +166,18 @@ export class LocalFirstAuthSyncServer {
 
         .listen(port, () => {
           if (!silent) {
-            console.log(confirmation)
-            console.log(`listening on port ${port}`)
+            const hostExt = this.host + (port ? `:${port}` : '')
+            const wsUrl = `${isDev ? 'ws' : 'wss'}://${hostExt}`
+            const httpUrl = `${isDev ? 'http' : 'https'}://${hostExt}`
+            console.log(
+              [
+                ``,
+                `${chalk.yellow(confirmation)}`,
+                `  ${chalk.green('➜')}  ${chalk.cyan(wsUrl)}`,
+                `  ${chalk.green('➜')}  ${chalk.cyan(httpUrl)}`,
+                ``,
+              ].join('\n')
+            )
           }
           resolve()
         })
