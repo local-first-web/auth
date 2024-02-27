@@ -9,8 +9,9 @@ it('should start a server', async () => {
   const response = await fetch(`http://${url}`)
   const text = await response.text()
 
-  // the server responds with a string like "Sync server is running"
-  expect(text).toContain('running')
+  // the server responds with an html page
+  expect(text).toContain('<html>')
+  expect(text).toContain('🤖')
 })
 
 it("should return the server's public keys", async () => {
