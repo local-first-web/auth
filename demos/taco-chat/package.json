@@ -1,6 +1,6 @@
 {
   "name": "@localfirst/taco-chat",
-  "version": "5.4.2",
+  "version": "5.5.0",
   "author": {
     "name": "Herb Caudill",
     "email": "herb@devresults.com"
@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
+    "@herbcaudill/eventemitter42": "^0.2.1",
     "@ibm/plex": "^6.3.0",
     "@localfirst/auth": "workspace:*",
     "@localfirst/relay": "^4.2.2",
@@ -42,7 +43,6 @@
     "clipboard": "^2.0.11",
     "cross-env": "^7.0.3",
     "debug": "^4.3.4",
-    "@herbcaudill/eventemitter42": "^0.2.1",
     "friendly-words": "^1.2.4",
     "isomorphic-ws": "^5.0.0",
     "keycode": "^2.2.1",

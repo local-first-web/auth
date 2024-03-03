@@ -1396,7 +1396,10 @@ packages:
     dev: true
 
   /@herbcaudill/eventemitter42@0.2.1:
-    resolution: {integrity: sha512-BKibbOeJZ7Bp7Yq84tZy6iqy2+5fWvBtDXjPK+kiPL4c4qgXe1dF3dCF/eo5QwgXcXpanGDU33Suf0xZUek0qg==}
+    resolution:
+      {
+        integrity: sha512-BKibbOeJZ7Bp7Yq84tZy6iqy2+5fWvBtDXjPK+kiPL4c4qgXe1dF3dCF/eo5QwgXcXpanGDU33Suf0xZUek0qg==,
+      }
     dev: false
 
   /@herbcaudill/random@0.3.0:

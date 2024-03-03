@@ -1,6 +1,6 @@
 {
   "name": "@localfirst/auth",
-  "version": "5.4.2",
+  "version": "5.5.0",
   "private": false,
   "author": {
     "name": "Herb Caudill",
@@ -26,11 +26,11 @@
     "test:log": "cross-env DEBUG='localfirst*' DEBUG_COLORS=1 vitest --reporter basic"
   },
   "dependencies": {
+    "@herbcaudill/eventemitter42": "^0.2.1",
     "@localfirst/crdx": "workspace:*",
     "@localfirst/crypto": "workspace:*",
     "@localfirst/shared": "workspace:*",
     "@paralleldrive/cuid2": "^2.2.2",
-    "@herbcaudill/eventemitter42": "^0.2.1",
     "lodash-es": "^4.17.21",
     "msgpackr": "^1.10.0",
     "xstate": "^4.38.3"

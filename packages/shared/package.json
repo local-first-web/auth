@@ -1,6 +1,6 @@
 {
   "name": "@localfirst/shared",
-  "version": "5.4.2",
+  "version": "5.5.0",
   "license": "MIT",
   "private": false,
   "author": {
@@ -19,9 +19,9 @@
     "preinstall": "npx only-allow pnpm"
   },
   "dependencies": {
+    "@herbcaudill/eventemitter42": "^0.2.1",
     "cd": "^0.3.3",
     "debug": "^4.3.4",
-    "@herbcaudill/eventemitter42": "^0.2.1",
     "lodash-es": "^4.17.21"
   },
   "gitHead": "9a7b871e9e34268b32cc6e574189ec2350787b81"
