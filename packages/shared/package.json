@@ -19,6 +19,7 @@
     "preinstall": "npx only-allow pnpm"
   },
   "dependencies": {
+    "cd": "^0.3.3",
     "debug": "^4.3.4",
     "eventemitter3": "^5.0.1",
     "lodash-es": "^4.17.21"

@@ -21,7 +21,7 @@
     "test:log": "cross-env DEBUG='localfirst*' DEBUG_COLORS=1 vitest --reporter basic"
   },
   "dependencies": {
-    "@automerge/automerge-repo": "v1.1.0-alpha.13",
+    "@automerge/automerge-repo": "^1.1.2",
     "@localfirst/auth": "workspace:*",
     "@localfirst/crypto": "workspace:*",
     "@localfirst/shared": "workspace:*",
@@ -29,8 +29,8 @@
     "msgpackr": "^1.10.0"
   },
   "devDependencies": {
-    "@automerge/automerge-repo-network-messagechannel": "v1.1.0-alpha.13",
-    "@automerge/automerge-repo-storage-nodefs": "v1.1.0-alpha.13",
+    "@automerge/automerge-repo-network-messagechannel": "^1.1.2",
+    "@automerge/automerge-repo-storage-nodefs": "^1.1.2",
     "rimraf": "^5.0.5"
   },
   "gitHead": "9a7b871e9e34268b32cc6e574189ec2350787b81"
