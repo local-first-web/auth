@@ -61,7 +61,7 @@ export const decryptTeamGraph = ({
     previousState: TeamState = initialState
   ): Record<Hash, TeamLink> => {
     // Decrypt this link
-    const encryptedLink = encryptedLinks[hash]!
+    const encryptedLink = encryptedLinks[hash]
     const decryptedLink =
       links[hash] ?? // If it's already decrypted, don't bother decrypting it again
       decryptLink<TeamAction, TeamContext>(encryptedLink, previousKeys)
@@ -94,7 +94,7 @@ export const decryptTeamGraph = ({
     return { ...previousDecryptedLinks, ...decryptedLinks }
   }
 
-  const rootPublicKey = encryptedLinks[root]!.recipientPublicKey
+  const rootPublicKey = encryptedLinks[root].recipientPublicKey
   const rootKeys = keyring[rootPublicKey]
   const decryptedLinks = decrypt(root, rootKeys)
 

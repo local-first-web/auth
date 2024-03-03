@@ -60,7 +60,7 @@ export const decryptGraph: DecryptFn = <A extends Action, C>({
     prevLinks: Record<Hash, Link<A, C>> = {}
   ): Record<Hash, Link<A, C>> => {
     // decrypt this link
-    const encryptedLink = encryptedLinks[hash]!
+    const encryptedLink = encryptedLinks[hash]
     const decryptedLink =
       links[hash] ?? // if it's already decrypted, don't bother decrypting it again
       decryptLink(encryptedLink, keys)
