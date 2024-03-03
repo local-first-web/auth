@@ -1,4 +1,5 @@
 export * from './create.js'
+export * from './deriveId.js'
 export * from './randomSeed.js'
 export * from './generateProof.js'
 export * from './generateStarterKeys.js'
