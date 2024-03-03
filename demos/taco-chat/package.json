@@ -17,7 +17,7 @@
     "dev:cy": "cross-env CYPRESS_REMOTE_DEBUGGING_PORT=9222 run-p dev test:cy",
     "preinstall": "npx only-allow pnpm",
     "preview": "run-s build && vite preview",
-    "test:cy:parallel": "run-p --race dev test:cy:parallel:exec",
+    "test:cy:parallel": "run-p --race dev test:cy:parallel:exec && git restore ./cypress/parallel-weights.json",
     "test:cy:parallel:exec": "cypress-parallel -s test:cy:run:exec -t 5 -d 'cypress/e2e' -n ../../node_modules/cypress-multi-reporters",
     "test:cy": "cypress open --browser chrome --e2e",
     "test:cy:run": "run-p --race dev test:cy:run:exec",
