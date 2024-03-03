@@ -42,7 +42,7 @@
     "clipboard": "^2.0.11",
     "cross-env": "^7.0.3",
     "debug": "^4.3.4",
-    "eventemitter3": "^5.0.1",
+    "@herbcaudill/eventemitter42": "^0.2.1",
     "friendly-words": "^1.2.4",
     "isomorphic-ws": "^5.0.0",
     "keycode": "^2.2.1",

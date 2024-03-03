@@ -2,7 +2,6 @@
 import { eventPromise } from '@localfirst/shared'
 import { type Connection, type ConnectionEvents } from 'connection/index.js'
 import { type InviteeDeviceContext, type InviteeMemberContext } from 'connection/types.js'
-import type { EventEmitter } from 'eventemitter3'
 import { expect } from 'vitest'
 import { TestChannel } from './TestChannel.js'
 import { joinTestChannel } from './joinTestChannel.js'
@@ -124,10 +123,7 @@ export const disconnection = async (a: UserStuff, b: UserStuff, message?: string
   }
 }
 
-export const all = async (
-  connections: Connection[],
-  event: EventEmitter.EventNames<ConnectionEvents>
-) =>
+export const all = async (connections: Connection[], event: keyof ConnectionEvents) =>
   Promise.all(
     connections.map(async connection => {
       if (event === 'disconnected' && connection.state === 'disconnected') return connection
@@ -136,10 +132,7 @@ export const all = async (
     })
   )
 
-export const any = async (
-  connections: Connection[],
-  event: EventEmitter.EventNames<ConnectionEvents>
-) =>
+export const any = async (connections: Connection[], event: keyof ConnectionEvents) =>
   Promise.any(
     connections.map(async connection => {
       if (event === 'disconnected' && connection.state === 'disconnected') return connection

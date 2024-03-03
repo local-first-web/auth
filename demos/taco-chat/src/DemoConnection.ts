@@ -1,9 +1,10 @@
+import { EventEmitter } from '@herbcaudill/eventemitter42'
 import * as Auth from '@localfirst/auth'
+import { ConnectionEvents } from '@localfirst/auth'
 import { bubbleEvents } from 'bubbleEvents.js'
-import { EventEmitter } from 'eventemitter3'
 import WebSocket from 'isomorphic-ws'
 
-export class DemoConnection extends EventEmitter {
+export class DemoConnection extends EventEmitter<ConnectionEvents> {
   private readonly authConnection: Auth.Connection
   private readonly peerSocket: WebSocket
 

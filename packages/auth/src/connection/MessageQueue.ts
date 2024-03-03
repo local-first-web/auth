@@ -1,4 +1,4 @@
-import { EventEmitter } from 'eventemitter3'
+import { EventEmitter } from '@herbcaudill/eventemitter42'
 import { debug } from '@localfirst/shared'
 
 const log = debug.extend('message-queue')

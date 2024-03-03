@@ -1,12 +1,11 @@
-import { type EventEmitter } from 'eventemitter3'
+import { eventPromise, type EventEmitter, type EventMap } from '@herbcaudill/eventemitter42'
 
-/** Returns a promise that resolves when the given event is emitted on the given emitter. */
-export const eventPromise = async (emitter: EventEmitter, event: string) =>
-  new Promise<any>(resolve => {
-    emitter.once(event, d => resolve(d))
-  })
+export { eventPromise } from '@herbcaudill/eventemitter42'
 
-export const eventPromises = async (emitters: EventEmitter[], event: string) => {
+export const eventPromises = async <T extends EventMap>(
+  emitters: Array<EventEmitter<T>>,
+  event: string
+) => {
   const promises = emitters.map(async emitter => eventPromise(emitter, event))
   return Promise.all(promises)
 }

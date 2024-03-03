@@ -1,4 +1,6 @@
+import { EventEmitter } from '@herbcaudill/eventemitter42'
 import type {
+  Hash,
   KeyMetadata,
   KeyScope,
   Keyring,
@@ -17,11 +19,11 @@ import {
   redactKeys,
 } from '@localfirst/crdx'
 import { randomKey, signatures, symmetric, type Base58 } from '@localfirst/crypto'
+import { assert, debug } from '@localfirst/shared'
 import * as identity from 'connection/identity.js'
 import { type Challenge } from 'connection/types.js'
 import * as devices from 'device/index.js'
 import { redactDevice, type Device } from 'device/index.js'
-import { EventEmitter } from 'eventemitter3'
 import * as invitations from 'invitation/index.js'
 import { type ProofOfInvitation } from 'invitation/index.js'
 import { normalize } from 'invitation/normalize.js'
@@ -31,7 +33,6 @@ import { castServer } from 'server/castServer.js'
 import { type Host, type Server } from 'server/types.js'
 import { type LocalUserContext } from 'team/context.js'
 import { KeyType, VALID, scopesMatch } from 'util/index.js'
-import { assert, debug } from '@localfirst/shared'
 import { ADMIN_SCOPE, ALL, TEAM_SCOPE, initialState } from './constants.js'
 import { membershipResolver as resolver } from './membershipResolver.js'
 import { redactUser } from './redactUser.js'
@@ -56,7 +57,7 @@ const { DEVICE, USER } = KeyType
  * members, assigning roles, creating and using invitations, and encrypting messages for
  * individuals, for the team, or for members of specific roles.
  */
-export class Team extends EventEmitter {
+export class Team extends EventEmitter<TeamEvents> {
   public state: TeamState = initialState
 
   private readonly store: Store<TeamState, TeamAction>
@@ -872,4 +873,8 @@ export class Team extends EventEmitter {
 
 type LookupOptions = {
   includeRemoved: boolean
+}
+
+type TeamEvents = {
+  updated: (payload: { head: Hash[] }) => void
 }

@@ -25,7 +25,7 @@
     "@localfirst/auth": "workspace:*",
     "@localfirst/crypto": "workspace:*",
     "@localfirst/shared": "workspace:*",
-    "eventemitter3": "^5.0.1",
+    "@herbcaudill/eventemitter42": "^0.2.1",
     "msgpackr": "^1.10.0"
   },
   "devDependencies": {

@@ -1,11 +1,8 @@
 ﻿import debug from 'debug'
-import { EventEmitter as _EventEmitter } from 'eventemitter3'
+import { EventArgs, EventMap, EventEmitter as _EventEmitter } from '@herbcaudill/eventemitter42'
 
 /** EventEmitter with built-in logging */
-export class EventEmitter<
-  EventTypes extends _EventEmitter.ValidEventTypes = string | symbol,
-  Context extends any = any,
-> extends _EventEmitter<EventTypes, Context> {
+export class EventEmitter<EventTypes extends EventMap> extends _EventEmitter<EventTypes> {
   /** The `log` method is meant to be overridden, e.g.
    * ```ts
    *  this.log = debug(`lf:auth:demo:conn:${context.user.userName}`)
@@ -13,10 +10,7 @@ export class EventEmitter<
    */
   log: debug.Debugger = debug(`EventEmitter`)
 
-  public emit<T extends _EventEmitter.EventNames<EventTypes>>(
-    event: T,
-    ...args: _EventEmitter.EventArgs<EventTypes, T>
-  ) {
+  public emit<K extends keyof EventTypes>(event: K, ...args: EventArgs<EventTypes, K>) {
     this.log(`emit ${String(event)} %o`, ...args)
     return super.emit(event, ...args)
   }

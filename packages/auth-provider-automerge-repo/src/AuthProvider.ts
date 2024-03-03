@@ -10,12 +10,11 @@ import { debug, memoize, pause } from '@localfirst/shared'
 import { hash } from '@localfirst/crypto'
 import { type AbstractConnection } from 'AbstractConnection.js'
 import { AnonymousConnection } from 'AnonymousConnection.js'
-import { EventEmitter } from 'eventemitter3'
+import { EventEmitter } from '@herbcaudill/eventemitter42'
 import { pack, unpack } from 'msgpackr'
 import { isJoinMessage, type JoinMessage } from 'types.js'
 import { AuthenticatedNetworkAdapter as AuthNetworkAdapter } from './AuthenticatedNetworkAdapter.js'
 import { CompositeMap } from './CompositeMap.js'
-import { forwardEvents } from './forwardEvents.js'
 import type {
   AuthProviderEvents,
   Invitation,
@@ -180,7 +179,9 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       })
 
     // forward all other events from the base adapter to the repo
-    forwardEvents(baseAdapter, authAdapter, ['close', 'peer-disconnected', 'error'])
+    baseAdapter.on('close', () => authAdapter.emit('close'))
+    baseAdapter.on('peer-disconnected', payload => authAdapter.emit('peer-disconnected', payload))
+    baseAdapter.on('close', () => authAdapter.emit('close'))
 
     this.#adapters.push(authAdapter)
     return authAdapter

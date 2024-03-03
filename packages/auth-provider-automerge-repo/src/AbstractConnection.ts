@@ -1,6 +1,6 @@
 import type { Message } from '@automerge/automerge-repo'
 import type { ConnectionEvents } from '@localfirst/auth'
-import { EventEmitter } from 'eventemitter3'
+import { EventEmitter } from '@herbcaudill/eventemitter42'
 
 export abstract class AbstractConnection extends EventEmitter<ConnectionEvents> {
   abstract start(): AbstractConnection

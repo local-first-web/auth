@@ -31,7 +31,7 @@ import {
   type SyncMessage,
 } from 'connection/message.js'
 import { redactDevice } from 'device/index.js'
-import { EventEmitter } from 'eventemitter3'
+import { EventEmitter } from '@herbcaudill/eventemitter42'
 import * as invitations from 'invitation/index.js'
 import { pack, unpack } from 'msgpackr'
 import { getTeamState } from 'team/getTeamState.js'

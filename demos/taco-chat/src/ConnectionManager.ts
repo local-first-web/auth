@@ -1,5 +1,4 @@
 ﻿import * as Auth from '@localfirst/auth'
-import { type InviteeMemberContext, type MemberContext } from '@localfirst/auth'
 import { Mutex, withTimeout } from 'async-mutex'
 import debug from 'debug'
 import { ConnectionStatus } from 'types.js'
@@ -15,7 +14,7 @@ const INVITATION_TIMEOUT = 20 * 1000 // in ms
 /**
  * Wraps a Relay client and creates a Connection instance for each peer we connect to.
  */
-export class ConnectionManager extends EventEmitter {
+export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
   private context: Auth.MemberContext | Auth.InviteeContext
   private readonly client: Client
   private connections: Record<string, DemoConnection> = {}
@@ -99,8 +98,8 @@ export class ConnectionManager extends EventEmitter {
       connection
         .on('joined', ({ team, user }) => {
           // no longer an invitee - update our context for future connections
-          const { device } = this.context as InviteeMemberContext
-          this.context = { device, user, team } as MemberContext
+          const { device } = this.context as Auth.InviteeMemberContext
+          this.context = { device, user, team } as Auth.MemberContext
           this.emit('joined', { team, user })
         })
         .on('connected', () => {
@@ -155,4 +154,16 @@ type ConnectionManagerOptions = {
   teamName: string
   urls: string[]
   context: Auth.InviteeContext | Auth.MemberContext
+}
+
+type ConnectionManagerEvents = {
+  'server-connect': () => void
+  'server-disconnect': () => void
+  'peer-connect': (payload: { peerId: string; socket: WebSocket }) => void
+  connected: (payload: DemoConnection) => void
+  disconnected: (peerId: string, event?: any) => void
+  joined: (payload: { team: string; user: Auth.User }) => void
+  change: (payload: { peerId: string; state: string }) => void
+  localError: (payload: Auth.ConnectionErrorPayload) => void
+  remoteError: (payload: Auth.ConnectionErrorPayload) => void
 }

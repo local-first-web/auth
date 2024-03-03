@@ -1,5 +1,5 @@
+import { EventEmitter } from '@herbcaudill/eventemitter42'
 import { assert } from '@localfirst/shared'
-import { EventEmitter } from 'eventemitter3'
 import {
   append,
   baseResolver,
@@ -15,7 +15,7 @@ import {
 import { createKeyring } from 'keyset/createKeyring.js'
 import { isKeyset, type Keyring, type KeysetWithSecrets } from 'keyset/index.js'
 import { type UserWithSecrets } from 'user/index.js'
-import { type Optional } from 'util/index.js'
+import { type Hash, type Optional } from 'util/index.js'
 import { validate, type ValidatorSet } from 'validator/index.js'
 import { type StoreOptions } from './StoreOptions.js'
 import { makeMachine } from './makeMachine.js'
@@ -28,7 +28,11 @@ import { type Reducer } from './types.js'
  * The only way to change the data in the store is to `dispatch` an action to it. There should only
  * be a single store in an application.
  */
-export class Store<S, A extends Action, C = Record<string, unknown>> extends EventEmitter {
+export class Store<
+  S,
+  A extends Action,
+  C = Record<string, unknown>,
+> extends EventEmitter<StoreEvents> {
   private readonly user: UserWithSecrets
   private readonly context: C
 
@@ -196,3 +200,7 @@ export class Store<S, A extends Action, C = Record<string, unknown>> extends Eve
 
 const isGraph = <A extends Action, C>(source: Uint8Array | Graph<A, C>): source is Graph<A, C> =>
   source?.hasOwnProperty('root')
+
+type StoreEvents = {
+  updated: (payload: { head: Hash[] }) => void
+}

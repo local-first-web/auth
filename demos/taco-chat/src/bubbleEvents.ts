@@ -1,4 +1,4 @@
-import { EventEmitter } from 'eventemitter3'
+import { EventEmitter } from '@herbcaudill/eventemitter42'
 
 export const bubbleEvents = (
   source: EventEmitter<any>,

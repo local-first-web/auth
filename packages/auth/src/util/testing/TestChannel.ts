@@ -1,6 +1,6 @@
-import { EventEmitter } from 'eventemitter3'
+import { EventEmitter } from '@herbcaudill/eventemitter42'
 
-export class TestChannel extends EventEmitter {
+export class TestChannel extends EventEmitter<TestChannelEvents> {
   private peers = 0
   private readonly buffer: Array<{ senderId: string; msg: Uint8Array }> = []
 
@@ -27,4 +27,8 @@ export class TestChannel extends EventEmitter {
       this.buffer.unshift({ senderId, msg: message })
     }
   }
+}
+
+type TestChannelEvents = {
+  data: (senderId: string, message: Uint8Array) => void
 }

@@ -21,7 +21,7 @@
   "dependencies": {
     "cd": "^0.3.3",
     "debug": "^4.3.4",
-    "eventemitter3": "^5.0.1",
+    "@herbcaudill/eventemitter42": "^0.2.1",
     "lodash-es": "^4.17.21"
   },
   "gitHead": "9a7b871e9e34268b32cc6e574189ec2350787b81"

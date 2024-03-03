@@ -191,6 +191,9 @@ importers:
       '@esbuild-plugins/node-globals-polyfill':
         specifier: ^0.2.3
         version: 0.2.3(esbuild@0.19.12)
+      '@herbcaudill/eventemitter42':
+        specifier: ^0.2.1
+        version: 0.2.1
       '@ibm/plex':
         specifier: ^6.3.0
         version: 6.4.0
@@ -242,9 +245,6 @@ importers:
       debug:
         specifier: ^4.3.4
         version: 4.3.4(supports-color@8.1.1)
-      eventemitter3:
-        specifier: ^5.0.1
-        version: 5.0.1
       friendly-words:
         specifier: ^1.2.4
         version: 1.2.4
@@ -300,6 +300,9 @@ importers:
 
   packages/auth:
     dependencies:
+      '@herbcaudill/eventemitter42':
+        specifier: ^0.2.1
+        version: 0.2.1
       '@localfirst/crdx':
         specifier: workspace:*
         version: link:../crdx
@@ -312,9 +315,6 @@ importers:
       '@paralleldrive/cuid2':
         specifier: ^2.2.2
         version: 2.2.2
-      eventemitter3:
-        specifier: ^5.0.1
-        version: 5.0.1
       lodash-es:
         specifier: ^4.17.21
         version: 4.17.21
@@ -330,6 +330,9 @@ importers:
       '@automerge/automerge-repo':
         specifier: ^1.1.2
         version: 1.1.2(@types/node@18.19.21)(typescript@5.3.3)
+      '@herbcaudill/eventemitter42':
+        specifier: ^0.2.1
+        version: 0.2.1
       '@localfirst/auth':
         specifier: workspace:*
         version: link:../auth
@@ -339,9 +342,6 @@ importers:
       '@localfirst/shared':
         specifier: workspace:*
         version: link:../shared
-      eventemitter3:
-        specifier: ^5.0.1
-        version: 5.0.1
       msgpackr:
         specifier: ^1.10.0
         version: 1.10.1
@@ -401,6 +401,9 @@ importers:
 
   packages/crdx:
     dependencies:
+      '@herbcaudill/eventemitter42':
+        specifier: ^0.2.1
+        version: 0.2.1
       '@localfirst/crypto':
         specifier: workspace:*
         version: link:../crypto
@@ -413,9 +416,6 @@ importers:
       '@types/lodash-es':
         specifier: ^4.17.12
         version: 4.17.12
-      eventemitter3:
-        specifier: ^5.0.1
-        version: 5.0.1
       lodash-es:
         specifier: ^4.17.21
         version: 4.17.21
@@ -446,15 +446,15 @@ importers:
 
   packages/shared:
     dependencies:
+      '@herbcaudill/eventemitter42':
+        specifier: ^0.2.1
+        version: 0.2.1
       cd:
         specifier: ^0.3.3
         version: 0.3.3
       debug:
         specifier: ^4.3.4
         version: 4.3.4(supports-color@8.1.1)
-      eventemitter3:
-        specifier: ^5.0.1
-        version: 5.0.1
       lodash-es:
         specifier: ^4.17.21
         version: 4.17.21
@@ -1394,6 +1394,10 @@ packages:
         integrity: sha512-k2Ty1JcVojjJFwrg/ThKi2ujJ7XNLYaFGNB/bWT9wGR+oSMJHMa5w+CUq6p/pVrKeNNgA7pCqEcjSnHVoqJQFw==,
       }
     dev: true
+
+  /@herbcaudill/eventemitter42@0.2.1:
+    resolution: {integrity: sha512-BKibbOeJZ7Bp7Yq84tZy6iqy2+5fWvBtDXjPK+kiPL4c4qgXe1dF3dCF/eo5QwgXcXpanGDU33Suf0xZUek0qg==}
+    dev: false
 
   /@herbcaudill/random@0.3.0:
     resolution:

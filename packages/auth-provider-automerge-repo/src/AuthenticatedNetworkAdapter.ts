@@ -1,5 +1,4 @@
 import { NetworkAdapter, type Message } from '@automerge/automerge-repo'
-import { eventPromise } from '@localfirst/shared'
 import { type ShareId } from 'types.js'
 
 /**
@@ -32,13 +31,9 @@ export class AuthenticatedNetworkAdapter<T extends NetworkAdapter> //
   }
 
   send(msg: Message) {
-    // wait for base adapter to be ready
     if (!this.isReady) {
-      eventPromise(this.baseAdapter, 'ready') //
-        .then(() => this.sendFn(msg))
-        .catch(error => {
-          throw error as Error
-        })
+      // wait for base adapter to be ready
+      this.baseAdapter.on('ready', () => this.sendFn(msg))
     } else {
       // send immediately
       this.sendFn(msg)

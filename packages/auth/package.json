@@ -30,7 +30,7 @@
     "@localfirst/crypto": "workspace:*",
     "@localfirst/shared": "workspace:*",
     "@paralleldrive/cuid2": "^2.2.2",
-    "eventemitter3": "^5.0.1",
+    "@herbcaudill/eventemitter42": "^0.2.1",
     "lodash-es": "^4.17.21",
     "msgpackr": "^1.10.0",
     "xstate": "^4.38.3"

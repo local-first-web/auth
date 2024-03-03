@@ -25,7 +25,7 @@
     "@localfirst/shared": "workspace:*",
     "@paralleldrive/cuid2": "^2.2.2",
     "@types/lodash-es": "^4.17.12",
-    "eventemitter3": "^5.0.1",
+    "@herbcaudill/eventemitter42": "^0.2.1",
     "lodash-es": "^4.17.21",
     "msgpackr": "^1.10.0"
   },
