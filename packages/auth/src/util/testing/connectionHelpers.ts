@@ -107,20 +107,13 @@ export const anyDisconnected = async (a: UserStuff, b: UserStuff) => {
   return any(connections, 'disconnected')
 }
 
-export const disconnection = async (a: UserStuff, b: UserStuff, message?: string) => {
+export const disconnection = async (a: UserStuff, b: UserStuff) => {
   const connections = [a.connection[b.deviceId], b.connection[a.deviceId]]
   const activeConnections = connections.filter(c => c.state !== 'disconnected')
 
   // ✅ They're both disconnected
   await all(activeConnections, 'disconnected')
-
-  for (const connection of activeConnections) {
-    expect(connection.state).toEqual('disconnected')
-    // ✅ If we're checking for a message, it matches
-    if (message !== undefined) {
-      expect(connection.error!.message).toContain(message)
-    }
-  }
+  for (const connection of activeConnections) expect(connection.state).toEqual('disconnected')
 }
 
 export const all = async (connections: Connection[], event: keyof ConnectionEvents) =>

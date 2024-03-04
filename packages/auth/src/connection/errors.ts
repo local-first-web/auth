@@ -40,13 +40,12 @@ export const connectionErrors: Record<string, ErrorDefinition> = {
 /** Creates an error payload with an appropriate message for the local or remote user */
 export const createErrorMessage = (
   type: ConnectionErrorType,
-  details?: unknown,
   destination: 'LOCAL' | 'REMOTE' = 'LOCAL'
 ): ErrorMessage | LocalErrorMessage => {
   const { localMessage, remoteMessage } = connectionErrors[type]
   const message = destination === 'LOCAL' ? localMessage : remoteMessage
   const messageType = destination === 'LOCAL' ? 'LOCAL_ERROR' : 'ERROR'
-  return { type: messageType, payload: { type, message, details } }
+  return { type: messageType, payload: { type, message } }
 }
 
 // Types
@@ -61,7 +60,6 @@ export type ConnectionErrorType = keyof typeof connectionErrors
 export type ConnectionErrorPayload = {
   type: ConnectionErrorType
   message: string
-  details?: any
 }
 
 // Error messages received from the peer

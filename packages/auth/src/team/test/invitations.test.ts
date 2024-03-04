@@ -1,7 +1,7 @@
 import { createKeyset, type UnixTimestamp } from '@localfirst/crdx'
 import { signatures } from '@localfirst/crypto'
-import { type FirstUseDevice, redactDevice } from 'index.js'
-import { generateProof, generateStarterKeys } from 'invitation/index.js'
+import { redactDevice, type FirstUseDevice } from 'index.js'
+import { generateProof } from 'invitation/index.js'
 import * as teams from 'team/index.js'
 import { KeyType } from 'util/index.js'
 import { setup } from 'util/testing/index.js'
@@ -287,12 +287,10 @@ describe('Team', () => {
 
           // To do that, she uses the invitation seed to generate starter keys, which she can use to
           // unlock a lockbox stored on the graph containing her user keys.
-          const starterKeys = generateStarterKeys(seed)
           const aliceUser = teams.getDeviceUserFromGraph({
             serializedGraph,
             teamKeyring,
-            starterKeys,
-            invitationId: proofOfInvitation.id,
+            invitationSeed: seed,
           })
 
           const phoneTeam = teams.load(

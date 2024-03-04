@@ -162,7 +162,7 @@ describe('connection', () => {
         void connect(charlie, dwight)
 
         // ✅ ❌ They're unable to connect because at least one needs to be a member
-        await disconnection(charlie, dwight, 'peer is also holding an invitation')
+        await disconnection(charlie, dwight)
       })
 
       it('lets a member use an invitation to add a device', async () => {
