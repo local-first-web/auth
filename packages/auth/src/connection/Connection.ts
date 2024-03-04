@@ -444,17 +444,17 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           return { error }
         }),
 
-        fail: assign(({ context }, params: { errorType: ConnectionErrorType }) => {
-          const { errorType } = params
+        fail: assign(({ context }, params: { error: ConnectionErrorType }) => {
+          const { error } = params
           const details = context.error as any
 
           const detailedMessage =
             details && 'message' in details ? (details.message as string) : undefined
 
-          this.log('error: %s %o', errorType, details)
+          this.log('error: %s %o', error, details)
 
           // Force error state locally
-          const localMessage = createErrorMessage(errorType, detailedMessage, 'LOCAL')
+          const localMessage = createErrorMessage(error, detailedMessage, 'LOCAL')
           this.machine.send(localMessage)
 
           return { error: localMessage.payload }
@@ -563,16 +563,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       initial: 'awaitingIdentityClaim',
 
       on: {
-        REQUEST_IDENTITY: {
-          actions: 'sendIdentityClaim',
-          target: '#awaitingIdentityClaim',
-        },
-
-        CLAIM_IDENTITY: {
-          actions: ['receiveIdentityClaim'],
-          target: '#awaitingIdentityClaim',
-        },
-
+        REQUEST_IDENTITY: { actions: 'sendIdentityClaim', target: '#awaitingIdentityClaim' },
+        CLAIM_IDENTITY: { actions: ['receiveIdentityClaim'], target: '#awaitingIdentityClaim' },
         ERROR: { actions: 'receiveError', target: '#disconnected' }, // Remote error (sent by peer)
         LOCAL_ERROR: { actions: 'sendError', target: '#disconnected' }, // Local error (detected by us, sent to peer)
       },
@@ -580,10 +572,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       states: {
         awaitingIdentityClaim: {
           id: 'awaitingIdentityClaim',
-          always: {
-            guard: 'bothSentIdentityClaim',
-            target: 'authenticating',
-          },
+          always: { guard: 'bothSentIdentityClaim', target: 'authenticating' },
         },
 
         authenticating: {
@@ -599,21 +588,14 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                     // We can't both present invitations - someone has to be a member
                     {
                       guard: 'bothHaveInvitation',
-                      actions: { type: 'fail', params: { errorType: NEITHER_IS_MEMBER } },
-                      target: '#disconnected',
+                      ...fail(NEITHER_IS_MEMBER),
                     },
 
                     // If I have an invitation, wait for acceptance
-                    {
-                      guard: 'weHaveInvitation',
-                      target: 'awaitingInvitationAcceptance',
-                    },
+                    { guard: 'weHaveInvitation', target: 'awaitingInvitationAcceptance' },
 
                     // If they have an invitation, validate it
-                    {
-                      guard: 'theyHaveInvitation', //
-                      target: 'validatingInvitation',
-                    },
+                    { guard: 'theyHaveInvitation', target: 'validatingInvitation' },
 
                     // Otherwise, we can proceed directly to authentication
                     { target: '#checkingIdentity' },
@@ -632,18 +614,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                       },
 
                       // If it's not, disconnect with error
-                      {
-                        actions: { type: 'fail', params: { errorType: JOINED_WRONG_TEAM } },
-                        target: '#disconnected',
-                      },
+                      { ...fail(JOINED_WRONG_TEAM) },
                     ],
                   },
-                  after: {
-                    [TIMEOUT_DELAY]: {
-                      actions: { type: 'fail', params: { errorType: TIMEOUT } },
-                      target: '#disconnected',
-                    },
-                  },
+                  ...timeout,
                 },
 
                 validatingInvitation: {
@@ -657,10 +631,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                     },
 
                     // If the proof fails, disconnect with error
-                    {
-                      actions: { type: 'fail', params: { errorType: INVITATION_PROOF_INVALID } },
-                      target: '#disconnected',
-                    },
+                    { ...fail(INVITATION_PROOF_INVALID) },
                   ],
                 },
               },
@@ -681,35 +652,22 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                   states: {
                     awaitingIdentityChallenge: {
                       // If we just presented an invitation, they already know who we are
-                      always: {
-                        guard: 'weHaveInvitation',
-                        target: 'doneProvingMyIdentity',
-                      },
+                      always: { guard: 'weHaveInvitation', target: 'doneProvingMyIdentity' },
 
                       on: {
+                        // When we receive a challenge, respond with proof
                         CHALLENGE_IDENTITY: {
-                          // When we receive a challenge, respond with proof
-                          actions: ['proveIdentity'],
+                          actions: 'proveIdentity',
                           target: 'awaitingIdentityAcceptance',
                         },
                       },
-                      after: {
-                        [TIMEOUT_DELAY]: {
-                          actions: { type: 'fail', params: { errorType: TIMEOUT } },
-                          target: '#disconnected',
-                        },
-                      },
+                      ...timeout,
                     },
 
                     // Wait for a message confirming that they've validated our proof of identity
                     awaitingIdentityAcceptance: {
                       on: { ACCEPT_IDENTITY: { target: 'doneProvingMyIdentity' } },
-                      after: {
-                        [TIMEOUT_DELAY]: {
-                          actions: { type: 'fail', params: { errorType: TIMEOUT } },
-                          target: '#disconnected',
-                        },
-                      },
+                      ...timeout,
                     },
 
                     doneProvingMyIdentity: { type: FINAL },
@@ -723,16 +681,12 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                     challengingIdentity: {
                       always: [
                         // If they just presented an invitation, they've already proven their identity - we can move on
-                        {
-                          guard: 'theyHaveInvitation',
-                          target: 'doneVerifyingTheirIdentity',
-                        },
+                        { guard: 'theyHaveInvitation', target: 'doneVerifyingTheirIdentity' },
 
                         // We received their identity claim in their CLAIM_IDENTITY message. Do we have a device on the team matching their identity claim?
                         {
                           guard: 'deviceUnknown',
-                          actions: { type: 'fail', params: { errorType: DEVICE_UNKNOWN } },
-                          target: '#disconnected',
+                          ...fail(DEVICE_UNKNOWN),
                         },
 
                         // Send a challenge.
@@ -753,23 +707,17 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                             actions: 'acceptIdentity',
                             target: 'doneVerifyingTheirIdentity',
                           },
-
                           // If the proof fails, disconnect with error
                           {
                             actions: {
                               type: 'fail',
-                              params: { errorType: INVITATION_PROOF_INVALID },
+                              params: { error: INVITATION_PROOF_INVALID },
                             },
                             target: '#disconnected',
                           },
                         ],
                       },
-                      after: {
-                        [TIMEOUT_DELAY]: {
-                          actions: { type: 'fail', params: { errorType: TIMEOUT } },
-                          target: '#disconnected',
-                        },
-                      },
+                      ...timeout,
                     },
 
                     doneVerifyingTheirIdentity: { type: FINAL },
@@ -795,12 +743,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             awaitingSeed: {
               entry: ['sendSeed'],
               on: { SEED: { actions: 'receiveSeed', target: 'doneNegotiating' } },
-              after: {
-                [TIMEOUT_DELAY]: {
-                  actions: { type: 'fail', params: { errorType: TIMEOUT } },
-                  target: '#disconnected',
-                },
-              },
+              ...timeout,
             },
             doneNegotiating: { entry: 'deriveSharedKey', type: FINAL },
           },
@@ -829,21 +772,9 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
           always: [
             // If the peer is no longer on the team (or no longer has device), disconnect
-            {
-              guard: 'memberWasRemoved',
-              actions: { type: 'fail', params: { errorType: MEMBER_REMOVED } },
-              target: 'disconnected',
-            },
-            {
-              guard: 'deviceWasRemoved',
-              actions: { type: 'fail', params: { errorType: DEVICE_REMOVED } },
-              target: 'disconnected',
-            },
-            {
-              guard: 'serverWasRemoved',
-              actions: { type: 'fail', params: { errorType: SERVER_REMOVED } },
-              target: 'disconnected',
-            },
+            { guard: 'memberWasRemoved', ...fail(MEMBER_REMOVED) },
+            { guard: 'deviceWasRemoved', ...fail(DEVICE_REMOVED) },
+            { guard: 'serverWasRemoved', ...fail(SERVER_REMOVED) },
           ],
 
           on: {
@@ -1059,3 +990,8 @@ export type ConnectionParams = {
   /** The initial context. */
   context: Context
 }
+
+const fail = (error: ConnectionErrorType) =>
+  ({ actions: { type: 'fail', params: { error } }, target: '#disconnected' }) as const
+
+const timeout = { after: { [TIMEOUT_DELAY]: fail(TIMEOUT) } } as const
