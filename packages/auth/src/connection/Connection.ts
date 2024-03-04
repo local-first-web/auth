@@ -15,10 +15,21 @@ import {
   receiveMessage,
   redactKeys,
 } from '@localfirst/crdx'
-import { asymmetric, randomKeyBytes, symmetric, type Hash, type Payload } from '@localfirst/crypto'
+import { asymmetric, randomKeyBytes, symmetric, type Hash } from '@localfirst/crypto'
 import { assert, debug } from '@localfirst/shared'
 import { deriveSharedKey } from 'connection/deriveSharedKey.js'
-import { createErrorMessage, type ConnectionErrorType } from 'connection/errors.js'
+import {
+  DEVICE_REMOVED,
+  DEVICE_UNKNOWN,
+  INVITATION_PROOF_INVALID,
+  JOINED_WRONG_TEAM,
+  MEMBER_REMOVED,
+  NEITHER_IS_MEMBER,
+  SERVER_REMOVED,
+  TIMEOUT,
+  createErrorMessage,
+  type ConnectionErrorType,
+} from 'connection/errors.js'
 import { getDeviceUserFromGraph } from 'connection/getDeviceUserFromGraph.js'
 import * as identity from 'connection/identity.js'
 import type { ConnectionMessage, DisconnectMessage } from 'connection/message.js'
@@ -39,7 +50,6 @@ import type {
   ConnectionEvents,
   Context,
   IdentityClaim,
-  ServerContext,
 } from './types.js'
 import {
   isInviteeClaim,
@@ -51,6 +61,7 @@ import {
   isMemberContext,
   isServerContext,
 } from './types.js'
+import { getUserName, extendServerContext, stateSummary, messageSummary } from './helpers.js'
 
 /**
  * Wraps a state machine (using [XState](https://xstate.js.org/docs/)) that
@@ -561,10 +572,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             },
             checkingIdentity: {
               id: 'checkingIdentity',
-              // Peers mutually authenticate to each other, so we have to complete two parallel processes:
+              // Peers mutually authenticate to each other, so we have to complete two 'parallel' processes:
               // 1. prove our identity
               // 2. verify their identity
-              type: PARALLEL,
+              type: 'parallel',
               states: {
                 // 1. prove our identity
                 provingMyIdentity: {
@@ -593,7 +604,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                       on: { ACCEPT_IDENTITY: { target: 'doneProvingMyIdentity' } },
                       ...timeout,
                     },
-                    doneProvingMyIdentity: { type: FINAL },
+                    doneProvingMyIdentity: { type: 'final' },
                   },
                 },
                 // 2. verify their identity
@@ -632,14 +643,14 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                       },
                       ...timeout,
                     },
-                    doneVerifyingTheirIdentity: { type: FINAL },
+                    doneVerifyingTheirIdentity: { type: 'final' },
                   },
                 },
               },
               // Once BOTH processes complete, we continue
               onDone: { target: 'doneAuthenticating' },
             },
-            doneAuthenticating: { type: FINAL },
+            doneAuthenticating: { type: 'final' },
           },
           onDone: { actions: ['listenForTeamUpdates'], target: '#negotiating' },
         },
@@ -665,7 +676,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
               },
               ...timeout,
             },
-            doneNegotiating: { type: FINAL },
+            doneNegotiating: { type: 'final' },
           },
           onDone: { actions: 'sendSyncMessage', target: '#synchronizing' },
         },
@@ -758,40 +769,9 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     return this
   }
 
-  /** Returns the current state of the protocol machine. */
-  public get state() {
-    assert(this.started)
-    return this.machine.getSnapshot().value
-  }
-
-  public get context(): ConnectionContext {
-    assert(this.started)
-    return this.machine.getSnapshot().context
-  }
-
-  public get user() {
-    return this.context.user
-  }
-
   /**
-   * Returns the team that the connection's user is a member of.
-   * If the user has not yet joined a team, returns undefined.
-   */
-  public get team() {
-    return this.context.team
-  }
-
-  /**
-   * Returns the connection's session key when we are in a connected state.
-   * Otherwise, returns `undefined`.
-   */
-  public get sessionKey() {
-    return this.context.sessionKey
-  }
-
-  /**
-   * Adds incoming messages from the peer to the MessageQueue's incoming message queue, which will
-   * pass them to the state machine in order.
+   * Adds incoming connection messages from the peer to the MessageQueue's incoming message queue,
+   * which will pass them to the state machine in order.
    */
   public deliver(serializedMessage: Uint8Array) {
     const message = unpack(serializedMessage) as NumberedMessage<ConnectionMessage>
@@ -799,8 +779,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   }
 
   /**
-   * Public interface for sending an encrypted message from the application to our peer. We don't
-   * care about the content of this message.
+   * Public interface for sending a message from the application to our peer via this connection's
+   * encrypted channel. We don't care about the content of this message.
    */
   public send = (message: any) => {
     assert(this.sessionKey, "Can't send encrypted messages until we've finished connecting")
@@ -809,74 +789,50 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   }
 
   // PRIVATE
+  /**
+   * Returns the connection's session key when we are in a connected state. Otherwise, returns
+   * `undefined`. (Public for testing.)
+   */
+  get sessionKey() {
+    return this.#context.sessionKey
+  }
+
+  /**
+   * Returns the team that the connection's user is a member of. If the user has not yet joined a
+   * team, returns undefined. (Public for testing.)
+   */
+  get team() {
+    return this.#context.team
+  }
+
+  /** Returns the current state of the protocol machine. (Public for testing) */
+  get state() {
+    assert(this.started)
+    return this.machine.getSnapshot().value
+  }
+
+  get #context(): ConnectionContext {
+    assert(this.started)
+    return this.machine.getSnapshot().context
+  }
 
   #logMessage(direction: 'in' | 'out', message: NumberedMessage<ConnectionMessage>) {
     const arrow = direction === 'in' ? '<-' : '->'
-    const peerUserName = this.started ? this.context.peer?.userName ?? '?' : '?'
+    const peerUserName = this.started ? this.#context.peer?.userName ?? '?' : '?'
     this.log(`${arrow}${peerUserName} #${message.index} ${messageSummary(message)}`)
   }
 }
 
-// HELPERS
-
-// FOR DEBUGGING
-
-const messageSummary = (message: ConnectionMessage) =>
-  message.type === 'SYNC'
-    ? `SYNC ${syncMessageSummary(message.payload)}`
-    : // @ts-expect-error utility function don't worry about it
-      `${message.type} ${message.payload?.head?.slice(0, 5) || message.payload?.message || ''}`
-
-const isString = (state: any): state is string => typeof state === 'string'
-
-// ignore coverage
-const stateSummary = (state: any): string =>
-  isString(state)
-    ? state
-    : Object.keys(state)
-        .map(key => `${key}:${stateSummary(state[key])}`)
-        .filter(s => s.length)
-        .join(',')
-
-/**
- * A server is conceptually kind of a user and kind of a device. This little hack lets us avoid
- * creating special logic for servers all over the place.
- */
-const extendServerContext = (context: ServerContext) => {
-  const { keys, host } = context.server
-  return {
-    ...context,
-    user: { userId: host, userName: host, keys },
-    device: { userId: host, deviceId: host, deviceName: host, keys },
-  }
-}
-
-const getUserName = (context: Context) => {
-  if ('server' in context) return context.server.host
-  if ('userName' in context) return context.userName
-  if ('user' in context) return context.user.userName
-  return ''
-}
-
 // CONSTANTS
 
-// const IDENTITY_PROOF_INVALID = 'IDENTITY_PROOF_INVALID' as ConnectionErrorType
-const DEVICE_UNKNOWN = 'DEVICE_UNKNOWN' as ConnectionErrorType
-const NEITHER_IS_MEMBER = 'NEITHER_IS_MEMBER' as ConnectionErrorType
-const INVITATION_PROOF_INVALID = 'INVITATION_PROOF_INVALID' as ConnectionErrorType
-const JOINED_WRONG_TEAM = 'JOINED_WRONG_TEAM' as ConnectionErrorType
-const MEMBER_REMOVED = 'MEMBER_REMOVED' as ConnectionErrorType
-const DEVICE_REMOVED = 'DEVICE_REMOVED' as ConnectionErrorType
-const SERVER_REMOVED = 'SERVER_REMOVED' as ConnectionErrorType
-const TIMEOUT = 'TIMEOUT' as ConnectionErrorType
+const { DEVICE } = KeyType
 
-const PARALLEL = 'parallel' as const
-const FINAL = 'final' as const
+const fail = (error: ConnectionErrorType) =>
+  ({ actions: { type: 'fail', params: { error } }, target: '#disconnected' }) as const
 
 // Shared timeout settings
 const TIMEOUT_DELAY = 7000
-
-const { DEVICE } = KeyType
+const timeout = { after: { [TIMEOUT_DELAY]: fail(TIMEOUT) } } as const
 
 // TYPES
 
@@ -887,11 +843,3 @@ export type ConnectionParams = {
   /** The initial context. */
   context: Context
 }
-
-const fail = (error: ConnectionErrorType) =>
-  ({
-    actions: { type: 'fail', params: { error } },
-    target: '#disconnected',
-  }) as const
-
-const timeout = { after: { [TIMEOUT_DELAY]: fail(TIMEOUT) } } as const
