@@ -558,27 +558,22 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       },
     }).createMachine({
       context: initialContext as ConnectionContext,
-
       id: 'connection',
       initial: 'awaitingIdentityClaim',
-
       on: {
         REQUEST_IDENTITY: { actions: 'sendIdentityClaim', target: '#awaitingIdentityClaim' },
         CLAIM_IDENTITY: { actions: ['receiveIdentityClaim'], target: '#awaitingIdentityClaim' },
         ERROR: { actions: 'receiveError', target: '#disconnected' }, // Remote error (sent by peer)
         LOCAL_ERROR: { actions: 'sendError', target: '#disconnected' }, // Local error (detected by us, sent to peer)
       },
-
       states: {
         awaitingIdentityClaim: {
           id: 'awaitingIdentityClaim',
           always: { guard: 'bothSentIdentityClaim', target: 'authenticating' },
         },
-
         authenticating: {
           id: 'authenticating',
           initial: 'checkingInvitations',
-
           states: {
             checkingInvitations: {
               initial: 'checkingForInvitations',
@@ -586,22 +581,15 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                 checkingForInvitations: {
                   always: [
                     // We can't both present invitations - someone has to be a member
-                    {
-                      guard: 'bothHaveInvitation',
-                      ...fail(NEITHER_IS_MEMBER),
-                    },
-
+                    { guard: 'bothHaveInvitation', ...fail(NEITHER_IS_MEMBER) },
                     // If I have an invitation, wait for acceptance
                     { guard: 'weHaveInvitation', target: 'awaitingInvitationAcceptance' },
-
                     // If they have an invitation, validate it
                     { guard: 'theyHaveInvitation', target: 'validatingInvitation' },
-
                     // Otherwise, we can proceed directly to authentication
                     { target: '#checkingIdentity' },
                   ],
                 },
-
                 awaitingInvitationAcceptance: {
                   // Wait for them to validate the invitation we've shown
                   on: {
@@ -609,17 +597,15 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                       // Make sure the team I'm joining is actually the one that invited me
                       {
                         guard: 'joinedTheRightTeam',
-                        actions: ['joinTeam'],
+                        actions: 'joinTeam',
                         target: '#checkingIdentity',
                       },
-
                       // If it's not, disconnect with error
-                      { ...fail(JOINED_WRONG_TEAM) },
+                      fail(JOINED_WRONG_TEAM),
                     ],
                   },
                   ...timeout,
                 },
-
                 validatingInvitation: {
                   always: [
                     // If the proof succeeds, add them to the team and send an acceptance message,
@@ -629,22 +615,18 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                       actions: 'acceptInvitation',
                       target: '#checkingIdentity',
                     },
-
                     // If the proof fails, disconnect with error
-                    { ...fail(INVITATION_PROOF_INVALID) },
+                    fail(INVITATION_PROOF_INVALID),
                   ],
                 },
               },
             },
-
             checkingIdentity: {
               id: 'checkingIdentity',
-
               // Peers mutually authenticate to each other, so we have to complete two parallel processes:
               // 1. prove our identity
               // 2. verify their identity
               type: PARALLEL,
-
               states: {
                 // 1. prove our identity
                 provingMyIdentity: {
@@ -653,7 +635,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                     awaitingIdentityChallenge: {
                       // If we just presented an invitation, they already know who we are
                       always: { guard: 'weHaveInvitation', target: 'doneProvingMyIdentity' },
-
                       on: {
                         // When we receive a challenge, respond with proof
                         CHALLENGE_IDENTITY: {
@@ -663,17 +644,14 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                       },
                       ...timeout,
                     },
-
                     // Wait for a message confirming that they've validated our proof of identity
                     awaitingIdentityAcceptance: {
                       on: { ACCEPT_IDENTITY: { target: 'doneProvingMyIdentity' } },
                       ...timeout,
                     },
-
                     doneProvingMyIdentity: { type: FINAL },
                   },
                 },
-
                 // 2. verify their identity
                 verifyingTheirIdentity: {
                   initial: 'challengingIdentity',
@@ -682,13 +660,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                       always: [
                         // If they just presented an invitation, they've already proven their identity - we can move on
                         { guard: 'theyHaveInvitation', target: 'doneVerifyingTheirIdentity' },
-
                         // We received their identity claim in their CLAIM_IDENTITY message. Do we have a device on the team matching their identity claim?
-                        {
-                          guard: 'deviceUnknown',
-                          ...fail(DEVICE_UNKNOWN),
-                        },
-
+                        { guard: 'deviceUnknown', ...fail(DEVICE_UNKNOWN) },
                         // Send a challenge.
                         {
                           actions: ['recordIdentity', 'challengeIdentity'],
@@ -696,7 +669,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                         },
                       ],
                     },
-
                     // Then wait for them to respond to the challenge with proof
                     awaitingIdentityProof: {
                       on: {
@@ -708,102 +680,73 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                             target: 'doneVerifyingTheirIdentity',
                           },
                           // If the proof fails, disconnect with error
-                          {
-                            actions: {
-                              type: 'fail',
-                              params: { error: INVITATION_PROOF_INVALID },
-                            },
-                            target: '#disconnected',
-                          },
+                          fail(INVITATION_PROOF_INVALID),
                         ],
                       },
                       ...timeout,
                     },
-
                     doneVerifyingTheirIdentity: { type: FINAL },
                   },
                 },
               },
-
               // Once BOTH processes complete, we continue
               onDone: { target: 'doneAuthenticating' },
             },
-
             doneAuthenticating: { type: FINAL },
           },
-
           onDone: { actions: ['listenForTeamUpdates'], target: '#negotiating' },
         },
-
         negotiating: {
           id: 'negotiating',
-          entry: ['generateSeed'],
+          entry: 'generateSeed',
           initial: 'awaitingSeed',
           states: {
             awaitingSeed: {
-              entry: ['sendSeed'],
+              entry: 'sendSeed',
               on: { SEED: { actions: 'receiveSeed', target: 'doneNegotiating' } },
               ...timeout,
             },
             doneNegotiating: { entry: 'deriveSharedKey', type: FINAL },
           },
-
-          onDone: {
-            actions: ['sendSyncMessage'],
-            target: '#synchronizing',
-          },
+          onDone: { actions: 'sendSyncMessage', target: '#synchronizing' },
         },
-
         synchronizing: {
           id: 'synchronizing',
-
           always: [{ guard: 'headsAreEqual', actions: 'onConnected', target: '#connected' }],
-
           on: {
-            SYNC: {
-              actions: ['receiveSyncMessage', 'sendSyncMessage'],
-              target: '#synchronizing',
-            },
+            SYNC: { actions: ['receiveSyncMessage', 'sendSyncMessage'], target: '#synchronizing' },
           },
         },
-
         connected: {
           id: 'connected',
-
           always: [
             // If the peer is no longer on the team (or no longer has device), disconnect
             { guard: 'memberWasRemoved', ...fail(MEMBER_REMOVED) },
             { guard: 'deviceWasRemoved', ...fail(DEVICE_REMOVED) },
             { guard: 'serverWasRemoved', ...fail(SERVER_REMOVED) },
           ],
-
           on: {
             // If something changes locally, send them a sync message
             LOCAL_UPDATE: { actions: ['sendSyncMessage'], target: '#connected' },
-
             // If they send a sync message, process it
             SYNC: {
               actions: ['receiveSyncMessage', 'sendSyncMessage'],
               target: '#connected',
             },
-
             // Deliver any encrypted messages
             ENCRYPTED_MESSAGE: {
               actions: 'receiveEncryptedMessage',
               target: '#connected',
             },
-
             DISCONNECT: '#disconnected',
           },
         },
-
         disconnected: {
           id: 'disconnected',
           entry: 'onDisconnected',
         },
       },
     })
-
     // Instantiate the state machine
     this.machine = createActor(machine)
 
