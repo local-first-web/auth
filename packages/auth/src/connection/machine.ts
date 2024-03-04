@@ -1,17 +1,29 @@
-import { type MachineConfig } from 'xstate'
-import { type ConnectionMessage } from 'connection/message.js'
-import { type ConnectionContext, type ConnectionState } from 'connection/types.js'
+import { type ConnectionErrorType } from './errors.js'
+import { type ConnectionContext } from './types.js'
 
-// Common timeout settings
+// const IDENTITY_PROOF_INVALID = 'IDENTITY_PROOF_INVALID' as ConnectionErrorType
+const DEVICE_UNKNOWN = 'DEVICE_UNKNOWN' as ConnectionErrorType
+const NEITHER_IS_MEMBER = 'NEITHER_IS_MEMBER' as ConnectionErrorType
+const INVITATION_PROOF_INVALID = 'INVITATION_PROOF_INVALID' as ConnectionErrorType
+const JOINED_WRONG_TEAM = 'JOINED_WRONG_TEAM' as ConnectionErrorType
+const MEMBER_REMOVED = 'MEMBER_REMOVED' as ConnectionErrorType
+const DEVICE_REMOVED = 'DEVICE_REMOVED' as ConnectionErrorType
+const SERVER_REMOVED = 'SERVER_REMOVED' as ConnectionErrorType
+const TIMEOUT = 'TIMEOUT' as ConnectionErrorType
+
+const PARALLEL = 'parallel' as const
+const FINAL = 'final' as const
+
+// Shared timeout settings
 const TIMEOUT_DELAY = 7000
 const timeout = {
   after: {
-    [TIMEOUT_DELAY]: { actions: 'failTimeout', target: '#disconnected' },
+    [TIMEOUT_DELAY]: { actions: 'fail', params: { errorType: TIMEOUT }, target: '#disconnected' },
   },
 }
 
-export const machine: MachineConfig<ConnectionContext, ConnectionState, ConnectionMessage> = {
-  predictableActionArguments: true,
+export const machine = {
+  context: {} as ConnectionContext,
 
   id: 'connection',
   initial: 'awaitingIdentityClaim',
@@ -35,7 +47,7 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
     awaitingIdentityClaim: {
       id: 'awaitingIdentityClaim',
       always: {
-        cond: 'bothSentIdentityClaim',
+        guard: 'bothSentIdentityClaim',
         target: 'authenticating',
       },
     },
@@ -52,20 +64,21 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
               always: [
                 // We can't both present invitations - someone has to be a member
                 {
-                  cond: 'bothHaveInvitation',
-                  actions: 'failNeitherIsMember',
+                  guard: 'bothHaveInvitation',
+                  actions: 'fail',
+                  params: { errorType: NEITHER_IS_MEMBER },
                   target: '#disconnected',
                 },
 
                 // If I have an invitation, wait for acceptance
                 {
-                  cond: 'weHaveInvitation',
+                  guard: 'weHaveInvitation',
                   target: 'awaitingInvitationAcceptance',
                 },
 
                 // If they have an invitation, validate it
                 {
-                  cond: 'theyHaveInvitation', //
+                  guard: 'theyHaveInvitation', //
                   target: 'validatingInvitation',
                 },
 
@@ -80,13 +93,17 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
                 ACCEPT_INVITATION: [
                   // Make sure the team I'm joining is actually the one that invited me
                   {
-                    cond: 'joinedTheRightTeam',
+                    guard: 'joinedTheRightTeam',
                     actions: ['joinTeam'],
                     target: '#checkingIdentity',
                   },
 
                   // If it's not, disconnect with error
-                  { actions: 'rejectTeam', target: '#disconnected' },
+                  {
+                    actions: 'fail',
+                    params: { errorType: JOINED_WRONG_TEAM },
+                    target: '#disconnected',
+                  },
                 ],
               },
               ...timeout,
@@ -97,13 +114,17 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
                 // If the proof succeeds, add them to the team and send an acceptance message,
                 // then proceed to the standard identity claim & challenge process
                 {
-                  cond: 'invitationProofIsValid',
+                  guard: 'invitationProofIsValid',
                   actions: 'acceptInvitation',
                   target: '#checkingIdentity',
                 },
 
                 // If the proof fails, disconnect with error
-                { actions: 'rejectInvitation', target: '#disconnected' },
+                {
+                  actions: 'fail',
+                  params: { errorType: INVITATION_PROOF_INVALID },
+                  target: '#disconnected',
+                },
               ],
             },
           },
@@ -115,7 +136,7 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
           // Peers mutually authenticate to each other, so we have to complete two parallel processes:
           // 1. prove our identity
           // 2. verify their identity
-          type: 'parallel',
+          type: PARALLEL,
 
           states: {
             // 1. prove our identity
@@ -125,7 +146,7 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
                 awaitingIdentityChallenge: {
                   // If we just presented an invitation, they already know who we are
                   always: {
-                    cond: 'weHaveInvitation',
+                    guard: 'weHaveInvitation',
                     target: 'doneProvingMyIdentity',
                   },
 
@@ -145,7 +166,7 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
                   ...timeout,
                 },
 
-                doneProvingMyIdentity: { type: 'final' },
+                doneProvingMyIdentity: { type: FINAL },
               },
             },
 
@@ -157,14 +178,21 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
                   always: [
                     // If they just presented an invitation, they've already proven their identity - we can move on
                     {
-                      cond: 'theyHaveInvitation',
+                      guard: 'theyHaveInvitation',
                       target: 'doneVerifyingTheirIdentity',
                     },
 
-                    // We received their identity claim in their CLAIM_IDENTITY message
-                    // if we have a member & device by that name on the team, send a challenge
+                    // We received their identity claim in their CLAIM_IDENTITY message. Do we have a device on the team matching their identity claim?
                     {
-                      actions: ['confirmIdentityExists', 'challengeIdentity'],
+                      guard: 'deviceUnknown',
+                      actions: 'fail',
+                      params: { errorType: DEVICE_UNKNOWN },
+                      target: '#disconnected',
+                    },
+
+                    // Send a challenge.
+                    {
+                      actions: ['recordIdentity', 'challengeIdentity'],
                       target: 'awaitingIdentityProof',
                     },
                   ],
@@ -176,14 +204,15 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
                     PROVE_IDENTITY: [
                       // If the proof succeeds, we're done on our side
                       {
-                        cond: 'identityProofIsValid',
+                        guard: 'identityProofIsValid',
                         actions: 'acceptIdentity',
                         target: 'doneVerifyingTheirIdentity',
                       },
 
                       // If the proof fails, disconnect with error
                       {
-                        actions: 'rejectIdentityProof',
+                        actions: 'fail',
+                        params: { errorType: INVITATION_PROOF_INVALID },
                         target: '#disconnected',
                       },
                     ],
@@ -191,7 +220,7 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
                   ...timeout,
                 },
 
-                doneVerifyingTheirIdentity: { type: 'final' },
+                doneVerifyingTheirIdentity: { type: FINAL },
               },
             },
           },
@@ -200,7 +229,7 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
           onDone: { target: 'doneAuthenticating' },
         },
 
-        doneAuthenticating: { type: 'final' },
+        doneAuthenticating: { type: FINAL },
       },
 
       onDone: { actions: ['listenForTeamUpdates'], target: '#negotiating' },
@@ -216,7 +245,7 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
           on: { SEED: { actions: 'receiveSeed', target: 'doneNegotiating' } },
           ...timeout,
         },
-        doneNegotiating: { entry: 'deriveSharedKey', type: 'final' },
+        doneNegotiating: { entry: 'deriveSharedKey', type: FINAL },
       },
 
       onDone: {
@@ -228,7 +257,7 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
     synchronizing: {
       id: 'synchronizing',
 
-      always: [{ cond: 'headsAreEqual', actions: 'onConnected', target: '#connected' }],
+      always: [{ guard: 'headsAreEqual', actions: 'onConnected', target: '#connected' }],
 
       on: {
         SYNC: {
@@ -244,8 +273,21 @@ export const machine: MachineConfig<ConnectionContext, ConnectionState, Connecti
       always: [
         // If the peer is no longer on the team (or no longer has device), disconnect
         {
-          cond: 'peerWasRemoved',
-          actions: 'failPeerWasRemoved',
+          guard: 'memberWasRemoved',
+          actions: 'fail',
+          params: { error: MEMBER_REMOVED },
+          target: 'disconnected',
+        },
+        {
+          guard: 'deviceWasRemoved',
+          actions: 'fail',
+          params: { ERROR: DEVICE_REMOVED },
+          target: 'disconnected',
+        },
+        {
+          guard: 'serverWasRemoved',
+          actions: 'fail',
+          params: { ERROR: SERVER_REMOVED },
           target: 'disconnected',
         },
       ],

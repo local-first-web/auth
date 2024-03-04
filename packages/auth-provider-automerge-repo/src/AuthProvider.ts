@@ -111,12 +111,12 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       const connection = this.#getConnection(shareId, message.targetId)
 
       // wait for connection to be ready before sending
-      const connected = new Promise<void>(resolve => {
+      const onceConnected = new Promise<void>(resolve => {
         if (connection.state === 'connected') resolve()
         else connection.once('connected', () => resolve())
       })
 
-      connected
+      onceConnected
         .then(() => connection.send(message))
         .catch(error => this.#log('error sending message from connection %o', error))
     }

@@ -19,7 +19,6 @@ import type {
 import type { ProofOfInvitation } from 'invitation/index.js'
 import type { ServerWithSecrets } from 'server/index.js'
 import type { Member, Team } from 'team/index.js'
-import type { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
 import type { ConnectionErrorPayload } from './errors.js'
 import type { ConnectionMessage } from './message.js'
 
@@ -144,13 +143,6 @@ export type ErrorPayload = {
   details?: any
 }
 
-// ACTIONS
-
-export type StateMachineAction =
-  | ActionFunction<ConnectionContext, ConnectionMessage>
-  | AssignAction<ConnectionContext, ConnectionMessage>
-export type Condition = ConditionPredicate<ConnectionContext, ConnectionMessage>
-
 // STATE
 // This is the schema for protocolMachine.ts
 
@@ -187,13 +179,13 @@ export type ConnectionState = {
         doneAuthenticating: {}
       }
     }
-    synchronizing: {}
     negotiating: {
       states: {
         awaitingSeed: {}
         doneNegotiating: {}
       }
     }
+    synchronizing: {}
     connected: {}
     disconnected: {}
   }

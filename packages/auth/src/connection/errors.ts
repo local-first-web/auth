@@ -38,7 +38,7 @@ export const connectionErrors: Record<string, ErrorDefinition> = {
 }
 
 /** Creates an error payload with an appropriate message for the local or remote user */
-export const buildError = (
+export const createErrorMessage = (
   type: ConnectionErrorType,
   details?: unknown,
   destination: 'LOCAL' | 'REMOTE' = 'LOCAL'

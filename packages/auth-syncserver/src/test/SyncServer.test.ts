@@ -37,6 +37,78 @@ it('Alice can create a team', async () => {
   expect(peerId).toEqual(host)
 })
 
+it('Alice can create a team and manually register it with the server ', async () => {
+  const { users, url } = await setup(['alice'])
+  const { alice } = users
+
+  // create a team
+  const team = createTeam('team A', { user: alice.user, device: alice.device })
+
+  // AuthProvider.createTeam takes care of all of this for us
+  {
+    await alice.authProvider.addTeam(team)
+
+    // get the server's public keys
+    const response = await fetch(`http://${url}/keys`)
+    const keys = await response.json()
+
+    // add the server's public keys to the team
+    team.addServer({ host, keys })
+
+    // register the team with the server
+    await fetch(`http://${url}/teams`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        serializedGraph: team.save(),
+        teamKeyring: team.teamKeyring(),
+      }),
+    })
+  }
+
+  // when we're authenticated, we get a peer event
+  const { peerId } = await eventPromise(alice.repo.networkSubsystem, 'peer')
+  expect(peerId).toEqual(host)
+})
+
+// // TODO NEXT figure out how to make this test reflect reality & crash
+
+// it.only('If someone has the wrong keys, the server crashes', async () => {
+//   const { users, url } = await setup(['alice'])
+//   const { alice } = users
+
+//   // create a team
+//   const team = createTeam('team A', { user: alice.user, device: alice.device })
+//   await alice.authProvider.addTeam(team)
+
+//   // 😬 instead of getting the server keys, let's fabricate some
+//   const keys = redactKeys(createKeyset({ type: 'SERVER', name: host }))
+
+//   // add the server's public keys to the team
+//   team.addServer({ host, keys })
+
+//   // register the team with the server
+//   await fetch(`http://${url}/teams`, {
+//     method: 'POST',
+//     headers: { 'Content-Type': 'application/json' },
+//     body: JSON.stringify({
+//       serializedGraph: team.save(),
+//       teamKeyring: team.teamKeyring(),
+//     }),
+//   })
+
+//   // // when we're authenticated, we get a peer event
+//   // const { peerId } = await eventPromise(alice.repo.networkSubsystem, 'peer')
+//   // expect(peerId).toEqual(host)
+
+//   // const handle = alice.repo.create<any>()
+//   // handle.change(doc => {
+//   //   doc.foo = 'bar'
+//   // })
+
+//   // await handle.doc()
+// })
+
 it(`Eve can't replace the team on the sync server`, async () => {
   const { users, url } = await setup(['alice', 'eve'])
   const { alice } = users
@@ -80,7 +152,7 @@ it(`Eve can't replace the team on the sync server`, async () => {
   expect(await response.text()).toContain('already registered')
 })
 
-it('Alice and Bob can communicate', async () => {
+it('Alice and Bob can sync', async () => {
   const { users } = await setup(['alice', 'bob'])
   const { alice, bob } = users
 
@@ -113,7 +185,7 @@ it('Alice and Bob can communicate', async () => {
   expect(bobTeam.hasRole('MANAGERS')).toBe(true)
 })
 
-it('Alice and Bob can communicate over a public share', async () => {
+it('Alice and Bob can sync over a public share', async () => {
   const { users } = await setup(['alice', 'bob'])
   const { alice, bob } = users
 
