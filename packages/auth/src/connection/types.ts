@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-types */
 // ignore file coverage
 
 import type {
@@ -141,54 +140,6 @@ export type ConnectionContext = {
 export type ErrorPayload = {
   message: string
   details?: any
-}
-
-// STATE
-// This is the schema for protocolMachine.ts
-
-export type ConnectionState = {
-  states: {
-    awaitingIdentityClaim: {}
-    authenticating: {
-      states: {
-        checkingInvitations: {
-          states: {
-            checkingForInvitations: {}
-            awaitingInvitationAcceptance: {}
-            validatingInvitation: {}
-          }
-        }
-        checkingIdentity: {
-          states: {
-            provingMyIdentity: {
-              states: {
-                awaitingIdentityChallenge: {}
-                awaitingIdentityAcceptance: {}
-                doneProvingMyIdentity: {}
-              }
-            }
-            verifyingTheirIdentity: {
-              states: {
-                challengingIdentity: {}
-                awaitingIdentityProof: {}
-                doneVerifyingTheirIdentity: {}
-              }
-            }
-          }
-        }
-        doneAuthenticating: {}
-      }
-    }
-    negotiating: {
-      states: {
-        awaitingSeed: {}
-        doneNegotiating: {}
-      }
-    }
-    synchronizing: {}
-    connected: {}
-    disconnected: {}
-  }
 }
 
 // TYPE GUARDS
