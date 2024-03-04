@@ -60,24 +60,6 @@ import {
   isServerContext,
 } from './types.js'
 
-// const IDENTITY_PROOF_INVALID = 'IDENTITY_PROOF_INVALID' as ConnectionErrorType
-const DEVICE_UNKNOWN = 'DEVICE_UNKNOWN' as ConnectionErrorType
-const NEITHER_IS_MEMBER = 'NEITHER_IS_MEMBER' as ConnectionErrorType
-const INVITATION_PROOF_INVALID = 'INVITATION_PROOF_INVALID' as ConnectionErrorType
-const JOINED_WRONG_TEAM = 'JOINED_WRONG_TEAM' as ConnectionErrorType
-const MEMBER_REMOVED = 'MEMBER_REMOVED' as ConnectionErrorType
-const DEVICE_REMOVED = 'DEVICE_REMOVED' as ConnectionErrorType
-const SERVER_REMOVED = 'SERVER_REMOVED' as ConnectionErrorType
-const TIMEOUT = 'TIMEOUT' as ConnectionErrorType
-
-const PARALLEL = 'parallel' as const
-const FINAL = 'final' as const
-
-// Shared timeout settings
-const TIMEOUT_DELAY = 7000
-
-const { DEVICE } = KeyType
-
 /**
  * Wraps a state machine (using [XState](https://xstate.js.org/docs/)) that
  * implements the connection protocol.
@@ -89,7 +71,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   private readonly messageQueue: MessageQueue<ConnectionMessage>
   private log = debug.extend('auth:connection')
 
-  constructor({ sendMessage, context }: Params) {
+  constructor({ sendMessage, context }: ConnectionParams) {
     super()
 
     // To send messages to our peer, we give them to the ordered network,
@@ -1028,14 +1010,6 @@ const stateSummary = (state: any): string =>
         .filter(s => s.length)
         .join(',')
 
-export type Params = {
-  /** A function to send messages to our peer. This how you hook this up to your network stack. */
-  sendMessage: (message: Uint8Array) => void
-
-  /** The initial context. */
-  context: Context
-}
-
 /**
  * A server is conceptually kind of a user and kind of a device. This little hack lets us avoid
  * creating special logic for servers all over the place.
@@ -1054,4 +1028,34 @@ const getUserName = (context: Context) => {
   if ('userName' in context) return context.userName
   if ('user' in context) return context.user.userName
   return ''
+}
+
+// CONSTANTS
+
+// const IDENTITY_PROOF_INVALID = 'IDENTITY_PROOF_INVALID' as ConnectionErrorType
+const DEVICE_UNKNOWN = 'DEVICE_UNKNOWN' as ConnectionErrorType
+const NEITHER_IS_MEMBER = 'NEITHER_IS_MEMBER' as ConnectionErrorType
+const INVITATION_PROOF_INVALID = 'INVITATION_PROOF_INVALID' as ConnectionErrorType
+const JOINED_WRONG_TEAM = 'JOINED_WRONG_TEAM' as ConnectionErrorType
+const MEMBER_REMOVED = 'MEMBER_REMOVED' as ConnectionErrorType
+const DEVICE_REMOVED = 'DEVICE_REMOVED' as ConnectionErrorType
+const SERVER_REMOVED = 'SERVER_REMOVED' as ConnectionErrorType
+const TIMEOUT = 'TIMEOUT' as ConnectionErrorType
+
+const PARALLEL = 'parallel' as const
+const FINAL = 'final' as const
+
+// Shared timeout settings
+const TIMEOUT_DELAY = 7000
+
+const { DEVICE } = KeyType
+
+// TYPES
+
+export type ConnectionParams = {
+  /** A function to send messages to our peer. This how you hook this up to your network stack. */
+  sendMessage: (message: Uint8Array) => void
+
+  /** The initial context. */
+  context: Context
 }
