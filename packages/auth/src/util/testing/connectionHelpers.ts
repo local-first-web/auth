@@ -36,7 +36,7 @@ export const connectWithInvitation = async (
 
   return connect(member, invitee).then(() => {
     // The connection now has the team object, so let's update our user stuff
-    invitee.team = invitee.connection[member.deviceId].team!
+    invitee.team = invitee.connection[member.deviceId]._team!
   })
 }
 
@@ -53,9 +53,9 @@ export const connectPhoneWithInvitation = async (user: UserStuff, seed: string) 
   const phoneConnection = join(phoneContext).start()
 
   await all([laptopConnection, phoneConnection], 'connected')
-  user.team = laptopConnection.team!
+  user.team = laptopConnection._team!
   user.connection = { [user.phoneStuff!.deviceId]: phoneConnection }
-  user.phoneStuff!.team = phoneConnection.team!
+  user.phoneStuff!.team = phoneConnection._team!
   user.phoneStuff!.connection = { [user.deviceId]: laptopConnection }
 }
 
@@ -85,10 +85,10 @@ export const connection = async (a: UserStuff, b: UserStuff) => {
   // ✅ They're both connected
   await all(connections, 'connected')
 
-  const sharedKey = connections[0].sessionKey
+  const sharedKey = connections[0]._sessionKey
   for (const connection of connections) {
     // ✅ They've converged on a shared secret key
-    expect(connection.sessionKey).toEqual(sharedKey)
+    expect(connection._sessionKey).toEqual(sharedKey)
   }
 }
 
@@ -109,18 +109,18 @@ export const anyDisconnected = async (a: UserStuff, b: UserStuff) => {
 
 export const disconnection = async (a: UserStuff, b: UserStuff) => {
   const connections = [a.connection[b.deviceId], b.connection[a.deviceId]]
-  const activeConnections = connections.filter(c => c.state !== 'disconnected')
+  const activeConnections = connections.filter(c => c._state !== 'disconnected')
 
   // ✅ They're both disconnected
   await all(activeConnections, 'disconnected')
-  for (const connection of activeConnections) expect(connection.state).toEqual('disconnected')
+  for (const connection of activeConnections) expect(connection._state).toEqual('disconnected')
 }
 
 export const all = async (connections: Connection[], event: keyof ConnectionEvents) =>
   Promise.all(
     connections.map(async connection => {
-      if (event === 'disconnected' && connection.state === 'disconnected') return connection
-      if (event === 'connected' && connection.state === 'connected') return connection
+      if (event === 'disconnected' && connection._state === 'disconnected') return connection
+      if (event === 'connected' && connection._state === 'connected') return connection
       return eventPromise(connection, event)
     })
   )
@@ -128,8 +128,8 @@ export const all = async (connections: Connection[], event: keyof ConnectionEven
 export const any = async (connections: Connection[], event: keyof ConnectionEvents) =>
   Promise.any(
     connections.map(async connection => {
-      if (event === 'disconnected' && connection.state === 'disconnected') return connection
-      if (event === 'connected' && connection.state === 'connected') return connection
+      if (event === 'disconnected' && connection._state === 'disconnected') return connection
+      if (event === 'connected' && connection._state === 'connected') return connection
       return eventPromise(connection, event)
     })
   )

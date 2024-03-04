@@ -1,13 +1,7 @@
 /* eslint-disable object-shorthand */
 
 import { EventEmitter } from '@herbcaudill/eventemitter42'
-import type {
-  DecryptFnParams,
-  Keyring,
-  KeysetWithSecrets,
-  User,
-  UserWithSecrets,
-} from '@localfirst/crdx'
+import type { DecryptFnParams, Keyring, KeysetWithSecrets, UserWithSecrets } from '@localfirst/crdx'
 import {
   generateMessage,
   headsAreEqual,
@@ -44,6 +38,7 @@ import { KeyType } from 'util/index.js'
 import { syncMessageSummary } from 'util/testing/messageSummary.js'
 import { and, assertEvent, assign, createActor, setup } from 'xstate'
 import { MessageQueue, type NumberedMessage } from './MessageQueue.js'
+import { extendServerContext, getUserName, messageSummary, stateSummary } from './helpers.js'
 import type {
   Challenge,
   ConnectionContext,
@@ -61,7 +56,6 @@ import {
   isMemberContext,
   isServerContext,
 } from './types.js'
-import { getUserName, extendServerContext, stateSummary, messageSummary } from './helpers.js'
 
 /**
  * Wraps a state machine (using [XState](https://xstate.js.org/docs/)) that
@@ -77,8 +71,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   constructor({ sendMessage, context }: ConnectionParams) {
     super()
 
-    // To send messages to our peer, we give them to the ordered network,
-    // which will deliver them using the
+    // To send messages to our peer, we give them to the ordered message queue, which will deliver
+    // them using the `sendMessage` function provided.
     this.messageQueue = new MessageQueue<ConnectionMessage>({
       sendMessage: message => {
         this.#logMessage('out', message)
@@ -92,11 +86,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         if (message.type === 'REQUEST_RESEND') {
           const { index } = message.payload
           this.messageQueue.resend(index)
-          return
+        } else {
+          // Pass other messages from peer to the state machine
+          this.machine.send(message)
         }
-
-        // Pass other messages from peer to the state machine
-        this.machine.send(message)
       })
       .on('request', index => {
         // Send out requests to resend messages that we missed
@@ -115,6 +108,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         events: {} as ConnectionMessage,
       },
       actions: {
+        // INITIAL HANDSHAKE
+
         sendIdentityClaim: assign(({ context }) => {
           const createIdentityClaim = (context: ConnectionContext): IdentityClaim => {
             if (isMemberContext(context)) {
@@ -257,7 +252,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           this.log = this.log.extend(peer.userName)
 
           // send them an identity challenge
-          const challenge = identity.challenge({ type: DEVICE, name: deviceId })
+          const challenge = identity.challenge({ type: KeyType.DEVICE, name: deviceId })
           this.messageQueue.send({
             type: 'CHALLENGE_IDENTITY',
             payload: { challenge },
@@ -357,30 +352,20 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           return { seed }
         }),
 
-        deriveSharedKey: assign(
-          (
-            _,
-            params: {
-              encryptedSeed: Uint8Array
-              user: UserWithSecrets
-              seed: Uint8Array
-              peer: User
-            }
-          ) => {
-            const { encryptedSeed, user, seed, peer } = params
-            // decrypt the seed they sent
-            const theirSeed = asymmetric.decryptBytes({
-              cipher: encryptedSeed,
-              senderPublicKey: peer.keys.encryption,
-              recipientSecretKey: user.keys.encryption.secretKey,
-            })
+        deriveSharedKey: assign(({ context, event }) => {
+          assertEvent(event, 'SEED')
+          const { encryptedSeed } = event.payload
+          const { seed, user, peer } = context
+          // decrypt the seed they sent
+          const theirSeed = asymmetric.decryptBytes({
+            cipher: encryptedSeed,
+            senderPublicKey: peer!.keys.encryption,
+            recipientSecretKey: user!.keys.encryption.secretKey,
+          })
 
-            // With the two keys, we derive a shared key
-            return {
-              sessionKey: deriveSharedKey(seed, theirSeed),
-            }
-          }
-        ),
+          // With the two keys, we derive a shared key
+          return { sessionKey: deriveSharedKey(seed, theirSeed) }
+        }),
 
         // COMMUNICATING
 
@@ -408,12 +393,32 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           return { error: localMessage.payload }
         }),
 
+        receiveError: assign(({ event }) => {
+          assertEvent(event, 'ERROR')
+          const { payload: error } = event
+          this.log('remote error: %s %o', error.type, error)
+          this.emit('remoteError', error)
+          return { error }
+        }),
+
+        sendError: assign(({ event }) => {
+          assertEvent(event, 'LOCAL_ERROR')
+          const { payload: error } = event
+          this.log('sendError %o', error)
+          this.messageQueue.send(createErrorMessage(error.type, 'REMOTE'))
+          this.emit('localError', error)
+          return { error }
+        }),
+
         // EVENTS FOR EXTERNAL LISTENERS
 
         onConnected: () => this.emit('connected'),
         onDisconnected: ({ event }) => this.emit('disconnected', event),
       },
       guards: {
+        bothSentIdentityClaim: ({ context }) =>
+          context.ourIdentityClaim !== undefined && context.theirIdentityClaim !== undefined,
+
         weHaveInvitation: ({ context }) => isInviteeContext(context),
         theyHaveInvitation: ({ context }) => isInviteeClaim(context.theirIdentityClaim!),
         neitherIsMember: and(['weHaveInvitation', 'theyHaveInvitation']),
@@ -435,9 +440,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           const { id } = invitations.generateProof(invitationSeed)
           return select.hasInvitation(state, id)
         },
-
-        bothSentIdentityClaim: ({ context }) =>
-          context.ourIdentityClaim !== undefined && context.theirIdentityClaim !== undefined,
 
         deviceUnknown: ({ context }) => {
           const { theirIdentityClaim } = context
@@ -464,26 +466,14 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       initial: 'awaitingIdentityClaim',
       on: {
         REQUEST_IDENTITY: { actions: 'sendIdentityClaim', target: '#awaitingIdentityClaim' },
-
         // Remote error (sent by peer)
         ERROR: {
-          actions: assign(({ event }) => {
-            const { payload: error } = event
-            this.log('receiveError %o', error)
-            this.emit('remoteError', error)
-            return { error }
-          }),
+          actions: 'receiveError',
           target: '#disconnected',
         },
         // Local error (detected by us, sent to peer)
         LOCAL_ERROR: {
-          actions: assign(({ event }) => {
-            const { payload: error } = event
-            this.log('sendError %o', error)
-            this.messageQueue.send(createErrorMessage(error.type, 'REMOTE'))
-            this.emit('localError', error)
-            return { error }
-          }),
+          actions: 'sendError',
           target: '#disconnected',
         },
       },
@@ -495,9 +485,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             CLAIM_IDENTITY: {
               actions: {
                 type: 'receiveIdentityClaim',
-                params: ({ event }) => ({
-                  identityClaim: event.payload,
-                }),
+                params: ({ event }) => ({ identityClaim: event.payload }),
               },
               target: '#awaitingIdentityClaim',
             },
@@ -662,15 +650,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             awaitingSeed: {
               on: {
                 SEED: {
-                  actions: {
-                    type: 'deriveSharedKey',
-                    params: ({ context, event }) => ({
-                      encryptedSeed: event.payload.encryptedSeed,
-                      seed: context.seed!,
-                      user: context.user!,
-                      peer: context.peer!,
-                    }),
-                  },
+                  actions: 'deriveSharedKey',
                   target: 'doneNegotiating',
                 },
               },
@@ -720,6 +700,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         },
       },
     })
+
     // Instantiate the state machine
     this.machine = createActor(machine)
 
@@ -783,17 +764,18 @@ export class Connection extends EventEmitter<ConnectionEvents> {
    * encrypted channel. We don't care about the content of this message.
    */
   public send = (message: any) => {
-    assert(this.sessionKey, "Can't send encrypted messages until we've finished connecting")
-    const encryptedMessage = symmetric.encryptBytes(message, this.sessionKey)
+    assert(this._sessionKey, "Can't send encrypted messages until we've finished connecting")
+    const encryptedMessage = symmetric.encryptBytes(message, this._sessionKey)
     this.messageQueue.send({ type: 'ENCRYPTED_MESSAGE', payload: encryptedMessage })
   }
 
-  // PRIVATE
+  // PUBLIC FOR TESTING
+
   /**
    * Returns the connection's session key when we are in a connected state. Otherwise, returns
-   * `undefined`. (Public for testing.)
+   * `undefined`.
    */
-  get sessionKey() {
+  get _sessionKey() {
     return this.#context.sessionKey
   }
 
@@ -801,15 +783,17 @@ export class Connection extends EventEmitter<ConnectionEvents> {
    * Returns the team that the connection's user is a member of. If the user has not yet joined a
    * team, returns undefined. (Public for testing.)
    */
-  get team() {
+  get _team() {
     return this.#context.team
   }
 
   /** Returns the current state of the protocol machine. (Public for testing) */
-  get state() {
+  get _state() {
     assert(this.started)
     return this.machine.getSnapshot().value
   }
+
+  // PRIVATE
 
   get #context(): ConnectionContext {
     assert(this.started)
@@ -823,14 +807,14 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   }
 }
 
-// CONSTANTS
+// MACHINE CONFIG FRAGMENTS
+// These are snippets of XState config that are used repeatedly in the machine definition.
 
-const { DEVICE } = KeyType
-
+// error handler
 const fail = (error: ConnectionErrorType) =>
   ({ actions: { type: 'fail', params: { error } }, target: '#disconnected' }) as const
 
-// Shared timeout settings
+// timeout configuration
 const TIMEOUT_DELAY = 7000
 const timeout = { after: { [TIMEOUT_DELAY]: fail(TIMEOUT) } } as const
 

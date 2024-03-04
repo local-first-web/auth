@@ -310,11 +310,11 @@ const connectionPromise = async (a: Connection, b: Connection) => {
   // ✅ They're both connected
   await all(connections, 'connected')
 
-  const sharedKey = connections[0].sessionKey
+  const sharedKey = connections[0]._sessionKey
   for (const connection of connections) {
-    expect(connection.state).toEqual('connected')
+    expect(connection._state).toEqual('connected')
     // ✅ They've converged on a shared secret key
-    expect(connection.sessionKey).toEqual(sharedKey)
+    expect(connection._sessionKey).toEqual(sharedKey)
   }
 }
 
