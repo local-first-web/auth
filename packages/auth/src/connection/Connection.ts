@@ -68,17 +68,17 @@ const JOINED_WRONG_TEAM = 'JOINED_WRONG_TEAM' as ConnectionErrorType
 const MEMBER_REMOVED = 'MEMBER_REMOVED' as ConnectionErrorType
 const DEVICE_REMOVED = 'DEVICE_REMOVED' as ConnectionErrorType
 const SERVER_REMOVED = 'SERVER_REMOVED' as ConnectionErrorType
-// const TIMEOUT = 'TIMEOUT' as ConnectionErrorType
+const TIMEOUT = 'TIMEOUT' as ConnectionErrorType
 
 const PARALLEL = 'parallel' as const
 const FINAL = 'final' as const
 
 // Shared timeout settings
-// const TIMEOUT_DELAY = 7000
+const TIMEOUT_DELAY = 7000
 const timeout = {
-  // after: {
-  //   [TIMEOUT_DELAY]: { actions: 'fail', params: { errorType: TIMEOUT }, target: '#disconnected' },
-  // },
+  after: {
+    [TIMEOUT_DELAY]: { actions: 'fail', params: { errorType: TIMEOUT }, target: '#disconnected' },
+  },
 }
 
 const { DEVICE } = KeyType
