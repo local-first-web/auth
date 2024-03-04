@@ -8,6 +8,9 @@ import {
   receiveMessage,
   redactKeys,
   type DecryptFnParams,
+  type KeysetWithSecrets,
+  type SyncMessage as SyncPayload,
+  type SyncState,
 } from '@localfirst/crdx'
 import { asymmetric, randomKeyBytes, symmetric, type Hash, type Payload } from '@localfirst/crypto'
 import { assert, debug } from '@localfirst/shared'
@@ -20,18 +23,16 @@ import {
 } from 'connection/errors.js'
 import { getDeviceUserFromGraph } from 'connection/getDeviceUserFromGraph.js'
 import * as identity from 'connection/identity.js'
-import {
-  type AcceptInvitationMessage,
-  type ChallengeIdentityMessage,
-  type ClaimIdentityMessage,
-  type ConnectionMessage,
-  type DisconnectMessage,
-  type EncryptedMessage,
-  type ProveIdentityMessage,
-  type SeedMessage,
-  type SyncMessage,
+import type {
+  AcceptInvitationMessage,
+  ConnectionMessage,
+  DisconnectMessage,
+  EncryptedMessage,
+  ProveIdentityMessage,
+  SeedMessage,
+  SyncMessage,
 } from 'connection/message.js'
-import { redactDevice } from 'device/index.js'
+import { redactDevice, type DeviceWithSecrets } from 'device/index.js'
 import * as invitations from 'invitation/index.js'
 import { pack, unpack } from 'msgpackr'
 import { getTeamState } from 'team/getTeamState.js'
@@ -40,9 +41,10 @@ import * as select from 'team/selectors/index.js'
 import { arraysAreEqual } from 'util/arraysAreEqual.js'
 import { KeyType } from 'util/index.js'
 import { syncMessageSummary } from 'util/testing/messageSummary.js'
-import { assign, createActor, setup } from 'xstate'
+import { and, assign, createActor, setup } from 'xstate'
 import { MessageQueue, type NumberedMessage } from './MessageQueue.js'
 import type {
+  Challenge,
   ConnectionContext,
   ConnectionEvents,
   Context,
@@ -154,14 +156,12 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           return { ourIdentityClaim }
         }),
 
-        receiveIdentityClaim: assign(({ event }) => {
-          const { payload } = event as ClaimIdentityMessage
-          if ('userName' in payload) this.log = this.log.extend(payload.userName)
-
-          return {
-            theirIdentityClaim: payload,
-            theirDevice: 'device' in payload ? payload.device : undefined,
+        receiveIdentityClaim: assign((_, { identityClaim }: { identityClaim: IdentityClaim }) => {
+          if ('userName' in identityClaim) {
+            this.log = this.log.extend(identityClaim.userName)
           }
+          const theirDevice = 'device' in identityClaim ? identityClaim.device : undefined
+          return { theirIdentityClaim: identityClaim, theirDevice }
         }),
 
         // HANDLING INVITATIONS
@@ -277,13 +277,13 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           return { challenge }
         }),
 
-        proveIdentity: ({ context, event }) => {
-          assert(context.user)
-          const { challenge } = (event as ChallengeIdentityMessage).payload
-          const proof = identity.prove(challenge, context.device.keys)
+        proveIdentity: (
+          _,
+          { challenge, keys }: { challenge: Challenge; keys: KeysetWithSecrets }
+        ) => {
           this.messageQueue.send({
             type: 'PROVE_IDENTITY',
-            payload: { challenge, proof },
+            payload: { challenge, proof: identity.prove(challenge, keys) },
           })
         },
 
@@ -320,38 +320,47 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           return { syncState }
         }),
 
-        receiveSyncMessage: assign(({ context, event }) => {
-          const { payload } = event as SyncMessage
-          const { team, device } = context
-          assert(team)
+        receiveSyncMessage: assign(
+          (
+            { event },
+            {
+              syncMessage,
+              syncState: previousSyncState = initSyncState(),
+              team,
+              device,
+            }: {
+              syncMessage: SyncPayload
+              syncState?: SyncState
+              team: Team
+              device: DeviceWithSecrets
+            }
+          ) => {
+            const teamKeys = team.teamKeys()
+            const deviceKeys = device.keys
 
-          // ignore coverage
-          const previousSyncState = context.syncState ?? initSyncState()
-          const teamKeys = team.teamKeys()
-          const deviceKeys = device.keys
+            // ! handle errors here
 
-          // ! handle errors here
+            const decrypt = ({ encryptedGraph, keys }: DecryptFnParams<TeamAction, TeamContext>) =>
+              decryptTeamGraph({ encryptedGraph, teamKeys: keys, deviceKeys })
 
-          const decrypt = ({ encryptedGraph, keys }: DecryptFnParams<TeamAction, TeamContext>) =>
-            decryptTeamGraph({ encryptedGraph, teamKeys: keys, deviceKeys })
+            const [newChain, syncState] = receiveMessage(
+              team.graph,
+              previousSyncState,
+              syncMessage,
+              teamKeys,
+              decrypt
+            )
 
-          const [newChain, syncState] = receiveMessage(
-            team.graph,
-            previousSyncState,
-            payload,
-            teamKeys,
-            decrypt
-          )
-
-          if (headsAreEqual(newChain.head, team.graph.head)) {
-            // nothing changed
-            return { syncState }
-          } else {
-            this.emit('updated')
-            const newTeam = team.merge(newChain)
-            return { team: newTeam, syncState }
+            if (headsAreEqual(newChain.head, team.graph.head)) {
+              // nothing changed
+              return { syncState }
+            } else {
+              this.emit('updated')
+              const newTeam = team.merge(newChain)
+              return { team: newTeam, syncState }
+            }
           }
-        }),
+        ),
 
         // NEGOTIATING
 
@@ -469,11 +478,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         // INVITATIONS
 
         weHaveInvitation: ({ context }) => isInviteeContext(context),
-
         theyHaveInvitation: ({ context }) => isInviteeClaim(context.theirIdentityClaim!),
-
-        bothHaveInvitation: ({ context }) =>
-          isInviteeContext(context) && isInviteeClaim(context.theirIdentityClaim!),
+        neitherIsMember: and(['weHaveInvitation', 'theyHaveInvitation']),
 
         invitationProofIsValid: ({ context }) => {
           const { team, theirIdentityClaim } = context
@@ -483,7 +489,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           const { proofOfInvitation } = theirIdentityClaim
           const validation = team.validateInvitation(proofOfInvitation)
           if (validation.isValid) return true
-          context.error = validation.error
           return false
         },
 
@@ -562,7 +567,15 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       initial: 'awaitingIdentityClaim',
       on: {
         REQUEST_IDENTITY: { actions: 'sendIdentityClaim', target: '#awaitingIdentityClaim' },
-        CLAIM_IDENTITY: { actions: ['receiveIdentityClaim'], target: '#awaitingIdentityClaim' },
+        CLAIM_IDENTITY: {
+          actions: {
+            type: 'receiveIdentityClaim',
+            params: ({ event }) => ({
+              identityClaim: event.payload,
+            }),
+          },
+          target: '#awaitingIdentityClaim',
+        },
         ERROR: { actions: 'receiveError', target: '#disconnected' }, // Remote error (sent by peer)
         LOCAL_ERROR: { actions: 'sendError', target: '#disconnected' }, // Local error (detected by us, sent to peer)
       },
@@ -581,7 +594,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                 checkingForInvitations: {
                   always: [
                     // We can't both present invitations - someone has to be a member
-                    { guard: 'bothHaveInvitation', ...fail(NEITHER_IS_MEMBER) },
+                    {
+                      guard: and(['weHaveInvitation', 'theyHaveInvitation']),
+                      ...fail(NEITHER_IS_MEMBER),
+                    },
                     // If I have an invitation, wait for acceptance
                     { guard: 'weHaveInvitation', target: 'awaitingInvitationAcceptance' },
                     // If they have an invitation, validate it
@@ -638,7 +654,13 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                       on: {
                         // When we receive a challenge, respond with proof
                         CHALLENGE_IDENTITY: {
-                          actions: 'proveIdentity',
+                          actions: {
+                            type: 'proveIdentity',
+                            params: ({ context, event }) => ({
+                              challenge: event.payload.challenge,
+                              keys: context.device.keys,
+                            }),
+                          },
                           target: 'awaitingIdentityAcceptance',
                         },
                       },
@@ -714,7 +736,21 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           id: 'synchronizing',
           always: [{ guard: 'headsAreEqual', actions: 'onConnected', target: '#connected' }],
           on: {
-            SYNC: { actions: ['receiveSyncMessage', 'sendSyncMessage'], target: '#synchronizing' },
+            SYNC: {
+              actions: [
+                {
+                  type: 'receiveSyncMessage',
+                  params: ({ context, event }) => ({
+                    syncMessage: event.payload,
+                    syncState: context.syncState,
+                    team: context.team!,
+                    device: context.device,
+                  }),
+                },
+                'sendSyncMessage',
+              ],
+              target: '#synchronizing',
+            },
           },
         },
         connected: {
@@ -730,7 +766,18 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             LOCAL_UPDATE: { actions: ['sendSyncMessage'], target: '#connected' },
             // If they send a sync message, process it
             SYNC: {
-              actions: ['receiveSyncMessage', 'sendSyncMessage'],
+              actions: [
+                {
+                  type: 'receiveSyncMessage',
+                  params: ({ context, event }) => ({
+                    syncMessage: event.payload,
+                    syncState: context.syncState!,
+                    team: context.team!,
+                    device: context.device,
+                  }),
+                },
+                'sendSyncMessage',
+              ],
               target: '#connected',
             },
             // Deliver any encrypted messages
