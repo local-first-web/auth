@@ -75,11 +75,6 @@ const FINAL = 'final' as const
 
 // Shared timeout settings
 const TIMEOUT_DELAY = 7000
-const timeout = {
-  after: {
-    [TIMEOUT_DELAY]: { actions: 'fail', params: { errorType: TIMEOUT }, target: '#disconnected' },
-  },
-}
 
 const { DEVICE } = KeyType
 
@@ -120,7 +115,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       })
       .on('request', index => {
         // Send out requests to resend messages that we missed
-        this.sendMessage({ type: 'REQUEST_RESEND', payload: { index } })
+        this.messageQueue.send({ type: 'REQUEST_RESEND', payload: { index } })
       })
 
     this.log = this.log.extend(getUserName(context))
@@ -169,7 +164,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           }
 
           const ourIdentityClaim = createIdentityClaim(context)
-          this.sendMessage({
+          this.messageQueue.send({
             type: 'CLAIM_IDENTITY',
             payload: ourIdentityClaim,
           })
@@ -219,7 +214,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           const peer = admit()
 
           // Welcome them by sending the team's signature chain, so they can reconstruct team membership state
-          this.sendMessage({
+          this.messageQueue.send({
             type: 'ACCEPT_INVITATION',
             payload: {
               serializedGraph: team.save(),
@@ -241,7 +236,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           const getDeviceUser = () => {
             // If we're joining as a new device for an existing member, we don't know our user id or
             // user keys yet, so we need to get those from the graph.
-            const { id: invitationId } = this.myProofOfInvitation(context)
+            assert(context.invitationSeed)
+            const { id: invitationId } = invitations.generateProof(context.invitationSeed)
 
             // We use the invitation seed to generate the starter keys for the new device.
             // We can use these to unlock a lockbox on the team graph that contains our user keys.
@@ -292,7 +288,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           assert(isMemberClaim(theirIdentityClaim))
           const { deviceId } = theirIdentityClaim
           const challenge = identity.challenge({ type: DEVICE, name: deviceId })
-          this.sendMessage({
+          this.messageQueue.send({
             type: 'CHALLENGE_IDENTITY',
             payload: { challenge },
           })
@@ -303,14 +299,14 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           assert(context.user)
           const { challenge } = (event as ChallengeIdentityMessage).payload
           const proof = identity.prove(challenge, context.device.keys)
-          this.sendMessage({
+          this.messageQueue.send({
             type: 'PROVE_IDENTITY',
             payload: { challenge, proof },
           })
         },
 
         acceptIdentity: () => {
-          this.sendMessage({ type: 'ACCEPT_IDENTITY' })
+          this.messageQueue.send({ type: 'ACCEPT_IDENTITY' })
         },
 
         // UPDATING
@@ -334,7 +330,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           // Undefined message means we're already synced
           if (syncMessage) {
             this.log('sending sync message', syncMessageSummary(syncMessage))
-            this.sendMessage({ type: 'SYNC', payload: syncMessage })
+            this.messageQueue.send({ type: 'SYNC', payload: syncMessage })
           } else {
             this.log('no sync message to send')
           }
@@ -390,7 +386,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             senderSecretKey: user!.keys.encryption.secretKey,
           })
 
-          this.sendMessage({
+          this.messageQueue.send({
             type: 'SEED',
             payload: { encryptedSeed },
           })
@@ -457,7 +453,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
           // Send error to peer
           const remoteMessage = createErrorMessage(error.type, error.details, 'REMOTE')
-          this.sendMessage(remoteMessage)
+          this.messageQueue.send(remoteMessage)
 
           // Bubble the error up
           this.emit('localError', error)
@@ -512,10 +508,11 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         joinedTheRightTeam: ({ context, event }) => {
           // Make sure my invitation exists on the signature chain of the team I'm about to join.
           // This check prevents an attack in which a fake team pretends to accept my invitation.
+          assert(context.invitationSeed)
           const { payload } = event as AcceptInvitationMessage
           const { serializedGraph, teamKeyring } = payload
           const state = getTeamState(serializedGraph, teamKeyring)
-          const { id } = this.myProofOfInvitation(context)
+          const { id } = invitations.generateProof(context.invitationSeed)
           return select.hasInvitation(state, id)
         },
 
@@ -659,7 +656,12 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                       },
                     ],
                   },
-                  ...timeout,
+                  after: {
+                    [TIMEOUT_DELAY]: {
+                      actions: { type: 'fail', params: { errorType: TIMEOUT } },
+                      target: '#disconnected',
+                    },
+                  },
                 },
 
                 validatingInvitation: {
@@ -709,13 +711,23 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                           target: 'awaitingIdentityAcceptance',
                         },
                       },
-                      ...timeout,
+                      after: {
+                        [TIMEOUT_DELAY]: {
+                          actions: { type: 'fail', params: { errorType: TIMEOUT } },
+                          target: '#disconnected',
+                        },
+                      },
                     },
 
                     // Wait for a message confirming that they've validated our proof of identity
                     awaitingIdentityAcceptance: {
                       on: { ACCEPT_IDENTITY: { target: 'doneProvingMyIdentity' } },
-                      ...timeout,
+                      after: {
+                        [TIMEOUT_DELAY]: {
+                          actions: { type: 'fail', params: { errorType: TIMEOUT } },
+                          target: '#disconnected',
+                        },
+                      },
                     },
 
                     doneProvingMyIdentity: { type: FINAL },
@@ -770,7 +782,12 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                           },
                         ],
                       },
-                      ...timeout,
+                      after: {
+                        [TIMEOUT_DELAY]: {
+                          actions: { type: 'fail', params: { errorType: TIMEOUT } },
+                          target: '#disconnected',
+                        },
+                      },
                     },
 
                     doneVerifyingTheirIdentity: { type: FINAL },
@@ -796,7 +813,12 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             awaitingSeed: {
               entry: ['sendSeed'],
               on: { SEED: { actions: 'receiveSeed', target: 'doneNegotiating' } },
-              ...timeout,
+              after: {
+                [TIMEOUT_DELAY]: {
+                  actions: { type: 'fail', params: { errorType: TIMEOUT } },
+                  target: '#disconnected',
+                },
+              },
             },
             doneNegotiating: { entry: 'deriveSharedKey', type: FINAL },
           },
@@ -896,7 +918,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     this.started = true
 
     // kick off the connection by requesting our peer's identity
-    this.sendMessage({ type: 'REQUEST_IDENTITY' })
+    this.messageQueue.send({ type: 'REQUEST_IDENTITY' })
 
     for (const m of storedMessages) this.deliver(m)
 
@@ -909,7 +931,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       const disconnectMessage = { type: 'DISCONNECT' } as DisconnectMessage
       this.machine.send(disconnectMessage) // Send disconnect event to local machine
       try {
-        this.sendMessage(disconnectMessage) // Send disconnect message to peer
+        this.messageQueue.send(disconnectMessage) // Send disconnect message to peer
       } catch {
         // our connection to the peer may already be gone by this point, don't throw
       }
@@ -973,26 +995,19 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   public send = (message: Payload) => {
     assert(this.sessionKey)
     const encryptedMessage = symmetric.encryptBytes(message, this.sessionKey)
-    this.sendMessage({ type: 'ENCRYPTED_MESSAGE', payload: encryptedMessage })
+    this.messageQueue.send({ type: 'ENCRYPTED_MESSAGE', payload: encryptedMessage })
   }
 
   // PRIVATE
-
-  private readonly sendMessage = (message: ConnectionMessage) => {
-    this.messageQueue.send(message)
-  }
 
   private logMessage(direction: 'in' | 'out', message: NumberedMessage<ConnectionMessage>) {
     const arrow = direction === 'in' ? '<-' : '->'
     const peerUserName = this.started ? this.context.peer?.userName ?? '?' : '?'
     this.log(`${arrow}${peerUserName} #${message.index} ${messageSummary(message)}`)
   }
-
-  private myProofOfInvitation(context: ConnectionContext) {
-    assert(context.invitationSeed)
-    return invitations.generateProof(context.invitationSeed)
-  }
 }
+
+// HELPERS
 
 // FOR DEBUGGING
 
