@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable object-shorthand */
 
 import { EventEmitter } from '@herbcaudill/eventemitter42'
@@ -11,7 +10,7 @@ import {
   type DecryptFnParams,
 } from '@localfirst/crdx'
 import { asymmetric, randomKeyBytes, symmetric, type Hash, type Payload } from '@localfirst/crypto'
-import { assert, debug, pause } from '@localfirst/shared'
+import { assert, debug } from '@localfirst/shared'
 import { deriveSharedKey } from 'connection/deriveSharedKey.js'
 import {
   createErrorMessage,
@@ -124,16 +123,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         this.sendMessage({ type: 'REQUEST_RESEND', payload: { index } })
       })
 
-    // ignore coverage
-    const userName =
-      'server' in context
-        ? context.server.host
-        : 'userName' in context
-          ? context.userName
-          : 'user' in context
-            ? context.user.userName
-            : ''
-    this.log = this.log.extend(userName)
+    this.log = this.log.extend(getUserName(context))
 
     const initialContext: Context = isServerContext(context)
       ? extendServerContext(context)
@@ -155,9 +145,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             }
             if (isInviteeMemberContext(context)) {
               // I'm a new user and I have an invitation
+              assert(context.invitationSeed)
               const { userName, keys } = context.user
               return {
-                proofOfInvitation: this.myProofOfInvitation(context),
+                proofOfInvitation: invitations.generateProof(context.invitationSeed),
                 userName,
                 userKeys: redactKeys(keys),
                 device: redactDevice(context.device),
@@ -165,9 +156,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             }
             if (isInviteeDeviceContext(context)) {
               // I'm a new device for an existing user and I have an invitation
+              assert(context.invitationSeed)
               const { userName, device } = context
               return {
-                proofOfInvitation: this.myProofOfInvitation(context),
+                proofOfInvitation: invitations.generateProof(context.invitationSeed),
                 userName,
                 device: redactDevice(device),
               }
@@ -1040,4 +1032,11 @@ const extendServerContext = (context: ServerContext) => {
     user: { userId: host, userName: host, keys },
     device: { userId: host, deviceId: host, deviceName: host, keys },
   }
+}
+
+const getUserName = (context: Context) => {
+  if ('server' in context) return context.server.host
+  if ('userName' in context) return context.userName
+  if ('user' in context) return context.user.userName
+  return ''
 }
