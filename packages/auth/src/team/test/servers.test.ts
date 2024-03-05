@@ -312,7 +312,7 @@ const connectionPromise = async (a: Connection, b: Connection) => {
 
   const sharedKey = connections[0]._sessionKey
   for (const connection of connections) {
-    expect(connection._state).toEqual('connected')
+    expect(connection.state).toEqual('connected')
     // ✅ They've converged on a shared secret key
     expect(connection._sessionKey).toEqual(sharedKey)
   }

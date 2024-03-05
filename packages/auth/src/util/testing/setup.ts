@@ -120,11 +120,11 @@ export const setup = (..._config: SetupConfig) => {
       graphContext: { deviceId: phone.deviceId },
       connectionContext,
       connection: {} as Record<string, Connection>,
-      getState: (peer: string) => phoneStuff.connection[peer]._state,
+      getState: (peer: string) => phoneStuff.connection[peer].state,
     }
 
     const connection = {} as Record<string, Connection>
-    const getState = (peer: string) => connection[peer]._state
+    const getState = (peer: string) => connection[peer].state
 
     return {
       userName: user.userName,

@@ -770,6 +770,12 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     this.messageQueue.send({ type: 'ENCRYPTED_MESSAGE', payload: encryptedMessage })
   }
 
+  /** Returns the current state of the protocol machine. (Public for testing) */
+  get state() {
+    assert(this.started)
+    return this.machine.getSnapshot().value
+  }
+
   // PUBLIC FOR TESTING
 
   /**
@@ -786,12 +792,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
    */
   get _team() {
     return this.#context.team
-  }
-
-  /** Returns the current state of the protocol machine. (Public for testing) */
-  get _state() {
-    assert(this.started)
-    return this.machine.getSnapshot().value
   }
 
   // PRIVATE
