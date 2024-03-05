@@ -67,6 +67,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     this.#messageQueue = this.#initializeMessageQueue(sendMessage)
     this.#log = this.#log.extend(getUserName(context)) // add our name to the debug logger
 
+    // On sync server, the server keys act as both user keys and device keys
     const initialContext = isServerContext(context) ? extendServerContext(context) : context
 
     const machine = setup({
@@ -172,12 +173,13 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           const { device, invitationSeed } = context
           assert(invitationSeed)
 
-          // If we're joining as a new device for an existing member, we won't have a user
-          // object yet, so we need to get those from the graph. We use the invitation seed to
-          // generate the starter keys for the new device. We can use these to unlock a lockbox
-          // on the team graph that contains our user keys.
           const user =
-            context.user ?? getDeviceUserFromGraph({ serializedGraph, teamKeyring, invitationSeed })
+            context.user ??
+            // If we're joining as a new device for an existing member, we won't have a user object
+            // yet, so we need to get those from the graph. We use the invitation seed to generate
+            // the starter keys for the new device. We can use these to unlock a lockbox on the team
+            // graph that contains our user keys.
+            getDeviceUserFromGraph({ serializedGraph, teamKeyring, invitationSeed })
 
           // When admitting us, our peer added our user to the team graph. We've been given the
           // serialized and encrypted graph, and the team keyring. We can now decrypt the graph and
