@@ -1,4 +1,6 @@
 import { eventPromise, pause } from '@localfirst/shared'
+import { DeviceWithSecrets } from 'device/index.js'
+import { cloneDeep } from 'lodash-es'
 import { ADMIN } from 'role/index.js'
 import * as teams from 'team/index.js'
 import {
@@ -74,6 +76,36 @@ describe('connection', () => {
         await connect(alice, bob)
 
         // ✅ all good
+      })
+
+      it("doesn't connect if a peer's signature keys are wrong", async () => {
+        const { alice, bob, eve } = setup('alice', 'bob', 'eve')
+
+        // 🦹‍♀️ Eve is going to try to impersonate 👨🏻‍🦲 Bob, but fortunately she doesn't know his secret signature key
+        const fakeBob = cloneDeep(bob.device) as DeviceWithSecrets
+        fakeBob.keys.signature.secretKey = eve.user.keys.signature.secretKey
+
+        eve.connectionContext.device = fakeBob
+        void connect(alice, eve)
+
+        // Without Bob's secret signature key, Eve won't be able to fake the signature challenge
+        const error = await eventPromise(eve.connection[alice.deviceId], 'remoteError')
+        expect(error.type).toEqual('IDENTITY_PROOF_INVALID') // ❌
+      })
+
+      it("doesn't connect if a peer's encryption keys are wrong", async () => {
+        const { alice, bob, eve } = setup('alice', 'bob', 'eve')
+
+        // 🦹‍♀️ Eve is going to try to impersonate 👨🏻‍🦲 Bob, but fortunately she doesn't know his secret encryption key
+        const fakeBob = cloneDeep(bob.device) as DeviceWithSecrets
+        fakeBob.keys.encryption.secretKey = eve.user.keys.encryption.secretKey
+
+        eve.connectionContext.device = fakeBob
+        void connect(alice, eve)
+
+        // Without Bob's secret encryption key, Eve won't be able to converge on a shared secret
+        const error = await eventPromise(eve.connection[alice.deviceId], 'remoteError')
+        expect(error.type).toEqual('ENCRYPTION_FAILURE') // ❌
       })
     })
 
@@ -278,7 +310,7 @@ describe('connection', () => {
         expect(alice.team.members(bob.userId).devices).toHaveLength(2)
       })
 
-      it('raises an error when the wrong invitation code is entered', async () => {
+      it('fails to connect when the wrong invitation code is entered', async () => {
         const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
         // 👩🏾📧👨🏻‍🦲 Alice invites Bob

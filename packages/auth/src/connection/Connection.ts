@@ -22,6 +22,8 @@ import {
   TIMEOUT,
   createErrorMessage,
   type ConnectionErrorType,
+  IDENTITY_PROOF_INVALID,
+  ENCRYPTION_FAILURE,
 } from 'connection/errors.js'
 import { getDeviceUserFromGraph } from 'connection/getDeviceUserFromGraph.js'
 import * as identity from 'connection/identity.js'
@@ -304,8 +306,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           const { seed, user, peer } = context
 
           // decrypt the seed they sent
-
-          // const wrongKeys = asymmetric.keyPair()
           try {
             const theirSeed = asymmetric.decryptBytes({
               cipher: encryptedSeed,
@@ -315,14 +315,9 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             // With the two keys, we derive a shared key
             return { sessionKey: deriveSharedKey(seed, theirSeed) }
           } catch (error) {
-            // A decryption error here is essentially an authentication failure.
-            if (String(error).startsWith('incorrect key pair')) {
-              // Force error state locally
-              const localMessage = createErrorMessage('ENCRYPTION_FAILURE', 'LOCAL')
-              this.#machine.send(localMessage)
-              return { error: localMessage.payload }
-            }
-            throw error
+            if (String(error).includes('incorrect key pair')) {
+              return this.#fail(ENCRYPTION_FAILURE)
+            } else throw error
           }
         }),
 
@@ -333,37 +328,33 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           const sessionKey = context.sessionKey!
           const encryptedMessage = event.payload
 
-          // !
-          // TODO: we need to handle errors here - for example if we haven't converged on the same
-          // session key, we'll get `Error: wrong secret key for the given ciphertext`; currently that
-          // will crash the app (or the sync server!)
-          const decryptedMessage = symmetric.decryptBytes(encryptedMessage, sessionKey)
-          this.emit('message', decryptedMessage)
+          try {
+            const decryptedMessage = symmetric.decryptBytes(encryptedMessage, sessionKey)
+            this.emit('message', decryptedMessage)
+          } catch (error) {
+            if (String(error).includes('wrong secret key')) {
+              return this.#fail(ENCRYPTION_FAILURE)
+            } else throw error
+          }
         },
 
         // FAILURE
 
         fail: assign((_, { error }: { error: ConnectionErrorType }) => {
-          this.#log('error: %o', error)
-
-          // Force error state locally
-          const localMessage = createErrorMessage(error, 'LOCAL')
-          this.#machine.send(localMessage)
-
-          return { error: localMessage.payload }
+          return this.#fail(error)
         }),
 
         receiveError: assign(({ event }) => {
           assertEvent(event, 'ERROR')
-          const { payload: error } = event
-          this.#log('remote error: %o', error.type, error)
+          const error = event.payload
+          this.#log('receiveError: %o', error)
           this.emit('remoteError', error)
           return { error }
         }),
 
         sendError: assign(({ event }) => {
           assertEvent(event, 'LOCAL_ERROR')
-          const { payload: error } = event
+          const error = event.payload
           this.#log('sendError %o', error)
           this.#messageQueue.send(createErrorMessage(error.type, 'REMOTE'))
           this.emit('localError', error)
@@ -552,7 +543,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                           // If the proof succeeds, we're done on our side
                           { guard: 'identityIsValid', actions: 'acceptIdentity', target: 'done' },
                           // If the proof fails, disconnect with error
-                          fail(INVITATION_PROOF_INVALID),
+                          fail(IDENTITY_PROOF_INVALID),
                         ],
                       },
                       ...timeout,
@@ -683,24 +674,24 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   // PUBLIC FOR TESTING
 
   /**
-   * Returns the connection's session key when we are in a connected state. Otherwise, returns
-   * `undefined`.
-   */
-  get _sessionKey() {
-    return this.#context.sessionKey
-  }
-
-  /**
    * Returns the team that the connection's user is a member of. If the user has not yet joined a
    * team, returns undefined.
    */
   get team() {
-    return this.#context.team
+    return this._context.team
   }
 
   // PRIVATE
 
-  get #context(): ConnectionContext {
+  /**
+   * Returns the connection's session key when we are in a connected state. Otherwise, returns
+   * `undefined`.
+   */
+  get _sessionKey() {
+    return this._context.sessionKey
+  }
+
+  get _context(): ConnectionContext {
     assert(this.#started)
     return this.#machine.getSnapshot().context
   }
@@ -732,9 +723,15 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       })
   }
 
-  /**
-   * Shorthand for sending a message to our peer.
-   */
+  /** Force local error state */
+  #fail = (error: ConnectionErrorType) => {
+    this.#log('error: %o', error)
+    const localMessage = createErrorMessage(error, 'LOCAL')
+    this.#machine.send(localMessage)
+    return { error: localMessage.payload }
+  }
+
+  /** Shorthand for sending a message to our peer. */
   #queueMessage<
     M extends ConnectionMessage, //
     T extends M['type'],
@@ -746,7 +743,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   #logMessage(direction: 'in' | 'out', message: NumberedMessage<ConnectionMessage>) {
     const arrow = direction === 'in' ? '<-' : '->'
-    const peerUserName = this.#started ? this.#context.peer?.userName ?? '?' : '?'
+    const peerUserName = this.#started ? this._context.peer?.userName ?? '?' : '?'
     this.#log(`${arrow}${peerUserName} #${message.index} ${messageSummary(message)}`)
   }
 }
