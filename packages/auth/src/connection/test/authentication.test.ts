@@ -1,4 +1,4 @@
-import { pause } from '@localfirst/shared'
+import { eventPromise, pause } from '@localfirst/shared'
 import { ADMIN } from 'role/index.js'
 import * as teams from 'team/index.js'
 import {
@@ -9,7 +9,6 @@ import {
   connect,
   connectWithInvitation,
   disconnect,
-  disconnection,
   expectEveryoneToKnowEveryone,
   joinTestChannel,
   setup,
@@ -158,11 +157,7 @@ describe('connection', () => {
           invitationSeed: dwightSeed,
         }
 
-        // 👳🏽‍♂️<->👴 Charlie and Dwight try to connect to each other
-        void connect(charlie, dwight)
-
-        // ✅ ❌ They're unable to connect because at least one needs to be a member
-        await disconnection(charlie, dwight)
+        expect(await connect(charlie, dwight)).toEqual(false)
       })
 
       it('lets a member use an invitation to add a device', async () => {
@@ -283,7 +278,7 @@ describe('connection', () => {
         expect(alice.team.members(bob.userId).devices).toHaveLength(2)
       })
 
-      it('connects an invitee after one failed attempt', async () => {
+      it('raises an error when the wrong invitation code is entered', async () => {
         const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
         // 👩🏾📧👨🏻‍🦲 Alice invites Bob
@@ -297,9 +292,28 @@ describe('connection', () => {
         }
 
         void connect(bob, alice)
+        const error = await eventPromise(bob.connection[alice.deviceId], 'remoteError')
+        expect(error.type).toEqual(`INVITATION_PROOF_INVALID`)
+      })
 
-        // ❌ The connection fails
-        await disconnection(alice, bob)
+      it('connects an invitee after one failed attempt', async () => {
+        const { alice, bob } = setup('alice', { user: 'bob', member: false })
+
+        // 👩🏾📧👨🏻‍🦲 Alice invites Bob
+        const seed = 'passw0rd'
+        alice.team.inviteMember({ seed })
+
+        // 👨🏻‍🦲📧<->👩🏾 Bob tries to connect, but mistypes his code
+        bob.connectionContext = {
+          ...bob.connectionContext,
+          invitationSeed: 'password',
+        }
+
+        {
+          // ❌ The connection fails
+          const connected = await connect(bob, alice)
+          expect(connected).toEqual(false)
+        }
 
         // 👨🏻‍🦲📧<->👩🏾 Bob tries again with the right code this time
         bob.connectionContext = {
@@ -307,9 +321,12 @@ describe('connection', () => {
           invitationSeed: 'passw0rd',
         }
 
-        // ✅ that works
-        await connect(bob, alice)
-        bob.team = bob.connection[alice.deviceId].team!
+        {
+          // ✅ that works
+          const connected = await connect(bob, alice)
+          expect(connected).toEqual(true)
+          bob.team = bob.connection[alice.deviceId].team!
+        }
 
         expectEveryoneToKnowEveryone(alice, bob)
       })
