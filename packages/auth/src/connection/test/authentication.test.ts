@@ -131,7 +131,7 @@ describe('connection', () => {
 
         // Update the team from the connection, which should have the new keys
         const connection = bob.connection[alice.deviceId]
-        bob.team = connection._team!
+        bob.team = connection.team!
 
         // 👨🏻‍🦲 Bob has the team keys
         expect(() => bob.team.teamKeys()).not.toThrow()
@@ -188,7 +188,7 @@ describe('connection', () => {
 
         await all([laptopConnection, phoneConnection], 'connected')
 
-        bob.team = laptopConnection._team!
+        bob.team = laptopConnection.team!
 
         // 👨🏻‍🦲👍📱 Bob's phone is added to his list of devices
         expect(bob.team.members(bob.userId).devices).toHaveLength(2)
@@ -217,7 +217,7 @@ describe('connection', () => {
           const phoneConnection = join(phoneContext).start()
           await all([laptopConnection, phoneConnection], 'connected')
 
-          bob.team = laptopConnection._team!
+          bob.team = laptopConnection.team!
 
           expect(bob.team.members(bob.userId).devices).toHaveLength(2)
           expect(alice.team.members(bob.userId).devices).toHaveLength(2)
@@ -245,7 +245,7 @@ describe('connection', () => {
           const phoneConnection = join(phoneContext).start()
           await all([laptopConnection, phoneConnection], 'connected')
 
-          bob.team = laptopConnection._team!
+          bob.team = laptopConnection.team!
 
           expect(bob.team.members(bob.userId).devices).toHaveLength(2)
           expect(alice.team.members(bob.userId).devices).toHaveLength(2)
@@ -274,7 +274,7 @@ describe('connection', () => {
 
         await all([aliceConnection, bobPhoneConnection], 'connected')
 
-        alice.team = aliceConnection._team!
+        alice.team = aliceConnection.team!
 
         // 👨🏻‍🦲👍📱 Bob's phone is added to his list of devices
         expect(alice.team.members(bob.userId).devices).toHaveLength(2)
@@ -309,7 +309,7 @@ describe('connection', () => {
 
         // ✅ that works
         await connect(bob, alice)
-        bob.team = bob.connection[alice.deviceId]._team!
+        bob.team = bob.connection[alice.deviceId].team!
 
         expectEveryoneToKnowEveryone(alice, bob)
       })
