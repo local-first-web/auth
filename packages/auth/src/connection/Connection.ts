@@ -1,6 +1,6 @@
 /* eslint-disable object-shorthand */
 import { EventEmitter } from '@herbcaudill/eventemitter42'
-import type { DecryptFnParams, Keyring, UserWithSecrets } from '@localfirst/crdx'
+import type { DecryptFnParams } from '@localfirst/crdx'
 import {
   generateMessage,
   headsAreEqual,
@@ -26,7 +26,7 @@ import {
 import { getDeviceUserFromGraph } from 'connection/getDeviceUserFromGraph.js'
 import * as identity from 'connection/identity.js'
 import type { ConnectionMessage, DisconnectMessage } from 'connection/message.js'
-import { redactDevice, type DeviceWithSecrets } from 'device/index.js'
+import { redactDevice } from 'device/index.js'
 import * as invitations from 'invitation/index.js'
 import { pack, unpack } from 'msgpackr'
 import { getTeamState } from 'team/getTeamState.js'
@@ -156,12 +156,9 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           const peer = admit()
 
           // Welcome them by sending the team's graph, so they can reconstruct team membership state
-          this.#messageQueue.send({
-            type: 'ACCEPT_INVITATION',
-            payload: {
-              serializedGraph: team.save(),
-              teamKeyring: team.teamKeyring(),
-            },
+          this.#queueMessage('ACCEPT_INVITATION', {
+            serializedGraph: team.save(),
+            teamKeyring: team.teamKeyring(),
           })
 
           return { peer }
@@ -208,10 +205,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
           // send them an identity challenge
           const challenge = identity.challenge({ type: KeyType.DEVICE, name: deviceId })
-          this.#messageQueue.send({
-            type: 'CHALLENGE_IDENTITY',
-            payload: { challenge },
-          })
+          this.#queueMessage('CHALLENGE_IDENTITY', { challenge })
 
           // record their identity info and the challenge in context
           return { theirDevice, peer, challenge }
@@ -298,10 +292,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             senderSecretKey: user!.keys.encryption.secretKey,
           })
 
-          this.#messageQueue.send({
-            type: 'SEED',
-            payload: { encryptedSeed },
-          })
+          this.#queueMessage('SEED', { encryptedSeed })
           return { seed }
         }),
 
@@ -626,7 +617,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   /** Shuts down and sends a disconnect message to the peer. */
   public stop = () => {
     if (this.#started && this.#machine.getSnapshot().status !== 'done') {
-      const disconnectMessage = { type: 'DISCONNECT' } as DisconnectMessage
+      const disconnectMessage: DisconnectMessage = { type: 'DISCONNECT' }
       this.#machine.send(disconnectMessage) // Send disconnect event to local machine
       this.#messageQueue.send(disconnectMessage) // Send disconnect message to peer
     }
