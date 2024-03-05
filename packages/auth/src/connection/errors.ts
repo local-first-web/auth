@@ -1,5 +1,6 @@
 export const DEVICE_REMOVED = 'DEVICE_REMOVED' as const
 export const DEVICE_UNKNOWN = 'DEVICE_UNKNOWN' as const
+export const ENCRYPTION_FAILURE = 'ENCRYPTION_FAILURE' as const
 export const IDENTITY_PROOF_INVALID = 'IDENTITY_PROOF_INVALID' as const
 export const INVITATION_PROOF_INVALID = 'INVITATION_PROOF_INVALID' as const
 export const JOINED_WRONG_TEAM = 'JOINED_WRONG_TEAM' as const
@@ -16,6 +17,9 @@ export const connectionErrors: Record<string, ErrorDefinition> = {
   [DEVICE_UNKNOWN]: {
     localMessage: "The peer's device isn't listed on this team",
     remoteMessage: "Your device isn't listed on this team",
+  },
+  [ENCRYPTION_FAILURE]: {
+    localMessage: 'Unable to establish a secure connection',
   },
   [IDENTITY_PROOF_INVALID]: {
     localMessage: "The peer's proof of identity is not valid",
@@ -35,7 +39,6 @@ export const connectionErrors: Record<string, ErrorDefinition> = {
   },
   [NEITHER_IS_MEMBER]: {
     localMessage: 'The peer is also holding an invitation and cannot admit you to the team',
-    remoteMessage: 'The peer is also holding an invitation and cannot admit you to the team',
   },
   [SERVER_REMOVED]: {
     localMessage: 'The server was removed from this team',
@@ -52,7 +55,7 @@ export const createErrorMessage = (
   type: ConnectionErrorType,
   destination: 'LOCAL' | 'REMOTE' = 'LOCAL'
 ): ErrorMessage | LocalErrorMessage => {
-  const { localMessage, remoteMessage } = connectionErrors[type]
+  const { localMessage, remoteMessage = localMessage } = connectionErrors[type]
   const message = destination === 'LOCAL' ? localMessage : remoteMessage
   const messageType = destination === 'LOCAL' ? 'LOCAL_ERROR' : 'ERROR'
   return { type: messageType, payload: { type, message } }
@@ -62,7 +65,7 @@ export const createErrorMessage = (
 
 export type ErrorDefinition = {
   localMessage: string
-  remoteMessage: string
+  remoteMessage?: string
 }
 
 export type ConnectionErrorType = keyof typeof connectionErrors

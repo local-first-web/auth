@@ -77,7 +77,9 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       actions: {
         // IDENTITY CLAIMS
 
-        requestIdentityClaim: () => this.#queueMessage('REQUEST_IDENTITY'),
+        requestIdentityClaim: () => {
+          this.#queueMessage('REQUEST_IDENTITY')
+        },
 
         sendIdentityClaim: assign(({ context }) => {
           const createIdentityClaim = (context: ConnectionContext): IdentityClaim => {
@@ -300,14 +302,26 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           const { seed, user, peer } = context
 
           // decrypt the seed they sent
-          const theirSeed = asymmetric.decryptBytes({
-            cipher: encryptedSeed,
-            senderPublicKey: peer!.keys.encryption,
-            recipientSecretKey: user!.keys.encryption.secretKey,
-          })
 
-          // With the two keys, we derive a shared key
-          return { sessionKey: deriveSharedKey(seed, theirSeed) }
+          // const wrongKeys = asymmetric.keyPair()
+          try {
+            const theirSeed = asymmetric.decryptBytes({
+              cipher: encryptedSeed,
+              senderPublicKey: peer!.keys.encryption,
+              recipientSecretKey: user!.keys.encryption.secretKey,
+            })
+            // With the two keys, we derive a shared key
+            return { sessionKey: deriveSharedKey(seed, theirSeed) }
+          } catch (error) {
+            // A decryption error here is essentially an authentication failure.
+            if (String(error).startsWith('incorrect key pair')) {
+              // Force error state locally
+              const localMessage = createErrorMessage('ENCRYPTION_FAILURE', 'LOCAL')
+              this.#machine.send(localMessage)
+              return { error: localMessage.payload }
+            }
+            throw error
+          }
         }),
 
         // ENCRYPTED COMMUNICATION
@@ -328,7 +342,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         // FAILURE
 
         fail: assign((_, { error }: { error: ConnectionErrorType }) => {
-          this.#log('error: %s %o', error)
+          this.#log('error: %o', error)
 
           // Force error state locally
           const localMessage = createErrorMessage(error, 'LOCAL')
@@ -340,7 +354,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         receiveError: assign(({ event }) => {
           assertEvent(event, 'ERROR')
           const { payload: error } = event
-          this.#log('remote error: %s %o', error.type, error)
+          this.#log('remote error: %o', error.type, error)
           this.emit('remoteError', error)
           return { error }
         }),
@@ -470,10 +484,24 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             },
             checkingIdentity: {
               id: 'checkingIdentity',
+              // Note that this signature challenge on its own could be vulnerable to a replay
+              // attack, in which Eve simultaneously impersonates Alice while initiating a
+              // connection to Bob, and impersonates Bob while initiating a connection to Alice.
+              //
+              // That's OK, because what really matters authentication-wise is not the
+              // `authenticating` step but the `negotiating` step: The two parties are only able to
+              // converge on a shared secret if they each have the secret key corresponding to their
+              // public key. Since that secret is used to encrypt all subsequent communication, that
+              // communication is guaranteed to be with the peer whose public key we know.
+              //
+              // As discussed [here](https://github.com/local-first-web/auth/discussions/42) I
+              // considered dropping this step altogether, but it doesn't hurt anything and it's an
+              // additional layer of protection.
+
+              type: 'parallel',
               // Peers mutually authenticate to each other, so we have to complete two 'parallel' processes:
               // 1. prove our identity
               // 2. verify their identity
-              type: 'parallel',
               states: {
                 // 1. prove our identity
                 provingMyIdentity: {
@@ -566,17 +594,15 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             // If they send a sync message, process it
             SYNC: { actions: ['receiveSyncMessage', 'sendSyncMessage'] },
             // Deliver any encrypted messages
-            ENCRYPTED_MESSAGE: {
-              actions: {
-                type: 'receiveEncryptedMessage',
-              },
-            },
+            ENCRYPTED_MESSAGE: { actions: 'receiveEncryptedMessage' },
+            // If they disconnect we disconnect
             DISCONNECT: '#disconnected',
           },
         },
         disconnected: {
           id: 'disconnected',
-          entry: 'onDisconnected',
+          always: { actions: 'onDisconnected' },
+          // type: 'final',
         },
       },
     })
@@ -728,7 +754,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
 // error handler
 const fail = (error: ConnectionErrorType) =>
-  ({ actions: { type: 'fail', params: { error } }, target: '#disconnected' }) as const
+  ({
+    actions: [{ type: 'fail', params: { error } }, 'onDisconnected'],
+    target: '#disconnected',
+  }) as const
 
 // timeout configuration
 const TIMEOUT_DELAY = 7000
