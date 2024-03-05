@@ -75,7 +75,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         events: {} as ConnectionMessage,
       },
       actions: {
-        // INITIAL HANDSHAKE
+        // IDENTITY CLAIMS
 
         requestIdentityClaim: () => this.#queueMessage('REQUEST_IDENTITY'),
 
@@ -125,7 +125,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           return { theirIdentityClaim: identityClaim, theirDevice }
         }),
 
-        // HANDLING INVITATIONS
+        // INVITATIONS
 
         acceptInvitation: assign(({ context }) => {
           // Admit them to the team
@@ -188,7 +188,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           return { user, team }
         }),
 
-        // AUTHENTICATING
+        // AUTHENTICATION
 
         challengeIdentity: assign(({ context }) => {
           const { team, theirIdentityClaim } = context
@@ -219,11 +219,9 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           this.#queueMessage('PROVE_IDENTITY', { challenge, proof })
         },
 
-        acceptIdentity: () => {
-          this.#queueMessage('ACCEPT_IDENTITY')
-        },
+        acceptIdentity: () => this.#queueMessage('ACCEPT_IDENTITY'),
 
-        // UPDATING
+        // SYNCHRONIZATION
 
         listenForTeamUpdates: ({ context }) => {
           assert(context.team)
@@ -282,7 +280,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           }
         }),
 
-        // NEGOTIATING
+        // SHARED SECRET NEGOTIATION
 
         sendSeed: assign(({ context }) => {
           const { user, peer, seed = randomKeyBytes() } = context
@@ -300,6 +298,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           assertEvent(event, 'SEED')
           const { encryptedSeed } = event.payload
           const { seed, user, peer } = context
+
           // decrypt the seed they sent
           const theirSeed = asymmetric.decryptBytes({
             cipher: encryptedSeed,
@@ -311,7 +310,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           return { sessionKey: deriveSharedKey(seed, theirSeed) }
         }),
 
-        // COMMUNICATING
+        // ENCRYPTED COMMUNICATION
 
         receiveEncryptedMessage: ({ context, event }) => {
           assertEvent(event, 'ENCRYPTED_MESSAGE')
