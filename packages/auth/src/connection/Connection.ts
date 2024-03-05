@@ -779,8 +779,18 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   get #context(): ConnectionContext {
     assert(this.#started)
     return this.#machine.getSnapshot().context
-    assert(this.started)
-    return this.machine.getSnapshot().context
+  }
+
+  /**
+   * Shorthand for sending a message to our peer.
+   */
+  #sendMessage<
+    M extends ConnectionMessage, //
+    T extends M['type'],
+    P extends //
+      M extends { payload: any } ? M['payload'] : undefined,
+  >(type: T, payload?: P) {
+    this.#messageQueue.send({ type, payload } as M)
   }
 
   #logMessage(direction: 'in' | 'out', message: NumberedMessage<ConnectionMessage>) {
