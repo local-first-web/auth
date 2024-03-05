@@ -724,7 +724,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   }
 
   /** Force local error state */
-  #fail = (error: ConnectionErrorType) => {
+  #fail(error: ConnectionErrorType) {
     this.#log('error: %o', error)
     const localMessage = createErrorMessage(error, 'LOCAL')
     this.#machine.send(localMessage)

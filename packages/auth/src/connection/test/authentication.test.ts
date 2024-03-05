@@ -1,5 +1,4 @@
 import { eventPromise, pause } from '@localfirst/shared'
-import { DeviceWithSecrets } from 'device/index.js'
 import { cloneDeep } from 'lodash-es'
 import { ADMIN } from 'role/index.js'
 import * as teams from 'team/index.js'
@@ -82,7 +81,7 @@ describe('connection', () => {
         const { alice, bob, eve } = setup('alice', 'bob', 'eve')
 
         // 🦹‍♀️ Eve is going to try to impersonate 👨🏻‍🦲 Bob, but fortunately she doesn't know his secret signature key
-        const fakeBob = cloneDeep(bob.device) as DeviceWithSecrets
+        const fakeBob = cloneDeep(bob.device)
         fakeBob.keys.signature.secretKey = eve.user.keys.signature.secretKey
 
         eve.connectionContext.device = fakeBob
@@ -97,7 +96,7 @@ describe('connection', () => {
         const { alice, bob, eve } = setup('alice', 'bob', 'eve')
 
         // 🦹‍♀️ Eve is going to try to impersonate 👨🏻‍🦲 Bob, but fortunately she doesn't know his secret encryption key
-        const fakeBob = cloneDeep(bob.device) as DeviceWithSecrets
+        const fakeBob = cloneDeep(bob.device)
         fakeBob.keys.encryption.secretKey = eve.user.keys.encryption.secretKey
 
         eve.connectionContext.device = fakeBob
