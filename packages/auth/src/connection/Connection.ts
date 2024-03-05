@@ -443,7 +443,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
         deviceUnknown: ({ context }) => {
           const { theirIdentityClaim } = context
-          assert(isMemberClaim(theirIdentityClaim!)) // This is only for existing members (authenticating with deviceId rather than invitation)
+          // This is only for existing members (authenticating with deviceId rather than invitation)
+          assert(isMemberClaim(theirIdentityClaim!))
           return !context.team!.hasDevice(theirIdentityClaim.deviceId, { includeRemoved: true })
         },
 
