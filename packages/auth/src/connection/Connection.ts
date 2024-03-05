@@ -52,12 +52,46 @@ import {
   isServerContext,
 } from './types.js'
 
+/*
+
+HOW TO READ THIS FILE
+
+First of all I know this class is an abomination with literally seventeen billion lines of code in
+the constructor alone, but before you come at me with pitchforks you should know that @davidkpiano
+himself told me it's OK. So
+
+https://github.com/statelyai/xstate/discussions/4783#discussioncomment-8673350
+
+The bulk of this class is an XState state machine. It's instantiated in the constructor. It looks
+something like this: 
+
+```ts
+const machine = setup({
+  types: {...},
+  actions: {
+    // ... a bunch of action handlers here
+  },
+  guards: {
+    // ... a bunch of guard functions here
+}).createMachine({
+  //... the state machine definition, which refers back to the actions and guards by name
+})
+```
+
+To understand the way this flows, the best place to start is the state machine definition passed to
+`createMachine`. 
+
+You can also visualize this machine in the Stately visualizer - here's a link that's current at time
+of writing this:
+https://stately.ai/registry/editor/69889811-5f81-4d58-8ef1-f6f3d99fb9ee?machineId=989039f7-631c-4021-a9da-d5f6912dcb03
+
+*/
+
 /**
  * Wraps a state machine (using [XState](https://xstate.js.org/docs/)) that
  * implements the connection protocol.
  */
 export class Connection extends EventEmitter<ConnectionEvents> {
-  /** The interpreted state machine. Its XState configuration is in `machine.ts`. */
   readonly #machine
   readonly #messageQueue: MessageQueue<ConnectionMessage>
   #started = false
@@ -477,20 +511,11 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             },
             checkingIdentity: {
               id: 'checkingIdentity',
-              // Note that this signature challenge on its own could be vulnerable to a replay
-              // attack, in which Eve simultaneously impersonates Alice while initiating a
-              // connection to Bob, and impersonates Bob while initiating a connection to Alice.
-              //
-              // That's OK, because what really matters authentication-wise is not the
-              // `authenticating` step but the `negotiating` step: The two parties are only able to
-              // converge on a shared secret if they each have the secret key corresponding to their
-              // public key. Since that secret is used to encrypt all subsequent communication, that
-              // communication is guaranteed to be with the peer whose public key we know.
-              //
-              // As discussed [here](https://github.com/local-first-web/auth/discussions/42) I
-              // considered dropping this step altogether, but it doesn't hurt anything and it's an
-              // additional layer of protection.
-
+              // The signature challenge isn't sufficient on its own to prove identity, as (I think)
+              // it can be defeated with a replay attack. In practice the the session key
+              // negotiation process is sufficient to guarantee secure authentication. I might eventually
+              // take the signature challenge out altogether but for now it's not hurting anything.
+              // https://github.com/local-first-web/auth/discussions/42
               type: 'parallel',
               // Peers mutually authenticate to each other, so we have to complete two 'parallel' processes:
               // 1. prove our identity
