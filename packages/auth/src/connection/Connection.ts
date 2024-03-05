@@ -641,35 +641,29 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             },
             doneAuthenticating: { type: 'final' },
           },
-          onDone: { actions: ['listenForTeamUpdates'], target: '#negotiating' },
+          onDone: { target: '#negotiating' },
         },
         negotiating: {
           id: 'negotiating',
           entry: 'sendSeed',
-          initial: 'awaitingSeed',
-          states: {
-            awaitingSeed: {
-              on: {
-                SEED: {
-                  actions: 'deriveSharedKey',
-                  target: 'doneNegotiating',
-                },
-              },
-              ...timeout,
+          on: {
+            SEED: {
+              actions: 'deriveSharedKey',
+              target: 'synchronizing',
             },
-            doneNegotiating: { type: 'final' },
           },
-          onDone: { actions: 'sendSyncMessage', target: '#synchronizing' },
+          ...timeout,
         },
         synchronizing: {
-          id: 'synchronizing',
-          always: [{ guard: 'headsAreEqual', actions: 'onConnected', target: '#connected' }],
+          entry: 'sendSyncMessage',
+          always: [{ guard: 'headsAreEqual', target: 'connected' }],
           on: {
-            SYNC: { actions: ['receiveSyncMessage', 'sendSyncMessage'], target: '#synchronizing' },
+            SYNC: { actions: ['receiveSyncMessage', 'sendSyncMessage'] },
           },
         },
         connected: {
           id: 'connected',
+          entry: ['onConnected', 'listenForTeamUpdates'],
           always: [
             // If the peer is no longer on the team (or no longer has device), disconnect
             { guard: 'memberWasRemoved', ...fail(MEMBER_REMOVED) },
@@ -678,9 +672,9 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           ],
           on: {
             // If something changes locally, send them a sync message
-            LOCAL_UPDATE: { actions: ['sendSyncMessage'], target: '#connected' },
+            LOCAL_UPDATE: { actions: 'sendSyncMessage' },
             // If they send a sync message, process it
-            SYNC: { actions: ['receiveSyncMessage', 'sendSyncMessage'], target: '#connected' },
+            SYNC: { actions: ['receiveSyncMessage', 'sendSyncMessage'] },
             // Deliver any encrypted messages
             ENCRYPTED_MESSAGE: {
               actions: {
@@ -690,7 +684,6 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                   encryptedMessage: event.payload,
                 }),
               },
-              target: '#connected',
             },
             DISCONNECT: '#disconnected',
           },
