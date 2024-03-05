@@ -36,7 +36,7 @@ export const connectWithInvitation = async (
 
   return connect(member, invitee).then(() => {
     // The connection now has the team object, so let's update our user stuff
-    invitee.team = invitee.connection[member.deviceId]._team!
+    invitee.team = invitee.connection[member.deviceId].team!
   })
 }
 
@@ -53,9 +53,9 @@ export const connectPhoneWithInvitation = async (user: UserStuff, seed: string) 
   const phoneConnection = join(phoneContext).start()
 
   await all([laptopConnection, phoneConnection], 'connected')
-  user.team = laptopConnection._team!
+  user.team = laptopConnection.team!
   user.connection = { [user.phoneStuff!.deviceId]: phoneConnection }
-  user.phoneStuff!.team = phoneConnection._team!
+  user.phoneStuff!.team = phoneConnection.team!
   user.phoneStuff!.connection = { [user.deviceId]: laptopConnection }
 }
 

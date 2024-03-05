@@ -770,7 +770,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     this.messageQueue.send({ type: 'ENCRYPTED_MESSAGE', payload: encryptedMessage })
   }
 
-  /** Returns the current state of the protocol machine. (Public for testing) */
+  /** Returns the current state of the protocol machine.  */
   get state() {
     assert(this.started)
     return this.machine.getSnapshot().value
@@ -788,9 +788,9 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   /**
    * Returns the team that the connection's user is a member of. If the user has not yet joined a
-   * team, returns undefined. (Public for testing.)
+   * team, returns undefined.
    */
-  get _team() {
+  get team() {
     return this.#context.team
   }
 
