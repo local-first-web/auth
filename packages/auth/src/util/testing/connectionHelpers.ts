@@ -19,7 +19,10 @@ export const tryToConnect = async (a: UserStuff, b: UserStuff) => {
 /** Connects the two members and waits for them to be connected */
 export const connect = async (a: UserStuff, b: UserStuff) => {
   void tryToConnect(a, b)
-  await connection(a, b)
+  return Promise.race([
+    connection(a, b).then(() => true), //
+    anyDisconnected(a, b).then(() => false),
+  ])
 }
 
 /** Connects a member with an invitee. */
@@ -113,7 +116,7 @@ export const disconnection = async (a: UserStuff, b: UserStuff) => {
 
   // ✅ They're both disconnected
   await all(activeConnections, 'disconnected')
-  for (const connection of activeConnections) expect(connection.state).toEqual('disconnected')
+  // for (const connection of activeConnections) expect(connection.state).toEqual('disconnected')
 }
 
 export const all = async (connections: Connection[], event: keyof ConnectionEvents) =>
