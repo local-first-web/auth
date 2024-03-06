@@ -111,6 +111,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         context: {} as ConnectionContext,
         events: {} as ConnectionMessage,
       },
+
+      // ******* ACTIONS
+      // these are referred to by name in the state machine definition
+
       actions: {
         // IDENTITY CLAIMS
 
@@ -400,6 +404,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         onConnected: () => this.emit('connected'),
         onDisconnected: ({ event }) => this.emit('disconnected', event),
       },
+
+      // ******* GUARDS
+      // these are referred to by name in the state machine definition
+
       guards: {
         theySentIdentityClaim: ({ context }) => context.theirIdentityClaim !== undefined,
         weSentIdentityClaim: ({ context }) => context.ourIdentityClaim !== undefined,
@@ -454,6 +462,9 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       },
     }).createMachine({
       context: initialContext as ConnectionContext,
+
+      // ******* STATE MACHINE DEFINITION
+
       id: 'connection',
       entry: 'requestIdentityClaim',
       initial: 'awaitingIdentityClaim',
@@ -464,15 +475,24 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         // Local error (detected by us, sent to peer)
         LOCAL_ERROR: { actions: 'sendError', target: '#disconnected' },
       },
+
       states: {
         awaitingIdentityClaim: {
           // Don't respond to a request for an identity claim if we've already sent one
           always: { guard: 'bothSentIdentityClaim', target: 'authenticating' },
           on: { CLAIM_IDENTITY: { actions: 'receiveIdentityClaim' } },
         },
+
+        // To authenticate, each peer either presents an invitation (as a new device or as a new
+        // member) or a deviceId.
         authenticating: {
           initial: 'checkingInvitations',
           states: {
+            // A new member or new device is invited by being given a randomly-generated secret
+            // seed. This seed is used to generate a temporary keypair, the public half of which is
+            // recorded on the team graph by the device creating the invitation. The invitee can
+            // then use the seed to generate the same keypair, and use that to sign a payload that
+            // can be verified by anyone on the team.
             checkingInvitations: {
               always: [
                 // We can't both present invitations - someone has to be a member
@@ -485,6 +505,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                 { target: '#checkingIdentity' },
               ],
             },
+
             awaitingInvitationAcceptance: {
               // Wait for them to validate the invitation we included in our identity claim
               on: {
@@ -496,6 +517,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
               },
               ...timeout,
             },
+
             validatingInvitation: {
               always: [
                 // If the proof succeeds, add them to the team and send an acceptance message,
@@ -509,17 +531,33 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                 fail(INVITATION_PROOF_INVALID),
               ],
             },
+
+            // We use a signature challenge to verify the identity of an existing team member: We
+            // send them a payload that includes a random element, they sign it with their private
+            // signature key, and we verify it with their public signature key.
+            //
+            // Note: The signature challenge is probably not sufficient on its own to prove
+            // identity; I suspect it can be defeated with a replay attack, in which Eve
+            // simultaneously authenticates to Alice as Bob, and to Bob as Alice, using each of them
+            // to sign the challenges provided by the other.
+            //
+            // In practice the session key negotiation process (below) provides much stronger
+            // guarantees of authenticity, because it doesn't involve sending a proof that could be
+            // replayed; instead it requires all further communication to be encrypted with an
+            // independently derived shared secret that can only be calculated by the parties if
+            // they have the correct private encryption keys. See
+            // https://github.com/local-first-web/auth/discussions/42
+            //
+            // We considered removing the signature challenge entirely, but it does provide an
+            // additional layer of security in the sense that it requires the peer to demonstrate
+            // that they have the signature key in addition to the encrypted key.
             checkingIdentity: {
               id: 'checkingIdentity',
-              // The signature challenge isn't sufficient on its own to prove identity, as (I think)
-              // it can be defeated with a replay attack. In practice the the session key
-              // negotiation process is sufficient to guarantee secure authentication. I might eventually
-              // take the signature challenge out altogether but for now it's not hurting anything.
-              // https://github.com/local-first-web/auth/discussions/42
               type: 'parallel',
               // Peers mutually authenticate to each other, so we have to complete two 'parallel' processes:
               // 1. prove our identity
               // 2. verify their identity
+
               states: {
                 // 1. prove our identity
                 provingMyIdentity: {
@@ -545,14 +583,16 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                     done: { type: 'final' },
                   },
                 },
+
                 // 2. verify their identity
                 verifyingTheirIdentity: {
                   initial: 'challengingIdentity',
+
                   states: {
+                    // Send a signature challenge
                     challengingIdentity: {
                       always: [
-                        // If they just presented an invitation, they've already proven their
-                        // identity - we can move on
+                        // If they just presented an invitation, we already know who they are
                         { guard: 'theyHaveInvitation', target: 'done' },
                         // We received their identity claim in their CLAIM_IDENTITY message. Do we
                         // have a device on the team matching their identity claim?
@@ -561,11 +601,12 @@ export class Connection extends EventEmitter<ConnectionEvents> {
                         { actions: 'challengeIdentity', target: 'awaitingIdentityProof' },
                       ],
                     },
+
                     // Then wait for them to respond to the challenge with proof
                     awaitingIdentityProof: {
                       on: {
                         PROVE_IDENTITY: [
-                          // If the proof succeeds, we're done on our side
+                          // If the proof succeeds, send them an acceptance message and continue
                           { guard: 'identityIsValid', actions: 'acceptIdentity', target: 'done' },
                           // If the proof fails, disconnect with error
                           fail(IDENTITY_PROOF_INVALID),
@@ -584,24 +625,33 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           },
           onDone: { target: '#negotiating' },
         },
-        // Negotiate a shared key
+
+        // Negotiate a session key (shared secret). Alice generates a random seed, asymmetrically
+        // encrypts it with her private key and Bob's public key, and sends it to Bob, who decrypts
+        // it with his private key and Alice's public key; and vice versa. Both parties then combine
+        // the two seeds to derive a shared key.
         negotiating: {
           id: 'negotiating',
           entry: 'sendSeed',
           on: { SEED: { actions: 'deriveSharedKey', target: 'synchronizing' } },
           ...timeout,
         },
+
         // Synchronize our team graph with the peer
         synchronizing: {
           entry: 'sendSyncMessage',
           always: { guard: 'headsAreEqual', target: 'connected' },
           on: { SYNC: { actions: ['receiveSyncMessage', 'sendSyncMessage'] } },
         },
+
+        // Once we're connected, all we need to do is just keep team graph in sync with our peer,
+        // and relay encrypted messages.
         connected: {
           id: 'connected',
           entry: ['onConnected', 'listenForTeamUpdates'],
           always: [
-            // If the member, user, or server has been removed from the team, disconnect
+            // If updates to the team graph result in our peer being removed from the team,
+            // disconnect
             { guard: 'memberWasRemoved', ...fail(MEMBER_REMOVED) },
             { guard: 'deviceWasRemoved', ...fail(DEVICE_REMOVED) },
             { guard: 'serverWasRemoved', ...fail(SERVER_REMOVED) },
@@ -617,10 +667,12 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             DISCONNECT: '#disconnected',
           },
         },
+
+        // Once we disconnect, no further messages will be sent or received; to reconnect,
+        // a new Connection object must be created.
         disconnected: {
           id: 'disconnected',
           always: { actions: 'onDisconnected' },
-          // type: 'final',
         },
       },
     })
