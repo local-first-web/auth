@@ -22,7 +22,7 @@
     "lint": "xo",
     "preinstall": "npx only-allow pnpm",
     "test": "vitest",
-    "test:all": "run-s lint test:run test:cy test:pw",
+    "test:all": "run-s build lint test:run test:cy test:pw",
     "test:run": "vitest run",
     "test:log": "cross-env DEBUG=localfirst*,automerge* DEBUG_COLORS=1 pnpm test run",
     "test:cy": "pnpm -F @localfirst/taco-chat test:cy:parallel",
