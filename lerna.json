@@ -1,5 +1,5 @@
 {
-  "version": "5.5.1",
+  "version": "5.6.0",
   "registry": "https://registry.npmjs.org/",
   "npmClient": "pnpm",
   "packages": ["packages/*", "demos/*"],

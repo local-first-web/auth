@@ -1,6 +1,6 @@
 {
   "name": "@localfirst/auth-syncserver",
-  "version": "5.5.1",
+  "version": "5.6.0",
   "description": "Sync server for automerge-repo using localfirst/auth",
   "repository": "https://github.com/local-first-web/auth/packages/auth-syncserver",
   "license": "MIT",
@@ -34,9 +34,9 @@
     "ws": "^8.14.2"
   },
   "devDependencies": {
+    "@localfirst/crypto": "workspace:*",
     "portfinder": "^1.0.32",
-    "rimraf": "^5.0.5",
-    "@localfirst/crypto": "workspace:*"
+    "rimraf": "^5.0.5"
   },
   "gitHead": "9a7b871e9e34268b32cc6e574189ec2350787b81"
 }
