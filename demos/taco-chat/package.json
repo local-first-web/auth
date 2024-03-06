@@ -17,7 +17,7 @@
     "dev:cy": "cross-env CYPRESS_REMOTE_DEBUGGING_PORT=9222 run-p dev test:cy",
     "preinstall": "npx only-allow pnpm",
     "preview": "run-s build && vite preview",
-    "test:cy:parallel": "run-p --race dev test:cy:parallel:exec && git restore ./cypress/parallel-weights.json",
+    "test:cy:parallel": "run-p --race dev test:cy:parallel:exec && git restore cypress && git clean cypress -f",
     "test:cy:parallel:exec": "cypress-parallel -s test:cy:run:exec -t 5 -d 'cypress/e2e' -n ../../node_modules/cypress-multi-reporters",
     "test:cy": "cypress open --browser chrome --e2e",
     "test:cy:run": "run-p --race dev test:cy:run:exec",
@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
-    "@herbcaudill/eventemitter42": "^0.2.1",
+    "@herbcaudill/eventemitter42": "^0.3.1",
     "@ibm/plex": "^6.3.0",
     "@localfirst/auth": "workspace:*",
     "@localfirst/relay": "^4.2.2",

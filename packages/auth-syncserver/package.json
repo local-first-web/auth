@@ -35,7 +35,8 @@
   },
   "devDependencies": {
     "portfinder": "^1.0.32",
-    "rimraf": "^5.0.5"
+    "rimraf": "^5.0.5",
+    "@localfirst/crypto": "workspace:*"
   },
   "gitHead": "9a7b871e9e34268b32cc6e574189ec2350787b81"
 }

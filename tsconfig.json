@@ -17,6 +17,7 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
+    "strictNullChecks": true,
     "strictPropertyInitialization": false,
     "target": "ESNext",
     "useUnknownInCatchVariables": true

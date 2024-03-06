@@ -26,14 +26,14 @@
     "test:log": "cross-env DEBUG='localfirst*' DEBUG_COLORS=1 vitest --reporter basic"
   },
   "dependencies": {
-    "@herbcaudill/eventemitter42": "^0.2.1",
+    "@herbcaudill/eventemitter42": "^0.3.1",
     "@localfirst/crdx": "workspace:*",
     "@localfirst/crypto": "workspace:*",
     "@localfirst/shared": "workspace:*",
     "@paralleldrive/cuid2": "^2.2.2",
     "lodash-es": "^4.17.21",
     "msgpackr": "^1.10.0",
-    "xstate": "^4.38.3"
+    "xstate": "^5.9.1"
   },
   "publishConfig": {
     "access": "public"

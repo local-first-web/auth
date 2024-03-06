@@ -1,37 +1,34 @@
 /* eslint-disable object-shorthand */
-
-import { assert, debug } from '@localfirst/shared'
+import { EventEmitter } from '@herbcaudill/eventemitter42'
+import type { DecryptFnParams } from '@localfirst/crdx'
 import {
   generateMessage,
   headsAreEqual,
   initSyncState,
   receiveMessage,
   redactKeys,
-  type DecryptFnParams,
 } from '@localfirst/crdx'
-import { asymmetric, randomKeyBytes, symmetric, type Hash, type Payload } from '@localfirst/crypto'
+import { asymmetric, randomKeyBytes, symmetric, type Hash } from '@localfirst/crypto'
+import { assert, debug } from '@localfirst/shared'
 import { deriveSharedKey } from 'connection/deriveSharedKey.js'
 import {
-  buildError,
+  DEVICE_REMOVED,
+  DEVICE_UNKNOWN,
+  INVITATION_PROOF_INVALID,
+  JOINED_WRONG_TEAM,
+  MEMBER_REMOVED,
+  NEITHER_IS_MEMBER,
+  SERVER_REMOVED,
+  TIMEOUT,
+  createErrorMessage,
   type ConnectionErrorType,
-  type ErrorMessage,
-  type LocalErrorMessage,
+  IDENTITY_PROOF_INVALID,
+  ENCRYPTION_FAILURE,
 } from 'connection/errors.js'
 import { getDeviceUserFromGraph } from 'connection/getDeviceUserFromGraph.js'
 import * as identity from 'connection/identity.js'
-import {
-  type AcceptInvitationMessage,
-  type ChallengeIdentityMessage,
-  type ClaimIdentityMessage,
-  type ConnectionMessage,
-  type DisconnectMessage,
-  type EncryptedMessage,
-  type ProveIdentityMessage,
-  type SeedMessage,
-  type SyncMessage,
-} from 'connection/message.js'
+import type { ConnectionMessage, DisconnectMessage } from 'connection/message.js'
 import { redactDevice } from 'device/index.js'
-import { EventEmitter } from '@herbcaudill/eventemitter42'
 import * as invitations from 'invitation/index.js'
 import { pack, unpack } from 'msgpackr'
 import { getTeamState } from 'team/getTeamState.js'
@@ -40,18 +37,10 @@ import * as select from 'team/selectors/index.js'
 import { arraysAreEqual } from 'util/arraysAreEqual.js'
 import { KeyType } from 'util/index.js'
 import { syncMessageSummary } from 'util/testing/messageSummary.js'
-import { assign, createMachine, interpret } from 'xstate'
+import { and, assertEvent, assign, createActor, setup } from 'xstate'
 import { MessageQueue, type NumberedMessage } from './MessageQueue.js'
-import { machine } from './machine.js'
-import type {
-  Condition,
-  ConnectionContext,
-  ConnectionEvents,
-  Context,
-  IdentityClaim,
-  ServerContext,
-  StateMachineAction,
-} from './types.js'
+import { extendServerContext, getUserName, messageSummary, stateSummary } from './helpers.js'
+import type { ConnectionContext, ConnectionEvents, Context, IdentityClaim } from './types.js'
 import {
   isInviteeClaim,
   isInviteeContext,
@@ -63,671 +52,799 @@ import {
   isServerContext,
 } from './types.js'
 
-const { DEVICE } = KeyType
+/*
+
+HOW TO READ THIS FILE
+
+First of all I know this class is an abomination with literally seventeen billion lines of code in
+the constructor alone, but before you come at me with pitchforks you should know that @davidkpiano
+himself told me it's OK. So
+
+https://github.com/statelyai/xstate/discussions/4783#discussioncomment-8673350
+
+The bulk of this class is an XState state machine. It's instantiated in the constructor. It looks
+something like this: 
+
+```ts
+const machine = setup({
+  types: {...},
+  actions: {
+    // ... a bunch of action handlers here
+  },
+  guards: {
+    // ... a bunch of guard functions here
+}).createMachine({
+  //... the state machine definition, which refers back to the actions and guards by name
+})
+```
+
+To understand the way this flows, the best place to start is the state machine definition passed to
+`createMachine`. 
+
+You can also visualize this machine in the Stately visualizer - here's a link that's current at time
+of writing this:
+https://stately.ai/registry/editor/69889811-5f81-4d58-8ef1-f6f3d99fb9ee?machineId=989039f7-631c-4021-a9da-d5f6912dcb03
+
+*/
 
 /**
  * Wraps a state machine (using [XState](https://xstate.js.org/docs/)) that
  * implements the connection protocol.
  */
 export class Connection extends EventEmitter<ConnectionEvents> {
-  /** The interpreted state machine. Its XState configuration is in `machine.ts`. */
-  private readonly machine
-  private started = false
-  private readonly messageQueue: MessageQueue<ConnectionMessage>
-  private log = debug.extend('auth:connection')
+  readonly #machine
+  readonly #messageQueue: MessageQueue<ConnectionMessage>
+  #started = false
+  #log = debug.extend('auth:connection')
 
-  constructor({ sendMessage, context }: Params) {
+  constructor({ sendMessage, context }: ConnectionParams) {
     super()
 
-    // To send messages to our peer, we give them to the ordered network,
-    // which will deliver them using the
-    this.messageQueue = new MessageQueue<ConnectionMessage>({
-      sendMessage: message => {
-        this.logMessage('out', message)
-        const serialized = pack(message)
-        sendMessage(serialized)
+    this.#messageQueue = this.#initializeMessageQueue(sendMessage)
+    this.#log = this.#log.extend(getUserName(context)) // add our name to the debug logger
+
+    // On sync server, the server keys act as both user keys and device keys
+    const initialContext = isServerContext(context) ? extendServerContext(context) : context
+
+    const machine = setup({
+      types: {
+        context: {} as ConnectionContext,
+        events: {} as ConnectionMessage,
+      },
+
+      // ******* ACTIONS
+      // these are referred to by name in the state machine definition
+
+      actions: {
+        // IDENTITY CLAIMS
+
+        requestIdentityClaim: () => {
+          this.#queueMessage('REQUEST_IDENTITY')
+        },
+
+        sendIdentityClaim: assign(({ context }) => {
+          const createIdentityClaim = (context: ConnectionContext): IdentityClaim => {
+            if (isMemberContext(context)) {
+              // I'm already a member
+              return {
+                deviceId: context.device.deviceId,
+              }
+            }
+            if (isInviteeMemberContext(context)) {
+              // I'm a new user and I have an invitation
+              assert(context.invitationSeed)
+              const { userName, keys } = context.user
+              return {
+                proofOfInvitation: invitations.generateProof(context.invitationSeed),
+                userName,
+                userKeys: redactKeys(keys),
+                device: redactDevice(context.device),
+              }
+            }
+            if (isInviteeDeviceContext(context)) {
+              // I'm a new device for an existing user and I have an invitation
+              assert(context.invitationSeed)
+              const { userName, device } = context
+              return {
+                proofOfInvitation: invitations.generateProof(context.invitationSeed),
+                userName,
+                device: redactDevice(device),
+              }
+            }
+            // ignore coverage - that should have been exhaustive
+            throw new Error('Invalid context')
+          }
+
+          const ourIdentityClaim = createIdentityClaim(context)
+          this.#queueMessage('CLAIM_IDENTITY', ourIdentityClaim)
+
+          return { ourIdentityClaim }
+        }),
+
+        receiveIdentityClaim: assign(({ event }) => {
+          assertEvent(event, 'CLAIM_IDENTITY')
+          const identityClaim = event.payload
+          const theirDevice = 'device' in identityClaim ? identityClaim.device : undefined
+          return { theirIdentityClaim: identityClaim, theirDevice }
+        }),
+
+        // INVITATIONS
+
+        acceptInvitation: assign(({ context }) => {
+          // Admit them to the team
+          const { team, theirIdentityClaim } = context
+
+          assert(team)
+          assert(theirIdentityClaim)
+          assert(isInviteeClaim(theirIdentityClaim))
+
+          const { proofOfInvitation } = theirIdentityClaim
+
+          const admit = () => {
+            if (isInviteeMemberClaim(theirIdentityClaim)) {
+              // New member
+              const { userName, userKeys } = theirIdentityClaim
+              team.admitMember(proofOfInvitation, userKeys, userName)
+              const userId = userKeys.name
+              return team.members(userId)
+            } else {
+              // New device for existing member
+              const { device } = theirIdentityClaim
+              team.admitDevice(proofOfInvitation, device)
+              const { deviceId } = device
+              const { userId } = team.memberByDeviceId(deviceId)
+              return team.members(userId)
+            }
+          }
+          const peer = admit()
+
+          // Welcome them by sending the team's graph, so they can reconstruct team membership state
+          this.#queueMessage('ACCEPT_INVITATION', {
+            serializedGraph: team.save(),
+            teamKeyring: team.teamKeyring(),
+          })
+
+          return { peer }
+        }),
+
+        joinTeam: assign(({ context, event }) => {
+          assertEvent(event, 'ACCEPT_INVITATION')
+          const { serializedGraph, teamKeyring } = event.payload
+          const { device, invitationSeed } = context
+          assert(invitationSeed)
+
+          const user =
+            context.user ??
+            // If we're joining as a new device for an existing member, we won't have a user object
+            // yet, so we need to get those from the graph. We use the invitation seed to generate
+            // the starter keys for the new device. We can use these to unlock a lockbox on the team
+            // graph that contains our user keys.
+            getDeviceUserFromGraph({ serializedGraph, teamKeyring, invitationSeed })
+
+          // When admitting us, our peer added our user to the team graph. We've been given the
+          // serialized and encrypted graph, and the team keyring. We can now decrypt the graph and
+          // reconstruct the team in order to join it.
+          const team = new Team({ source: serializedGraph, context: { user, device }, teamKeyring })
+
+          // We join the team, which adds our device to the team graph.
+          team.join(teamKeyring)
+          this.emit('joined', { team, user })
+          return { user, team }
+        }),
+
+        // AUTHENTICATION
+
+        challengeIdentity: assign(({ context }) => {
+          const { team, theirIdentityClaim } = context
+          assert(team) // If we're not on the team yet, we don't have a way of knowing if the peer is
+          assert(isMemberClaim(theirIdentityClaim!)) // This is only for members authenticating with deviceId
+
+          // look up their device and user info on the team
+          const { deviceId } = theirIdentityClaim
+          const theirDevice = team.device(deviceId, { includeRemoved: true })
+          const peer = team.memberByDeviceId(deviceId, { includeRemoved: true })
+
+          // we now have a user name so add that to the debug logger
+          this.#log = this.#log.extend(peer.userName)
+
+          // send them an identity challenge
+          const challenge = identity.challenge({ type: KeyType.DEVICE, name: deviceId })
+          this.#queueMessage('CHALLENGE_IDENTITY', { challenge })
+
+          // record their identity info and the challenge in context
+          return { theirDevice, peer, challenge }
+        }),
+
+        proveIdentity: ({ context, event }) => {
+          assertEvent(event, 'CHALLENGE_IDENTITY')
+          const { challenge } = event.payload
+          const { keys } = context.device
+          const proof = identity.prove(challenge, keys)
+          this.#queueMessage('PROVE_IDENTITY', { challenge, proof })
+        },
+
+        acceptIdentity: () => this.#queueMessage('ACCEPT_IDENTITY'),
+
+        // SYNCHRONIZATION
+
+        listenForTeamUpdates: ({ context }) => {
+          assert(context.team)
+          context.team.on('updated', ({ head }: { head: Hash[] }) => {
+            if (this.#machine.getSnapshot().status !== 'done') {
+              this.#machine.send({ type: 'LOCAL_UPDATE', payload: { head } }) // Send update event to local machine
+            }
+            this.emit('updated')
+          })
+        },
+
+        sendSyncMessage: assign(({ context }) => {
+          assert(context.team)
+          const previousSyncState = context.syncState ?? initSyncState()
+
+          const [syncState, syncMessage] = generateMessage(context.team.graph, previousSyncState)
+
+          // Undefined message means we're already synced
+          if (syncMessage) {
+            this.#log('sending sync message', syncMessageSummary(syncMessage))
+            this.#queueMessage('SYNC', syncMessage)
+          } else {
+            this.#log('no sync message to send')
+          }
+
+          return { syncState }
+        }),
+
+        receiveSyncMessage: assign(({ context, event }) => {
+          assertEvent(event, 'SYNC')
+          const syncMessage = event.payload
+          const { syncState: prevSyncState = initSyncState(), team, device } = context
+
+          assert(team)
+          const teamKeys = team.teamKeys()
+          const deviceKeys = device.keys
+
+          // handle errors here
+          const decrypt = ({ encryptedGraph, keys }: DecryptFnParams<TeamAction, TeamContext>) =>
+            decryptTeamGraph({ encryptedGraph, teamKeys: keys, deviceKeys })
+
+          const [newChain, syncState] = receiveMessage(
+            team.graph,
+            prevSyncState,
+            syncMessage,
+            teamKeys,
+            decrypt
+          )
+
+          if (headsAreEqual(newChain.head, team.graph.head)) {
+            // nothing changed
+            return { syncState }
+          } else {
+            this.emit('updated')
+            return { team: team.merge(newChain), syncState }
+          }
+        }),
+
+        // SHARED SECRET NEGOTIATION
+
+        sendSeed: assign(({ context }) => {
+          const { user, peer, seed = randomKeyBytes() } = context
+          const encryptedSeed = asymmetric.encryptBytes({
+            secret: seed,
+            recipientPublicKey: peer!.keys.encryption,
+            senderSecretKey: user!.keys.encryption.secretKey,
+          })
+
+          this.#queueMessage('SEED', { encryptedSeed })
+          return { seed }
+        }),
+
+        deriveSharedKey: assign(({ context, event }) => {
+          assertEvent(event, 'SEED')
+          const { encryptedSeed } = event.payload
+          const { seed, user, peer } = context
+
+          // decrypt the seed they sent
+          try {
+            const theirSeed = asymmetric.decryptBytes({
+              cipher: encryptedSeed,
+              senderPublicKey: peer!.keys.encryption,
+              recipientSecretKey: user!.keys.encryption.secretKey,
+            })
+            // With the two keys, we derive a shared key
+            return { sessionKey: deriveSharedKey(seed, theirSeed) }
+          } catch (error) {
+            if (String(error).includes('incorrect key pair')) {
+              return this.#fail(ENCRYPTION_FAILURE)
+            } else throw error
+          }
+        }),
+
+        // ENCRYPTED COMMUNICATION
+
+        receiveEncryptedMessage: ({ context, event }) => {
+          assertEvent(event, 'ENCRYPTED_MESSAGE')
+          const sessionKey = context.sessionKey!
+          const encryptedMessage = event.payload
+
+          try {
+            const decryptedMessage = symmetric.decryptBytes(encryptedMessage, sessionKey)
+            this.emit('message', decryptedMessage)
+          } catch (error) {
+            if (String(error).includes('wrong secret key')) {
+              return this.#fail(ENCRYPTION_FAILURE)
+            } else throw error
+          }
+        },
+
+        // FAILURE
+
+        fail: assign((_, { error }: { error: ConnectionErrorType }) => {
+          return this.#fail(error)
+        }),
+
+        receiveError: assign(({ event }) => {
+          assertEvent(event, 'ERROR')
+          const error = event.payload
+          this.#log('receiveError: %o', error)
+          this.emit('remoteError', error)
+          return { error }
+        }),
+
+        sendError: assign(({ event }) => {
+          assertEvent(event, 'LOCAL_ERROR')
+          const error = event.payload
+          this.#log('sendError %o', error)
+          this.#messageQueue.send(createErrorMessage(error.type, 'REMOTE'))
+          this.emit('localError', error)
+          return { error }
+        }),
+
+        // EVENTS FOR EXTERNAL LISTENERS
+
+        onConnected: () => this.emit('connected'),
+        onDisconnected: ({ event }) => this.emit('disconnected', event),
+      },
+
+      // ******* GUARDS
+      // these are referred to by name in the state machine definition
+
+      guards: {
+        theySentIdentityClaim: ({ context }) => context.theirIdentityClaim !== undefined,
+        weSentIdentityClaim: ({ context }) => context.ourIdentityClaim !== undefined,
+        bothSentIdentityClaim: and(['theySentIdentityClaim', 'weSentIdentityClaim']),
+
+        weHaveInvitation: ({ context }) => isInviteeContext(context),
+        theyHaveInvitation: ({ context }) => isInviteeClaim(context.theirIdentityClaim!),
+        neitherIsMember: and(['weHaveInvitation', 'theyHaveInvitation']),
+        invitationIsValid: ({ context }) => {
+          const { team, theirIdentityClaim } = context
+          assert(isInviteeClaim(theirIdentityClaim!))
+          return team!.validateInvitation(theirIdentityClaim.proofOfInvitation).isValid
+        },
+
+        joinedTheRightTeam: ({ context, event }) => {
+          assertEvent(event, 'ACCEPT_INVITATION')
+          const invitationSeed = context.invitationSeed!
+          const { serializedGraph, teamKeyring } = event.payload
+
+          // Make sure my invitation exists on the graph of the team I'm about to join. This check
+          // prevents an attack in which a fake team pretends to accept my invitation.
+          const state = getTeamState(serializedGraph, teamKeyring)
+          const { id } = invitations.generateProof(invitationSeed)
+          return select.hasInvitation(state, id)
+        },
+
+        deviceUnknown: ({ context }) => {
+          const { theirIdentityClaim } = context
+          // This is only for existing members (authenticating with deviceId rather than invitation)
+          assert(isMemberClaim(theirIdentityClaim!))
+          return !context.team!.hasDevice(theirIdentityClaim.deviceId, { includeRemoved: true })
+        },
+
+        identityIsValid: ({ context, event }) => {
+          assertEvent(event, 'PROVE_IDENTITY')
+          const { challenge, proof } = event.payload
+          return context.team!.verifyIdentityProof(challenge, proof)
+        },
+
+        memberWasRemoved: ({ context }) => context.team!.memberWasRemoved(context.peer!.userId),
+
+        deviceWasRemoved: ({ context }) =>
+          context.team!.deviceWasRemoved(context.theirDevice!.deviceId),
+
+        serverWasRemoved: ({ context }) => context.team!.serverWasRemoved(context.peer!.userId),
+
+        headsAreEqual: ({ context }) =>
+          arraysAreEqual(
+            context.team!.graph.head, // our head
+            context.syncState?.lastCommonHead // last head we had in common with peer
+          ),
+      },
+    }).createMachine({
+      context: initialContext as ConnectionContext,
+
+      // ******* STATE MACHINE DEFINITION
+
+      id: 'connection',
+      entry: 'requestIdentityClaim',
+      initial: 'awaitingIdentityClaim',
+      on: {
+        REQUEST_IDENTITY: { actions: 'sendIdentityClaim', target: '.awaitingIdentityClaim' },
+        // Remote error (sent by peer)
+        ERROR: { actions: 'receiveError', target: '#disconnected' },
+        // Local error (detected by us, sent to peer)
+        LOCAL_ERROR: { actions: 'sendError', target: '#disconnected' },
+      },
+
+      states: {
+        awaitingIdentityClaim: {
+          // Don't respond to a request for an identity claim if we've already sent one
+          always: { guard: 'bothSentIdentityClaim', target: 'authenticating' },
+          on: { CLAIM_IDENTITY: { actions: 'receiveIdentityClaim' } },
+        },
+
+        // To authenticate, each peer either presents an invitation (as a new device or as a new
+        // member) or a deviceId.
+        authenticating: {
+          initial: 'checkingInvitations',
+          states: {
+            // A new member or new device is invited by being given a randomly-generated secret
+            // seed. This seed is used to generate a temporary keypair, the public half of which is
+            // recorded on the team graph by the device creating the invitation. The invitee can
+            // then use the seed to generate the same keypair, and use that to sign a payload that
+            // can be verified by anyone on the team.
+            checkingInvitations: {
+              always: [
+                // We can't both present invitations - someone has to be a member
+                { guard: 'neitherIsMember', ...fail(NEITHER_IS_MEMBER) },
+                // If I have an invitation, wait for acceptance
+                { guard: 'weHaveInvitation', target: 'awaitingInvitationAcceptance' },
+                // If they have an invitation, validate it
+                { guard: 'theyHaveInvitation', target: 'validatingInvitation' },
+                // If there are no invitations, we can proceed directly to verifying each other's identity
+                { target: '#checkingIdentity' },
+              ],
+            },
+
+            awaitingInvitationAcceptance: {
+              // Wait for them to validate the invitation we included in our identity claim
+              on: {
+                ACCEPT_INVITATION: [
+                  // Make sure the team I'm joining is actually the one that invited me
+                  { guard: 'joinedTheRightTeam', actions: 'joinTeam', target: '#checkingIdentity' },
+                  fail(JOINED_WRONG_TEAM),
+                ],
+              },
+              ...timeout,
+            },
+
+            validatingInvitation: {
+              always: [
+                // If the proof succeeds, add them to the team and send an acceptance message,
+                // then proceed to the standard identity claim & challenge process
+                {
+                  guard: 'invitationIsValid',
+                  actions: 'acceptInvitation',
+                  target: '#checkingIdentity',
+                },
+                // If the proof fails, disconnect with error
+                fail(INVITATION_PROOF_INVALID),
+              ],
+            },
+
+            // We use a signature challenge to verify the identity of an existing team member: We
+            // send them a payload that includes a random element, they sign it with their private
+            // signature key, and we verify it with their public signature key.
+            //
+            // Note: The signature challenge is probably not sufficient on its own to prove
+            // identity; I suspect it can be defeated with a replay attack, in which Eve
+            // simultaneously authenticates to Alice as Bob, and to Bob as Alice, using each of them
+            // to sign the challenges provided by the other.
+            //
+            // In practice the session key negotiation process (below) provides much stronger
+            // guarantees of authenticity, because it doesn't involve sending a proof that could be
+            // replayed; instead it requires all further communication to be encrypted with an
+            // independently derived shared secret that can only be calculated by the parties if
+            // they have the correct private encryption keys. See
+            // https://github.com/local-first-web/auth/discussions/42
+            //
+            // We considered removing the signature challenge entirely, but it does provide an
+            // additional layer of security in the sense that it requires the peer to demonstrate
+            // that they have the signature key in addition to the encrypted key.
+            checkingIdentity: {
+              id: 'checkingIdentity',
+              type: 'parallel',
+              // Peers mutually authenticate to each other, so we have to complete two 'parallel' processes:
+              // 1. prove our identity
+              // 2. verify their identity
+
+              states: {
+                // 1. prove our identity
+                provingMyIdentity: {
+                  initial: 'awaitingIdentityChallenge',
+                  states: {
+                    awaitingIdentityChallenge: {
+                      // If we just presented an invitation, they already know who we are
+                      always: { guard: 'weHaveInvitation', target: 'done' },
+                      on: {
+                        // When we receive a challenge, respond with proof
+                        CHALLENGE_IDENTITY: {
+                          actions: 'proveIdentity',
+                          target: 'awaitingIdentityAcceptance',
+                        },
+                      },
+                      ...timeout,
+                    },
+                    // Wait for a message confirming that they've validated our proof of identity
+                    awaitingIdentityAcceptance: {
+                      on: { ACCEPT_IDENTITY: { target: 'done' } },
+                      ...timeout,
+                    },
+                    done: { type: 'final' },
+                  },
+                },
+
+                // 2. verify their identity
+                verifyingTheirIdentity: {
+                  initial: 'challengingIdentity',
+
+                  states: {
+                    // Send a signature challenge
+                    challengingIdentity: {
+                      always: [
+                        // If they just presented an invitation, we already know who they are
+                        { guard: 'theyHaveInvitation', target: 'done' },
+                        // We received their identity claim in their CLAIM_IDENTITY message. Do we
+                        // have a device on the team matching their identity claim?
+                        { guard: 'deviceUnknown', ...fail(DEVICE_UNKNOWN) },
+                        // Send a challenge.
+                        { actions: 'challengeIdentity', target: 'awaitingIdentityProof' },
+                      ],
+                    },
+
+                    // Then wait for them to respond to the challenge with proof
+                    awaitingIdentityProof: {
+                      on: {
+                        PROVE_IDENTITY: [
+                          // If the proof succeeds, send them an acceptance message and continue
+                          { guard: 'identityIsValid', actions: 'acceptIdentity', target: 'done' },
+                          // If the proof fails, disconnect with error
+                          fail(IDENTITY_PROOF_INVALID),
+                        ],
+                      },
+                      ...timeout,
+                    },
+                    done: { type: 'final' },
+                  },
+                },
+              },
+              // Once BOTH processes complete, we continue
+              onDone: { target: 'done' },
+            },
+            done: { type: 'final' },
+          },
+          onDone: { target: '#negotiating' },
+        },
+
+        // Negotiate a session key (shared secret). Alice generates a random seed, asymmetrically
+        // encrypts it with her private key and Bob's public key, and sends it to Bob, who decrypts
+        // it with his private key and Alice's public key; and vice versa. Both parties then combine
+        // the two seeds to derive a shared key.
+        negotiating: {
+          id: 'negotiating',
+          entry: 'sendSeed',
+          on: { SEED: { actions: 'deriveSharedKey', target: 'synchronizing' } },
+          ...timeout,
+        },
+
+        // Synchronize our team graph with the peer
+        synchronizing: {
+          entry: 'sendSyncMessage',
+          always: { guard: 'headsAreEqual', target: 'connected' },
+          on: { SYNC: { actions: ['receiveSyncMessage', 'sendSyncMessage'] } },
+        },
+
+        // Once we're connected, all we need to do is just keep team graph in sync with our peer,
+        // and relay encrypted messages.
+        connected: {
+          id: 'connected',
+          entry: ['onConnected', 'listenForTeamUpdates'],
+          always: [
+            // If updates to the team graph result in our peer being removed from the team,
+            // disconnect
+            { guard: 'memberWasRemoved', ...fail(MEMBER_REMOVED) },
+            { guard: 'deviceWasRemoved', ...fail(DEVICE_REMOVED) },
+            { guard: 'serverWasRemoved', ...fail(SERVER_REMOVED) },
+          ],
+          on: {
+            // If the team graph is modified locally, send them a sync message
+            LOCAL_UPDATE: { actions: 'sendSyncMessage' },
+            // If they send a sync message, process it
+            SYNC: { actions: ['receiveSyncMessage', 'sendSyncMessage'] },
+            // Deliver any encrypted messages
+            ENCRYPTED_MESSAGE: { actions: 'receiveEncryptedMessage' },
+            // If they disconnect we disconnect
+            DISCONNECT: '#disconnected',
+          },
+        },
+
+        // Once we disconnect, no further messages will be sent or received; to reconnect,
+        // a new Connection object must be created.
+        disconnected: {
+          id: 'disconnected',
+          always: { actions: 'onDisconnected' },
+        },
       },
     })
-      .on('message', message => {
-        this.logMessage('in', message)
-        // Handle requests from the peer to resend messages that they missed
-        if (message.type === 'REQUEST_RESEND') {
-          const { index } = message.payload
-          this.messageQueue.resend(index)
-          return
-        }
-
-        // Pass other messages from peer to the state machine
-        this.machine.send(message)
-      })
-      .on('request', index => {
-        // Send out requests to resend messages that we missed
-        this.sendMessage({ type: 'REQUEST_RESEND', payload: { index } })
-      })
-
-    // ignore coverage
-    const userName =
-      'server' in context
-        ? context.server.host
-        : 'userName' in context
-          ? context.userName
-          : 'user' in context
-            ? context.user.userName
-            : ''
-    this.log = this.log.extend(userName)
-
-    const Context: Context = isServerContext(context) ? extendServerContext(context) : context
 
     // Instantiate the state machine
-    this.machine = interpret(
-      createMachine(machine, { actions: this.actions, guards: this.guards }) //
-        .withContext(Context as ConnectionContext)
-    )
-      // emit and log all transitions
-      .onTransition((state, event) => {
-        const summary = stateSummary(state.value as string)
-        this.emit('change', summary)
-        this.log(`${messageSummary(event)} ⏩ ${summary} `)
-      })
+    this.#machine = createActor(machine)
+
+    // emit and log all transitions
+    this.#machine.subscribe(state => {
+      const summary = stateSummary(state.value as string)
+      this.emit('change', summary)
+      this.#log(`⏩ ${summary} `)
+    })
 
     // add automatic logging to all events
     this.emit = (event, ...args) => {
-      this.log(`emit ${event} %o`, ...args)
+      this.#log(`emit ${event} %o`, ...args)
       return super.emit(event, ...args)
     }
   }
 
   // PUBLIC API
 
-  /** Starts the protocol machine. Returns this Protocol object. */
+  /** Starts the state machine. Returns this Connection object. */
   public start = (storedMessages: Uint8Array[] = []) => {
-    this.log('starting')
-    this.machine.start()
-    this.messageQueue.start()
-    this.started = true
+    this.#log('starting')
+    this.#machine.start()
+    this.#messageQueue.start()
+    this.#started = true
 
-    // kick off the connection by requesting our peer's identity
-    this.sendMessage({ type: 'REQUEST_IDENTITY' })
-
+    // if incoming messages were received before we existed, queue them up for the machine
     for (const m of storedMessages) this.deliver(m)
 
     return this
   }
 
-  /** Sends a disconnect message to the peer. */
+  /** Shuts down and sends a disconnect message to the peer. */
   public stop = () => {
-    if (this.started && !this.machine.state.done) {
-      const disconnectMessage = { type: 'DISCONNECT' } as DisconnectMessage
-      this.machine.send(disconnectMessage) // Send disconnect event to local machine
-      try {
-        this.sendMessage(disconnectMessage) // Send disconnect message to peer
-      } catch {
-        // our connection to the peer may already be gone by this point, don't throw
-      }
+    if (this.#started && this.#machine.getSnapshot().status !== 'done') {
+      const disconnectMessage: DisconnectMessage = { type: 'DISCONNECT' }
+      this.#machine.send(disconnectMessage) // Send disconnect event to local machine
+      this.#messageQueue.send(disconnectMessage) // Send disconnect message to peer
     }
 
     this.removeAllListeners()
-    this.messageQueue.stop()
-    this.machine.stop()
-    this.machine.state.done = true
-    this.log('machine stopped')
+    this.#messageQueue.stop()
+    this.#log('connection stopped')
     return this
   }
 
-  /** Returns the current state of the protocol machine. */
-  public get state() {
-    assert(this.started)
-    return this.machine.state.value
-  }
-
-  public get context(): ConnectionContext {
-    assert(this.started)
-    return this.machine.state.context
-  }
-
-  public get user() {
-    return this.context.user
-  }
-
   /**
-   * Returns the last error encountered by the protocol machine.
-   * If no error has occurred, returns undefined.
-   */
-  public get error() {
-    return this.context.error
-  }
-
-  /**
-   * Returns the team that the connection's user is a member of.
-   * If the user has not yet joined a team, returns undefined.
-   */
-  public get team() {
-    return this.context.team
-  }
-
-  /**
-   * Returns the connection's session key when we are in a connected state.
-   * Otherwise, returns `undefined`.
-   */
-  public get sessionKey() {
-    return this.context.sessionKey
-  }
-
-  /**
-   * Adds incoming messages from the peer to the MessageQueue's incoming message queue, which will
-   * pass them to the state machine in order.
+   * Adds connection messages from the peer to the MessageQueue's incoming message queue, which
+   * will pass them to the state machine in order.
    */
   public deliver(serializedMessage: Uint8Array) {
     const message = unpack(serializedMessage) as NumberedMessage<ConnectionMessage>
-    this.messageQueue.receive(message)
+    this.#messageQueue.receive(message)
   }
 
-  /** Sends an encrypted message to our peer. */
-  public send = (message: Payload) => {
-    assert(this.sessionKey)
-    const encryptedMessage = symmetric.encryptBytes(message, this.sessionKey)
-    this.sendMessage({ type: 'ENCRYPTED_MESSAGE', payload: encryptedMessage })
+  /**
+   * Public interface for sending a message from the application to our peer via this connection's
+   * encrypted channel. We don't care about the content of this message.
+   */
+  public send = (message: any) => {
+    assert(this._sessionKey, "Can't send encrypted messages until we've finished connecting")
+    const encryptedMessage = symmetric.encryptBytes(message, this._sessionKey)
+    this.#queueMessage('ENCRYPTED_MESSAGE', encryptedMessage)
   }
 
-  // ACTIONS
-
-  /** These are referred to by name in `connectionMachine` (e.g. `actions: 'sendIdentityClaim'`) */
-  private readonly actions: Record<string, StateMachineAction> = {
-    sendIdentityClaim: assign(context => {
-      const createIdentityClaim = (context: ConnectionContext): IdentityClaim => {
-        if (isMemberContext(context)) {
-          // I'm already a member
-          return {
-            deviceId: context.device.deviceId,
-          }
-        }
-        if (isInviteeMemberContext(context)) {
-          // I'm a new user and I have an invitation
-          const { userName, keys } = context.user
-          return {
-            proofOfInvitation: this.myProofOfInvitation(context),
-            userName,
-            userKeys: redactKeys(keys),
-            device: redactDevice(context.device),
-          }
-        }
-        if (isInviteeDeviceContext(context)) {
-          // I'm a new device for an existing user and I have an invitation
-          const { userName, device } = context
-          return {
-            proofOfInvitation: this.myProofOfInvitation(context),
-            userName,
-            device: redactDevice(device),
-          }
-        }
-        // ignore coverage - that should have been exhaustive
-        throw new Error('Invalid context')
-      }
-
-      const ourIdentityClaim = createIdentityClaim(context)
-      this.sendMessage({
-        type: 'CLAIM_IDENTITY',
-        payload: ourIdentityClaim,
-      })
-
-      return { ourIdentityClaim }
-    }),
-
-    receiveIdentityClaim: assign((_, event) => {
-      const { payload } = event as ClaimIdentityMessage
-      if ('userName' in payload) this.log = this.log.extend(payload.userName)
-
-      return {
-        theirIdentityClaim: payload,
-        theirDevice: 'device' in payload ? payload.device : undefined,
-      }
-    }),
-
-    // HANDLING INVITATIONS
-
-    acceptInvitation: assign(context => {
-      // Admit them to the team
-      const { team, theirIdentityClaim } = context
-
-      assert(team)
-      assert(theirIdentityClaim)
-      assert(isInviteeClaim(theirIdentityClaim))
-
-      const { proofOfInvitation } = theirIdentityClaim
-
-      const admit = () => {
-        if (isInviteeMemberClaim(theirIdentityClaim)) {
-          // New member
-          const { userName, userKeys } = theirIdentityClaim
-          assert(userName)
-          team.admitMember(proofOfInvitation, userKeys, userName)
-          const userId = userKeys.name
-          return team.members(userId)
-        } else {
-          // New device for existing member
-          const { device } = theirIdentityClaim
-          team.admitDevice(proofOfInvitation, device)
-          const { deviceId } = device
-          const { userId } = team.memberByDeviceId(deviceId)
-          return team.members(userId)
-        }
-      }
-      const peer = admit()
-
-      // Welcome them by sending the team's signature chain, so they can reconstruct team membership state
-      this.sendMessage({
-        type: 'ACCEPT_INVITATION',
-        payload: {
-          serializedGraph: team.save(),
-          teamKeyring: team.teamKeyring(),
-        },
-      })
-
-      return { peer }
-    }),
-
-    joinTeam: assign((context, event) => {
-      const { payload } = event as AcceptInvitationMessage
-      const { serializedGraph, teamKeyring } = payload
-      const { device, invitationSeed } = context
-
-      // We've been given the serialized and encrypted graph, and the team keyring. We can decrypt
-      // the graph and reconstruct the team.
-
-      const getDeviceUser = () => {
-        // If we're joining as a new device for an existing member, we don't know our user id or
-        // user keys yet, so we need to get those from the graph.
-        const { id: invitationId } = this.myProofOfInvitation(context)
-
-        // We use the invitation seed to generate the starter keys for the new device.
-        // We can use these to unlock a lockbox on the team graph that contains our user keys.
-        const starterKeys = invitations.generateStarterKeys(invitationSeed!)
-        return getDeviceUserFromGraph({
-          serializedGraph,
-          teamKeyring,
-          starterKeys,
-          invitationId,
-        })
-      }
-      const user = context.user ?? getDeviceUser()
-
-      // Reconstruct team from serialized graph
-      const team = new Team({ source: serializedGraph, context: { user, device }, teamKeyring })
-
-      // Add our current device to the team chain
-      team.join(teamKeyring)
-
-      this.emit('joined', { team, user })
-
-      return { user, team }
-    }),
-
-    // AUTHENTICATING
-
-    confirmIdentityExists: assign(context => {
-      const { team, theirIdentityClaim } = context
-      assert(theirIdentityClaim)
-      assert(team) // If we're not on the team yet, we don't have a way of knowing if the peer is
-      assert(isMemberClaim(theirIdentityClaim)) // This is only for members authenticating witih deviceId
-
-      const { deviceId } = theirIdentityClaim
-
-      try {
-        const device = team.device(deviceId, { includeRemoved: true })
-        const user = team.memberByDeviceId(deviceId, { includeRemoved: true })
-
-        this.log = this.log.extend(user.userName)
-
-        return {
-          theirDevice: device,
-          peer: user,
-        }
-      } catch {
-        return {
-          error: this.throwError('DEVICE_UNKNOWN', { message: `Device ${deviceId} not found.` }),
-        }
-      }
-    }),
-
-    challengeIdentity: assign(context => {
-      const { theirIdentityClaim } = context
-      assert(theirIdentityClaim)
-      assert(isMemberClaim(theirIdentityClaim))
-      const { deviceId } = theirIdentityClaim
-      const challenge = identity.challenge({ type: DEVICE, name: deviceId })
-      this.sendMessage({
-        type: 'CHALLENGE_IDENTITY',
-        payload: { challenge },
-      })
-      return { challenge }
-    }),
-
-    proveIdentity: (context, event) => {
-      assert(context.user)
-      const { challenge } = (event as ChallengeIdentityMessage).payload
-      const proof = identity.prove(challenge, context.device.keys)
-      this.sendMessage({
-        type: 'PROVE_IDENTITY',
-        payload: { challenge, proof },
-      })
-    },
-
-    acceptIdentity: () => {
-      this.sendMessage({ type: 'ACCEPT_IDENTITY' })
-    },
-
-    // UPDATING
-
-    listenForTeamUpdates: context => {
-      assert(context.team)
-      context.team.on('updated', ({ head }: { head: Hash[] }) => {
-        if (!this.machine.state.done) {
-          this.machine.send({ type: 'LOCAL_UPDATE', payload: { head } }) // Send update event to local machine
-        }
-        this.emit('updated')
-      })
-    },
-
-    sendSyncMessage: assign(context => {
-      assert(context.team)
-      const previousSyncState = context.syncState ?? initSyncState()
-
-      const [syncState, syncMessage] = generateMessage(context.team.graph, previousSyncState)
-
-      // Undefined message means we're already synced
-      if (syncMessage) {
-        this.log('sending sync message', syncMessageSummary(syncMessage))
-        this.sendMessage({ type: 'SYNC', payload: syncMessage })
-      } else {
-        this.log('no sync message to send')
-      }
-
-      return { syncState }
-    }),
-
-    receiveSyncMessage: assign((context, event) => {
-      const { team, device } = context
-      assert(team)
-
-      // ignore coverage
-      const previousSyncState = context.syncState ?? initSyncState()
-      const syncMessage = (event as SyncMessage).payload
-
-      const teamKeys = team.teamKeys()
-      const deviceKeys = device.keys
-
-      const decrypt = ({ encryptedGraph, keys }: DecryptFnParams<TeamAction, TeamContext>) =>
-        decryptTeamGraph({ encryptedGraph, teamKeys: keys, deviceKeys })
-
-      const [newChain, syncState] = receiveMessage(
-        team.graph,
-        previousSyncState,
-        syncMessage,
-        teamKeys,
-        decrypt
-      )
-
-      if (headsAreEqual(newChain.head, team.graph.head))
-        // no update
-        return { syncState }
-
-      this.emit('updated')
-
-      const newTeam = team.merge(newChain)
-      return { team: newTeam, syncState }
-    }),
-
-    // NEGOTIATING
-
-    generateSeed: assign(_context => {
-      return { seed: randomKeyBytes() }
-    }),
-
-    sendSeed: context => {
-      const { user, peer, seed } = context
-
-      const encryptedSeed = asymmetric.encryptBytes({
-        secret: seed!,
-        recipientPublicKey: peer!.keys.encryption,
-        senderSecretKey: user!.keys.encryption.secretKey,
-      })
-
-      this.sendMessage({
-        type: 'SEED',
-        payload: { encryptedSeed },
-      })
-    },
-
-    receiveSeed: assign((_, event) => {
-      const { payload } = event as SeedMessage
-      return {
-        theirEncryptedSeed: payload.encryptedSeed,
-      }
-    }),
-
-    deriveSharedKey: assign({
-      sessionKey: context => {
-        const { user, seed, theirEncryptedSeed, peer } = context
-
-        // We saved our seed in context
-        assert(seed)
-
-        // Their encrypted seed is stored in context
-        assert(theirEncryptedSeed)
-        // Decrypt it:
-        const theirSeed = asymmetric.decryptBytes({
-          cipher: theirEncryptedSeed,
-          senderPublicKey: peer!.keys.encryption,
-          recipientSecretKey: user!.keys.encryption.secretKey,
-        })
-
-        // With the two keys, we derive a shared key
-        return deriveSharedKey(seed, theirSeed)
-      },
-    }),
-
-    // COMMUNICATING
-
-    receiveEncryptedMessage: (context, event) => {
-      const { sessionKey } = context
-      assert(sessionKey)
-      const { payload: encryptedMessage } = event as EncryptedMessage
-      const decryptedMessage = symmetric.decryptBytes(encryptedMessage, sessionKey)
-      this.emit('message', decryptedMessage)
-    },
-
-    // FAILURE
-
-    receiveError: assign((_, event) => {
-      const error = (event as ErrorMessage).payload
-      this.log('receiveError %o', error)
-
-      // Bubble the error up
-      this.emit('remoteError', error)
-
-      // Store the error in context
-      return { error }
-    }),
-
-    sendError: assign((_, event) => {
-      const error = (event as LocalErrorMessage).payload
-      this.log('sendError %o', error)
-
-      // Send error to peer
-      const remoteMessage = buildError(error.type, error.details, 'REMOTE')
-      this.sendMessage(remoteMessage)
-
-      // Bubble the error up
-      this.emit('localError', error)
-
-      // Store the error in context
-      return { error }
-    }),
-
-    rejectIdentityProof: this.fail('IDENTITY_PROOF_INVALID'),
-    failNeitherIsMember: this.fail('NEITHER_IS_MEMBER'),
-    rejectInvitation: this.fail('INVITATION_PROOF_INVALID'),
-    rejectTeam: this.fail('JOINED_WRONG_TEAM'),
-    failPeerWasRemoved: this.fail('MEMBER_REMOVED'),
-    failDeviceWasRemoved: this.fail('DEVICE_REMOVED'),
-    failTimeout: this.fail('TIMEOUT'),
-
-    // EVENTS FOR EXTERNAL LISTENERS
-
-    onConnected: () => this.emit('connected'),
-    onDisconnected: (_, event) => this.emit('disconnected', event),
+  /** Returns the current state of the protocol machine.  */
+  get state() {
+    assert(this.#started)
+    return this.#machine.getSnapshot().value
   }
 
-  // GUARDS
+  // PUBLIC FOR TESTING
 
-  /** These are referred to by name in `connectionMachine` (e.g. `cond: 'weHaveInvitation'`) */
-  private readonly guards: Record<string, Condition> = {
-    // INVITATIONS
-
-    weHaveInvitation: context => isInviteeContext(context),
-
-    theyHaveInvitation: context => isInviteeClaim(context.theirIdentityClaim!),
-
-    bothHaveInvitation: (...args) => {
-      const weHaveInvitation = this.guards.weHaveInvitation(...args)
-      const theyHaveInvitation = this.guards.theyHaveInvitation(...args)
-      return weHaveInvitation && theyHaveInvitation
-    },
-
-    invitationProofIsValid: context => {
-      const { team, theirIdentityClaim } = context
-      assert(team)
-      assert(theirIdentityClaim)
-      assert(isInviteeClaim(theirIdentityClaim))
-      const { proofOfInvitation } = theirIdentityClaim
-      const validation = team.validateInvitation(proofOfInvitation)
-      if (validation.isValid) return true
-      context.error = validation.error
-      return false
-    },
-
-    joinedTheRightTeam: (context, event) => {
-      // Make sure my invitation exists on the signature chain of the team I'm about to join.
-      // This check prevents an attack in which a fake team pretends to accept my invitation.
-      const { payload } = event as AcceptInvitationMessage
-      const { serializedGraph, teamKeyring } = payload
-      const state = getTeamState(serializedGraph, teamKeyring)
-      const { id } = this.myProofOfInvitation(context)
-      return select.hasInvitation(state, id)
-    },
-
-    // IDENTITY
-
-    bothSentIdentityClaim: context => {
-      return context.ourIdentityClaim !== undefined && context.theirIdentityClaim !== undefined
-    },
-
-    identityProofIsValid(context, event) {
-      const { team } = context
-      assert(team)
-      const { payload } = event as ProveIdentityMessage
-      const { challenge, proof } = payload
-      return team.verifyIdentityProof(challenge, proof)
-    },
-
-    peerWasRemoved(context) {
-      const { team, peer, theirDevice } = context
-      assert(team)
-      assert(peer)
-      assert(theirDevice)
-      const serverWasRemoved = team.serverWasRemoved(peer.userId)
-      const memberWasRemoved = team.memberWasRemoved(peer.userId)
-      const deviceWasRemoved = team.deviceWasRemoved(theirDevice.deviceId)
-      return serverWasRemoved || memberWasRemoved || deviceWasRemoved
-    },
-
-    // SYNCHRONIZATION
-
-    headsAreEqual(context) {
-      const { team, syncState } = context
-      assert(team)
-      const ourHead = team.graph.head
-      const lastCommonHead = syncState?.lastCommonHead
-      return arraysAreEqual(ourHead, lastCommonHead)
-    },
+  /**
+   * Returns the team that the connection's user is a member of. If the user has not yet joined a
+   * team, returns undefined.
+   */
+  get team() {
+    return this._context.team
   }
 
   // PRIVATE
 
-  private readonly sendMessage = (message: ConnectionMessage) => {
-    this.messageQueue.send(message)
+  /**
+   * Returns the connection's session key when we are in a connected state. Otherwise, returns
+   * `undefined`.
+   */
+  get _sessionKey() {
+    return this._context.sessionKey
   }
 
-  private readonly throwError = (type: ConnectionErrorType, details?: any) => {
-    const detailedMessage =
-      details && 'message' in details ? (details.message as string) : undefined
-
-    this.log('error: %s %o', type, details)
-
-    // Force error state locally
-    const localMessage = buildError(type, detailedMessage, 'LOCAL')
-    this.machine.send(localMessage)
-
-    return localMessage.payload
+  get _context(): ConnectionContext {
+    assert(this.#started)
+    return this.#machine.getSnapshot().context
   }
 
-  private fail(type: ConnectionErrorType) {
-    return assign<ConnectionContext, ConnectionMessage>({
-      error: context => {
-        const details = context.error
-        return this.throwError(type, details)
+  #initializeMessageQueue(sendMessage: (message: Uint8Array) => void) {
+    // To send messages to our peer, we give them to the ordered message queue, which will deliver
+    // them using the `sendMessage` function provided.
+    return new MessageQueue<ConnectionMessage>({
+      sendMessage: message => {
+        this.#logMessage('out', message)
+        const serialized = pack(message)
+        sendMessage(serialized)
       },
     })
+      .on('message', message => {
+        this.#logMessage('in', message)
+        // Handle requests from the peer to resend messages that they missed
+        if (message.type === 'REQUEST_RESEND') {
+          const { index } = message.payload
+          this.#messageQueue.resend(index)
+        } else {
+          // Pass other messages from peer to the state machine
+          this.#machine.send(message)
+        }
+      })
+      .on('request', index => {
+        // Send out requests to resend messages that we missed
+        this.#queueMessage('REQUEST_RESEND', { index })
+      })
   }
 
-  private logMessage(direction: 'in' | 'out', message: NumberedMessage<ConnectionMessage>) {
+  /** Force local error state */
+  #fail(error: ConnectionErrorType) {
+    this.#log('error: %o', error)
+    const localMessage = createErrorMessage(error, 'LOCAL')
+    this.#machine.send(localMessage)
+    return { error: localMessage.payload }
+  }
+
+  /** Shorthand for sending a message to our peer. */
+  #queueMessage<
+    M extends ConnectionMessage, //
+    T extends M['type'],
+    P extends //
+      M extends { payload: any } ? M['payload'] : undefined,
+  >(type: T, payload?: P) {
+    this.#messageQueue.send({ type, payload } as M)
+  }
+
+  #logMessage(direction: 'in' | 'out', message: NumberedMessage<ConnectionMessage>) {
     const arrow = direction === 'in' ? '<-' : '->'
-    const peerUserName = this.started ? this.context.peer?.userName ?? '?' : '?'
-    this.log(`${arrow}${peerUserName} #${message.index} ${messageSummary(message)}`)
-  }
-
-  private myProofOfInvitation(context: ConnectionContext) {
-    assert(context.invitationSeed)
-    return invitations.generateProof(context.invitationSeed)
+    const peerUserName = this.#started ? this._context.peer?.userName ?? '?' : '?'
+    this.#log(`${arrow}${peerUserName} #${message.index} ${messageSummary(message)}`)
   }
 }
 
-// FOR DEBUGGING
+// MACHINE CONFIG FRAGMENTS
+// These are snippets of XState config that are used repeatedly in the machine definition.
 
-const messageSummary = (message: ConnectionMessage) =>
-  message.type === 'SYNC'
-    ? `SYNC ${syncMessageSummary(message.payload)}`
-    : // @ts-expect-error utility function don't worry about it
-      `${message.type} ${message.payload?.head?.slice(0, 5) || message.payload?.message || ''}`
+// error handler
+const fail = (error: ConnectionErrorType) =>
+  ({
+    actions: [{ type: 'fail', params: { error } }, 'onDisconnected'],
+    target: '#disconnected',
+  }) as const
 
-const isString = (state: any): state is string => typeof state === 'string'
+// timeout configuration
+const TIMEOUT_DELAY = 7000
+const timeout = { after: { [TIMEOUT_DELAY]: fail(TIMEOUT) } } as const
 
-// ignore coverage
-const stateSummary = (state: any): string =>
-  isString(state)
-    ? state
-    : Object.keys(state)
-        .map(key => `${key}:${stateSummary(state[key])}`)
-        .filter(s => s.length)
-        .join(',')
+// TYPES
 
-export type Params = {
+export type ConnectionParams = {
   /** A function to send messages to our peer. This how you hook this up to your network stack. */
   sendMessage: (message: Uint8Array) => void
 
   /** The initial context. */
   context: Context
-}
-
-/**
- * A server is conceptually kind of a user and kind of a device. This little hack lets us avoid
- * creating special logic for servers all over the place.
- */
-const extendServerContext = (context: ServerContext) => {
-  const { keys, host } = context.server
-  return {
-    ...context,
-    user: { userId: host, userName: host, keys },
-    device: { userId: host, deviceId: host, deviceName: host, keys },
-  }
 }

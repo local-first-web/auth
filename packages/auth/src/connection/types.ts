@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-types */
 // ignore file coverage
 
 import type {
@@ -19,7 +18,6 @@ import type {
 import type { ProofOfInvitation } from 'invitation/index.js'
 import type { ServerWithSecrets } from 'server/index.js'
 import type { Member, Team } from 'team/index.js'
-import type { ActionFunction, AssignAction, ConditionPredicate } from 'xstate'
 import type { ConnectionErrorPayload } from './errors.js'
 import type { ConnectionMessage } from './message.js'
 
@@ -142,61 +140,6 @@ export type ConnectionContext = {
 export type ErrorPayload = {
   message: string
   details?: any
-}
-
-// ACTIONS
-
-export type StateMachineAction =
-  | ActionFunction<ConnectionContext, ConnectionMessage>
-  | AssignAction<ConnectionContext, ConnectionMessage>
-export type Condition = ConditionPredicate<ConnectionContext, ConnectionMessage>
-
-// STATE
-// This is the schema for protocolMachine.ts
-
-export type ConnectionState = {
-  states: {
-    awaitingIdentityClaim: {}
-    authenticating: {
-      states: {
-        checkingInvitations: {
-          states: {
-            checkingForInvitations: {}
-            awaitingInvitationAcceptance: {}
-            validatingInvitation: {}
-          }
-        }
-        checkingIdentity: {
-          states: {
-            provingMyIdentity: {
-              states: {
-                awaitingIdentityChallenge: {}
-                awaitingIdentityAcceptance: {}
-                doneProvingMyIdentity: {}
-              }
-            }
-            verifyingTheirIdentity: {
-              states: {
-                challengingIdentity: {}
-                awaitingIdentityProof: {}
-                doneVerifyingTheirIdentity: {}
-              }
-            }
-          }
-        }
-        doneAuthenticating: {}
-      }
-    }
-    synchronizing: {}
-    negotiating: {
-      states: {
-        awaitingSeed: {}
-        doneNegotiating: {}
-      }
-    }
-    connected: {}
-    disconnected: {}
-  }
 }
 
 // TYPE GUARDS

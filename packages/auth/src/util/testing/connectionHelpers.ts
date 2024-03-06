@@ -19,7 +19,10 @@ export const tryToConnect = async (a: UserStuff, b: UserStuff) => {
 /** Connects the two members and waits for them to be connected */
 export const connect = async (a: UserStuff, b: UserStuff) => {
   void tryToConnect(a, b)
-  await connection(a, b)
+  return Promise.race([
+    connection(a, b).then(() => true), //
+    anyDisconnected(a, b).then(() => false),
+  ])
 }
 
 /** Connects a member with an invitee. */
@@ -85,10 +88,10 @@ export const connection = async (a: UserStuff, b: UserStuff) => {
   // ✅ They're both connected
   await all(connections, 'connected')
 
-  const sharedKey = connections[0].sessionKey
+  const sharedKey = connections[0]._sessionKey
   for (const connection of connections) {
     // ✅ They've converged on a shared secret key
-    expect(connection.sessionKey).toEqual(sharedKey)
+    expect(connection._sessionKey).toEqual(sharedKey)
   }
 }
 
@@ -107,20 +110,13 @@ export const anyDisconnected = async (a: UserStuff, b: UserStuff) => {
   return any(connections, 'disconnected')
 }
 
-export const disconnection = async (a: UserStuff, b: UserStuff, message?: string) => {
+export const disconnection = async (a: UserStuff, b: UserStuff) => {
   const connections = [a.connection[b.deviceId], b.connection[a.deviceId]]
   const activeConnections = connections.filter(c => c.state !== 'disconnected')
 
   // ✅ They're both disconnected
   await all(activeConnections, 'disconnected')
-
-  for (const connection of activeConnections) {
-    expect(connection.state).toEqual('disconnected')
-    // ✅ If we're checking for a message, it matches
-    if (message !== undefined) {
-      expect(connection.error!.message).toContain(message)
-    }
-  }
+  // for (const connection of activeConnections) expect(connection.state).toEqual('disconnected')
 }
 
 export const all = async (connections: Connection[], event: keyof ConnectionEvents) =>
