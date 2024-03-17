@@ -29,6 +29,7 @@ import { isAuthMessage, isDeviceInvitation, isPrivateShare } from './types.js'
 import { getShareId } from 'getShareId.js'
 
 const { encryptBytes, decryptBytes } = Auth.symmetric
+const log = debug.extend('auth-provider')
 
 /**
  * This class is used to wrap automerge-repo network adapters so that they authenticate peers and
@@ -68,7 +69,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   readonly #server: string[]
   readonly #peerShareIdHashes = new Map<PeerId, Set<Auth.Base58>>()
 
-  #log = debug.extend('auth-provider')
+  #log = log
 
   constructor({ device, user, storage, server = [] }: Config) {
     super()
@@ -79,7 +80,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     // We might already have our user info, unless we're a new device using an invitation
     if (user?.userName) {
       this.#user = user
-      this.#log = this.#log.extend(user.userName)
+      this.#log = log.extend(user.userName)
     }
 
     this.#log('instantiating %o', {
@@ -99,8 +100,12 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   }
 
   /**
-   * Intercept the network adapter's events. For each new peer, we create a localfirst/auth
-   * connection and use it to mutually authenticate before forwarding the peer-candidate event.
+   * This provider works by wrapping an automerge-repo network adapter. The wrapped adapter is
+   * passed to the `Repo`, and it intercepts the base adapter's events and messages, authenticating
+   * peers and encrypting traffic.
+   *
+   * For each new peer, we create a localfirst/auth connection and use it to mutually authenticate
+   * before forwarding the peer-candidate event.
    */
   public wrap = (baseAdapter: NetworkAdapter) => {
     // All repo messages for this adapter are handled by the Auth.Connection, which encrypts them
@@ -211,6 +216,9 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
   /**
    * Registers an existing team with all of our sync servers.
+   *
+   * The application only needs to call this if the team was created outside of this provider; if
+   * the team was created with `createTeam`, it's already registered.
    */
   public async registerTeam(team: Auth.Team) {
     await this.addTeam(team)
@@ -445,7 +453,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
         // When we're joining as a new device for an existing user, this is how we get the user's id and keys.
         this.#user = user
-        this.#log = this.#log.extend(user.userName)
+        this.#log = log.extend(user.userName)
 
         // Create a share with this team
         await this.addTeam(team)
