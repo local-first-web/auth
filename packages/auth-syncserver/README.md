@@ -56,7 +56,7 @@ const team = await authProvider.createTeam(`Alice's team`)
 
 A new team needs to be registered with the sync server using the API described below. The
 `AuthProvider.createTeam()` method automatically does this for you. If you create the team outside
-the auth provider, you can use the `AuthProvider.registerTeam()`.
+the auth provider, you can use the `AuthProvider.registerTeam()` method.
 
 ```ts
 const team = Auth.createTeam('team A', aliceContext)
