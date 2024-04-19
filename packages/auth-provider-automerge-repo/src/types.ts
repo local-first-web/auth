@@ -141,6 +141,11 @@ export type AuthProviderEvents = {
   connected: (payload: { shareId: ShareId; peerId: PeerId }) => void
 
   /**
+   * A peer has let us know that they are interested in a shareId.
+   */
+  'peer-joined': (payload: { shareId: ShareId; peerId: PeerId }) => void
+
+  /**
    * We've detected an error locally, e.g. a peer tries to join with an invalid invitation.
    */
   localError: (payload: ErrorPayload) => void
