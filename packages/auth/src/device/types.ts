@@ -1,9 +1,11 @@
-import type { Keyset, KeysetWithSecrets } from '@localfirst/crdx'
+import type { Keyset, KeysetWithSecrets, UnixTimestamp } from '@localfirst/crdx'
 
 export type DeviceInfo = {
   userId: string
   deviceId: string
   deviceName: string
+  deviceInfo?: any
+  created?: UnixTimestamp
 }
 
 export type DeviceWithSecrets = {
