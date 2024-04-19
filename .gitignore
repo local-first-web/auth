@@ -1,5 +1,4 @@
 .cache
-automerge-repo-data
 .dev-sync-server-data
 .DS_Store
 .flaky
@@ -15,11 +14,13 @@ automerge-repo-data
 *.local
 *.log
 *.tsbuildinfo
+automerge-repo-data
 build
 coverage
 cypress/screenshots
 cypress/videos
 dist
+logs
 node_modules
 package-lock.json
 pnpm-works
