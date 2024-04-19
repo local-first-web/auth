@@ -3,13 +3,13 @@ import { MessageChannelNetworkAdapter } from '@automerge/automerge-repo-network-
 import { NodeFSStorageAdapter } from '@automerge/automerge-repo-storage-nodefs'
 import * as Auth from '@localfirst/auth'
 import { eventPromise } from '@localfirst/shared'
+import { getShareId } from 'getShareId.js'
 import { type ShareId } from 'types.js'
 import { describe, expect, it } from 'vitest'
 import { AuthProvider } from '../AuthProvider.js'
 import { authenticated, authenticatedInTime } from './helpers/authenticated.js'
 import { getStorageDirectory, setup, type UserStuff } from './helpers/setup.js'
 import { synced } from './helpers/synced.js'
-import { getShareId } from 'getShareId.js'
 
 describe('auth provider for automerge-repo', () => {
   it('does not authenticate users that do not belong to any teams', async () => {
@@ -95,7 +95,7 @@ describe('auth provider for automerge-repo', () => {
     const alice = Auth.createUser('alice')
 
     const laptopStorage = new NodeFSStorageAdapter(getStorageDirectory('alice-laptop'))
-    const laptop = Auth.createDevice(alice.userId, "Alice's laptop")
+    const laptop = Auth.createDevice({ userId: alice.userId, deviceName: "Alice's laptop" })
     const laptopContext = { user: alice, device: laptop }
     const laptopAuth = new AuthProvider({ ...laptopContext, storage: laptopStorage })
 
@@ -109,7 +109,7 @@ describe('auth provider for automerge-repo', () => {
 
     // TODO: we're using userName instead of userId, because in the real world we don't know our userId yet.
     // We probably need to update the userId once we know it.
-    const phone = Auth.createDevice(alice.userName, "Alice's phone")
+    const phone = Auth.createDevice({ userId: alice.userName, deviceName: "Alice's phone" })
     const phoneContext = { userName: alice.userName, device: phone }
     const phoneAuth = new AuthProvider({ ...phoneContext, storage: phoneStorage })
 
@@ -335,6 +335,7 @@ describe('auth provider for automerge-repo', () => {
     }
     teardown()
   })
+
   it('allows peers to connect without authenticating via a public share', async () => {
     const {
       users: { alice, bob },

@@ -25,7 +25,7 @@ export const setup = async <T extends string>(userNames = [] as T[]) => {
   const users = userNames.reduce<Record<string, UserStuff>>((result, userName) => {
     const storageDir = getStorageDirectory(userName)
     const user = Auth.createUser(userName)
-    const device = Auth.createDevice(user.userId, `${userName}'s device`)
+    const device = Auth.createDevice({ userId: user.userId, deviceName: `${userName}'s device` })
     const context = { user, device }
     const storage = new NodeFSStorageAdapter(storageDir)
     const authProvider = new AuthProvider({ user, device, storage, server: url })

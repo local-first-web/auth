@@ -51,7 +51,7 @@ export const setup = (..._config: SetupConfig) => {
   const makeDevice = (userId: string, deviceName: string) => {
     const key = `${userId}-${deviceName}`
     const randomSeed = key
-    const device = devices.createDevice(userId, deviceName, randomSeed)
+    const device = devices.createDevice({ userId, deviceName, seed: randomSeed })
     return device
   }
 

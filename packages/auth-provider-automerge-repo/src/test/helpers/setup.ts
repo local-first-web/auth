@@ -51,7 +51,7 @@ export const setup = <T extends string>(userNames = ['alice', 'bob', 'charlie'] 
 
     const user = Auth.createUser(userName)
     const { userId } = user
-    const device = Auth.createDevice(userId, `${userName}'s device`)
+    const device = Auth.createDevice({ userId, deviceName: `${userName}'s device` })
     const context = { user, device }
     const { authProvider, repo } = setupRepo(portsByUser[userName])
 
