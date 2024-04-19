@@ -8,12 +8,14 @@ import {
   receiveMessage,
   redactKeys,
 } from '@localfirst/crdx'
-import { asymmetric, randomKeyBytes, symmetric, type Hash } from '@localfirst/crypto'
+import { asymmetric, base58, randomKeyBytes, symmetric, type Hash } from '@localfirst/crypto'
 import { assert, debug } from '@localfirst/shared'
 import { deriveSharedKey } from 'connection/deriveSharedKey.js'
 import {
   DEVICE_REMOVED,
   DEVICE_UNKNOWN,
+  ENCRYPTION_FAILURE,
+  IDENTITY_PROOF_INVALID,
   INVITATION_PROOF_INVALID,
   JOINED_WRONG_TEAM,
   MEMBER_REMOVED,
@@ -22,8 +24,6 @@ import {
   TIMEOUT,
   createErrorMessage,
   type ConnectionErrorType,
-  IDENTITY_PROOF_INVALID,
-  ENCRYPTION_FAILURE,
 } from 'connection/errors.js'
 import { getDeviceUserFromGraph } from 'connection/getDeviceUserFromGraph.js'
 import * as identity from 'connection/identity.js'
@@ -328,10 +328,15 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
         sendSeed: assign(({ context }) => {
           const { user, peer, seed = randomKeyBytes() } = context
+
+          const recipientPublicKey = peer!.keys.encryption
+          const senderSecretKey = user!.keys.encryption.secretKey
+
+          this.#log(`encrypting seed with key ${recipientPublicKey}`)
           const encryptedSeed = asymmetric.encryptBytes({
             secret: seed,
-            recipientPublicKey: peer!.keys.encryption,
-            senderSecretKey: user!.keys.encryption.secretKey,
+            recipientPublicKey,
+            senderSecretKey,
           })
 
           this.#queueMessage('SEED', { encryptedSeed })
@@ -342,18 +347,22 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           assertEvent(event, 'SEED')
           const { encryptedSeed } = event.payload
           const { seed, user, peer } = context
+          const cipher = encryptedSeed
+          const senderPublicKey = peer!.keys.encryption
+          const recipientSecretKey = user!.keys.encryption.secretKey
 
           // decrypt the seed they sent
           try {
             const theirSeed = asymmetric.decryptBytes({
-              cipher: encryptedSeed,
-              senderPublicKey: peer!.keys.encryption,
-              recipientSecretKey: user!.keys.encryption.secretKey,
+              cipher,
+              senderPublicKey,
+              recipientSecretKey,
             })
             // With the two keys, we derive a shared key
             return { sessionKey: deriveSharedKey(seed, theirSeed) }
           } catch (error) {
             if (String(error).includes('incorrect key pair')) {
+              this.#log(`failed to decrypt seed using public key ${senderPublicKey}`, error)
               return this.#fail(ENCRYPTION_FAILURE)
             } else throw error
           }
@@ -371,6 +380,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             this.emit('message', decryptedMessage)
           } catch (error) {
             if (String(error).includes('wrong secret key')) {
+              this.#log(
+                `failed to decrypt message using session key ${base58.encode(sessionKey)}`,
+                error
+              )
               return this.#fail(ENCRYPTION_FAILURE)
             } else throw error
           }
@@ -739,6 +752,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   public send = (message: any) => {
     assert(this._sessionKey, "Can't send encrypted messages until we've finished connecting")
     const encryptedMessage = symmetric.encryptBytes(message, this._sessionKey)
+    this.#log(`encrypted message with session key ${base58.encode(this._sessionKey)}`)
     this.#queueMessage('ENCRYPTED_MESSAGE', encryptedMessage)
   }
 
