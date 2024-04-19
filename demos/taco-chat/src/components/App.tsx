@@ -46,7 +46,7 @@ export const App = () => {
     // we're showing a peer for the first time
     const { userId, userName } = peerInfo.user
 
-    const device = auth.createDevice(userId, peerInfo.device.name)
+    const device = auth.createDevice({ userId, deviceName: peerInfo.device.name })
 
     const user =
       peerInfo.device.name === 'laptop'
