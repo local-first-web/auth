@@ -10,7 +10,7 @@ export type ValidResult = {
 }
 
 export class ValidationError extends Error {
-  public name: 'Hash Graph validation error'
+  public type: 'Hash graph validation error'
   public details?: unknown
 
   constructor(message: string, details?: any) {
