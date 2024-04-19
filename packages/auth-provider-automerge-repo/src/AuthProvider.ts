@@ -3,14 +3,15 @@ import type {
   Message,
   NetworkAdapter,
   PeerId,
-  StorageAdapter,
+  StorageAdapterInterface,
 } from '@automerge/automerge-repo'
+import { EventEmitter } from '@herbcaudill/eventemitter42'
 import * as Auth from '@localfirst/auth'
-import { debug, memoize, pause } from '@localfirst/shared'
 import { hash } from '@localfirst/crypto'
+import { debug, memoize, pause } from '@localfirst/shared'
 import { type AbstractConnection } from 'AbstractConnection.js'
 import { AnonymousConnection } from 'AnonymousConnection.js'
-import { EventEmitter } from '@herbcaudill/eventemitter42'
+import { getShareId } from 'getShareId.js'
 import { pack, unpack } from 'msgpackr'
 import { isJoinMessage, type JoinMessage } from 'types.js'
 import { AuthenticatedNetworkAdapter as AuthNetworkAdapter } from './AuthenticatedNetworkAdapter.js'
@@ -26,7 +27,6 @@ import type {
   ShareId,
 } from './types.js'
 import { isAuthMessage, isDeviceInvitation, isPrivateShare } from './types.js'
-import { getShareId } from 'getShareId.js'
 
 const { encryptBytes, decryptBytes } = Auth.symmetric
 const log = debug.extend('auth-provider')
@@ -39,26 +39,31 @@ const log = debug.extend('auth-provider')
  *
  * 1. Create a AuthProvider, using the same storage adapter that the repo will use:
  *
- *    ```ts
- *    const storage = new SomeStorageAdapter()
- *    const auth = new AuthProvider({ user, device, storage })
- *    ```
+ * ```ts
+ * const storage = new SomeStorageAdapter()
+ * const auth = new AuthProvider({ user, device, storage })
+ * ```
+ *
  * 2. Wrap your network adapter(s) with its `wrap` method.
- *    ```ts
- *   const adapter = new SomeNetworkAdapter()
- *   const authenticatedAdapter = auth.wrap(adapter)
- *   ```
+ *
+ *  ```ts
+ * const adapter = new SomeNetworkAdapter()
+ * const authenticatedAdapter = auth.wrap(adapter)
+ * ```
+ *
  * 3. Pass the wrapped adapters to the repo.
- *   ```ts
- *  const repo = new Repo({
- *    storage,
- *    network: [authenticatedAdapter],
- *  })
+ *
+ *  ```ts
+ * const repo = new Repo({
+ *   storage,
+ *   network: [authenticatedAdapter],
+ * })
+ * ```
  */
 export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   readonly #device: Auth.DeviceWithSecrets
   #user?: Auth.UserWithSecrets
-  readonly storage: StorageAdapter
+  readonly storage: StorageAdapterInterface
 
   readonly #adapters: Array<AuthNetworkAdapter<NetworkAdapter>> = []
   readonly #invitations = new Map<ShareId, Invitation>()
@@ -297,6 +302,21 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
    */
   public async addInvitation(invitation: Invitation) {
     const { shareId } = invitation
+
+    // If none of our peers has this shareId, we can't join now. If we're connected to a sync
+    // server, this probably means the invitation code is invalid. In a purely peer-to-peer scenario
+    // with no sync servers or other always-on peers, this could mean that no one on this team is
+    // currently online and we need to try again later.
+    const shareExists = () => this.#peersByShareId(shareId).length > 0
+    if (!shareExists()) {
+      // wait a moment and try again (helpful in tests where everything is being spun up at once)
+      await pause(100)
+      if (!shareExists()) {
+        console.log('throwing invalid invitation code error')
+        throw new AuthError('INVALID_INVITATION_CODE')
+      }
+    }
+
     this.#invitations.set(shareId, invitation)
     await this.#createConnectionsForShare(shareId)
   }
@@ -558,7 +578,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
    */
   #receiveJoinMessage(authAdapter: AuthNetworkAdapter<NetworkAdapter>, message: JoinMessage) {
     this.#log('received join message %o', message)
-    const { senderId, shareIdHashes: hashedShareIds } = message
+    const { senderId, shareIdHashes } = message
 
     // make a map of hashed shareIds to our shareIds
     const ourHashes = new Map(
@@ -568,11 +588,11 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     )
 
     const theirHashes = this.#peerShareIdHashes.get(senderId)! // this is created when we first see a peer
-    for (const hash of hashedShareIds) {
+    for (const hash of shareIdHashes) {
       theirHashes.add(hash)
       const shareId = ourHashes.get(hash)
-
       if (shareId) {
+        this.emit('peer-joined', { shareId, peerId: senderId })
         void this.#maybeCreateConnection({ shareId, peerId: senderId, authAdapter })
       }
     }
@@ -660,6 +680,15 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
   #allShareIds() {
     return [...this.#shares.keys(), ...this.#invitations.keys()]
+  }
+
+  #peersByShareId(shareId: ShareId) {
+    const hash = hashShareId(shareId)
+    const peers: PeerId[] = []
+    for (const [peerId, hashes] of this.#peerShareIdHashes) {
+      if (hashes.has(hash)) peers.push(peerId)
+    }
+    return peers
   }
 
   #getContextForShare(shareId: ShareId) {
@@ -762,7 +791,7 @@ type Config = {
   user?: Auth.UserWithSecrets
 
   /** We need to be given some way to persist our state */
-  storage: StorageAdapter
+  storage: StorageAdapterInterface
 
   /**
    * If we're using one or more sync servers, we provide their hostnames. The hostname should
@@ -772,3 +801,19 @@ type Config = {
    */
   server?: string | string[]
 }
+
+export class AuthError extends Error {
+  name: AuthErrorType
+  constructor(type: AuthErrorType) {
+    const message = AuthErrorMessage[type]
+    super(`Authentication error: ${message}`)
+    this.name = type
+  }
+}
+
+export const AuthErrorMessage = {
+  INVALID_INVITATION_CODE: 'Invalid invitation code',
+  ENCRYPTION_FAILURE: 'Encryption failure',
+}
+
+export type AuthErrorType = keyof typeof AuthErrorMessage
