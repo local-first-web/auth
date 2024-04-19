@@ -5,14 +5,19 @@ import { fileURLToPath } from 'url'
 import { promisify } from 'util'
 const exec = promisify(_exec)
 
+/*
+example usage:
+
+> pnpm test:pw |& node ./scripts/clean-log.js > ./logs/log.txt && code ./logs/log.txt
+
+*/
+
 const output = []
 process.stdin
-  .on('data', data => {
-    output.push(data.toString())
-  })
-
+  .on('data', line => output.push(line.toString()))
   .on('end', () => {
-    process.stdout.write(cleanLogs(output.map(line => line.trim()).join('\n')))
+    const combinedOutput = output.map(line => line.trim()).join('\n')
+    process.stdout.write(cleanLogs(combinedOutput))
   })
 
 // Reduce visual noise to a minimum in the logs
@@ -92,24 +97,25 @@ function cleanLogs(output) {
       .map(match => ({ userName: match[1], deviceId: match[2] }))
       .map(({ userName, deviceId }) => [new RegExp(deviceId, 'g'), userName]),
 
-    // // tokenize teamIds as TEAM-1 etc
-    // ...[...output.matchAll(/shareId: '?(\w+)'?/g)]
-    //   .map((match, i) => ({
-    //     teamName: `TEAM-${i + 1}`,
-    //     teamId: match[1],
-    //   }))
-    //   .map(({ teamId, teamName }) => [new RegExp(teamId, 'g'), teamName]),
+    // tokenize shareIds as TEAM-1 etc
+    ...[...output.matchAll(/shareId: '?(\w+)'?/g)]
+      .map(match => match[1])
+      .reduce(unique, [])
+      .map((shareId, i) => [
+        // the shareId is a truncated team id; also match the full team id
+        new RegExp(shareId + '\\w*', 'g'),
+        `TEAM-${i + 1}`,
+      ]),
 
     // tokenize documentIds as DOC-1 etc
-    ...[...output.matchAll(/create.*?document (\w+)/gi)]
-      .map((match, i) => ({
-        documentName: `DOC-${i + 1}`,
-        documentId: match[1],
-      }))
-      .flatMap(({ documentId, documentName }) => [
-        [new RegExp(documentId, 'g'), documentName],
-        //  truncated documentIds
-        [new RegExp(documentId.slice(0, 5), 'g'), documentName],
+    ...[...output.matchAll(/dochandle:(\w+)/gi)]
+      // reduce to unique documentIds
+      .map(match => match[1])
+      .reduce(unique, [])
+      .map((documentId, i) => [
+        // these are truncated document ids; also match the full document id
+        new RegExp(documentId.slice(0, 5) + '\\w*', 'g'),
+        `DOC-${i + 1}`,
       ]),
 
     // Tokenize remaining hashes
@@ -129,7 +135,9 @@ function cleanLogs(output) {
     [/bob/gi, '👨‍🦲'],
     [/charlie/gi, '👳🏽‍♂️'],
     [/dwight/gi, '👴'],
+    [/eve/gi, '🦹'],
     [/herb/gi, '🤓'],
+    [/ritika/gi, '🥷'],
     [/laptop/gi, '💻'],
     [/localhost/gi, '🤖'],
     [/phone/gi, '📱'],
@@ -151,4 +159,10 @@ function cleanLogs(output) {
     ]),
   ]
   return transforms.reduce((acc, [rx, replacement]) => acc.replaceAll(rx, replacement), output)
+}
+
+// reduce to unique values
+function unique(acc, x) {
+  if (!acc.includes(x)) acc.push(x)
+  return acc
 }
