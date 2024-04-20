@@ -16,7 +16,7 @@ server](http://medium.com/all-the-things/a-web-application-with-no-web-server-61
 
 💙 You want to provide a **easy and seamless experience** to users creating and joining teams
 
-🤔 You **don't** want to expose users to any of the underlying cryptographic complexity.
+🤔 You **don't** want to expose any of the underlying cryptographic complexity.
 
 ## How it works
 
