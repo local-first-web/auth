@@ -4,7 +4,6 @@ import { randomKey } from '@localfirst/crypto'
 import type { DeviceWithSecrets } from './types.js'
 import { KeyType } from 'util/index.js'
 
-console.log('*********** using local createDevice')
 export const createDevice = ({
   userId,
   deviceName,
