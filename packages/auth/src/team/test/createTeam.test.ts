@@ -57,5 +57,16 @@ describe('Team', () => {
       alice.team.setTeamName(`Sgt. Pepper's Lonely Hearts Club Band`)
       expect(alice.team.teamName).toBe(`Sgt. Pepper's Lonely Hearts Club Band`)
     })
+
+    it('the team preserves device metadata if provided', () => {
+      const user = createUser('alice')
+      const device = createDevice({
+        userId: user.userId,
+        deviceName: 'laptop',
+        deviceInfo: { foo: 'bar' },
+      })
+      const team = createTeam('Spies Я Us', { user, device })
+      expect(team.device(device.deviceId).deviceInfo.foo).toBe('bar')
+    })
   })
 })

@@ -167,6 +167,25 @@ describe('connection', () => {
         expect(() => bob.team.teamKeys()).not.toThrow()
       })
 
+      it('after an invitee is admitted, the device recorded on the team includes user-agent metadata', async () => {
+        const { alice, bob } = setup('alice', { user: 'bob', member: false })
+
+        // 👩🏾📧👨🏻‍🦲 Alice invites Bob
+        const { seed } = alice.team.inviteMember()
+
+        // 👨🏻‍🦲📧<->👩🏾 Bob connects to Alice and uses his invitation to join
+        await connectWithInvitation(alice, bob, seed)
+
+        // Update the team from the connection
+        const connection = bob.connection[alice.deviceId]
+        bob.team = connection.team!
+
+        // 👨🏻‍🦲 Bob's device was recorded with user-agent metadata
+        const { deviceId } = bob.device
+        const device = bob.team.device(deviceId)
+        expect(device?.deviceInfo).toEqual(bob.device.deviceInfo)
+      })
+
       it("doesn't allow two invitees to connect", async () => {
         const { alice, charlie, dwight } = setup([
           'alice',

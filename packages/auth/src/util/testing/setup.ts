@@ -9,6 +9,7 @@ import type { LocalUserContext } from 'team/context.js'
 import type { Team, TeamContext } from 'team/index.js'
 import * as teams from 'team/index.js'
 import { arrayToMap } from 'util/index.js'
+import { phoneInfo, laptopInfo } from './constants.js'
 
 export type SetupConfig = Array<Array<TestUserSettings | string> | TestUserSettings | string>
 
@@ -51,7 +52,8 @@ export const setup = (..._config: SetupConfig) => {
   const makeDevice = (userId: string, deviceName: string) => {
     const key = `${userId}-${deviceName}`
     const randomSeed = key
-    const device = devices.createDevice({ userId, deviceName, seed: randomSeed })
+    const deviceInfo = deviceName === 'phone' ? phoneInfo : laptopInfo
+    const device = devices.createDevice({ userId, deviceName, seed: randomSeed, deviceInfo })
     return device
   }
 
