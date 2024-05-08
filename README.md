@@ -20,19 +20,20 @@ server](http://medium.com/all-the-things/a-web-application-with-no-web-server-61
 
 ## How it works
 
-This library uses a conflict-free replicated state container based on a **signature chain**
-(provided by the [CRDX](https://github.com/herbcaudill/crdx) library) to manage team membership, permissions, and authentication.
+This library uses a conflict-free replicated state container based on an **encrypted hash graph**
+(provided by the [CRDX](https://github.com/herbcaudill/crdx) library) to manage team membership,
+permissions, and authentication.
 
-All changes to the team's membership and permissions are recorded on the signature chain as a
+All changes to the team's membership and permissions are recorded on the graph as a
 sequence of **signed** and **hash-chained** actions.
 
 ![](./docs/img/sigchain-med.png)
 
-Every team member keeps a complete replica of the signature chain and can validate other members'
+Every team member keeps a complete replica of the graph and can validate other members'
 actions independently. All **authorizations** can be traced back to the root action, created by the team's founding member. The chain
 thereby builds a **tamper-proof, distributed web of trust**.
 
-The team's signature chain also acts as a self-contained certificate authority or **public key
+The team's graph also acts as a self-contained certificate authority or **public key
 infrastructure** (PKI) solution. At any point in time we calculate the team's current state from it,
 which includes each member's public keys, as well as their status and roles. This allows us to
 provide **authenticated and encrypted peer-to-peer connections** between members.
@@ -50,14 +51,14 @@ associated data **re-encrypted**.
 
 ## Demo
 
-This repo includes a demo app. This will eventually simulate a simple group chat app, although the chat part hasn't been built yet; just the group membership parts.
+This repo includes two demo apps.
 
 ![](docs/img/demo.gif)
 
 To run the app, clone the repo and run
 
 ```bash
-yarn dev
+pnpm dev
 ```
 
 The app will be available at http://localhost:3000 .
@@ -65,29 +66,29 @@ The app will be available at http://localhost:3000 .
 This demo is also run by Cypress tests, which exercise most of the libary's functionality. To run these:
 
 ```
-yarn dev:cy
+pnpm dev:cy
 ```
 
 ## Usage
 
-This library provides a `Team` class, which wraps the signature chain and encapsulates the team's
+This library provides a `Team` class, which wraps the graph and encapsulates the team's
 members, devices, and roles. With this object, you can **invite new members** and **manage their
 permissions.**
 
-This object can also use the public keys embedded in the signature chain, along with the user's own
+This object can also use the public keys embedded in the graph, along with the user's own
 secret keys, to provide **encryption** and **signature verification** within the team.
 
 #### Not included
 
 - **Storage** This library does **not** provide storage for user information (including keys) or the
-  signature chain.
+  graph.
 - **Networking** This library includes a protocol for synchronizing the team's signature chains, but
   you need to provide a working socket connecting us to a peer. (The demo uses [@localfirst/relay](https://github.com/local-first-web/relay), which is a tiny relay server and client that bridges two WebSocket connections to allow peers to talk directly to each other.)
 
 ### Examples
 
 ```bash
-yarn add @localfirst/auth
+pnpm add @localfirst/auth
 ```
 
 #### Alice creates a new team
@@ -173,7 +174,7 @@ const decrypted = team.decrypt(encrypted) // 'the condor flies at midnight'
 
 ## Prior art
 
-💡 This project is inspired by and borrows heavily from Keybase: The signature chain is inspired by
+💡 This project is inspired by and borrows heavily from Keybase: The graph is inspired by
 [their implementation for Keybase Teams](https://keybase.io/docs/team), and the invitation mechanism
 is based on their [Seitan token exchange specification](https://keybase.io/docs/teams/seitan_v2),
 proposed as a more secure alternative to TOFU, or _**T**rust **O**n **F**irst **U**se_.
