@@ -624,7 +624,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   #removeConnection(shareId: ShareId, peerId: PeerId) {
     const connection = this.#connections.get([shareId, peerId])
     if (connection && connection.state !== 'disconnected') {
-      connection.stop()
+      // connection.stop()
       this.#connections.delete([shareId, peerId])
     }
   }
