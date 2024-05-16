@@ -160,9 +160,13 @@ describe('auth provider for automerge-repo', () => {
       invitationSeed: 'passw0rd',
     })
 
-    // grrr foiled again
-    const authWorked = await authenticatedInTime(alice, eve)
-    expect(authWorked).toBe(false) // ✅
+    // alice learns that eve should kick rocks
+    const { message: aliceMessage } = await eventPromise(alice.authProvider, 'localError')
+    expect(aliceMessage).toBe("The peer's invitation wasn't accepted")
+
+    // eve gets told to kick rocks
+    const { message: eveMessage } = await eventPromise(eve.authProvider, 'remoteError')
+    expect(eveMessage).toBe("Your invitation wasn't accepted")
 
     teardown()
   })
