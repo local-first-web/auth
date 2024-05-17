@@ -21,7 +21,7 @@ server](http://medium.com/all-the-things/a-web-application-with-no-web-server-61
 ## How it works
 
 This library uses a conflict-free replicated state container based on a **signature chain**
-(provided by the [CRDX](https://github.com/herbcaudill/crdx) library) to manage team membership, permissions, and authentication.
+(provided by the [CRDX](https://github.com/local-first-web/auth/tree/main/packages/crdx) library) to manage team membership, permissions, and authentication.
 
 All changes to the team's membership and permissions are recorded on the signature chain as a
 sequence of **signed** and **hash-chained** actions.
