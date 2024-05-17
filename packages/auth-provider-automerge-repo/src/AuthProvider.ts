@@ -232,15 +232,16 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       // url could be "localhost:3000" or "syncserver.example.com"
       const host = url.split(':')[0] // omit port
 
+      const protocol = this.#getHttpProtocol(url)
       // get the server's public keys
-      const response = await fetch(`http://${url}/keys`)
+      const response = await fetch(`${protocol}://${url}/keys`)
       const keys = await response.json()
 
       // add the server's public keys to the team
       team.addServer({ host, keys })
 
       // register the team with the server
-      await fetch(`http://${url}/teams`, {
+      await fetch(`${protocol}://${url}/teams`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -336,7 +337,8 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
    */
   public async registerPublicShare(shareId: ShareId) {
     const registrations = this.#server.map(async url => {
-      await fetch(`http://${url}/public-shares`, {
+      const protocol = this.#getHttpProtocol(url)
+      await fetch(`${protocol}://${url}/public-shares`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shareId }),
@@ -396,6 +398,13 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   }
 
   // PRIVATE
+
+  /**
+   * Use http for localhost but https for anything else
+   */
+  #getHttpProtocol(url: string) {
+    return url?.includes('localhost') ? 'http' : 'https'
+  }
 
   /**
    * We might get messages from a peer before we've set up an Auth.Connection with them.
