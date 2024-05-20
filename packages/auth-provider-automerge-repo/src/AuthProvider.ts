@@ -468,7 +468,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     this.#connections.set([shareId, peerId], connection)
 
     connection
-      .on('joined', async ({ team, user }) => {
+      .on('joined', async ({ team, user, teamKeyring }) => {
         // When we successfully join a team, the connection gives us the team graph and the user's
         // info (including keys).
 
@@ -476,8 +476,8 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
         this.#user = user
         this.#log = log.extend(user.userName)
 
-        // Create a share with this team
-        await this.addTeam(team)
+        // Create a share with this team and the full team keys
+        await this.addTeam(team, teamKeyring)
 
         // remove the used invitation as we no longer need it & don't want to present it to others
         this.#invitations.delete(shareId)
