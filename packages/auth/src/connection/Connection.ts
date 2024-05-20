@@ -228,7 +228,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
           // We join the team, which adds our device to the team graph.
           team.join(teamKeyring)
-          this.emit('joined', { team, user })
+          this.emit('joined', { team, user, teamKeyring })
           return { user, team }
         }),
 
