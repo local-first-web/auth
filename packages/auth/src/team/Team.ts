@@ -610,16 +610,13 @@ export class Team extends EventEmitter<TeamEvents> {
     const teamKeys = getLatestGeneration(teamKeyring)
 
     const lockboxUserKeysForDevice = lockbox.create(user.keys, device.keys)
-    const lockboxOlderTeamKeysForDevice = Object.values(teamKeyring)
-      .filter(d => d !== teamKeys)
-      .map(d => lockbox.create(d, device.keys))
 
     this.dispatch(
       {
         type: 'ADD_DEVICE',
         payload: {
           device: redactDevice(device),
-          lockboxes: [lockboxUserKeysForDevice, ...lockboxOlderTeamKeysForDevice],
+          lockboxes: [lockboxUserKeysForDevice],
         },
       },
       teamKeys
