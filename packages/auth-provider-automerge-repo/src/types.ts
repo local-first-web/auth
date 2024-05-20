@@ -34,6 +34,7 @@ export type PublicShare = {
 export type PrivateShare = PublicShare & {
   /** The team that is used for enforcing authenticated access to this share */
   team: Auth.Team
+  teamKeyring: Auth.Keyring
 }
 
 export const isPrivateShare = (share: Share): share is PrivateShare =>

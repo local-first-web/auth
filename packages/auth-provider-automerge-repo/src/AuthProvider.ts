@@ -255,7 +255,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   /**
    * Creates a private share for a team we're already a member of.
    */
-  public async addTeam(team: Auth.Team) {
+  public async addTeam(team: Auth.Team, teamKeyring = team.teamKeyring()) {
     const shareId = getShareId(team)
 
     if (this.hasTeam(shareId)) {
@@ -269,6 +269,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       shareId,
       team,
       documentIds: new Set(),
+      teamKeyring,
     })
 
     // persist our state now and whenever the team changes
@@ -639,7 +640,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
         ? ({
             shareId,
             encryptedTeam: share.team.save(),
-            encryptedTeamKeys: encryptBytes(share.team.teamKeyring(), this.#device.keys.secretKey),
+            encryptedTeamKeys: encryptBytes(share.teamKeyring, this.#device.keys.secretKey),
             documentIds,
           } as SerializedShare)
         : { shareId, documentIds }
