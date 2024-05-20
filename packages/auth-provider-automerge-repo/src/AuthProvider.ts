@@ -228,20 +228,18 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   public async registerTeam(team: Auth.Team) {
     await this.addTeam(team)
 
-    const registrations = this.#server.map(async url => {
-      // url could be "localhost:3000" or "syncserver.example.com"
-      const host = url.split(':')[0] // omit port
+    const registrations = this.#server.map(async server => {
+      const { origin, hostname } = this.#parseServer(server)
 
-      const protocol = this.#getHttpProtocol(url)
       // get the server's public keys
-      const response = await fetch(`${protocol}://${url}/keys`)
+      const response = await fetch(`${origin}/keys`)
       const keys = await response.json()
 
       // add the server's public keys to the team
-      team.addServer({ host, keys })
+      team.addServer({ host: hostname, keys })
 
       // register the team with the server
-      await fetch(`${protocol}://${url}/teams`, {
+      await fetch(`${origin}/teams`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -336,9 +334,10 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
    * Registers a share with all of our sync servers.
    */
   public async registerPublicShare(shareId: ShareId) {
-    const registrations = this.#server.map(async url => {
-      const protocol = this.#getHttpProtocol(url)
-      await fetch(`${protocol}://${url}/public-shares`, {
+    const registrations = this.#server.map(async server => {
+      const { origin } = this.#parseServer(server)
+
+      await fetch(`${origin}/public-shares`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shareId }),
@@ -399,11 +398,12 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
   // PRIVATE
 
-  /**
-   * Use http for localhost but https for anything else
-   */
-  #getHttpProtocol(url: string) {
-    return url?.includes('localhost') ? 'http' : 'https'
+  #parseServer(server: string) {
+    // assume http if no protocol provided (for backwards compatibility)
+    if (!server.includes('//')) {
+      server = `http://${server}`
+    }
+    return new URL(server)
   }
 
   /**
@@ -803,9 +803,9 @@ type Config = {
 
   /**
    * If we're using one or more sync servers, we provide their hostnames. The hostname should
-   * include the domain, as well as the port (if any). It should not include the protocol (e.g.
-   * `https://` or `ws://`) or any path (e.g. `/sync`). For example, `localhost:3000` or
-   * `syncserver.mydomain.com`.
+   * include the domain, as well as the port (if any). If you don't include a protocol, we'll
+   * assume you want to use http. Any path (e.g. `/sync`) will be ignored.
+   * For example, `localhost:3000` or `https://syncserver.mydomain.com`.
    */
   server?: string | string[]
 }
