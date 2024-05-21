@@ -694,10 +694,15 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     this.#machine = createActor(machine)
 
     // emit and log all transitions
-    this.#machine.subscribe(state => {
-      const summary = stateSummary(state.value as string)
-      this.emit('change', summary)
-      this.#log(`⏩ ${summary} `)
+    this.#machine.subscribe({
+      next: state => {
+        const summary = stateSummary(state.value as string)
+        this.emit('change', summary)
+        this.#log(`⏩ ${summary} `)
+      },
+      error: error => {
+        console.error('Connection encountered an error', error)
+      },
     })
 
     // add automatic logging to all events
