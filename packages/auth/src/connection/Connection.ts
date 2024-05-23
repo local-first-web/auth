@@ -24,6 +24,7 @@ import {
   TIMEOUT,
   createErrorMessage,
   type ConnectionErrorType,
+  UNHANDLED,
 } from 'connection/errors.js'
 import { getDeviceUserFromGraph } from 'connection/getDeviceUserFromGraph.js'
 import * as identity from 'connection/identity.js'
@@ -701,7 +702,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         this.#log(`⏩ ${summary} `)
       },
       error: error => {
-        console.error('Connection encountered an error', error)
+        console.error('Connection encountered an unhandled error', error)
+        this.#fail(UNHANDLED)
       },
     })
 
