@@ -24,6 +24,7 @@ import {
   TIMEOUT,
   createErrorMessage,
   type ConnectionErrorType,
+  UNHANDLED,
 } from 'connection/errors.js'
 import { getDeviceUserFromGraph } from 'connection/getDeviceUserFromGraph.js'
 import * as identity from 'connection/identity.js'
@@ -694,10 +695,16 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     this.#machine = createActor(machine)
 
     // emit and log all transitions
-    this.#machine.subscribe(state => {
-      const summary = stateSummary(state.value as string)
-      this.emit('change', summary)
-      this.#log(`⏩ ${summary} `)
+    this.#machine.subscribe({
+      next: state => {
+        const summary = stateSummary(state.value as string)
+        this.emit('change', summary)
+        this.#log(`⏩ ${summary} `)
+      },
+      error: error => {
+        console.error('Connection encountered an unhandled error', error)
+        this.#fail(UNHANDLED)
+      },
     })
 
     // add automatic logging to all events

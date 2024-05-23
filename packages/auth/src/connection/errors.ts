@@ -8,6 +8,7 @@ export const MEMBER_REMOVED = 'MEMBER_REMOVED' as const
 export const NEITHER_IS_MEMBER = 'NEITHER_IS_MEMBER' as const
 export const SERVER_REMOVED = 'SERVER_REMOVED' as const
 export const TIMEOUT = 'TIMEOUT' as const
+export const UNHANDLED = 'UNHANDLED' as const
 
 export const connectionErrors: Record<string, ErrorDefinition> = {
   [DEVICE_REMOVED]: {
@@ -47,6 +48,9 @@ export const connectionErrors: Record<string, ErrorDefinition> = {
   [TIMEOUT]: {
     localMessage: "We didn't hear back from the peer; giving up",
     remoteMessage: "The peer didn't hear back from you, so they gave up",
+  },
+  [UNHANDLED]: {
+    localMessage: 'An unhandled error occurred',
   },
 }
 
