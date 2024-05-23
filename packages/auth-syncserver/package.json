@@ -16,7 +16,7 @@
   ],
   "scripts": {
     "build": "tsup",
-    "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly && cp src/*.html dist",
+    "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly && shx cp src/*.html dist",
     "test": "vitest",
     "test:log": "cross-env DEBUG='localfirst*' DEBUG_COLORS=1 vitest --reporter basic"
   },
