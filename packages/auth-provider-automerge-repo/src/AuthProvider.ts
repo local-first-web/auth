@@ -11,6 +11,7 @@ import { hash } from '@localfirst/crypto'
 import { debug, memoize, pause } from '@localfirst/shared'
 import { type AbstractConnection } from 'AbstractConnection.js'
 import { AnonymousConnection } from 'AnonymousConnection.js'
+import { buildServerUrl } from 'buildServerUrl.js'
 import { getShareId } from 'getShareId.js'
 import { pack, unpack } from 'msgpackr'
 import { isJoinMessage, type JoinMessage } from 'types.js'
@@ -229,7 +230,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     await this.addTeam(team)
 
     const registrations = this.#server.map(async server => {
-      const { origin, hostname } = this.#parseServer(server)
+      const { origin, hostname } = buildServerUrl(server)
 
       // get the server's public keys
       const response = await fetch(`${origin}/keys`)
@@ -335,7 +336,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
    */
   public async registerPublicShare(shareId: ShareId) {
     const registrations = this.#server.map(async server => {
-      const { origin } = this.#parseServer(server)
+      const { origin } = buildServerUrl(server)
 
       await fetch(`${origin}/public-shares`, {
         method: 'POST',
@@ -397,14 +398,6 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   }
 
   // PRIVATE
-
-  #parseServer(server: string) {
-    // assume http if no protocol provided (for backwards compatibility)
-    if (!server.includes('//')) {
-      server = `http://${server}`
-    }
-    return new URL(server)
-  }
 
   /**
    * We might get messages from a peer before we've set up an Auth.Connection with them.
