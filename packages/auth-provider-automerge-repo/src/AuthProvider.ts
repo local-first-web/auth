@@ -11,6 +11,7 @@ import { hash } from '@localfirst/crypto'
 import { debug, memoize, pause } from '@localfirst/shared'
 import { type AbstractConnection } from 'AbstractConnection.js'
 import { AnonymousConnection } from 'AnonymousConnection.js'
+import { buildServerUrl } from 'buildServerUrl.js'
 import { getShareId } from 'getShareId.js'
 import { pack, unpack } from 'msgpackr'
 import { isJoinMessage, type JoinMessage } from 'types.js'
@@ -228,19 +229,18 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   public async registerTeam(team: Auth.Team) {
     await this.addTeam(team)
 
-    const registrations = this.#server.map(async url => {
-      // url could be "localhost:3000" or "syncserver.example.com"
-      const host = url.split(':')[0] // omit port
+    const registrations = this.#server.map(async server => {
+      const { origin, hostname } = buildServerUrl(server)
 
       // get the server's public keys
-      const response = await fetch(`http://${url}/keys`)
+      const response = await fetch(`${origin}/keys`)
       const keys = await response.json()
 
       // add the server's public keys to the team
-      team.addServer({ host, keys })
+      team.addServer({ host: hostname, keys })
 
       // register the team with the server
-      await fetch(`http://${url}/teams`, {
+      await fetch(`${origin}/teams`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -335,8 +335,10 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
    * Registers a share with all of our sync servers.
    */
   public async registerPublicShare(shareId: ShareId) {
-    const registrations = this.#server.map(async url => {
-      await fetch(`http://${url}/public-shares`, {
+    const registrations = this.#server.map(async server => {
+      const { origin } = buildServerUrl(server)
+
+      await fetch(`${origin}/public-shares`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shareId }),
@@ -794,9 +796,9 @@ type Config = {
 
   /**
    * If we're using one or more sync servers, we provide their hostnames. The hostname should
-   * include the domain, as well as the port (if any). It should not include the protocol (e.g.
-   * `https://` or `ws://`) or any path (e.g. `/sync`). For example, `localhost:3000` or
-   * `syncserver.mydomain.com`.
+   * include the domain, as well as the port (if any). If you don't include a protocol, we'll
+   * assume you want to use http. Any path (e.g. `/sync`) will be ignored.
+   * For example, `localhost:3000` or `https://syncserver.mydomain.com`.
    */
   server?: string | string[]
 }
