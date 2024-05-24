@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { signatures, asymmetric } from '..'
+import { signatures, asymmetric } from '../index.js'
 
 const { keyPair, encryptBytes, decryptBytes, encrypt, decrypt } = asymmetric
 

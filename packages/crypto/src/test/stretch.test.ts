@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { stretch } from '../stretch.js'
+import { stretch } from '../index.js'
 import { base58 } from '../util/index.js'
 
 describe('stretch', () => {

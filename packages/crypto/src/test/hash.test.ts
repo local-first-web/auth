@@ -1,6 +1,6 @@
 import { pack } from 'msgpackr'
 import { describe, expect, it } from 'vitest'
-import { hash, hashBytes } from '..'
+import { hash, hashBytes } from '../index.js'
 import { base58, keyToBytes } from '../util/index.js'
 
 describe('crypto', () => {
