@@ -641,7 +641,10 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
         ? ({
             shareId,
             encryptedTeam: share.team.save(),
-            encryptedTeamKeys: encryptBytes(share.teamKeyring, this.#device.keys.secretKey),
+            encryptedTeamKeys: encryptBytes(
+              { ...share.teamKeyring, ...share.team.teamKeyring() },
+              this.#device.keys.secretKey
+            ),
             documentIds,
           } as SerializedShare)
         : { shareId, documentIds }
