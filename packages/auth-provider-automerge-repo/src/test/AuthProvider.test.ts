@@ -260,14 +260,30 @@ describe('auth provider for automerge-repo', () => {
     teardown()
   })
 
-  it('persists local context and team state', async () => {
+  it('persists local context and team state (including the complete keyring)', async () => {
     const {
-      users: { alice, bob },
+      users: { alice, bob, charlie },
       teardown,
-    } = setup(['alice', 'bob'])
+    } = setup(['alice', 'bob', 'charlie'])
 
     const aliceTeam = Auth.createTeam('team A', alice.context)
     await alice.authProvider.addTeam(aliceTeam)
+
+    // Alice sends Charlie an invitation
+    const { seed: charlieInvite } = aliceTeam.inviteMember()
+
+    // Charlie uses the invitation to join
+    await charlie.authProvider.addInvitation({
+      shareId: getShareId(aliceTeam),
+      invitationSeed: charlieInvite,
+    })
+
+    // they're able to authenticate and sync
+    await authenticated(alice, charlie)
+    await synced(alice, charlie) // ✅
+
+    // Alice boots charlie
+    aliceTeam.remove(charlie.user.userId)
 
     // Alice sends Bob an invitation
     const { seed: bobInvite } = aliceTeam.inviteMember()

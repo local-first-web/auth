@@ -4,6 +4,7 @@ import type {
   Base58,
   Hash,
   KeyScope,
+  Keyring,
   Keyset,
   SyncState,
   UnixTimestamp,
@@ -43,7 +44,7 @@ export type ConnectionEvents = {
    * this is how we get the user's keys.) This event gives the application a chance to persist the
    * team graph and the user's info.
    */
-  joined: ({ team, user }: { team: Team; user: UserWithSecrets }) => void
+  joined: ({ team, user }: { team: Team; user: UserWithSecrets; teamKeyring: Keyring }) => void
 
   /** The team graph has been updated. This event gives the application a chance to persist the changes. */
   updated: () => void

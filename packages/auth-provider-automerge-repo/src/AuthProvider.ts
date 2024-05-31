@@ -255,7 +255,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
   /**
    * Creates a private share for a team we're already a member of.
    */
-  public async addTeam(team: Auth.Team) {
+  public async addTeam(team: Auth.Team, teamKeyring = team.teamKeyring()) {
     const shareId = getShareId(team)
 
     if (this.hasTeam(shareId)) {
@@ -269,6 +269,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       shareId,
       team,
       documentIds: new Set(),
+      teamKeyring,
     })
 
     // persist our state now and whenever the team changes
@@ -469,7 +470,7 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
     this.#connections.set([shareId, peerId], connection)
 
     connection
-      .on('joined', async ({ team, user }) => {
+      .on('joined', async ({ team, user, teamKeyring }) => {
         // When we successfully join a team, the connection gives us the team graph and the user's
         // info (including keys).
 
@@ -477,8 +478,8 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
         this.#user = user
         this.#log = log.extend(user.userName)
 
-        // Create a share with this team
-        await this.addTeam(team)
+        // Create a share with this team and the full team keys
+        await this.addTeam(team, teamKeyring)
 
         // remove the used invitation as we no longer need it & don't want to present it to others
         this.#invitations.delete(shareId)
@@ -640,7 +641,10 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
         ? ({
             shareId,
             encryptedTeam: share.team.save(),
-            encryptedTeamKeys: encryptBytes(share.team.teamKeyring(), this.#device.keys.secretKey),
+            encryptedTeamKeys: encryptBytes(
+              { ...share.teamKeyring, ...share.team.teamKeyring() },
+              this.#device.keys.secretKey
+            ),
             documentIds,
           } as SerializedShare)
         : { shareId, documentIds }
