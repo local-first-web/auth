@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { randomKey, randomKeyBytes } from '../randomKey.js'
+import { randomKey, randomKeyBytes } from '../index.js'
 
 describe('randomKey', () => {
   it('should return keys of the expected length', () => {

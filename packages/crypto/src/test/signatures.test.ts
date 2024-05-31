@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { asymmetric, randomKey, signatures } from '..'
+import { asymmetric, randomKey, signatures } from '../index.js'
 import { type Base58, type SignedMessage } from '../types.js'
 
 const { keyPair, sign, verify } = signatures
