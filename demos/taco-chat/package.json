@@ -14,14 +14,12 @@
     "dev:relay": "cross-env NODE_NO_WARNINGS=1 DEBUG='localfirst*' DEBUG_COLORS=1 node ./scripts/start-relay-server.js",
     "dev:serve": "vite --force --port 3000",
     "dev": "run-p dev:relay dev:serve",
-    "dev:cy": "cross-env CYPRESS_REMOTE_DEBUGGING_PORT=9222 run-p dev test:cy",
+    "dev:cy": "cross-env CYPRESS_REMOTE_DEBUGGING_PORT=9222 run-p dev test:cy:ui",
     "preinstall": "npx only-allow pnpm",
     "preview": "run-s build && vite preview",
-    "test:cy:parallel": "run-p --race dev test:cy:parallel:exec && git restore cypress && git clean cypress -f",
-    "test:cy:parallel:exec": "cypress-parallel -s test:cy:run:exec -t 5 -d 'cypress/e2e' -n ../../node_modules/cypress-multi-reporters",
-    "test:cy": "cypress open --browser chrome --e2e",
-    "test:cy:run": "run-p --race dev test:cy:run:exec",
-    "test:cy:run:exec": "cypress run --browser chrome --e2e"
+    "test:cy:ui": "cypress open --browser chrome --e2e",
+    "test:cy": "run-p --race dev test:cy:exec",
+    "test:cy:exec": "cypress run --browser chrome --e2e"
   },
   "dependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
