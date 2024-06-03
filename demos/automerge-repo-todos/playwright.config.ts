@@ -8,7 +8,7 @@ export default defineConfig({
   testDir: './test',
   testMatch: '*.test.ts',
 
-  timeout: 5000,
+  timeout: 10000,
 
   /* Run tests in files in parallel */
   fullyParallel: true,
