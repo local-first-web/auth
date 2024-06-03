@@ -37,7 +37,6 @@
     "ua-parser-js": "^1.0.37"
   },
   "devDependencies": {
-    "@playwright/test": "^1.40.1",
     "@types/node": "^18.18.13",
     "@types/react": "^18.0.26",
     "@types/react-dom": "^18.0.9",
