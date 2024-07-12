@@ -1,3 +1,5 @@
+#! /usr/bin/env ts-node
+
 import inquirer from "inquirer";
 import chalk from "chalk";
 

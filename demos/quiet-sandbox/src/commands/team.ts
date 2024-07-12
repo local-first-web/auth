@@ -1,4 +1,5 @@
-import pad  from 'pad';
+#! /usr/bin/env ts-node
+
 import chalk from 'chalk';
 
 import teamInfo from '../data/testTeamInfo';

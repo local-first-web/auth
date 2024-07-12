@@ -1,5 +1,5 @@
 {
-  "name": "quiet-sandbox",
+  "name": "@localfirst/quiet-sandbox",
   "version": "1.0.0",
   "description": "",
   "main": "./dist/index.js",
@@ -10,7 +10,8 @@
   "scripts": {
     "build": "npx tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "ig": "npx tsc && npm i -g ."
+    "ig": "npx tsc && npm i -g .",
+    "start": "ts-node src/index.ts interactive"
   },
   "keywords": [],
   "author": "",
