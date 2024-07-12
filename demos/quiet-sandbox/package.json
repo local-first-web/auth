@@ -1,0 +1,31 @@
+{
+  "name": "quiet-sandbox",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./dist/index.js",
+  "bin": {
+    "qsb": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "npx tsc",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "ig": "npx tsc && npm i -g ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@commander-js/extra-typings": "^12.1.0",
+    "colors": "^1.4.0",
+    "figlet": "^1.7.0",
+    "inquirer": "^10.0.1",
+    "pad": "^3.2.0",
+    "quiet-sandbox": "link:"
+  },
+  "devDependencies": {
+    "@types/node": "^18.18.13",
+    "prettier": "^3.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}
