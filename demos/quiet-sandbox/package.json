@@ -6,6 +6,7 @@
   "bin": {
     "qsb": "./dist/index.js"
   },
+  "type": "commonjs",
   "scripts": {
     "build": "npx tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -16,11 +17,13 @@
   "license": "ISC",
   "dependencies": {
     "@commander-js/extra-typings": "^12.1.0",
+    "@types/figlet": "^1.5.8",
+    "chalk": "^4.1.2",
     "colors": "^1.4.0",
     "figlet": "^1.7.0",
     "inquirer": "^10.0.1",
-    "pad": "^3.2.0",
-    "quiet-sandbox": "link:"
+    "inquirer-action-select": "^0.0.3",
+    "pad": "^3.2.0"
   },
   "devDependencies": {
     "@types/node": "^18.18.13",

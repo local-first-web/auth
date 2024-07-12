@@ -1,5 +1,25 @@
 #! /usr/bin/env node
 
-const figlet = require('figlet');
+import figlet from 'figlet';
+import inquirer from 'inquirer';
+import pad from 'pad';
+import { program } from '@commander-js/extra-typings';
 
-console.log(figlet.textSync('Quiet Sandbox'));
+import team from './commands/team';
+import interactive from './commands/interactive';
+
+program
+  .command('interactive')
+  .description('Interactive mode')
+  .action(() => {
+    interactive();
+  });
+
+program
+  .command('team')
+  .description('Print team information')
+  .action(() => {
+      team();
+  });
+
+program.parse(process.argv);
