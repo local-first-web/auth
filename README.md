@@ -180,3 +180,12 @@ proposed as a more secure alternative to TOFU, or _**T**rust **O**n **F**irst **
 
 🌮 This library was originally called `taco-js`. TACO stands for _**T**rust **A**fter
 **C**onfirmation **O**f invitation_.
+
+## Local Development
+
+To install packages and compile the monorepo simply run 
+
+```
+pnpm i
+pnpm run build
+```

@@ -7,9 +7,7 @@
     "qsb": "./dist/index.js"
   },
   "scripts": {
-    "build": "npx tsc",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "ig": "npx tsc && npm i -g ."
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
@@ -19,6 +17,8 @@
     "colors": "^1.4.0",
     "figlet": "^1.7.0",
     "inquirer": "^10.0.1",
+    "@localfirst/auth": "workspace:*",
+    "@localfirst/shared": "workspace:*",
     "pad": "^3.2.0",
     "quiet-sandbox": "link:"
   },
