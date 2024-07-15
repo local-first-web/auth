@@ -852,7 +852,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 // error handler
 const fail = (error: ConnectionErrorType) =>
   ({
-    actions: [{ type: 'fail', params: { error } }, 'onDisconnected'],
+    actions: [{ type: 'fail', params: { error } }],
     target: '#disconnected',
   }) as const
 
