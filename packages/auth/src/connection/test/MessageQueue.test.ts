@@ -1,7 +1,7 @@
 import { pause } from '@localfirst/shared'
 import { describe, expect, it } from 'vitest'
-import { MessageQueue } from '../MessageQueue.js'
-import { EventEmitter } from 'ws'
+import { MessageQueue, type NumberedMessage } from '../MessageQueue.js'
+import { EventEmitter } from '@herbcaudill/eventemitter42'
 
 const timeout = 10
 
@@ -385,40 +385,33 @@ describe('MessageQueue', () => {
   })
 
   describe('two queues but better', () => {
-    const setup = () => {
-      const channel = new TestChannel()
-
-      const makeUser = (peerId: string) => {
-        return {
+    // creates new MessageQueue instances for alice and bob on the given channel
+    const setup = (channel: TestChannel) => {
+      const makeUser = (peerId: string, targetPeerId: string) => {
+        const user: UserStuffButBetter = {
           peerId,
-
           queue: new MessageQueue<TestMessage>({
-            sendMessage: message => {
-              channel.write(peerId, message)
+            sendMessage(message) {
+              channel.write(targetPeerId, message)
             },
             timeout,
           }),
+          received: [],
         }
+        user.queue.on('message', message => user.received.push(message.index))
+        channel.on('data', (recipientId, message) => {
+          console.log('channel data', recipientId, message)
+          if (recipientId !== peerId) return
+          user.queue.receive(message)
+        })
+
+        channel.addPeer()
+
+        return user
       }
 
-      const alice: UserStuff = {
-        queue: new MessageQueue<TestMessage>({
-          sendMessage: message => bob.queue.receive(message),
-          timeout,
-        }),
-        received: [],
-      }
-
-      const bob: UserStuff = {
-        queue: new MessageQueue<TestMessage>({
-          sendMessage: message => alice.queue.receive(message),
-          timeout,
-        }),
-        received: [],
-      }
-
-      alice.queue.on('message', message => alice.received.push(message.index))
-      bob.queue.on('message', message => bob.received.push(message.index))
+      const alice = makeUser('alice', 'bob')
+      const bob = makeUser('bob', 'alice')
 
       alice.queue.start()
       bob.queue.start()
@@ -426,135 +419,106 @@ describe('MessageQueue', () => {
       return { alice, bob }
     }
 
-    // it('sends and receives', () => {
-    //   const { alice, bob } = setup()
+    it('sends and receives', () => {
+      const channel = new TestChannel()
+      const { alice, bob } = setup(channel)
 
-    //   alice.queue.send({})
-    //   alice.queue.send({})
-    //   alice.queue.send({})
-    //   expect(bob.received).toEqual([0, 1, 2])
+      alice.queue.send({})
+      alice.queue.send({})
+      alice.queue.send({})
+      expect(bob.received).toEqual([0, 1, 2])
 
-    //   bob.queue.send({})
-    //   bob.queue.send({})
-    //   bob.queue.send({})
-    //   expect(alice.received).toEqual([0, 1, 2])
-    // })
+      bob.queue.send({})
+      bob.queue.send({})
+      expect(alice.received).toEqual([0, 1])
+    })
 
-    // it('ignores messages meant for another instance', () => {
-    //   const { alice, bob } = setup()
+    it('ignores messages meant for another instance when already connected to an instance', () => {
+      const channel = new TestChannel()
+      // alice and bob have connected
+      const { alice: alice1, bob: bob1 } = setup(channel)
 
-    //   alice.queue.send({})
-    //   alice.queue.send({})
-    //   expect(bob.received).toEqual([0, 1])
+      // bob1 receives alice1's messages
+      alice1.queue.send({})
+      alice1.queue.send({})
+      expect(alice1.received).toEqual([])
+      expect(bob1.received).toEqual([0, 1])
 
-    //   bob.queue.send({})
-    //   bob.queue.send({})
-    //   expect(alice.received).toEqual([0, 1])
+      // alice1 receives bob1's messages
+      bob1.queue.send({})
+      bob1.queue.send({})
+      expect(alice1.received).toEqual([0, 1])
+      expect(bob1.received).toEqual([0, 1])
 
-    //   const bob2: UserStuff = {
-    //     queue: new MessageQueue<TestMessage>({
-    //       sendMessage: message => alice.queue.receive(message),
-    //       timeout,
-    //     }),
-    //     received: [],
-    //   }
+      // alice and bob start a separate connection on the same channel
+      const { alice: alice2, bob: bob2 } = setup(channel)
 
-    //   bob2.queue.start()
-    //   bob2.queue.send({})
-    //   bob2.queue.send({})
-    //   bob2.queue.send({})
-    //   bob2.queue.send({})
-    //   bob2.queue.send({})
+      // only alice2 receives data from bob2
+      bob2.queue.send({})
+      bob2.queue.send({})
+      bob2.queue.send({})
+      bob2.queue.send({})
+      bob2.queue.send({})
+      expect(alice1.received).toEqual([0, 1])
+      expect(bob1.received).toEqual([0, 1])
+      expect(alice2.received).toEqual([0, 1, 2, 3, 4])
+      expect(bob2.received).toEqual([])
 
-    //   expect(alice.received).toEqual([0, 1]) // <- still the same
-    // })
+      // alice2 sends a message to bob2
+      alice2.queue.send({})
+      expect(bob2.received).toEqual([0])
 
-    // it('brent raining on my parade', () => {
-    //   // what if the first message I get wasn't intended for me
+      // alice1 resends messages 0 and 1
+      alice1.queue.resend(0)
+      alice1.queue.resend(1)
+      // they should only be caught by bob1 because alice2 has already spoken to bob2
+      expect(bob1.received).toEqual([0, 1]) // <- still the same, the resent event was already seen
+      expect(bob2.received).toEqual([0]) // <- unchanged
+    })
 
-    //   let bob2: UserStuff | undefined // eslint-disable-line prefer-const
+    it('cannot ignore messages meant for another instance when not connected to an instance', () => {
+      const channel = new TestChannel()
+      // alice and bob have connected
+      const { alice: alice1, bob: bob1 } = setup(channel)
 
-    //   // the queue only knows about peer IDs, so alice's messages to bob
-    //   // go to both bob1 and bob2
-    //   const alice1: UserStuff = {
-    //     queue: new MessageQueue<TestMessage>({
-    //       sendMessage(message) {
-    //         bob1.queue.receive(message)
-    //         bob2?.queue.receive(message)
-    //       },
-    //       timeout,
-    //     }),
-    //     received: [],
-    //   }
+      // bob1 receives alice1's messages
+      alice1.queue.send({})
+      alice1.queue.send({})
+      expect(alice1.received).toEqual([])
+      expect(bob1.received).toEqual([0, 1])
 
-    //   const bob1: UserStuff = {
-    //     queue: new MessageQueue<TestMessage>({
-    //       sendMessage: message => alice1.queue.receive(message),
-    //       timeout,
-    //     }),
-    //     received: [],
-    //   }
+      // alice1 receives bob1's messages
+      bob1.queue.send({})
+      bob1.queue.send({})
+      expect(alice1.received).toEqual([0, 1])
+      expect(bob1.received).toEqual([0, 1])
 
-    //   alice1.queue.on('message', message => alice1.received.push(message.index))
-    //   bob1.queue.on('message', message => bob1.received.push(message.index))
+      // alice and bob start a separate connection on the same channel
+      const { alice: alice2, bob: bob2 } = setup(channel)
 
-    //   alice1.queue.start()
-    //   bob1.queue.start()
+      // only alice2 receives data from bob2
+      bob2.queue.send({})
+      bob2.queue.send({})
+      bob2.queue.send({})
+      bob2.queue.send({})
+      bob2.queue.send({})
+      expect(alice1.received).toEqual([0, 1])
+      expect(bob1.received).toEqual([0, 1])
+      expect(alice2.received).toEqual([0, 1, 2, 3, 4])
+      expect(bob2.received).toEqual([])
 
-    //   alice1.queue.send({})
-    //   alice1.queue.send({})
-    //   expect(bob1.received).toEqual([0, 1])
-
-    //   bob1.queue.send({})
-    //   bob1.queue.send({})
-    //   expect(alice1.received).toEqual([0, 1])
-
-    //   bob2 = {
-    //     queue: new MessageQueue<TestMessage>({
-    //       sendMessage: message => alice1.queue.receive(message),
-    //       timeout,
-    //     }),
-    //     received: [],
-    //   }
-    //   bob2.queue.on('message', message => bob2.received.push(message.index))
-    //   bob2.queue.start()
-
-    //   alice1.queue.send({})
-    //   alice1.queue.send({})
-    //   alice1.queue.send({})
-    //   alice1.queue.send({})
-    //   alice1.queue.send({})
-    //   alice1.queue.send({})
-
-    //   expect(bob1.received).toEqual([0, 1, 2, 3, 4, 5, 6, 7]) // <- bob1 received everything
-    //   expect(bob2.received).toEqual([]) // bob2 hasn't received anything because the first index was 3
-
-    //   const alice2: UserStuff = {
-    //     queue: new MessageQueue<TestMessage>({
-    //       sendMessage(message) {
-    //         bob1.queue.receive(message)
-    //         bob2?.queue.receive(message)
-    //       },
-    //       timeout,
-    //     }),
-    //     received: [],
-    //   }
-    //   alice2.queue.start()
-
-    //   alice2.queue.send({})
-    //   alice2.queue.send({})
-    //   alice2.queue.send({})
-
-    //   expect(bob1.received).toEqual([0, 1, 2, 3, 4, 5, 6, 7]) // <- bob1 didn't receive any of those messages
-    //   expect(bob2.received).toEqual([0, 1, 2]) //
-    // })
+      // alice1 resends message 0
+      alice1.queue.resend(0)
+      // it should only be caught by bob1
+      expect(bob1.received).toEqual([0, 1]) // <- still the same, the resent event was already seen
+      // however, bob2 thinks it is meant for him because alice2 hasn't spoken to him yet :(
+      expect(bob2.received).toEqual([]) // this fails because it catches alice1's resent message 0
+    })
   })
 })
 
 // eslint-disable-next-line @typescript-eslint/ban-types
-type TestMessage = {
-  peerId: string
-}
+type TestMessage = {}
 
 type UserStuff = {
   queue: MessageQueue<TestMessage>
@@ -569,33 +533,33 @@ type UserStuffButBetter = {
 
 export class TestChannel extends EventEmitter<TestChannelEvents> {
   private peers = 0
-  private readonly buffer: Array<{ senderId: string; msg: Uint8Array }> = []
+  private readonly buffer: Array<{ recipientId: string; msg: NumberedMessage<TestMessage> }> = []
 
   addPeer() {
     this.peers += 1
     if (this.peers > 1) {
       // Someone was already connected, emit any buffered messages
       while (this.buffer.length > 0) {
-        const { senderId, msg } = this.buffer.pop() as {
-          senderId: string
-          msg: Uint8Array
+        const { recipientId, msg } = this.buffer.pop() as {
+          recipientId: string
+          msg: NumberedMessage<TestMessage>
         }
-        this.emit('data', senderId, msg)
+        this.emit('data', recipientId, msg)
       }
     }
   }
 
-  write(senderId: string, message: Uint8Array) {
+  write(recipientId: string, message: NumberedMessage<TestMessage>) {
     if (this.peers > 1) {
       // At least one peer besides us connected
-      this.emit('data', senderId, message)
+      this.emit('data', recipientId, message)
     } else {
       // Nobody else connected, buffer messages until someone connects
-      this.buffer.unshift({ senderId, msg: message })
+      this.buffer.unshift({ recipientId, msg: message })
     }
   }
 }
 
 type TestChannelEvents = {
-  data: (senderId: string, message: Uint8Array) => void
+  data: (recipientId: string, message: NumberedMessage<TestMessage>) => void
 }
