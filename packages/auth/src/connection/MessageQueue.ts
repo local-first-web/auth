@@ -88,7 +88,7 @@ export class MessageQueue<T> extends EventEmitter<MessageQueueEvents<T>> {
     log('receive %o', message)
 
     // if this is the first message, store the sender's session ID
-    if (this.#theirSessionId === undefined) {
+    if (this.#theirSessionId === undefined && index === 0) {
       this.#theirSessionId = message.sessionId
     }
 
