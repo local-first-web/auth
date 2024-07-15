@@ -10,3 +10,8 @@ export type GeneratedUser = {
   user: UserWithSecrets
   initialDevice: DeviceWithSecrets
 }
+
+export type GeneratedDMRoleName = {
+  dmId: string
+  roleName: string
+}
