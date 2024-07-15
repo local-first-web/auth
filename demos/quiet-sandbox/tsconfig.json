@@ -3,10 +3,11 @@
     "rootDir": "src",
     "outDir": "dist",
     "strict": true,
-    "target": "es6",
-    "module": "commonjs",
+    "target": "ESNext",
+    "module": "CommonJS",
     "sourceMap": true,
     "esModuleInterop": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "declaration": true,
   }
 }

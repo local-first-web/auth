@@ -1,8 +1,5 @@
 #! /usr/bin/env ts-node
 
-import figlet from 'figlet';
-import inquirer from 'inquirer';
-import pad from 'pad';
 import { program } from '@commander-js/extra-typings';
 
 import team from './commands/team';
