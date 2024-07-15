@@ -1,5 +1,6 @@
 import { EventEmitter } from '@herbcaudill/eventemitter42'
 import { debug } from '@localfirst/shared'
+import { createId } from '@paralleldrive/cuid2'
 
 const log = debug.extend('message-queue')
 /**
@@ -9,6 +10,9 @@ const log = debug.extend('message-queue')
  * Numbers and sends outbound messages, and responds to requests for missing messages.
  */
 export class MessageQueue<T> extends EventEmitter<MessageQueueEvents<T>> {
+  readonly #ourSessionId = createId()
+  #theirSessionId: string | undefined = undefined
+
   #started = false
 
   #inbound: Record<number, NumberedMessage<T>> = {}
@@ -53,7 +57,11 @@ export class MessageQueue<T> extends EventEmitter<MessageQueueEvents<T>> {
    */
   public send(message: T) {
     const index = highestIndex(this.#outbound) + 1
-    const numberedMessage = { ...message, index }
+    const numberedMessage = {
+      ...message,
+      index,
+      sessionId: this.#ourSessionId,
+    }
     this.#outbound[index] = numberedMessage
     log('send %o', numberedMessage)
     if (this.#started) this.#sendMessage(numberedMessage)
@@ -78,10 +86,22 @@ export class MessageQueue<T> extends EventEmitter<MessageQueueEvents<T>> {
   public receive(message: NumberedMessage<T>) {
     const { index } = message
     log('receive %o', message)
-    if (!this.#inbound[index]) {
+
+    // if this is the first message, store the sender's session ID
+    if (this.#theirSessionId === undefined) {
+      this.#theirSessionId = message.sessionId
+    }
+
+    // only accept messages from the same session
+    const isSameSession = message.sessionId === this.#theirSessionId
+    // ignore messages we've already received
+    const alreadyHaveMessage = index in this.#inbound && this.#inbound[index] !== undefined
+
+    if (isSameSession && !alreadyHaveMessage) {
       this.#inbound[index] = message
       if (this.#started) this.#processInbound()
     }
+
     return this
   }
 
@@ -130,7 +150,10 @@ function highestIndex(queue: Record<number, any>) {
 
 // TYPES
 
-export type NumberedMessage<T> = T & { index: number }
+export type NumberedMessage<T> = T & {
+  index: number
+  sessionId: string
+}
 
 export type MessageQueueEvents<T> = {
   message: (message: NumberedMessage<T>) => void
