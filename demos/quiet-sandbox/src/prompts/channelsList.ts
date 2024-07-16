@@ -87,13 +87,14 @@ const channelsList = async () => {
       message: "Select a channel",
       choices: channelsList,
       actions: [
-        { name: "View", value: "view", key: "v" },
+        { name: "Enter", value: "enter", key: "e" },
         { name: "Leave", value: "leave", key: "l" },
         { name: "Exit", value: "exit", key: "q" },
       ],
     });
     switch (answer.action) {
-      case "view":
+      case "enter":
+      case undefined: // catches enter/return key
         await channelView(answer.answer);
         break;
       case "delete":

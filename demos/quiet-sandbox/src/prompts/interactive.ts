@@ -7,6 +7,7 @@ import teamInfo from '../data/testTeamInfo.js';
 import team from './team.js';
 import channelsList from './channelsList.js';
 import usersList from './usersList.js';
+import rolesList from './rolesList.js';
 
 const interactive = async () => {
   console.log(chalk.bold("Welcome to the Quiet Sandbox!"));
@@ -39,7 +40,7 @@ const interactive = async () => {
         await usersList();
         break;
       case "roles":
-        console.table(teamInfo.roles);
+        await rolesList();
         break;
       case "invites":
         console.table(teamInfo.invites);

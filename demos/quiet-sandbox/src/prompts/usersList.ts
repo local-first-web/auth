@@ -3,6 +3,7 @@ import chalk from 'chalk';
 
 import actionSelect from '../components/actionSelect.js';
 import teamInfo from '../data/testTeamInfo.js';
+import roleSelect from './roleSelect.js';
 
 export default async () => {
 
@@ -29,6 +30,7 @@ export default async () => {
       });
     switch (answer.action) {
       case "profile":
+      case undefined:
         const user = teamInfo.users.find((user) => user.name === answer.answer);
         console.table(user);
         break;
@@ -52,7 +54,7 @@ export default async () => {
         console.log(chalk.bold("Invite"));
         break;
       case "role":
-        // TODO: role assignment dialog
+        const roles = await roleSelect(answer.answer);
         break;
       case "add":
         // TODO: add new user dialog

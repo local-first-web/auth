@@ -12,6 +12,12 @@ export const users = [
   { "name": "Charlie", "uuid": "charlie" },
 ]
 
+export type Role = {
+  name: string,
+  description: string,
+  members: string[],
+}
+
 export const roles = [
   { "name": "Admin", "description": "Administrator", "members": ["Alice"] },
   { "name": "Member", "description": "Verified", "members": ["Bob", "Charlie"] },
@@ -31,7 +37,7 @@ export const teamInfo = {
   "invites": invites,
 }
 
-type ChannelMessages = {
+export type ChannelMessages = {
   [key: string]: Array<{ author: string, content: string }>
 }
 
