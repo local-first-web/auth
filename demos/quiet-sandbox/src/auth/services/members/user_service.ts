@@ -5,6 +5,7 @@
 import * as auth from '@localfirst/auth'
 import { DeviceService } from './device_service.js'
 import { BaseChainService } from '../base_service.js'
+import { MemberSearchOptions } from './types.js'
 
 class UserService extends BaseChainService {
   protected static instance: UserService | undefined
@@ -40,6 +41,25 @@ class UserService extends BaseChainService {
       user,
       device
     }
+  }
+
+  public getAllMembers(): auth.Member[] {
+    return this.getChain().getTeam().members()
+  }
+
+  public getMembersById(memberIds: string[], options?: MemberSearchOptions): auth.Member[] {
+    if (memberIds.length === 0) {
+      return []
+    }
+
+    return this.getChain().getTeam().members(memberIds, options)
+  }
+
+  public getPublicKeysForMembersById(memberIds: string[], searchOptions?: MemberSearchOptions): auth.Keyset[] {
+    const members = this.getMembersById(memberIds, searchOptions)
+    return members.map((member: auth.Member) => {
+      return member.keys
+    })
   }
 
   public static redactUser(user: auth.UserWithSecrets): auth.User {

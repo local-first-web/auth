@@ -45,10 +45,6 @@ class SigChain {
     return this.team
   }
 
-  public getMembers(): auth.Member[] {
-    return this.team.members()
-  }
-
   public getTeamGraph(): auth.TeamGraph {
     return this.team.graph
   }

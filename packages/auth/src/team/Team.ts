@@ -224,11 +224,16 @@ export class Team extends EventEmitter<TeamEvents> {
   public members(): Member[] // Overload: all members
   /** Returns the member with the given user name */
   public members(userId: string, options?: LookupOptions): Member // Overload: one member
+  public members(userIds: string[], options?: LookupOptions): Member[] // Overload: one member
   //
-  public members(userId: string = ALL, options = { includeRemoved: true }): Member | Member[] {
-    return userId === ALL //
+  public members(userIdOrIds: string | string[] = ALL, options = { includeRemoved: true, throwOnMissing: true }): Member | Member[] {
+    if (typeof userIdOrIds === 'string') {
+      return userIdOrIds === ALL //
       ? this.state.members // All members
-      : select.member(this.state, userId, options) // One member
+      : select.member(this.state, userIdOrIds, options) // One member
+    }
+
+    return select.members(this.state, userIdOrIds, options) // Many members
   }
 
   /**

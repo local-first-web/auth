@@ -13,3 +13,21 @@ export const member = (state: TeamState, userId: string, options = { includeRemo
 
   return member
 }
+
+export const members = (state: TeamState, userIds: string[], options = { includeRemoved: false, throwOnMissing: true }) => {
+  const membersToSearch = [
+    ...state.members,
+    ...(options.includeRemoved ? state.removedMembers : []),
+  ]
+  const members = membersToSearch.filter(m => userIds.includes(m.userId))
+
+  if (members.length < userIds.length) {
+    const message = `Expected ${userIds.length} members but found ${members.length}`
+    if (options.throwOnMissing) {
+      throw new Error(message)
+    }
+    console.error(message)
+  }
+
+  return members
+}
