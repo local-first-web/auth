@@ -11,7 +11,7 @@
     "build": "npx tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
     "ig": "npx tsc && npm i -g .",
-    "start": "ts-node src/index.ts interactive"
+    "start": "ts-node-esm src/index.ts interactive"
   },
   "keywords": [],
   "author": "",
