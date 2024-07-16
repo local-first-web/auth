@@ -2,13 +2,12 @@ import { pause } from '@localfirst/shared'
 import { describe, expect, it } from 'vitest'
 import { MessageQueue, type NumberedMessage } from '../MessageQueue.js'
 import { EventEmitter } from '@herbcaudill/eventemitter42'
+import { createId } from '@paralleldrive/cuid2'
 
 const timeout = 10
 
 describe('MessageQueue', () => {
   describe('one queue', () => {
-    const sessionId = '123'
-
     const setup = () => {
       const received: number[] = []
       const requested: number[] = []
@@ -82,9 +81,9 @@ describe('MessageQueue', () => {
         const { queue, received } = setup()
         queue //
           .start()
-          .receive({ index: 0, sessionId })
-          .receive({ index: 1, sessionId })
-          .receive({ index: 2, sessionId })
+          .receive({ index: 0 })
+          .receive({ index: 1 })
+          .receive({ index: 2 })
         expect(received).toEqual([0, 1, 2])
       })
 
@@ -92,9 +91,9 @@ describe('MessageQueue', () => {
         const { queue, received } = setup()
         queue
           .start()
-          .receive({ index: 0, sessionId })
-          .receive({ index: 2, sessionId }) // <- out of order
-          .receive({ index: 1, sessionId })
+          .receive({ index: 0 })
+          .receive({ index: 2 }) // <- out of order
+          .receive({ index: 1 })
         expect(received).toEqual([0, 1, 2])
       })
 
@@ -102,12 +101,12 @@ describe('MessageQueue', () => {
         const { queue, received } = setup()
         queue
           .start()
-          .receive({ index: 0, sessionId })
-          .receive({ index: 1, sessionId })
-          .receive({ index: 1, sessionId }) // <- duplicate
-          .receive({ index: 2, sessionId })
-          .receive({ index: 0, sessionId }) // <- duplicate
-          .receive({ index: 2, sessionId }) // <- duplicate
+          .receive({ index: 0 })
+          .receive({ index: 1 })
+          .receive({ index: 1 }) // <- duplicate
+          .receive({ index: 2 })
+          .receive({ index: 0 }) // <- duplicate
+          .receive({ index: 2 }) // <- duplicate
         expect(received).toEqual([0, 1, 2])
       })
 
@@ -116,9 +115,9 @@ describe('MessageQueue', () => {
 
         // the queue is not started yet
         queue //
-          .receive({ index: 0, sessionId })
-          .receive({ index: 1, sessionId })
-          .receive({ index: 2, sessionId })
+          .receive({ index: 0 })
+          .receive({ index: 1 })
+          .receive({ index: 2 })
 
         // Nothing is received
         expect(received).toEqual([])
@@ -132,11 +131,11 @@ describe('MessageQueue', () => {
         const { queue, received, requested } = setup()
         queue //
           .start()
-          .receive({ index: 0, sessionId })
-          // .receive({ index: 1, sessionId }) // <- missing
-          // .receive({ index: 2, sessionId }) // <- missing
-          .receive({ index: 3, sessionId })
-          .receive({ index: 4, sessionId })
+          .receive({ index: 0 })
+          // .receive({ index: 1 }) // <- missing
+          // .receive({ index: 2 }) // <- missing
+          .receive({ index: 3 })
+          .receive({ index: 4 })
 
         // messages 3 & 4 are not received because 1 & 2 are missing
         expect(received).toEqual([0])
@@ -147,8 +146,8 @@ describe('MessageQueue', () => {
 
         // we respond with the missing messages
         queue //
-          .receive({ index: 1, sessionId })
-          .receive({ index: 2, sessionId })
+          .receive({ index: 1 })
+          .receive({ index: 2 })
 
         // once the missing messages are received, they are emitted in order
         expect(received).toEqual([0, 1, 2, 3, 4])
@@ -158,11 +157,11 @@ describe('MessageQueue', () => {
         const { queue, received, requested } = setup()
         queue
           .start()
-          .receive({ index: 0, sessionId })
-          // .receive({ index: 1, sessionId }) <- missing
-          // .receive({ index: 2, sessionId }) <- missing
-          .receive({ index: 3, sessionId })
-          .receive({ index: 4, sessionId })
+          .receive({ index: 0 })
+          // .receive({ index: 1 }) <- missing
+          // .receive({ index: 2 }) <- missing
+          .receive({ index: 3 })
+          .receive({ index: 4 })
 
         // messages 3 & 4 are not emitted because 1 & 2 are missing
         expect(received).toEqual([0])
@@ -170,8 +169,8 @@ describe('MessageQueue', () => {
         // after a short delay, the missing messages arrive
         await pause(timeout / 2)
         queue //
-          .receive({ index: 1, sessionId })
-          .receive({ index: 2, sessionId })
+          .receive({ index: 1 })
+          .receive({ index: 2 })
 
         // since the missing messages arrived within the delay, we don't request a resend
         expect(requested).toEqual([])
@@ -184,16 +183,16 @@ describe('MessageQueue', () => {
         const { queue, requested } = setup()
         queue
           .start()
-          .receive({ index: 0, sessionId })
-          // .receive({ index: 1, sessionId }) <- missing
-          .receive({ index: 2, sessionId })
+          .receive({ index: 0 })
+          // .receive({ index: 1 }) <- missing
+          .receive({ index: 2 })
 
         // after a delay, the queue requests a resend for the missing message
         await pause(timeout * 2)
         expect(requested).toEqual([1])
 
         // a new message comes but we still don't have the missing message
-        queue.receive({ index: 3, sessionId })
+        queue.receive({ index: 3 })
 
         // so we request it again
         await pause(timeout * 2)
@@ -204,12 +203,12 @@ describe('MessageQueue', () => {
         const { queue, received } = setup()
         queue //
           .start()
-          .receive({ index: 0, sessionId })
+          .receive({ index: 0 })
         expect(received).toEqual([0])
 
         queue //
           .stop()
-          .receive({ index: 1, sessionId })
+          .receive({ index: 1 })
         expect(received).toEqual([0])
       })
 
@@ -217,178 +216,27 @@ describe('MessageQueue', () => {
         const { queue, received } = setup()
         queue //
           .start()
-          .receive({ index: 0, sessionId })
+          .receive({ index: 0 })
         expect(received).toEqual([0])
 
         queue //
           .stop()
-          .receive({ index: 1, sessionId })
+          .receive({ index: 1 })
         expect(received).toEqual([0])
 
         queue //
           .start()
-          .receive({ index: 2, sessionId })
+          .receive({ index: 2 })
         expect(received).toEqual([0, 1, 2])
       })
     })
   })
 
-  describe('two queues', () => {
-    const setup = () => {
-      const alice: UserStuff = {
-        queue: new MessageQueue<TestMessage>({
-          sendMessage: message => bob.queue.receive(message),
-          timeout,
-        }),
-        received: [],
-      }
-
-      const bob: UserStuff = {
-        queue: new MessageQueue<TestMessage>({
-          sendMessage: message => alice.queue.receive(message),
-          timeout,
-        }),
-        received: [],
-      }
-
-      alice.queue.on('message', message => alice.received.push(message.index))
-      bob.queue.on('message', message => bob.received.push(message.index))
-
-      alice.queue.start()
-      bob.queue.start()
-
-      return { alice, bob }
-    }
-
-    it('sends and receives', () => {
-      const { alice, bob } = setup()
-
-      alice.queue.send({})
-      alice.queue.send({})
-      alice.queue.send({})
-      expect(bob.received).toEqual([0, 1, 2])
-
-      bob.queue.send({})
-      bob.queue.send({})
-      bob.queue.send({})
-      expect(alice.received).toEqual([0, 1, 2])
-    })
-
-    it('ignores messages meant for another instance', () => {
-      const { alice, bob } = setup()
-
-      alice.queue.send({})
-      alice.queue.send({})
-      expect(bob.received).toEqual([0, 1])
-
-      bob.queue.send({})
-      bob.queue.send({})
-      expect(alice.received).toEqual([0, 1])
-
-      const bob2: UserStuff = {
-        queue: new MessageQueue<TestMessage>({
-          sendMessage: message => alice.queue.receive(message),
-          timeout,
-        }),
-        received: [],
-      }
-
-      bob2.queue.start()
-      bob2.queue.send({})
-      bob2.queue.send({})
-      bob2.queue.send({})
-      bob2.queue.send({})
-      bob2.queue.send({})
-
-      expect(alice.received).toEqual([0, 1]) // <- still the same
-    })
-
-    it('brent raining on my parade', () => {
-      // what if the first message I get wasn't intended for me
-
-      let bob2: UserStuff | undefined // eslint-disable-line prefer-const
-
-      // the queue only knows about peer IDs, so alice's messages to bob
-      // go to both bob1 and bob2
-      const alice1: UserStuff = {
-        queue: new MessageQueue<TestMessage>({
-          sendMessage(message) {
-            bob1.queue.receive(message)
-            bob2?.queue.receive(message)
-          },
-          timeout,
-        }),
-        received: [],
-      }
-
-      const bob1: UserStuff = {
-        queue: new MessageQueue<TestMessage>({
-          sendMessage: message => alice1.queue.receive(message),
-          timeout,
-        }),
-        received: [],
-      }
-
-      alice1.queue.on('message', message => alice1.received.push(message.index))
-      bob1.queue.on('message', message => bob1.received.push(message.index))
-
-      alice1.queue.start()
-      bob1.queue.start()
-
-      alice1.queue.send({})
-      alice1.queue.send({})
-      expect(bob1.received).toEqual([0, 1])
-
-      bob1.queue.send({})
-      bob1.queue.send({})
-      expect(alice1.received).toEqual([0, 1])
-
-      bob2 = {
-        queue: new MessageQueue<TestMessage>({
-          sendMessage: message => alice1.queue.receive(message),
-          timeout,
-        }),
-        received: [],
-      }
-      bob2.queue.on('message', message => bob2.received.push(message.index))
-      bob2.queue.start()
-
-      alice1.queue.send({})
-      alice1.queue.send({})
-      alice1.queue.send({})
-      alice1.queue.send({})
-      alice1.queue.send({})
-      alice1.queue.send({})
-
-      expect(bob1.received).toEqual([0, 1, 2, 3, 4, 5, 6, 7]) // <- bob1 received everything
-      expect(bob2.received).toEqual([]) // bob2 hasn't received anything because the first index was 3
-
-      const alice2: UserStuff = {
-        queue: new MessageQueue<TestMessage>({
-          sendMessage(message) {
-            bob1.queue.receive(message)
-            bob2?.queue.receive(message)
-          },
-          timeout,
-        }),
-        received: [],
-      }
-      alice2.queue.start()
-
-      alice2.queue.send({})
-      alice2.queue.send({})
-      alice2.queue.send({})
-
-      expect(bob1.received).toEqual([0, 1, 2, 3, 4, 5, 6, 7]) // <- bob1 didn't receive any of those messages
-      expect(bob2.received).toEqual([0, 1, 2]) //
-    })
-  })
-
-  describe('two queues but better', () => {
+  describe('two queues ', () => {
     // creates new MessageQueue instances for alice and bob on the given channel
     const setup = (channel: TestChannel) => {
       const makeUser = (peerId: string, targetPeerId: string) => {
-        const user: UserStuffButBetter = {
+        const user: UserStuff = {
           peerId,
           queue: new MessageQueue<TestMessage>({
             sendMessage(message) {
@@ -409,8 +257,12 @@ describe('MessageQueue', () => {
         return user
       }
 
-      const alice = makeUser('alice', 'bob')
-      const bob = makeUser('bob', 'alice')
+      // Using random peer IDs because that's what we'd do in real life
+      const alicePeerId = createId()
+      const bobPeerId = createId()
+
+      const alice = makeUser(alicePeerId, bobPeerId)
+      const bob = makeUser(bobPeerId, alicePeerId)
 
       alice.queue.start()
       bob.queue.start()
@@ -431,88 +283,6 @@ describe('MessageQueue', () => {
       bob.queue.send({})
       expect(alice.received).toEqual([0, 1])
     })
-
-    it('ignores messages meant for another instance when already connected to an instance', () => {
-      const channel = new TestChannel()
-      // alice and bob have connected
-      const { alice: alice1, bob: bob1 } = setup(channel)
-
-      // bob1 receives alice1's messages
-      alice1.queue.send({})
-      alice1.queue.send({})
-      expect(alice1.received).toEqual([])
-      expect(bob1.received).toEqual([0, 1])
-
-      // alice1 receives bob1's messages
-      bob1.queue.send({})
-      bob1.queue.send({})
-      expect(alice1.received).toEqual([0, 1])
-      expect(bob1.received).toEqual([0, 1])
-
-      // alice and bob start a separate connection on the same channel
-      const { alice: alice2, bob: bob2 } = setup(channel)
-
-      // only alice2 receives data from bob2
-      bob2.queue.send({})
-      bob2.queue.send({})
-      bob2.queue.send({})
-      bob2.queue.send({})
-      bob2.queue.send({})
-      expect(alice1.received).toEqual([0, 1])
-      expect(bob1.received).toEqual([0, 1])
-      expect(alice2.received).toEqual([0, 1, 2, 3, 4])
-      expect(bob2.received).toEqual([])
-
-      // alice2 sends a message to bob2
-      alice2.queue.send({})
-      expect(bob2.received).toEqual([0])
-
-      // alice1 resends messages 0 and 1
-      alice1.queue.resend(0)
-      alice1.queue.resend(1)
-      // they should only be caught by bob1 because alice2 has already spoken to bob2
-      expect(bob1.received).toEqual([0, 1]) // <- still the same, the resent event was already seen
-      expect(bob2.received).toEqual([0]) // <- unchanged
-    })
-
-    it.skip('cannot ignore messages meant for another instance when not connected to an instance', () => {
-      const channel = new TestChannel()
-      // alice and bob have connected
-      const { alice: alice1, bob: bob1 } = setup(channel)
-
-      // bob1 receives alice1's messages
-      alice1.queue.send({})
-      alice1.queue.send({})
-      expect(alice1.received).toEqual([])
-      expect(bob1.received).toEqual([0, 1])
-
-      // alice1 receives bob1's messages
-      bob1.queue.send({})
-      bob1.queue.send({})
-      expect(alice1.received).toEqual([0, 1])
-      expect(bob1.received).toEqual([0, 1])
-
-      // alice and bob start a separate connection on the same channel
-      const { alice: alice2, bob: bob2 } = setup(channel)
-
-      // only alice2 receives data from bob2
-      bob2.queue.send({})
-      bob2.queue.send({})
-      bob2.queue.send({})
-      bob2.queue.send({})
-      bob2.queue.send({})
-      expect(alice1.received).toEqual([0, 1])
-      expect(bob1.received).toEqual([0, 1])
-      expect(alice2.received).toEqual([0, 1, 2, 3, 4])
-      expect(bob2.received).toEqual([])
-
-      // alice1 resends message 0
-      alice1.queue.resend(0)
-      // it should only be caught by bob1
-      expect(bob1.received).toEqual([0, 1]) // <- still the same, the resent event was already seen
-      // however, bob2 thinks it is meant for him because alice2 hasn't spoken to him yet :(
-      expect(bob2.received).toEqual([]) // this fails because it catches alice1's resent message 0
-    })
   })
 })
 
@@ -520,17 +290,12 @@ describe('MessageQueue', () => {
 type TestMessage = {}
 
 type UserStuff = {
-  queue: MessageQueue<TestMessage>
-  received: number[]
-}
-
-type UserStuffButBetter = {
   peerId: string
   queue: MessageQueue<TestMessage>
   received: number[]
 }
 
-export class TestChannel extends EventEmitter<TestChannelEvents> {
+class TestChannel extends EventEmitter<TestChannelEvents> {
   private peers = 0
   private readonly buffer: Array<{ recipientId: string; msg: NumberedMessage<TestMessage> }> = []
 
