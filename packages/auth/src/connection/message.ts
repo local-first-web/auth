@@ -4,6 +4,9 @@ import type { ErrorMessage, LocalErrorMessage } from './errors.js'
 
 export type ReadyMessage = {
   type: 'REQUEST_IDENTITY'
+  payload: {
+    sessionIdSeed: Uint8Array
+  }
 }
 
 export type DisconnectMessage = {

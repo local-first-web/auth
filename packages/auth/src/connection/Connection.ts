@@ -22,9 +22,9 @@ import {
   NEITHER_IS_MEMBER,
   SERVER_REMOVED,
   TIMEOUT,
+  UNHANDLED,
   createErrorMessage,
   type ConnectionErrorType,
-  UNHANDLED,
 } from 'connection/errors.js'
 import { getDeviceUserFromGraph } from 'connection/getDeviceUserFromGraph.js'
 import * as identity from 'connection/identity.js'
@@ -93,8 +93,11 @@ https://stately.ai/registry/editor/69889811-5f81-4d58-8ef1-f6f3d99fb9ee?machineI
  * implements the connection protocol.
  */
 export class Connection extends EventEmitter<ConnectionEvents> {
+  readonly #sessionIdSeed = randomKeyBytes()
+
   readonly #machine
   readonly #messageQueue: MessageQueue<ConnectionMessage>
+
   #started = false
   #log = debug.extend('auth:connection')
 
@@ -120,8 +123,16 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         // IDENTITY CLAIMS
 
         requestIdentityClaim: () => {
-          this.#queueMessage('REQUEST_IDENTITY')
+          this.#queueMessage('REQUEST_IDENTITY', { sessionIdSeed: this.#sessionIdSeed })
         },
+
+        setSessionId: assign(({ event }) => {
+          assertEvent(event, 'REQUEST_IDENTITY')
+          const { sessionIdSeed: theirSessionIdSeed } = event.payload
+          const ourSessionIdSeed = this.#sessionIdSeed
+          const sessionId = deriveSharedKey(theirSessionIdSeed, ourSessionIdSeed)
+          return { sessionId }
+        }),
 
         sendIdentityClaim: assign(({ context }) => {
           const createIdentityClaim = (context: ConnectionContext): IdentityClaim => {
@@ -483,7 +494,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       entry: 'requestIdentityClaim',
       initial: 'awaitingIdentityClaim',
       on: {
-        REQUEST_IDENTITY: { actions: 'sendIdentityClaim', target: '.awaitingIdentityClaim' },
+        REQUEST_IDENTITY: {
+          actions: ['setSessionId', 'sendIdentityClaim'],
+          target: '.awaitingIdentityClaim',
+        },
         // Remote error (sent by peer)
         ERROR: { actions: 'receiveError', target: '#disconnected' },
         // Local error (detected by us, sent to peer)

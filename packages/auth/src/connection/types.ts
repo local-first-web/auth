@@ -117,6 +117,8 @@ export type Challenge = KeyScope & {
 export type ConnectionContext = {
   device: DeviceWithSecrets | FirstUseDeviceWithSecrets
 
+  sessionId?: Uint8Array
+
   ourIdentityClaim?: IdentityClaim
   theirIdentityClaim?: IdentityClaim
 
