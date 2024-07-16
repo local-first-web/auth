@@ -4,7 +4,6 @@
 
 import * as auth from '@localfirst/auth'
 import { DeviceUtils } from './device.js'
-import { GeneratedUser } from './types.js'
 
 class UserUtils {
   private constructor() {}
@@ -16,13 +15,13 @@ class UserUtils {
    * @param id Optionally specify the user's ID (otherwise autogenerate)
    * @returns New QuietUser instance with an initial device
    */
-  public static create(name: string, id?: string): GeneratedUser {
+  public static create(name: string, id?: string): auth.LocalUserContext {
     const user: auth.UserWithSecrets = auth.createUser(name, id)
-    const initialDevice: auth.DeviceWithSecrets = DeviceUtils.generateDeviceForUser(user.userId)
+    const device: auth.DeviceWithSecrets = DeviceUtils.generateDeviceForUser(user.userId)
 
     return {
       user,
-      initialDevice
+      device
     }
   }
 

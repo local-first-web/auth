@@ -1,14 +1,9 @@
-import { DeviceWithSecrets, UserWithSecrets } from "@localfirst/auth"
+import { LocalUserContext } from "@localfirst/auth"
 import { SigChain } from "./chain.js"
 
-export type CreatedChain = {
+export type LoadedSigChain = {
   sigChain: SigChain
-  initialUser: UserWithSecrets
-}
-
-export type GeneratedUser = {
-  user: UserWithSecrets
-  initialDevice: DeviceWithSecrets
+  context: LocalUserContext
 }
 
 export type GeneratedDMRoleName = {
