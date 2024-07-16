@@ -4,9 +4,26 @@
 
 import * as auth from "@localfirst/auth"
 import getMAC from "getmac"
+import { BaseChainService } from "../base_service.js"
 
-class DeviceUtils {
-  private constructor() {}
+class DeviceService extends BaseChainService {
+  protected static instance: DeviceService | undefined
+
+  public static init(): DeviceService {
+    if (DeviceService.instance == null) {
+      DeviceService.instance = new DeviceService() 
+    }
+
+    return DeviceService.instance
+  }
+
+  public static getInstance(): DeviceService {
+    if (DeviceService.instance == null) {
+      throw new Error(`DeviceService hasn't been initialized yet!  Run init() before accessing`)
+    }
+
+    return DeviceService.instance
+  }
 
   /**
    * Generate a brand new QuietDevice for a given User ID
@@ -14,10 +31,10 @@ class DeviceUtils {
    * @param userId User ID that this device is associated with
    * @returns A newly generated QuietDevice instance
    */
-  public static generateDeviceForUser(userId: string): auth.DeviceWithSecrets {
+  public generateDeviceForUser(userId: string): auth.DeviceWithSecrets {
     const params = {
       userId,
-      deviceName: DeviceUtils.determineDeviceName()
+      deviceName: DeviceService.determineDeviceName()
     }
 
     return auth.createDevice(params)
@@ -39,5 +56,5 @@ class DeviceUtils {
 }
 
 export {
-  DeviceUtils
+  DeviceService
 }

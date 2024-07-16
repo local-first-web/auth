@@ -5,15 +5,24 @@ import { SigChain } from "./auth/chain.js";
 
 
 import figlet from 'figlet'
+import { RoleService } from "auth/services/roles/role_service.js";
+import { UserService } from "auth/services/members/user_service.js";
+import { DeviceService } from "auth/services/members/device_service.js";
+import { ChannelService } from "auth/services/roles/channel_service.js";
 
 console.log(figlet.textSync('Quiet Sandbox'));
+
+UserService.init()
+DeviceService.init()
+RoleService.init()
+ChannelService.init()
 
 const teamName = 'test-team'
 const { context, sigChain } = SigChain.create(teamName, 'isla')
 const manager = SigChainManager.instance
 manager.addChain(teamName, sigChain, true)
 
-manager.getActiveChain().createRoleWithMembers('some-role', [context.user.userId])
+RoleService.getInstance().createWithMembers('some-role', [context.user.userId])
 
 console.log('\n---- USER ----\n')
 console.log(`ID: ${context.user.userId}`)

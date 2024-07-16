@@ -5,8 +5,3 @@ export type LoadedSigChain = {
   sigChain: SigChain
   context: LocalUserContext
 }
-
-export type GeneratedDMRoleName = {
-  dmId: string
-  roleName: string
-}
