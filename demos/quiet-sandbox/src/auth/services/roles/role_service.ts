@@ -5,6 +5,7 @@
 import * as auth from "@localfirst/auth"
 import { BaseChainService } from "auth/services/base_service.js"
 import { Permissions } from "auth/services/roles/permissions.js"
+import { RoleName } from "./roles.js"
 
 class RoleService extends BaseChainService {
   protected static instance: RoleService | undefined
@@ -26,7 +27,7 @@ class RoleService extends BaseChainService {
   }
 
   // TODO: figure out permissions
-  public create(roleName: string, permissions: auth.PermissionsMap = {}, staticMembership: boolean = false) {
+  public create(roleName: RoleName | string, permissions: auth.PermissionsMap = {}, staticMembership: boolean = false) {
     console.log(`Adding new role with name ${roleName}`)
     if (!staticMembership) {
       permissions[Permissions.MODIFIABLE_MEMBERSHIP] = true
@@ -43,7 +44,7 @@ class RoleService extends BaseChainService {
 
   // TODO: figure out permissions
   public createWithMembers(
-    roleName: string, 
+    roleName: RoleName | string, 
     memberIdsForRole: string[], 
     permissions: auth.PermissionsMap = {}, 
     staticMembership: boolean = false

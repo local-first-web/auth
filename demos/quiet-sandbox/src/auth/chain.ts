@@ -31,9 +31,22 @@ class SigChain {
     }
   }
 
+  public static join(context: auth.LocalUserContext, serializedTeam: Uint8Array, teamKeyRing: auth.Keyring): LoadedSigChain {
+    const team: auth.Team = auth.loadTeam(serializedTeam, context, teamKeyRing)
+    team.join(teamKeyRing)
+
+    const sigChain = new SigChain(team)
+    sigChain.persist()
+
+    return {
+      sigChain,
+      context
+    }
+  }
+
   // TODO: persist to storage
-  public persist() {
-    this.team.save()
+  public persist(): Uint8Array {
+    return this.team.save() // this doesn't actually do anything but create the new state to save
   }
 
   // TODO: pull user context from storage and then pull team from storage

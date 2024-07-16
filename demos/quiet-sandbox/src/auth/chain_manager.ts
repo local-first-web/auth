@@ -4,6 +4,7 @@
 
 import { SigChain } from "./chain.js";
 import { DMService } from "./services/dm/dm_service.js";
+import { InviteService } from "./services/invites/invite_service.js";
 import { DeviceService } from "./services/members/device_service.js";
 import { UserService } from "./services/members/user_service.js";
 import { ChannelService } from "./services/roles/channel_service.js";
@@ -19,11 +20,14 @@ class SigChainManager {
   public static init(): SigChainManager {
     if (SigChainManager.instance == null) {
       SigChainManager.instance = new SigChainManager()
+
+      // TODO: Not sure if this actually makes sense to do here but it works in a pinch
       UserService.init()
       DeviceService.init()
       RoleService.init()
       ChannelService.init()
       DMService.init()
+      InviteService.init()
     }
 
     return SigChainManager.instance

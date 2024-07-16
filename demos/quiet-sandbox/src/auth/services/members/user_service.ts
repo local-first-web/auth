@@ -5,7 +5,10 @@
 import * as auth from '@localfirst/auth'
 import { DeviceService } from './device_service.js'
 import { BaseChainService } from '../base_service.js'
-import { MemberSearchOptions } from './types.js'
+import { ProspectiveUser, MemberSearchOptions } from './types.js'
+import { InviteService } from '../invites/invite_service.js'
+import { RoleName } from '../roles/roles.js'
+import { RoleService } from '../roles/role_service.js'
 
 const DEFAULT_SEARCH_OPTIONS: MemberSearchOptions = { includeRemoved: false, throwOnMissing: true }
 
@@ -43,6 +46,25 @@ class UserService extends BaseChainService {
       user,
       device
     }
+  }
+
+  public createFromInviteSeed(name: string, seed: string): ProspectiveUser {
+    const context = this.create(name)
+    const inviteProof = InviteService.getInstance().generateProof(seed)
+    const publicKeys = UserService.redactUser(context.user).keys
+
+    return {
+      context,
+      inviteProof,
+      publicKeys
+    }
+  }
+
+  public admitMemberFromInvite(inviteProof: auth.ProofOfInvitation, username: string, userId: string, publicKeys: auth.Keyset): string {
+    InviteService.getInstance().acceptProof(inviteProof, username, publicKeys)
+    RoleService.getInstance().addMember(userId, RoleName.MEMBER)
+    this.getChain().persist()
+    return username
   }
 
   public getAllMembers(): auth.Member[] {
