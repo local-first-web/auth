@@ -9,7 +9,6 @@ import { UserService } from "auth/services/members/user_service.js";
 import { DMService } from "auth/services/dm/dm_service.js";
 import { InviteService } from "auth/services/invites/invite_service.js";
 import { RoleName } from "auth/services/roles/roles.js";
-import { DeviceService } from "auth/services/members/device_service.js";
 
 console.log(figlet.textSync('Quiet Sandbox'));
 
