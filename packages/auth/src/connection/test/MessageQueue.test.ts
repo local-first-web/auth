@@ -400,7 +400,6 @@ describe('MessageQueue', () => {
         }
         user.queue.on('message', message => user.received.push(message.index))
         channel.on('data', (recipientId, message) => {
-          console.log('channel data', recipientId, message)
           if (recipientId !== peerId) return
           user.queue.receive(message)
         })
