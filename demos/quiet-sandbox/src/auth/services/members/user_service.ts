@@ -7,6 +7,8 @@ import { DeviceService } from './device_service.js'
 import { BaseChainService } from '../base_service.js'
 import { MemberSearchOptions } from './types.js'
 
+const DEFAULT_SEARCH_OPTIONS: MemberSearchOptions = { includeRemoved: false, throwOnMissing: true }
+
 class UserService extends BaseChainService {
   protected static instance: UserService | undefined
 
@@ -47,7 +49,7 @@ class UserService extends BaseChainService {
     return this.getChain().getTeam().members()
   }
 
-  public getMembersById(memberIds: string[], options?: MemberSearchOptions): auth.Member[] {
+  public getMembersById(memberIds: string[], options: MemberSearchOptions = DEFAULT_SEARCH_OPTIONS): auth.Member[] {
     if (memberIds.length === 0) {
       return []
     }
@@ -55,7 +57,7 @@ class UserService extends BaseChainService {
     return this.getChain().getTeam().members(memberIds, options)
   }
 
-  public getPublicKeysForMembersById(memberIds: string[], searchOptions?: MemberSearchOptions): auth.Keyset[] {
+  public getPublicKeysForMembersById(memberIds: string[], searchOptions: MemberSearchOptions = DEFAULT_SEARCH_OPTIONS): auth.Keyset[] {
     const members = this.getMembersById(memberIds, searchOptions)
     return members.map((member: auth.Member) => {
       return member.keys
