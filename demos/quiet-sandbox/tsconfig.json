@@ -4,10 +4,16 @@
     "outDir": "dist",
     "strict": true,
     "target": "ESNext",
-    "module": "CommonJS",
+    "module": "NodeNext",
     "sourceMap": true,
     "esModuleInterop": true,
-    "moduleResolution": "node",
+    "moduleResolution": "NodeNext",
     "declaration": true,
-  }
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

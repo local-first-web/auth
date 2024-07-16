@@ -1,8 +1,7 @@
-import actionSelect from "../components/actionSelect";
-import { messages, channels } from "../data/testTeamInfo";
-import chalk from "chalk";
-import inquirer from "inquirer";
-import pad from "pad";
+import { messages } from '../data/testTeamInfo.js';
+import chalk from 'chalk';
+import inquirer from 'inquirer';
+import pad from 'pad';
 
 const channelView = async (channelName: string): Promise<undefined> => {
   let exit = false;

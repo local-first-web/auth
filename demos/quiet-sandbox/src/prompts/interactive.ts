@@ -1,12 +1,12 @@
 #! /usr/bin/env ts-node
 
-import inquirer from "inquirer";
-import chalk from "chalk";
+import inquirer from 'inquirer';
+import chalk from 'chalk';
 
-import teamInfo from "../data/testTeamInfo";
-import team from "./team";
-import channelsList from "./channelsList";
-import usersList from "./usersList";
+import teamInfo from '../data/testTeamInfo.js';
+import team from './team.js';
+import channelsList from './channelsList.js';
+import usersList from './usersList.js';
 
 const interactive = async () => {
   console.log(chalk.bold("Welcome to the Quiet Sandbox!"));

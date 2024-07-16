@@ -1,8 +1,8 @@
-import inquirer from "inquirer";
-import chalk from "chalk";
+import inquirer from 'inquirer';
+import chalk from 'chalk';
 
-import actionSelect from "../components/actionSelect";
-import teamInfo from "../data/testTeamInfo";
+import actionSelect from '../components/actionSelect.js';
+import teamInfo from '../data/testTeamInfo.js';
 
 export default async () => {
 

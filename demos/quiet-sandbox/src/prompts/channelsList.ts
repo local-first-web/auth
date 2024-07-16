@@ -1,10 +1,10 @@
-import { select } from "inquirer-select-pro";
-import inquirer from "inquirer";
+import { select } from 'inquirer-select-pro';
+import inquirer from 'inquirer';
 
-import actionSelect from "../components/actionSelect";
-import { channels, roles } from "../data/testTeamInfo";
-import channelView from "./channel";
-import chalk from "chalk";
+import actionSelect from '../components/actionSelect.js';
+import { channels, roles } from '../data/testTeamInfo.js';
+import channelView from './channel.js';
+import chalk from 'chalk';
 
 const channelsList = async () => {
   let exit = false;

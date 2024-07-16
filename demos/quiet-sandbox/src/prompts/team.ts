@@ -2,7 +2,7 @@
 
 import chalk from 'chalk';
 
-import teamInfo from '../data/testTeamInfo';
+import teamInfo from '../data/testTeamInfo.js';
 
 const team = () => {
 

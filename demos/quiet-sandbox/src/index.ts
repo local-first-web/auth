@@ -2,8 +2,8 @@
 
 import { program } from '@commander-js/extra-typings';
 
-import team from './prompts/team';
-import interactive from './prompts/interactive';
+import team from './prompts/team.js';
+import interactive from './prompts/interactive.js';
 
 program
   .command('interactive')
