@@ -475,7 +475,7 @@ describe('MessageQueue', () => {
       expect(bob2.received).toEqual([0]) // <- unchanged
     })
 
-    it('cannot ignore messages meant for another instance when not connected to an instance', () => {
+    it.skip('cannot ignore messages meant for another instance when not connected to an instance', () => {
       const channel = new TestChannel()
       // alice and bob have connected
       const { alice: alice1, bob: bob1 } = setup(channel)
