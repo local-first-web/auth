@@ -3,13 +3,39 @@
  */
 
 import { SigChain } from "./chain.js";
+import { DMService } from "./services/dm/dm_service.js";
+import { DeviceService } from "./services/members/device_service.js";
+import { UserService } from "./services/members/user_service.js";
+import { ChannelService } from "./services/roles/channel_service.js";
+import { RoleService } from "./services/roles/role_service.js";
 
 class SigChainManager {
   private chains: Map<string, SigChain> = new Map()
   private activeChainTeamName: string | undefined
-  public static readonly instance: SigChainManager = new SigChainManager()
-  
+  private static instance: SigChainManager | undefined
+
   private constructor() {}
+
+  public static init(): SigChainManager {
+    if (SigChainManager.instance == null) {
+      SigChainManager.instance = new SigChainManager()
+      UserService.init()
+      DeviceService.init()
+      RoleService.init()
+      ChannelService.init()
+      DMService.init()
+    }
+
+    return SigChainManager.instance
+  }
+
+  public static getInstance(): SigChainManager {
+    if (SigChainManager.instance == null) {
+      throw new Error(`SigChainManager hasn't been initialized yet!  Run init() before accessing`)
+    }
+
+    return SigChainManager.instance
+  }
 
   public getActiveChain(): SigChain {
     if (this.activeChainTeamName == null) {

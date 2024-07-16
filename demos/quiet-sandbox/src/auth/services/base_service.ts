@@ -15,7 +15,7 @@ class BaseChainService {
   }
 
   protected getChain(): SigChain {
-    return SigChainManager.instance.getActiveChain()
+    return SigChainManager.getInstance().getActiveChain()
   }
 }
 
