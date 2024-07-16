@@ -1,4 +1,4 @@
-import actionSelect from "../prompts/actionSelect";
+import actionSelect from "../components/actionSelect";
 import { messages, channels } from "../data/testTeamInfo";
 import chalk from "chalk";
 import inquirer from "inquirer";
@@ -20,7 +20,7 @@ const channelView = async (channelName: string): Promise<undefined> => {
         choices: [
           { name: "Message", value: "message", description: "Send a message to the channel" },
           { name: "Leave", value: "leave", description: "Leave channel" },
-          { name: "Return to Channels", value: "return", description: "Return to channels" },
+          { name: "Exit", value: "exit", description: "Return to channels" },
         ],
       },
     ]);
@@ -40,7 +40,7 @@ const channelView = async (channelName: string): Promise<undefined> => {
         console.log(chalk.bold(`You have left ${channelName}`));
         exit = true;
         break;
-      case "return":
+      case "exit":
         exit = true;
         break;
     };

@@ -6,6 +6,7 @@ import chalk from "chalk";
 import teamInfo from "../data/testTeamInfo";
 import team from "./team";
 import channelsList from "./channelsList";
+import usersList from "./usersList";
 
 const interactive = async () => {
   console.log(chalk.bold("Welcome to the Quiet Sandbox!"));
@@ -35,7 +36,7 @@ const interactive = async () => {
         await channelsList();
         break;
       case "users":
-        console.table(teamInfo.users);
+        await usersList();
         break;
       case "roles":
         console.table(teamInfo.roles);

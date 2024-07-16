@@ -1,7 +1,7 @@
 import { select } from "inquirer-select-pro";
 import inquirer from "inquirer";
 
-import actionSelect from "../prompts/actionSelect";
+import actionSelect from "../components/actionSelect";
 import { channels, roles } from "../data/testTeamInfo";
 import channelView from "./channel";
 import chalk from "chalk";
@@ -89,7 +89,7 @@ const channelsList = async () => {
       actions: [
         { name: "View", value: "view", key: "v" },
         { name: "Leave", value: "leave", key: "l" },
-        { name: "Return", value: "return", key: "r" },
+        { name: "Exit", value: "exit", key: "q" },
       ],
     });
     switch (answer.action) {
@@ -106,7 +106,7 @@ const channelsList = async () => {
         // TODO: Hook up to middleware
         channelsList = channelsList.filter((channel) => channel.name !== answer.answer);
         break;
-      case "return":
+      case "exit":
         exit = true;
         break;
     };
