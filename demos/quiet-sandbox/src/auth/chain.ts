@@ -5,12 +5,17 @@
 import * as auth from '@localfirst/auth'
 import { LoadedSigChain } from './types.js'
 import { UserService } from './services/members/user_service.js'
+import { RoleService } from './services/roles/role_service.js'
+import { ChannelService } from './services/roles/channel_service.js'
+import { DeviceService } from './services/members/device_service.js'
+import { InviteService } from './services/invites/invite_service.js'
+import { DMService } from './services/dm/dm_service.js'
 
 class SigChain {
-  private team: auth.Team
+  private _team: auth.Team
 
   private constructor(team: auth.Team) {
-    this.team = team
+    this._team = team
   }
 
   /**
@@ -20,8 +25,8 @@ class SigChain {
    * @param username Username of the initial user we are generating
    */
   public static create(teamName: string, username: string): LoadedSigChain {
-    const context = UserService.getInstance().create(username)
-    const team: auth.Team = auth.createTeam(teamName, context)
+    const context = UserService.instance.create(username)
+    const team: auth.Team = SigChain.lfa.createTeam(teamName, context)
     const sigChain = new SigChain(team)
     sigChain.persist()
 
@@ -31,6 +36,7 @@ class SigChain {
     }
   }
 
+  // TODO: Is this the right signature for this method?
   public static join(context: auth.LocalUserContext, serializedTeam: Uint8Array, teamKeyRing: auth.Keyring): LoadedSigChain {
     const team: auth.Team = auth.loadTeam(serializedTeam, context, teamKeyRing)
     team.join(teamKeyRing)
@@ -46,7 +52,7 @@ class SigChain {
 
   // TODO: persist to storage
   public persist(): Uint8Array {
-    return this.team.save() // this doesn't actually do anything but create the new state to save
+    return this._team.save() // this doesn't actually do anything but create the new state to save
   }
 
   // TODO: pull user context from storage and then pull team from storage
@@ -54,12 +60,40 @@ class SigChain {
   //   
   // }
 
-  public getTeam(): auth.Team {
-    return this.team
+  get team(): auth.Team {
+    return this._team
   }
 
-  public getTeamGraph(): auth.TeamGraph {
-    return this.team.graph
+  get teamGraph(): auth.TeamGraph {
+    return this._team.graph
+  }
+
+  static get users(): UserService {
+    return UserService.instance
+  }
+
+  static get roles(): RoleService {
+    return RoleService.instance
+  }
+
+  static get channels(): ChannelService {
+    return ChannelService.instance
+  }
+
+  static get devices(): DeviceService {
+    return DeviceService.instance
+  }
+
+  static get invites(): InviteService {
+    return InviteService.instance
+  }
+
+  static get dms(): DMService {
+    return DMService.instance
+  }
+
+  static get lfa(): typeof auth {
+    return auth
   }
 }
 

@@ -2,7 +2,7 @@ import { SigChain } from "../chain.js";
 import { SigChainManager } from "../chain_manager.js";
 
 class BaseChainService {
-  protected static instance: BaseChainService | undefined
+  protected static _instance: BaseChainService | undefined
 
   protected constructor() {}
 
@@ -10,12 +10,12 @@ class BaseChainService {
     throw new Error('init not implemented')
   }
 
-  public static getInstance(): BaseChainService {
+  public static get instance(): BaseChainService {
     throw new Error('getInstance not implemented')
   }
 
-  protected getChain(): SigChain {
-    return SigChainManager.getInstance().getActiveChain()
+  get activeSigChain(): SigChain {
+    return SigChainManager.instance.getActiveChain()
   }
 }
 

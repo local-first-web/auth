@@ -2,57 +2,50 @@
  * Handles invite-related chain operations
  */
 
-import * as auth from "@localfirst/auth"
 import { BaseChainService } from "../base_service.js"
 import { ValidationResult } from "../../../../../../packages/crdx/dist/validator/types.js"
+import { Base58, InvitationState, InviteResult, Keyset, ProofOfInvitation, UnixTimestamp } from "@localfirst/auth"
+import { SigChain } from "auth/chain.js"
 
 const DEFAULT_MAX_USES = 1
 const DEFAULT_INVITATION_VALID_FOR_MS = 604_800_000 // 1 week
 
 class InviteService extends BaseChainService {
-  protected static instance: InviteService | undefined
+  protected static _instance: InviteService | undefined
 
   public static init(): InviteService {
-    if (InviteService.instance == null) {
-      InviteService.instance = new InviteService() 
-    }
-
-    return InviteService.instance
-  }
-
-  public static getInstance(): InviteService {
-    if (InviteService.instance == null) {
-      throw new Error(`InviteService hasn't been initialized yet!  Run init() before accessing`)
+    if (InviteService._instance == null) {
+      InviteService._instance = new InviteService() 
     }
 
     return InviteService.instance
   }
 
   public create(validForMs: number = DEFAULT_INVITATION_VALID_FOR_MS, maxUses: number = DEFAULT_MAX_USES) {
-    const expiration = (Date.now() + validForMs) as auth.UnixTimestamp
-    const invitation: auth.InviteResult = this.getChain().getTeam().inviteMember({
+    const expiration = (Date.now() + validForMs) as UnixTimestamp
+    const invitation: InviteResult = this.activeSigChain.team.inviteMember({
       expiration,
       maxUses
     })
-    this.getChain().persist()
+    this.activeSigChain.persist()
     return invitation
   }
 
   public revoke(id: string) {
-    this.getChain().getTeam().revokeInvitation(id)
-    this.getChain().persist()
+    this.activeSigChain.team.revokeInvitation(id)
+    this.activeSigChain.persist()
   }
 
-  public getById(id: auth.Base58): auth.InvitationState {
-    return this.getChain().getTeam().getInvitation(id)
+  public getById(id: Base58): InvitationState {
+    return this.activeSigChain.team.getInvitation(id)
   }
 
-  public generateProof(seed: string): auth.ProofOfInvitation {
-    return auth.invitation.generateProof(seed)
+  public generateProof(seed: string): ProofOfInvitation {
+    return SigChain.lfa.invitation.generateProof(seed)
   }
 
-  public validateProof(proof: auth.ProofOfInvitation): boolean {
-    const validationResult = this.getChain().getTeam().validateInvitation(proof) as ValidationResult
+  public validateProof(proof: ProofOfInvitation): boolean {
+    const validationResult = this.activeSigChain.team.validateInvitation(proof) as ValidationResult
     if (!validationResult.isValid) {
       console.error(`Proof was invalid or was on an invalid invitation`, validationResult.error)
       return true
@@ -61,9 +54,17 @@ class InviteService extends BaseChainService {
     return true
   }
 
-  public acceptProof(proof: auth.ProofOfInvitation, username: string, publicKeys: auth.Keyset) {
-    this.getChain().getTeam().admitMember(proof, publicKeys, username)
-    this.getChain().persist()
+  public acceptProof(proof: ProofOfInvitation, username: string, publicKeys: Keyset) {
+    this.activeSigChain.team.admitMember(proof, publicKeys, username)
+    this.activeSigChain.persist()
+  }
+
+  public static get instance(): InviteService {
+    if (InviteService._instance == null) {
+      throw new Error(`InviteService hasn't been initialized yet!  Run init() before accessing`)
+    }
+
+    return InviteService._instance
   }
 }
 

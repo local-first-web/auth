@@ -13,13 +13,13 @@ import { RoleService } from "./services/roles/role_service.js";
 class SigChainManager {
   private chains: Map<string, SigChain> = new Map()
   private activeChainTeamName: string | undefined
-  private static instance: SigChainManager | undefined
+  private static _instance: SigChainManager | undefined
 
   private constructor() {}
 
   public static init(): SigChainManager {
-    if (SigChainManager.instance == null) {
-      SigChainManager.instance = new SigChainManager()
+    if (SigChainManager._instance == null) {
+      SigChainManager._instance = new SigChainManager()
 
       // TODO: Not sure if this actually makes sense to do here but it works in a pinch
       UserService.init()
@@ -28,14 +28,6 @@ class SigChainManager {
       ChannelService.init()
       DMService.init()
       InviteService.init()
-    }
-
-    return SigChainManager.instance
-  }
-
-  public static getInstance(): SigChainManager {
-    if (SigChainManager.instance == null) {
-      throw new Error(`SigChainManager hasn't been initialized yet!  Run init() before accessing`)
     }
 
     return SigChainManager.instance
@@ -91,6 +83,14 @@ class SigChainManager {
     }
 
     return this.chains.get(teamName)!
+  }
+
+  public static get instance(): SigChainManager {
+    if (SigChainManager._instance == null) {
+      throw new Error(`SigChainManager hasn't been initialized yet!  Run init() before accessing`)
+    }
+
+    return SigChainManager._instance
   }
 }
 

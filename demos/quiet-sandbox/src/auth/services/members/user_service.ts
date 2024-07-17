@@ -2,30 +2,20 @@
  * Handles user-related chain operations
  */
 
-import * as auth from '@localfirst/auth'
-import { DeviceService } from './device_service.js'
 import { BaseChainService } from '../base_service.js'
 import { ProspectiveUser, MemberSearchOptions } from './types.js'
-import { InviteService } from '../invites/invite_service.js'
 import { RoleName } from '../roles/roles.js'
-import { RoleService } from '../roles/role_service.js'
+import { DeviceWithSecrets, Keyset, LocalUserContext, Member, ProofOfInvitation, User, UserWithSecrets } from '@localfirst/auth'
+import { SigChain } from 'auth/chain.js'
 
 const DEFAULT_SEARCH_OPTIONS: MemberSearchOptions = { includeRemoved: false, throwOnMissing: true }
 
 class UserService extends BaseChainService {
-  protected static instance: UserService | undefined
+  protected static _instance: UserService | undefined
 
   public static init(): UserService {
-    if (UserService.instance == null) {
-      UserService.instance = new UserService() 
-    }
-
-    return UserService.instance
-  }
-
-  public static getInstance(): UserService {
-    if (UserService.instance == null) {
-      throw new Error(`UserService hasn't been initialized yet!  Run init() before accessing`)
+    if (UserService._instance == null) {
+      UserService._instance = new UserService() 
     }
 
     return UserService.instance
@@ -38,9 +28,9 @@ class UserService extends BaseChainService {
    * @param id Optionally specify the user's ID (otherwise autogenerate)
    * @returns New QuietUser instance with an initial device
    */
-  public create(name: string, id?: string): auth.LocalUserContext {
-    const user: auth.UserWithSecrets = auth.createUser(name, id)
-    const device: auth.DeviceWithSecrets = DeviceService.getInstance().generateDeviceForUser(user.userId)
+  public create(name: string, id?: string): LocalUserContext {
+    const user: UserWithSecrets = SigChain.lfa.createUser(name, id)
+    const device: DeviceWithSecrets = SigChain.devices.generateDeviceForUser(user.userId)
 
     return {
       user,
@@ -50,7 +40,7 @@ class UserService extends BaseChainService {
 
   public createFromInviteSeed(name: string, seed: string): ProspectiveUser {
     const context = this.create(name)
-    const inviteProof = InviteService.getInstance().generateProof(seed)
+    const inviteProof = SigChain.invites.generateProof(seed)
     const publicKeys = UserService.redactUser(context.user).keys
 
     return {
@@ -60,34 +50,42 @@ class UserService extends BaseChainService {
     }
   }
 
-  public admitMemberFromInvite(inviteProof: auth.ProofOfInvitation, username: string, userId: string, publicKeys: auth.Keyset): string {
-    InviteService.getInstance().acceptProof(inviteProof, username, publicKeys)
-    RoleService.getInstance().addMember(userId, RoleName.MEMBER)
-    this.getChain().persist()
+  public admitMemberFromInvite(inviteProof: ProofOfInvitation, username: string, userId: string, publicKeys: Keyset): string {
+    SigChain.invites.acceptProof(inviteProof, username, publicKeys)
+    SigChain.roles.addMember(userId, RoleName.MEMBER)
+    this.activeSigChain.persist()
     return username
   }
 
-  public getAllMembers(): auth.Member[] {
-    return this.getChain().getTeam().members()
+  public getAllMembers(): Member[] {
+    return this.activeSigChain.team.members()
   }
 
-  public getMembersById(memberIds: string[], options: MemberSearchOptions = DEFAULT_SEARCH_OPTIONS): auth.Member[] {
+  public getMembersById(memberIds: string[], options: MemberSearchOptions = DEFAULT_SEARCH_OPTIONS): Member[] {
     if (memberIds.length === 0) {
       return []
     }
 
-    return this.getChain().getTeam().members(memberIds, options)
+    return this.activeSigChain.team.members(memberIds, options)
   }
 
-  public getPublicKeysForMembersById(memberIds: string[], searchOptions: MemberSearchOptions = DEFAULT_SEARCH_OPTIONS): auth.Keyset[] {
+  public getPublicKeysForMembersById(memberIds: string[], searchOptions: MemberSearchOptions = DEFAULT_SEARCH_OPTIONS): Keyset[] {
     const members = this.getMembersById(memberIds, searchOptions)
-    return members.map((member: auth.Member) => {
+    return members.map((member: Member) => {
       return member.keys
     })
   }
 
-  public static redactUser(user: auth.UserWithSecrets): auth.User {
-    return auth.redactUser(user)
+  public static redactUser(user: UserWithSecrets): User {
+    return SigChain.lfa.redactUser(user)
+  }
+
+  public static get instance(): UserService {
+    if (UserService._instance == null) {
+      throw new Error(`UserService hasn't been initialized yet!  Run init() before accessing`)
+    }
+
+    return UserService._instance
   }
 }
 
