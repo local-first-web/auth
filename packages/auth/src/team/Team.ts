@@ -767,6 +767,9 @@ export class Team extends EventEmitter<TeamEvents> {
   public keys = (scope: KeyMetadata | KeyScope) =>
     select.keys(this.state, this.context.device.keys, scope)
 
+  public allKeys = () =>
+    select.allKeys(this.state, this.context.device.keys)
+
   /** Returns the keys for the given role. */
   public roleKeys = (roleName: string, generation?: number) =>
     this.keys({ type: KeyType.ROLE, name: roleName, generation })

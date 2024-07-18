@@ -2,13 +2,11 @@
  * Handles user-related chain operations
  */
 
+import { KeyMap } from '../../../../../../packages/auth/dist/team/selectors/keyMap.js'
 import { BaseChainService } from '../base_service.js'
-import { ProspectiveUser, MemberSearchOptions } from './types.js'
-import { RoleName } from '../roles/roles.js'
-import { DeviceWithSecrets, Keyset, LocalUserContext, Member, ProofOfInvitation, User, UserWithSecrets } from '@localfirst/auth'
+import { ProspectiveUser, MemberSearchOptions, DEFAULT_SEARCH_OPTIONS } from './types.js'
+import { DeviceWithSecrets, LocalUserContext, Member, User, UserWithSecrets } from '@localfirst/auth'
 import { SigChain } from 'auth/chain.js'
-
-const DEFAULT_SEARCH_OPTIONS: MemberSearchOptions = { includeRemoved: false, throwOnMissing: true }
 
 class UserService extends BaseChainService {
   protected static _instance: UserService | undefined
@@ -50,11 +48,8 @@ class UserService extends BaseChainService {
     }
   }
 
-  public admitMemberFromInvite(inviteProof: ProofOfInvitation, username: string, userId: string, publicKeys: Keyset): string {
-    SigChain.invites.acceptProof(inviteProof, username, publicKeys)
-    SigChain.roles.addMember(userId, RoleName.MEMBER)
-    this.activeSigChain.persist()
-    return username
+  public getKeys(): KeyMap {
+    return this.activeSigChain.team.allKeys()
   }
 
   public getAllMembers(): Member[] {
@@ -67,13 +62,6 @@ class UserService extends BaseChainService {
     }
 
     return this.activeSigChain.team.members(memberIds, options)
-  }
-
-  public getPublicKeysForMembersById(memberIds: string[], searchOptions: MemberSearchOptions = DEFAULT_SEARCH_OPTIONS): Keyset[] {
-    const members = this.getMembersById(memberIds, searchOptions)
-    return members.map((member: Member) => {
-      return member.keys
-    })
   }
 
   public static redactUser(user: UserWithSecrets): User {

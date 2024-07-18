@@ -4,11 +4,8 @@ import { SigChainManager } from "auth/chain_manager.js";
 import { SigChain } from "./auth/chain.js";
 
 import figlet from 'figlet'
-import { RoleService } from "auth/services/roles/role_service.js";
-import { UserService } from "auth/services/members/user_service.js";
-import { DMService } from "auth/services/dm/dm_service.js";
-import { InviteService } from "auth/services/invites/invite_service.js";
 import { RoleName } from "auth/services/roles/roles.js";
+import { EncryptionScopeType } from "auth/services/crypto/types.js";
 
 console.log(figlet.textSync('Quiet Sandbox'));
 
@@ -20,7 +17,7 @@ const { context, sigChain } = SigChain.create(teamName, username)
 const isActive = manager.addChain(teamName, sigChain, true)
 console.log(`Is new chain active?: ${isActive}`)
 
-RoleService.instance.createWithMembers(RoleName.MEMBER, [context.user.userId])
+SigChain.roles.createWithMembers(RoleName.MEMBER, [context.user.userId])
 
 console.log('\n---- USER ----\n')
 console.log(`ID: ${context.user.userId}`)
@@ -28,41 +25,41 @@ console.log(`Name: ${context.user.userName}`)
 console.log(`Keys: ${JSON.stringify(context.user.keys, null, 2)}`)
 
 console.log('\n---- Team ----\n')
-console.log(`Members: ${JSON.stringify(UserService.instance.getAllMembers(), null, 2)}`)
+console.log(`Members: ${JSON.stringify(SigChain.users.getAllMembers(), null, 2)}`)
 console.log(`Role keys: ${JSON.stringify(sigChain.team.roleKeys(RoleName.MEMBER), null, 2)}`)
 
-const dmId = DMService.instance.create([context.user.userId])
-const keys = DMService.instance.getDmKeysById(dmId)
+const dmId = SigChain.dms.create([context.user.userId])
+const keys = SigChain.dms.getDmKeysById(dmId)
 
 console.log('\n---- DM ----\n')
 console.log(`DM ID: ${dmId}`)
 console.log(`DM Keys: ${JSON.stringify(keys, null, 2)}`)
 
-const invitation = InviteService.instance.create()
+const invitation = SigChain.invites.create()
 
 console.log('\n---- Invite ----\n')
 console.log(`Invite Result: ${JSON.stringify(invitation, null, 2)}`)
 
-let invitationState = InviteService.instance.getById(invitation.id)
+let invitationState = SigChain.invites.getById(invitation.id)
 
 console.log(`Invite State (Active): ${JSON.stringify(invitationState, null, 2)}`)
 
-InviteService.instance.revoke(invitation.id)
-invitationState = InviteService.instance.getById(invitation.id)
+SigChain.invites.revoke(invitation.id)
+invitationState = SigChain.invites.getById(invitation.id)
 
 console.log(`Invite State (Revoked): ${JSON.stringify(invitationState, null, 2)}`)
 
-const newInvitation = InviteService.instance.create()
+const newInvitation = SigChain.invites.create()
 
 console.log('\n---- Invite With Proof ----\n')
 console.log(`Invite Result: ${JSON.stringify(newInvitation, null, 2)}`)
 
 const newUsername = 'isntla'
-const prospectiveMember = UserService.instance.createFromInviteSeed(newUsername, newInvitation.seed)
+const prospectiveMember = SigChain.users.createFromInviteSeed(newUsername, newInvitation.seed)
 
 console.log(`Prospective Member: ${JSON.stringify(prospectiveMember, null, 2)}`)
 
-UserService.instance.admitMemberFromInvite(
+SigChain.invites.admitMemberFromInvite(
   prospectiveMember.inviteProof, 
   prospectiveMember.context.user.userName, 
   prospectiveMember.context.user.userId,
@@ -76,6 +73,11 @@ const newUsersChain = SigChain.join(
 )
 
 manager.addChain(`${teamName}2`, newUsersChain.sigChain, true)
+console.log(`All keys for new user: ${JSON.stringify(SigChain.users.getKeys(), null, 2)}`)
 
-console.log(`Members: ${JSON.stringify(UserService.instance.getAllMembers(), null, 2)}`)
+console.log(`Members: ${JSON.stringify(SigChain.users.getAllMembers(), null, 2)}`)
+
+const encryptedAndSigned = SigChain.crypto.encryptAndSign('foobar', { type: EncryptionScopeType.ROLE, name: RoleName.MEMBER }, newUsersChain.context)
+console.log(`Encrypted and signed: ${JSON.stringify(encryptedAndSigned, null, 2)}`)
+console.log(`Decrypted: ${SigChain.crypto.decryptAndVerify(encryptedAndSigned.encrypted, encryptedAndSigned.signature, newUsersChain.context)}`)
 

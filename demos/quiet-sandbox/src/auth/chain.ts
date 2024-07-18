@@ -10,6 +10,7 @@ import { ChannelService } from './services/roles/channel_service.js'
 import { DeviceService } from './services/members/device_service.js'
 import { InviteService } from './services/invites/invite_service.js'
 import { DMService } from './services/dm/dm_service.js'
+import { CryptoService } from './services/crypto/crypto_service.js'
 
 class SigChain {
   private _team: auth.Team
@@ -52,7 +53,7 @@ class SigChain {
 
   // TODO: persist to storage
   public persist(): Uint8Array {
-    return this._team.save() // this doesn't actually do anything but create the new state to save
+    return this.team.save() // this doesn't actually do anything but create the new state to save
   }
 
   // TODO: pull user context from storage and then pull team from storage
@@ -90,6 +91,10 @@ class SigChain {
 
   static get dms(): DMService {
     return DMService.instance
+  }
+
+  static get crypto(): CryptoService {
+    return CryptoService.instance
   }
 
   static get lfa(): typeof auth {

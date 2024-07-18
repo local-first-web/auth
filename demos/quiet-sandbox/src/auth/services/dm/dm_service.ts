@@ -37,7 +37,7 @@ class DMService extends BaseChainService {
     }
 
     const memberIds = this.dmMap.get(id)!
-    return SigChain.users.getPublicKeysForMembersById(memberIds, { includeRemoved: false, throwOnMissing: false })
+    return SigChain.crypto.getPublicKeysForMembersById(memberIds, { includeRemoved: false, throwOnMissing: false })
   }
 
   private static getDmId(memberIds: string[]): string {

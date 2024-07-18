@@ -10,3 +10,5 @@ export type ProspectiveUser = {
   inviteProof: ProofOfInvitation
   publicKeys: Keyset
 }
+
+export const DEFAULT_SEARCH_OPTIONS: MemberSearchOptions = { includeRemoved: false, throwOnMissing: true }

@@ -6,6 +6,7 @@ import { BaseChainService } from "../base_service.js"
 import { ValidationResult } from "../../../../../../packages/crdx/dist/validator/types.js"
 import { Base58, InvitationState, InviteResult, Keyset, ProofOfInvitation, UnixTimestamp } from "@localfirst/auth"
 import { SigChain } from "auth/chain.js"
+import { RoleName } from "../roles/roles.js"
 
 const DEFAULT_MAX_USES = 1
 const DEFAULT_INVITATION_VALID_FOR_MS = 604_800_000 // 1 week
@@ -57,6 +58,13 @@ class InviteService extends BaseChainService {
   public acceptProof(proof: ProofOfInvitation, username: string, publicKeys: Keyset) {
     this.activeSigChain.team.admitMember(proof, publicKeys, username)
     this.activeSigChain.persist()
+  }
+
+  public admitMemberFromInvite(proof: ProofOfInvitation, username: string, userId: string, publicKeys: Keyset): string {
+    this.activeSigChain.team.admitMember(proof, publicKeys, username)
+    SigChain.roles.addMember(userId, RoleName.MEMBER)
+    this.activeSigChain.persist()
+    return username
   }
 
   public static get instance(): InviteService {

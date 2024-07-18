@@ -3,6 +3,7 @@
  */
 
 import { SigChain } from "./chain.js";
+import { CryptoService } from "./services/crypto/crypto_service.js";
 import { DMService } from "./services/dm/dm_service.js";
 import { InviteService } from "./services/invites/invite_service.js";
 import { DeviceService } from "./services/members/device_service.js";
@@ -28,6 +29,7 @@ class SigChainManager {
       ChannelService.init()
       DMService.init()
       InviteService.init()
+      CryptoService.init()
     }
 
     return SigChainManager.instance
