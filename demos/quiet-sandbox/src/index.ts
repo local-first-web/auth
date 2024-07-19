@@ -35,6 +35,15 @@ console.log('\n---- DM ----\n')
 console.log(`DM ID: ${dmId}`)
 console.log(`DM Keys: ${JSON.stringify(keys, null, 2)}`)
 
+const channelName = 'some-channel'
+SigChain.channels.createPrivateChannel(channelName)
+const encryptedAndSignedChannel = SigChain.crypto.encryptAndSign('foobar', { type: EncryptionScopeType.CHANNEL, name: channelName }, context)
+
+console.log('\n---- Channels ----\n')
+console.log(`Channel Keys: ${JSON.stringify(SigChain.crypto.getKeysForChannel(channelName), null, 2)}`)
+console.log(`Encrypted and signed: ${JSON.stringify(encryptedAndSignedChannel, null, 2)}`)
+console.log(`Decrypted: ${SigChain.crypto.decryptAndVerify(encryptedAndSignedChannel.encrypted, encryptedAndSignedChannel.signature, context)}`)
+
 const invitation = SigChain.invites.create()
 
 console.log('\n---- Invite ----\n')

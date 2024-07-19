@@ -2,6 +2,7 @@ import { Base58, SignedEnvelope } from "@localfirst/auth"
 
 export enum EncryptionScopeType {
   ROLE = 'ROLE',
+  CHANNEL = 'CHANNEL',
   USER = 'USER',
   TEAM = 'TEAM'
 }

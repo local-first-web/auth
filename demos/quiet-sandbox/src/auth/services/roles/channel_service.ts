@@ -41,7 +41,7 @@ class ChannelService extends BaseChainService {
     this.activeSigChain.persist()
   }
 
-  private static getPrivateChannelRoleName(channelName: string): string {
+  public static getPrivateChannelRoleName(channelName: string): string {
     return `priv_chan_${channelName}`
   }
 
