@@ -1,4 +1,4 @@
-import inquirer from 'inquirer';
+import { input, select, number } from '@inquirer/prompts';
 import chalk from 'chalk';
 
 import actionSelect from '../components/actionSelect.js';
@@ -20,16 +20,15 @@ export default async () => {
         message: "Select a user",
         choices: userList,
         actions: [
-          { name: "View Profile", value: "profile", key: "v" },
-          { name: "Direct Message", value: "message", key: "m" },
-          { name: "Delete User", value: "remove", key: "d" },
-          { name: "Manage Roles", value: "role", key: "r" },
-          { name: "Add New User", value: "add", key: "n" },
-          { name: "Exit", value: "exit", key: "q" },
+          { name: "Select", value: "select", key: "e" },
+          { name: "Back", value: "back", key: "q" },
+          { name: "DM", value: "message", key: "m" },
+          { name: "Remove User", value: "remove", key: "d" },
+          { name: "Set Roles", value: "role", key: "r" },
         ],
       });
     switch (answer.action) {
-      case "profile":
+      case "select":
       case undefined:
         const user = teamInfo.users.find((user) => user.name === answer.answer);
         console.table(user);
@@ -37,13 +36,11 @@ export default async () => {
       case "message":
         // TODO: Print dm history
         console.log(chalk.bold(`DM with ${answer.answer}`));
-        const msg = await inquirer.prompt([
+        const msg = await input(
           {
-            type: "input",
-            name: "message",
             message: `You to ${answer.answer}:`,
           },
-        ]);
+        );
         break;
       case "remove":
         // TODO: replace with middleware
@@ -56,10 +53,7 @@ export default async () => {
       case "role":
         const roles = await roleSelect(answer.answer);
         break;
-      case "add":
-        // TODO: add new user dialog
-        break;
-      case "exit":
+      case "back":
         exit = true;
         return;
     };

@@ -87,13 +87,14 @@ const channelsList = async () => {
       message: "Select a channel",
       choices: channelsList,
       actions: [
-        { name: "Enter", value: "enter", key: "e" },
+        { name: "Select", value: "select", key: "e" },
+        { name: "Delete", value: "delete", key: "d" },
         { name: "Leave", value: "leave", key: "l" },
-        { name: "Exit", value: "exit", key: "q" },
+        { name: "Back", value: "back", key: "q" },
       ],
     });
     switch (answer.action) {
-      case "enter":
+      case "select":
       case undefined: // catches enter/return key
         await channelView(answer.answer);
         break;
@@ -107,7 +108,7 @@ const channelsList = async () => {
         // TODO: Hook up to middleware
         channelsList = channelsList.filter((channel) => channel.name !== answer.answer);
         break;
-      case "exit":
+      case "back":
         exit = true;
         break;
     };

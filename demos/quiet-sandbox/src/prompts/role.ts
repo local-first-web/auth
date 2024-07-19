@@ -11,34 +11,42 @@ const roleView = async (roleName: string) => {
   }
   let exit = false;
   while (exit === false) {
-    const answer = await inquirer.prompt([
+    const answer = await actionSelect(
       {
-        type: "select",
-        name: "action",
         message: `Role: ${role.name}\n Description: ${role.description}\n`,
         choices: [
           { name: "Edit members", value: "members", description: "View members of the role" },
           { name: "Edit permissions", value: "edit", description: "Edit the role" },
           { name: "Delete role", value: "delete", description: "Delete the role" },
-          { name: "Exit", value: "exit", description: "Return to roles list" },
+        ],
+        actions: [
+          { name: "Select", value: "select", key: "e" },
+          { name: "Back", value: "back", key: "q" },
         ],
       },
-    ]);
+    );
 
     switch (answer.action) {
-      case "members":
-        const members = await memberEdit(role);
-        console.log("Changing members not implemented");
+      case "select":
+      case undefined:
+        switch (answer.answer) {
+          case "members":
+            const members = await memberEdit(role);
+            console.log("Changing members not implemented");
+            // TODO: emit to middleware
+            break;
+          case "edit":
+            console.log("Role editing not implmented");
+            break;
+          case "delete":
+            console.log("Deleting role not implmented");
+            break;
+        }
         break;
-      case "edit":
-        console.log("Role editing not implmented");
-        break;
-      case "delete":
-        console.log("Deleting role not implmented");
-        break;
-      case "exit":
+      case "back":
         exit = true;
-        break;
+        return;
+
     };
   };
 };

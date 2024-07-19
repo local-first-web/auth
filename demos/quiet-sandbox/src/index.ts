@@ -4,7 +4,6 @@ import { program } from '@commander-js/extra-typings';
 
 import team from './prompts/team.js';
 import interactive from './prompts/interactive.js';
-import createLogger from '@localfirst/logger';
 
 // Helper function for logging
 const logOptions = (globalOptions: object, commandOptions: object) => {
@@ -29,8 +28,6 @@ program
   .command('interactive')
   .description('Interactive mode')
   .action(() => {
-    const globalOptions = program.opts();
-    logOptions(globalOptions, {});
     interactive();
   });
 
@@ -224,7 +221,7 @@ show
   .option('-g, --groups [group_id]', 'Show groups')
   .option('-c, --channels [channel_id]', 'Show channels')
   .option('-r, --roles [role_id]', 'Show roles')
-  .option('-d, --dm [user...]', 'Show DMs')
+  .option('-m, --msg [user...]', 'Show DMs')
   .option('-d, --devices [device_id]', 'Show devices')
   .option('-i, --invites [invite_id]', 'Show invites')
   .action((options) => {

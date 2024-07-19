@@ -2,6 +2,7 @@ import { select } from '@inquirer/prompts';
 
 import { roles } from '../data/testTeamInfo.js';
 import { roleView } from './role.js';
+import actionSelect from '../components/actionSelect.js';
 
 const rolesList = async () => {
   while (true) {
@@ -11,18 +12,23 @@ const rolesList = async () => {
         value: role.name,
       };
     });
-    rolesList.push({ name: "Exit", value: "exit" });
-    const answer = await select(
+    const answer = await actionSelect(
       {
         message: "Select a role",
         choices: rolesList,
+        actions: [
+          { name: "Select", value: "select", key: "e" },
+          { name: "Back", value: "back", key: "q" },
+        ],
       },
     );
-    switch (answer) {
-      case "exit":
+    switch (answer.action) {
+      case "select":
+      case undefined:
+        await roleView(answer.answer);
+        break;
+      case "back":
         return;
-      default:
-        await roleView(answer);
     };
 
   }
