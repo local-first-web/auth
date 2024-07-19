@@ -9,7 +9,7 @@ import team from './team.js';
 import channelsList from './channelsList.js';
 import usersList from './users.js';
 import rolesList from './rolesList.js';
-import figlet from 'figlet';
+import invitesList from './invitesList.js';
 
 const interactive = async () => {
   console.log(chalk.magentaBright.bold.underline("Quiet Sandbox"));
@@ -49,7 +49,7 @@ const interactive = async () => {
             await rolesList();
             break;
           case "invites":
-            console.table(teamInfo.invites);
+            await invitesList();
             break;
         }
         break;

@@ -88,9 +88,9 @@ const channelsList = async () => {
       choices: channelsList,
       actions: [
         { name: "Select", value: "select", key: "e" },
+        { name: "Back", value: "back", key: "q" },
         { name: "Delete", value: "delete", key: "d" },
         { name: "Leave", value: "leave", key: "l" },
-        { name: "Back", value: "back", key: "q" },
       ],
     });
     switch (answer.action) {
