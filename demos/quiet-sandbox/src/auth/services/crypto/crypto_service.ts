@@ -28,8 +28,12 @@ class CryptoService extends BaseChainService {
     })
   }
 
+  public getKeysForRole(roleName: string, generation?: number): KeysetWithSecrets {
+    return this.activeSigChain.team.roleKeys(roleName, generation)
+  }
+
   public getKeysForChannel(channelName: string, generation?: number): KeysetWithSecrets {
-    return this.activeSigChain.team.roleKeys(ChannelService.getPrivateChannelRoleName(channelName), generation)
+    return this.getKeysForRole(ChannelService.getPrivateChannelRoleName(channelName), generation)
   }
 
   public encryptAndSign(message: any, scope: EncryptionScope, context: LocalUserContext): EncryptedAndSignedPayload {
@@ -40,7 +44,7 @@ class CryptoService extends BaseChainService {
       if (scope.name == null) {
         throw new Error(`Must provide a role name when encryption scope is set to ${scope.type}`)
       }
-      const keys = this.activeSigChain.team.roleKeys(scope.name)
+      const keys = this.getKeysForRole(scope.name)
       recipientKey = keys.encryption.publicKey
       senderKey = keys.encryption.secretKey
       generation = keys.generation
@@ -101,7 +105,7 @@ class CryptoService extends BaseChainService {
       if (encrypted.scope.name == null) {
         throw new Error(`Must provide a role name when encryption scope is set to ${encrypted.scope.type}`)
       }
-      const keys = this.activeSigChain.team.roleKeys(encrypted.scope.name, encrypted.scope.generation)
+      const keys = this.getKeysForRole(encrypted.scope.name, encrypted.scope.generation)
       recipientKey = keys.encryption.secretKey
       senderKey = keys.encryption.publicKey
     } else if (encrypted.scope.type === EncryptionScopeType.CHANNEL) {
