@@ -19,6 +19,7 @@ class CryptoService extends BaseChainService {
     return CryptoService.instance
   }
 
+  // TODO: Can we get other members' keys by generation?
   public getPublicKeysForMembersById(memberIds: string[], searchOptions: MemberSearchOptions = DEFAULT_SEARCH_OPTIONS): Keyset[] {
     const members = SigChain.users.getMembersById(memberIds, searchOptions)
     return members.map((member: Member) => {
@@ -110,6 +111,7 @@ class CryptoService extends BaseChainService {
       senderPublicKey: senderKey,
       recipientSecretKey: recipientKey
     })
+
     return decrypted
   }
 
