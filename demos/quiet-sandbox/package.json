@@ -1,14 +1,16 @@
 {
-  "name": "quiet-sandbox",
+  "name": "@localfirst/quiet-sandbox",
   "version": "1.0.0",
   "description": "",
-  "main": "./src/index.ts",
+  "main": "./src/index.js",
   "bin": {
-    "qsb": "./src/index.ts"
+    "qsb": "./src/index.js"
   },
   "scripts": {
-    "build": "tsup",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "ig": "tsc && npm i -g .",
+    "start": "ts-node-esm src/index.ts interactive"
   },
   "keywords": [],
   "author": "",
@@ -16,21 +18,25 @@
   "type": "module",
   "dependencies": {
     "@commander-js/extra-typings": "^12.1.0",
+    "@inquirer/core": "^9.0.2",
     "@localfirst/auth": "workspace:*",
     "@localfirst/shared": "workspace:*",
-    "@types/figlet": "^1.5.8",
+    "ansi-escapes": "^7.0.0",
+    "chalk": "^4.1.2",
     "colors": "^1.4.0",
     "figlet": "^1.7.0",
-    "getmac": "^6.6.0",
+    "figures": "^6.1.0",
     "inquirer": "^10.0.1",
+    "inquirer-select-pro": "^1.0.0-alpha.6",
     "pad": "^3.2.0",
-    "quiet-sandbox": "link:"
+    "type-fest": "^4.21.0"
   },
   "devDependencies": {
     "@types/node": "^18.18.13",
-    "@types/ua-parser-js": "^0.7.39",
+    "@types/figlet": "^1.5.8",
+    "eslint": "^9.7.0",
     "prettier": "^3.1.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.5.3"
   }
 }

@@ -3,10 +3,14 @@
   "compilerOptions": {
     "baseUrl": "src",
     "outDir": "dist",
-    "rootDir": "src",
+    "strict": true,
+    "target": "ESNext",
+    "module": "NodeNext",
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "moduleResolution": "NodeNext",
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
   },
-  "include": [
-    "src",
-    "@types"
-  ]
+  "include": ["src"]
 }

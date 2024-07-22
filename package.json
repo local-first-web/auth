@@ -12,6 +12,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm -r build",
+    "dev:qsb": "pnpm -F @localfirst/quiet-sandbox start",
     "dev:demo": "pnpm -F @localfirst/automerge-repo-todos dev",
     "dev:taco": "pnpm -F @localfirst/taco-chat dev",
     "dev:cy:taco": "pnpm -F @localfirst/taco-chat dev:cy",

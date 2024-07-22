@@ -1,92 +1,310 @@
-#! /usr/bin/env node
+#! /usr/bin/env ts-node
 
-import { SigChainManager } from "auth/chain_manager.js";
-import { SigChain } from "./auth/chain.js";
+import { program } from '@commander-js/extra-typings';
 
-import figlet from 'figlet'
-import { RoleName } from "auth/services/roles/roles.js";
-import { EncryptionScopeType } from "auth/services/crypto/types.js";
+import team from './prompts/team.js';
+import interactive from './prompts/interactive.js';
 
-console.log(figlet.textSync('Quiet Sandbox'));
+// Helper function for logging
+const logOptions = (globalOptions: object, commandOptions: object) => {
+  console.log('Global Options:', globalOptions);
+  console.log('Command Options:', commandOptions);
+};
 
-const manager = SigChainManager.init()
+program
+  .name('qsb')
+  .description('Quiet Sandbox CLI')
+  .version('0.0.1');
 
-const teamName = 'test-team'
-const username = 'isla'
-const { context, sigChain } = SigChain.create(teamName, username)
-const isActive = manager.addChain(teamName, sigChain, true)
-console.log(`Is new chain active?: ${isActive}`)
+// Global Flags
+program
+  .option('-p, --peer <peer>', 'Directs the specified peer instead of the default user to perform the command')
+  .option('-v, --verbose', 'Verbose mode')
+  .option('-d, --dry', 'Dry run')
 
-SigChain.roles.createWithMembers(RoleName.MEMBER, [context.user.userId])
+// Interactive mode
+program
+  .command('interactive')
+  .description('Interactive mode')
+  .action(() => {
+    interactive();
+  });
 
-console.log('\n---- USER ----\n')
-console.log(`ID: ${context.user.userId}`)
-console.log(`Name: ${context.user.userName}`)
-console.log(`Keys: ${JSON.stringify(context.user.keys, null, 2)}`)
+// User Management
+const user = program.command('user').description('User management commands');
 
-console.log('\n---- Team ----\n')
-console.log(`Members: ${JSON.stringify(SigChain.users.getAllMembers(), null, 2)}`)
-console.log(`Role keys: ${JSON.stringify(sigChain.team.roleKeys(RoleName.MEMBER), null, 2)}`)
+user
+  .command('add')
+  .description('Add a user')
+  .option('-s, --seed <seed...>', 'Specifies the seed to use in generating the user keys')
+  .option('-u, --uuid <user_id...>', 'Specifies the user ID to assign to the user')
+  .argument('<user_name...>', 'Username')
+  .action((userName, options) => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, options);
+    console.log(`Adding user: ${userName}`);
+  });
 
-const dmId = SigChain.dms.create([context.user.userId])
-const keys = SigChain.dms.getDmKeysById(dmId)
+user
+  .command('remove')
+  .description('Remove users')
+  .option('-u, --uuid', 'Interpret the argument as a UUID')
+  .option('-a, --all', 'Remove all users but yourself')
+  .option('-b, --but', 'Remove all users except for the specified')
+  .argument('[user_name...]', 'Usernames')
+  .action((userNames, options) => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, options);
+    console.log(`Removing users: ${userNames.join(', ')}`);
+  });
 
-console.log('\n---- DM ----\n')
-console.log(`DM ID: ${dmId}`)
-console.log(`DM Keys: ${JSON.stringify(keys, null, 2)}`)
+user
+  .command('create')
+  .description('Create a virtual user')
+  .option('-s, --seed <seed...>', 'Specifies the seed to use in generating the user keys')
+  .option('-u, --uuid <user_id...>', 'Specifies the user ID to assign to the user')
+  .argument('<user_name...>', 'Username')
+  .action((userName, options) => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, options);
+    console.log(`Creating virtual user: ${userName}`);
+  });
 
-const channelName = 'some-channel'
-SigChain.channels.createPrivateChannel(channelName)
-const encryptedAndSignedChannel = SigChain.crypto.encryptAndSign('foobar', { type: EncryptionScopeType.CHANNEL, name: channelName }, context)
+// Invitations
+const invite = program.command('invite').description('Invitation management commands');
 
-console.log('\n---- Channels ----\n')
-console.log(`Channel Keys: ${JSON.stringify(SigChain.crypto.getKeysForChannel(channelName), null, 2)}`)
-console.log(`Encrypted and signed: ${JSON.stringify(encryptedAndSignedChannel, null, 2)}`)
-console.log(`Decrypted: ${SigChain.crypto.decryptAndVerify(encryptedAndSignedChannel.encrypted, encryptedAndSignedChannel.signature, context)}`)
+invite
+  .command('add')
+  .description('Create a new invite')
+  .option('-t, --ttl <time_to_live>', 'Time to live')
+  .option('-u, --uses <int>', 'Number of uses')
+  .action((options) => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, options);
+    console.log('Creating invite');
+  });
 
-const invitation = SigChain.invites.create()
+invite
+  .command('remove')
+  .description('Revoke an invite')
+  .argument('<invite_id>', 'Invite ID')
+  .action((inviteId) => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, {});
+    console.log(`Revoking invite with ID: ${inviteId}`);
+  });
 
-console.log('\n---- Invite ----\n')
-console.log(`Invite Result: ${JSON.stringify(invitation, null, 2)}`)
+invite
+  .command('join')
+  .description('Join with an invite')
+  .argument('<invite-code>', 'Invite code')
+  .action((inviteCode) => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, {});
+    console.log(`Joining with invite code: ${inviteCode}`);
+  });
 
-let invitationState = SigChain.invites.getById(invitation.id)
+// Role Management
+const role = program.command('role').description('Role management commands');
 
-console.log(`Invite State (Active): ${JSON.stringify(invitationState, null, 2)}`)
+role
+  .command('create')
+  .description('Create a role')
+  .option('-s, --scope <permission_scope>', 'Permission scope')
+  .argument('<role_name>', 'Role name')
+  .action((roleName, options) => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, options);
+    console.log(`Creating role: ${roleName}`);
+  });
 
-SigChain.invites.revoke(invitation.id)
-invitationState = SigChain.invites.getById(invitation.id)
+role
+  .command('add')
+  .description('Assign specified users a role')
+  .argument('<role_name>', 'Role name')
+  .option('-u, --uuid', 'Interpret the user operand as a UUID')
+  .option('-a, --all', 'Give role to all users but yourself')
+  .option('-b, --but', 'Give role to all users except for the specified')
+  .argument('<user_name...>', 'Usernames')
+  .action((roleName, userNames, options) => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, options);
+    console.log(`Assigning role ${roleName} to users: ${userNames.join(', ')}`);
+  });
 
-console.log(`Invite State (Revoked): ${JSON.stringify(invitationState, null, 2)}`)
+role
+  .command('remove')
+  .description('Remove users from role')
+  .argument('<role_name>', 'Role name')
+  .option('-u, --uuid', 'Interpret the user operand as a UUID')
+  .option('-a, --all', 'Remove role from all users but yourself')
+  .option('-b, --but', 'Remove role from all users except for the specified')
+  .argument('<user_name...>', 'Usernames')
+  .action((roleName, userNames, options) => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, options);
+    console.log(`Removing role ${roleName} from users: ${userNames.join(', ')}`);
+  });
 
-const newInvitation = SigChain.invites.create()
+role
+  .command('delete')
+  .description('Delete a role')
+  .argument('<role_name>', 'Role name')
+  .action((roleName) => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, {});
+    console.log(`Deleting role: ${roleName}`);
+  });
 
-console.log('\n---- Invite With Proof ----\n')
-console.log(`Invite Result: ${JSON.stringify(newInvitation, null, 2)}`)
+// Channel Management
+const channel = program.command('channel').description('Channel management commands');
 
-const newUsername = 'isntla'
-const prospectiveMember = SigChain.users.createFromInviteSeed(newUsername, newInvitation.seed)
+channel
+  .command('create')
+  .description('Create a channel')
+  .option('-r, --role <role_id...>', 'Roles with access to the channel')
+  .argument('<channel_name>', 'Channel name')
+  .action((channelName, options) => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, options);
+    console.log(`Creating channel: ${channelName}`);
+  });
 
-console.log(`Prospective Member: ${JSON.stringify(prospectiveMember, null, 2)}`)
+channel
+  .command('delete')
+  .description('Delete channels')
+  .option('-a, --all', 'Delete all channels')
+  .option('-b, --but', 'Delete all channels except for the specified')
+  .argument('<channel_name...>', 'Channel name')
+  .action((channelNames, options) => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, options);
+    console.log(`Deleting channels: ${channelNames.join(', ')}`);
+  });
 
-SigChain.invites.admitMemberFromInvite(
-  prospectiveMember.inviteProof, 
-  prospectiveMember.context.user.userName, 
-  prospectiveMember.context.user.userId,
-  prospectiveMember.publicKeys
-)
+// Messaging and Communication
+const msg = program.command('msg').description('Messaging and communication commands');
 
-const newUsersChain = SigChain.join(
-  prospectiveMember.context, 
-  manager.getActiveChain().persist(), 
-  manager.getActiveChain().team.teamKeyring()
-)
+msg
+  .command('send')
+  .description('Send a message')
+  .option('-n, --name <user_name>', 'User name')
+  .option('-g, --group <group_id>', 'Group ID')
+  .option('-c, --channel <channel_id>', 'Channel ID')
+  .argument('<msg>', 'Message')
+  .action((msg, options) => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, options);
+    console.log(`Sending message: ${msg}`);
+  });
 
-manager.addChain(`${teamName}2`, newUsersChain.sigChain, true)
-console.log(`All keys for new user: ${JSON.stringify(SigChain.users.getKeys(), null, 2)}`)
+msg
+  .command('read')
+  .description('Read messages in channel/group/DM')
+  .option('-n, --name <user_name>', 'User name')
+  .option('-g, --group <group_id>', 'Group ID')
+  .option('-c, --channel <channel_id>', 'Channel ID')
+  .action((options) => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, options);
+    console.log('Reading messages');
+  });
 
-console.log(`Members: ${JSON.stringify(SigChain.users.getAllMembers(), null, 2)}`)
+// Information and Logging
+const show = program.command('show').description('Show information and logs');
 
-const encryptedAndSigned = SigChain.crypto.encryptAndSign('foobar', { type: EncryptionScopeType.ROLE, name: RoleName.MEMBER }, newUsersChain.context)
-console.log(`Encrypted and signed: ${JSON.stringify(encryptedAndSigned, null, 2)}`)
-console.log(`Decrypted: ${SigChain.crypto.decryptAndVerify(encryptedAndSigned.encrypted, encryptedAndSigned.signature, newUsersChain.context)}`)
+show
+  .command('team')
+  .description('Print users/devices team state')
+  .option('-u, --users', 'Show users')
+  .option('-g, --groups [group_id]', 'Show groups')
+  .option('-c, --channels [channel_id]', 'Show channels')
+  .option('-r, --roles [role_id]', 'Show roles')
+  .option('-m, --msg [user...]', 'Show DMs')
+  .option('-d, --devices [device_id]', 'Show devices')
+  .option('-i, --invites [invite_id]', 'Show invites')
+  .action((options) => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, options);
+    console.log('Showing team state');
+  });
 
+show
+  .command('log')
+  .description('Print log of CLI actions')
+  .action(() => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, {});
+    console.log('Printing log of CLI actions');
+  });
+
+show
+  .command('chain')
+  .description('Print devices’ sigchain')
+  .option('-p, --peer [peer_name]', 'Specify peer names')
+  .action((options) => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, options);
+    console.log('Showing chain');
+  });
+
+show
+  .command('metrics')
+  .description('Print metrics')
+  .action(() => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, {});
+    console.log('Printing metrics');
+  });
+
+// Virtual Peer Management
+const simpeer = program.command('simpeer').description('Virtual peer management commands');
+
+simpeer
+  .command('add')
+  .description('Adds virtual peer device simulations to the local environment')
+  .option('-i, --uuid <device_id...>', 'Generate peers with the specified device ids')
+  .option('-s, --state <state>', 'Specify state')
+  .option('-n, --number <number>', 'Randomly generate the specified number of virtual peers')
+  .action((options) => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, options);
+    console.log('Adding virtual peer');
+  });
+
+simpeer
+  .command('remove')
+  .description('Remove a virtual peer simulation from the local environment')
+  .option('-u, --uuid <device_id...>', 'Specify device id')
+  .option('-p, --peer <peer_name...>', 'Remove the specified virtual peer')
+  .option('-a', 'Remove all virtual peers')
+  .option('-b', 'Remove all virtual peers except for the specified')
+  .action((options) => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, options);
+    console.log('Removing virtual peer');
+  });
+
+simpeer
+  .command('list')
+  .description('List all virtual peers in the local environment')
+  .action(() => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, {});
+    console.log('Listing all virtual peers');
+  });
+
+simpeer
+  .command('set')
+  .description('Set the state of a virtual peer')
+  .option('-n, --name <peer_name...>', 'Specify peer name')
+  .option('-s, --state <state>', 'Specify state')
+  .option('-a', 'Set all virtual peers to the specified state')
+  .option('-b', 'Set all virtual peers to the specified state except for the specified')
+  .action((options) => {
+    const globalOptions = program.opts();
+    logOptions(globalOptions, options);
+    console.log('Setting virtual peer state');
+  });
+
+program.parse(process.argv);
