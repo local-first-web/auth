@@ -187,5 +187,5 @@ To install packages and compile the monorepo simply run
 
 ```
 pnpm i
-pnpm run build
+pnpm build
 ```
