@@ -20,7 +20,20 @@
     "figlet": "^1.7.0",
     "inquirer": "^10.0.1",
     "pad": "^3.2.0",
-    "quiet-sandbox": "link:"
+    "@chainsafe/libp2p-gossipsub": "^13.0.0",
+    "@chainsafe/libp2p-noise": "^15.0.0",
+    "@libp2p/bootstrap": "^10.0.24",
+    "@libp2p/echo": "^1.1.1",
+    "@libp2p/identify": "^2.0.2",
+    "@libp2p/kad-dht": "^12.0.17",
+    "@chainsafe/libp2p-yamux": "^6.0.2",
+    "@libp2p/tcp": "^9.0.26",
+    "@localfirst/auth": "^5.6.0",
+    "@orbitdb/core": "^2.2.0",
+    "helia": "^4.2.4",
+    "it-pipe": "^3.0.1",
+    "it-protobuf-stream": "^1.1.3",
+    "libp2p": "^1.6.0"
   },
   "devDependencies": {
     "@types/node": "^18.18.13",
