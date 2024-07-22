@@ -2,8 +2,8 @@
  * Handles channel-related chain operations
  */
 
-import { SigChain } from "auth/chain.js"
-import { BaseChainService } from "auth/services/base_service.js"
+import { SigChain } from "../../chain.js"
+import { BaseChainService } from "../base_service.js"
 
 class ChannelService extends BaseChainService {
   protected static _instance: ChannelService | undefined

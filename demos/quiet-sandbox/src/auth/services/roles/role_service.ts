@@ -2,8 +2,8 @@
  * Handles role-related chain operations
  */
 
-import { BaseChainService } from "auth/services/base_service.js"
-import { Permissions } from "auth/services/roles/permissions.js"
+import { BaseChainService } from "../base_service.js"
+import { Permissions } from "../roles/permissions.js"
 import { RoleName } from "./roles.js"
 import { PermissionsMap, Role } from "@localfirst/auth"
 

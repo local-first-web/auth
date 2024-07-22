@@ -5,7 +5,7 @@
 import { createHash } from "crypto"
 import { BaseChainService } from "../base_service.js"
 import { Keyset } from "@localfirst/auth"
-import { SigChain } from "auth/chain.js"
+import { SigChain } from "../../chain.js"
 
 class DMService extends BaseChainService {
   protected static _instance: DMService | undefined

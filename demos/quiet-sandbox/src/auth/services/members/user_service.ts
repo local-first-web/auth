@@ -6,7 +6,7 @@ import { KeyMap } from '../../../../../../packages/auth/dist/team/selectors/keyM
 import { BaseChainService } from '../base_service.js'
 import { ProspectiveUser, MemberSearchOptions, DEFAULT_SEARCH_OPTIONS } from './types.js'
 import { DeviceWithSecrets, LocalUserContext, Member, User, UserWithSecrets } from '@localfirst/auth'
-import { SigChain } from 'auth/chain.js'
+import { SigChain } from '../../chain.js'
 
 class UserService extends BaseChainService {
   protected static _instance: UserService | undefined

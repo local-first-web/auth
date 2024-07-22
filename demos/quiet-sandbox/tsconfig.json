@@ -1,7 +1,6 @@
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "baseUrl": "src",
+    "rootDir": "src",
     "outDir": "dist",
     "strict": true,
     "target": "ESNext",

@@ -5,7 +5,7 @@
 import { BaseChainService } from "../base_service.js"
 import { ValidationResult } from "../../../../../../packages/crdx/dist/validator/types.js"
 import { Base58, InvitationState, InviteResult, Keyset, ProofOfInvitation, UnixTimestamp } from "@localfirst/auth"
-import { SigChain } from "auth/chain.js"
+import { SigChain } from "../../chain.js"
 import { RoleName } from "../roles/roles.js"
 
 const DEFAULT_MAX_USES = 1

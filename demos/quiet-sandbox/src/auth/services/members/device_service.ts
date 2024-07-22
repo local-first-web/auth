@@ -5,7 +5,7 @@
 import getMAC from "getmac"
 import { BaseChainService } from "../base_service.js"
 import { Device, DeviceWithSecrets } from "@localfirst/auth"
-import { SigChain } from "auth/chain.js"
+import { SigChain } from "../../chain.js"
 
 class DeviceService extends BaseChainService {
   protected static _instance: DeviceService | undefined
