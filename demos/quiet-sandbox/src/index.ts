@@ -21,7 +21,6 @@ program
   .option('-p, --peer <peer>', 'Directs the specified peer instead of the default user to perform the command')
   .option('-v, --verbose', 'Verbose mode')
   .option('-d, --dry', 'Dry run')
-  .option('--colors', '[STUB] Will probably be determined during development');
 
 // Interactive mode
 program
