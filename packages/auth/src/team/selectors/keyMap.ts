@@ -39,4 +39,4 @@ const organizeKeysIntoMap = (result: KeyMap, keys: KeysetWithSecrets) => {
   } as KeyMap
 }
 
-type KeyMap = Record<string, Record<string, KeysetWithSecrets[]>>
+export type KeyMap = Record<string, Record<string, KeysetWithSecrets[]>>

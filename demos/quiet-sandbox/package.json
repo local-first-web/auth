@@ -6,7 +6,6 @@
   "bin": {
     "qsb": "./dist/index.js"
   },
-  "type": "module",
   "scripts": {
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -16,23 +15,30 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "type": "module",
   "dependencies": {
-    "@localfirst/auth": "workspace:*",
     "@commander-js/extra-typings": "^12.1.0",
     "@inquirer/core": "^9.0.2",
-    "@types/figlet": "^1.5.8",
+    "@inquirer/prompts": "^5.3.0",
+    "@inquirer/type": "^1.5.1",
+    "@localfirst/auth": "workspace:*",
+    "@localfirst/shared": "workspace:*",
     "ansi-escapes": "^7.0.0",
     "chalk": "^4.1.2",
     "colors": "^1.4.0",
     "figlet": "^1.7.0",
     "figures": "^6.1.0",
+    "getmac": "^6.6.0",
     "inquirer": "^10.0.1",
     "inquirer-select-pro": "^1.0.0-alpha.6",
     "pad": "^3.2.0",
-    "type-fest": "^4.21.0"
+    "type-fest": "^4.21.0",
+    "quiet-sandbox": "link:"
   },
   "devDependencies": {
     "@types/node": "^18.18.13",
+    "@types/figlet": "^1.5.8",
+    "@types/inquirer": "^9.0.7",
     "eslint": "^9.7.0",
     "prettier": "^3.1.0",
     "ts-node": "^10.9.2",

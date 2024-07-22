@@ -19,7 +19,7 @@ import {
 import type { PartialDeep } from '@inquirer/type';
 import chalk from 'chalk';
 import ansiEscapes from 'ansi-escapes';
-import figures from '@inquirer/figures';
+import figures from 'figures';
 
 type SelectTheme = {
     icon: { cursor: string };
