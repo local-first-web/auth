@@ -8,15 +8,16 @@
   },
   "type": "module",
   "scripts": {
-    "build": "npx tsc",
+    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "ig": "npx tsc && npm i -g .",
+    "ig": "tsc && npm i -g .",
     "start": "ts-node-esm src/index.ts interactive"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@localfirst/auth": "workspace:*",
     "@commander-js/extra-typings": "^12.1.0",
     "@inquirer/core": "^9.0.2",
     "@types/figlet": "^1.5.8",
