@@ -2,7 +2,7 @@
  * Handles invite-related chain operations
  */
 
-import { BaseChainService } from "../base_service.js"
+import { BaseChainService } from "../baseService.js"
 import { ValidationResult } from "../../../../../../packages/crdx/dist/validator/types.js"
 import { Base58, InvitationState, InviteResult, Keyset, ProofOfInvitation, UnixTimestamp } from "@localfirst/auth"
 import { SigChain } from "../../chain.js"
@@ -28,13 +28,13 @@ class InviteService extends BaseChainService {
       expiration,
       maxUses
     })
-    this.activeSigChain.persist()
+    // this.activeSigChain.persist()
     return invitation
   }
 
   public revoke(id: string) {
     this.activeSigChain.team.revokeInvitation(id)
-    this.activeSigChain.persist()
+    // this.activeSigChain.persist()
   }
 
   public getById(id: Base58): InvitationState {
@@ -57,13 +57,13 @@ class InviteService extends BaseChainService {
 
   public acceptProof(proof: ProofOfInvitation, username: string, publicKeys: Keyset) {
     this.activeSigChain.team.admitMember(proof, publicKeys, username)
-    this.activeSigChain.persist()
+    // this.activeSigChain.persist()
   }
 
   public admitMemberFromInvite(proof: ProofOfInvitation, username: string, userId: string, publicKeys: Keyset): string {
     this.activeSigChain.team.admitMember(proof, publicKeys, username)
     SigChain.roles.addMember(userId, RoleName.MEMBER)
-    this.activeSigChain.persist()
+    // this.activeSigChain.persist()
     return username
   }
 

@@ -3,7 +3,7 @@
  */
 
 import getMAC from "getmac"
-import { BaseChainService } from "../base_service.js"
+import { BaseChainService } from "../baseService.js"
 import { Device, DeviceWithSecrets } from "@localfirst/auth"
 import { SigChain } from "../../chain.js"
 

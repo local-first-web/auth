@@ -3,7 +3,7 @@
  */
 
 import { SigChain } from "../../chain.js"
-import { BaseChainService } from "../base_service.js"
+import { BaseChainService } from "../baseService.js"
 
 class ChannelService extends BaseChainService {
   protected static _instance: ChannelService | undefined
@@ -20,25 +20,25 @@ class ChannelService extends BaseChainService {
   public createPrivateChannel(channelName: string) {
     console.log(`Creating private channel role with name ${channelName}`)
     SigChain.roles.create(ChannelService.getPrivateChannelRoleName(channelName))
-    this.activeSigChain.persist()
+    // this.activeSigChain.persist()
   }
 
   public addMemberToPrivateChannel(memberId: string, channelName: string) {
     console.log(`Adding member with ID ${memberId} to private channel role with name ${channelName}`)
     SigChain.roles.addMember(memberId, ChannelService.getPrivateChannelRoleName(channelName))
-    this.activeSigChain.persist()
+    // this.activeSigChain.persist()
   }
 
   public revokePrivateChannelMembership(memberId: string, channelName: string) {
     console.log(`Removing member with ID ${memberId} from private channel with name ${channelName}`)
     SigChain.roles.revokeMembership(memberId, ChannelService.getPrivateChannelRoleName(channelName))
-    this.activeSigChain.persist()
+    // this.activeSigChain.persist()
   }
 
   public deletePrivateChannel(channelName: string) {
     console.log(`Deleting private channel with name ${channelName}`)
     SigChain.roles.delete(ChannelService.getPrivateChannelRoleName(channelName))
-    this.activeSigChain.persist()
+    // this.activeSigChain.persist()
   }
 
   public static getPrivateChannelRoleName(channelName: string): string {

@@ -3,7 +3,7 @@
  */
 
 import { KeyMap } from '../../../../../../packages/auth/dist/team/selectors/keyMap.js'
-import { BaseChainService } from '../base_service.js'
+import { BaseChainService } from '../baseService.js'
 import { ProspectiveUser, MemberSearchOptions, DEFAULT_SEARCH_OPTIONS } from './types.js'
 import { DeviceWithSecrets, LocalUserContext, Member, User, UserWithSecrets } from '@localfirst/auth'
 import { SigChain } from '../../chain.js'

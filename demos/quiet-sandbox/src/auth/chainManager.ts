@@ -3,13 +3,13 @@
  */
 
 import { SigChain } from "./chain.js";
-import { CryptoService } from "./services/crypto/crypto_service.js";
-import { DMService } from "./services/dm/dm_service.js";
-import { InviteService } from "./services/invites/invite_service.js";
-import { DeviceService } from "./services/members/device_service.js";
-import { UserService } from "./services/members/user_service.js";
-import { ChannelService } from "./services/roles/channel_service.js";
-import { RoleService } from "./services/roles/role_service.js";
+import { CryptoService } from "./services/crypto/cryptoService.js";
+import { DMService } from "./services/dm/dmService.js";
+import { InviteService } from "./services/invites/inviteService.js";
+import { DeviceService } from "./services/members/deviceService.js";
+import { UserService } from "./services/members/userService.js";
+import { ChannelService } from "./services/roles/channelService.js";
+import { RoleService } from "./services/roles/roleService.js";
 
 class SigChainManager {
   private chains: Map<string, SigChain> = new Map()

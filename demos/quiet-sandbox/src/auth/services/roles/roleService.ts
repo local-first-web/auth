@@ -2,8 +2,8 @@
  * Handles role-related chain operations
  */
 
-import { BaseChainService } from "../base_service.js"
-import { Permissions } from "../roles/permissions.js"
+import { BaseChainService } from "../baseService.js"
+import { Permissions } from "./permissions.js"
 import { RoleName } from "./roles.js"
 import { PermissionsMap, Role } from "@localfirst/auth"
 
@@ -31,7 +31,7 @@ class RoleService extends BaseChainService {
     }
 
     this.activeSigChain.team.addRole(role)
-    this.activeSigChain.persist()
+    // this.activeSigChain.persist()
   }
 
   // TODO: figure out permissions
@@ -45,25 +45,25 @@ class RoleService extends BaseChainService {
     for (const memberId of memberIdsForRole) {
       this.addMember(memberId, roleName)
     }
-    this.activeSigChain.persist()
+    // this.activeSigChain.persist()
   }
 
   public addMember(memberId: string, roleName: string) {
     console.log(`Adding member with ID ${memberId} to role ${roleName}`)
     this.activeSigChain.team.addMemberRole(memberId, roleName)
-    this.activeSigChain.persist()
+    // this.activeSigChain.persist()
   }
 
   public revokeMembership(memberId: string, roleName: string) {
     console.log(`Revoking role ${roleName} for member with ID ${memberId}`)
     this.activeSigChain.team.removeMemberRole(memberId, roleName)
-    this.activeSigChain.persist()
+    // this.activeSigChain.persist()
   }
 
   public delete(roleName: string) {
     console.log(`Removing role with name ${roleName}`)
     this.activeSigChain.team.removeRole(roleName)
-    this.activeSigChain.persist()
+    // this.activeSigChain.persist()
   }
 
   public static get instance(): RoleService {

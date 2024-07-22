@@ -4,13 +4,13 @@
 
 import * as auth from '@localfirst/auth'
 import { LoadedSigChain } from './types.js'
-import { UserService } from './services/members/user_service.js'
-import { RoleService } from './services/roles/role_service.js'
-import { ChannelService } from './services/roles/channel_service.js'
-import { DeviceService } from './services/members/device_service.js'
-import { InviteService } from './services/invites/invite_service.js'
-import { DMService } from './services/dm/dm_service.js'
-import { CryptoService } from './services/crypto/crypto_service.js'
+import { UserService } from './services/members/userService.js'
+import { RoleService } from './services/roles/roleService.js'
+import { ChannelService } from './services/roles/channelService.js'
+import { DeviceService } from './services/members/deviceService.js'
+import { InviteService } from './services/invites/inviteService.js'
+import { DMService } from './services/dm/dmService.js'
+import { CryptoService } from './services/crypto/cryptoService.js'
 
 class SigChain {
   private _team: auth.Team
@@ -29,7 +29,7 @@ class SigChain {
     const context = UserService.instance.create(username)
     const team: auth.Team = SigChain.lfa.createTeam(teamName, context)
     const sigChain = new SigChain(team)
-    sigChain.persist()
+    // sigChain.persist()
 
     return {
       sigChain,
@@ -43,7 +43,7 @@ class SigChain {
     team.join(teamKeyRing)
 
     const sigChain = new SigChain(team)
-    sigChain.persist()
+    // sigChain.persist()
 
     return {
       sigChain,

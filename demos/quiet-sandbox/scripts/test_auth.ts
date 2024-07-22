@@ -1,6 +1,6 @@
 #! /usr/bin/env ts-node
 
-import { SigChainManager } from "../src/auth/chain_manager.js";
+import { SigChainManager } from "../src/auth/chainManager.js";
 import { SigChain } from "../src/auth/chain.js";
 
 import figlet from 'figlet'

@@ -1,5 +1,5 @@
 import { SigChain } from "../chain.js";
-import { SigChainManager } from "../chain_manager.js";
+import { SigChainManager } from "../chainManager.js";
 
 class BaseChainService {
   protected static _instance: BaseChainService | undefined

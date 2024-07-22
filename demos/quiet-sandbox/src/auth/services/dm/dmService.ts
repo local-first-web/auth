@@ -3,7 +3,7 @@
  */
 
 import { createHash } from "crypto"
-import { BaseChainService } from "../base_service.js"
+import { BaseChainService } from "../baseService.js"
 import { Keyset } from "@localfirst/auth"
 import { SigChain } from "../../chain.js"
 
