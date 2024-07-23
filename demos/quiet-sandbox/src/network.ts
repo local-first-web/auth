@@ -53,26 +53,34 @@ interface Libp2pAuthComponents {
     logger: ComponentLogger
 }
 
-interface ConnectionWithAuth {
-    connection: Connection
-    authConnection: Auth.Connection
-}
-
 // Implementing local-first-auth as a service just to get started. I think we
 // likely want to integrate it in a custom Transport/Muxer.
 class Libp2pAuth {
     private readonly protocol: string
     private readonly components: Libp2pAuthComponents
     private storage: Storage
-    private connections: Record<string, ConnectionWithAuth>
+    private authConnections: Record<string, Auth.Connection>
+    private outboundStreamQueue: Pushable<{ peerId: PeerId, connection: Connection }>
     private outboundStreams: Record<string, Pushable<Uint8Array | Uint8ArrayList>>
+    private inboundStreams: Record<string, Stream>
 
     constructor(storage: Storage, components: Libp2pAuthComponents) {
         this.protocol =  '/local-first-auth/1.0.0'
         this.components = components
         this.storage = storage
-        this.connections = {}
+        this.authConnections = {}
+        this.outboundStreamQueue = pushable<{ peerId: PeerId, connection: Connection }>({ objectMode: true })
         this.outboundStreams = {}
+        this.inboundStreams = {}
+
+        pipe(
+            this.outboundStreamQueue,
+            async (source) => {
+                for await (const { peerId, connection } of source) {
+                    await this.openOutboundStream(peerId, connection)
+                }
+            }
+        ).catch((e) => { console.error('Outbound stream queue error', e) })
     }
 
     async start() {
@@ -100,6 +108,7 @@ class Libp2pAuth {
             return
         }
 
+        console.log('Opening outbound stream for peer', peerId.toString())
         const outboundStream = await connection.newStream(this.protocol, {
             runOnTransientConnection: false
         })
@@ -110,6 +119,8 @@ class Libp2pAuth {
             outboundPushable,
             outboundStream
         ).catch((e: Error) => console.error(e))
+
+        this.authConnections[peerId.toString()].start()
     }
 
     private sendMessage(peerId: PeerId, message: Uint8Array) {
@@ -128,7 +139,7 @@ class Libp2pAuth {
             return
         }
 
-        if (peerId.toString() in this.connections) {
+        if (peerId.toString() in this.authConnections) {
             await connection.close()
             return
         }
@@ -138,21 +149,22 @@ class Libp2pAuth {
             throw new Error('Auth context required to connect to peer')
         }
 
-        // TODO: Might want to ensure these are opened sequentially via a queue
-        // (see Gossipsub)
-        await this.openOutboundStream(peerId, connection)
+        this.outboundStreamQueue.push({ peerId, connection })
 
-        this.connections[peerId.toString()] = {
-            connection,
-            authConnection: new Auth.Connection({
-                context,
-                sendMessage: (message: Uint8Array) => {
-                    this.sendMessage(peerId, message)
-                },
-            })
-        }
+        const authConnection = new Auth.Connection({
+            context,
+            sendMessage: (message: Uint8Array) => {
+                this.sendMessage(peerId, message)
+            },
+        })
 
         // TODO: Listen for updates to context and update context in storage
+        authConnection.on('joined', ({ team, user }) => {
+            console.log('Joined', team, user)
+        })
+        authConnection.on('change', state => console.log('Change', state))
+
+        this.authConnections[peerId.toString()] = authConnection
     }
 
     private onPeerDisconnected(peerId: PeerId): void {
@@ -160,8 +172,14 @@ class Libp2pAuth {
     }
 
     private async onIncomingStream({ stream, connection }: IncomingStreamData) {
-        console.log('Incoming stream')
         const peerId = connection.remotePeer
+
+        const oldStream = this.inboundStreams[peerId.toString()]
+        if (oldStream) {
+            oldStream.close().catch(e => {
+                oldStream.abort(e)
+            })
+        }
 
         pipe(
             stream,
@@ -169,7 +187,7 @@ class Libp2pAuth {
             async (source) => {
                 for await (const data of source) {
                     try {
-                        this.connections[peerId.toString()].authConnection.deliver(data.subarray())
+                        this.authConnections[peerId.toString()].deliver(data.subarray())
                     } catch (e) {
                         console.error(e)
                     }
@@ -177,7 +195,10 @@ class Libp2pAuth {
             }
         )
 
-        // TODO: Create outbound stream if one doesn't exist
+        this.inboundStreams[peerId.toString()] = stream
+        console.log('New incoming stream for peer', peerId.toString())
+
+        this.outboundStreamQueue.push({ peerId, connection })
     }
 }
 
@@ -206,8 +227,8 @@ class Libp2pService {
 
         try {
             peerIdB64 = fs.readFileSync(peerIdFilename, 'utf8');
-        } catch (err) {
-            console.error(err);
+        } catch (e) {
+            console.error(e);
         }
 
         if (!peerIdB64) {
@@ -219,8 +240,8 @@ class Libp2pService {
 
         try {
             fs.writeFileSync(peerIdFilename, peerIdB64);
-        } catch (err) {
-            console.error(err);
+        } catch (e) {
+            console.error(e);
         }
 
         return await createFromProtobuf(base64.decoder.decode(peerIdB64));
@@ -345,13 +366,18 @@ class Db extends EventEmitter {
 const main = async () => {
     // Peer 1
     const storage1 = new Storage()
-    storage1.setAuthContext({
-        user: Auth.createUser('test', 'test1', 'test1'),
+
+    const founderContext = {
+        user: Auth.createUser('test1', 'test1'),
         device: Auth.createDevice('test1', 'laptop'),
-        invitationSeed: ''
-    })
+    }
+    const teamName = 'Test'
+    const team = Auth.createTeam(teamName, founderContext)
+    storage1.setAuthContext({ ...founderContext, team })
     const peer1 = new Libp2pService('peer1', storage1);
     await peer1.init();
+
+    const { seed } = team.inviteMember()
 
     // const orbitDb1 = new OrbitDbService(peer1);
     // await orbitDb1.init();
@@ -360,6 +386,11 @@ const main = async () => {
 
     // Peer 2
     const storage2 = new Storage()
+    storage2.setAuthContext({
+        user: Auth.createUser('test2', 'test2'),
+        device: Auth.createDevice('test2', 'laptop'),
+        invitationSeed: seed
+    })
     const peer2 = new Libp2pService('peer2', storage2);
     await peer2.init();
 

@@ -10,6 +10,13 @@
     "moduleResolution": "NodeNext",
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
+    "typeRoots": [
+      "./node_modules/@types",
+      "./node_modules/@constl",
+      "./src/types"
+    ],
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

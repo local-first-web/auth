@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "./dist/index.js",
+  "type": "module",
   "bin": {
     "qsb": "./dist/index.js"
   },
@@ -14,8 +15,6 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
-  "type": "module",
   "dependencies": {
     "@commander-js/extra-typings": "^12.1.0",
     "@inquirer/core": "^9.0.2",
