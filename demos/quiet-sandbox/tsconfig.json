@@ -3,10 +3,13 @@
     "rootDir": "src",
     "outDir": "dist",
     "strict": true,
-    "target": "es6",
-    "module": "commonjs",
+    "target": "ESNext",
+    "module": "NodeNext",
     "sourceMap": true,
     "esModuleInterop": true,
-    "moduleResolution": "node"
-  }
+    "moduleResolution": "NodeNext",
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+  },
+  "include": ["src"]
 }
