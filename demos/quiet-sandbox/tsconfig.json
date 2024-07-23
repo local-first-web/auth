@@ -3,10 +3,12 @@
     "rootDir": "src",
     "outDir": "dist",
     "strict": true,
-    "target": "es6",
-    "module": "commonjs",
+    "target": "es2016",
+    "module": "nodenext",
     "sourceMap": true,
     "esModuleInterop": true,
-    "moduleResolution": "node"
+    "typeRoots": ["./node_modules/@types", "./node_modules/@constl", "./src/types"],
+    "skipLibCheck": true
   }
 }
+

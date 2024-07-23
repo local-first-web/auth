@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "./dist/index.js",
+  "type": "module",
   "bin": {
     "qsb": "./dist/index.js"
   },
@@ -13,7 +14,6 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
   "dependencies": {
     "@commander-js/extra-typings": "^12.1.0",
     "colors": "^1.4.0",
@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@types/node": "^18.18.13",
+    "@types/figlet": "^1.5.8",
     "prettier": "^3.1.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"

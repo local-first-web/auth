@@ -1,5 +1,3 @@
-#! /usr/bin/env node
-
-const figlet = require('figlet');
+import figlet from 'figlet'
 
 console.log(figlet.textSync('Quiet Sandbox'));
