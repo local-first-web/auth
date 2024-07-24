@@ -8,15 +8,10 @@ import { Keyset } from "@localfirst/auth"
 import { SigChain } from "../../chain.js"
 
 class DMService extends BaseChainService {
-  protected static _instance: DMService | undefined
   private dmMap: Map<string, string[]> = new Map()
 
-  public static init(): DMService {
-    if (DMService._instance == null) {
-      DMService._instance = new DMService() 
-    }
-
-    return DMService.instance
+  public static init(sigChain: SigChain): DMService {
+    return new DMService(sigChain)
   }
 
   // TODO: incorporate persistence
@@ -37,20 +32,12 @@ class DMService extends BaseChainService {
     }
 
     const memberIds = this.dmMap.get(id)!
-    return SigChain.crypto.getPublicKeysForMembersById(memberIds, { includeRemoved: false, throwOnMissing: false })
+    return this.sigChain.crypto.getPublicKeysForMembersById(memberIds, { includeRemoved: false, throwOnMissing: false })
   }
 
   private static getDmId(memberIds: string[]): string {
     const dmId = createHash('md5').update(memberIds.toString()).digest('hex')
     return `priv_dm_${dmId}`
-  }
-
-  public static get instance(): DMService {
-    if (DMService._instance == null) {
-      throw new Error(`DMService hasn't been initialized yet!  Run init() before accessing`)
-    }
-
-    return DMService._instance
   }
 }
 

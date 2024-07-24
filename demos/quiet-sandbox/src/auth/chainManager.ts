@@ -3,36 +3,15 @@
  */
 
 import { SigChain } from "./chain.js";
-import { CryptoService } from "./services/crypto/cryptoService.js";
-import { DMService } from "./services/dm/dmService.js";
-import { InviteService } from "./services/invites/inviteService.js";
-import { DeviceService } from "./services/members/deviceService.js";
-import { UserService } from "./services/members/userService.js";
-import { ChannelService } from "./services/roles/channelService.js";
-import { RoleService } from "./services/roles/roleService.js";
 
 class SigChainManager {
   private chains: Map<string, SigChain> = new Map()
   private activeChainTeamName: string | undefined
-  private static _instance: SigChainManager | undefined
 
   private constructor() {}
 
   public static init(): SigChainManager {
-    if (SigChainManager._instance == null) {
-      SigChainManager._instance = new SigChainManager()
-
-      // TODO: Not sure if this actually makes sense to do here but it works in a pinch
-      UserService.init()
-      DeviceService.init()
-      RoleService.init()
-      ChannelService.init()
-      DMService.init()
-      InviteService.init()
-      CryptoService.init()
-    }
-
-    return SigChainManager.instance
+    return new SigChainManager()
   }
 
   public getActiveChain(): SigChain {
@@ -85,14 +64,6 @@ class SigChainManager {
     }
 
     return this.chains.get(teamName)!
-  }
-
-  public static get instance(): SigChainManager {
-    if (SigChainManager._instance == null) {
-      throw new Error(`SigChainManager hasn't been initialized yet!  Run init() before accessing`)
-    }
-
-    return SigChainManager._instance
   }
 }
 

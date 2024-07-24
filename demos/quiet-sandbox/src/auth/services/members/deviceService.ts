@@ -8,14 +8,8 @@ import { Device, DeviceWithSecrets } from "@localfirst/auth"
 import { SigChain } from "../../chain.js"
 
 class DeviceService extends BaseChainService {
-  protected static _instance: DeviceService | undefined
-
-  public static init(): DeviceService {
-    if (DeviceService._instance == null) {
-      DeviceService._instance = new DeviceService() 
-    }
-
-    return DeviceService.instance
+  public static init(sigChain: SigChain): DeviceService {
+    return new DeviceService(sigChain)
   }
 
   /**
@@ -24,7 +18,7 @@ class DeviceService extends BaseChainService {
    * @param userId User ID that this device is associated with
    * @returns A newly generated QuietDevice instance
    */
-  public generateDeviceForUser(userId: string): DeviceWithSecrets {
+  public static generateDeviceForUser(userId: string): DeviceWithSecrets {
     const params = {
       userId,
       deviceName: DeviceService.determineDeviceName()
@@ -45,14 +39,6 @@ class DeviceService extends BaseChainService {
 
   public static redactDevice(device: DeviceWithSecrets): Device {
     return SigChain.lfa.redactDevice(device)
-  }
-
-  public static get instance(): DeviceService {
-    if (DeviceService._instance == null) {
-      throw new Error(`DeviceService hasn't been initialized yet!  Run init() before accessing`)
-    }
-
-    return DeviceService._instance
   }
 }
 
