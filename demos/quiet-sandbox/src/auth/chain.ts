@@ -11,9 +11,17 @@ import { DeviceService } from './services/members/deviceService.js'
 import { InviteService } from './services/invites/inviteService.js'
 import { DMService } from './services/dm/dmService.js'
 import { CryptoService } from './services/crypto/cryptoService.js'
+import { RoleName } from './services/roles/roles.js'
 
 class SigChain {
   private _team: auth.Team
+  private _users: UserService | null = null
+  private _devices: DeviceService | null = null
+  private _roles: RoleService | null = null
+  private _channels: ChannelService | null = null
+  private _dms: DMService | null = null
+  private _invites: InviteService | null = null
+  private _crypto: CryptoService | null = null
 
   private constructor(team: auth.Team) {
     this._team = team
@@ -26,9 +34,11 @@ class SigChain {
    * @param username Username of the initial user we are generating
    */
   public static create(teamName: string, username: string): LoadedSigChain {
-    const context = UserService.instance.create(username)
-    const team: auth.Team = SigChain.lfa.createTeam(teamName, context)
-    const sigChain = new SigChain(team)
+    const context = UserService.create(username)
+    const team: auth.Team = this.lfa.createTeam(teamName, context)
+    const sigChain = this.init(team)
+    
+    sigChain.roles.createWithMembers(RoleName.MEMBER, [context.user.userId])
     // sigChain.persist()
 
     return {
@@ -39,16 +49,33 @@ class SigChain {
 
   // TODO: Is this the right signature for this method?
   public static join(context: auth.LocalUserContext, serializedTeam: Uint8Array, teamKeyRing: auth.Keyring): LoadedSigChain {
-    const team: auth.Team = auth.loadTeam(serializedTeam, context, teamKeyRing)
+    const team: auth.Team = this.lfa.loadTeam(serializedTeam, context, teamKeyRing)
     team.join(teamKeyRing)
 
-    const sigChain = new SigChain(team)
+    const sigChain = this.init(team)
     // sigChain.persist()
 
     return {
       sigChain,
       context
     }
+  }
+
+  private static init(team: auth.Team): SigChain {
+    const sigChain = new SigChain(team)
+    sigChain.initServices()
+
+    return sigChain
+  }
+
+  private initServices() {
+    this._users = UserService.init(this)
+    this._devices = DeviceService.init(this)
+    this._roles = RoleService.init(this)
+    this._channels = ChannelService.init(this)
+    this._dms = DMService.init(this)
+    this._invites = InviteService.init(this)
+    this._crypto = CryptoService.init(this)
   }
 
   // TODO: persist to storage
@@ -69,32 +96,32 @@ class SigChain {
     return this._team.graph
   }
 
-  static get users(): UserService {
-    return UserService.instance
+  get users(): UserService {
+    return this._users!
   }
 
-  static get roles(): RoleService {
-    return RoleService.instance
+  get roles(): RoleService {
+    return this._roles!
   }
 
-  static get channels(): ChannelService {
-    return ChannelService.instance
+  get channels(): ChannelService {
+    return this._channels!
   }
 
-  static get devices(): DeviceService {
-    return DeviceService.instance
+  get devices(): DeviceService {
+    return this._devices!
   }
 
-  static get invites(): InviteService {
-    return InviteService.instance
+  get invites(): InviteService {
+    return this._invites!
   }
 
-  static get dms(): DMService {
-    return DMService.instance
+  get dms(): DMService {
+    return this._dms!
   }
 
-  static get crypto(): CryptoService {
-    return CryptoService.instance
+  get crypto(): CryptoService {
+    return this._crypto!
   }
 
   static get lfa(): typeof auth {
