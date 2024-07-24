@@ -1,6 +1,7 @@
 #! /usr/bin/env ts-node
 
 import { program } from '@commander-js/extra-typings';
+import figlet from 'figlet'
 
 import team from './prompts/team.js';
 import interactive from './prompts/interactive.js';
