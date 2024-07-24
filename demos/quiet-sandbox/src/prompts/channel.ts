@@ -46,6 +46,8 @@ const channelView = async (channelName: string): Promise<undefined> => {
       case undefined: // catches enter/return key
         switch (answer.answer) {
           case "message":
+            // TODO: Look into typings
+            // @ts-ignore
             const message = await inquirer.prompt([
               {
                 type: "input",
