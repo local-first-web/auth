@@ -1,3 +1,5 @@
+#! /usr/bin/env ts-node
+
 import { createLibp2p, Libp2p } from 'libp2p';
 import { bootstrap } from '@libp2p/bootstrap';
 import { tcp } from '@libp2p/tcp';
@@ -28,20 +30,44 @@ import { encode, decode } from 'it-length-prefixed'
 import { pushable, type Pushable } from 'it-pushable'
 import type { Uint8ArrayList } from 'uint8arraylist'
 import map from 'it-map'
+import { SigChain } from './auth/chain.js'
+import { UserService } from './auth/services/members/userService.js';
+import { sleep } from './utils/utils.js';
+import { EncryptionScopeType } from './auth/services/crypto/types.js';
 
 class Storage {
     private authContext: Auth.Context | null
+    private context: Auth.LocalUserContext | null
+    private sigChain: SigChain | null
 
-    constructor() {
+    constructor() {        
         this.authContext = null
+        this.context = null
+        this.sigChain = null
     }
 
     public setAuthContext(context: Auth.Context) {
         this.authContext = context
     }
 
+    public setSigChain(sigChain: SigChain) {
+        this.sigChain = sigChain
+    }
+
+    public setContext(context: Auth.LocalUserContext) {
+        this.context = context
+    }
+
     public getAuthContext(): Auth.Context | null {
         return this.authContext
+    }
+
+    public getSigChain(): SigChain | null {
+        return this.sigChain
+    }
+
+    public getContext(): Auth.LocalUserContext | null {
+        return this.context
     }
 }
 
@@ -160,9 +186,31 @@ class Libp2pAuth {
 
         // TODO: Listen for updates to context and update context in storage
         authConnection.on('joined', ({ team, user }) => {
-            console.log('Joined', team, user)
+            console.log(`${user.userId}: Joined team ${team.teamName}!`)
+            if (this.storage.getSigChain() == null) {
+                console.log(`${user.userId}: Creating SigChain for user with name ${user.userName} and team name ${team.teamName}`)
+                const context = this.storage.getContext()!
+                this.storage.setSigChain(SigChain.createFromTeam(team, context).sigChain)
+                console.log(`${user.userId}: Updating auth context`)
+                this.storage.setAuthContext({
+                    user: context.user,
+                    device: context.device,
+                    team
+                })
+            }
         })
-        authConnection.on('change', state => console.log('Change', state))
+
+        authConnection.on(
+            'change', 
+            (summary: string) => 
+                console.log(
+                    `${this.storage.getContext()?.user.userName}: Change ${summary}`
+                )
+        )
+
+        authConnection.on(
+            'updated', (head: string[]) => console.log(`${this.storage.getContext()?.user.userName}: Chain updated!  New head: ${JSON.stringify(head)}`)
+        )
 
         this.authConnections[peerId.toString()] = authConnection
     }
@@ -364,20 +412,28 @@ class Db extends EventEmitter {
 }
 
 const main = async () => {
+    const teamName = 'Test'
+    const username1 = 'isla'
+    const username2 = 'isntla'
+    const peerId1 = 'peer1'
+    const peerId2 = 'peer2'
+
     // Peer 1
     const storage1 = new Storage()
 
-    const founderContext = {
-        user: Auth.createUser('test1', 'test1'),
-        device: Auth.createDevice('test1', 'laptop'),
-    }
-    const teamName = 'Test'
-    const team = Auth.createTeam(teamName, founderContext)
-    storage1.setAuthContext({ ...founderContext, team })
-    const peer1 = new Libp2pService('peer1', storage1);
+    const { 
+        context: founderContext,
+        sigChain
+    } = SigChain.create(teamName, username1)
+
+    storage1.setContext(founderContext)
+    storage1.setAuthContext({ ...founderContext, team: sigChain.team })
+    storage1.setSigChain(sigChain)
+
+    const peer1 = new Libp2pService(peerId1, storage1);
     await peer1.init();
 
-    const { seed } = team.inviteMember()
+    const { seed } = sigChain.invites.create()
 
     // const orbitDb1 = new OrbitDbService(peer1);
     // await orbitDb1.init();
@@ -386,12 +442,13 @@ const main = async () => {
 
     // Peer 2
     const storage2 = new Storage()
+    const prospectiveUser = UserService.createFromInviteSeed(username2, seed)
+    storage2.setContext(prospectiveUser.context)
     storage2.setAuthContext({
-        user: Auth.createUser('test2', 'test2'),
-        device: Auth.createDevice('test2', 'laptop'),
+        ...prospectiveUser.context,
         invitationSeed: seed
     })
-    const peer2 = new Libp2pService('peer2', storage2);
+    const peer2 = new Libp2pService(peerId2, storage2);
     await peer2.init();
 
     // const orbitDb2 = new OrbitDbService(peer2);
@@ -410,6 +467,16 @@ const main = async () => {
     // await db1.close();
     // await orbitDb1.close();
     // await peer1.close();
+
+    await sleep(3000)
+    const channelName = 'foobar'
+    peer1.storage.getSigChain()!.channels.createPrivateChannel(channelName, peer2.storage.getContext()!)
+    peer1.storage.getSigChain()!.channels.addMemberToPrivateChannel(peer2.storage.getContext()!.user.userId, channelName)
+
+    await sleep(3000)
+    const enc = peer2.storage.getSigChain()!.crypto.encryptAndSign('this is a message', { type: EncryptionScopeType.CHANNEL, name: channelName }, storage2.getContext()!)
+    const dec = peer1.storage.getSigChain()!.crypto.decryptAndVerify(enc.encrypted, enc.signature, storage1.getContext()!)
+    console.log(dec)
 };
 
 main().then().catch(console.error);

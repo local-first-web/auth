@@ -47,6 +47,14 @@ class SigChain {
     }
   }
 
+  public static createFromTeam(team: auth.Team, context: auth.LocalUserContext): LoadedSigChain {
+    const sigChain = this.init(team)
+    return {
+     context,
+     sigChain
+    }
+ }
+
   // TODO: Is this the right signature for this method?
   public static join(context: auth.LocalUserContext, serializedTeam: Uint8Array, teamKeyRing: auth.Keyring): LoadedSigChain {
     const team: auth.Team = this.lfa.loadTeam(serializedTeam, context, teamKeyRing)
@@ -82,11 +90,6 @@ class SigChain {
   public persist(): Uint8Array {
     return this.team.save() // this doesn't actually do anything but create the new state to save
   }
-
-  // TODO: pull user context from storage and then pull team from storage
-  // private load(): LoadedSigChain {
-  //   
-  // }
 
   get team(): auth.Team {
     return this._team

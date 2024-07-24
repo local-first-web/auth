@@ -30,7 +30,7 @@ console.log(`DM ID: ${dmId}`)
 console.log(`DM Keys: ${JSON.stringify(keys, null, 2)}`)
 
 const channelName = 'some-channel'
-sigChain.channels.createPrivateChannel(channelName)
+sigChain.channels.createPrivateChannel(channelName, context)
 const encryptedAndSignedChannel = sigChain.crypto.encryptAndSign('foobar', { type: EncryptionScopeType.CHANNEL, name: channelName }, context)
 
 console.log('\n---- Channels ----\n')

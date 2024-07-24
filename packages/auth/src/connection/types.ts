@@ -47,7 +47,7 @@ export type ConnectionEvents = {
   joined: ({ team, user }: { team: Team; user: UserWithSecrets; teamKeyring: Keyring }) => void
 
   /** The team graph has been updated. This event gives the application a chance to persist the changes. */
-  updated: () => void
+  updated: (head: string[]) => void
 
   /** The auth connection disconnects from a peer after entering an error state. */
   disconnected: (event: ConnectionMessage) => void

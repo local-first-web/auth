@@ -2,6 +2,7 @@
  * Handles channel-related chain operations
  */
 
+import { LocalUserContext } from "@localfirst/auth"
 import { SigChain } from "../../chain.js"
 import { BaseChainService } from "../baseService.js"
 
@@ -11,9 +12,10 @@ class ChannelService extends BaseChainService {
   }
 
   // TODO: figure out permissions
-  public createPrivateChannel(channelName: string) {
+  public createPrivateChannel(channelName: string, context: LocalUserContext) {
     console.log(`Creating private channel role with name ${channelName}`)
     this.sigChain.roles.create(ChannelService.getPrivateChannelRoleName(channelName))
+    this.addMemberToPrivateChannel(context.user.userId, channelName)
     // this.activeSigChain.persist()
   }
 
