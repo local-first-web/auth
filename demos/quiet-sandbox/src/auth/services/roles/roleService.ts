@@ -2,20 +2,15 @@
  * Handles role-related chain operations
  */
 
+import { SigChain } from "../../chain.js"
 import { BaseChainService } from "../baseService.js"
 import { Permissions } from "./permissions.js"
 import { RoleName } from "./roles.js"
 import { PermissionsMap, Role } from "@localfirst/auth"
 
 class RoleService extends BaseChainService {
-  protected static _instance: RoleService | undefined
-
-  public static init(): RoleService {
-    if (RoleService._instance == null) {
-      RoleService._instance = new RoleService() 
-    }
-
-    return RoleService.instance
+  public static init(sigChain: SigChain): RoleService {
+    return new RoleService(sigChain)
   }
 
   // TODO: figure out permissions
@@ -30,7 +25,7 @@ class RoleService extends BaseChainService {
       permissions
     }
 
-    this.activeSigChain.team.addRole(role)
+    this.sigChain.team.addRole(role)
     // this.activeSigChain.persist()
   }
 
@@ -50,28 +45,20 @@ class RoleService extends BaseChainService {
 
   public addMember(memberId: string, roleName: string) {
     console.log(`Adding member with ID ${memberId} to role ${roleName}`)
-    this.activeSigChain.team.addMemberRole(memberId, roleName)
+    this.sigChain.team.addMemberRole(memberId, roleName)
     // this.activeSigChain.persist()
   }
 
   public revokeMembership(memberId: string, roleName: string) {
     console.log(`Revoking role ${roleName} for member with ID ${memberId}`)
-    this.activeSigChain.team.removeMemberRole(memberId, roleName)
+    this.sigChain.team.removeMemberRole(memberId, roleName)
     // this.activeSigChain.persist()
   }
 
   public delete(roleName: string) {
     console.log(`Removing role with name ${roleName}`)
-    this.activeSigChain.team.removeRole(roleName)
+    this.sigChain.team.removeRole(roleName)
     // this.activeSigChain.persist()
-  }
-
-  public static get instance(): RoleService {
-    if (RoleService._instance == null) {
-      throw new Error(`RoleService hasn't been initialized yet!  Run init() before accessing`)
-    }
-
-    return RoleService._instance
   }
 }
 

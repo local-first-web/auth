@@ -7,16 +7,12 @@ import { BaseChainService } from '../baseService.js'
 import { ProspectiveUser, MemberSearchOptions, DEFAULT_SEARCH_OPTIONS } from './types.js'
 import { DeviceWithSecrets, LocalUserContext, Member, User, UserWithSecrets } from '@localfirst/auth'
 import { SigChain } from '../../chain.js'
+import { DeviceService } from './deviceService.js'
+import { InviteService } from '../invites/inviteService.js'
 
 class UserService extends BaseChainService {
-  protected static _instance: UserService | undefined
-
-  public static init(): UserService {
-    if (UserService._instance == null) {
-      UserService._instance = new UserService() 
-    }
-
-    return UserService.instance
+  public static init(sigChain: SigChain): UserService {
+    return new UserService(sigChain)
   }
 
   /**
@@ -26,9 +22,9 @@ class UserService extends BaseChainService {
    * @param id Optionally specify the user's ID (otherwise autogenerate)
    * @returns New QuietUser instance with an initial device
    */
-  public create(name: string, id?: string): LocalUserContext {
+  public static create(name: string, id?: string): LocalUserContext {
     const user: UserWithSecrets = SigChain.lfa.createUser(name, id)
-    const device: DeviceWithSecrets = SigChain.devices.generateDeviceForUser(user.userId)
+    const device: DeviceWithSecrets = DeviceService.generateDeviceForUser(user.userId)
 
     return {
       user,
@@ -36,9 +32,9 @@ class UserService extends BaseChainService {
     }
   }
 
-  public createFromInviteSeed(name: string, seed: string): ProspectiveUser {
+  public static createFromInviteSeed(name: string, seed: string): ProspectiveUser {
     const context = this.create(name)
-    const inviteProof = SigChain.invites.generateProof(seed)
+    const inviteProof = InviteService.generateProof(seed)
     const publicKeys = UserService.redactUser(context.user).keys
 
     return {
@@ -49,11 +45,11 @@ class UserService extends BaseChainService {
   }
 
   public getKeys(): KeyMap {
-    return this.activeSigChain.team.allKeys()
+    return this.sigChain.team.allKeys()
   }
 
   public getAllMembers(): Member[] {
-    return this.activeSigChain.team.members()
+    return this.sigChain.team.members()
   }
 
   public getMembersById(memberIds: string[], options: MemberSearchOptions = DEFAULT_SEARCH_OPTIONS): Member[] {
@@ -61,19 +57,11 @@ class UserService extends BaseChainService {
       return []
     }
 
-    return this.activeSigChain.team.members(memberIds, options)
+    return this.sigChain.team.members(memberIds, options)
   }
 
   public static redactUser(user: UserWithSecrets): User {
     return SigChain.lfa.redactUser(user)
-  }
-
-  public static get instance(): UserService {
-    if (UserService._instance == null) {
-      throw new Error(`UserService hasn't been initialized yet!  Run init() before accessing`)
-    }
-
-    return UserService._instance
   }
 }
 
