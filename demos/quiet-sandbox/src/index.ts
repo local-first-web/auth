@@ -1,9 +1,7 @@
 #! /usr/bin/env ts-node
 
 import { program } from '@commander-js/extra-typings';
-import figlet from 'figlet'
 
-import team from './prompts/team.js';
 import interactive from './prompts/interactive.js';
 
 // Helper function for logging
@@ -30,6 +28,19 @@ program
   .action(() => {
     interactive();
   });
+
+  const team = program.command('team').description('Team management commands');
+
+  team
+    .command('create')
+    .description('Create a new team')
+    .option('-n, --name <team name>', 'Specifies the name of the team to be created', undefined)
+    .option('-u, --username <user name>', 'Specifies the name of the founding user', undefined)
+    .action((options) => {
+      const globalOptions = program.opts();
+      logOptions(globalOptions, options)
+      console.log(`Creating team: \n\n    Team Name: ${options.name}\n    Username: ${options.username}`)
+    })
 
 // User Management
 const user = program.command('user').description('User management commands');

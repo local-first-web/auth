@@ -8,8 +8,8 @@ import { noise } from '@chainsafe/libp2p-noise';
 import { yamux } from '@chainsafe/libp2p-yamux';
 import { createEd25519PeerId, createFromProtobuf, exportToProtobuf } from '@libp2p/peer-id-factory';
 import { base64 } from 'multiformats/bases/base64';
-import { createHelia, Helia } from 'helia';
-import { createOrbitDB, Events, OrbitDB, LogEntry } from '@orbitdb/core';
+// import { createHelia, Helia } from 'helia';
+// import { createOrbitDB, Events, OrbitDB, LogEntry } from '@orbitdb/core';
 import { gossipsub } from '@chainsafe/libp2p-gossipsub';
 import { identify } from '@libp2p/identify';
 import fs from 'fs';
@@ -344,71 +344,71 @@ class Libp2pService {
 
 class OrbitDbService {
 
-    libp2pService: Libp2pService
-    ipfs: Helia | null
-    orbitDb: OrbitDB | null
+    // libp2pService: Libp2pService
+    // ipfs: Helia | null
+    // orbitDb: OrbitDB | null
 
-    constructor(libp2pService: Libp2pService) {
-        this.libp2pService = libp2pService;
-        this.ipfs = null;
-        this.orbitDb = null;
-    }
+    // constructor(libp2pService: Libp2pService) {
+    //     this.libp2pService = libp2pService;
+    //     this.ipfs = null;
+    //     this.orbitDb = null;
+    // }
 
-    async init() {
-        console.log('Initializing OrbitDB')
-        if (!this.libp2pService.libp2p) {
-            throw new Error('Cannot initialize OrbitDB, libp2p instance required')
-        }
-        this.ipfs = await createHelia({ libp2p: this.libp2pService.libp2p })
-        this.orbitDb = await createOrbitDB({ ipfs: this.ipfs, directory: this.libp2pService.peerName })
-    }
+    // async init() {
+    //     console.log('Initializing OrbitDB')
+    //     if (!this.libp2pService.libp2p) {
+    //         throw new Error('Cannot initialize OrbitDB, libp2p instance required')
+    //     }
+    //     this.ipfs = await createHelia({ libp2p: this.libp2pService.libp2p })
+    //     this.orbitDb = await createOrbitDB({ ipfs: this.ipfs, directory: this.libp2pService.peerName })
+    // }
 
-    async createDb(dbName: string) {
-        if (!this.orbitDb) {
-            throw new Error('Must call init before creating a DB')
-        }
-        const db = new Db(this.orbitDb, dbName);
-        await db.init();
+    // async createDb(dbName: string) {
+    //     if (!this.orbitDb) {
+    //         throw new Error('Must call init before creating a DB')
+    //     }
+    //     const db = new Db(this.orbitDb, dbName);
+    //     await db.init();
 
-        return db;
-    }
+    //     return db;
+    // }
 
-    async close() {
-        console.log('Closing OrbitDB');
-        await this.orbitDb?.stop();
-        await this.ipfs?.stop();
-    }
+    // async close() {
+    //     console.log('Closing OrbitDB');
+    //     await this.orbitDb?.stop();
+    //     await this.ipfs?.stop();
+    // }
 }
 
 class Db extends EventEmitter {
 
-    orbitDb: OrbitDB
-    dbName: string
-    db: Events | null
+    // orbitDb: OrbitDB
+    // dbName: string
+    // db: Events | null
 
-    constructor(orbitDb: OrbitDB, dbName: string) {
-        super();
+    // constructor(orbitDb: OrbitDB, dbName: string) {
+    //     super();
 
-        this.orbitDb = orbitDb;
-        this.dbName = dbName;
-        this.db = null;
-    }
+    //     this.orbitDb = orbitDb;
+    //     this.dbName = dbName;
+    //     this.db = null;
+    // }
 
-    async init() {
-        // Seems like we can improve the type definitions
-        this.db = await this.orbitDb.open(this.dbName) as unknown as Events;
+    // async init() {
+    //     // Seems like we can improve the type definitions
+    //     this.db = await this.orbitDb.open(this.dbName) as unknown as Events;
 
-        this.db.events.on('update', async (entry: LogEntry) => {
-            this.emit('update', entry);
-        });
+    //     this.db.events.on('update', async (entry: LogEntry) => {
+    //         this.emit('update', entry);
+    //     });
 
-        return this.db;
-    }
+    //     return this.db;
+    // }
 
-    async close() {
-        console.log('Closing DB');
-        await this.db?.close();
-    }
+    // async close() {
+    //     console.log('Closing DB');
+    //     await this.db?.close();
+    // }
 }
 
 const main = async () => {
@@ -479,4 +479,9 @@ const main = async () => {
     console.log(dec)
 };
 
-main().then().catch(console.error);
+export {
+    Storage,
+    Libp2pService,
+    Db,
+    OrbitDbService
+}

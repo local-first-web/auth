@@ -60,6 +60,10 @@ class RoleService extends BaseChainService {
     this.sigChain.team.removeRole(roleName)
     // this.activeSigChain.persist()
   }
+
+  public getAllRoles(): Role[] {
+    return this.sigChain.team.roles()
+  }
 }
 
 export {

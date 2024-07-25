@@ -3,15 +3,17 @@
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 
-import teamInfo from '../data/testTeamInfo.js';
 import actionSelect from '../components/actionSelect.js';
-import team from './team.js';
+import { teamAdd, teamInfo } from './team.js';
 import channelsList from './channelsList.js';
 import usersList from './users.js';
 import rolesList from './rolesList.js';
 import invitesList from './invitesList.js';
+import { Storage } from '../network.js';
 
 const interactive = async () => {
+  const storage = new Storage()
+
   console.log(chalk.magentaBright.bold.underline("Quiet Sandbox"));
   console.log("Navigate options with arrow keys, use E to select, and Q to go back.");
   let exit = false;
@@ -28,6 +30,7 @@ const interactive = async () => {
           ],
           actions: [
             { name: "Select", value: "select", key: "e" },
+            { name: 'Add', value: "add", key: "a" },
             { name: "Exit Program", value: "exit", key: "escape" },
           ]
         },
@@ -37,7 +40,7 @@ const interactive = async () => {
       case undefined: // catches enter/return key
         switch (answer.answer) {
           case "team":
-            team();
+            teamInfo(storage);
             break;
           case "channels":
             await channelsList();
@@ -51,6 +54,17 @@ const interactive = async () => {
           case "invites":
             await invitesList();
             break;
+        }
+        break;
+      case "add":
+        switch (answer.answer) {
+          case "team":
+            await teamAdd(storage)
+            break
+          // case "invites":
+          //   await 
+          case undefined:
+            break
         }
         break;
       case "exit":

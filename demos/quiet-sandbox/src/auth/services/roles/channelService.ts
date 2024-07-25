@@ -2,9 +2,11 @@
  * Handles channel-related chain operations
  */
 
-import { LocalUserContext } from "@localfirst/auth"
+import { LocalUserContext, Role } from "@localfirst/auth"
 import { SigChain } from "../../chain.js"
 import { BaseChainService } from "../baseService.js"
+
+const CHANNEL_ROLE_KEY_PREFIX = "priv_chan_"
 
 class ChannelService extends BaseChainService {
   public static init(sigChain: SigChain): ChannelService {
@@ -37,8 +39,13 @@ class ChannelService extends BaseChainService {
     // this.activeSigChain.persist()
   }
 
+  public getAllChannels(): Role[] {
+    const allRoles = this.sigChain.roles.getAllRoles()
+    return allRoles.filter((role: Role) => role.roleName.startsWith(CHANNEL_ROLE_KEY_PREFIX))
+  } 
+
   public static getPrivateChannelRoleName(channelName: string): string {
-    return `priv_chan_${channelName}`
+    return `${CHANNEL_ROLE_KEY_PREFIX}${channelName}`
   }
 }
 
