@@ -13,12 +13,7 @@ import { Libp2pService, Storage } from '../network.js';
 import { peerConnect, peerInfo } from './peers.js';
 import { me } from './me.js';
 
-const interactive = async () => {
-  const storage = new Storage()
-  let peer: Libp2pService | undefined
-
-  console.log(chalk.magentaBright.bold.underline("Quiet Sandbox"));
-  console.log("Navigate options with arrow keys, use E to select, and Q to go back.");
+const mainLoop = async (storage: Storage, peer?: Libp2pService) => {
   let exit = false;
   while (exit === false) {
     const defaultChoices = [
@@ -72,9 +67,6 @@ const interactive = async () => {
         break;
       case "add":
         switch (answer.answer) {
-          case "team":
-            peer = await teamAdd(storage, peer)
-            break
           case "invites":
             await inviteAdd(storage)
             break;
@@ -90,6 +82,24 @@ const interactive = async () => {
         break;
     }
   };
+  return exit
+};
+
+const interactive = async () => {
+  const storage = new Storage()
+  let peer: Libp2pService | undefined
+
+  console.log(chalk.magentaBright.bold.underline("Quiet Sandbox"));
+  console.log("Navigate options with arrow keys, use E to select, and Q to go back.");
+  let exit = false;
+  while (exit === false) {
+    peer = await teamAdd(storage, peer)
+    if (peer != null) {
+      exit = true
+    }
+  };
+
+  await mainLoop(storage, peer)
   console.log(chalk.magentaBright.bold("Goodbye!"));
 };
 
