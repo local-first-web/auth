@@ -34,6 +34,7 @@ import { SigChain } from './auth/chain.js'
 import { UserService } from './auth/services/members/userService.js';
 import { sleep } from './utils/utils.js';
 import { EncryptionScopeType } from './auth/services/crypto/types.js';
+import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
 
 class Storage {
     private authContext: Auth.Context | null
@@ -309,17 +310,17 @@ class Libp2pService {
             transports: [tcp()],
             connectionEncryption: [noise()],
             streamMuxers: [yamux()],
-            peerDiscovery: [
-                bootstrap({
-                    list: [
-                        '/ip4/127.0.0.1/tcp/8088/p2p/12D3KooWNYYYUtuxvmH7gsvApKE6YoiqBWNgZ6x3BBpea3RP1jTv'
-                    ],
-                    timeout: 1000, // in ms,
-                    tagName: 'bootstrap',
-                    tagValue: 50,
-                    tagTTL: 120000 // in ms
-                })
-            ],
+            // peerDiscovery: [
+            //     bootstrap({
+            //         list: [
+            //             '/ip4/127.0.0.1/tcp/8088/p2p/12D3KooWNYYYUtuxvmH7gsvApKE6YoiqBWNgZ6x3BBpea3RP1jTv'
+            //         ],
+            //         timeout: 1000, // in ms,
+            //         tagName: 'bootstrap',
+            //         tagValue: 50,
+            //         tagTTL: 120000 // in ms
+            //     })
+            // ],
             services: {
                 echo: echo(),
                 pubsub: gossipsub({
@@ -334,6 +335,24 @@ class Libp2pService {
         console.log('Peer ID: ', peerId.toString());
 
         return this.libp2p;
+    }
+
+    async dial(addr: string | Multiaddr): Promise<boolean> {
+        console.log(`Dialing peer at ${addr}`)
+        let multiAddr: Multiaddr
+        if (typeof addr === 'string') {
+            multiAddr = multiaddr(addr)
+        } else {
+            multiAddr = addr
+        }
+        const conn = await this.libp2p?.dial(multiAddr)
+        if (conn?.status == 'open') {
+            console.log(`Connected to peer at ${addr}`)
+            return true
+        }
+        
+        console.warn(`Failed to connect to peer at ${addr}!  Got status ${conn?.status}`)
+        return false
     }
 
     async close() {

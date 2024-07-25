@@ -10,6 +10,7 @@ import usersList from './users.js';
 import rolesList from './rolesList.js';
 import { invitesList, inviteAdd } from './invites.js';
 import { Libp2pService, Storage } from '../network.js';
+import { peerConnect, peerInfo } from './peers.js';
 
 const interactive = async () => {
   const storage = new Storage()
@@ -23,6 +24,7 @@ const interactive = async () => {
       { name: "Team", value: "team", description: "Explore team information"}
     ]
     const otherChoices = storage.getSigChain() == null ? [] : [
+      { name: "Peers", value: "peers", description: "Explore peers" },
       { name: "Channels", value: "channels", description: "Explore channels" },
       { name: "Users", value: "users", description: "Explore users" },
       { name: "Roles", value: "roles", description: "Explore roles" },
@@ -44,7 +46,7 @@ const interactive = async () => {
       case undefined: // catches enter/return key
         switch (answer.answer) {
           case "team":
-            teamInfo(storage);
+            await teamInfo(peer);
             break;
           case "channels":
             await channelsList();
@@ -58,6 +60,9 @@ const interactive = async () => {
           case "invites":
             await invitesList(storage);
             break;
+          case "peers":
+            await peerInfo(peer);
+            break;
         }
         break;
       case "add":
@@ -67,6 +72,10 @@ const interactive = async () => {
             break
           case "invites":
             await inviteAdd(storage)
+            break;
+          case "peers":
+            await peerConnect(peer)
+            break;
           case undefined:
             break
         }

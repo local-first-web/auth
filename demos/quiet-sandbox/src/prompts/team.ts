@@ -6,46 +6,70 @@ import { confirm, input } from '@inquirer/prompts';
 import { SigChain } from '../auth/chain.js';
 import { Libp2pService, Storage } from '../network.js';
 import { UserService } from '../auth/services/members/userService.js';
+import { INVITE_TABLE_PROPERTIES } from './invites.js';
+import { PEER_TABLE_PROPERTIES } from './peers.js';
 
-const teamInfo = (storage: Storage) => {
-  if (storage.getContext() == null || storage.getSigChain() == null) {
-    console.log("Must set the user context and sig chain to display team information")
+const teamInfo = async (libp2p: Libp2pService | undefined) => {
+  if (libp2p == null || libp2p.libp2p == null) {
+    console.log("Must initialize the Libp2pService and the chain to display team information")
     return
   }
 
-  const sigChain = storage.getSigChain()!
-  const context = storage.getContext()!
+  const sigChain = libp2p.storage.getSigChain()
+  const context = libp2p.storage.getContext()!
 
   console.log("--------------------");
   console.log("Team Information");
   console.log("--------------------");
-  console.log("Name:", sigChain.team.teamName);
-  console.log(chalk.bold("Channels:"));
-  console.table(sigChain.channels.getAllChannels());
-  console.log("\n");
 
-  console.log(chalk.bold("Users"));
-  console.table(sigChain.users.getAllMembers());
-  console.log("\n");
+  if (sigChain == null) {
+    console.log("No sig chain has been setup!  Please join a team and then check back!")
+    console.log("\n")
+  } else {
+    console.log("Name:", sigChain.team.teamName);
+    console.log(chalk.bold("Channels:"));
+    console.table(sigChain.channels.getAllChannels());
+    console.log("\n");
 
-  console.log(chalk.bold("Roles"));
-  console.table(sigChain.roles.getAllRoles());
-  console.log("\n");
+    console.log(chalk.bold("Users"));
+    console.table(sigChain.users.getAllMembers());
+    console.log("\n");
 
-  console.log("\n--------------------");
+    console.log(chalk.bold("Roles"));
+    console.table(sigChain.roles.getAllRoles());
+    console.log("\n");
+
+    console.log(chalk.bold("Invites"));
+    console.table(sigChain.invites.getAllInvites(), INVITE_TABLE_PROPERTIES);
+    console.log("\n");
+  }
+
+  console.log("--------------------");
   console.log("User Information");
   console.log("--------------------");
   console.log("Name:", context.user.userName);
   console.log("ID:", context.user.userId);
-  console.log(chalk.bold("Device"));
+  console.log("\n")
+  console.log(chalk.bold("-- Device --"));
   console.log("Name:", context.device.deviceName)
   console.log("ID:", context.device.deviceId)
   console.log("\n");
 
-  // console.log(chalk.bold("Invites"));
-  // console.table(sigChain.invites.getAllInvites());
-  // console.log("\n");
-
+  console.log("--------------------");
+  console.log("Libp2p Information");
+  console.log("--------------------");
+  console.log(chalk.bold("Me"))
+  console.log("Peer ID:", await libp2p.getPeerId())
+  console.log("\n")
+  console.log(chalk.bold("-- Addresses --"))
+  console.table(libp2p.libp2p.getMultiaddrs().map((addr) => addr.toString()));
+  console.log("\n")
+  console.log(chalk.bold("Connected Peers"))
+  const connectedPeerIds = libp2p.libp2p.getPeers()
+  const connectedPeers = (await libp2p.libp2p.peerStore.all())
+    .filter((peer) => connectedPeerIds.find((peerId) => peer.id == peerId) != null)
+  console.table(connectedPeers, PEER_TABLE_PROPERTIES)
+  console.log("\n")
 }
 
 const teamAdd = async (storage: Storage, existingPeer?: Libp2pService): Promise<Libp2pService> => {
@@ -90,6 +114,7 @@ const teamAdd = async (storage: Storage, existingPeer?: Libp2pService): Promise<
     });
     const invitationSeed = await input({
       message: "What is your invite seed?",
+      default: undefined,
       validate: ((input) => {
         return input != null ? true : "Must enter a valid invite seed"
       })
