@@ -7,8 +7,6 @@ import actionSelect from '../components/actionSelect.js';
 import { Peer, PeerId } from '@libp2p/interface';
 import clipboard from 'clipboardy';
 
-export const PEER_TABLE_PROPERTIES = ['id', 'addresses', 'protocols', 'metadata', 'tags', 'peerRecordEnvelope']
-
 const peerInfo = async (libp2p: Libp2pService | undefined) => {
   if (libp2p == null || libp2p.libp2p == null) {
     console.log("Must initialize the Libp2pService")
@@ -40,7 +38,7 @@ const peerInfo = async (libp2p: Libp2pService | undefined) => {
     switch (answer.action) {
       case "select":
       case undefined:
-        console.table([peer], PEER_TABLE_PROPERTIES);
+        console.table([peer]);
         break;
       case "back":
         exit = true;

@@ -3,7 +3,6 @@
 import chalk from 'chalk';
 
 import { Libp2pService } from '../network.js';
-import { PEER_TABLE_PROPERTIES } from './peers.js';
 import { Peer } from '@libp2p/interface';
 import actionSelect from '../components/actionSelect.js';
 import clipboard from 'clipboardy';
@@ -39,7 +38,7 @@ const displayMyInfo = async (libp2p: Libp2pService) => {
   for (const peerId of connectedPeerIds) {
     connectedPeers.push(allPeers[peerId.toString()])
   }
-  console.table(connectedPeers, PEER_TABLE_PROPERTIES)
+  console.table(connectedPeers)
   console.log("\n")
 }
 

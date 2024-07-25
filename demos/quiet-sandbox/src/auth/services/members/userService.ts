@@ -60,6 +60,10 @@ class UserService extends BaseChainService {
     return this.sigChain.team.members(memberIds, options)
   }
 
+  public getMemberByName(memberName: string): Member | undefined {
+    return this.getAllMembers().find((member) => member.userName === memberName)
+  }
+
   public static redactUser(user: UserWithSecrets): User {
     return SigChain.lfa.redactUser(user)
   }

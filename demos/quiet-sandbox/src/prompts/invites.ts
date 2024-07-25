@@ -6,7 +6,6 @@ import actionSelect from "../components/actionSelect.js";
 import { Storage } from "../network.js";
 import { DEFAULT_INVITATION_VALID_FOR_MS, DEFAULT_MAX_USES } from "../auth/services/invites/inviteService.js";
 
-export const INVITE_TABLE_PROPERTIES = ['id', 'seed', 'publicKey', 'expiration', 'maxUses', 'userId', 'uses', 'revoked']
 const inviteSeedMap = new Map<string, string>()
 
 const invitesList = async (storage: Storage) => {
@@ -38,13 +37,13 @@ const invitesList = async (storage: Storage) => {
     switch (answer.action) {
       case "select":
       case undefined:
-        console.table([createTableInvite(invite)], INVITE_TABLE_PROPERTIES);
+        console.table([createTableInvite(invite)]);
         break;
       case "revoke":
         console.log(`Revoking invite with ID ${invite.id}`);
         storage.getSigChain()!.invites.revoke(invite.id)
         const newInviteState = storage.getSigChain()!.invites.getById(invite.id)
-        console.table([createTableInvite(newInviteState)], INVITE_TABLE_PROPERTIES)
+        console.table([createTableInvite(newInviteState)])
         break;
       case "copy":
         console.log(`Copying seed for invite with ID ${invite.id}`);

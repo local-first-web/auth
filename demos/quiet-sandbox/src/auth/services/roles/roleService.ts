@@ -6,7 +6,7 @@ import { SigChain } from "../../chain.js"
 import { BaseChainService } from "../baseService.js"
 import { Permissions } from "./permissions.js"
 import { RoleName } from "./roles.js"
-import { PermissionsMap, Role } from "@localfirst/auth"
+import { LocalUserContext, Member, PermissionsMap, Role } from "@localfirst/auth"
 
 class RoleService extends BaseChainService {
   public static init(sigChain: SigChain): RoleService {
@@ -61,8 +61,24 @@ class RoleService extends BaseChainService {
     // this.activeSigChain.persist()
   }
 
+  public getRole(roleName: string): Role {
+    return this.sigChain.team.roles(roleName)
+  }
+
   public getAllRoles(): Role[] {
     return this.sigChain.team.roles()
+  }
+
+  public memberHasRole(memberId: string, roleName: string): boolean {
+    return this.sigChain.team.memberHasRole(memberId, roleName)
+  }
+
+  public amIMemberOfRole(context: LocalUserContext, roleName: string): boolean {
+    return this.memberHasRole(context.user.userId, roleName)
+  }
+
+  public getMembersForRole(roleName: string): Member[] {
+    return this.sigChain.team.membersInRole(roleName)
   }
 }
 

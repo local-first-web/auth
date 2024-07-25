@@ -5,7 +5,7 @@ import chalk from 'chalk';
 
 import actionSelect from '../components/actionSelect.js';
 import { teamAdd, teamInfo } from './team.js';
-import channelsList from './channelsList.js';
+import { channelCreate, channelsList } from './channels.js';
 import usersList from './users.js';
 import rolesList from './rolesList.js';
 import { invitesList, inviteAdd } from './invites.js';
@@ -49,7 +49,7 @@ const mainLoop = async (storage: Storage, peer?: Libp2pService) => {
             await me(peer)
             break;
           case "channels":
-            await channelsList();
+            await channelsList(peer);
             break;
           case "users":
             await usersList();
@@ -72,6 +72,9 @@ const mainLoop = async (storage: Storage, peer?: Libp2pService) => {
             break;
           case "peers":
             await peerConnect(peer)
+            break;
+          case "channels":
+            await channelCreate(peer)
             break;
           case undefined:
             break

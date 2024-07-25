@@ -6,8 +6,8 @@ import { confirm, input } from '@inquirer/prompts';
 import { SigChain } from '../auth/chain.js';
 import { Libp2pService, Storage } from '../network.js';
 import { UserService } from '../auth/services/members/userService.js';
-import { INVITE_TABLE_PROPERTIES } from './invites.js';
 import clipboard from 'clipboardy';
+import { makeChannelsPrintable } from './channels.js';
 
 const teamInfo = async (libp2p: Libp2pService | undefined) => {
   if (libp2p == null || libp2p.libp2p == null) {
@@ -15,7 +15,8 @@ const teamInfo = async (libp2p: Libp2pService | undefined) => {
     return
   }
 
-  const sigChain = libp2p.storage.getSigChain()
+  const sigChain = libp2p.storage.getSigChain()!
+  const context = libp2p.storage.getContext()!
 
   console.log("--------------------");
   console.log("Team Information");
@@ -27,7 +28,7 @@ const teamInfo = async (libp2p: Libp2pService | undefined) => {
   } else {
     console.log("Name:", sigChain.team.teamName);
     console.log(chalk.bold("Channels:"));
-    console.table(sigChain.channels.getAllChannels());
+    console.table(makeChannelsPrintable(sigChain.channels.getChannels(context)));
     console.log("\n");
 
     console.log(chalk.bold("Users"));
@@ -39,7 +40,7 @@ const teamInfo = async (libp2p: Libp2pService | undefined) => {
     console.log("\n");
 
     console.log(chalk.bold("Invites"));
-    console.table(sigChain.invites.getAllInvites(), INVITE_TABLE_PROPERTIES);
+    console.table(sigChain.invites.getAllInvites());
     console.log("\n");
   }
 }
