@@ -7,6 +7,7 @@ import { SigChain } from '../auth/chain.js';
 import { Libp2pService, Storage } from '../network.js';
 import { UserService } from '../auth/services/members/userService.js';
 import { INVITE_TABLE_PROPERTIES } from './invites.js';
+import clipboard from 'clipboardy';
 
 const teamInfo = async (libp2p: Libp2pService | undefined) => {
   if (libp2p == null || libp2p.libp2p == null) {
@@ -85,7 +86,7 @@ const teamAdd = async (storage: Storage, existingPeer?: Libp2pService): Promise<
     });
     const invitationSeed = await input({
       message: "What is your invite seed?",
-      default: undefined,
+      default:  await clipboard.read(),
       validate: ((input) => {
         return input != null ? true : "Must enter a valid invite seed"
       })

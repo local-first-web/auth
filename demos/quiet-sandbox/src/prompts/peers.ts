@@ -5,6 +5,7 @@ import { input } from '@inquirer/prompts';
 import { Libp2pService } from '../network.js';
 import actionSelect from '../components/actionSelect.js';
 import { Peer, PeerId } from '@libp2p/interface';
+import clipboard from 'clipboardy';
 
 export const PEER_TABLE_PROPERTIES = ['id', 'addresses', 'protocols', 'metadata', 'tags', 'peerRecordEnvelope']
 
@@ -56,7 +57,7 @@ const peerConnect = async (libp2p: Libp2pService | undefined) => {
 
   const addr = await input({
     message: "What is the address of the peer you want to connect to?",
-    default: undefined,
+    default: await clipboard.read(),
     validate: (addr: string) => addr != null ? true : "Must enter a valid peer address!"
   });
 
