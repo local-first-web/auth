@@ -11,6 +11,7 @@ import rolesList from './rolesList.js';
 import { invitesList, inviteAdd } from './invites.js';
 import { Libp2pService, Storage } from '../network.js';
 import { peerConnect, peerInfo } from './peers.js';
+import { me } from './me.js';
 
 const interactive = async () => {
   const storage = new Storage()
@@ -21,7 +22,8 @@ const interactive = async () => {
   let exit = false;
   while (exit === false) {
     const defaultChoices = [
-      { name: "Team", value: "team", description: "Explore team information"}
+      { name: "Team", value: "team", description: "Explore team information"},
+      { name: "Me", value: "me", description: "Explore my information" }
     ]
     const otherChoices = storage.getSigChain() == null ? [] : [
       { name: "Peers", value: "peers", description: "Explore peers" },
@@ -47,6 +49,9 @@ const interactive = async () => {
         switch (answer.answer) {
           case "team":
             await teamInfo(peer);
+            break;
+          case "me":
+            await me(peer)
             break;
           case "channels":
             await channelsList();

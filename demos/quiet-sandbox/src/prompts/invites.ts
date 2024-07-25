@@ -87,7 +87,7 @@ const inviteAdd = async (storage: Storage) => {
   console.log(`Created new invite with seed ${invite.seed}`)
   inviteSeedMap.set(invite.id, invite.seed)
 
-  return invite
+  await invitesList(storage)
 }
 
 const createTableInvite = (invite: InvitationState): InvitationState & { seed: string | undefined } => {

@@ -46,10 +46,9 @@ const peerInfo = async (libp2p: Libp2pService | undefined) => {
         return;
     }
   }
-
 }
 
-const peerConnect = async (libp2p: Libp2pService | undefined): Promise<boolean> => {
+const peerConnect = async (libp2p: Libp2pService | undefined) => {
   if (libp2p == null || libp2p.libp2p == null) {
     console.log("Must initialize the Libp2pService")
     return false
@@ -64,7 +63,7 @@ const peerConnect = async (libp2p: Libp2pService | undefined): Promise<boolean> 
   const success = await libp2p.dial(addr);
   console.log(`Connection to ${addr} success? ${success}`)
 
-  return success
+  await peerInfo(libp2p)
 }
 
 export {
