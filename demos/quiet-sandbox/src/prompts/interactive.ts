@@ -8,26 +8,30 @@ import { teamAdd, teamInfo } from './team.js';
 import channelsList from './channelsList.js';
 import usersList from './users.js';
 import rolesList from './rolesList.js';
-import invitesList from './invitesList.js';
-import { Storage } from '../network.js';
+import { invitesList, inviteAdd } from './invites.js';
+import { Libp2pService, Storage } from '../network.js';
 
 const interactive = async () => {
   const storage = new Storage()
+  let peer: Libp2pService | undefined
 
   console.log(chalk.magentaBright.bold.underline("Quiet Sandbox"));
   console.log("Navigate options with arrow keys, use E to select, and Q to go back.");
   let exit = false;
   while (exit === false) {
+    const defaultChoices = [
+      { name: "Team", value: "team", description: "Explore team information"}
+    ]
+    const otherChoices = storage.getSigChain() == null ? [] : [
+      { name: "Channels", value: "channels", description: "Explore channels" },
+      { name: "Users", value: "users", description: "Explore users" },
+      { name: "Roles", value: "roles", description: "Explore roles" },
+      { name: "Invites", value: "invites", description: "Explore invites" },
+    ]
     const answer = await actionSelect(
         {
           message: chalk.bold("Main Menu"),
-          choices: [
-            { name: "Team", value: "team", description: "Explore team information"},
-            { name: "Channels", value: "channels", description: "Explore channels" },
-            { name: "Users", value: "users", description: "Explore users" },
-            { name: "Roles", value: "roles", description: "Explore roles" },
-            { name: "Invites", value: "invites", description: "Explore invites" },
-          ],
+          choices: [...defaultChoices, ...otherChoices],
           actions: [
             { name: "Select", value: "select", key: "e" },
             { name: 'Add', value: "add", key: "a" },
@@ -52,17 +56,17 @@ const interactive = async () => {
             await rolesList();
             break;
           case "invites":
-            await invitesList();
+            await invitesList(storage);
             break;
         }
         break;
       case "add":
         switch (answer.answer) {
           case "team":
-            await teamAdd(storage)
+            peer = await teamAdd(storage, peer)
             break
-          // case "invites":
-          //   await 
+          case "invites":
+            await inviteAdd(storage)
           case undefined:
             break
         }

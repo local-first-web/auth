@@ -4,7 +4,7 @@ import chalk from 'chalk';
 import { confirm, input } from '@inquirer/prompts';
 
 import { SigChain } from '../auth/chain.js';
-import { Storage } from '../network.js';
+import { Libp2pService, Storage } from '../network.js';
 import { UserService } from '../auth/services/members/userService.js';
 
 const teamInfo = (storage: Storage) => {
@@ -48,16 +48,21 @@ const teamInfo = (storage: Storage) => {
 
 }
 
-const teamAdd = async (storage: Storage) => {
+const teamAdd = async (storage: Storage, existingPeer?: Libp2pService): Promise<Libp2pService> => {
   if (storage.getContext()) {
     console.warn("Already setup team")
-    return storage
+    if (existingPeer == null) {
+      throw new Error("Already setup team context but no libp2p service was found!  Something very bad happened!")
+    }
+    return existingPeer
   }
 
   const isNewTeam = await confirm({
     message: "Is this a new team?",
     default: true
   });
+
+  let peer: Libp2pService
 
   if (isNewTeam) {
     const teamName = await input({
@@ -77,23 +82,33 @@ const teamAdd = async (storage: Storage) => {
       device: loadedSigChain.context.device,
       team: loadedSigChain.sigChain.team
     })
+    peer = new Libp2pService(loadedSigChain.context.user.userId, storage)
   } else {
     const username = await input({
       message: "What is your username?",
       default: 'otheruser'
     });
-    const inviteSeed = await input({
+    const invitationSeed = await input({
       message: "What is your invite seed?",
       validate: ((input) => {
         return input != null ? true : "Must enter a valid invite seed"
       })
     })
-    console.log(`Joining a team as user ${username} with invite seed ${inviteSeed}`);
-    const prospectiveUser = UserService.createFromInviteSeed(username, inviteSeed)
+    console.log(`Joining a team as user ${username} with invite seed ${invitationSeed}`);
+    const prospectiveUser = UserService.createFromInviteSeed(username, invitationSeed)
     storage.setContext(prospectiveUser.context)
+    storage.setAuthContext({
+      user: prospectiveUser.context.user,
+      device: prospectiveUser.context.device,
+      invitationSeed
+    })
+    peer = new Libp2pService(prospectiveUser.context.user.userId, storage)
   }
+
+  console.log(`Initializing new libp2p peer with ID ${await peer.getPeerId()}`)
+  await peer.init()
   
-  return storage
+  return peer
 }
 
 export {

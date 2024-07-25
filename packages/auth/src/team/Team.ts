@@ -41,6 +41,7 @@ import * as select from './selectors/index.js'
 import { maybeDeserialize, serializeTeamGraph } from './serialize.js'
 import type {
   EncryptedEnvelope,
+  InvitationMap,
   InviteResult,
   Member,
   SignedEnvelope,
@@ -557,6 +558,10 @@ export class Team extends EventEmitter<TeamEvents> {
 
     // Validate the proof of invitation
     return invitations.validate(proof, invitation)
+  }
+
+  public invitations(): InvitationMap {
+    return select.invitations(this.state)
   }
 
   /** An existing team member calls this to admit a new member & their device to the team based on proof of invitation */
