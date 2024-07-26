@@ -3,12 +3,12 @@ import { InvitationState } from "@localfirst/auth";
 import clipboard from 'clipboardy';
 
 import actionSelect from "../components/actionSelect.js";
-import { Storage } from "../network.js";
 import { DEFAULT_INVITATION_VALID_FOR_MS, DEFAULT_MAX_USES } from "../auth/services/invites/inviteService.js";
+import { LocalStorage } from "../network.js";
 
 const inviteSeedMap = new Map<string, string>()
 
-const invitesList = async (storage: Storage) => {
+const invitesList = async (storage: LocalStorage) => {
   let exit = false;
   while (exit === false) {
     const sigChain = storage.getSigChain()!
@@ -66,7 +66,7 @@ const invitesList = async (storage: Storage) => {
   }
 }
 
-const inviteAdd = async (storage: Storage) => {
+const inviteAdd = async (storage: LocalStorage) => {
   if (storage.getSigChain() == null) {
     console.warn("Must setup team before creating invites!")
     return storage

@@ -18,16 +18,13 @@ class DeviceService extends BaseChainService {
    * @param userId User ID that this device is associated with
    * @returns A newly generated QuietDevice instance
    */
-  // FIXME: See below
-  // @ts-ignore
   public static generateDeviceForUser(userId: string): DeviceWithSecrets {
     const params = {
       userId,
       deviceName: DeviceService.determineDeviceName()
     }
 
-    // FIXME: Expected 2-3 arguments, but got 1
-    // return SigChain.lfa.createDevice(params)
+    return SigChain.lfa.createDevice(params)
   }
 
   /**

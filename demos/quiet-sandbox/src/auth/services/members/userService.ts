@@ -9,6 +9,7 @@ import { DeviceWithSecrets, LocalUserContext, Member, User, UserWithSecrets } fr
 import { SigChain } from '../../chain.js'
 import { DeviceService } from './deviceService.js'
 import { InviteService } from '../invites/inviteService.js'
+import { KeyMap } from '../../../../../../packages/auth/dist/team/selectors/keyMap.js'
 
 class UserService extends BaseChainService {
   public static init(sigChain: SigChain): UserService {
@@ -44,24 +45,20 @@ class UserService extends BaseChainService {
     }
   }
 
-  // FIXME: allKeys doesn't appear to exist
-  // public getKeys(): KeyMap {
-  //   return this.sigChain.team.allKeys()
-  // }
+  public getKeys(): KeyMap {
+    return this.sigChain.team.allKeys()
+  }
 
   public getAllMembers(): Member[] {
     return this.sigChain.team.members()
   }
 
-  // FIXME
-  // @ts-ignore
   public getMembersById(memberIds: string[], options: MemberSearchOptions = DEFAULT_SEARCH_OPTIONS): Member[] {
     if (memberIds.length === 0) {
       return []
     }
 
-    // FIXME: Argument of type 'string[]' is not assignable to parameter of type 'string'
-    // return this.sigChain.team.members(memberIds, options)
+    return this.sigChain.team.members(memberIds, options)
   }
 
   public getMemberByName(memberName: string): Member | undefined {

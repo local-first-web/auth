@@ -30,11 +30,9 @@ import type { Uint8ArrayList } from 'uint8arraylist'
 import map from 'it-map'
 import { SigChain } from './auth/chain.js'
 import { UserService } from './auth/services/members/userService.js';
-import { sleep } from './utils/utils.js';
-import { EncryptionScopeType } from './auth/services/crypto/types.js';
 import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
 
-class LocalStorage {
+export class LocalStorage {
     private authContext: Auth.Context | null
     private context: Auth.LocalUserContext | null
     private sigChain: SigChain | null
@@ -243,7 +241,7 @@ const libp2pAuth = (storage: LocalStorage): ((components: Libp2pAuthComponents) 
   return (components: Libp2pAuthComponents) => new Libp2pAuth(storage, components)
 }
 
-class Libp2pService {
+export class Libp2pService {
 
   peerName: string
   libp2p: Libp2p | null
@@ -349,7 +347,7 @@ class Libp2pService {
   }
 }
 
-class OrbitDbService {
+export class OrbitDbService {
 
   libp2pService: Libp2pService
   ipfs: Helia | null
@@ -367,7 +365,7 @@ class OrbitDbService {
       throw new Error('Cannot initialize OrbitDB, libp2p instance required')
     }
     this.ipfs = await createHelia({ libp2p: this.libp2pService.libp2p })
-    this.orbitDb = await createOrbitDB({ ipfs: this.ipfs, directory: this.libp2pService.peerName })
+    this.orbitDb = await createOrbitDB({ ipfs: this.ipfs, directory: `db/${this.libp2pService.peerName}` })
   }
 
   async createDb(dbName: string): Promise<Events> {
@@ -375,7 +373,7 @@ class OrbitDbService {
       throw new Error('Must call init before creating a DB')
     }
     // Seems like we can improve the type definitions
-    return await this.orbitDb.open(dbName) as unknown as Events
+    return await this.orbitDb.open(dbName, { directory: `db/${this.libp2pService.peerName}` }) as unknown as Events
   }
 
   async close() {
@@ -394,7 +392,7 @@ interface Channel {
   addr: string
 }
 
-class MessageService extends EventEmitter {
+export class MessageService extends EventEmitter {
 
   orbitDbService: OrbitDbService
   channelListDb: Events | null
@@ -409,7 +407,10 @@ class MessageService extends EventEmitter {
   }
 
   async init(channelListDbAddr?: string): Promise<string> {
-    await this.orbitDbService.init()
+    if (this.orbitDbService.orbitDb == null) {
+      await this.orbitDbService.init()
+    }
+
     // Sharing the channelListDb address is necessary for other peers to connect
     // to it. Each DB get's a unique address if only passing in a name to
     // createDb. That's just how OrbitDB works because of immutable databases.
@@ -436,7 +437,7 @@ class MessageService extends EventEmitter {
     const db = await this.createChannelDb('channel/' + channelName)
 
     this.channelDbs[channelName] = db
-    await this.channelListDb.add({ name: 'channelName', addr: db.address })
+    await this.channelListDb.add({ name: channelName, addr: db.address })
 
     return db
   }
@@ -457,7 +458,7 @@ class MessageService extends EventEmitter {
     return db
   }
 
-  async sendMessage(channelName: string, message: Message) {
+  async sendMessage(channelName: string, message: string) {
     if (channelName in this.channelDbs) {
       this.channelDbs[channelName].add(message)
     } else {
@@ -468,6 +469,50 @@ class MessageService extends EventEmitter {
   async close() {
     console.log('Closing OrbitDB')
     await this.orbitDbService?.close()
+  }
+}
+
+export class Networking {
+  private _libp2p: Libp2pService
+  private _orbitDb: OrbitDbService
+  private _messages: MessageService
+
+  private constructor(libp2p: Libp2pService, orbitDb: OrbitDbService, messages: MessageService) {
+    this._libp2p = libp2p
+    this._orbitDb = orbitDb
+    this._messages = messages
+  }
+
+  public static async init(storage: LocalStorage): Promise<Networking> {
+    const context = storage.getContext()
+    if (context == null) {
+      throw new Error(`Context hasn't been initialized!`)
+    }
+
+    const libp2p = new Libp2pService(context.user.userId, storage)
+    console.log(`Initializing new libp2p peer with ID ${await libp2p.getPeerId()}`)
+    await libp2p.init()
+
+    const orbitDb = new OrbitDbService(libp2p)
+    console.log(`Initializing new orbitdb service for peer ID ${await libp2p.getPeerId()}`)
+    await orbitDb.init()
+
+    const messages = new MessageService(orbitDb)
+    await messages.init()
+
+    return new Networking(libp2p, orbitDb, messages)
+  }
+
+  get libp2p(): Libp2pService {
+    return this._libp2p
+  }
+
+  get orbitDb(): OrbitDbService {
+    return this._orbitDb
+  }
+
+  get messages(): MessageService {
+    return this._messages
   }
 }
 
@@ -529,4 +574,4 @@ const main = async () => {
     // await peer1.close();
 }
 
-main().then().catch(console.error)
+// main().then().catch(console.error)

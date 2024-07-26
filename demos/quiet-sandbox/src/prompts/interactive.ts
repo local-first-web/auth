@@ -9,11 +9,11 @@ import { channelCreate, channelsList } from './channels.js';
 import usersList from './users.js';
 import rolesList from './rolesList.js';
 import { invitesList, inviteAdd } from './invites.js';
-import { Libp2pService, Storage } from '../network.js';
+import { Libp2pService, LocalStorage, Networking } from '../network.js';
 import { peerConnect, peerInfo } from './peers.js';
 import { me } from './me.js';
 
-const mainLoop = async (storage: Storage, peer?: Libp2pService) => {
+const mainLoop = async (storage: LocalStorage, networking?: Networking) => {
   let exit = false;
   while (exit === false) {
     const defaultChoices = [
@@ -43,13 +43,13 @@ const mainLoop = async (storage: Storage, peer?: Libp2pService) => {
       case undefined: // catches enter/return key
         switch (answer.answer) {
           case "team":
-            await teamInfo(peer);
+            await teamInfo(networking);
             break;
           case "me":
-            await me(peer)
+            await me(networking)
             break;
           case "channels":
-            await channelsList(peer);
+            await channelsList(networking);
             break;
           case "users":
             await usersList();
@@ -61,7 +61,7 @@ const mainLoop = async (storage: Storage, peer?: Libp2pService) => {
             await invitesList(storage);
             break;
           case "peers":
-            await peerInfo(peer);
+            await peerInfo(networking);
             break;
         }
         break;
@@ -71,10 +71,10 @@ const mainLoop = async (storage: Storage, peer?: Libp2pService) => {
             await inviteAdd(storage)
             break;
           case "peers":
-            await peerConnect(peer)
+            await peerConnect(networking)
             break;
           case "channels":
-            await channelCreate(peer)
+            await channelCreate(networking)
             break;
           case undefined:
             break
@@ -89,20 +89,20 @@ const mainLoop = async (storage: Storage, peer?: Libp2pService) => {
 };
 
 const interactive = async () => {
-  const storage = new Storage()
-  let peer: Libp2pService | undefined
+  const storage = new LocalStorage()
+  let networking: Networking | undefined
 
   console.log(chalk.magentaBright.bold.underline("Quiet Sandbox"));
   console.log("Navigate options with arrow keys, use E to select, and Q to go back.");
   let exit = false;
   while (exit === false) {
-    peer = await teamAdd(storage, peer)
-    if (peer != null) {
+    networking = await teamAdd(storage, networking)
+    if (networking != null) {
       exit = true
     }
   };
 
-  await mainLoop(storage, peer)
+  await mainLoop(storage, networking)
   console.log(chalk.magentaBright.bold("Goodbye!"));
 };
 

@@ -4,19 +4,19 @@ import chalk from 'chalk';
 import { confirm, input } from '@inquirer/prompts';
 
 import { SigChain } from '../auth/chain.js';
-import { Libp2pService, Storage } from '../network.js';
+import { Libp2pService, LocalStorage, Networking } from '../network.js';
 import { UserService } from '../auth/services/members/userService.js';
 import clipboard from 'clipboardy';
 import { makeChannelsPrintable } from './channels.js';
 
-const teamInfo = async (libp2p: Libp2pService | undefined) => {
-  if (libp2p == null || libp2p.libp2p == null) {
-    console.log("Must initialize the Libp2pService and the chain to display team information")
+const teamInfo = async (networking: Networking | undefined) => {
+  if (networking == null || networking.libp2p == null || networking.libp2p.libp2p == null) {
+    console.log("Must initialize the Networking wrapper and the chain to display team information")
     return
   }
 
-  const sigChain = libp2p.storage.getSigChain()!
-  const context = libp2p.storage.getContext()!
+  const sigChain = networking.libp2p.storage.getSigChain()!
+  const context = networking.libp2p.storage.getContext()!
 
   console.log("--------------------");
   console.log("Team Information");
@@ -45,11 +45,11 @@ const teamInfo = async (libp2p: Libp2pService | undefined) => {
   }
 }
 
-const teamAdd = async (storage: Storage, existingPeer?: Libp2pService): Promise<Libp2pService> => {
+const teamAdd = async (storage: LocalStorage, existingPeer?: Networking): Promise<Networking> => {
   if (storage.getContext()) {
     console.warn("Already setup team")
     if (existingPeer == null) {
-      throw new Error("Already setup team context but no libp2p service was found!  Something very bad happened!")
+      throw new Error("Already setup team context but no networking services were found!  Something very bad happened!")
     }
     return existingPeer
   }
@@ -58,8 +58,6 @@ const teamAdd = async (storage: Storage, existingPeer?: Libp2pService): Promise<
     message: "Is this a new team?",
     default: true
   });
-
-  let peer: Libp2pService
 
   if (isNewTeam) {
     const teamName = await input({
@@ -79,7 +77,6 @@ const teamAdd = async (storage: Storage, existingPeer?: Libp2pService): Promise<
       device: loadedSigChain.context.device,
       team: loadedSigChain.sigChain.team
     })
-    peer = new Libp2pService(loadedSigChain.context.user.userId, storage)
   } else {
     const username = await input({
       message: "What is your username?",
@@ -100,13 +97,12 @@ const teamAdd = async (storage: Storage, existingPeer?: Libp2pService): Promise<
       device: prospectiveUser.context.device,
       invitationSeed
     })
-    peer = new Libp2pService(prospectiveUser.context.user.userId, storage)
   }
 
-  console.log(`Initializing new libp2p peer with ID ${await peer.getPeerId()}`)
-  await peer.init()
+  console.log(`Initializing networking!`)
+  const networking = await Networking.init(storage)
   
-  return peer
+  return networking
 }
 
 export {

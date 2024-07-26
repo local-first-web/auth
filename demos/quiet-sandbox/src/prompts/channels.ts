@@ -3,7 +3,7 @@ import inquirer from 'inquirer';
 
 import actionSelect from '../components/actionSelect.js';
 import chalk from 'chalk';
-import { Libp2pService } from '../network.js';
+import { Libp2pService, Networking } from '../network.js';
 import { SigChain } from '../auth/chain.js';
 import { LocalUserContext, Member } from '@localfirst/auth';
 import { Channel, RoleMemberInfo, TruncatedChannel } from '../auth/services/roles/roles.js';
@@ -98,9 +98,29 @@ const removeUser = async (channelName: string, sigChain: SigChain, context: Loca
   sigChain.channels.addMemberToPrivateChannel(member.userId, channelName)
 }
 
-const mainLoop = async (libp2p: Libp2pService) => {
-  const sigChain = libp2p.storage.getSigChain()!
-  const context = libp2p.storage.getContext()!
+const sendMessage = async (
+  channelName: string, 
+  networking: Networking, 
+  sigChain: SigChain, 
+  context: LocalUserContext
+) => {
+
+
+}
+
+const readMessages = async (
+  channelName: string, 
+  networking: Networking, 
+  sigChain: SigChain, 
+  context: LocalUserContext
+) => {
+
+
+}
+
+const mainLoop = async (networking: Networking) => {
+  const sigChain = networking.libp2p.storage.getSigChain()!
+  const context = networking.libp2p.storage.getContext()!
 
   let exit = false;
   while (exit === false) {
@@ -119,6 +139,8 @@ const mainLoop = async (libp2p: Libp2pService) => {
         { name: "Leave", value: "leave", key: "l" },
         { name: "Add User", value: "addUser", key: "a" },
         { name: "Remove User", value: "removeUser", key: "r" },
+        { name: "Send Message", value: "sendMessage", key: "s" },
+        { name: "Read Messages", value: "readMessages", key: "m" },
         { name: "Back", value: "back", key: "q" },
       ],
     });
@@ -163,6 +185,22 @@ const mainLoop = async (libp2p: Libp2pService) => {
 
         await removeUser(channel.channelName, sigChain, context)
         break;
+      case "sendMessage":
+        if (!channel.hasRole) {
+          console.warn(`Not a member of ${channel.channelName}!`);
+          break;
+        }
+
+        await sendMessage(channel.channelName, networking, sigChain, context)
+        break;
+      case "readMessages":
+        if (!channel.hasRole) {
+          console.warn(`Not a member of ${channel.channelName}!`);
+          break;
+        }
+
+        await readMessages(channel.channelName, networking, sigChain, context)
+        break;
       case "back":
         exit = true;
         break;
@@ -170,19 +208,19 @@ const mainLoop = async (libp2p: Libp2pService) => {
   }
 }
 
-const channelCreate = async (libp2p: Libp2pService | undefined) => {
-  if (libp2p == null || libp2p.libp2p == null) {
-    console.warn("Must initialize the Libp2pService")
+const channelCreate = async (networking: Networking | undefined) => {
+  if (networking == null || networking.libp2p == null || networking.libp2p.libp2p == null) {
+    console.log("Must initialize the Networking wrapper")
     return
   }
 
-  if (libp2p.storage.getSigChain() == null) {
+  if (networking.libp2p.storage.getSigChain() == null) {
     console.warn("Must have a valid sig chain to view/edit channels")
     return
   }
 
-  const sigChain = libp2p.storage.getSigChain()!
-  const context = libp2p.storage.getContext()!
+  const sigChain = networking.libp2p.storage.getSigChain()!
+  const context = networking.libp2p.storage.getContext()!
 
   const channelMetadata = await inquirer.prompt([
     {
@@ -221,22 +259,22 @@ const channelCreate = async (libp2p: Libp2pService | undefined) => {
     return
   }
 
-  await mainLoop(libp2p)
+  await mainLoop(networking)
 }
 
-const channelsList = async (libp2p: Libp2pService | undefined) => {
-  if (libp2p == null || libp2p.libp2p == null) {
-    console.warn("Must initialize the Libp2pService")
+const channelsList = async (networking: Networking | undefined) => {
+  if (networking == null || networking.libp2p == null || networking.libp2p.libp2p == null) {
+    console.log("Must initialize the Networking wrapper")
     return
   }
 
-  if (libp2p.storage.getSigChain() == null) {
+  if (networking.libp2p.storage.getSigChain() == null) {
     console.warn("Must have a valid sig chain to view/edit channels")
     return
   }
 
-  const sigChain = libp2p.storage.getSigChain()!
-  const context = libp2p.storage.getContext()!
+  const sigChain = networking.libp2p.storage.getSigChain()!
+  const context = networking.libp2p.storage.getContext()!
 
   let exit = false;
   while (exit === false) {
@@ -259,7 +297,7 @@ const channelsList = async (libp2p: Libp2pService | undefined) => {
         }]);
       switch (answer.action) {
         case "create":
-          await channelCreate(libp2p)
+          await channelCreate(networking)
           break;
         case "back":
           exit = true;
@@ -271,7 +309,7 @@ const channelsList = async (libp2p: Libp2pService | undefined) => {
     }
   };
 
-  await mainLoop(libp2p);
+  await mainLoop(networking);
 };
 
 export {

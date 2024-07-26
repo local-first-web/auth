@@ -2,13 +2,13 @@
 
 import chalk from 'chalk';
 
-import { Libp2pService } from '../network.js';
+import { Libp2pService, Networking } from '../network.js';
 import { Peer } from '@libp2p/interface';
 import actionSelect from '../components/actionSelect.js';
 import clipboard from 'clipboardy';
 
-const displayMyInfo = async (libp2p: Libp2pService) => {
-  const context = libp2p.storage.getContext()!
+const displayMyInfo = async (networking: Networking) => {
+  const context = networking.libp2p.storage.getContext()!
 
   console.log("--------------------");
   console.log("User Information");
@@ -25,15 +25,15 @@ const displayMyInfo = async (libp2p: Libp2pService) => {
   console.log("Libp2p Information");
   console.log("--------------------");
   console.log(chalk.bold("Me"))
-  console.log("Peer ID:", await libp2p.getPeerId())
+  console.log("Peer ID:", await networking.libp2p.getPeerId())
   console.log("\n")
   console.log(chalk.bold("-- Addresses --"))
-  console.table(libp2p.libp2p!.getMultiaddrs().map((addr) => addr.toString()));
+  console.table(networking.libp2p.libp2p!.getMultiaddrs().map((addr) => addr.toString()));
   console.log("\n")
   console.log(chalk.bold("Connected Peers"))
-  const connectedPeerIds = libp2p.libp2p!.getPeers()
+  const connectedPeerIds = networking.libp2p.libp2p!.getPeers()
   const allPeers: { [id: string]: Peer } = {};
-  (await libp2p.libp2p!.peerStore.all()).forEach((peer: Peer) => allPeers[peer.id.toString()] = peer)
+  (await networking.libp2p.libp2p!.peerStore.all()).forEach((peer: Peer) => allPeers[peer.id.toString()] = peer)
   const connectedPeers: Peer[] = []
   for (const peerId of connectedPeerIds) {
     connectedPeers.push(allPeers[peerId.toString()])
@@ -42,15 +42,15 @@ const displayMyInfo = async (libp2p: Libp2pService) => {
   console.log("\n")
 }
 
-const me = async (libp2p: Libp2pService | undefined) => {
-  if (libp2p == null || libp2p.libp2p == null) {
-    console.log("Must initialize the Libp2pService to display your info!")
+const me = async (networking: Networking | undefined) => {
+  if (networking == null || networking.libp2p == null || networking.libp2p.libp2p == null) {
+    console.log("Must initialize the Networking wrapper")
     return
   }
 
   let exit = false;
   while (exit === false) {
-    const context = libp2p.storage.getContext()!
+    const context = networking.libp2p.storage.getContext()!
 
     const answer = await actionSelect({
       message: "Select an invite",
@@ -68,10 +68,10 @@ const me = async (libp2p: Libp2pService | undefined) => {
     switch (answer.action) {
       case "show":
       case undefined:
-        await displayMyInfo(libp2p)
+        await displayMyInfo(networking)
         break;
       case "copyAddr":
-        const addr = libp2p.libp2p.getMultiaddrs()[0].toString().split('/p2p')[0]
+        const addr = networking.libp2p.libp2p.getMultiaddrs()[0].toString().split('/p2p')[0]
         console.log(`Copying my libp2p address (${addr}) to clipboard`);
         await clipboard.write(addr)
         if (await clipboard.read() === addr) {
