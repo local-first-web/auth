@@ -22,8 +22,8 @@ const mainLoop = async (storage: LocalStorage, networking?: Networking) => {
     const otherChoices = storage.getSigChain() == null ? [] : [
       { name: "Peers", value: "peers", description: "Explore peers" },
       { name: "Channels", value: "channels", description: "Explore channels" },
-      { name: "Users", value: "users", description: "Explore users" },
-      { name: "Roles", value: "roles", description: "Explore roles" },
+      // { name: "Users", value: "users", description: "Explore users" },
+      // { name: "Roles", value: "roles", description: "Explore roles" },
       { name: "Invites", value: "invites", description: "Explore invites" },
     ]
     const answer = await actionSelect(

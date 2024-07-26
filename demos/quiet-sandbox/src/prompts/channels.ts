@@ -9,6 +9,7 @@ import actionSelect from '../components/actionSelect.js';
 import { Networking } from '../network.js';
 import { SigChain } from '../auth/chain.js';
 import { Channel, RoleMemberInfo, TruncatedChannel } from '../auth/services/roles/roles.js';
+import { EncryptedAndSignedPayload, EncryptionScopeType } from '../auth/services/crypto/types.js';
 
 type ChannelList = {
   channels: TruncatedChannel[];
@@ -25,7 +26,7 @@ const truncateChannel = (channel: Channel): TruncatedChannel => {
   } as TruncatedChannel
 }
 
-const makeChannelsPrintable = (channels: (Channel | TruncatedChannel)[]) => {
+const makeChannelsPrintable = (channels: (Channel | TruncatedChannel)[], networking: Networking) => {
   return channels.map((channel) => {
     let trunc: TruncatedChannel
     if (((channel as Channel).members[0]).userId) {
@@ -34,9 +35,12 @@ const makeChannelsPrintable = (channels: (Channel | TruncatedChannel)[]) => {
       trunc = channel as TruncatedChannel
     }
 
+    const db = networking.messages.channelDbs[channel.channelName]
+
     return {
       ...trunc,
-      members: JSON.stringify(trunc.members)
+      members: JSON.stringify(trunc.members),
+      dbAddr: db.address
     }
   })
 }
@@ -105,8 +109,19 @@ const sendMessage = async (
   sigChain: SigChain, 
   context: LocalUserContext
 ) => {
+  const message = await input({
+    message: "What message would you like to send?",
+    default: undefined,
+    validate: (message: string) => message != null ? true : "Must enter a valid message!"
+  });
 
+  const encryptedMessage: EncryptedAndSignedPayload = sigChain.crypto.encryptAndSign(
+    message, 
+    { type: EncryptionScopeType.CHANNEL, name: channelName }, 
+    context
+  )
 
+  await networking.messages.sendMessage(channelName, encryptedMessage)
 }
 
 const readMessages = async (
@@ -115,8 +130,18 @@ const readMessages = async (
   sigChain: SigChain, 
   context: LocalUserContext
 ) => {
-
-
+  const encryptedMessages = await networking.messages.readMessages(channelName)
+  const decryptedMessages: { userId: string; username: string; message: string; ts: number; }[] = []
+  for (const enc of encryptedMessages) {
+    const message = sigChain.crypto.decryptAndVerify(enc.encrypted, enc.signature, context) as string
+    decryptedMessages.push({
+      userId: enc.signature.author.name,
+      username: enc.username,
+      message,
+      ts: enc.ts
+    })
+  }
+  console.table(decryptedMessages)
 }
 
 const mainLoop = async (networking: Networking) => {
@@ -150,7 +175,7 @@ const mainLoop = async (networking: Networking) => {
     switch (answer.action) {
       case "select":
       case undefined: // catches enter/return key
-        console.table(makeChannelsPrintable([channel]))
+        console.table(makeChannelsPrintable([channel], networking))
         break;
       case "delete":
         if (!channel.hasRole) {
@@ -241,6 +266,7 @@ const channelCreate = async (networking: Networking | undefined) => {
   ]);
   if (confirmation.confirm) {
     sigChain.channels.createPrivateChannel(channelMetadata.name, context)
+    await networking.messages.createChannel(channelMetadata.name)
     console.log(chalk.bold(`You have created ${channelMetadata.name}`));
   } else {
     return

@@ -31,6 +31,7 @@ import map from 'it-map'
 import { SigChain } from './auth/chain.js'
 import { UserService } from './auth/services/members/userService.js';
 import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
+import { EncryptedAndSignedPayload } from './auth/services/crypto/types.js'
 
 export class LocalStorage {
     private authContext: Auth.Context | null
@@ -458,12 +459,24 @@ export class MessageService extends EventEmitter {
     return db
   }
 
-  async sendMessage(channelName: string, message: string) {
+  async sendMessage(channelName: string, message: EncryptedAndSignedPayload) {
     if (channelName in this.channelDbs) {
       this.channelDbs[channelName].add(message)
     } else {
       throw new Error('Channel does not exist')
     }
+  }
+
+  async readMessages(channelName: string): Promise<EncryptedAndSignedPayload[]> {
+    let db: Events
+    if (channelName in this.channelDbs) {
+      db = this.channelDbs[channelName]
+    } else {
+      throw new Error('Channel does not exist')
+    }
+
+    const messages = await db.all()
+    return messages.map((message) => message.value as EncryptedAndSignedPayload)
   }
 
   async close() {

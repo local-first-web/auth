@@ -28,7 +28,7 @@ const teamInfo = async (networking: Networking | undefined) => {
   } else {
     console.log("Name:", sigChain.team.teamName);
     console.log(chalk.bold("Channels:"));
-    console.table(makeChannelsPrintable(sigChain.channels.getChannels(context)));
+    console.table(makeChannelsPrintable(sigChain.channels.getChannels(context), networking));
     console.log("\n");
 
     console.log(chalk.bold("Users"));

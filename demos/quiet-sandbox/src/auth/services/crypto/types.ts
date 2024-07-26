@@ -21,5 +21,7 @@ export type EncryptedPayload = {
 
 export type EncryptedAndSignedPayload = {
   encrypted: EncryptedPayload,
-  signature: SignedEnvelope
+  signature: SignedEnvelope,
+  ts: number,
+  username: string
 }
