@@ -1,13 +1,14 @@
-import { select } from 'inquirer-select-pro';
 import inquirer from 'inquirer';
+import { input } from '@inquirer/prompts';
+
+import chalk from 'chalk';
+
+import { LocalUserContext } from '@localfirst/auth';
 
 import actionSelect from '../components/actionSelect.js';
-import chalk from 'chalk';
-import { Libp2pService, Networking } from '../network.js';
+import { Networking } from '../network.js';
 import { SigChain } from '../auth/chain.js';
-import { LocalUserContext, Member } from '@localfirst/auth';
 import { Channel, RoleMemberInfo, TruncatedChannel } from '../auth/services/roles/roles.js';
-import { input } from '@inquirer/prompts';
 
 type ChannelList = {
   channels: TruncatedChannel[];
@@ -229,22 +230,8 @@ const channelCreate = async (networking: Networking | undefined) => {
       message: "Enter the name of the channel",
       validate: (name) => name != null && name.length != 0 ? true : "Must enter a valid channel name!"
     },
-    // {
-    //   type: "input",
-    //   name: "description",
-    //   message: "Enter the description of the channel",
-    // }
   ]);
-  // const rolesList = await select({
-  //   message: "Select roles that can access the channel",
-  //   options: roles.map((role) => {
-  //     return {
-  //       name: role.name,
-  //       value: role.name,
-  //     };
-  //   }),
-  //   multiple: true,
-  // });
+
   const confirmation = await inquirer.prompt([
     {
       type: "confirm",

@@ -2,11 +2,11 @@
 
 import chalk from 'chalk';
 import { confirm, input } from '@inquirer/prompts';
+import clipboard from 'clipboardy';
 
 import { SigChain } from '../auth/chain.js';
-import { Libp2pService, LocalStorage, Networking } from '../network.js';
+import { LocalStorage, Networking } from '../network.js';
 import { UserService } from '../auth/services/members/userService.js';
-import clipboard from 'clipboardy';
 import { makeChannelsPrintable } from './channels.js';
 
 const teamInfo = async (networking: Networking | undefined) => {

@@ -1,11 +1,11 @@
 #! /usr/bin/env ts-node
 
 import { input } from '@inquirer/prompts';
-
-import { Libp2pService, Networking } from '../network.js';
-import actionSelect from '../components/actionSelect.js';
 import { Peer, PeerId } from '@libp2p/interface';
 import clipboard from 'clipboardy';
+
+import { Networking } from '../network.js';
+import actionSelect from '../components/actionSelect.js';
 
 const peerInfo = async (networking: Networking | undefined) => {
   if (networking == null || networking.libp2p == null || networking.libp2p.libp2p == null) {

@@ -1,6 +1,5 @@
 #! /usr/bin/env ts-node
 
-import inquirer from 'inquirer';
 import chalk from 'chalk';
 
 import actionSelect from '../components/actionSelect.js';

@@ -1,11 +1,11 @@
 #! /usr/bin/env ts-node
 
 import chalk from 'chalk';
-
-import { Libp2pService, Networking } from '../network.js';
-import { Peer } from '@libp2p/interface';
-import actionSelect from '../components/actionSelect.js';
 import clipboard from 'clipboardy';
+import { Peer } from '@libp2p/interface';
+
+import { Networking } from '../network.js';
+import actionSelect from '../components/actionSelect.js';
 
 const displayMyInfo = async (networking: Networking) => {
   const context = networking.libp2p.storage.getContext()!
