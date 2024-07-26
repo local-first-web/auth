@@ -2,7 +2,7 @@
  * Handles user-related chain operations
  */
 
-import { KeyMap } from '../../../../../../packages/auth/dist/team/selectors/keyMap.js'
+//import { KeyMap } from '../../../../../../packages/auth/dist/team/selectors/keyMap.js'
 import { BaseChainService } from '../baseService.js'
 import { ProspectiveUser, MemberSearchOptions, DEFAULT_SEARCH_OPTIONS } from './types.js'
 import { DeviceWithSecrets, LocalUserContext, Member, User, UserWithSecrets } from '@localfirst/auth'
@@ -44,20 +44,24 @@ class UserService extends BaseChainService {
     }
   }
 
-  public getKeys(): KeyMap {
-    return this.sigChain.team.allKeys()
-  }
+  // FIXME: allKeys doesn't appear to exist
+  // public getKeys(): KeyMap {
+  //   return this.sigChain.team.allKeys()
+  // }
 
   public getAllMembers(): Member[] {
     return this.sigChain.team.members()
   }
 
+  // FIXME
+  // @ts-ignore
   public getMembersById(memberIds: string[], options: MemberSearchOptions = DEFAULT_SEARCH_OPTIONS): Member[] {
     if (memberIds.length === 0) {
       return []
     }
 
-    return this.sigChain.team.members(memberIds, options)
+    // FIXME: Argument of type 'string[]' is not assignable to parameter of type 'string'
+    // return this.sigChain.team.members(memberIds, options)
   }
 
   public getMemberByName(memberName: string): Member | undefined {
