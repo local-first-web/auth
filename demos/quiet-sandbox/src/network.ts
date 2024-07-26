@@ -4,11 +4,11 @@ import { tcp } from '@libp2p/tcp'
 import { echo } from '@libp2p/echo'
 import { noise } from '@chainsafe/libp2p-noise'
 import { yamux } from '@chainsafe/libp2p-yamux'
-import { createEd25519PeerId, createFromProtobuf, exportToProtobuf } from '@libp2p/peer-id-factory'
+import { createFromPrivKey, createFromProtobuf, exportToProtobuf } from '@libp2p/peer-id-factory'
 import { base64 } from 'multiformats/bases/base64'
 import { createHelia, type Helia } from 'helia'
-import { createOrbitDB, type Events, type KeyValue, OrbitDB, type LogEntry } from '@orbitdb/core'
-import { gossipsub } from '@chainsafe/libp2p-gossipsub'
+import { createOrbitDB, type Events, Identities, KeyStore, type KeyValue, LogEntry, OrbitDB, OrbitDBAccessController } from '@orbitdb/core'
+import { GossipSub, gossipsub } from '@chainsafe/libp2p-gossipsub'
 import { identify } from '@libp2p/identify'
 import fs from 'fs'
 import { EventEmitter } from 'events'
@@ -20,7 +20,11 @@ import type {
   PeerStore,
   ComponentLogger,
   Topology,
-  Stream
+  Stream,
+  RSAPeerId,
+  Ed25519PeerId,
+  Secp256k1PeerId,
+  KeyType
 } from '@libp2p/interface'
 import type { ConnectionManager, IncomingStreamData, Registrar } from '@libp2p/interface-internal'
 import { pipe } from 'it-pipe'
@@ -32,6 +36,9 @@ import { SigChain } from './auth/chain.js'
 import { UserService } from './auth/services/members/userService.js';
 import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
 import { EncryptedAndSignedPayload } from './auth/services/crypto/types.js'
+import { MemoryDatastore } from 'datastore-core'
+import { generateKeyPairFromSeed } from '@libp2p/crypto/keys'
+import path from 'path'
 
 export class LocalStorage {
     private authContext: Auth.Context | null
@@ -247,17 +254,23 @@ export class Libp2pService {
   peerName: string
   libp2p: Libp2p | null
   storage: LocalStorage
+  peerId: RSAPeerId | Ed25519PeerId | Secp256k1PeerId | null
 
   constructor(peerName: string, storage: LocalStorage) {
     this.peerName = peerName
     this.libp2p = null
     this.storage = storage
+    this.peerId = null
   }
 
   /**
    * Get a persistent peer ID for a given name.
    */
-  async getPeerId() {
+  async getPeerId(): Promise<RSAPeerId | Ed25519PeerId | Secp256k1PeerId> {
+    if (this.peerId != null) {
+      return this.peerId
+    }
+
     let peerIdFilename = '.peerId.' + this.peerName
     let peerIdB64
 
@@ -269,21 +282,29 @@ export class Libp2pService {
 
     if (!peerIdB64) {
       console.log('Creating peer ID')
-      const peerId = await createEd25519PeerId()
+      const keys: Auth.KeysetWithSecrets = this.storage.getContext()?.user!.keys
+      
+      const buf = Buffer.from(keys.encryption.secretKey)
+      const priv = await generateKeyPairFromSeed("Ed25519", buf.subarray(0, 32))
+      const peerId = await createFromPrivKey(priv)
       const peerIdBytes = exportToProtobuf(peerId)
       peerIdB64 = base64.encoder.encode(peerIdBytes)
+
+      try {
+        fs.writeFileSync(peerIdFilename, peerIdB64)
+      } catch (e) {
+        console.error(e)
+      }
+
+      this.peerId = peerId
+      return peerId
     }
 
-    try {
-      fs.writeFileSync(peerIdFilename, peerIdB64)
-    } catch (e) {
-      console.error(e)
-    }
-
-    return await createFromProtobuf(base64.decoder.decode(peerIdB64))
+    this.peerId = await createFromProtobuf(base64.decoder.decode(peerIdB64))
+    return this.peerId
   }
 
-  async init() {
+  async init(datastore: MemoryDatastore = new MemoryDatastore()) {
     console.log('Starting libp2p client')
 
     const peerId = await this.getPeerId()
@@ -300,7 +321,7 @@ export class Libp2pService {
       peerDiscovery: [
         bootstrap({
           list: [
-            '/ip4/127.0.0.1/tcp/8088/p2p/12D3KooWNYYYUtuxvmH7gsvApKE6YoiqBWNgZ6x3BBpea3RP1jTv'
+            '/ip4/127.0.0.1/tcp/0/p2p/12D3KooWNYYYUtuxvmH7gsvApKE6YoiqBWNgZ6x3BBpea3RP1jTv'
           ],
           timeout: 1000, // in ms,
           tagName: 'bootstrap',
@@ -312,34 +333,31 @@ export class Libp2pService {
         echo: echo(),
         pubsub: gossipsub({
           // neccessary to run a single peer
-          allowPublishToZeroTopicPeers: true
+          allowPublishToZeroTopicPeers: true,
+          emitSelf: true
         }),
         identify: identify(),
         auth: libp2pAuth(this.storage)
-      }
-    })
+      },
+      datastore
+    });
 
     console.log('Peer ID: ', peerId.toString())
 
     return this.libp2p
   }
 
-  async dial(addr: string | Multiaddr): Promise<boolean> {
+  async dial(peerId: PeerId, addr: string | Multiaddr): Promise<boolean> {
         console.log(`Dialing peer at ${addr}`)
-        let multiAddr: Multiaddr
+        const multiaddrs: Multiaddr[] = []
         if (typeof addr === 'string') {
-            multiAddr = multiaddr(addr)
+          multiaddrs.push(multiaddr(addr))
         } else {
-            multiAddr = addr
+          multiaddrs.push(addr)
         }
-        const conn = await this.libp2p?.dial(multiAddr)
-        if (conn?.status == 'open') {
-            console.log(`Connected to peer at ${addr}`)
-            return true
-        }
+        await this.libp2p?.peerStore.save(peerId, { multiaddrs })
         
-        console.warn(`Failed to connect to peer at ${addr}!  Got status ${conn?.status}`)
-        return false
+        return true
     }
 
   async close() {
@@ -348,25 +366,39 @@ export class Libp2pService {
   }
 }
 
+function getAccessController() {
+  return OrbitDBAccessController({ write: ["*"] })
+}
+
 export class OrbitDbService {
 
   libp2pService: Libp2pService
   ipfs: Helia | null
   orbitDb: OrbitDB | null
+  dir: string
 
   constructor(libp2pService: Libp2pService) {
     this.libp2pService = libp2pService
     this.ipfs = null
     this.orbitDb = null
+    this.dir = `./.orbitdb/${libp2pService.peerName}`
   }
 
-  async init() {
+  async init(datastore: MemoryDatastore = new MemoryDatastore()) {
     console.log('Initializing OrbitDB')
     if (!this.libp2pService.libp2p) {
       throw new Error('Cannot initialize OrbitDB, libp2p instance required')
     }
-    this.ipfs = await createHelia({ libp2p: this.libp2pService.libp2p })
-    this.orbitDb = await createOrbitDB({ ipfs: this.ipfs, directory: `db/${this.libp2pService.peerName}` })
+    this.ipfs = await createHelia({ libp2p: this.libp2pService.libp2p, datastore })
+    await this.ipfs.start()
+    const keystore = await KeyStore({ path: path.join(this.dir, './keystore') })
+    const identities = await Identities({ ipfs: this.ipfs, keystore })
+    this.orbitDb = await createOrbitDB({ 
+      id: (await this.libp2pService.getPeerId()).toString(), 
+      ipfs: this.ipfs, 
+      directory: this.dir,
+      identities
+    })
   }
 
   async createDb(dbName: string): Promise<Events> {
@@ -374,7 +406,15 @@ export class OrbitDbService {
       throw new Error('Must call init before creating a DB')
     }
     // Seems like we can improve the type definitions
-    return await this.orbitDb.open(dbName, { directory: `db/${this.libp2pService.peerName}` }) as unknown as Events
+    return await this.orbitDb.open(
+      dbName, 
+      { 
+        write: ['*'], 
+        sync: true, 
+        meta: {}, 
+        AccessController: getAccessController() 
+      }
+    ) as unknown as Events
   }
 
   async close() {
@@ -382,10 +422,6 @@ export class OrbitDbService {
     await this.orbitDb?.stop()
     await this.ipfs?.stop()
   }
-}
-
-interface Message {
-  // TODO
 }
 
 interface Channel {
@@ -407,7 +443,7 @@ export class MessageService extends EventEmitter {
     this.channelDbs = {}
   }
 
-  async init(channelListDbAddr?: string): Promise<string> {
+  async init() {
     if (this.orbitDbService.orbitDb == null) {
       await this.orbitDbService.init()
     }
@@ -417,13 +453,18 @@ export class MessageService extends EventEmitter {
     // createDb. That's just how OrbitDB works because of immutable databases.
     // Alternatively, I think you can share the owner's OrbitDB identity and
     // create the database with the same access controller.
-    this.channelListDb = await this.orbitDbService.createDb(channelListDbAddr ?? 'channels')
-    this.channelListDb.events.on('update', entry => this.openChannel(entry.payload.value))
-
+    const name = 'channels'
+    console.log(`Initializing channel list DB with name '${name}'`);
+    this.channelListDb = await this.orbitDbService.createDb(name);
+    console.log(`Initialized channel list DB with address ${this.channelListDb.address}`)
+    this.channelListDb.events.on('update', entry => {
+      console.log(`Got new channel: ${JSON.stringify(entry.payload.value)}`)
+      this.openChannel(entry.payload.value)
+    })
+    console.log(`Initializing known channel DBs`)
     for (const entry of await this.channelListDb.all()) {
-      this.openChannel(entry.value as Channel)
+      await this.openChannel(entry.value as Channel)
     }
-    return this.channelListDb.address
   }
 
   async createChannel(channelName: string): Promise<Events> {
@@ -502,15 +543,19 @@ export class Networking {
       throw new Error(`Context hasn't been initialized!`)
     }
 
+    const datastore = new MemoryDatastore()
     const libp2p = new Libp2pService(context.user.userId, storage)
     console.log(`Initializing new libp2p peer with ID ${await libp2p.getPeerId()}`)
-    await libp2p.init()
+    await libp2p.init(datastore)
+
+    console.log(libp2p.peerName)
 
     const orbitDb = new OrbitDbService(libp2p)
     console.log(`Initializing new orbitdb service for peer ID ${await libp2p.getPeerId()}`)
-    await orbitDb.init()
+    await orbitDb.init(datastore)
 
     const messages = new MessageService(orbitDb)
+    console.log(`Initializing new message service for peer ID ${await libp2p.getPeerId()}`)
     await messages.init()
 
     return new Networking(libp2p, orbitDb, messages)

@@ -213,6 +213,9 @@ importers:
       '@libp2p/bootstrap':
         specifier: ^10.0.24
         version: 10.1.2
+      '@libp2p/crypto':
+        specifier: 4.1.6
+        version: 4.1.6
       '@libp2p/echo':
         specifier: ^1.1.1
         version: 1.1.2
@@ -228,6 +231,9 @@ importers:
       '@libp2p/kad-dht':
         specifier: ^12.0.17
         version: 12.1.2
+      '@libp2p/peer-id':
+        specifier: ^4.2.1
+        version: 4.2.1
       '@libp2p/peer-id-factory':
         specifier: ^4.2.1
         version: 4.2.1
@@ -258,6 +264,9 @@ importers:
       colors:
         specifier: ^1.4.0
         version: 1.4.0
+      datastore-core:
+        specifier: 9.2.9
+        version: 9.2.9
       figlet:
         specifier: ^1.7.0
         version: 1.7.0

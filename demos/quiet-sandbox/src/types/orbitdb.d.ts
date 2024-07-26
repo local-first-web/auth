@@ -67,6 +67,7 @@ declare module "@orbitdb/core" {
     ipfs: Helia;
     directory: string;
     id?: string;
+    identities?: IdentitiesType
   }): Promise<OrbitDB>;
 
   export function useAccessController(accessController: { type: string }): void;
@@ -94,6 +95,8 @@ declare module "@orbitdb/core" {
     address: string;
     canAppend: (entry: LogEntry) => Promise<boolean>;
   }
+
+  export function OrbitDBAccessController(options: any): Promise<any>
 
   export function useDatabaseType(type: { type: string }): void;
 

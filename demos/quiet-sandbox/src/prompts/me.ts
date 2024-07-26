@@ -40,6 +40,12 @@ const displayMyInfo = async (networking: Networking) => {
   }
   console.table(connectedPeers)
   console.log("\n")
+
+  console.log("--------------------");
+  console.log("OrbitDB Information");
+  console.log("--------------------");
+  console.log(chalk.bold("Channels"))
+  console.table(await networking.messages.channelListDb?.all())
 }
 
 const me = async (networking: Networking | undefined) => {
@@ -61,7 +67,8 @@ const me = async (networking: Networking | undefined) => {
       actions: [
         { name: "Show Info", value: "show", key: "s" },
         { name: "Back", value: "back", key: "q" },
-        { name: "Copy Address", value: "copyAddr", key: "c" },
+        { name: "Copy Address", value: "copyAddr", key: "a" },
+        { name: "Copy Peer ID", value: "copyPeerId", key: "p" },
       ],
     });
 
@@ -71,10 +78,20 @@ const me = async (networking: Networking | undefined) => {
         await displayMyInfo(networking)
         break;
       case "copyAddr":
-        const addr = networking.libp2p.libp2p.getMultiaddrs()[0].toString().split('/p2p')[0]
+        const addr = networking.libp2p.libp2p.getMultiaddrs()[0].toString()
         console.log(`Copying my libp2p address (${addr}) to clipboard`);
         await clipboard.write(addr)
         if (await clipboard.read() === addr) {
+          console.log('Copied!')
+        } else {
+          console.warn('Copy failed!')
+        }
+        break;
+      case "copyPeerId":
+        const peerId = networking.libp2p.libp2p.peerId.toString()
+        console.log(`Copying my libp2p peer ID (${peerId}) to clipboard`);
+        await clipboard.write(peerId)
+        if (await clipboard.read() === peerId) {
           console.log('Copied!')
         } else {
           console.warn('Copy failed!')
