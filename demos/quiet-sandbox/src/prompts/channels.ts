@@ -150,7 +150,22 @@ const readMessages = async (
   const encryptedMessages = await networking.messages.readMessages(channelName)
   const decryptedMessages: { userId: string; username: string; message: string; ts: number; keyGeneration: number; }[] = []
   for (const enc of encryptedMessages) {
-    const message = sigChain.crypto.decryptAndVerify(enc.encrypted, enc.signature, context) as string
+    let message: string;
+    try {
+      message = sigChain.crypto.decryptAndVerify(enc.encrypted, enc.signature, context) as string
+    } catch (e) {
+      if (
+        (e as Error).message.includes("Cannot read properties of undefined (reading 'encryption')") ||
+        ((e as Error).message.includes("Couldn't find keys"))) 
+      {
+        console.warn(`Can't decrypt message from ${enc.username} at timestamp ${enc.ts} because we couldn't get the encryption key`);
+        message = `Decryption Error: no access to key with generation ${enc.encrypted.scope.generation}`;
+      } else {
+        console.error(`Unknown error occurred while decrypting message from ${enc.username} at timestamp ${enc.ts}`, e);
+        message = `Decryption Error: unknown error occurred`;
+      }
+    }
+
     decryptedMessages.push({
       userId: enc.signature.author.name,
       username: enc.username,
