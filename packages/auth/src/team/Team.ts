@@ -350,12 +350,13 @@ export class Team extends EventEmitter<TeamEvents> {
   public addMemberRole = (userId: string, roleName: string) => {
     // Make a lockbox for the role
     const member = this.members(userId)
-    const lockboxRoleKeysForMember = lockbox.create(this.roleKeys(roleName), member.keys)
+    const allGenKeys = this.roleKeysAllGenerations(roleName)
+    const lockboxRoleKeysForMember = allGenKeys.map(roleKeys => lockbox.create(roleKeys, member.keys))
 
     // Post the member role to the graph
     this.dispatch({
       type: 'ADD_MEMBER_ROLE',
-      payload: { userId, roleName, lockboxes: [lockboxRoleKeysForMember] },
+      payload: { userId, roleName, lockboxes: lockboxRoleKeysForMember },
     })
   }
 
@@ -772,12 +773,19 @@ export class Team extends EventEmitter<TeamEvents> {
   public keys = (scope: KeyMetadata | KeyScope) =>
     select.keys(this.state, this.context.device.keys, scope)
 
+  public keysAllGenerations = (scope: KeyMetadata | KeyScope) =>
+    select.keysAllGen(this.state, this.context.device.keys, scope)
+
   public allKeys = () =>
     select.allKeys(this.state, this.context.device.keys)
 
   /** Returns the keys for the given role. */
   public roleKeys = (roleName: string, generation?: number) =>
     this.keys({ type: KeyType.ROLE, name: roleName, generation })
+
+  /** Returns the keys for the given role. */
+  public roleKeysAllGenerations = (roleName: string) =>
+    this.keysAllGenerations({ type: KeyType.ROLE, name: roleName })
 
   /** Returns the current team keys or a specific generation of team keys */
   public teamKeys = (generation?: number) => this.keys({ ...TEAM_SCOPE, generation })
