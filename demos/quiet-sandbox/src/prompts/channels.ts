@@ -1,9 +1,9 @@
 import inquirer from 'inquirer';
-import { input } from '@inquirer/prompts';
+import { input, select } from '@inquirer/prompts';
 
 import chalk from 'chalk';
 
-import { LocalUserContext } from '@localfirst/auth';
+import { LocalUserContext, Member } from '@localfirst/auth';
 
 import actionSelect from '../components/actionSelect.js';
 import { Networking } from '../network.js';
@@ -79,45 +79,50 @@ const generateChannelsList = async (sigChain: SigChain, context: LocalUserContex
 }
 
 const addUser = async (channelName: string, sigChain: SigChain, context: LocalUserContext) => {
-  const username = await input({
-    message: "What is the name of the user you want to add to this channel?",
-    default: undefined,
-    validate: (username: string) => username != null ? true : "Must enter a valid username!"
+  const channelMembers: Member[] = sigChain.channels.getChannel(channelName, context).members
+  const nonMembers = sigChain.users.getAllMembers().filter(member => !channelMembers.includes(member))
+  if (nonMembers.length === 0) {
+    console.warn(`No users to add to ${channelName}`)
+    return
+  }
+
+  const addingMember = await select({
+      message: `Choose a member to add to ${channelName}`,
+      choices: nonMembers.map(member => ({
+        name: member.userName,
+        value: member
+      })),
   });
 
-  const member = sigChain.users.getMemberByName(username)
-  if (member == null) {
-    console.warn(`No member with name ${username} found!`)
+  if (sigChain.channels.memberInChannel(addingMember.userId, channelName)) {
+    console.warn(`User ${addingMember.userName} with ID ${addingMember.userId} is already in ${channelName}`)
     return
   }
 
-  if (sigChain.channels.memberInChannel(member.userId, channelName)) {
-    console.warn(`User ${username} with ID ${member.userId} is already in ${channelName}`)
-    return
-  }
-
-  sigChain.channels.addMemberToPrivateChannel(member.userId, channelName)
+  sigChain.channels.addMemberToPrivateChannel(addingMember.userId, channelName)
 }
 
 const removeUser = async (channelName: string, sigChain: SigChain, context: LocalUserContext) => {
-  const username = await input({
-    message: "What is the name of the user you want to remove from this channel?",
-    default: undefined,
-    validate: (username: string) => username != null ? true : "Must enter a valid username!"
+  const channelMembers: Member[] = sigChain.channels.getChannel(channelName, context).members
+  if (channelMembers.length === 1) {
+    console.warn(`You are the only member of ${channelName}!  If you wish to leave the channel use the 'Leave' function.`)
+    return
+  }
+
+  const removingMember = await select({
+    message: `Choose a member to remove from ${channelName}`,
+    choices: channelMembers.filter(member => member.userName != context.user.userName).map(member => ({
+      name: member.userName,
+      value: member
+    })),
   });
 
-  const member = sigChain.users.getMemberByName(username)
-  if (member == null) {
-    console.warn(`No member with name ${username} found!`)
+  if (!sigChain.channels.memberInChannel(removingMember.userId, channelName)) {
+    console.warn(`User ${removingMember.userName} with ID ${removingMember.userId} is not in ${channelName}`)
     return
   }
 
-  if (!sigChain.channels.memberInChannel(member.userId, channelName)) {
-    console.warn(`User ${username} with ID ${member.userId} is not in ${channelName}`)
-    return
-  }
-
-  sigChain.channels.revokePrivateChannelMembership(member.userId, channelName)
+  sigChain.channels.revokePrivateChannelMembership(removingMember.userId, channelName)
 }
 
 const sendMessage = async (
