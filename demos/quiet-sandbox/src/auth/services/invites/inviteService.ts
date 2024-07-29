@@ -4,12 +4,12 @@
 
 import { BaseChainService } from "../baseService.js"
 import { ValidationResult } from "../../../../../../packages/crdx/dist/validator/types.js"
-import { Base58, InvitationState, InviteResult, Keyset, ProofOfInvitation, UnixTimestamp } from "@localfirst/auth"
+import { Base58, InvitationMap, InvitationState, InviteResult, Keyset, ProofOfInvitation, UnixTimestamp } from "@localfirst/auth"
 import { SigChain } from "../../chain.js"
 import { RoleName } from "../roles/roles.js"
 
-const DEFAULT_MAX_USES = 1
-const DEFAULT_INVITATION_VALID_FOR_MS = 604_800_000 // 1 week
+export const DEFAULT_MAX_USES = 1
+export const DEFAULT_INVITATION_VALID_FOR_MS = 604_800_000 // 1 week
 
 class InviteService extends BaseChainService {
   public static init(sigChain: SigChain): InviteService {
@@ -59,6 +59,15 @@ class InviteService extends BaseChainService {
     this.sigChain.roles.addMember(userId, RoleName.MEMBER)
     // this.activeSigChain.persist()
     return username
+  }
+
+  public getAllInvites(): InvitationState[] {
+    const inviteMap = this.sigChain.team.invitations()
+    const invites: InvitationState[] = []
+    for (const invite of Object.entries(inviteMap)) {
+      invites.push(invite[1])
+    }
+    return invites
   }
 }
 

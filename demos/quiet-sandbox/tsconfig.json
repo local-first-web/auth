@@ -9,7 +9,10 @@
     "esModuleInterop": true,
     "moduleResolution": "NodeNext",
     "allowSyntheticDefaultImports": true,
+    "typeRoots": ["./node_modules/@types", "./node_modules/@constl", "./src/types"],
     "skipLibCheck": true,
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ],
 }

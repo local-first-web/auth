@@ -33,6 +33,27 @@ export const keys = (
   return keys[generation]
 }
 
+export const keysAllGen = (
+  state: TeamState,
+  deviceKeys: KeysetWithSecrets,
+  scope: KeyScope | KeyMetadata
+) => {
+  const { type, name } = scope
+
+  const keysFromLockboxes = keyMap(state, deviceKeys)
+  const keys = keysFromLockboxes[type] ? keysFromLockboxes[type][name] : undefined
+
+  assert(
+    keys,
+    `Couldn't find keys: ${JSON.stringify(scope)}
+     Device: ${deviceKeys.name}
+     Available lockboxes: \n- ${state.lockboxes.map(lockboxSummary).join('\n- ')} 
+     Keymap: ${JSON.stringify(keysFromLockboxes, null, 2)}`
+  )
+
+  return keys
+}
+
 export const allKeys = (
   state: TeamState,
   deviceKeys: KeysetWithSecrets

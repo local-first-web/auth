@@ -187,6 +187,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
               const { userName, userKeys } = theirIdentityClaim
               team.admitMember(proofOfInvitation, userKeys, userName)
               const userId = userKeys.name
+              team.addMemberRole(userId, 'member')
               return team.members(userId)
             } else {
               // New device for existing member
@@ -274,7 +275,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             if (this.#machine.getSnapshot().status !== 'done') {
               this.#machine.send({ type: 'LOCAL_UPDATE', payload: { head } }) // Send update event to local machine
             }
-            this.emit('updated')
+            this.emit('updated', head)
           })
         },
 
@@ -320,7 +321,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             // nothing changed
             return { syncState }
           } else {
-            this.emit('updated')
+            this.emit('updated', newChain.head)
             return { team: team.merge(newChain), syncState }
           }
         }),

@@ -2,13 +2,14 @@
  * Handles user-related chain operations
  */
 
-import { KeyMap } from '../../../../../../packages/auth/dist/team/selectors/keyMap.js'
+//import { KeyMap } from '../../../../../../packages/auth/dist/team/selectors/keyMap.js'
 import { BaseChainService } from '../baseService.js'
 import { ProspectiveUser, MemberSearchOptions, DEFAULT_SEARCH_OPTIONS } from './types.js'
 import { DeviceWithSecrets, LocalUserContext, Member, User, UserWithSecrets } from '@localfirst/auth'
 import { SigChain } from '../../chain.js'
 import { DeviceService } from './deviceService.js'
 import { InviteService } from '../invites/inviteService.js'
+import { KeyMap } from '../../../../../../packages/auth/dist/team/selectors/keyMap.js'
 
 class UserService extends BaseChainService {
   public static init(sigChain: SigChain): UserService {
@@ -58,6 +59,10 @@ class UserService extends BaseChainService {
     }
 
     return this.sigChain.team.members(memberIds, options)
+  }
+
+  public getMemberByName(memberName: string): Member | undefined {
+    return this.getAllMembers().find((member) => member.userName === memberName)
   }
 
   public static redactUser(user: UserWithSecrets): User {

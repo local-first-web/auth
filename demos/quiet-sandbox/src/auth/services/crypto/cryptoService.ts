@@ -83,7 +83,9 @@ class CryptoService extends BaseChainService {
           generation
         }
       },
-      signature
+      signature,
+      ts: Date.now(),
+      username: context.user.userName
     }
   }
 

@@ -11,3 +11,7 @@ export function getInvitation(state: TeamState, id: Base58) {
   const invitation = state.invitations[id]
   return invitation
 }
+
+export function invitations(state: TeamState) {
+  return state.invitations
+}

@@ -7,11 +7,16 @@ import { SigChain } from "./chain.js";
 class SigChainManager {
   private chains: Map<string, SigChain> = new Map()
   private activeChainTeamName: string | undefined
+  private static _instance: SigChainManager | undefined
 
   private constructor() {}
 
   public static init(): SigChainManager {
-    return new SigChainManager()
+    if (SigChainManager._instance == null) {
+      SigChainManager._instance = new SigChainManager()
+    }
+
+    return SigChainManager.instance
   }
 
   public getActiveChain(): SigChain {
@@ -64,6 +69,14 @@ class SigChainManager {
     }
 
     return this.chains.get(teamName)!
+  }
+
+  public static get instance(): SigChainManager {
+    if (SigChainManager._instance == null) {
+      throw new Error(`SigChainManager hasn't been initialized yet!  Run init() before accessing`)
+    }
+
+    return SigChainManager._instance
   }
 }
 
