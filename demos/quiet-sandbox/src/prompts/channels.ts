@@ -36,11 +36,28 @@ const makeChannelsPrintable = (channels: (Channel | TruncatedChannel)[], network
     }
 
     const db = networking.messages.channelDbs[channel.channelName]
+    let keyString: string
+    try {
+      const keys = networking.libp2p.storage.getSigChain()!.crypto.getKeysForChannel(channel.channelName);
+      keyString = JSON.stringify({
+        public: keys.encryption.publicKey,
+        generation: keys.generation
+      }) 
+    } catch (e) {
+      if ((e as Error).message.includes("Couldn't find keys")) {
+        console.warn(`Can't display key information for channel ${channel.channelName} because this user doesn't have the role!`);
+        keyString = "Not a member of role"
+      } else {
+        console.error(`Error occurred while fetching keys for channel ${channel.channelName}`, e);
+        keyString = "Couldn't fetch keys due to error"
+      }
+    }
 
     return {
       ...trunc,
       members: JSON.stringify(trunc.members),
-      dbAddr: db.address
+      dbAddr: db.address,
+      key: keyString
     }
   })
 }
@@ -100,7 +117,7 @@ const removeUser = async (channelName: string, sigChain: SigChain, context: Loca
     return
   }
 
-  sigChain.channels.addMemberToPrivateChannel(member.userId, channelName)
+  sigChain.channels.revokePrivateChannelMembership(member.userId, channelName)
 }
 
 const sendMessage = async (
@@ -131,14 +148,15 @@ const readMessages = async (
   context: LocalUserContext
 ) => {
   const encryptedMessages = await networking.messages.readMessages(channelName)
-  const decryptedMessages: { userId: string; username: string; message: string; ts: number; }[] = []
+  const decryptedMessages: { userId: string; username: string; message: string; ts: number; keyGeneration: number; }[] = []
   for (const enc of encryptedMessages) {
     const message = sigChain.crypto.decryptAndVerify(enc.encrypted, enc.signature, context) as string
     decryptedMessages.push({
       userId: enc.signature.author.name,
       username: enc.username,
       message,
-      ts: enc.ts
+      ts: enc.ts,
+      keyGeneration: enc.encrypted.scope.generation
     })
   }
   console.table(decryptedMessages)
@@ -178,54 +196,72 @@ const mainLoop = async (networking: Networking) => {
         console.table(makeChannelsPrintable([channel], networking))
         break;
       case "delete":
-        if (!channel.hasRole) {
-          console.warn(`Not a member of ${channel.channelName}!`);
-          break;
+        try {
+          console.log(chalk.bold(`Deleting ${channel.channelName}`));
+          sigChain.channels.deletePrivateChannel(channel.channelName)
+        } catch (e: any) {
+          if ((e as Error).message.includes("Couldn't find keys")) {
+            console.warn(`You are not a member of channel ${channel.channelName}`, (e as Error).message);
+          } else {
+            console.error(`An error occurred while deleting channel ${channel.channelName}`, e);
+          }
         }
-
-        console.log(chalk.bold(`Deleting ${channel.channelName}`));
-        sigChain.channels.deletePrivateChannel(channel.channelName)
         break;
       case "leave":
-        if (!channel.hasRole) {
-          console.warn(`Not a member of ${channel.channelName}!`);
-          break;
+        try {
+          sigChain.channels.leaveChannel(channel.channelName, context);
+          console.log(chalk.bold(`You have left ${channel.channelName}`));
+        } catch (e: any) {
+          if ((e as Error).message.includes("Couldn't find keys")) {
+            console.warn(`You are not a member of channel ${channel.channelName}`, (e as Error).message);
+          } else {
+            console.error(`An error occurred while leaving channel ${channel.channelName}`, e);
+          }
         }
-
-        sigChain.channels.leaveChannel(channel.channelName, context)
-        console.log(chalk.bold(`You have left ${channel.channelName}`));
         break;
       case "addUser":
-        if (!channel.hasRole) {
-          console.warn(`Not a member of ${channel.channelName}!`);
-          break;
+        try {
+          await addUser(channel.channelName, sigChain, context);
+        } catch (e: any) {
+          if ((e as Error).message.includes("Couldn't find keys")) {
+            console.warn(`You are not a member of channel ${channel.channelName}`, (e as Error).message);
+          } else {
+            console.error(`An error occurred while adding user to channel ${channel.channelName}`, e);
+          }
         }
-
-        await addUser(channel.channelName, sigChain, context)
         break;
       case "removeUser":
-        if (!channel.hasRole) {
-          console.warn(`Not a member of ${channel.channelName}!`);
-          break;
+        try {
+          await removeUser(channel.channelName, sigChain, context);
+        } catch (e: any) {
+          if ((e as Error).message.includes("Couldn't find keys")) {
+            console.warn(`You are not a member of channel ${channel.channelName}`, (e as Error).message);
+          } else {
+            console.error(`An error occurred while removing user from channel ${channel.channelName}`, e);
+          }
         }
-
-        await removeUser(channel.channelName, sigChain, context)
         break;
       case "sendMessage":
-        if (!channel.hasRole) {
-          console.warn(`Not a member of ${channel.channelName}!`);
-          break;
+        try {
+          await sendMessage(channel.channelName, networking, sigChain, context)
+        } catch (e: any) {
+          if ((e as Error).message.includes("Couldn't find keys")) {
+            console.warn(`You are not a member of channel ${channel.channelName}`, (e as Error).message);
+          } else {
+            console.error(`An error occurred while sending message for channel ${channel.channelName}`, e);
+          }
         }
-
-        await sendMessage(channel.channelName, networking, sigChain, context)
         break;
       case "readMessages":
-        if (!channel.hasRole) {
-          console.warn(`Not a member of ${channel.channelName}!`);
-          break;
+        try {
+          await readMessages(channel.channelName, networking, sigChain, context)
+        } catch (e: any) {
+          if ((e as Error).message.includes("Couldn't find keys")) {
+            console.warn(`You are not a member of channel ${channel.channelName}`, (e as Error).message);
+          } else {
+            console.error(`An error occurred while reading messages for channel ${channel.channelName}`, e);
+          }
         }
-
-        await readMessages(channel.channelName, networking, sigChain, context)
         break;
       case "back":
         exit = true;
@@ -265,9 +301,17 @@ const channelCreate = async (networking: Networking | undefined) => {
     },
   ]);
   if (confirmation.confirm) {
+    try {
     sigChain.channels.createPrivateChannel(channelMetadata.name, context)
     await networking.messages.createChannel(channelMetadata.name)
     console.log(chalk.bold(`You have created ${channelMetadata.name}`));
+    } catch (e) {
+      if ((e as Error).message.includes("Couldn't find keys")) {
+        console.warn(`You are missing a role required to create new roles/channels`, (e as Error).message);
+      } else {
+        console.error(`An error occurred while creating channel ${channelMetadata.name}`, e);
+      }
+    }
   } else {
     return
   }
