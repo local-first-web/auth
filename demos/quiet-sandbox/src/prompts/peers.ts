@@ -54,19 +54,13 @@ const peerConnect = async (networking: Networking | undefined) => {
     return
   }
 
-  const peerId = await input({
-    message: "What is the ID of the peer you want to connect to?",
-    default: await clipboard.read(),
-    validate: (id: string) => id != null ? true : "Must enter a valid peer ID!"
-  })
-
   const addr = await input({
     message: "What is the address of the peer you want to connect to?",
     default: await clipboard.read(),
     validate: (addr: string) => addr != null ? true : "Must enter a valid peer address!"
   });
 
-  const success = await networking.libp2p.dial(peerIdFromString(peerId), addr);
+  const success = await networking.libp2p.dial(addr);
   console.log(`Connection to ${addr} success? ${success}`)
 
   await peerInfo(networking)

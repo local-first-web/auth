@@ -285,7 +285,7 @@ export class Libp2pService {
       const keys: Auth.KeysetWithSecrets = this.storage.getContext()?.user!.keys
       
       const buf = Buffer.from(keys.encryption.secretKey)
-      const priv = await generateKeyPairFromSeed("Ed25519", buf.subarray(0, 32))
+      const priv = await generateKeyPairFromSeed("Ed25519", new Uint8Array(buf).subarray(0, 32))
       const peerId = await createFromPrivKey(priv)
       const peerIdBytes = exportToProtobuf(peerId)
       peerIdB64 = base64.encoder.encode(peerIdBytes)
@@ -347,7 +347,7 @@ export class Libp2pService {
     return this.libp2p
   }
 
-  async dial(peerId: PeerId, addr: string | Multiaddr): Promise<boolean> {
+  async dial( addr: string | Multiaddr): Promise<boolean> {
         console.log(`Dialing peer at ${addr}`)
         const multiaddrs: Multiaddr[] = []
         if (typeof addr === 'string') {
@@ -355,7 +355,7 @@ export class Libp2pService {
         } else {
           multiaddrs.push(addr)
         }
-        await this.libp2p?.peerStore.save(peerId, { multiaddrs })
+        await this.libp2p?.dial(multiaddrs)
         
         return true
     }
