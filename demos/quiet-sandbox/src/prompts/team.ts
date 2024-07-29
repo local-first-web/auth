@@ -8,6 +8,7 @@ import { SigChain } from '../auth/chain.js';
 import { LocalStorage, Networking } from '../network.js';
 import { UserService } from '../auth/services/members/userService.js';
 import { makeChannelsPrintable } from './channels.js';
+import { makeRolesPrintable } from './roles.js';
 
 const teamInfo = async (networking: Networking | undefined) => {
   if (networking == null || networking.libp2p == null || networking.libp2p.libp2p == null) {
@@ -36,7 +37,7 @@ const teamInfo = async (networking: Networking | undefined) => {
     console.log("\n");
 
     console.log(chalk.bold("Roles"));
-    console.table(sigChain.roles.getAllRoles());
+    console.table(makeRolesPrintable(sigChain.roles.getAllRoles(context), networking));
     console.log("\n");
 
     console.log(chalk.bold("Invites"));

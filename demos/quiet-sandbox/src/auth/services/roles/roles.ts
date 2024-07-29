@@ -10,15 +10,22 @@ export type RoleMemberInfo = {
   name: string;
 }
 
-export type BaseChannel = Role & {
-  channelName: string;
-  hasRole: boolean; // Do I have access to this role?
+export type BaseQuietRole = Role & {
+  hasRole?: boolean;
 }
 
-export type Channel = BaseChannel & {
-  members: Member[]
+export type QuietRole = BaseQuietRole & {
+  members: Member[];
 }
 
-export type TruncatedChannel = BaseChannel & {
+export type TruncatedQuietRole = BaseQuietRole & {
   members: RoleMemberInfo[]
 }
+
+export type BaseChannel = {
+  channelName: string;
+}
+
+export type Channel = QuietRole & BaseChannel
+
+export type TruncatedChannel = TruncatedQuietRole & BaseChannel

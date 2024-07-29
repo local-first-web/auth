@@ -2,10 +2,10 @@
  * Handles channel-related chain operations
  */
 
-import { LocalUserContext, role, Role } from "@localfirst/auth"
+import { LocalUserContext, Role } from "@localfirst/auth"
 import { SigChain } from "../../chain.js"
 import { BaseChainService } from "../baseService.js"
-import { Channel } from "./roles.js"
+import { Channel, QuietRole } from "./roles.js"
 
 const CHANNEL_ROLE_KEY_PREFIX = "priv_chan_"
 
@@ -48,19 +48,15 @@ class ChannelService extends BaseChainService {
   }
 
   public getChannel(channelName: string, context: LocalUserContext): Channel {
-    const role = this.sigChain.roles.getRole(ChannelService.getPrivateChannelRoleName(channelName))
+    const role = this.sigChain.roles.getRole(ChannelService.getPrivateChannelRoleName(channelName), context)
     return this.roleToChannel(role, channelName, context)
   }
 
   public getChannels(context: LocalUserContext, haveAccessOnly: boolean = false): Channel[] {
-    const allRoles = this.sigChain.roles.getAllRoles()
-    const allChannels = allRoles.filter((role: Role) => role.roleName.startsWith(CHANNEL_ROLE_KEY_PREFIX)).map((role: Role) => (
+    const allRoles = this.sigChain.roles.getAllRoles(context, haveAccessOnly)
+    const allChannels = allRoles.filter((role: QuietRole) => this.isRoleChannel(context, role.roleName)).map((role: QuietRole) => (
       this.roleToChannel(role, ChannelService.getPrivateChannelNameFromRoleName(role.roleName), context)
     ));
-
-    if (haveAccessOnly) {
-      return allChannels.filter((channel: Channel) => channel.hasRole === true)
-    }
 
     return allChannels
   }
@@ -74,13 +70,22 @@ class ChannelService extends BaseChainService {
     return this.memberInChannel(context.user.userId, channelName)
   }
 
-  private roleToChannel(role: Role, channelName: string, context: LocalUserContext): Channel {
-    const members = this.sigChain.roles.getMembersForRole(role.roleName)
-    const hasRole = this.sigChain.roles.amIMemberOfRole(context, role.roleName)
+  public isRoleChannel(context: LocalUserContext, roleName: string): boolean;
+  public isRoleChannel(context: LocalUserContext, role: QuietRole | Role): boolean;
+  public isRoleChannel(context: LocalUserContext, roleNameOrRole: string | QuietRole | Role): boolean {
+    let roleName: string
+    if (typeof roleNameOrRole === 'string') {
+      roleName = roleNameOrRole
+    } else {
+      roleName = roleNameOrRole.roleName
+    }
+
+    return roleName.startsWith(CHANNEL_ROLE_KEY_PREFIX)
+  }
+
+  private roleToChannel(role: QuietRole, channelName: string, context: LocalUserContext): Channel {
     return {
       ...role,
-      members,
-      hasRole,
       channelName
     } as Channel
   }

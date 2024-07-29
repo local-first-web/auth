@@ -5,12 +5,11 @@ import chalk from 'chalk';
 import actionSelect from '../components/actionSelect.js';
 import { teamAdd, teamInfo } from './team.js';
 import { channelCreate, channelsList } from './channels.js';
-import usersList from './users.js';
-import rolesList from './rolesList.js';
 import { invitesList, inviteAdd } from './invites.js';
-import { Libp2pService, LocalStorage, Networking } from '../network.js';
+import { LocalStorage, Networking } from '../network.js';
 import { peerConnect, peerInfo } from './peers.js';
 import { me } from './me.js';
+import { roleCreate, rolesList } from './roles.js';
 
 const mainLoop = async (storage: LocalStorage, networking?: Networking) => {
   let exit = false;
@@ -23,7 +22,7 @@ const mainLoop = async (storage: LocalStorage, networking?: Networking) => {
       { name: "Peers", value: "peers", description: "Explore peers" },
       { name: "Channels", value: "channels", description: "Explore channels" },
       // { name: "Users", value: "users", description: "Explore users" },
-      // { name: "Roles", value: "roles", description: "Explore roles" },
+      { name: "Roles", value: "roles", description: "Explore roles" },
       { name: "Invites", value: "invites", description: "Explore invites" },
     ]
     const answer = await actionSelect(
@@ -50,11 +49,11 @@ const mainLoop = async (storage: LocalStorage, networking?: Networking) => {
           case "channels":
             await channelsList(networking);
             break;
-          case "users":
-            await usersList();
-            break;
+          // case "users":
+          //   await userListt();
+          //   break;
           case "roles":
-            await rolesList();
+            await rolesList(networking);
             break;
           case "invites":
             await invitesList(storage);
@@ -74,6 +73,9 @@ const mainLoop = async (storage: LocalStorage, networking?: Networking) => {
             break;
           case "channels":
             await channelCreate(networking)
+            break;
+          case "roles":
+            await roleCreate(networking)
             break;
           case undefined:
             break
