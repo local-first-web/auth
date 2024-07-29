@@ -158,7 +158,6 @@ const readMessages = async (
         (e as Error).message.includes("Cannot read properties of undefined (reading 'encryption')") ||
         ((e as Error).message.includes("Couldn't find keys"))) 
       {
-        console.warn(`Can't decrypt message from ${enc.username} at timestamp ${enc.ts} because we couldn't get the encryption key`);
         message = `Decryption Error: no access to key with generation ${enc.encrypted.scope.generation}`;
       } else {
         console.error(`Unknown error occurred while decrypting message from ${enc.username} at timestamp ${enc.ts}`, e);
