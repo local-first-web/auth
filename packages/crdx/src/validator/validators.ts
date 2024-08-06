@@ -86,7 +86,7 @@ export const fail = (msg: string, args?: any) => {
 const memoizeFunctionMap = (source: ValidatorSet) => {
   const result = {} as ValidatorSet
   const memoizeResolver = (link: Link<any, any>, graph: Graph<any, any>) => {
-    return `${hash('memoize', link)}:${hash('memoize', graph)}`
+    return `${link.hash}:${graph.root}`
   }
 
   for (const key in source) result[key] = memoize(source[key], memoizeResolver)
