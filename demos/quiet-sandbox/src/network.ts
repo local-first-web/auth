@@ -7,7 +7,7 @@ import { yamux } from '@chainsafe/libp2p-yamux'
 import { createFromPrivKey, createFromProtobuf, exportToProtobuf } from '@libp2p/peer-id-factory'
 import { base64 } from 'multiformats/bases/base64'
 import { createHelia, type Helia } from 'helia'
-import { createOrbitDB, type Events, Identities, KeyStore, type KeyValue, LogEntry, OrbitDB, OrbitDBAccessController } from '@orbitdb/core'
+import { createOrbitDB, Database, Documents, type Events, Identities, KeyStore, type KeyValue, LogEntry, OrbitDB, OrbitDBAccessController } from '@orbitdb/core'
 import { GossipSub, gossipsub } from '@chainsafe/libp2p-gossipsub'
 import { identify } from '@libp2p/identify'
 import fs from 'fs'
@@ -39,6 +39,7 @@ import { EncryptedAndSignedPayload } from './auth/services/crypto/types.js'
 import { MemoryDatastore } from 'datastore-core'
 import { generateKeyPairFromSeed } from '@libp2p/crypto/keys'
 import path from 'path'
+import { LoadedSigChain } from './auth/types.js'
 
 export class LocalStorage {
     private authContext: Auth.Context | null
@@ -83,6 +84,8 @@ interface Libp2pAuthComponents {
   connectionManager: ConnectionManager
   logger: ComponentLogger
 }
+
+let isJoined: boolean = false;
 
 // Implementing local-first-auth as a service just to get started. I think we
 // likely want to integrate it in a custom Transport/Muxer.
@@ -205,7 +208,7 @@ class Libp2pAuth {
         }
     })
 
-    authConnection.on('change', state => console.log(`${this.storage.getContext()?.user.userName} Change:`, state))
+    // authConnection.on('change', state => console.log(`${this.storage.getContext()?.user.userName} Change:`, state))
 
     this.authConnections[peerId.toString()] = authConnection
   }
@@ -408,13 +411,31 @@ export class OrbitDbService {
     // Seems like we can improve the type definitions
     return await this.orbitDb.open(
       dbName, 
-      { 
+      {
+        type: 'events',
         write: ['*'], 
         sync: true, 
         meta: {}, 
         AccessController: getAccessController() 
       }
-    ) as unknown as Events
+    ) as Events
+  }
+
+  async createDocumentDb(dbName: string): Promise<Documents> {
+    if (!this.orbitDb) {
+      throw new Error('Must call init before creating a DB')
+    }
+    // Seems like we can improve the type definitions
+    return await this.orbitDb.open(
+      dbName, 
+      { 
+        type: 'documents',
+        write: ['*'], 
+        sync: true, 
+        meta: {}, 
+        AccessController: getAccessController() 
+      }
+    ) as Documents
   }
 
   async close() {
@@ -422,6 +443,59 @@ export class OrbitDbService {
     await this.orbitDb?.stop()
     await this.ipfs?.stop()
   }
+}
+
+export class SigChainService extends EventEmitter {
+  orbitDbService: OrbitDbService
+  chainDb: Events | null
+
+  constructor(orbitDbService: OrbitDbService) {
+    super()
+
+    this.orbitDbService = orbitDbService
+    this.chainDb = null
+  }
+
+  async init() {
+    const name = 'chain'
+    console.log(`Initializing chain DB with name ${name}`)
+    this.chainDb = await this.orbitDbService.createDb(name)
+    this.chainDb.events.on('update', entry => {
+      console.log(`Got new chain ${JSON.stringify(entry.payload.value)}`)
+    })
+  }
+
+  async writeInitialChain(sigChain: SigChain) {
+    if (this.chainDb == null) {
+      throw new Error(`Must run 'init' before writing to the chain DB`)
+    }
+
+    const payload = {
+      type: "INITIAL_CHAIN_LOAD",
+      chain: sigChain.persist()
+    }
+    return this.chainDb.add(payload)
+  }
+
+  async loadChainFromDb(storage: LocalStorage, keys: Auth.Keyring): Promise<LoadedSigChain> {
+    if (this.chainDb == null) {
+      throw new Error(`Must run 'init' before reading from the chain DB`)
+    }
+
+    const updates = await this.chainDb.all()
+    const initialUpdate = updates[0].value as { type: string; chain: Uint8Array }
+    console.log(JSON.stringify(initialUpdate))
+
+    const loadedSigChain = SigChain.join(storage.getContext()!, initialUpdate.chain, keys)
+    storage.setSigChain(loadedSigChain.sigChain)
+    storage.setAuthContext({
+      user: storage.getContext()!.user,
+      device: storage.getContext()!.device,
+      team: loadedSigChain.sigChain.team
+    })
+
+    return loadedSigChain
+  } 
 }
 
 interface Channel {
@@ -530,11 +604,15 @@ export class Networking {
   private _libp2p: Libp2pService
   private _orbitDb: OrbitDbService
   private _messages: MessageService
+  private _sigChain: SigChainService
+  private _storage: LocalStorage
 
-  private constructor(libp2p: Libp2pService, orbitDb: OrbitDbService, messages: MessageService) {
+  private constructor(libp2p: Libp2pService, orbitDb: OrbitDbService, messages: MessageService, sigChain: SigChainService) {
     this._libp2p = libp2p
     this._orbitDb = orbitDb
     this._messages = messages
+    this._sigChain = sigChain
+    this._storage = libp2p.storage
   }
 
   public static async init(storage: LocalStorage): Promise<Networking> {
@@ -558,7 +636,11 @@ export class Networking {
     console.log(`Initializing new message service for peer ID ${await libp2p.getPeerId()}`)
     await messages.init()
 
-    return new Networking(libp2p, orbitDb, messages)
+    const sigChain = new SigChainService(orbitDb)
+    console.log(`Initializing new sigchain service for peer ID ${await libp2p.getPeerId()}`)
+    await sigChain.init()
+
+    return new Networking(libp2p, orbitDb, messages, sigChain)
   }
 
   get libp2p(): Libp2pService {
@@ -571,6 +653,14 @@ export class Networking {
 
   get messages(): MessageService {
     return this._messages
+  }
+
+  get sigChain(): SigChainService {
+    return this._sigChain
+  }
+
+  get storage(): LocalStorage {
+    return this._storage
   }
 }
 

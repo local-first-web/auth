@@ -1,2 +1,4 @@
 .peerid.*
 .orbitdb/**/*
+flamegraphs/**/*
+isolate**.log.*

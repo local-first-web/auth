@@ -4,6 +4,21 @@ declare module "@orbitdb/core" {
   import EventEmitter from "events";
   import type { Helia } from "helia";
 
+  export type Database = {
+    type: string;
+    addOperation: (args: {
+      op: string;
+      key: string | null;
+      value: unknown;
+    }) => Promise<string>;
+    address: string;
+    close(): Promise<void>;
+    drop(): Promise<void>;
+    events: EventEmitter;
+    access: AccessController;
+    log: Log;
+  };
+
   export function Database(args: {
     ipfs: Helia;
     identity?: Identity;
@@ -18,20 +33,7 @@ declare module "@orbitdb/core" {
     referencesCount?: number;
     syncAutomatically?: boolean;
     onUpdate?: () => void;
-  }): Promise<{
-    type: string;
-    addOperation: (args: {
-      op: string;
-      key: string | null;
-      value: unknown;
-    }) => Promise<string>;
-    address: string;
-    close(): Promise<void>;
-    drop(): Promise<void>;
-    events: EventEmitter;
-    access: AccessController;
-    log: Log;
-  }>;
+  }): Promise<Database>;
 
   export type Identity = {
     id: string;
@@ -194,8 +196,8 @@ declare module "@orbitdb/core" {
     getPublic
   }
 
-  export type Events = {
-    type: "keyvalue"
+  export type Events = Database & {
+    type: "events"
     address: string
     add(value: unknown): Promise<string>
     all(): Promise<{ key: string; value: unknown; hash: string }[]>
@@ -204,5 +206,13 @@ declare module "@orbitdb/core" {
     events: EventEmitter
     access: AccessController
     log: Log
+  }
+
+  export type Documents = Database & {
+    type: "documents"
+    put(doc: any): Promise<any>
+    del(key: string): Promise<any>
+    get(key: string): Promise<any>
+    all(): Promise<any[]>
   }
 }

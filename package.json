@@ -12,6 +12,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm -r build",
+    "qsb:perf:isla": "pnpm -F @localfirst/quiet-sandbox test:perf:isla",
     "dev:qsb": "pnpm -F @localfirst/quiet-sandbox start",
     "dev:qsb:command": "pnpm -F @localfirst/quiet-sandbox run-command",
     "dev:demo": "pnpm -F @localfirst/automerge-repo-todos dev",
