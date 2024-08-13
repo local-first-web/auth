@@ -51,6 +51,8 @@ export type ConnectionEvents = {
 
   /** The auth connection disconnects from a peer after entering an error state. */
   disconnected: (event: ConnectionMessage) => void
+
+  sync: ({ team, user }: { team: Team; user: UserWithSecrets }) => void
 }
 
 // IDENTITY CLAIMS

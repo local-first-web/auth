@@ -318,9 +318,11 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           )
 
           if (headsAreEqual(newChain.head, team.graph.head)) {
+            console.log(`${context!.user!.userName}: Sync message received but heads were equal`)
             // nothing changed
             return { syncState }
           } else {
+            console.log(`${context!.user!.userName}: Sync message received and merging`)
             this.emit('updated', newChain.head)
             return { team: team.merge(newChain), syncState }
           }
@@ -654,6 +656,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
         // Synchronize our team graph with the peer
         synchronizing: {
+          id: 'sync',
           entry: 'sendSyncMessage',
           always: { guard: 'headsAreEqual', target: 'connected' },
           on: { SYNC: { actions: ['receiveSyncMessage', 'sendSyncMessage'] } },

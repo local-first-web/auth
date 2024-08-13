@@ -312,6 +312,9 @@ importers:
       quiet-sandbox:
         specifier: 'link:'
         version: 'link:'
+      rng:
+        specifier: 0.2.2
+        version: 0.2.2
       type-fest:
         specifier: ^4.21.0
         version: 4.23.0
@@ -8550,6 +8553,9 @@ packages:
 
   ripemd160@2.0.2:
     resolution: {integrity: sha512-ii4iagi25WusVoiC4B4lq7pbXfAp3D9v5CwfkY33vffw2+pkDjY1D8GaN7spsxvCSx8dkPqOZCEZyfxcmJG2IA==}
+
+  rng@0.2.2:
+    resolution: {integrity: sha512-3F/A3swXdqb4JLpF22zwlCllyXlUWEE3T35GzJ+Vvtx4HnUYVAXovaK2TyUC04UlpxdVxB+E7HaKdDrGeOcJuA==}
 
   roarr@2.15.4:
     resolution: {integrity: sha512-CHhPh+UNHD2GTXNYhPWLnU8ONHdI+5DI+4EYIAOaiD63rHeYlZvyh8P+in5999TTSFgUYuKUAjzRI4mdh/p+2A==}
@@ -20361,6 +20367,8 @@ snapshots:
     dependencies:
       hash-base: 3.1.0
       inherits: 2.0.4
+
+  rng@0.2.2: {}
 
   roarr@2.15.4:
     dependencies:

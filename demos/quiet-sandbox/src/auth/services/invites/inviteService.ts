@@ -4,7 +4,7 @@
 
 import { BaseChainService } from "../baseService.js"
 import { ValidationResult } from "../../../../../../packages/crdx/dist/validator/types.js"
-import { Base58, InvitationMap, InvitationState, InviteResult, Keyset, ProofOfInvitation, UnixTimestamp } from "@localfirst/auth"
+import { Base58, FirstUseDevice, InvitationState, InviteResult, Keyset, ProofOfInvitation, UnixTimestamp } from "@localfirst/auth"
 import { SigChain } from "../../chain.js"
 import { RoleName } from "../roles/roles.js"
 
@@ -16,7 +16,7 @@ class InviteService extends BaseChainService {
     return new InviteService(sigChain)
   }
 
-  public create(validForMs: number = DEFAULT_INVITATION_VALID_FOR_MS, maxUses: number = DEFAULT_MAX_USES) {
+  public create(validForMs: number = DEFAULT_INVITATION_VALID_FOR_MS, maxUses: number = DEFAULT_MAX_USES): InviteResult {
     const expiration = (Date.now() + validForMs) as UnixTimestamp
     const invitation: InviteResult = this.sigChain.team.inviteMember({
       expiration,
@@ -24,6 +24,13 @@ class InviteService extends BaseChainService {
     })
     // this.activeSigChain.persist()
     return invitation
+  }
+
+  public createForDevice(validForMs: number = DEFAULT_INVITATION_VALID_FOR_MS): InviteResult {
+    const expiration = (Date.now() + validForMs) as UnixTimestamp
+    return this.sigChain.team.inviteDevice({
+      expiration
+    })
   }
 
   public revoke(id: string) {
@@ -52,6 +59,10 @@ class InviteService extends BaseChainService {
   public acceptProof(proof: ProofOfInvitation, username: string, publicKeys: Keyset) {
     this.sigChain.team.admitMember(proof, publicKeys, username)
     // this.activeSigChain.persist()
+  }
+
+  public admitDevice(proof: ProofOfInvitation, device: FirstUseDevice) {
+    this.sigChain.team.admitDevice(proof, device)
   }
 
   public admitMemberFromInvite(proof: ProofOfInvitation, username: string, userId: string, publicKeys: Keyset): string {

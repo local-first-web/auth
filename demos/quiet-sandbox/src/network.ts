@@ -40,6 +40,10 @@ import { MemoryDatastore } from 'datastore-core'
 import { generateKeyPairFromSeed } from '@libp2p/crypto/keys'
 import path from 'path'
 import { LoadedSigChain } from './auth/types.js'
+import { sleep } from './utils/utils.js'
+import { randomInt } from 'crypto'
+//@ts-ignore
+import RNG from 'rng'
 
 export class LocalStorage {
     private authContext: Auth.Context | null
@@ -97,8 +101,10 @@ class Libp2pAuth {
   private outboundStreamQueue: Pushable<{ peerId: PeerId, connection: Connection }>
   private outboundStreams: Record<string, Pushable<Uint8Array | Uint8ArrayList>>
   private inboundStreams: Record<string, Stream>
+  private events: QuietAuthEvents
+  private joining: boolean = false
 
-  constructor(storage: LocalStorage, components: Libp2pAuthComponents) {
+  constructor(storage: LocalStorage, components: Libp2pAuthComponents, events: QuietAuthEvents) {
     this.protocol = '/local-first-auth/1.0.0'
     this.components = components
     this.storage = storage
@@ -106,6 +112,7 @@ class Libp2pAuth {
     this.outboundStreamQueue = pushable<{ peerId: PeerId, connection: Connection }>({ objectMode: true })
     this.outboundStreams = {}
     this.inboundStreams = {}
+    this.events = events
 
     pipe(
       this.outboundStreamQueue,
@@ -193,9 +200,11 @@ class Libp2pAuth {
     })
 
     // TODO: Listen for updates to context and update context in storage
-    authConnection.on('joined', ({ team, user }) => {
-        console.log(`${user.userId}: Joined team ${team.teamName}!`)
-        if (this.storage.getSigChain() == null) {
+    authConnection.on('joined', (payload) => {
+        const { team, user } = payload
+        console.log(`${this.storage.getContext()!.user.userId}: Joined team ${team.teamName} (userid: ${user.userId})!`)
+        if (this.storage.getSigChain() == null && !this.joining) {
+            this.joining = true
             console.log(`${user.userId}: Creating SigChain for user with name ${user.userName} and team name ${team.teamName}`)
             const context = this.storage.getContext()!
             this.storage.setSigChain(SigChain.createFromTeam(team, context).sigChain)
@@ -205,7 +214,30 @@ class Libp2pAuth {
                 device: context.device,
                 team
             })
+            this.joining = false
+            this.events.emit(EVENTS.INITIALIZED_CHAIN)
         }
+    })
+
+    authConnection.on('change', (summary) => {
+      const context = this.storage.getContext()!
+
+      // console.log(`${context.user.userId}: Update with summary ${JSON.stringify(summary)}!`)
+      const summaryStates = summary.split(',')
+      if (summaryStates.includes('synchronizing')) {
+        // const sigChain = this.storage.getSigChain()!
+        // console.log(JSON.stringify(sigChain.minifiedTeamGraph))
+        console.log(`${context.user.userId}: Update with summary ${JSON.stringify(summary)}!`)
+      }
+
+      // const graph: Auth.TeamGraph = (sigChain.teamGraph as Auth.TeamGraph)
+      // console.log(JSON.stringify(graph.links))
+    })
+
+    authConnection.on('connected', () => {
+      const team = this.storage.getSigChain()!.team
+      const user = this.storage.getContext()!.user
+      authConnection.emit('sync', { team, user })
     })
 
     // authConnection.on('change', state => console.log(`${this.storage.getContext()?.user.userName} Change:`, state))
@@ -248,8 +280,8 @@ class Libp2pAuth {
   }
 }
 
-const libp2pAuth = (storage: LocalStorage): ((components: Libp2pAuthComponents) => Libp2pAuth) => {
-  return (components: Libp2pAuthComponents) => new Libp2pAuth(storage, components)
+const libp2pAuth = (storage: LocalStorage, events: QuietAuthEvents): ((components: Libp2pAuthComponents) => Libp2pAuth) => {
+  return (components: Libp2pAuthComponents) => new Libp2pAuth(storage, components, events)
 }
 
 export class Libp2pService {
@@ -258,12 +290,14 @@ export class Libp2pService {
   libp2p: Libp2p | null
   storage: LocalStorage
   peerId: RSAPeerId | Ed25519PeerId | Secp256k1PeerId | null
+  events: QuietAuthEvents
 
-  constructor(peerName: string, storage: LocalStorage) {
+  constructor(peerName: string, storage: LocalStorage, events: QuietAuthEvents) {
     this.peerName = peerName
     this.libp2p = null
     this.storage = storage
     this.peerId = null
+    this.events = events
   }
 
   /**
@@ -314,6 +348,9 @@ export class Libp2pService {
 
     this.libp2p = await createLibp2p({
       peerId,
+      connectionManager: {
+        maxConnections: 1000,
+      },
       addresses: {
         // accept TCP connections on any port
         listen: ['/ip4/127.0.0.1/tcp/0']
@@ -337,10 +374,11 @@ export class Libp2pService {
         pubsub: gossipsub({
           // neccessary to run a single peer
           allowPublishToZeroTopicPeers: true,
-          emitSelf: true
+          emitSelf: true,
+          doPX: true
         }),
         identify: identify(),
-        auth: libp2pAuth(this.storage)
+        auth: libp2pAuth(this.storage, this.events)
       },
       datastore
     });
@@ -350,18 +388,65 @@ export class Libp2pService {
     return this.libp2p
   }
 
-  async dial( addr: string | Multiaddr): Promise<boolean> {
-        console.log(`Dialing peer at ${addr}`)
-        const multiaddrs: Multiaddr[] = []
-        if (typeof addr === 'string') {
-          multiaddrs.push(multiaddr(addr))
-        } else {
-          multiaddrs.push(addr)
-        }
-        await this.libp2p?.dial(multiaddrs)
-        
-        return true
+  async dial(addrs: (string | Multiaddr)[]) {
+    if (addrs.length === 0) {
+      console.warn('No peers found to dial, skipping!')
+      return false
     }
+
+    console.log(`Dialing ${addrs.length} peers`)
+    let waitForSigChainLoad = this.storage.getSigChain() == null
+    if (waitForSigChainLoad) {
+      console.log(`Trying peers one at a time to ensure admittance only happens once!`)
+    }
+
+    let successful = 0
+    let maxConnections = Math.min(10, addrs.length)
+    let connectedIndices: Set<number> = new Set()
+    console.log(`Connecting to ${maxConnections} random peers`)
+    while(connectedIndices.size < maxConnections) {
+      const rng = new RNG.MT(randomInt(1000000))
+      const index = rng.range(0, addrs.length)
+      if (connectedIndices.has(index)) {
+        continue
+      }
+
+      const addr = addrs[index]
+      console.log(`Attempting to connect to ${addr}`)
+      const multiAddr = typeof addr === 'string' ? multiaddr(addr) : addr
+      try {
+        const connection = await this.libp2p?.dial(multiAddr)
+        if (!connection || connection.status !== 'open') {
+          console.warn(`Couldn't connect to ${addr}, trying next!`)
+          return
+        }
+        successful++
+        connectedIndices.add(index)
+
+        if (waitForSigChainLoad) {
+          console.log(`Waiting for sigchain to load before connecting to new peers!`)
+          this.events.on(EVENTS.INITIALIZED_CHAIN, () => {
+            if (!waitForSigChainLoad) return
+            console.log(`${addr} - Sigchain loaded, continuing with dial!`)
+            waitForSigChainLoad = false
+            this.events.emit(EVENTS.INITIALIZED_CHAIN)
+          })
+
+          while (waitForSigChainLoad) {
+            process.stdout.write('.')
+            await sleep(100)
+          }
+          console.log('\n')
+        }
+      } catch (e) {
+        console.warn(`Failed to make a connection with error`, e)
+      }
+      console.log(`Successful connections thus far: ${successful}`)
+    }
+
+    this.events.emit(EVENTS.DIAL_FINISHED)
+    return successful > 0
+  }
 
   async close() {
     console.log('Closing libp2p')
@@ -461,7 +546,7 @@ export class SigChainService extends EventEmitter {
     console.log(`Initializing chain DB with name ${name}`)
     this.chainDb = await this.orbitDbService.createDb(name)
     this.chainDb.events.on('update', entry => {
-      console.log(`Got new chain ${JSON.stringify(entry.payload.value)}`)
+      console.log(`Got new chain`)
     })
   }
 
@@ -470,11 +555,11 @@ export class SigChainService extends EventEmitter {
       throw new Error(`Must run 'init' before writing to the chain DB`)
     }
 
-    const payload = {
-      type: "INITIAL_CHAIN_LOAD",
-      chain: sigChain.persist()
-    }
-    return this.chainDb.add(payload)
+    // const payload = {
+    //   type: "INITIAL_CHAIN_LOAD",
+    //   chain: sigChain.persist()
+    // }
+    // return this.chainDb.add(payload)
   }
 
   async loadChainFromDb(storage: LocalStorage, keys: Auth.Keyring): Promise<LoadedSigChain> {
@@ -600,19 +685,42 @@ export class MessageService extends EventEmitter {
   }
 }
 
+export enum EVENTS {
+  'INITIALIZED_CHAIN' = 'INITIALIZED_CHAIN',
+  'DIAL_FINISHED' = 'DIAL_FINISHED'
+}
+
+export class QuietAuthEvents {
+  private _events: EventEmitter
+
+  constructor() {
+    this._events = new EventEmitter()
+  }
+
+  public on(event: EVENTS, listener: (...args: any[]) => void) {
+    this._events.on(event, listener)
+  }
+
+  public emit(event: EVENTS, ...args: any[]) {
+    this._events.emit(event, ...args)
+  }
+}
+
 export class Networking {
   private _libp2p: Libp2pService
   private _orbitDb: OrbitDbService
   private _messages: MessageService
   private _sigChain: SigChainService
   private _storage: LocalStorage
+  private _events: QuietAuthEvents
 
-  private constructor(libp2p: Libp2pService, orbitDb: OrbitDbService, messages: MessageService, sigChain: SigChainService) {
+  private constructor(libp2p: Libp2pService, orbitDb: OrbitDbService, messages: MessageService, sigChain: SigChainService, events: QuietAuthEvents) {
     this._libp2p = libp2p
     this._orbitDb = orbitDb
     this._messages = messages
     this._sigChain = sigChain
     this._storage = libp2p.storage
+    this._events = events
   }
 
   public static async init(storage: LocalStorage): Promise<Networking> {
@@ -621,8 +729,10 @@ export class Networking {
       throw new Error(`Context hasn't been initialized!`)
     }
 
+    const events = new QuietAuthEvents()
+
     const datastore = new MemoryDatastore()
-    const libp2p = new Libp2pService(context.user.userId, storage)
+    const libp2p = new Libp2pService(context.user.userId, storage, events)
     console.log(`Initializing new libp2p peer with ID ${await libp2p.getPeerId()}`)
     await libp2p.init(datastore)
 
@@ -640,7 +750,7 @@ export class Networking {
     console.log(`Initializing new sigchain service for peer ID ${await libp2p.getPeerId()}`)
     await sigChain.init()
 
-    return new Networking(libp2p, orbitDb, messages, sigChain)
+    return new Networking(libp2p, orbitDb, messages, sigChain, events)
   }
 
   get libp2p(): Libp2pService {
@@ -661,6 +771,10 @@ export class Networking {
 
   get storage(): LocalStorage {
     return this._storage
+  }
+  
+  get events(): QuietAuthEvents {
+    return this._events
   }
 }
 
@@ -683,7 +797,7 @@ const main = async () => {
     storage1.setAuthContext({ ...founderContext, team: sigChain.team })
     storage1.setSigChain(sigChain)
 
-    const peer1 = new Libp2pService(peerId1, storage1);
+    const peer1 = new Libp2pService(peerId1, storage1, new QuietAuthEvents());
     await peer1.init();
 
     const { seed } = sigChain.invites.create()
@@ -701,7 +815,7 @@ const main = async () => {
         ...prospectiveUser.context,
         invitationSeed: seed
     })
-    const peer2 = new Libp2pService(peerId2, storage2);
+    const peer2 = new Libp2pService(peerId2, storage2, new QuietAuthEvents());
     await peer2.init();
 
     // const orbitDb2 = new OrbitDbService(peer2);

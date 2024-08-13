@@ -18,10 +18,10 @@ class DeviceService extends BaseChainService {
    * @param userId User ID that this device is associated with
    * @returns A newly generated QuietDevice instance
    */
-  public static generateDeviceForUser(userId: string): DeviceWithSecrets {
+  public static generateDeviceForUser(userId: string, deviceName?: string): DeviceWithSecrets {
     const params = {
       userId,
-      deviceName: DeviceService.determineDeviceName()
+      deviceName: deviceName ?? DeviceService.determineDeviceName()
     }
 
     return SigChain.lfa.createDevice(params)

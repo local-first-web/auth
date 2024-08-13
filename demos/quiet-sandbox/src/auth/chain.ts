@@ -12,6 +12,7 @@ import { InviteService } from './services/invites/inviteService.js'
 import { DMService } from './services/dm/dmService.js'
 import { CryptoService } from './services/crypto/cryptoService.js'
 import { RoleName } from './services/roles/roles.js'
+import { findAllByKeyAndReplace } from '../utils/utils.js'
 
 class SigChain {
   private _team: auth.Team
@@ -97,6 +98,12 @@ class SigChain {
 
   get teamGraph(): auth.TeamGraph {
     return this._team.graph
+  }
+
+  get minifiedTeamGraph(): auth.TeamGraph {
+    return findAllByKeyAndReplace(JSON.parse(JSON.stringify(this.teamGraph)), 'data', {
+      replacerFunc: (dataArray: any[]) => Buffer.from(dataArray).toString('base64')
+    })
   }
 
   get users(): UserService {

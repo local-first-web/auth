@@ -12,7 +12,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "ig": "tsc && npm i -g .",
     "start": "node dist/index.js interactive",
-    "test:perf:isla": "0x --output-dir ./flamegraphs/$(uuidgen) --title 'Quiet Sandbox: Isla Perf Test' --tree-debug -os dist/scripts/isla-perf/index.js"
+    "test:perf:isla": "0x --output-dir ./flamegraphs/$(uuidgen) --title 'Quiet Sandbox: Isla Perf Test' --tree-debug -os -- node --max-old-space-size=4096 dist/scripts/isla-perf/index.js"
   },
   "keywords": [],
   "author": "",
@@ -58,6 +58,7 @@
     "multiformats": "^13.2.0",
     "pad": "^3.2.0",
     "quiet-sandbox": "link:",
+    "rng": "0.2.2",
     "type-fest": "^4.21.0",
     "uint8arraylist": "^2.4.8"
   },
