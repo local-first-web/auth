@@ -4,7 +4,7 @@
 
 import { BaseChainService } from "../baseService.js"
 import { ValidationResult } from "../../../../../../packages/crdx/dist/validator/types.js"
-import { Base58, FirstUseDevice, InvitationState, InviteResult, Keyset, ProofOfInvitation, UnixTimestamp } from "@localfirst/auth"
+import { Base58, DeviceWithSecrets, FirstUseDevice, InvitationState, InviteResult, Keyset, ProofOfInvitation, UnixTimestamp } from "@localfirst/auth"
 import { SigChain } from "../../chain.js"
 import { RoleName } from "../roles/roles.js"
 
@@ -61,7 +61,7 @@ class InviteService extends BaseChainService {
     // this.activeSigChain.persist()
   }
 
-  public admitDevice(proof: ProofOfInvitation, device: FirstUseDevice) {
+  public admitDevice(proof: ProofOfInvitation, device: FirstUseDevice | DeviceWithSecrets) {
     this.sigChain.team.admitDevice(proof, device)
   }
 

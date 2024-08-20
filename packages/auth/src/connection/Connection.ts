@@ -318,11 +318,11 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           )
 
           if (headsAreEqual(newChain.head, team.graph.head)) {
-            console.log(`${context!.user!.userName}: Sync message received but heads were equal`)
+            // console.log(`${context!.user!.userName}: Sync message received but heads were equal`)
             // nothing changed
             return { syncState }
           } else {
-            console.log(`${context!.user!.userName}: Sync message received and merging`)
+            // console.log(`${context!.user!.userName}: Sync message received and merging`)
             this.emit('updated', newChain.head)
             return { team: team.merge(newChain), syncState }
           }
@@ -418,7 +418,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
         // EVENTS FOR EXTERNAL LISTENERS
 
-        onConnected: () => this.emit('connected'),
+        onConnected: (context) => {
+          this.emit('connected')
+          // this.#machine.send({ type: 'SYNC', payload: { head } }) // Send update event to local machine
+        },
         onDisconnected: ({ event }) => this.emit('disconnected', event),
       },
 
@@ -861,7 +864,7 @@ const fail = (error: ConnectionErrorType) =>
   }) as const
 
 // timeout configuration
-const TIMEOUT_DELAY = 7000
+const TIMEOUT_DELAY = 15000
 const timeout = { after: { [TIMEOUT_DELAY]: fail(TIMEOUT) } } as const
 
 // TYPES

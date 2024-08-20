@@ -219,20 +219,36 @@ class Libp2pAuth {
         }
     })
 
-    authConnection.on('change', (summary) => {
-      const context = this.storage.getContext()!
-
-      // console.log(`${context.user.userId}: Update with summary ${JSON.stringify(summary)}!`)
-      const summaryStates = summary.split(',')
-      if (summaryStates.includes('synchronizing')) {
-        // const sigChain = this.storage.getSigChain()!
-        // console.log(JSON.stringify(sigChain.minifiedTeamGraph))
-        console.log(`${context.user.userId}: Update with summary ${JSON.stringify(summary)}!`)
+    const handleAuthConnErrors = (error: Auth.ConnectionErrorPayload) => {
+      if (error.type === 'TIMEOUT') {
+        this.events.emit(EVENTS.AUTH_TIMEOUT, peerId)
+      } else {
+        console.error(`Got this error while handling auth connection`, JSON.stringify(error))
       }
+    }
 
-      // const graph: Auth.TeamGraph = (sigChain.teamGraph as Auth.TeamGraph)
-      // console.log(JSON.stringify(graph.links))
+    authConnection.on('localError', (error) => {
+      handleAuthConnErrors(error)
     })
+
+    authConnection.on('remoteError', (error) => {
+      handleAuthConnErrors(error)
+    })
+
+    // authConnection.on('change', (summary) => {
+    //   const context = this.storage.getContext()!
+
+    //   // console.log(`${context.user.userId}: Update with summary ${JSON.stringify(summary)}!`)
+    //   const summaryStates = summary.split(',')
+    //   if (summaryStates.includes('synchronizing')) {
+    //     // const sigChain = this.storage.getSigChain()!
+    //     // console.log(JSON.stringify(sigChain.minifiedTeamGraph))
+    //     console.log(`${context.user.userId}: Update with summary ${JSON.stringify(summary)}!`)
+    //   }
+
+    //   // const graph: Auth.TeamGraph = (sigChain.teamGraph as Auth.TeamGraph)
+    //   // console.log(JSON.stringify(graph.links))
+    // })
 
     authConnection.on('connected', () => {
       const team = this.storage.getSigChain()!.team
@@ -385,40 +401,74 @@ export class Libp2pService {
 
     console.log('Peer ID: ', peerId.toString())
 
+    this.events.on(EVENTS.AUTH_TIMEOUT, async (peerId: PeerId) => {
+      console.warn(`Connection with ${peerId} experienced an auth timeout, redialing!`)
+      try {
+
+        console.warn(`LIBP2P STATUS: ${this.libp2p?.status}`)
+        if (this.libp2p?.getPeers().includes(peerId)) {
+          console.warn(`HANGING UP`)
+          await this.libp2p?.hangUp(peerId)
+        }
+        console.warn(`DELETING FROM PEER STORE`)
+        await this.libp2p?.peerStore.delete(peerId)
+        console.warn(`DIALING`)
+        await this.dial([peerId])
+      } catch (e) {
+        console.error(`Error while redialing peer ${peerId}`, e)
+      }
+    })
+
     return this.libp2p
   }
 
-  async dial(addrs: (string | Multiaddr)[]) {
-    if (addrs.length === 0) {
+  async hangUp(addrsOrPeerIds: (string | Multiaddr | PeerId)[]): Promise<boolean> {
+    if (addrsOrPeerIds.length === 0) {
+      console.warn('No peers found to hang up, skipping!')
+      return false
+    }
+
+    console.log(`Hanging up on ${addrsOrPeerIds.length} peers`)
+    for (const addrOrPeerId of addrsOrPeerIds) {
+      console.log(`Hanging up on ${addrOrPeerId}`)
+      const multiAddrOrPeerId = typeof addrOrPeerId === 'string' ? multiaddr(addrOrPeerId) : addrOrPeerId
+      await this.libp2p!.hangUp(multiAddrOrPeerId)
+    }
+
+    return true
+  }
+
+  async dial(addrsOrPeerIds: (string | Multiaddr | PeerId)[]): Promise<boolean> {
+    if (addrsOrPeerIds.length === 0) {
       console.warn('No peers found to dial, skipping!')
       return false
     }
 
-    console.log(`Dialing ${addrs.length} peers`)
+    console.log(`Dialing ${addrsOrPeerIds.length} peers`)
     let waitForSigChainLoad = this.storage.getSigChain() == null
     if (waitForSigChainLoad) {
       console.log(`Trying peers one at a time to ensure admittance only happens once!`)
     }
 
     let successful = 0
-    let maxConnections = Math.min(10, addrs.length)
+    let maxConnections = Math.min(5, addrsOrPeerIds.length)
     let connectedIndices: Set<number> = new Set()
-    console.log(`Connecting to ${maxConnections} random peers`)
+    console.log(`Connecting to ${maxConnections} peers`)
     while(connectedIndices.size < maxConnections) {
       const rng = new RNG.MT(randomInt(1000000))
-      const index = rng.range(0, addrs.length)
+      const index = rng.range(0, addrsOrPeerIds.length)
       if (connectedIndices.has(index)) {
         continue
       }
 
-      const addr = addrs[index]
-      console.log(`Attempting to connect to ${addr}`)
-      const multiAddr = typeof addr === 'string' ? multiaddr(addr) : addr
+      const addrOrPeerId = addrsOrPeerIds[index]
+      console.log(`Attempting to connect to ${addrOrPeerId}`)
+      const multiAddrOrPeerId = typeof addrOrPeerId === 'string' ? multiaddr(addrOrPeerId) : addrOrPeerId
       try {
-        const connection = await this.libp2p?.dial(multiAddr)
+        const connection = await this.libp2p?.dial(multiAddrOrPeerId)
         if (!connection || connection.status !== 'open') {
-          console.warn(`Couldn't connect to ${addr}, trying next!`)
-          return
+          console.warn(`Couldn't connect to ${addrOrPeerId}, trying next!`)
+          continue
         }
         successful++
         connectedIndices.add(index)
@@ -427,7 +477,7 @@ export class Libp2pService {
           console.log(`Waiting for sigchain to load before connecting to new peers!`)
           this.events.on(EVENTS.INITIALIZED_CHAIN, () => {
             if (!waitForSigChainLoad) return
-            console.log(`${addr} - Sigchain loaded, continuing with dial!`)
+            console.log(`${addrOrPeerId} - Sigchain loaded, continuing with dial!`)
             waitForSigChainLoad = false
             this.events.emit(EVENTS.INITIALIZED_CHAIN)
           })
@@ -686,8 +736,9 @@ export class MessageService extends EventEmitter {
 }
 
 export enum EVENTS {
-  'INITIALIZED_CHAIN' = 'INITIALIZED_CHAIN',
-  'DIAL_FINISHED' = 'DIAL_FINISHED'
+  INITIALIZED_CHAIN = 'INITIALIZED_CHAIN',
+  DIAL_FINISHED = 'DIAL_FINISHED',
+  AUTH_TIMEOUT = 'AUTH_TIMEOUT'
 }
 
 export class QuietAuthEvents {

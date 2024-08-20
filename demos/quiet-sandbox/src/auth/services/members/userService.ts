@@ -23,9 +23,9 @@ class UserService extends BaseChainService {
    * @param id Optionally specify the user's ID (otherwise autogenerate)
    * @returns New QuietUser instance with an initial device
    */
-  public static create(name: string, id?: string): LocalUserContext {
+  public static create(name: string, id?: string, deviceName?: string): LocalUserContext {
     const user: UserWithSecrets = SigChain.lfa.createUser(name, id)
-    const device: DeviceWithSecrets = DeviceService.generateDeviceForUser(user.userId)
+    const device: DeviceWithSecrets = DeviceService.generateDeviceForUser(user.userId, deviceName)
 
     return {
       user,
@@ -33,8 +33,8 @@ class UserService extends BaseChainService {
     }
   }
 
-  public static createFromInviteSeed(name: string, seed: string): ProspectiveUser {
-    const context = this.create(name)
+  public static createFromInviteSeed(name: string, seed: string, deviceName?: string): ProspectiveUser {
+    const context = this.create(name, undefined, deviceName)
     const inviteProof = InviteService.generateProof(seed)
     const publicKeys = UserService.redactUser(context.user).keys
 

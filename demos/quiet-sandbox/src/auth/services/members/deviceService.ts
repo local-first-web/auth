@@ -21,7 +21,7 @@ class DeviceService extends BaseChainService {
   public static generateDeviceForUser(userId: string, deviceName?: string): DeviceWithSecrets {
     const params = {
       userId,
-      deviceName: deviceName ?? DeviceService.determineDeviceName()
+      deviceName: deviceName != null ? deviceName : DeviceService.determineDeviceName()
     }
 
     return SigChain.lfa.createDevice(params)

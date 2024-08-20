@@ -1,6 +1,7 @@
 import { SigChain } from "../../auth/chain.js";
 import { UserService } from "../../auth/services/members/userService.js";
-import { EVENTS, LocalStorage, Networking } from "../../network.js";
+import { LocalStorage, Networking } from "../../network.js";
+import { generateDeviceName } from "./devices.js";
 
 export const createTeam = async (name: string, username: string): Promise<Networking> => {
   console.log(`Initializing team with name ${name} for user ${username}`);
@@ -23,7 +24,8 @@ export const createTeam = async (name: string, username: string): Promise<Networ
 export const joinTeam = async (name: string, username: string, inviteSeed: string, peerAddresses: string[]): Promise<Networking> => {
   console.log(`Joining team ${name} as user ${username} with inviteSeed ${inviteSeed}`);
   const storage = new LocalStorage()
-  const prospectiveUser = UserService.createFromInviteSeed(username, inviteSeed)
+  const deviceName = generateDeviceName(username, 1)
+  const prospectiveUser = UserService.createFromInviteSeed(username, inviteSeed, deviceName)
     storage.setContext(prospectiveUser.context)
     storage.setAuthContext({
       user: prospectiveUser.context.user,
