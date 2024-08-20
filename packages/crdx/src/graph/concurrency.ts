@@ -1,9 +1,8 @@
 import { memoize } from '@localfirst/shared'
 import { type Hash } from 'util/index.js'
-import { getHashes } from './getHashes.js'
 import { getLink } from './getLink.js'
-import { isPredecessorHash } from './isPredecessor.js'
-import { isSuccessorHash } from './isSuccessor.js'
+import { getPredecessorHashes } from './getPredecessors.js'
+import { getChildrenHashes } from './children.js'
 import type { Action, Graph, Link } from './types.js'
 
 /** Returns all links that are concurrent with the given link. */
@@ -30,23 +29,40 @@ export const getConcurrentHashes = (graph: Graph<any, any>, hash: Hash): Hash[] 
  * ```
  */
 export const calculateConcurrency = memoize(<A extends Action, C>(graph: Graph<A, C>) => {
+  const toVisit = [graph.root]
+  const visited: Set<Hash> = new Set()
   const concurrencyLookup: Record<Hash, Hash[]> = {}
 
-  // for each link, find all links that are concurrent with it
-  for (const _ in graph.links) {
-    const hash = _ as Hash
-    concurrencyLookup[hash] = getHashes(graph)
-      .filter(b => isConcurrent(graph, hash, b))
-      .sort()
+  while (toVisit.length > 0) {
+    const current = toVisit.shift() as Hash
+
+    if (visited.has(current)) {
+      continue
+    }
+
+    const predecessors = new Set(getPredecessorHashes(graph, current))
+    const concurrent: Hash[] = []
+
+    for (const v of Array.from(visited)) {
+      if (!predecessors.has(v) && !getPredecessorHashes(graph, v).includes(current)) {
+        concurrent.push(v)
+      }
+    }
+
+    concurrencyLookup[current] = concurrent
+
+    for (const c of concurrent) {
+      concurrencyLookup[c].push(current)
+    }
+
+    for (const c of getChildrenHashes(graph, current)) {
+        toVisit.push(c)
+    }
+    visited.add(current)
   }
 
   return concurrencyLookup
 })
-
-export const isConcurrent = <A extends Action, C>(graph: Graph<A, C>, a: Hash, b: Hash) =>
-  a !== b && // a link isn't concurrent with itself
-  !isPredecessorHash(graph, a, b) && // a link isn't concurrent with any of its predecessors
-  !isSuccessorHash(graph, a, b) // a link isn't concurrent with any of its successors
 
 export const getConcurrentBubbles = <A extends Action, C>(graph: Graph<A, C>): Hash[][] => {
   const seen: Record<Hash, boolean> = {}
