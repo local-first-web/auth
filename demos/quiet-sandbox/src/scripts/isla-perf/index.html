@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Chart.js example</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="text/javascript" src="data.json.js"></script>
+    <script type="module" src="graphing/averageDiffs.ts"></script>
+    <script type="module" src="graphing/averageLoadTimes.ts"></script>
+    <script src="graphing/memberDiffScatter.ts"></script>
+    <script src="graphing/deviceDiffScatter.ts"></script>
+  </head>
+  <body>
+    <div style="width: 1000px;"><canvas id="average-diffs"></canvas></div>
+    <div style="width: 1000px;"><canvas id="average-load-times"></canvas></div>
+
+    </br>
+
+    <select id="user-count-dropdown" onchange="selectOption()"></select>
+
+    <div style="width: 1000px;"><canvas id="member-diff-scatter"></canvas></div>
+    <div style="width: 1000px;"><canvas id="device-diff-scatter"></canvas></div>
+    <script>
+      var selectedUserCount = undefined
+      userCountSelect = document.getElementById('user-count-dropdown');
+      data.forEach(row => userCountSelect.options[userCountSelect.options.length] = new Option(`${row.userCount} Users`, row.userCount));
+      drawMemberDiffScatter();
+      drawDeviceDiffScatter();
+
+      function selectOption() {
+         selectedUserCount = Number(userCountSelect.options[userCountSelect.selectedIndex].value);
+         drawMemberDiffScatter();
+         drawDeviceDiffScatter();
+      }
+    </script>
+  </body>
+</html>

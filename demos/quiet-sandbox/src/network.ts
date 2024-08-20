@@ -366,6 +366,7 @@ export class Libp2pService {
       peerId,
       connectionManager: {
         maxConnections: 1000,
+        dialTimeout: 120_000
       },
       addresses: {
         // accept TCP connections on any port
@@ -379,7 +380,7 @@ export class Libp2pService {
           list: [
             '/ip4/127.0.0.1/tcp/0/p2p/12D3KooWNYYYUtuxvmH7gsvApKE6YoiqBWNgZ6x3BBpea3RP1jTv'
           ],
-          timeout: 1000, // in ms,
+          timeout: 2000, // in ms,
           tagName: 'bootstrap',
           tagValue: 50,
           tagTTL: 120000 // in ms

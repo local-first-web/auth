@@ -28,3 +28,4 @@ runner-results
 vite.config.ts.timestamp*
 yalc.lock
 yarn.lock
+.parcel-cache/**/*

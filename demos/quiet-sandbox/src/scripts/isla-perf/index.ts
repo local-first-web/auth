@@ -7,22 +7,51 @@ import { sleep } from "../../utils/utils.js";
 import { generateDeviceName } from "./devices.js";
 import { createTeam, joinTeam } from "./team.js";
 
+import * as fs from 'fs'
+
 type PeerRunMetadata = {
   chainLoadTimeMs: number
   memberCount: number
   memberDiff: number
   deviceCount: number
+  deviceDiff: number
+}
+
+export type Diff = {
+  username: string
+  diff: number
+}
+
+export type DiffMeta = {
+  count: number
+  avg: number
+}
+
+export type Snapshot = {
+  userCount: number
+  avgChainLoadTimeMs: number
+  memberDiffMeta: DiffMeta
+  deviceDiffMeta: DiffMeta
+  memberDiffs: Diff[]
+  deviceDiffs: Diff[]
 }
 
 async function main() {
   const peerAddresses: string[] = []
   const runMetadata: Map<string, PeerRunMetadata> = new Map()
+  const snapshots: Snapshot[] = []
   const ownerStartTimeMs = Date.now()
   const teamName = 'perf-test-team';
   const foundingUsername = 'founding-perf-user';
   const founder = await createTeam(teamName, foundingUsername);
   const ownerLoadTimeMs = Date.now() - ownerStartTimeMs
-  runMetadata.set(foundingUsername, { chainLoadTimeMs: ownerLoadTimeMs, memberCount: 0, deviceCount: 0, memberDiff: 0 })
+  runMetadata.set(foundingUsername, { 
+    chainLoadTimeMs: ownerLoadTimeMs,
+    memberCount: 0, 
+    deviceCount: 0, 
+    memberDiff: 0, 
+    deviceDiff: 0 
+  })
   console.log(`Took owner ${ownerLoadTimeMs}ms to create the chain`)
 
   peerAddresses.push(founder.libp2p.libp2p!.getMultiaddrs()[0].toString())
@@ -39,8 +68,9 @@ async function main() {
   }
 
   const baseUsername = 'perf-user-';
-  const iterations = 50;
-  const users: Networking[] = [founder]
+  const iterations = 9;
+  const snapshotInterval = 10;
+  const users: Networking[] = [founder];
   let inviteIndex = 0;
 
   console.log(`Generating ${iterations} users`);
@@ -69,9 +99,15 @@ async function main() {
       chainLoaded = true
       const userLoadTimeMs = Date.now() - startTimeMs
       console.log(`Took user ${username} ${userLoadTimeMs}ms to load the chain`)
-      runMetadata.set(username, { chainLoadTimeMs: userLoadTimeMs, memberCount: 0, deviceCount: 0, memberDiff: 0 })
+      runMetadata.set(username, { 
+        chainLoadTimeMs: userLoadTimeMs, 
+        memberCount: 0, 
+        deviceCount: 0, 
+        memberDiff: 0, 
+        deviceDiff: 0 
+      })
       console.log(`User ${user.storage.getContext()?.user.userName} has initialized their chain!`)
-      console.log(JSON.stringify(user.storage.getSigChain()?.users.getAllMembers().map(member => member.userName), null, 2))
+      // console.log(JSON.stringify(user.storage.getSigChain()?.users.getAllMembers().map(member => member.userName), null, 2))
 
       const deviceName = generateDeviceName(username, 2)
       const newDevice = DeviceService.generateDeviceForUser(user.storage.getContext()!.user.userId, deviceName)
@@ -94,26 +130,77 @@ async function main() {
       }
       console.log('\n')
     }
-  }
 
-  await sleep(5000)
-  for (const user of users) {
-    const members = user.storage.getSigChain()!.users.getAllMembers()
-    let deviceCount = 0
-    for (const member of members) {
-      deviceCount += member.devices?.length || 0
+    if (users.length % snapshotInterval === 0) {
+      console.log(`Capturing snapshot at ${users.length} users`)
+      const expectedDeviceCount = users.length * 2 - 1
+      const memberDiffs: Diff[] = []
+      const deviceDiffs: Diff[] = []
+
+      let sumChainLoadTimeMs = 0
+      let sumMemberDiff = 0
+      let sumDeviceDiff = 0
+
+      await sleep(5000)
+      for (const user of users) {
+        const members = user.storage.getSigChain()!.users.getAllMembers()
+        const memberCount = members.length
+        const memberDiff = users.length - memberCount
+        if (memberDiff > 0) {
+          memberDiffs.push({
+            username: user.storage.getContext()!.user.userName,
+            diff: memberDiff
+          })
+          sumMemberDiff += memberDiff
+        }
+
+        let deviceCount = 0
+        for (const member of members) {
+          deviceCount += member.devices?.length || 0
+        }
+        const deviceDiff = expectedDeviceCount - deviceCount
+        if (deviceDiff > 0) {
+          deviceDiffs.push({
+            username: user.storage.getContext()!.user.userName,
+            diff: deviceDiff
+          })
+          sumDeviceDiff += deviceDiff
+        }
+
+        const existingMetadata = runMetadata.get(user.storage.getContext()!.user.userName)!
+        runMetadata.set(user.storage.getContext()!.user.userName, {
+          ...existingMetadata,
+          memberCount,
+          memberDiff,
+          deviceCount,
+          deviceDiff
+        })
+        sumChainLoadTimeMs += existingMetadata.chainLoadTimeMs
+      }
+      const snapshot: Snapshot = {
+        userCount: users.length,
+        avgChainLoadTimeMs: sumChainLoadTimeMs / users.length,
+        memberDiffs,
+        deviceDiffs,
+        memberDiffMeta: {
+          count: memberDiffs.length,
+          avg: sumMemberDiff / memberDiffs.length || 0
+        },
+        deviceDiffMeta: {
+          count: deviceDiffs.length,
+          avg: sumDeviceDiff / deviceDiffs.length || 0
+        }
+      }
+      snapshots.push(snapshot)
     }
-
-    const existingMetadata = runMetadata.get(user.storage.getContext()!.user.userName)!
-    runMetadata.set(user.storage.getContext()!.user.userName, {
-      ...existingMetadata,
-      memberCount: members.length,
-      memberDiff: users.length - members.length,
-      deviceCount
-    })
   }
 
-  console.log(runMetadata)
+  // console.log(runMetadata)
+  const data = JSON.stringify(snapshots, null, 2)
+  console.log(data)
+
+  fs.rmSync('./data.json', { force: true })
+  fs.writeFileSync('./data.json', data, { encoding: 'utf-8' })
 }
 
 main().then(() => process.exit());

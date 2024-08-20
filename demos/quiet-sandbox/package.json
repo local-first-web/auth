@@ -12,7 +12,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "ig": "tsc && npm i -g .",
     "start": "node dist/index.js interactive",
-    "test:perf:isla": "DEBUG=localfirst* node --max-old-space-size=4096 dist/scripts/isla-perf/index.js"
+    "test:perf:isla": "DEBUG=localfirst* node --max-old-space-size=4096 dist/scripts/isla-perf/index.js",
+    "graphs": "parcel src/scripts/isla-perf/index.html"
   },
   "keywords": [],
   "author": "",
@@ -40,6 +41,7 @@
     "@orbitdb/core": "^2.2.0",
     "ansi-escapes": "^7.0.0",
     "chalk": "^4.1.2",
+    "chart.js": "^4.4.3",
     "clipboardy": "4.0.0",
     "colors": "^1.4.0",
     "datastore-core": "9.2.9",
@@ -69,6 +71,7 @@
     "0x": "^5.7.0",
     "eslint": "^9.7.0",
     "nodemark": "0.3.0",
+    "parcel": "^2.6.2",
     "prettier": "^3.1.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.3"
