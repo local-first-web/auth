@@ -68,7 +68,7 @@ async function main() {
   }
 
   const baseUsername = 'perf-user-';
-  const iterations = 9;
+  const iterations = 199;
   const snapshotInterval = 10;
   const users: Networking[] = [founder];
   let inviteIndex = 0;
@@ -196,11 +196,10 @@ async function main() {
   }
 
   // console.log(runMetadata)
-  const data = JSON.stringify(snapshots, null, 2)
-  console.log(data)
-
-  fs.rmSync('./data.json', { force: true })
-  fs.writeFileSync('./data.json', data, { encoding: 'utf-8' })
+  const data = `const data = ${JSON.stringify(snapshots, null, 2)};`
+  const filename = './src/scripts/isla-perf/data.json.js'
+  fs.rmSync(filename, { force: true })
+  fs.writeFileSync(filename, data, { encoding: 'utf-8' })
 }
 
 main().then(() => process.exit());

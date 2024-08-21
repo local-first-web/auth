@@ -12,8 +12,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "ig": "tsc && npm i -g .",
     "start": "node dist/index.js interactive",
-    "test:perf:isla": "DEBUG=localfirst* node --max-old-space-size=4096 dist/scripts/isla-perf/index.js",
-    "graphs": "parcel src/scripts/isla-perf/index.html"
+    "test:perf:isla:graphs": "parcel src/scripts/isla-perf/index.html --open",
+    "test:perf:isla": "DEBUG=localfirst* node --max-old-space-size=4096 dist/scripts/isla-perf/index.js && npm run test:perf:isla:graphs"
   },
   "keywords": [],
   "author": "",

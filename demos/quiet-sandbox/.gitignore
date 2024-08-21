@@ -2,3 +2,4 @@
 .orbitdb/**/*
 flamegraphs/**/*
 isolate**.log.*
+data.json.js
