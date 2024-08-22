@@ -12,7 +12,7 @@ export async function mainLoop(runData: RunData): Promise<RunData> {
     runData.users.push(founder)
     usersToGenerate -= 1
   } else {
-    startingIndex = runData.remoteUserNames.length - 2
+    startingIndex = runData.remoteUserNames.length - 1
   }
 
   let inviteIndex = 0
