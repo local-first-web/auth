@@ -82,6 +82,9 @@ async function waitForDial(user: Networking, startTimeMs: number, runData: RunDa
           process.stdout.write('-')
           await sleep(waitIntervalMs)
         }
+        if (!dialFinished || !initialized) {
+          throw new Error(`Failed to finishing dialing in ${waitEndTimeMs}ms timeout`)
+        }
         console.log('\n')
       }
       return user

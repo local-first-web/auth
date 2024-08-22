@@ -526,8 +526,6 @@ export class Libp2pService {
           console.warn(`Couldn't connect to ${addrOrPeerId}, trying next!`)
           continue
         }
-        successful++
-        connectedIndices.add(index)
 
         if (waitForSigChainLoad) {
           console.log(`Waiting for sigchain to load before connecting to new peers!`)
@@ -538,14 +536,23 @@ export class Libp2pService {
             this.events.emit(EVENTS.INITIALIZED_CHAIN)
           })
 
-          while (waitForSigChainLoad) {
+          const waitIntervalMs = 250
+          const waitTimeMs = 90_000
+          const waitEndTimeMs = Date.now() + waitTimeMs
+          while (waitForSigChainLoad && Date.now() < waitEndTimeMs) {
             process.stdout.write('.')
-            await sleep(100)
+            await sleep(waitIntervalMs)
           }
           console.log('\n')
+          if (waitForSigChainLoad) {
+            throw new Error(`Failed to sync sig chain within ${waitTimeMs}ms timeout`)
+          }
+          successful++
+          connectedIndices.add(index)
         }
       } catch (e) {
         console.warn(`Failed to make a connection with error`, e)
+        await this.hangUp([multiAddrOrPeerId])
       }
       console.log(`Successful connections thus far: ${successful}`)
     }
