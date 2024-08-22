@@ -1,205 +1,141 @@
 #! /usr/bin/env ts-node
 
-import { DEFAULT_INVITATION_VALID_FOR_MS, DEFAULT_MAX_USES, InviteService } from "../../auth/services/invites/inviteService.js";
-import { DeviceService } from "../../auth/services/members/deviceService.js";
-import { EVENTS, Networking } from "../../network.js";
-import { sleep } from "../../utils/utils.js";
-import { generateDeviceName } from "./devices.js";
-import { createTeam, joinTeam } from "./team.js";
+import { program } from '@commander-js/extra-typings';
+import { confirm, input } from '@inquirer/prompts';
+import chalk from 'chalk';
+import { mainLoop } from './mainLoop.js';
+import { generateSnapshot, storeSnapshotData } from './snapshots.js';
+import { loadRunData, RUN_DATA_FILENAME, RunData } from './runData.js';
 
-import * as fs from 'fs'
-
-type PeerRunMetadata = {
-  chainLoadTimeMs: number
-  memberCount: number
-  memberDiff: number
-  deviceCount: number
-  deviceDiff: number
-}
-
-export type Diff = {
-  username: string
-  diff: number
-}
-
-export type DiffMeta = {
-  count: number
-  avg: number
-}
-
-export type Snapshot = {
+export type AppSettings = {
   userCount: number
-  avgChainLoadTimeMs: number
-  memberDiffMeta: DiffMeta
-  deviceDiffMeta: DiffMeta
-  memberDiffs: Diff[]
-  deviceDiffs: Diff[]
+  snapshotInterval: number
 }
 
-async function main() {
-  const peerAddresses: string[] = []
-  const runMetadata: Map<string, PeerRunMetadata> = new Map()
-  const snapshots: Snapshot[] = []
-  const ownerStartTimeMs = Date.now()
-  const teamName = 'perf-test-team';
-  const foundingUsername = 'founding-perf-user';
-  const founder = await createTeam(teamName, foundingUsername);
-  const ownerLoadTimeMs = Date.now() - ownerStartTimeMs
-  runMetadata.set(foundingUsername, { 
-    chainLoadTimeMs: ownerLoadTimeMs,
-    memberCount: 0, 
-    deviceCount: 0, 
-    memberDiff: 0, 
-    deviceDiff: 0 
+const startAppFromRemote = async (): Promise<RunData> => {
+  const remoteRunDataFilename = await input({
+    message: "What is the location of the remote run data file?",
+    default: RUN_DATA_FILENAME,
+    required: true,
+    validate: (remoteRunDataFilename: string) => remoteRunDataFilename != null ? true : "Must enter a remote run data filename!"
+  });
+
+  return loadRunData(remoteRunDataFilename)
+}
+
+const startNewApp = async (): Promise<RunData> => {
+  const userCount = Number(await input({
+    message: "How many users do you want to spin up?",
+    default: '50',
+    required: true,
+    validate: (userCount: string) => userCount != null && !Number.isNaN(Number(userCount)) ? true : "Must enter a valid user count!"
+  }));
+
+  const snapshotInterval = Number(await input({
+    message: "At what interval of user generation should metric snapshots be generated?",
+    default: '10',
+    required: true,
+    validate: (snapshotInterval: string) => snapshotInterval != null && !Number.isNaN(Number(snapshotInterval)) ? true : "Must enter a valid snapshot interval!"
+  }));
+
+  const appSettings = {
+    userCount,
+    snapshotInterval
+  }
+
+  return {
+    snapshots: [],
+    appSettings,
+    users: [],
+    teamName: 'perf-test-team',
+    peerAddresses: new Set(),
+    runMetadata: new Map(),
+    inviteSeeds: []
+  }
+}
+
+const startApp = async (): Promise<RunData> => {
+  const loadRemoteRunData = await confirm({
+    message: 'Would you like to start from a remote run?',
+    default: false
   })
-  console.log(`Took owner ${ownerLoadTimeMs}ms to create the chain`)
 
-  peerAddresses.push(founder.libp2p.libp2p!.getMultiaddrs()[0].toString())
-
-  const inviteCount = 10;
-  const inviteExpiry = DEFAULT_INVITATION_VALID_FOR_MS;
-  const inviteMaxUses = 50;
-  const inviteSeeds: string[] = [];
-
-  console.log(`Generating ${inviteCount} invites as founder`);
-  for (let i = 0; i < inviteCount; i++) {
-    const invite = founder.libp2p.storage.getSigChain()!.invites.create(inviteExpiry, inviteMaxUses);
-    inviteSeeds.push(invite.seed);
+  if (loadRemoteRunData) {
+    return startAppFromRemote()
   }
 
-  const baseUsername = 'perf-user-';
-  const iterations = 199;
-  const snapshotInterval = 10;
-  const users: Networking[] = [founder];
-  let inviteIndex = 0;
-
-  console.log(`Generating ${iterations} users`);
-  for (let i = 0; i < iterations; i++) {
-    const startTimeMs = Date.now()
-    const inviteSeed = inviteSeeds[inviteIndex];
-    const username = `${baseUsername}${i}`;
-    const user = await joinTeam(teamName, username, inviteSeed, peerAddresses);
-    users.push(user);
-    if (inviteIndex === inviteSeeds.length - 1) {
-      inviteIndex = 0;
-    } else {
-      inviteIndex++;
-    }
-
-    let dialFinished = false
-    user.events.on(EVENTS.DIAL_FINISHED, () => {
-      console.log('Dial finished!')
-      dialFinished = true
-    })
-
-    let chainLoaded = user.storage.getSigChain() != null
-    user.events.on(EVENTS.INITIALIZED_CHAIN, () => {
-      if (chainLoaded) return
-
-      chainLoaded = true
-      const userLoadTimeMs = Date.now() - startTimeMs
-      console.log(`Took user ${username} ${userLoadTimeMs}ms to load the chain`)
-      runMetadata.set(username, { 
-        chainLoadTimeMs: userLoadTimeMs, 
-        memberCount: 0, 
-        deviceCount: 0, 
-        memberDiff: 0, 
-        deviceDiff: 0 
-      })
-      console.log(`User ${user.storage.getContext()?.user.userName} has initialized their chain!`)
-      // console.log(JSON.stringify(user.storage.getSigChain()?.users.getAllMembers().map(member => member.userName), null, 2))
-
-      const deviceName = generateDeviceName(username, 2)
-      const newDevice = DeviceService.generateDeviceForUser(user.storage.getContext()!.user.userId, deviceName)
-      const inviteForDevice = user.storage.getSigChain()!.invites.createForDevice(inviteExpiry)
-      const deviceProof = InviteService.generateProof(inviteForDevice.seed)
-      user.storage.getSigChain()!.invites.admitDevice(deviceProof, newDevice)
-      user.events.emit(EVENTS.INITIALIZED_CHAIN)
-    })
-
-    console.log(`Connecting to ${peerAddresses.length} peers`);
-    await user.libp2p.dial(peerAddresses);
-
-    peerAddresses.push(user.libp2p.libp2p!.getMultiaddrs()[0].toString())
-
-    if (!dialFinished) {
-      console.log(`Waiting for user to be ready!`)
-      while (!dialFinished) {
-        process.stdout.write('-')
-        await sleep(250)
-      }
-      console.log('\n')
-    }
-
-    if (users.length % snapshotInterval === 0) {
-      console.log(`Capturing snapshot at ${users.length} users`)
-      const expectedDeviceCount = users.length * 2 - 1
-      const memberDiffs: Diff[] = []
-      const deviceDiffs: Diff[] = []
-
-      let sumChainLoadTimeMs = 0
-      let sumMemberDiff = 0
-      let sumDeviceDiff = 0
-
-      await sleep(5000)
-      for (const user of users) {
-        const members = user.storage.getSigChain()!.users.getAllMembers()
-        const memberCount = members.length
-        const memberDiff = users.length - memberCount
-        if (memberDiff > 0) {
-          memberDiffs.push({
-            username: user.storage.getContext()!.user.userName,
-            diff: memberDiff
-          })
-          sumMemberDiff += memberDiff
-        }
-
-        let deviceCount = 0
-        for (const member of members) {
-          deviceCount += member.devices?.length || 0
-        }
-        const deviceDiff = expectedDeviceCount - deviceCount
-        if (deviceDiff > 0) {
-          deviceDiffs.push({
-            username: user.storage.getContext()!.user.userName,
-            diff: deviceDiff
-          })
-          sumDeviceDiff += deviceDiff
-        }
-
-        const existingMetadata = runMetadata.get(user.storage.getContext()!.user.userName)!
-        runMetadata.set(user.storage.getContext()!.user.userName, {
-          ...existingMetadata,
-          memberCount,
-          memberDiff,
-          deviceCount,
-          deviceDiff
-        })
-        sumChainLoadTimeMs += existingMetadata.chainLoadTimeMs
-      }
-      const snapshot: Snapshot = {
-        userCount: users.length,
-        avgChainLoadTimeMs: sumChainLoadTimeMs / users.length,
-        memberDiffs,
-        deviceDiffs,
-        memberDiffMeta: {
-          count: memberDiffs.length,
-          avg: sumMemberDiff / memberDiffs.length || 0
-        },
-        deviceDiffMeta: {
-          count: deviceDiffs.length,
-          avg: sumDeviceDiff / deviceDiffs.length || 0
-        }
-      }
-      snapshots.push(snapshot)
-    }
-  }
-
-  // console.log(runMetadata)
-  const data = `const data = ${JSON.stringify(snapshots, null, 2)};`
-  const filename = './src/scripts/isla-perf/data.json.js'
-  fs.rmSync(filename, { force: true })
-  fs.writeFileSync(filename, data, { encoding: 'utf-8' })
+  return startNewApp()
 }
 
-main().then(() => process.exit());
+const continueRemotely = async (runData: RunData) => {
+  let continueRunning = await confirm({
+    message: 'Would you like to continue running on another machine?',
+    default: true
+  })
+
+  if (!continueRunning) {
+    storeSnapshotData(runData.snapshots)
+    return
+  }
+
+  let exit = false
+  while (!exit) {
+    const doneWithRemoteRun = await confirm({
+      message: 'Is the remote run done?',
+      default: true
+    })
+
+    if (!doneWithRemoteRun) {
+      console.log(`Waiting until remote run is done!`)
+      continue
+    }
+
+    continueRunning = await confirm({
+      message: 'Would you like to continue running on another machine?',
+      default: true
+    })
+
+    if (!continueRunning) {
+      exit = true
+    }
+  }
+
+  const snapshot = await generateSnapshot(runData)
+  runData.snapshots.push(snapshot)
+  storeSnapshotData(runData.snapshots)
+}
+
+const interactive = async () => {
+  console.log(chalk.magentaBright.bold.underline("Isla Perf Test"));
+  let runData: RunData | undefined
+  let exit = false;
+  while (!exit) {
+    runData = await startApp()
+    if (runData != null) {
+      exit = true
+    }
+  };
+
+  if (runData == null) {
+    throw new Error("App hasn't been started!")
+  }
+
+  await mainLoop(runData)
+  await continueRemotely(runData)
+  console.log(chalk.magentaBright.bold("Goodbye!"));
+  process.exit()
+};
+
+program
+  .name('test-isla-perf')
+  .description('Quiet Sandbox CLI')
+  .version('0.0.1');
+
+program
+  .command('interactive')
+  .description('Interactive mode')
+  .action(() => {
+    interactive();
+  });
+
+program.parse(process.argv);

@@ -7,13 +7,12 @@ import { yamux } from '@chainsafe/libp2p-yamux'
 import { createFromPrivKey, createFromProtobuf, exportToProtobuf } from '@libp2p/peer-id-factory'
 import { base64 } from 'multiformats/bases/base64'
 import { createHelia, type Helia } from 'helia'
-import { createOrbitDB, Database, Documents, type Events, Identities, KeyStore, type KeyValue, LogEntry, OrbitDB, OrbitDBAccessController } from '@orbitdb/core'
-import { GossipSub, gossipsub } from '@chainsafe/libp2p-gossipsub'
+import { createOrbitDB, Documents, type Events, Identities, KeyStore, OrbitDB, OrbitDBAccessController } from '@orbitdb/core'
+import { gossipsub } from '@chainsafe/libp2p-gossipsub'
 import { identify } from '@libp2p/identify'
 import fs from 'fs'
 import { EventEmitter } from 'events'
 import * as Auth from '@localfirst/auth'
-import type { ConnectionEvents } from '@localfirst/auth'
 import type {
   Connection,
   PeerId,
@@ -24,14 +23,12 @@ import type {
   RSAPeerId,
   Ed25519PeerId,
   Secp256k1PeerId,
-  KeyType
 } from '@libp2p/interface'
 import type { ConnectionManager, IncomingStreamData, Registrar } from '@libp2p/interface-internal'
 import { pipe } from 'it-pipe'
 import { encode, decode } from 'it-length-prefixed'
 import { pushable, type Pushable } from 'it-pushable'
 import type { Uint8ArrayList } from 'uint8arraylist'
-import map from 'it-map'
 import { SigChain } from './auth/chain.js'
 import { UserService } from './auth/services/members/userService.js';
 import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
@@ -42,8 +39,41 @@ import path from 'path'
 import { LoadedSigChain } from './auth/types.js'
 import { sleep } from './utils/utils.js'
 import { randomInt } from 'crypto'
+
 //@ts-ignore
 import RNG from 'rng'
+
+import * as os from 'os'
+
+export type IPMap = {
+  [interfaceName: string]: string[]
+}
+
+const DEFAULT_NETWORK_INTERFACE = 'en0'
+
+/*
+Shamelessly copied from https://stackoverflow.com/a/8440736
+*/
+export function getIpAddresses(): IPMap {
+  const interfaces = os.networkInterfaces();
+  const results: IPMap = {}; // Or just '{}', an empty object
+
+  for (const name in interfaces) {
+      for (const net of interfaces[name]!) {
+          // Skip over non-IPv4 and internal (i.e. 127.0.0.1) addresses
+          // 'IPv4' is in Node <= 17, from 18 it's a number 4 or 6
+          const familyV4Value = typeof net.family === 'string' ? 'IPv4' : 4
+          if (net.family === familyV4Value && !net.internal) {
+              if (!results[name]) {
+                  results[name] = [];
+              }
+              results[name].push(net.address);
+          }
+      }
+  }
+
+  return results
+}
 
 export class LocalStorage {
     private authContext: Auth.Context | null
@@ -88,8 +118,6 @@ interface Libp2pAuthComponents {
   connectionManager: ConnectionManager
   logger: ComponentLogger
 }
-
-let isJoined: boolean = false;
 
 // Implementing local-first-auth as a service just to get started. I think we
 // likely want to integrate it in a custom Transport/Muxer.
@@ -359,18 +387,22 @@ export class Libp2pService {
 
   async init(datastore: MemoryDatastore = new MemoryDatastore()) {
     console.log('Starting libp2p client')
+    const ipAddresses = getIpAddresses()
+    const ipOfInterfaceInUse = ipAddresses[DEFAULT_NETWORK_INTERFACE][0]
+    const baseAddress = `/ip4/${ipOfInterfaceInUse}/tcp/0`
+    console.log(`Using network interface ${DEFAULT_NETWORK_INTERFACE} and base address ${baseAddress}`)
 
     const peerId = await this.getPeerId()
 
     this.libp2p = await createLibp2p({
       peerId,
       connectionManager: {
-        maxConnections: 1000,
+        minConnections: 5,
         dialTimeout: 120_000
       },
       addresses: {
         // accept TCP connections on any port
-        listen: ['/ip4/127.0.0.1/tcp/0']
+        listen: [baseAddress]
       },
       transports: [tcp()],
       connectionEncryption: [noise()],
@@ -378,7 +410,7 @@ export class Libp2pService {
       peerDiscovery: [
         bootstrap({
           list: [
-            '/ip4/127.0.0.1/tcp/0/p2p/12D3KooWNYYYUtuxvmH7gsvApKE6YoiqBWNgZ6x3BBpea3RP1jTv'
+            `${baseAddress}/12D3KooWNYYYUtuxvmH7gsvApKE6YoiqBWNgZ6x3BBpea3RP1jTv`
           ],
           timeout: 2000, // in ms,
           tagName: 'bootstrap',
@@ -414,7 +446,7 @@ export class Libp2pService {
         console.warn(`DELETING FROM PEER STORE`)
         await this.libp2p?.peerStore.delete(peerId)
         console.warn(`DIALING`)
-        await this.dial([peerId])
+        await this.dial(new Set([peerId]))
       } catch (e) {
         console.error(`Error while redialing peer ${peerId}`, e)
       }
@@ -439,30 +471,32 @@ export class Libp2pService {
     return true
   }
 
-  async dial(addrsOrPeerIds: (string | Multiaddr | PeerId)[]): Promise<boolean> {
-    if (addrsOrPeerIds.length === 0) {
+  async dial(addrsOrPeerIds: Set<(string | Multiaddr | PeerId)>): Promise<boolean> {
+    const peerCount = addrsOrPeerIds.size
+    if (peerCount === 0) {
       console.warn('No peers found to dial, skipping!')
       return false
     }
 
-    console.log(`Dialing ${addrsOrPeerIds.length} peers`)
+    console.log(`Dialing ${peerCount} peers`)
     let waitForSigChainLoad = this.storage.getSigChain() == null
     if (waitForSigChainLoad) {
       console.log(`Trying peers one at a time to ensure admittance only happens once!`)
     }
 
     let successful = 0
-    let maxConnections = Math.min(5, addrsOrPeerIds.length)
+    let maxConnections = Math.min(5, peerCount)
     let connectedIndices: Set<number> = new Set()
+    const addrsOrPeerIdsArr = Array.from(addrsOrPeerIds)
     console.log(`Connecting to ${maxConnections} peers`)
     while(connectedIndices.size < maxConnections) {
       const rng = new RNG.MT(randomInt(1000000))
-      const index = rng.range(0, addrsOrPeerIds.length)
+      const index = rng.range(0, peerCount)
       if (connectedIndices.has(index)) {
         continue
       }
 
-      const addrOrPeerId = addrsOrPeerIds[index]
+      const addrOrPeerId = addrsOrPeerIdsArr[index]
       console.log(`Attempting to connect to ${addrOrPeerId}`)
       const multiAddrOrPeerId = typeof addrOrPeerId === 'string' ? multiaddr(addrOrPeerId) : addrOrPeerId
       try {

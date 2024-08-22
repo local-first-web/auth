@@ -1,7 +1,5 @@
-// import Chart, { ChartData, ChartItem, Point } from 'chart.js/auto'
-
 // @ts-ignore
-var memberDiffChart: Chart | undefined
+var connectedPeersChart: Chart | undefined
 
 function getUserIndex(username: string): number {
   if (username === 'founding-perf-user') {
@@ -11,9 +9,9 @@ function getUserIndex(username: string): number {
   return Number(username.split('-')[2]) + 1
 }
 
-async function drawMemberDiffScatter() {
-  if (memberDiffChart != null) {
-    memberDiffChart.destroy()
+async function drawConnectedPeersChart() {
+  if (connectedPeersChart != null) {
+    connectedPeersChart.destroy()
   }
   
   // @ts-ignore
@@ -24,22 +22,22 @@ async function drawMemberDiffScatter() {
   });
   const DATA =  {
     // @ts-ignore
-    labels: dataRow.memberDiffs.map(diff => diff.username),
+    labels: dataRow.connectedPeers.map(connectedPeers => connectedPeers.username),
     datasets: [{
       // @ts-ignore
-      data: dataRow.memberDiffs.map(diff => ({
-          x: getUserIndex(diff.username),
-          y: diff.diff
+      data: dataRow.connectedPeers.map(connectedPeers => ({
+          x: getUserIndex(connectedPeers.username),
+          y: connectedPeers.connectedPeers
         })
       )
     }]
   };
 
   // @ts-ignore
-  memberDiffChart = new Chart(
-    document.getElementById('member-diff-scatter')!,
+  connectedPeersChart = new Chart(
+    document.getElementById('connected-peers-chart')!,
     {
-      type: 'scatter',
+      type: 'line',
       data: DATA,
       options: {
         scales: {
@@ -48,10 +46,9 @@ async function drawMemberDiffScatter() {
             position: 'bottom',
           }
         },
-        indexAxis: 'x',
         plugins: {
           title: {
-            text: `Member Diffs (${userCount} Users)`,
+            text: `Connected Peers Per User (${userCount} Users)`,
             display: true
           },
           legend: {

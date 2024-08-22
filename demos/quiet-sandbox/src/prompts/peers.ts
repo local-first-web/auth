@@ -3,7 +3,6 @@
 import { input } from '@inquirer/prompts';
 import { Peer, PeerId } from '@libp2p/interface';
 import clipboard from 'clipboardy';
-import { peerIdFromString } from '@libp2p/peer-id';
 
 import { Networking } from '../network.js';
 import actionSelect from '../components/actionSelect.js';
@@ -60,7 +59,7 @@ const peerConnect = async (networking: Networking | undefined) => {
     validate: (addr: string) => addr != null ? true : "Must enter a valid peer address!"
   });
 
-  const success = await networking.libp2p.dial([addr]);
+  const success = await networking.libp2p.dial(new Set([addr]));
   console.log(`Connection to ${addr} success? ${success}`)
 
   await peerInfo(networking)
