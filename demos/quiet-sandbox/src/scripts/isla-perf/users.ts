@@ -28,16 +28,7 @@ export async function createFounderAndChain(
   return founder
 }
 
-export async function createUserAndDial(
-  userIndex: number, 
-  inviteSeed: string, 
-  runData: RunData
-): Promise<Networking> {
-  const startTimeMs = Date.now()
-  const username = `perf-user-${userIndex}`;
-  console.log(`Creating user ${username}`)
-  const user = await joinTeam(runData.teamName, username, inviteSeed);
-
+async function waitForDial(user: Networking, startTimeMs: number, runData: RunData): Promise<Networking> {
   let dialFinished = false
   user.events.on(EVENTS.DIAL_FINISHED, () => {
     console.log('Dial finished!')
@@ -71,7 +62,13 @@ export async function createUserAndDial(
   })
 
   console.log(`Connecting to ${runData.peerAddresses.size} peers`);
-  await user.libp2p.dial(runData.peerAddresses);
+  try { 
+    await user.libp2p.dial(runData.peerAddresses);
+  } catch (e) {
+    console.error(`Failed to dial peers on ${user.libp2p.peerId}`, e)
+    return user
+  }
+  
 
   if (!dialFinished || !initialized) {
     console.log(`Waiting for user to be ready!`)
@@ -83,4 +80,16 @@ export async function createUserAndDial(
   }
 
   return user
+}
+
+export async function createUserAndDial(
+  userIndex: number, 
+  inviteSeed: string, 
+  runData: RunData
+): Promise<Networking> {
+  const startTimeMs = Date.now()
+  const username = `perf-user-${userIndex}`;
+  console.log(`Creating user ${username}`)
+  const user = await joinTeam(runData.teamName, username, inviteSeed);
+  return waitForDial(user, startTimeMs, runData)
 }
