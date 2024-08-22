@@ -18,9 +18,13 @@ export async function mainLoop(runData: RunData): Promise<RunData> {
   let inviteIndex = 0
   console.log(`Generating ${usersToGenerate} users`);
   for (let i = startingIndex; i < usersToGenerate+startingIndex; i++) {
-    const user = await createUserAndDial(i, runData.inviteSeeds[inviteIndex], runData)
-    runData.users.push(user);
-    runData.peerAddresses.add(user.libp2p.libp2p!.getMultiaddrs()[0].toString())
+    try {
+      const user = await createUserAndDial(i, runData.inviteSeeds[inviteIndex], runData)
+      runData.users.push(user);
+      runData.peerAddresses.add(user.libp2p.libp2p!.getMultiaddrs()[0].toString())
+    } catch (e) {
+      console.warn(`Nothing to do, this user failed!`)
+    }
 
     if (inviteIndex === runData.inviteSeeds.length - 1) {
       inviteIndex = 0;

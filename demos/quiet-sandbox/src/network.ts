@@ -398,7 +398,10 @@ export class Libp2pService {
       peerId,
       connectionManager: {
         minConnections: 5,
-        dialTimeout: 120_000
+        dialTimeout: 120_000,
+        autoDialConcurrency: 5,
+        autoDialMaxQueueLength: 1000,
+        maxDialQueueLength: 1000
       },
       addresses: {
         // accept TCP connections on any port
@@ -431,6 +434,14 @@ export class Libp2pService {
       },
       datastore
     });
+
+    this.libp2p.addEventListener('connection:close', (event) => {
+      console.warn(`${peerId}: Connection closing with ${event.detail.remotePeer} with status ${event.detail.status}`)
+    })
+
+    this.libp2p.addEventListener('transport:close', (event) => {
+      console.warn(`${peerId}: Transport closing`)
+    })
 
     console.log('Peer ID: ', peerId.toString())
 
@@ -469,6 +480,16 @@ export class Libp2pService {
     }
 
     return true
+  }
+
+  async hangUpOnAll(): Promise<boolean> {
+    if (!this.libp2p || this.libp2p.getPeers().length === 0) {
+      console.warn(`No peers to hang up on!`)
+      return true
+    }
+
+    console.log(`Hanging up on all peers`)
+    return this.hangUp(this.libp2p.getPeers())
   }
 
   async dial(addrsOrPeerIds: Set<(string | Multiaddr | PeerId)>): Promise<boolean> {

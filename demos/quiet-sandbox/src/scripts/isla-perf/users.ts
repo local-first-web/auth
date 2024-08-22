@@ -61,25 +61,35 @@ async function waitForDial(user: Networking, startTimeMs: number, runData: RunDa
     user.events.emit(EVENTS.INITIALIZED_CHAIN) 
   })
 
-  console.log(`Connecting to ${runData.peerAddresses.size} peers`);
-  try { 
-    await user.libp2p.dial(runData.peerAddresses);
-  } catch (e) {
-    console.error(`Failed to dial peers on ${user.libp2p.peerId}`, e)
-    return user
-  }
-  
+  let attempts = 3
+  while (attempts > 0) {
+    try {
+      console.log(`Connecting to ${runData.peerAddresses.size} peers`);
+      try { 
+        await user.libp2p.dial(runData.peerAddresses);
+      } catch (e) {
+        console.error(`Failed to dial peers on ${user.libp2p.peerId}`, e)
+        return user
+      }
+      
 
-  if (!dialFinished || !initialized) {
-    console.log(`Waiting for user to be ready!`)
-    while (!dialFinished || !initialized) {
-      process.stdout.write('-')
-      await sleep(250)
+      if (!dialFinished || !initialized) {
+        console.log(`Waiting for user to be ready!`)
+        while (!dialFinished || !initialized) {
+          process.stdout.write('-')
+          await sleep(250)
+        }
+        console.log('\n')
+      }
+      return user
+    } catch (e) {
+      console.error(`Failed to dial peers for user ${user.storage.getContext()!.user.userName}`, e)
+      await user.libp2p.hangUpOnAll()
+      attempts -= 1
     }
-    console.log('\n')
-  }
+  }      
 
-  return user
+  throw new Error(`Failed to initialize user ${user.storage.getContext()!.user.userName}`)
 }
 
 export async function createUserAndDial(
