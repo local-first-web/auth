@@ -436,7 +436,7 @@ export class Libp2pService {
     });
 
     this.libp2p.addEventListener('connection:close', (event) => {
-      console.warn(`${peerId}: Connection closing with ${event.detail.remotePeer} with status ${event.detail.status}`)
+      console.warn(`${peerId}: Connection closing with ${event.detail.remotePeer}`)
     })
 
     this.libp2p.addEventListener('transport:close', (event) => {

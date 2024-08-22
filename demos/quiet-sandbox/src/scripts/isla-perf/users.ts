@@ -74,10 +74,13 @@ async function waitForDial(user: Networking, startTimeMs: number, runData: RunDa
       
 
       if (!dialFinished || !initialized) {
+        const waitIntervalMs = 250
+        const waitTimeMs = 90_000
+        const waitEndTimeMs = Date.now() + waitTimeMs
         console.log(`Waiting for user to be ready!`)
-        while (!dialFinished || !initialized) {
+        while (!dialFinished || !initialized && Date.now() < waitEndTimeMs) {
           process.stdout.write('-')
-          await sleep(250)
+          await sleep(waitIntervalMs)
         }
         console.log('\n')
       }
