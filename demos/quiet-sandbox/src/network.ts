@@ -547,9 +547,9 @@ export class Libp2pService {
           if (waitForSigChainLoad) {
             throw new Error(`Failed to sync sig chain within ${waitTimeMs}ms timeout`)
           }
-          successful++
-          connectedIndices.add(index)
         }
+        successful++
+        connectedIndices.add(index)
       } catch (e) {
         console.warn(`Failed to make a connection with error`, e)
         await this.hangUp([multiAddrOrPeerId])
