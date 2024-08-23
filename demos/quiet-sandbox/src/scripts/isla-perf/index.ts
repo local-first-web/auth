@@ -4,12 +4,13 @@ import { program } from '@commander-js/extra-typings';
 import { confirm, input } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { mainLoop } from './mainLoop.js';
-import { generateSnapshot, storeSnapshotData } from './snapshots.js';
+import { generateSnapshot, loadRemoteSnapshotFile, Snapshot, storeSnapshotData } from './snapshots.js';
 import { loadRunData, RUN_DATA_FILENAME, RunData } from './runData.js';
 
 export type AppSettings = {
   userCount: number
   snapshotInterval: number
+  runningFromRemote?: boolean
 }
 
 const startAppFromRemote = async (): Promise<RunData> => {
@@ -20,7 +21,13 @@ const startAppFromRemote = async (): Promise<RunData> => {
     validate: (remoteRunDataFilename: string) => remoteRunDataFilename != null ? true : "Must enter a remote run data filename!"
   });
 
-  return loadRunData(remoteRunDataFilename)
+  const runData = loadRunData(remoteRunDataFilename)
+  runData.appSettings = {
+    ...runData.appSettings,
+    runningFromRemote: true
+  }
+
+  return runData
 }
 
 const startNewApp = async (): Promise<RunData> => {
@@ -68,6 +75,11 @@ const startApp = async (): Promise<RunData> => {
 }
 
 const continueRemotely = async (runData: RunData) => {
+  if (runData.appSettings.runningFromRemote) {
+    storeSnapshotData(runData.snapshots, { jsonOnly: true })
+    return
+  }
+
   let continueRunning = await confirm({
     message: 'Would you like to continue running on another machine?',
     default: true
@@ -78,6 +90,7 @@ const continueRemotely = async (runData: RunData) => {
     return
   }
 
+  let remoteSnapshotFilename: string
   let exit = false
   while (!exit) {
     const doneWithRemoteRun = await confirm({
@@ -90,19 +103,17 @@ const continueRemotely = async (runData: RunData) => {
       continue
     }
 
-    continueRunning = await confirm({
-      message: 'Would you like to continue running on another machine?',
-      default: true
-    })
-
-    if (!continueRunning) {
-      exit = true
-    }
+    remoteSnapshotFilename = await input({
+      message: "Where is the remote snapshot file?",
+      required: true,
+      validate: (remoteSnapshotFilename: string) => remoteSnapshotFilename != null ? true : "Must enter a valid remote snapshot filename!"
+    });
   }
 
-  const snapshot = await generateSnapshot(runData)
+  const remoteSnapshots = loadRemoteSnapshotFile(remoteSnapshotFilename!)
+  const snapshot = await generateSnapshot(runData, remoteSnapshots)
   runData.snapshots.push(snapshot)
-  storeSnapshotData(runData.snapshots)
+  storeSnapshotData(runData.snapshots, { remoteSnapshots })
 }
 
 const interactive = async () => {

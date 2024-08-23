@@ -40,10 +40,17 @@ export type Snapshot = {
   connectedPeers: ConnectedPeers[]
 }
 
-export async function generateSnapshot(runData: RunData): Promise<Snapshot> {
-  const totalUsers = runData.users.length + (runData.remoteUserNames?.length || 0)
+export async function generateSnapshot(runData: RunData, remoteSnapshots: Snapshot[] = []): Promise<Snapshot> {
+  let remoteUserCount: number = 0
+  if (runData.remoteUserNames) {
+    remoteUserCount = runData.remoteUserNames.length
+  } else if (remoteSnapshots.length > 0) {
+    remoteUserCount = remoteSnapshots[remoteSnapshots.length - 1].userCount
+  }
+
+  const totalUsers = runData.users.length + remoteUserCount
   console.log(`Capturing snapshot at ${totalUsers} users`)
-  const expectedDeviceCount = totalUsers * 2 - 1 - (runData.remoteUserNames != null ? 1 : 0)
+  const expectedDeviceCount = totalUsers * 2 - 1 - (remoteUserCount > 0 ? 1 : 0)
   const memberDiffs: Diff[] = []
   const deviceDiffs: Diff[] = []
   const connectedPeersList: ConnectedPeers[] = []
@@ -114,11 +121,39 @@ export async function generateSnapshot(runData: RunData): Promise<Snapshot> {
   return snapshot
 }
 
-export function storeSnapshotData(snapshots: Snapshot[]) {
-  const data = `const data = ${JSON.stringify(snapshots, null, 2)};`
-  const filename = './src/scripts/isla-perf/data.json.js'
+type SnapshotConfig = {
+  jsonOnly?: boolean
+  remoteSnapshots?: Snapshot[]
+}
+
+export function loadRemoteSnapshotFile(filename: string): Snapshot[] {
+  if (filename.endsWith('.js')) {
+    throw new Error('You need to use a .json snapshot file!')
+  }
+
+  const dataString = fs.readFileSync(filename, { encoding: 'utf-8' }).toString()
+  return JSON.parse(dataString) as Snapshot[]
+}
+
+export function storeSnapshotData(snapshots: Snapshot[], config: SnapshotConfig = {}) {
+  let filename = './src/scripts/isla-perf/data.json'
+  let data: string
+  let writableSnapshots = snapshots
+  if (config.remoteSnapshots) {
+    writableSnapshots = [
+      ...writableSnapshots,
+      ...config.remoteSnapshots
+    ]
+  }
+
+  if (config.jsonOnly) {
+    data = JSON.stringify(writableSnapshots, null, 2)
+  } else {
+    data = `const data = ${JSON.stringify(writableSnapshots, null, 2)};`
+    filename = `${filename}.js`
+  }
+
   console.log(`Storing snapshot data to file ${filename}`)
-  
   fs.rmSync(filename, { force: true })
   fs.writeFileSync(filename, data, { encoding: 'utf-8' })
 }
