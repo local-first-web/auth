@@ -137,9 +137,12 @@ export class Team extends EventEmitter<TeamEvents> {
     }
 
     this.state = this.store.getState()
+    this.checkForNewUserKeysGeneration()
 
     // Wire up event listeners
     this.on('updated', () => {
+      this.checkForNewUserKeysGeneration()
+
       // If we're admin, check for pending key rotations
       this.checkForPendingKeyRotations()
     })
@@ -805,6 +808,15 @@ export class Team extends EventEmitter<TeamEvents> {
     // Update our keys in context
     if (isForServer || isForUser) user.keys = newKeys
     if (isForServer) device.keys = newKeys // (a server plays the role of both a user and a device)
+  }
+
+  private checkForNewUserKeysGeneration() {
+    const { user } = this.context
+    const latestUserKeys = this.allUserKeys().at(-1)
+
+    if (latestUserKeys && user.keys.generation < latestUserKeys.generation) {
+      user.keys = latestUserKeys
+    }
   }
 
   private checkForPendingKeyRotations() {
