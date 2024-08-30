@@ -30,3 +30,4 @@ yalc.lock
 yarn.lock
 .parcel-cache/**/*
 data.json.*
+*.log.*

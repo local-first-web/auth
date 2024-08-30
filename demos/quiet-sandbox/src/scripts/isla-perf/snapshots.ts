@@ -2,6 +2,9 @@ import { sleep } from "../../utils/utils.js"
 
 import * as fs from 'fs'
 import { RunData } from "./runData.js"
+import { createLogger } from "./logger.js"
+
+const LOGGER = createLogger("snapshots")
 
 export type PeerRunMetadata = {
   chainLoadTimeMs: number
@@ -49,7 +52,7 @@ export async function generateSnapshot(runData: RunData, remoteSnapshots: Snapsh
   }
 
   const totalUsers = runData.users.length + remoteUserCount
-  console.log(`Capturing snapshot at ${totalUsers} users`)
+  LOGGER.info(`Capturing snapshot at ${totalUsers} users`)
   const expectedDeviceCount = totalUsers * 2 - 1 - (remoteUserCount > 0 ? 1 : 0)
   const memberDiffs: Diff[] = []
   const deviceDiffs: Diff[] = []
@@ -63,7 +66,7 @@ export async function generateSnapshot(runData: RunData, remoteSnapshots: Snapsh
   await sleep(5000)
   for (const user of runData.users) {
     const username = user.storage.getContext()!.user.userName
-    console.log(`Generating snapshot for user ${username}`)
+    LOGGER.info(`Generating snapshot for user ${username}`)
     const members = user.storage.getSigChain()!.users.getAllMembers()
     const memberCount = members.length
     const memberDiff = totalUsers - memberCount
@@ -153,7 +156,7 @@ export function storeSnapshotData(snapshots: Snapshot[], config: SnapshotConfig 
     filename = `${filename}.js`
   }
 
-  console.log(`Storing snapshot data to file ${filename}`)
+  LOGGER.info(`Storing snapshot data to file ${filename}`)
   fs.rmSync(filename, { force: true })
   fs.writeFileSync(filename, data, { encoding: 'utf-8' })
 }

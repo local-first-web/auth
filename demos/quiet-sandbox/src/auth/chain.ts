@@ -101,9 +101,14 @@ class SigChain {
   }
 
   get minifiedTeamGraph(): auth.TeamGraph {
-    return findAllByKeyAndReplace(JSON.parse(JSON.stringify(this.teamGraph)), 'data', {
-      replacerFunc: (dataArray: any[]) => Buffer.from(dataArray).toString('base64')
-    })
+    return findAllByKeyAndReplace(JSON.parse(JSON.stringify(this.teamGraph)), [
+      {
+        key: 'data',
+        replace: {
+          replacerFunc: (dataArray: any[]) => Buffer.from(dataArray).toString('base64')
+        }
+      }
+    ])
   }
 
   get users(): UserService {

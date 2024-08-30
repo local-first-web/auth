@@ -1,7 +1,11 @@
+import { sleep } from "../../utils/utils.js";
+import { createLogger } from "./logger.js";
 import { RunData, storeRunData } from "./runData.js";
 import { generateSnapshot } from "./snapshots.js";
 import { createInvites } from "./team.js";
 import { createFounderAndChain, createUserAndDial } from "./users.js";
+
+const LOGGER = createLogger("main")
 
 export async function mainLoop(runData: RunData): Promise<RunData> {
   let usersToGenerate: number = runData.appSettings.userCount
@@ -16,14 +20,14 @@ export async function mainLoop(runData: RunData): Promise<RunData> {
   }
 
   let inviteIndex = 0
-  console.log(`Generating ${usersToGenerate} users`);
+  LOGGER.info(`Generating ${usersToGenerate} users`);
   for (let i = startingIndex; i < usersToGenerate+startingIndex; i++) {
     try {
       const user = await createUserAndDial(i, runData.inviteSeeds[inviteIndex], runData)
       runData.users.push(user);
       runData.peerAddresses.add(user.libp2p.libp2p!.getMultiaddrs()[0].toString())
     } catch (e) {
-      console.warn(`Nothing to do, this user failed!`)
+      LOGGER.error(`Nothing to do, this user failed!`, e)
     }
 
     if (inviteIndex === runData.inviteSeeds.length - 1) {
@@ -33,6 +37,10 @@ export async function mainLoop(runData: RunData): Promise<RunData> {
     }
 
     if (runData.users.length % runData.appSettings.snapshotInterval === 0) {
+      if (i === usersToGenerate+startingIndex-1) {
+        LOGGER.info(`Waiting for a bit to see if connections take hold`)
+        await sleep(30000)
+      }
       const snapshot = await generateSnapshot(runData)
       runData.snapshots.push(snapshot)
     }

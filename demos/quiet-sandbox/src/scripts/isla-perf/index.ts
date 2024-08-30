@@ -4,14 +4,20 @@ import { program } from '@commander-js/extra-typings';
 import { confirm, input } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { mainLoop } from './mainLoop.js';
-import { generateSnapshot, loadRemoteSnapshotFile, Snapshot, storeSnapshotData } from './snapshots.js';
+import { generateSnapshot, loadRemoteSnapshotFile, storeSnapshotData } from './snapshots.js';
 import { loadRunData, RUN_DATA_FILENAME, RunData } from './runData.js';
+import { createLogger } from './logger.js';
+import { LogQueue } from '../../utils/logger/logQueue.js';
+
+LogQueue.init(2)
 
 export type AppSettings = {
   userCount: number
   snapshotInterval: number
   runningFromRemote?: boolean
 }
+
+const LOGGER = createLogger("interactive")
 
 const startAppFromRemote = async (): Promise<RunData> => {
   const remoteRunDataFilename = await input({
@@ -99,7 +105,7 @@ const continueRemotely = async (runData: RunData) => {
     })
 
     if (!doneWithRemoteRun) {
-      console.log(`Waiting until remote run is done!`)
+      LOGGER.info(`Waiting until remote run is done!`)
       continue
     }
 
@@ -117,7 +123,7 @@ const continueRemotely = async (runData: RunData) => {
 }
 
 const interactive = async () => {
-  console.log(chalk.magentaBright.bold.underline("Isla Perf Test"));
+  LOGGER.info(chalk.underline("Isla Perf Test"))
   let runData: RunData | undefined
   let exit = false;
   while (!exit) {
@@ -133,7 +139,7 @@ const interactive = async () => {
 
   await mainLoop(runData)
   await continueRemotely(runData)
-  console.log(chalk.magentaBright.bold("Goodbye!"));
+  LOGGER.info("Goodbye!");
   process.exit()
 };
 

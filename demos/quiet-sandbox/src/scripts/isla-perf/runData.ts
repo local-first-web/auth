@@ -4,6 +4,9 @@ import { Networking } from '../../network.js'
 
 import * as fs from 'fs'
 import * as path from 'path'
+import { createLogger } from './logger.js'
+
+const LOGGER = createLogger("runData")
 
 export type RunData = {
   snapshots: Snapshot[]
@@ -52,7 +55,7 @@ function runDataFromTruncated(truncatedData: TruncatedRunData): RunData {
 export const RUN_DATA_FILENAME = './src/scripts/isla-perf/run_data.json'
 
 export function storeRunData(runData: RunData) {
-  console.log(`Storing run data to file ${RUN_DATA_FILENAME}`)
+  LOGGER.info(`Storing run data to file ${RUN_DATA_FILENAME}`)
 
   const data = JSON.stringify(truncateRunData(runData), null, 2)  
   fs.rmSync(RUN_DATA_FILENAME, { force: true })
@@ -61,7 +64,7 @@ export function storeRunData(runData: RunData) {
 
 export function loadRunData(filename?: string): RunData {
   const actualFilename = filename || RUN_DATA_FILENAME
-  console.log(`Loading run data from file ${actualFilename}`)
+  LOGGER.info(`Loading run data from file ${actualFilename}`)
   
   const dataString = fs.readFileSync(actualFilename, { encoding: 'utf-8' }).toString()
   const truncatedData = JSON.parse(dataString) as TruncatedRunData

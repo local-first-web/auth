@@ -97,12 +97,39 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   readonly #messageQueue: MessageQueue<ConnectionMessage>
   #started = false
   #log = debug.extend('auth:connection')
+  #sharedLogger: any | undefined
+  private LOG = (level: 'info' | 'warn' | 'error', message: any, ...params: any[]) => {
+    if (this.#sharedLogger == null) {
+      this.#log(message, params)
+      return
+    }
 
-  constructor({ sendMessage, context }: ConnectionParams) {
+    switch (level) {
+      case 'info':
+        this.#sharedLogger.info(message, ...params)
+        break
+      case 'warn':
+        this.#sharedLogger.warn(message, ...params)
+        break
+      case 'error':
+        this.#sharedLogger.error(message, ...params)
+        break
+      default:
+        throw new Error(`Unknown log level ${level}`)
+    }
+  }
+
+
+  constructor({ sendMessage, context, createLogger }: ConnectionParams) {
     super()
 
-    this.#messageQueue = this.#initializeMessageQueue(sendMessage)
-    this.#log = this.#log.extend(getUserName(context)) // add our name to the debug logger
+    const username = getUserName(context)
+    if (createLogger != null) {
+      this.#sharedLogger = createLogger(`auth:connection:${username}`)
+    }
+
+    this.#messageQueue = this.#initializeMessageQueue(sendMessage, createLogger, username)
+    this.#log = this.#log.extend(username) // add our name to the debug logger
 
     // On sync server, the server keys act as both user keys and device keys
     const initialContext = isServerContext(context) ? extendServerContext(context) : context
@@ -248,6 +275,9 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
           // we now have a user name so add that to the debug logger
           this.#log = this.#log.extend(peer.userName)
+          if (this.#sharedLogger != null) {
+            this.#sharedLogger.extend(peer.userName)
+          }
 
           // send them an identity challenge
           const challenge = identity.challenge({ type: KeyType.DEVICE, name: deviceId })
@@ -287,10 +317,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
           // Undefined message means we're already synced
           if (syncMessage) {
-            this.#log('sending sync message', syncMessageSummary(syncMessage))
+            this.LOG('info', 'sending sync message', syncMessageSummary(syncMessage))
             this.#queueMessage('SYNC', syncMessage)
           } else {
-            this.#log('no sync message to send')
+            this.LOG('info', 'no sync message to send')
           }
 
           return { syncState }
@@ -336,7 +366,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           const recipientPublicKey = peer!.keys.encryption
           const senderSecretKey = user!.keys.encryption.secretKey
 
-          this.#log(`encrypting seed with key ${recipientPublicKey}`)
+          this.LOG('info', `encrypting seed with key ${recipientPublicKey}`)
           const encryptedSeed = asymmetric.encryptBytes({
             secret: seed,
             recipientPublicKey,
@@ -366,7 +396,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             return { sessionKey: deriveSharedKey(seed, theirSeed) }
           } catch (error) {
             if (String(error).includes('incorrect key pair')) {
-              this.#log(`failed to decrypt seed using public key ${senderPublicKey}`, error)
+              this.LOG('error', `failed to decrypt seed using public key ${senderPublicKey}`, error)
               return this.#fail(ENCRYPTION_FAILURE)
             } else throw error
           }
@@ -384,7 +414,8 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             this.emit('message', decryptedMessage)
           } catch (error) {
             if (String(error).includes('wrong secret key')) {
-              this.#log(
+              this.LOG(
+                'error', 
                 `failed to decrypt message using session key ${base58.encode(sessionKey)}`,
                 error
               )
@@ -402,15 +433,15 @@ export class Connection extends EventEmitter<ConnectionEvents> {
         receiveError: assign(({ event }) => {
           assertEvent(event, 'ERROR')
           const error = event.payload
-          this.#log('receiveError: %o', error)
-          this.emit('remoteError', error)
+          this.LOG('error', 'receiveError', error)
+          this.LOG('error', 'remoteError', error)
           return { error }
         }),
 
         sendError: assign(({ event }) => {
           assertEvent(event, 'LOCAL_ERROR')
           const error = event.payload
-          this.#log('sendError %o', error)
+          this.LOG('error', 'sendError', error)
           this.#messageQueue.send(createErrorMessage(error.type, 'REMOTE'))
           this.emit('localError', error)
           return { error }
@@ -706,17 +737,20 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       next: state => {
         const summary = stateSummary(state.value as string)
         this.emit('change', summary)
-        this.#log(`⏩ ${summary} `)
+        this.LOG('info', `⏩ ${summary} `)
       },
       error: error => {
-        console.error('Connection encountered an unhandled error', error)
+        this.LOG('error', 'Connection encountered an unhandled error', error)
         this.#fail(UNHANDLED)
       },
     })
 
     // add automatic logging to all events
     this.emit = (event, ...args) => {
-      this.#log(`emit ${event} %o`, ...args)
+      for (const arg of args) {
+        this.LOG('info', typeof arg)
+      }
+      this.LOG('info', `emit ${event}`, ...args)
       return super.emit(event, ...args)
     }
   }
@@ -725,7 +759,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   /** Starts the state machine. Returns this Connection object. */
   public start = (storedMessages: Uint8Array[] = []) => {
-    this.#log('starting')
+    this.LOG('info', 'starting')
     this.#machine.start()
     this.#messageQueue.start()
     this.#started = true
@@ -746,7 +780,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
     this.removeAllListeners()
     this.#messageQueue.stop()
-    this.#log('connection stopped')
+    this.LOG('warn', 'connection stopped')
     return this
   }
 
@@ -766,7 +800,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   public send = (message: any) => {
     assert(this._sessionKey, "Can't send encrypted messages until we've finished connecting")
     const encryptedMessage = symmetric.encryptBytes(message, this._sessionKey)
-    this.#log(`encrypted message with session key ${base58.encode(this._sessionKey)}`)
+    this.LOG('info', `encrypted message with session key ${base58.encode(this._sessionKey)}`)
     this.#queueMessage('ENCRYPTED_MESSAGE', encryptedMessage)
   }
 
@@ -801,15 +835,17 @@ export class Connection extends EventEmitter<ConnectionEvents> {
     return this.#machine.getSnapshot().context
   }
 
-  #initializeMessageQueue(sendMessage: (message: Uint8Array) => void) {
+  #initializeMessageQueue(sendMessage: (message: Uint8Array) => void, createLogger?: (name: string) => any, username?: string) {
     // To send messages to our peer, we give them to the ordered message queue, which will deliver
     // them using the `sendMessage` function provided.
     return new MessageQueue<ConnectionMessage>({
       sendMessage: message => {
         this.#logMessage('out', message)
         const serialized = pack(message)
-        sendMessage(serialized)
+        sendMessage(Uint8Array.from(serialized))
       },
+      createLogger,
+      username
     })
       .on('message', message => {
         this.#logMessage('in', message)
@@ -830,7 +866,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   /** Force local error state */
   #fail(error: ConnectionErrorType) {
-    this.#log('error: %o', error)
+    this.LOG('error', 'error', error)
     const localMessage = createErrorMessage(error, 'LOCAL')
     this.#machine.send(localMessage)
     return { error: localMessage.payload }
@@ -849,7 +885,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   #logMessage(direction: 'in' | 'out', message: NumberedMessage<ConnectionMessage>) {
     const arrow = direction === 'in' ? '<-' : '->'
     const peerUserName = this.#started ? this._context.peer?.userName ?? '?' : '?'
-    this.#log(`${arrow}${peerUserName} #${message.index} ${messageSummary(message)}`)
+    this.LOG('info', `${arrow}${peerUserName} #${message.index} ${messageSummary(message)}`)
   }
 }
 
@@ -864,7 +900,7 @@ const fail = (error: ConnectionErrorType) =>
   }) as const
 
 // timeout configuration
-const TIMEOUT_DELAY = 15000
+const TIMEOUT_DELAY = 30_000
 const timeout = { after: { [TIMEOUT_DELAY]: fail(TIMEOUT) } } as const
 
 // TYPES
@@ -874,5 +910,6 @@ export type ConnectionParams = {
   sendMessage: (message: Uint8Array) => void
 
   /** The initial context. */
-  context: Context
+  context: Context,
+  createLogger?: (packageName: string) => any
 }

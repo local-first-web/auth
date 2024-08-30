@@ -3,9 +3,12 @@ import { DEFAULT_INVITATION_VALID_FOR_MS } from "../../auth/services/invites/inv
 import { UserService } from "../../auth/services/members/userService.js";
 import { LocalStorage, Networking } from "../../network.js";
 import { generateDeviceName } from "./devices.js";
+import { createLogger } from "./logger.js";
+
+const LOGGER = createLogger("team")
 
 export const createTeam = async (name: string, username: string): Promise<Networking> => {
-  console.log(`Initializing team with name ${name} for user ${username}`);
+  LOGGER.info(`Initializing team with name ${name} for user ${username}`);
   const storage = new LocalStorage()
   const loadedSigChain = SigChain.create(name, username);
   storage.setContext(loadedSigChain.context);
@@ -16,14 +19,14 @@ export const createTeam = async (name: string, username: string): Promise<Networ
     team: loadedSigChain.sigChain.team
   });
 
-  console.log(`Initializing networking`);
+  LOGGER.info(`Initializing networking`);
   const networking = await Networking.init(storage);
-  await networking.sigChain.writeInitialChain(loadedSigChain.sigChain);
+  // await networking.sigChain.writeInitialChain(loadedSigChain.sigChain);
   return networking;
 }
 
 export const joinTeam = async (name: string, username: string, inviteSeed: string): Promise<Networking> => {
-  console.log(`Joining team ${name} as user ${username} with inviteSeed ${inviteSeed}`);
+  LOGGER.info(`Joining team ${name} as user ${username} with inviteSeed ${inviteSeed}`);
   const storage = new LocalStorage()
   const deviceName = generateDeviceName(username, 1)
   const prospectiveUser = UserService.createFromInviteSeed(username, inviteSeed, deviceName)
@@ -34,7 +37,7 @@ export const joinTeam = async (name: string, username: string, inviteSeed: strin
       invitationSeed: inviteSeed
     });
 
-  console.log(`Initializing networking`);
+  LOGGER.info(`Initializing networking`);
   const networking = await Networking.init(storage);
 
   return networking;
@@ -45,7 +48,7 @@ export async function createInvites(founder: Networking): Promise<string[]> {
   const inviteMaxUses = 50;
   const inviteSeeds: string[] = [];
 
-  console.log(`Generating ${inviteCount} invites as founder`);
+  LOGGER.info(`Generating ${inviteCount} invites as founder`);
   for (let i = 0; i < inviteCount; i++) {
     const invite = founder.libp2p.storage.getSigChain()!.invites.create(DEFAULT_INVITATION_VALID_FOR_MS, inviteMaxUses);
     inviteSeeds.push(invite.seed);
