@@ -554,8 +554,13 @@ export class Team extends EventEmitter<TeamEvents> {
     return invitations.validate(proof, invitation)
   }
 
-  /** Check if username is not used by any other person within the team. */
-  public validateUserName = (userName: string) => {
+  /** Check if userId and userName are not used by any other member within the team. */
+  public validateUser = (userId: string, userName: string) => {
+    const memberWithSameUserId = this.members().find(member => member.userId == userId)
+    if (memberWithSameUserId != undefined) {
+      return invitations.fail('userId is not unique within the team.')
+    }
+
     const memberWithSameUserName = this.members().find(member =>
       member.userName.toLowerCase() == userName.toLowerCase()
     )
@@ -575,8 +580,8 @@ export class Team extends EventEmitter<TeamEvents> {
     const invitationValidation = this.validateInvitation(proof)
     if (!invitationValidation.isValid) throw invitationValidation.error
 
-    const userNameValidation = this.validateUserName(userName)
-    if (!userNameValidation.isValid) throw userNameValidation.error
+    const userValidation = this.validateUser(memberKeys.name, userName)
+    if (!userValidation.isValid) throw userValidation.error
 
     const { id } = proof
 
