@@ -112,6 +112,22 @@ const validators: TeamStateValidatorSet = {
     }
     return VALID
   },
+
+  /** Check if the username is not used by any other person within the team */
+  mustBeUniqueUsername(...args) {
+    const [previousState, link] = args
+    if (link.body.type === 'ADMIT_MEMBER') {
+      const { userName } = link.body.payload
+      const memberWithSameUserName = previousState.members.find(member => 
+        member.userName.toLowerCase() == userName.toLowerCase()
+      )
+
+      if (memberWithSameUserName != undefined) {
+        return fail('Username is not unique within the team.', ...args)
+      }
+    }
+    return VALID
+  },
 }
 
 const fail = (message: string, previousState: TeamState, link: TeamLink) => {

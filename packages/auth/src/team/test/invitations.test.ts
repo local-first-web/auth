@@ -80,7 +80,7 @@ describe('Team', () => {
         expect(bobsTeam.memberIsAdmin(bob.userId)).toBe(false)
 
         // 👳🏽‍♂️ Charlie shows 👨🏻‍🦲 Bob his proof of invitation
-        bobsTeam.admitMember(proofOfInvitation, charlie.user.keys, bob.user.userName)
+        bobsTeam.admitMember(proofOfInvitation, charlie.user.keys, charlie.user.userName)
 
         // 👍👳🏽‍♂️ Charlie is now on the team
         expect(bobsTeam.has(charlie.userId)).toBe(true)
@@ -258,6 +258,27 @@ describe('Team', () => {
 
         // 🦹‍♀️ GRRR I would've got away with it too, if it weren't for you meddling cryptographic algorithms!
         expect(submitBadProof).toThrow('Signature provided is not valid')
+      })
+
+      it("won't accept proof of invitation with a username that is not unique", () => {
+        const { alice, bob } = setup('alice', { user: 'bob', member: false })
+
+        // 👩🏾 Alice invites 👨🏻‍🦲 Bob by sending him a random secret key
+        const { seed } = alice.team.inviteMember()
+
+        // 👨🏻‍🦲 Bob accepts the invitation
+        const proofOfInvitation = generateProof(seed)
+
+        // 👨🏻‍🦲 Bob shows 👩🏾 Alice his proof of invitation, but uses Alice's username
+        const tryToAdmitBob = () => {
+          alice.team.admitMember(proofOfInvitation, bob.user.keys, alice.user.userName)
+        }
+
+        // 👎 But the invitation is rejected because it the username is not unique
+        expect(tryToAdmitBob).toThrowError('Username is not unique within the team.')
+
+        // ❌ 👨🏻‍🦲 Bob is not on the team
+        expect(alice.team.has(bob.userId)).toBe(false)
       })
 
       describe('devices', () => {
