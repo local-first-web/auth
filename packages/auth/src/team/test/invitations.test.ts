@@ -259,6 +259,80 @@ describe('Team', () => {
         // 🦹‍♀️ GRRR I would've got away with it too, if it weren't for you meddling cryptographic algorithms!
         expect(submitBadProof).toThrow('Signature provided is not valid')
       })
+      
+      it('an invited member needs access to all generations of user and team keys', () => {
+        const { alice, bob } = setup('alice', { user: 'bob', member: false })
+
+        const changeKeys = () => {
+          const newKeys = { type: KeyType.USER, name: alice.userId }
+          alice.team.changeKeys(createKeyset(newKeys))
+        }
+
+        // Alice rotates her keys two times
+        changeKeys()
+        changeKeys()
+
+        // key rotation results in two new keys generations for team keys, admin keys and alice user keys
+        expect(alice.team.teamKeys().generation).toBe(2)
+        expect(alice.team.adminKeys().generation).toBe(2)
+        expect(alice.team.members(alice.userId).keys.generation).toBe(2)
+        expect(alice.user.keys.generation).toBe(2)
+        expect(Object.values(alice.team.teamKeyring())).toHaveLength(3)
+        expect(alice.team.allUserKeys()).toHaveLength(3)
+        // 3 times 3 generations of team keys, admin keys, alice user keys
+        expect(alice.team.state.lockboxes.length).toBe(9)
+
+        // 👩🏾 Alice invites 👨🏻‍🦲 Bob by sending him a random secret key
+        const { seed } = alice.team.inviteMember()
+
+        // 👨🏻‍🦲 Bob accepts the invitation
+        const proofOfInvitation = generateProof(seed)
+
+        // 👨🏻‍🦲 Bob shows 👩🏾 Alice his proof of invitation, and she lets him in
+        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
+
+        // ✅ Alice added 3 lockboxes to send 3 generations of team keys to Bob
+        expect(alice.team.state.lockboxes.length).toBe(12)
+
+        // 👩🏾 Alice sends 👨🏻‍🦲 Bob the team's graph and keyring
+        const serializedGraph = alice.team.save()
+        const teamKeyring = alice.team.teamKeyring()
+
+        const bobTeam = new Team({
+          source: serializedGraph,
+          context: bob.localContext,
+          teamKeyring
+        })
+        bobTeam.join(teamKeyring)
+
+        // ✅ 👨🏻‍🦲 Bob is now on the team
+        expect(alice.team.has(bob.userId)).toBe(true)
+
+        // ✅ Now Alice and Bob have each two members on the team
+        expect(alice.team.members()).toHaveLength(2)
+        expect(bobTeam.members()).toHaveLength(2)
+        expect(bobTeam.has(alice.userId)).toBe(true)
+
+        // ✅ Bob added 1 more lockbox for his user keys that can be unlocked by his device keys
+        expect(bobTeam.state.lockboxes.length).toBe(13)
+
+        // ✅ Bob has all 3 generations of team keys and 1 generation of his user keys
+        expect(Object.values(bobTeam.teamKeyring())).toHaveLength(3)
+        expect(bobTeam.allUserKeys()).toHaveLength(1)
+
+        const serializedBobTeam = bobTeam.save()
+
+        // In case some keys went missing while serializing and deserializing the team graph
+        // on Bob's device, some required keys wouldn't be available to decrypt the graph, 
+        // resulting in the error "Can't decrypt link: don't have the correct keyset"
+        expect(() =>
+          new Team({
+            source: serializedBobTeam,
+            context: bob.localContext,
+            teamKeyring: bobTeam.teamKeyring()
+          })
+        ).not.toThrow()
+      })
 
       describe('devices', () => {
         it('creates and accepts an invitation for a device', () => {
@@ -386,6 +460,10 @@ describe('Team', () => {
           // 💻 Alice's laptop verifies the proof
           aliceLaptop.team.admitDevice(proofOfInvitation, redactDevice(alicePhone))
 
+          // on invitation creation, Alice's laptop added 3 lockboxes to send 3 generations of user keys 
+          // to Alice's phone using the starter keys for encryption
+          expect(aliceLaptop.team.state.lockboxes.length).toBe(12)
+
           // 👍 The proof was good, so the laptop sends the phone the team's graph and keyring
           const serializedGraph = aliceLaptop.team.save()
           const teamKeyring = aliceLaptop.team.teamKeyring()
@@ -401,10 +479,6 @@ describe('Team', () => {
             teamKeyring,
             invitationSeed: seed,
           })
-
-          // on invitation creation, Alice's laptop added 3 lockboxes to send 3 generations of user keys 
-          // to Alice's phone using the starter keys for encryption
-          expect(aliceLaptop.team.state.lockboxes.length).toBe(12)
 
           const phoneTeam = new Team({ 
             source: serializedGraph, 
@@ -430,8 +504,8 @@ describe('Team', () => {
 
           const serializedPhoneTeam = phoneTeam.save()
 
-          // In case some keys went missing while serializing and deserializing 
-          // the phone's local context, some required keys wouldn't be available to decrypt, 
+          // In case some keys went missing while serializing and deserializing the team graph
+          // on Alice's phone, some required keys wouldn't be available to decrypt the graph, 
           // resulting in the error "Can't decrypt link: don't have the correct keyset"
           expect(() => 
             new Team({

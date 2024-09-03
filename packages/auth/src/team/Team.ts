@@ -505,7 +505,7 @@ export class Team extends EventEmitter<TeamEvents> {
     const invitation = invitations.create({ seed, expiration, maxUses, userId: this.userId })
 
     // In order for the invited device to be able to access the user's keys, we put the user keys in
-    // a lockbox that can be opened by an ephemeral keyset generated from the secret invitation
+    // lockboxes that can be opened by an ephemeral keyset generated from the secret invitation
     // seed.
     const starterKeys = invitations.generateStarterKeys(seed)
     const lockboxesUserKeysForDeviceStarterKeys = this.allUserKeys()
@@ -569,8 +569,9 @@ export class Team extends EventEmitter<TeamEvents> {
 
     const { id } = proof
 
-    // we know the team keys, so we can put them in a lockbox for the new member now (even if we're not an admin)
-    const lockboxTeamKeysForMember = lockbox.create(this.teamKeys(), memberKeys)
+    // we know the team keys, so we can put them in lockboxes for the new member now (even if we're not an admin)
+    const lockboxesTeamKeysForMember = Object.values(this.teamKeyring())
+      .map(keys => lockbox.create(keys, memberKeys))
 
     // Post admission to the graph
     this.dispatch({
@@ -579,7 +580,7 @@ export class Team extends EventEmitter<TeamEvents> {
         id,
         userName,
         memberKeys: redactKeys(memberKeys),
-        lockboxes: [lockboxTeamKeysForMember],
+        lockboxes: lockboxesTeamKeysForMember,
       },
     })
   }
