@@ -12,7 +12,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "ig": "tsc && npm i -g .",
     "start": "node dist/index.js interactive",
-    "test:perf:isla": "DEBUG=localfirst*,libp2p*,qsb* node --max-old-space-size=5120 --experimental-global-customevent dist/scripts/isla-perf/index.js interactive",
+    "test:perf:isla": "DEBUG=localfirst*,qsb* node --max-old-space-size=8192 --experimental-global-customevent --max_old_space_size=8192 dist/scripts/isla-perf/index.js interactive",
     "test:perf:isla:graphs": "parcel src/scripts/isla-perf/index.html --open"
   },
   "keywords": [],

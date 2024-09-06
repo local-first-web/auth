@@ -8,6 +8,7 @@ import { generateSnapshot, loadRemoteSnapshotFile, storeSnapshotData } from './s
 import { loadRunData, RUN_DATA_FILENAME, RunData } from './runData.js';
 import { createLogger } from './logger.js';
 import { LogQueue } from '../../utils/logger/logQueue.js';
+import { sleep } from '../../utils/utils.js';
 
 LogQueue.init(2)
 
@@ -15,6 +16,7 @@ export type AppSettings = {
   userCount: number
   snapshotInterval: number
   runningFromRemote?: boolean
+  endAutomatically?: boolean
 }
 
 const LOGGER = createLogger("interactive")
@@ -51,9 +53,15 @@ const startNewApp = async (): Promise<RunData> => {
     validate: (snapshotInterval: string) => snapshotInterval != null && !Number.isNaN(Number(snapshotInterval)) ? true : "Must enter a valid snapshot interval!"
   }));
 
+  const endAutomatically = await confirm({
+    message: 'Would you like to end the run automatically when finished on this machine?',
+    default: true
+  })
+
   const appSettings = {
     userCount,
-    snapshotInterval
+    snapshotInterval,
+    endAutomatically
   }
 
   return {
@@ -82,7 +90,14 @@ const startApp = async (): Promise<RunData> => {
 
 const continueRemotely = async (runData: RunData) => {
   if (runData.appSettings.runningFromRemote) {
+    LOGGER.info(`Ending remote run and writing JSON snapshot data!`)
     storeSnapshotData(runData.snapshots, { jsonOnly: true })
+    return
+  }
+
+  if (runData.appSettings.endAutomatically) {
+    LOGGER.info(`Ending run without checking for remote runs!`)
+    storeSnapshotData(runData.snapshots)
     return
   }
 
@@ -137,10 +152,37 @@ const interactive = async () => {
     throw new Error("App hasn't been started!")
   }
 
-  await mainLoop(runData)
-  await continueRemotely(runData)
+  let exitCode = 0
+
+  const handleUncaught = async (message: string, e: any, ...args: any[]) => {
+    LOGGER.error(message, e, ...args)
+    await generateSnapshot(runData)
+    storeSnapshotData(runData.snapshots)
+    // process.exit(1)
+  }
+
+  process.on('uncaughtException', async (e, origin) => {
+    await handleUncaught(`UNCAUGHT EXCEPTION`, e, origin)
+  })
+
+  process.on('unhandledRejection', async (e, promise) => {
+    await handleUncaught(`UNCAUGHT REJECTION`, e, promise)
+  })
+
+  try {
+    await mainLoop(runData).catch(async (e) => {
+      await handleUncaught(`Error while running main loop`, e)
+    })
+
+    await continueRemotely(runData).catch(async (e) => {
+      await handleUncaught(`Error while waiting for remote run`, e)
+    })
+  } catch (e) {
+    await handleUncaught(`Error while running appliation`, e)
+  }
+
   LOGGER.info("Goodbye!");
-  process.exit()
+  process.exit(exitCode)
 };
 
 program
@@ -152,7 +194,9 @@ program
   .command('interactive')
   .description('Interactive mode')
   .action(() => {
-    interactive();
+    interactive().catch((e) => {
+      LOGGER.error(`Run failed with uncaught error`, e)
+    });
   });
 
 program.parse(process.argv);

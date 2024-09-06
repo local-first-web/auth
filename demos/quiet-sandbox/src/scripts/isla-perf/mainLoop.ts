@@ -23,6 +23,7 @@ export async function mainLoop(runData: RunData): Promise<RunData> {
   LOGGER.info(`Generating ${usersToGenerate} users`);
   for (let i = startingIndex; i < usersToGenerate+startingIndex; i++) {
     try {
+      await sleep(1_000)
       const user = await createUserAndDial(i, runData.inviteSeeds[inviteIndex], runData)
       runData.users.push(user);
       runData.peerAddresses.add(user.libp2p.libp2p!.getMultiaddrs()[0].toString())

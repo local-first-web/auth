@@ -129,6 +129,53 @@ formatters.a = (v?: Multiaddr): string => {
   return v == null ? 'undefined' : v.toString()
 }
 
+formatters.d = (v?: number): string => {
+  return v == null ? 'NaN' : v.toString()
+}
+
+formatters.s = (v?: string): string => {
+  return v == null ? 'undefined' : v
+}
+
+formatters.o = (v?: any): string => {
+  return v == null ? 'undefined' : JSON.stringify(v, null, 2)
+}
+
+// // Add a formatter for converting to a base58 string
+// debug.formatters.b = (v?: Uint8Array): string => {
+//   return v == null ? 'undefined' : base58btc.baseEncode(v)
+// }
+
+// // Add a formatter for converting to a base32 string
+// debug.formatters.t = (v?: Uint8Array): string => {
+//   return v == null ? 'undefined' : base32.baseEncode(v)
+// }
+
+// // Add a formatter for converting to a base64 string
+// debug.formatters.m = (v?: Uint8Array): string => {
+//   return v == null ? 'undefined' : base64.baseEncode(v)
+// }
+
+// // Add a formatter for stringifying peer ids
+// debug.formatters.p = (v?: PeerId): string => {
+//   return v == null ? 'undefined' : v.toString()
+// }
+
+// // Add a formatter for stringifying CIDs
+// debug.formatters.c = (v?: CID): string => {
+//   return v == null ? 'undefined' : v.toString()
+// }
+
+// // Add a formatter for stringifying Datastore keys
+// debug.formatters.k = (v: Key): string => {
+//   return v == null ? 'undefined' : v.toString()
+// }
+
+// // Add a formatter for stringifying Multiaddrs
+// debug.formatters.a = (v?: Multiaddr): string => {
+//   return v == null ? 'undefined' : v.toString()
+// }
+
 /**
  * This class is what we use to log to the node console and, optionally, the native console for browser-facing code
  * like the desktop renderer
@@ -194,6 +241,8 @@ export class QuietLogger {
    * @param optionalParams Optional parameters to log
    */
   info(message: any, ...optionalParams: any[]) {
+    if (!this.isDebug) return
+    
     this.callLogMethods(LogLevel.INFO, message, ...optionalParams)
   }
 
@@ -322,11 +371,13 @@ export class QuietLogger {
   public printLog(level: LogLevel, ...formattedLogStrings: string[]): void {
     if (!this.writeToQueue) {
       if (this.fileStream != null) {
-        this.fileStream.write(util.format.apply(null, formattedLogStrings) + '\n');
+        this.fileStream.write(formattedLogStrings.join(' ') + '\n');
       }
 
-      // @ts-ignore
-      nodeConsoleLogger[level](...formattedLogStrings)
+      if ([LogLevel.WARN, LogLevel.ERROR].includes(level) || formattedLogStrings[0].includes('qsb:')) {
+        // @ts-ignore
+        nodeConsoleLogger[level](...formattedLogStrings)
+      }
       
       return
     }
@@ -420,15 +471,15 @@ export class QuietLogger {
       if (match === '%%') {
         return '%';
       }
-      index++;
-      const formatter = formatters[format];
+      if (index > 0) index++;
+      const formatter = formatters[format]
       if (typeof formatter === 'function') {
         const val = optionalParams[index];
-        match = formatter.call(this, val);
+        match = formatter(val)
 
         // Now we need to remove `args[index]` since it's inlined in the `format`
         optionalParams.splice(index, 1);
-        index--;
+        if (index > 0) index--;
       }
       return match;
     });
@@ -466,6 +517,8 @@ export class QuietLogger {
     let formatted: string
     if (['string', 'number', 'boolean', 'bigint'].includes(typeof param)) {
       formatted = param
+    } else if (param == null) {
+      formatted = "undefined"
     } else if (isPeerId(param)) {
       formatted = param.toString()
     } else if (param instanceof CID) {

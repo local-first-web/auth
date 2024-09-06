@@ -272,6 +272,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           const { deviceId } = theirIdentityClaim
           const theirDevice = team.device(deviceId, { includeRemoved: true })
           const peer = team.memberByDeviceId(deviceId, { includeRemoved: true })
+          this.LOG("info", "Found the following device and member information", theirDevice, peer)
 
           // we now have a user name so add that to the debug logger
           this.#log = this.#log.extend(peer.userName)
@@ -489,7 +490,22 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           const { theirIdentityClaim } = context
           // This is only for existing members (authenticating with deviceId rather than invitation)
           assert(isMemberClaim(theirIdentityClaim!))
-          return !context.team!.hasDevice(theirIdentityClaim.deviceId, { includeRemoved: true })
+          const deviceMissing = !context.team!.hasDevice(theirIdentityClaim.deviceId, { includeRemoved: true })
+          if (deviceMissing) {
+            this.LOG("error", `Device ${theirIdentityClaim.deviceId} was unknown and these were the members we had`, context.team!.members().map((member) => {
+              return {
+                name: member.userName,
+                id: member.userId,
+                devices: member.devices?.map((device) => {
+                  return {
+                    id: device.deviceId,
+                    name: device.deviceName
+                  }
+                })
+              }
+            }))
+          }
+          return deviceMissing 
         },
 
         identityIsValid: ({ context, event }) => {
@@ -833,6 +849,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
   get _context(): ConnectionContext {
     assert(this.#started)
     return this.#machine.getSnapshot().context
+  }
+
+  get _started(): boolean {
+    return this.#started
   }
 
   #initializeMessageQueue(sendMessage: (message: Uint8Array) => void, createLogger?: (name: string) => any, username?: string) {
