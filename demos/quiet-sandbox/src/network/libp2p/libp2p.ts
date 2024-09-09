@@ -16,15 +16,9 @@ import type {
   Ed25519PeerId,
   Secp256k1PeerId,
 } from '@libp2p/interface'
-import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
 import { MemoryDatastore } from 'datastore-core'
 import { generateKeyPairFromSeed } from '@libp2p/crypto/keys'
-import { sleep } from '../../utils/utils.js'
-import { randomInt } from 'crypto'
 import { peerIdFromString } from '@libp2p/peer-id'
-
-//@ts-ignore
-import RNG from 'rng'
 
 import { createQsbLogger, QuietLogger } from '../../utils/logger/logger.js'
 import { suffixLogger } from '../../utils/logger/libp2pLogger.js'
@@ -177,21 +171,7 @@ export class Libp2pService {
     this.LOGGER.info('Peer ID: ', peerId.toString())
 
     const onAuthError = async (errorMessage: string, errorData: { peerId: PeerId, remoteUsername: string | undefined }) => {
-      this.LOGGER.warn(errorMessage, errorData)
-      // try {
-
-      //   this.LOGGER.warn(`LIBP2P STATUS: ${this.libp2p?.status}`, errorData)
-      //   if (this.libp2p?.getPeers().includes(errorData.peerId)) {
-      //     this.LOGGER.warn(`HANGING UP`, errorData)
-      //     await this.libp2p?.hangUp(errorData.peerId)
-      //   }
-      //   this.LOGGER.warn(`DELETING FROM PEER STORE`, errorData)
-      //   await this.libp2p?.peerStore.delete(errorData.peerId)
-      //   this.LOGGER.warn(`DIALING`, errorData)
-      //   await this.dial(new Set([errorData.peerId]))
-      // } catch (e) {
-      //   this.LOGGER.error(`Error while redialing peer ${errorData.peerId}`, errorData, e)
-      // }
+      this.LOGGER.error(errorMessage, errorData)
     }
 
     this.events.on(EVENTS.AUTH_TIMEOUT, async (errorData: { peerId: PeerId, remoteUsername: string | undefined }) => {
@@ -205,122 +185,6 @@ export class Libp2pService {
     })
 
     return this.libp2p
-  }
-
-  async hangUp(addrsOrPeerIds: (string | Multiaddr | PeerId)[]): Promise<boolean> {
-    if (addrsOrPeerIds.length === 0) {
-      this.LOGGER.warn('No peers found to hang up, skipping!')
-      return false
-    }
-
-    this.LOGGER.info(`Hanging up on ${addrsOrPeerIds.length} peers`)
-    for (const addrOrPeerId of addrsOrPeerIds) {
-      this.LOGGER.info(`Hanging up on ${addrOrPeerId}`)
-      const multiAddrOrPeerId = typeof addrOrPeerId === 'string' ? multiaddr(addrOrPeerId) : addrOrPeerId
-      await this.libp2p!.hangUp(multiAddrOrPeerId)
-    }
-
-    return true
-  }
-
-  async hangUpOnAll(): Promise<boolean> {
-    if (!this.libp2p || this.libp2p.getPeers().length === 0) {
-      this.LOGGER.warn(`No peers to hang up on!`)
-      return true
-    }
-
-    this.LOGGER.info(`Hanging up on all peers`)
-    return this.hangUp(this.libp2p.getPeers())
-  }
-
-  async addPeersToPeerStore(
-    addrsOrPeerIdsArr: (string | Multiaddr | PeerId)[], 
-    attemptedPeers: Set<Multiaddr | PeerId>
-  ) {
-    this.LOGGER.info(`Adding ${addrsOrPeerIdsArr.length - attemptedPeers.size} peers to the peer store without manually dialing`)
-    for (const addrOrPeerId of addrsOrPeerIdsArr) {
-      const multiAddrOrPeerId = typeof addrOrPeerId === 'string' ? multiaddr(addrOrPeerId) : addrOrPeerId
-
-      let remotePeerId: PeerId
-      let remoteMultiaddrs: Multiaddr[] | undefined
-      if ((multiAddrOrPeerId as Multiaddr).getPeerId) {
-        remotePeerId = peerIdFromString((multiAddrOrPeerId as Multiaddr).getPeerId()!)
-        remoteMultiaddrs = [multiAddrOrPeerId as Multiaddr]
-      } else {
-        remotePeerId = multiAddrOrPeerId as PeerId
-      }
-
-      if (attemptedPeers.has(multiAddrOrPeerId) && this.libp2p?.getPeers().includes(remotePeerId)) {
-        continue
-      }
-      this.libp2p?.peerStore.save(remotePeerId, { multiaddrs: remoteMultiaddrs })
-    }
-  }
-
-  async dial(addrsOrPeerIds: Set<(string | Multiaddr | PeerId)>) {
-    const peerCount = addrsOrPeerIds.size
-    if (peerCount === 0) {
-      this.LOGGER.warn('No peers found to dial, skipping!')
-      return false
-    }
-
-    this.LOGGER.info(`Dialing ${peerCount} peers`)
-    let waitForSigChainLoad = this.storage.getSigChain() == null
-    if (waitForSigChainLoad) {
-      this.LOGGER.info(`Trying peers one at a time to ensure admittance only happens once!`)
-    }
-
-    const attemptedPeers: Set<Multiaddr | PeerId> = new Set()
-    const addrsOrPeerIdsArr = Array.from(addrsOrPeerIds)
-    while(waitForSigChainLoad) {
-      const rng = new RNG.MT(randomInt(1000000))
-      const index = rng.range(0, peerCount)
-
-      const addrOrPeerId = addrsOrPeerIdsArr[index]
-      this.LOGGER.info(`Attempting to connect to ${addrOrPeerId}`)
-      const multiAddrOrPeerId = typeof addrOrPeerId === 'string' ? multiaddr(addrOrPeerId) : addrOrPeerId
-      if (attemptedPeers.has(multiAddrOrPeerId)) {
-        continue
-      }
-
-      try {
-        const connection = await this.libp2p?.dial(multiAddrOrPeerId)
-        if (!connection || connection.status !== 'open') {
-          this.LOGGER.warn(`Couldn't connect to ${addrOrPeerId}, trying next!`)
-          continue
-        }
-
-        if (waitForSigChainLoad) {
-          this.LOGGER.info(`Waiting for sigchain to load before connecting to new peers!`)
-          this.events.on(EVENTS.INITIALIZED_CHAIN, () => {
-            if (!waitForSigChainLoad) return
-            this.LOGGER.info(`${addrOrPeerId} - Sigchain loaded, continuing with dial!`)
-            waitForSigChainLoad = false
-            this.events.emit(EVENTS.INITIALIZED_CHAIN)
-          })
-
-          const waitIntervalMs = 250
-          const waitTimeMs = 60_000
-          const waitEndTimeMs = Date.now() + waitTimeMs
-          while (waitForSigChainLoad && Date.now() < waitEndTimeMs) {
-            process.stdout.write('.')
-            await sleep(waitIntervalMs)
-          }
-          console.log('\n')
-          if (waitForSigChainLoad) {
-            throw new Error(`Failed to sync sig chain within ${waitTimeMs}ms timeout`)
-          }
-        }
-        attemptedPeers.add(multiAddrOrPeerId)
-      } catch (e) {
-        this.LOGGER.error(`Failed to make a connection to ${multiAddrOrPeerId} with error`, e)
-        attemptedPeers.add(multiAddrOrPeerId)
-        await this.hangUp([multiAddrOrPeerId])
-      }
-    }
-
-    await this.addPeersToPeerStore(addrsOrPeerIdsArr, attemptedPeers)
-    this.events.emit(EVENTS.DIAL_FINISHED)
   }
 
   async close() {
