@@ -1,6 +1,6 @@
 import { PeerRunMetadataMap, Snapshot } from './snapshots.js'
 import { AppSettings } from './index.js'
-import { Networking } from '../../network.js'
+import { Networking } from '../../network/network.js'
 
 import * as fs from 'fs'
 import * as path from 'path'

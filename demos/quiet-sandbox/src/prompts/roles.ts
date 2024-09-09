@@ -6,7 +6,7 @@ import chalk from 'chalk';
 import { LocalUserContext, Member } from '@localfirst/auth';
 
 import actionSelect from '../components/actionSelect.js';
-import { Networking } from '../network.js';
+import { Networking } from '../network/network.js';
 import { SigChain } from '../auth/chain.js';
 import { QuietRole, RoleMemberInfo, TruncatedQuietRole } from '../auth/services/roles/roles.js';
 

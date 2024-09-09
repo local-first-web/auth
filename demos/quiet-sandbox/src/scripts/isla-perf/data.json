@@ -1,0 +1,2692 @@
+[
+  {
+    "userCount": 89,
+    "avgChainLoadTimeMs": null,
+    "memberDiffs": [],
+    "deviceDiffs": [],
+    "memberDiffMeta": {
+      "count": 0,
+      "avg": 0
+    },
+    "deviceDiffMeta": {
+      "count": 0,
+      "avg": 0
+    },
+    "avgConnectedPeers": null,
+    "connectedPeers": []
+  },
+  {
+    "userCount": 89,
+    "avgChainLoadTimeMs": null,
+    "memberDiffs": [],
+    "deviceDiffs": [],
+    "memberDiffMeta": {
+      "count": 0,
+      "avg": 0
+    },
+    "deviceDiffMeta": {
+      "count": 0,
+      "avg": 0
+    },
+    "avgConnectedPeers": null,
+    "connectedPeers": []
+  },
+  {
+    "userCount": 89,
+    "avgChainLoadTimeMs": null,
+    "memberDiffs": [],
+    "deviceDiffs": [],
+    "memberDiffMeta": {
+      "count": 0,
+      "avg": 0
+    },
+    "deviceDiffMeta": {
+      "count": 0,
+      "avg": 0
+    },
+    "avgConnectedPeers": null,
+    "connectedPeers": []
+  },
+  {
+    "userCount": 89,
+    "avgChainLoadTimeMs": null,
+    "memberDiffs": [],
+    "deviceDiffs": [],
+    "memberDiffMeta": {
+      "count": 0,
+      "avg": 0
+    },
+    "deviceDiffMeta": {
+      "count": 0,
+      "avg": 0
+    },
+    "avgConnectedPeers": null,
+    "connectedPeers": []
+  },
+  {
+    "userCount": 89,
+    "avgChainLoadTimeMs": null,
+    "memberDiffs": [],
+    "deviceDiffs": [],
+    "memberDiffMeta": {
+      "count": 0,
+      "avg": 0
+    },
+    "deviceDiffMeta": {
+      "count": 0,
+      "avg": 0
+    },
+    "avgConnectedPeers": null,
+    "connectedPeers": []
+  },
+  {
+    "userCount": 89,
+    "avgChainLoadTimeMs": null,
+    "memberDiffs": [],
+    "deviceDiffs": [],
+    "memberDiffMeta": {
+      "count": 0,
+      "avg": 0
+    },
+    "deviceDiffMeta": {
+      "count": 0,
+      "avg": 0
+    },
+    "avgConnectedPeers": null,
+    "connectedPeers": []
+  },
+  {
+    "userCount": 89,
+    "avgChainLoadTimeMs": null,
+    "memberDiffs": [],
+    "deviceDiffs": [],
+    "memberDiffMeta": {
+      "count": 0,
+      "avg": 0
+    },
+    "deviceDiffMeta": {
+      "count": 0,
+      "avg": 0
+    },
+    "avgConnectedPeers": null,
+    "connectedPeers": []
+  },
+  {
+    "userCount": 89,
+    "avgChainLoadTimeMs": null,
+    "memberDiffs": [],
+    "deviceDiffs": [],
+    "memberDiffMeta": {
+      "count": 0,
+      "avg": 0
+    },
+    "deviceDiffMeta": {
+      "count": 0,
+      "avg": 0
+    },
+    "avgConnectedPeers": null,
+    "connectedPeers": []
+  },
+  {
+    "userCount": 89,
+    "avgChainLoadTimeMs": null,
+    "memberDiffs": [],
+    "deviceDiffs": [],
+    "memberDiffMeta": {
+      "count": 0,
+      "avg": 0
+    },
+    "deviceDiffMeta": {
+      "count": 0,
+      "avg": 0
+    },
+    "avgConnectedPeers": null,
+    "connectedPeers": []
+  },
+  {
+    "userCount": 89,
+    "avgChainLoadTimeMs": null,
+    "memberDiffs": [],
+    "deviceDiffs": [],
+    "memberDiffMeta": {
+      "count": 0,
+      "avg": 0
+    },
+    "deviceDiffMeta": {
+      "count": 0,
+      "avg": 0
+    },
+    "avgConnectedPeers": null,
+    "connectedPeers": []
+  },
+  {
+    "userCount": 94,
+    "avgChainLoadTimeMs": 9838,
+    "memberDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 7
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 1
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 2
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 1
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 1
+      }
+    ],
+    "deviceDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 47
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 43
+      }
+    ],
+    "memberDiffMeta": {
+      "count": 5,
+      "avg": 2.4
+    },
+    "deviceDiffMeta": {
+      "count": 5,
+      "avg": 43.8
+    },
+    "avgConnectedPeers": 5.4,
+    "connectedPeers": [
+      {
+        "username": "perf-user-99",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-106",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-109",
+        "connectedPeers": 3
+      },
+      {
+        "username": "perf-user-110",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-111",
+        "connectedPeers": 5
+      }
+    ]
+  },
+  {
+    "userCount": 94,
+    "avgChainLoadTimeMs": 9838,
+    "memberDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 7
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 1
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 2
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 1
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 1
+      }
+    ],
+    "deviceDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 47
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 43
+      }
+    ],
+    "memberDiffMeta": {
+      "count": 5,
+      "avg": 2.4
+    },
+    "deviceDiffMeta": {
+      "count": 5,
+      "avg": 43.8
+    },
+    "avgConnectedPeers": 6.2,
+    "connectedPeers": [
+      {
+        "username": "perf-user-99",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-106",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-109",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-110",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-111",
+        "connectedPeers": 6
+      }
+    ]
+  },
+  {
+    "userCount": 94,
+    "avgChainLoadTimeMs": 9838,
+    "memberDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 7
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 1
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 2
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 1
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 1
+      }
+    ],
+    "deviceDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 47
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 43
+      }
+    ],
+    "memberDiffMeta": {
+      "count": 5,
+      "avg": 2.4
+    },
+    "deviceDiffMeta": {
+      "count": 5,
+      "avg": 43.8
+    },
+    "avgConnectedPeers": 6.2,
+    "connectedPeers": [
+      {
+        "username": "perf-user-99",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-106",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-109",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-110",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-111",
+        "connectedPeers": 6
+      }
+    ]
+  },
+  {
+    "userCount": 94,
+    "avgChainLoadTimeMs": 9838,
+    "memberDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 7
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 1
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 2
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 1
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 1
+      }
+    ],
+    "deviceDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 47
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 43
+      }
+    ],
+    "memberDiffMeta": {
+      "count": 5,
+      "avg": 2.4
+    },
+    "deviceDiffMeta": {
+      "count": 5,
+      "avg": 43.8
+    },
+    "avgConnectedPeers": 6.2,
+    "connectedPeers": [
+      {
+        "username": "perf-user-99",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-106",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-109",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-110",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-111",
+        "connectedPeers": 6
+      }
+    ]
+  },
+  {
+    "userCount": 94,
+    "avgChainLoadTimeMs": 9838,
+    "memberDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 7
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 1
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 2
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 1
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 1
+      }
+    ],
+    "deviceDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 47
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 43
+      }
+    ],
+    "memberDiffMeta": {
+      "count": 5,
+      "avg": 2.4
+    },
+    "deviceDiffMeta": {
+      "count": 5,
+      "avg": 43.8
+    },
+    "avgConnectedPeers": 6.4,
+    "connectedPeers": [
+      {
+        "username": "perf-user-99",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-106",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-109",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-110",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-111",
+        "connectedPeers": 7
+      }
+    ]
+  },
+  {
+    "userCount": 94,
+    "avgChainLoadTimeMs": 9838,
+    "memberDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 7
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 1
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 2
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 1
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 1
+      }
+    ],
+    "deviceDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 47
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 43
+      }
+    ],
+    "memberDiffMeta": {
+      "count": 5,
+      "avg": 2.4
+    },
+    "deviceDiffMeta": {
+      "count": 5,
+      "avg": 43.8
+    },
+    "avgConnectedPeers": 6.8,
+    "connectedPeers": [
+      {
+        "username": "perf-user-99",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-106",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-109",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-110",
+        "connectedPeers": 8
+      },
+      {
+        "username": "perf-user-111",
+        "connectedPeers": 8
+      }
+    ]
+  },
+  {
+    "userCount": 94,
+    "avgChainLoadTimeMs": 9838,
+    "memberDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 7
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 1
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 2
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 1
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 1
+      }
+    ],
+    "deviceDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 47
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 43
+      }
+    ],
+    "memberDiffMeta": {
+      "count": 5,
+      "avg": 2.4
+    },
+    "deviceDiffMeta": {
+      "count": 5,
+      "avg": 43.8
+    },
+    "avgConnectedPeers": 6.8,
+    "connectedPeers": [
+      {
+        "username": "perf-user-99",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-106",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-109",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-110",
+        "connectedPeers": 8
+      },
+      {
+        "username": "perf-user-111",
+        "connectedPeers": 8
+      }
+    ]
+  },
+  {
+    "userCount": 94,
+    "avgChainLoadTimeMs": 9838,
+    "memberDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 7
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 1
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 2
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 1
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 1
+      }
+    ],
+    "deviceDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 47
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 43
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 43
+      }
+    ],
+    "memberDiffMeta": {
+      "count": 5,
+      "avg": 2.4
+    },
+    "deviceDiffMeta": {
+      "count": 5,
+      "avg": 43.8
+    },
+    "avgConnectedPeers": 6.8,
+    "connectedPeers": [
+      {
+        "username": "perf-user-99",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-106",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-109",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-110",
+        "connectedPeers": 8
+      },
+      {
+        "username": "perf-user-111",
+        "connectedPeers": 8
+      }
+    ]
+  },
+  {
+    "userCount": 99,
+    "avgChainLoadTimeMs": 12018.3,
+    "memberDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 11
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 6
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 7
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 6
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 6
+      },
+      {
+        "username": "perf-user-119",
+        "diff": 14
+      },
+      {
+        "username": "perf-user-122",
+        "diff": 29
+      },
+      {
+        "username": "perf-user-125",
+        "diff": 11
+      },
+      {
+        "username": "perf-user-132",
+        "diff": 21
+      }
+    ],
+    "deviceDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 51
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 53
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 57
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 53
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 53
+      },
+      {
+        "username": "perf-user-119",
+        "diff": 55
+      },
+      {
+        "username": "perf-user-122",
+        "diff": 59
+      },
+      {
+        "username": "perf-user-123",
+        "diff": 57
+      },
+      {
+        "username": "perf-user-125",
+        "diff": 51
+      },
+      {
+        "username": "perf-user-132",
+        "diff": 55
+      }
+    ],
+    "memberDiffMeta": {
+      "count": 9,
+      "avg": 12.333333333333334
+    },
+    "deviceDiffMeta": {
+      "count": 10,
+      "avg": 54.4
+    },
+    "avgConnectedPeers": 6.1,
+    "connectedPeers": [
+      {
+        "username": "perf-user-99",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-106",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-109",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-110",
+        "connectedPeers": 8
+      },
+      {
+        "username": "perf-user-111",
+        "connectedPeers": 9
+      },
+      {
+        "username": "perf-user-119",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-122",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-123",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-125",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-132",
+        "connectedPeers": 5
+      }
+    ]
+  },
+  {
+    "userCount": 99,
+    "avgChainLoadTimeMs": 12018.3,
+    "memberDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 11
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 6
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 7
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 6
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 6
+      },
+      {
+        "username": "perf-user-119",
+        "diff": 14
+      },
+      {
+        "username": "perf-user-122",
+        "diff": 29
+      },
+      {
+        "username": "perf-user-125",
+        "diff": 11
+      },
+      {
+        "username": "perf-user-132",
+        "diff": 21
+      }
+    ],
+    "deviceDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 51
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 53
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 57
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 53
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 53
+      },
+      {
+        "username": "perf-user-119",
+        "diff": 55
+      },
+      {
+        "username": "perf-user-122",
+        "diff": 59
+      },
+      {
+        "username": "perf-user-123",
+        "diff": 57
+      },
+      {
+        "username": "perf-user-125",
+        "diff": 51
+      },
+      {
+        "username": "perf-user-132",
+        "diff": 55
+      }
+    ],
+    "memberDiffMeta": {
+      "count": 9,
+      "avg": 12.333333333333334
+    },
+    "deviceDiffMeta": {
+      "count": 10,
+      "avg": 54.4
+    },
+    "avgConnectedPeers": 6.1,
+    "connectedPeers": [
+      {
+        "username": "perf-user-99",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-106",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-109",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-110",
+        "connectedPeers": 8
+      },
+      {
+        "username": "perf-user-111",
+        "connectedPeers": 9
+      },
+      {
+        "username": "perf-user-119",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-122",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-123",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-125",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-132",
+        "connectedPeers": 5
+      }
+    ]
+  },
+  {
+    "userCount": 99,
+    "avgChainLoadTimeMs": 12018.3,
+    "memberDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 11
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 6
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 7
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 6
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 6
+      },
+      {
+        "username": "perf-user-119",
+        "diff": 14
+      },
+      {
+        "username": "perf-user-122",
+        "diff": 29
+      },
+      {
+        "username": "perf-user-125",
+        "diff": 11
+      },
+      {
+        "username": "perf-user-132",
+        "diff": 21
+      }
+    ],
+    "deviceDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 51
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 53
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 57
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 53
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 53
+      },
+      {
+        "username": "perf-user-119",
+        "diff": 55
+      },
+      {
+        "username": "perf-user-122",
+        "diff": 59
+      },
+      {
+        "username": "perf-user-123",
+        "diff": 57
+      },
+      {
+        "username": "perf-user-125",
+        "diff": 51
+      },
+      {
+        "username": "perf-user-132",
+        "diff": 55
+      }
+    ],
+    "memberDiffMeta": {
+      "count": 9,
+      "avg": 12.333333333333334
+    },
+    "deviceDiffMeta": {
+      "count": 10,
+      "avg": 54.4
+    },
+    "avgConnectedPeers": 6.1,
+    "connectedPeers": [
+      {
+        "username": "perf-user-99",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-106",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-109",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-110",
+        "connectedPeers": 8
+      },
+      {
+        "username": "perf-user-111",
+        "connectedPeers": 9
+      },
+      {
+        "username": "perf-user-119",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-122",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-123",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-125",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-132",
+        "connectedPeers": 5
+      }
+    ]
+  },
+  {
+    "userCount": 99,
+    "avgChainLoadTimeMs": 12018.3,
+    "memberDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 11
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 6
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 7
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 6
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 6
+      },
+      {
+        "username": "perf-user-119",
+        "diff": 14
+      },
+      {
+        "username": "perf-user-122",
+        "diff": 29
+      },
+      {
+        "username": "perf-user-125",
+        "diff": 11
+      },
+      {
+        "username": "perf-user-132",
+        "diff": 21
+      }
+    ],
+    "deviceDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 51
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 53
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 57
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 53
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 53
+      },
+      {
+        "username": "perf-user-119",
+        "diff": 55
+      },
+      {
+        "username": "perf-user-122",
+        "diff": 59
+      },
+      {
+        "username": "perf-user-123",
+        "diff": 57
+      },
+      {
+        "username": "perf-user-125",
+        "diff": 51
+      },
+      {
+        "username": "perf-user-132",
+        "diff": 55
+      }
+    ],
+    "memberDiffMeta": {
+      "count": 9,
+      "avg": 12.333333333333334
+    },
+    "deviceDiffMeta": {
+      "count": 10,
+      "avg": 54.4
+    },
+    "avgConnectedPeers": 6.1,
+    "connectedPeers": [
+      {
+        "username": "perf-user-99",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-106",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-109",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-110",
+        "connectedPeers": 8
+      },
+      {
+        "username": "perf-user-111",
+        "connectedPeers": 9
+      },
+      {
+        "username": "perf-user-119",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-122",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-123",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-125",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-132",
+        "connectedPeers": 5
+      }
+    ]
+  },
+  {
+    "userCount": 99,
+    "avgChainLoadTimeMs": 12018.3,
+    "memberDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 11
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 6
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 7
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 6
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 6
+      },
+      {
+        "username": "perf-user-119",
+        "diff": 14
+      },
+      {
+        "username": "perf-user-122",
+        "diff": 29
+      },
+      {
+        "username": "perf-user-125",
+        "diff": 11
+      },
+      {
+        "username": "perf-user-132",
+        "diff": 21
+      }
+    ],
+    "deviceDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 51
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 53
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 57
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 53
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 53
+      },
+      {
+        "username": "perf-user-119",
+        "diff": 55
+      },
+      {
+        "username": "perf-user-122",
+        "diff": 59
+      },
+      {
+        "username": "perf-user-123",
+        "diff": 57
+      },
+      {
+        "username": "perf-user-125",
+        "diff": 51
+      },
+      {
+        "username": "perf-user-132",
+        "diff": 55
+      }
+    ],
+    "memberDiffMeta": {
+      "count": 9,
+      "avg": 12.333333333333334
+    },
+    "deviceDiffMeta": {
+      "count": 10,
+      "avg": 54.4
+    },
+    "avgConnectedPeers": 6.1,
+    "connectedPeers": [
+      {
+        "username": "perf-user-99",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-106",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-109",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-110",
+        "connectedPeers": 8
+      },
+      {
+        "username": "perf-user-111",
+        "connectedPeers": 9
+      },
+      {
+        "username": "perf-user-119",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-122",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-123",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-125",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-132",
+        "connectedPeers": 5
+      }
+    ]
+  },
+  {
+    "userCount": 99,
+    "avgChainLoadTimeMs": 12018.3,
+    "memberDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 11
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 6
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 7
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 6
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 6
+      },
+      {
+        "username": "perf-user-119",
+        "diff": 14
+      },
+      {
+        "username": "perf-user-122",
+        "diff": 29
+      },
+      {
+        "username": "perf-user-125",
+        "diff": 11
+      },
+      {
+        "username": "perf-user-132",
+        "diff": 21
+      }
+    ],
+    "deviceDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 51
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 53
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 57
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 53
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 53
+      },
+      {
+        "username": "perf-user-119",
+        "diff": 55
+      },
+      {
+        "username": "perf-user-122",
+        "diff": 59
+      },
+      {
+        "username": "perf-user-123",
+        "diff": 57
+      },
+      {
+        "username": "perf-user-125",
+        "diff": 51
+      },
+      {
+        "username": "perf-user-132",
+        "diff": 55
+      }
+    ],
+    "memberDiffMeta": {
+      "count": 9,
+      "avg": 12.333333333333334
+    },
+    "deviceDiffMeta": {
+      "count": 10,
+      "avg": 54.4
+    },
+    "avgConnectedPeers": 6.1,
+    "connectedPeers": [
+      {
+        "username": "perf-user-99",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-106",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-109",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-110",
+        "connectedPeers": 8
+      },
+      {
+        "username": "perf-user-111",
+        "connectedPeers": 9
+      },
+      {
+        "username": "perf-user-119",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-122",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-123",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-125",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-132",
+        "connectedPeers": 5
+      }
+    ]
+  },
+  {
+    "userCount": 104,
+    "avgChainLoadTimeMs": 11542.133333333333,
+    "memberDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 16
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 11
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 12
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 11
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 11
+      },
+      {
+        "username": "perf-user-119",
+        "diff": 19
+      },
+      {
+        "username": "perf-user-122",
+        "diff": 31
+      },
+      {
+        "username": "perf-user-125",
+        "diff": 16
+      },
+      {
+        "username": "perf-user-132",
+        "diff": 25
+      },
+      {
+        "username": "perf-user-138",
+        "diff": 24
+      },
+      {
+        "username": "perf-user-140",
+        "diff": 31
+      },
+      {
+        "username": "perf-user-141",
+        "diff": 31
+      },
+      {
+        "username": "perf-user-145",
+        "diff": 31
+      },
+      {
+        "username": "perf-user-153",
+        "diff": 25
+      }
+    ],
+    "deviceDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 61
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 63
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 67
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 63
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 63
+      },
+      {
+        "username": "perf-user-119",
+        "diff": 65
+      },
+      {
+        "username": "perf-user-122",
+        "diff": 63
+      },
+      {
+        "username": "perf-user-123",
+        "diff": 67
+      },
+      {
+        "username": "perf-user-125",
+        "diff": 61
+      },
+      {
+        "username": "perf-user-132",
+        "diff": 63
+      },
+      {
+        "username": "perf-user-138",
+        "diff": 65
+      },
+      {
+        "username": "perf-user-140",
+        "diff": 63
+      },
+      {
+        "username": "perf-user-141",
+        "diff": 63
+      },
+      {
+        "username": "perf-user-145",
+        "diff": 63
+      },
+      {
+        "username": "perf-user-153",
+        "diff": 63
+      }
+    ],
+    "memberDiffMeta": {
+      "count": 14,
+      "avg": 21
+    },
+    "deviceDiffMeta": {
+      "count": 15,
+      "avg": 63.53333333333333
+    },
+    "avgConnectedPeers": 6.6,
+    "connectedPeers": [
+      {
+        "username": "perf-user-99",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-106",
+        "connectedPeers": 8
+      },
+      {
+        "username": "perf-user-109",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-110",
+        "connectedPeers": 8
+      },
+      {
+        "username": "perf-user-111",
+        "connectedPeers": 9
+      },
+      {
+        "username": "perf-user-119",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-122",
+        "connectedPeers": 8
+      },
+      {
+        "username": "perf-user-123",
+        "connectedPeers": 8
+      },
+      {
+        "username": "perf-user-125",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-132",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-138",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-140",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-141",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-145",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-153",
+        "connectedPeers": 5
+      }
+    ]
+  },
+  {
+    "userCount": 109,
+    "avgChainLoadTimeMs": 11009.55,
+    "memberDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 21
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 16
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 17
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 16
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 16
+      },
+      {
+        "username": "perf-user-119",
+        "diff": 23
+      },
+      {
+        "username": "perf-user-122",
+        "diff": 36
+      },
+      {
+        "username": "perf-user-125",
+        "diff": 21
+      },
+      {
+        "username": "perf-user-132",
+        "diff": 30
+      },
+      {
+        "username": "perf-user-138",
+        "diff": 29
+      },
+      {
+        "username": "perf-user-140",
+        "diff": 36
+      },
+      {
+        "username": "perf-user-141",
+        "diff": 36
+      },
+      {
+        "username": "perf-user-145",
+        "diff": 36
+      },
+      {
+        "username": "perf-user-153",
+        "diff": 30
+      },
+      {
+        "username": "perf-user-154",
+        "diff": 23
+      },
+      {
+        "username": "perf-user-157",
+        "diff": 19
+      },
+      {
+        "username": "perf-user-159",
+        "diff": 19
+      },
+      {
+        "username": "perf-user-160",
+        "diff": 19
+      },
+      {
+        "username": "perf-user-163",
+        "diff": 19
+      }
+    ],
+    "deviceDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 71
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 73
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 77
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 73
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 73
+      },
+      {
+        "username": "perf-user-119",
+        "diff": 73
+      },
+      {
+        "username": "perf-user-122",
+        "diff": 73
+      },
+      {
+        "username": "perf-user-123",
+        "diff": 77
+      },
+      {
+        "username": "perf-user-125",
+        "diff": 71
+      },
+      {
+        "username": "perf-user-132",
+        "diff": 73
+      },
+      {
+        "username": "perf-user-138",
+        "diff": 75
+      },
+      {
+        "username": "perf-user-140",
+        "diff": 73
+      },
+      {
+        "username": "perf-user-141",
+        "diff": 73
+      },
+      {
+        "username": "perf-user-145",
+        "diff": 73
+      },
+      {
+        "username": "perf-user-153",
+        "diff": 73
+      },
+      {
+        "username": "perf-user-154",
+        "diff": 73
+      },
+      {
+        "username": "perf-user-157",
+        "diff": 69
+      },
+      {
+        "username": "perf-user-159",
+        "diff": 69
+      },
+      {
+        "username": "perf-user-160",
+        "diff": 69
+      },
+      {
+        "username": "perf-user-163",
+        "diff": 69
+      }
+    ],
+    "memberDiffMeta": {
+      "count": 19,
+      "avg": 24.31578947368421
+    },
+    "deviceDiffMeta": {
+      "count": 20,
+      "avg": 72.5
+    },
+    "avgConnectedPeers": 6.05,
+    "connectedPeers": [
+      {
+        "username": "perf-user-99",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-106",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-109",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-110",
+        "connectedPeers": 14
+      },
+      {
+        "username": "perf-user-111",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-119",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-122",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-123",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-125",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-132",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-138",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-140",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-141",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-145",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-153",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-154",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-157",
+        "connectedPeers": 10
+      },
+      {
+        "username": "perf-user-159",
+        "connectedPeers": 9
+      },
+      {
+        "username": "perf-user-160",
+        "connectedPeers": 8
+      },
+      {
+        "username": "perf-user-163",
+        "connectedPeers": 5
+      }
+    ]
+  },
+  {
+    "userCount": 114,
+    "avgChainLoadTimeMs": 9874.64,
+    "memberDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 26
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 21
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 22
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 21
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 21
+      },
+      {
+        "username": "perf-user-119",
+        "diff": 28
+      },
+      {
+        "username": "perf-user-122",
+        "diff": 41
+      },
+      {
+        "username": "perf-user-123",
+        "diff": 2
+      },
+      {
+        "username": "perf-user-125",
+        "diff": 26
+      },
+      {
+        "username": "perf-user-132",
+        "diff": 35
+      },
+      {
+        "username": "perf-user-138",
+        "diff": 34
+      },
+      {
+        "username": "perf-user-140",
+        "diff": 41
+      },
+      {
+        "username": "perf-user-141",
+        "diff": 41
+      },
+      {
+        "username": "perf-user-145",
+        "diff": 41
+      },
+      {
+        "username": "perf-user-153",
+        "diff": 35
+      },
+      {
+        "username": "perf-user-154",
+        "diff": 28
+      },
+      {
+        "username": "perf-user-157",
+        "diff": 19
+      },
+      {
+        "username": "perf-user-159",
+        "diff": 19
+      },
+      {
+        "username": "perf-user-160",
+        "diff": 19
+      },
+      {
+        "username": "perf-user-163",
+        "diff": 19
+      },
+      {
+        "username": "perf-user-164",
+        "diff": 19
+      },
+      {
+        "username": "perf-user-165",
+        "diff": 19
+      },
+      {
+        "username": "perf-user-166",
+        "diff": 19
+      },
+      {
+        "username": "perf-user-167",
+        "diff": 19
+      },
+      {
+        "username": "perf-user-171",
+        "diff": 19
+      }
+    ],
+    "deviceDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 81
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 87
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-119",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-122",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-123",
+        "diff": 87
+      },
+      {
+        "username": "perf-user-125",
+        "diff": 81
+      },
+      {
+        "username": "perf-user-132",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-138",
+        "diff": 85
+      },
+      {
+        "username": "perf-user-140",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-141",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-145",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-153",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-154",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-157",
+        "diff": 69
+      },
+      {
+        "username": "perf-user-159",
+        "diff": 69
+      },
+      {
+        "username": "perf-user-160",
+        "diff": 69
+      },
+      {
+        "username": "perf-user-163",
+        "diff": 69
+      },
+      {
+        "username": "perf-user-164",
+        "diff": 69
+      },
+      {
+        "username": "perf-user-165",
+        "diff": 69
+      },
+      {
+        "username": "perf-user-166",
+        "diff": 69
+      },
+      {
+        "username": "perf-user-167",
+        "diff": 69
+      },
+      {
+        "username": "perf-user-171",
+        "diff": 69
+      }
+    ],
+    "memberDiffMeta": {
+      "count": 25,
+      "avg": 25.36
+    },
+    "deviceDiffMeta": {
+      "count": 25,
+      "avg": 78.2
+    },
+    "avgConnectedPeers": 6.56,
+    "connectedPeers": [
+      {
+        "username": "perf-user-99",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-106",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-109",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-110",
+        "connectedPeers": 14
+      },
+      {
+        "username": "perf-user-111",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-119",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-122",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-123",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-125",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-132",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-138",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-140",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-141",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-145",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-153",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-154",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-157",
+        "connectedPeers": 11
+      },
+      {
+        "username": "perf-user-159",
+        "connectedPeers": 12
+      },
+      {
+        "username": "perf-user-160",
+        "connectedPeers": 11
+      },
+      {
+        "username": "perf-user-163",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-164",
+        "connectedPeers": 9
+      },
+      {
+        "username": "perf-user-165",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-166",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-167",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-171",
+        "connectedPeers": 5
+      }
+    ]
+  },
+  {
+    "userCount": 114,
+    "avgChainLoadTimeMs": 9874.64,
+    "memberDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 26
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 21
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 22
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 21
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 21
+      },
+      {
+        "username": "perf-user-119",
+        "diff": 28
+      },
+      {
+        "username": "perf-user-122",
+        "diff": 41
+      },
+      {
+        "username": "perf-user-123",
+        "diff": 2
+      },
+      {
+        "username": "perf-user-125",
+        "diff": 26
+      },
+      {
+        "username": "perf-user-132",
+        "diff": 35
+      },
+      {
+        "username": "perf-user-138",
+        "diff": 34
+      },
+      {
+        "username": "perf-user-140",
+        "diff": 41
+      },
+      {
+        "username": "perf-user-141",
+        "diff": 41
+      },
+      {
+        "username": "perf-user-145",
+        "diff": 41
+      },
+      {
+        "username": "perf-user-153",
+        "diff": 35
+      },
+      {
+        "username": "perf-user-154",
+        "diff": 28
+      },
+      {
+        "username": "perf-user-157",
+        "diff": 19
+      },
+      {
+        "username": "perf-user-159",
+        "diff": 19
+      },
+      {
+        "username": "perf-user-160",
+        "diff": 19
+      },
+      {
+        "username": "perf-user-163",
+        "diff": 19
+      },
+      {
+        "username": "perf-user-164",
+        "diff": 19
+      },
+      {
+        "username": "perf-user-165",
+        "diff": 19
+      },
+      {
+        "username": "perf-user-166",
+        "diff": 19
+      },
+      {
+        "username": "perf-user-167",
+        "diff": 19
+      },
+      {
+        "username": "perf-user-171",
+        "diff": 19
+      }
+    ],
+    "deviceDiffs": [
+      {
+        "username": "perf-user-99",
+        "diff": 81
+      },
+      {
+        "username": "perf-user-106",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-109",
+        "diff": 87
+      },
+      {
+        "username": "perf-user-110",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-111",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-119",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-122",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-123",
+        "diff": 87
+      },
+      {
+        "username": "perf-user-125",
+        "diff": 81
+      },
+      {
+        "username": "perf-user-132",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-138",
+        "diff": 85
+      },
+      {
+        "username": "perf-user-140",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-141",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-145",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-153",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-154",
+        "diff": 83
+      },
+      {
+        "username": "perf-user-157",
+        "diff": 69
+      },
+      {
+        "username": "perf-user-159",
+        "diff": 69
+      },
+      {
+        "username": "perf-user-160",
+        "diff": 69
+      },
+      {
+        "username": "perf-user-163",
+        "diff": 69
+      },
+      {
+        "username": "perf-user-164",
+        "diff": 69
+      },
+      {
+        "username": "perf-user-165",
+        "diff": 69
+      },
+      {
+        "username": "perf-user-166",
+        "diff": 69
+      },
+      {
+        "username": "perf-user-167",
+        "diff": 69
+      },
+      {
+        "username": "perf-user-171",
+        "diff": 69
+      }
+    ],
+    "memberDiffMeta": {
+      "count": 25,
+      "avg": 25.36
+    },
+    "deviceDiffMeta": {
+      "count": 25,
+      "avg": 78.2
+    },
+    "avgConnectedPeers": 6.64,
+    "connectedPeers": [
+      {
+        "username": "perf-user-99",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-106",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-109",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-110",
+        "connectedPeers": 14
+      },
+      {
+        "username": "perf-user-111",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-119",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-122",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-123",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-125",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-132",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-138",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-140",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-141",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-145",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-153",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-154",
+        "connectedPeers": 5
+      },
+      {
+        "username": "perf-user-157",
+        "connectedPeers": 11
+      },
+      {
+        "username": "perf-user-159",
+        "connectedPeers": 13
+      },
+      {
+        "username": "perf-user-160",
+        "connectedPeers": 12
+      },
+      {
+        "username": "perf-user-163",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-164",
+        "connectedPeers": 9
+      },
+      {
+        "username": "perf-user-165",
+        "connectedPeers": 6
+      },
+      {
+        "username": "perf-user-166",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-167",
+        "connectedPeers": 7
+      },
+      {
+        "username": "perf-user-171",
+        "connectedPeers": 5
+      }
+    ]
+  }
+]

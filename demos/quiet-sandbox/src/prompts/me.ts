@@ -4,7 +4,7 @@ import chalk from 'chalk';
 import clipboard from 'clipboardy';
 import { Peer } from '@libp2p/interface';
 
-import { Networking } from '../network.js';
+import { Networking } from '../network/network.js';
 import actionSelect from '../components/actionSelect.js';
 
 const displayMyInfo = async (networking: Networking) => {

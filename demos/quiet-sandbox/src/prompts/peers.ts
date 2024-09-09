@@ -4,7 +4,7 @@ import { input } from '@inquirer/prompts';
 import { Peer, PeerId } from '@libp2p/interface';
 import clipboard from 'clipboardy';
 
-import { Networking } from '../network.js';
+import { Networking } from '../network/network.js';
 import actionSelect from '../components/actionSelect.js';
 
 const peerInfo = async (networking: Networking | undefined) => {

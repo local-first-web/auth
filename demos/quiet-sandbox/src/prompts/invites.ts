@@ -4,7 +4,7 @@ import clipboard from 'clipboardy';
 
 import actionSelect from "../components/actionSelect.js";
 import { DEFAULT_INVITATION_VALID_FOR_MS, DEFAULT_MAX_USES } from "../auth/services/invites/inviteService.js";
-import { LocalStorage } from "../network.js";
+import { LocalStorage } from "../network/storage.js";
 
 const inviteSeedMap = new Map<string, string>()
 

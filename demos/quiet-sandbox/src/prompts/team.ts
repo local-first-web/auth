@@ -5,10 +5,11 @@ import { confirm, input } from '@inquirer/prompts';
 import clipboard from 'clipboardy';
 
 import { SigChain } from '../auth/chain.js';
-import { LocalStorage, Networking } from '../network.js';
+import { Networking } from '../network/network.js';
 import { UserService } from '../auth/services/members/userService.js';
 import { makeChannelsPrintable } from './channels.js';
 import { makeRolesPrintable } from './roles.js';
+import { LocalStorage } from '../network/storage.js';
 
 const teamInfo = async (networking: Networking | undefined) => {
   if (networking == null || networking.libp2p == null || networking.libp2p.libp2p == null) {

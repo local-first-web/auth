@@ -6,10 +6,11 @@ import actionSelect from '../components/actionSelect.js';
 import { teamAdd, teamInfo } from './team.js';
 import { channelCreate, channelsList } from './channels.js';
 import { invitesList, inviteAdd } from './invites.js';
-import { LocalStorage, Networking } from '../network.js';
+import { Networking } from '../network/network.js';
 import { peerConnect, peerInfo } from './peers.js';
 import { me } from './me.js';
 import { roleCreate, rolesList } from './roles.js';
+import { LocalStorage } from '../network/storage.js';
 
 const mainLoop = async (storage: LocalStorage, networking?: Networking) => {
   let exit = false;

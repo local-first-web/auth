@@ -2,9 +2,11 @@ import { InviteeMemberContext } from "@localfirst/auth";
 import { SigChain } from "../../auth/chain.js";
 import { DEFAULT_INVITATION_VALID_FOR_MS } from "../../auth/services/invites/inviteService.js";
 import { UserService } from "../../auth/services/members/userService.js";
-import { LocalStorage, Networking, QuietAuthEvents } from "../../network.js";
+import { Networking } from "../../network/network.js";
 import { generateDeviceName } from "./devices.js";
 import { createLogger } from "./logger.js";
+import { LocalStorage } from "../../network/storage.js";
+import { QuietAuthEvents } from "../../network/events.js";
 
 const LOGGER = createLogger("team")
 

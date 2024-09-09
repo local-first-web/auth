@@ -1,7 +1,7 @@
 import { DEFAULT_INVITATION_VALID_FOR_MS, InviteService } from "../../auth/services/invites/inviteService.js";
 import { DeviceService } from "../../auth/services/members/deviceService.js";
-import { QuietLogger } from "../../utils/logger/logger.js";
-import { EVENTS, Networking, QuietAuthEvents } from "../../network.js";
+import { EVENTS, QuietAuthEvents } from "../../network/events.js";
+import { Networking } from "../../network/network.js";
 import { sleep } from "../../utils/utils.js";
 import { generateDeviceName } from "./devices.js";
 import { createLogger } from "./logger.js";
