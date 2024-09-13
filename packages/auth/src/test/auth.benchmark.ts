@@ -15,7 +15,7 @@ describe('auth', () => {
     // Add 100 test users
     //
 
-    const usernames = [...new Array(100).keys()].map(i => 'user-' + i)
+    const usernames = Array.from({ length: 100 }, (_, i) => `user-${i}`)
 
     for (const username of usernames) {
       const user = Auth.createUser(username, username)
