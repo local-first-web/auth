@@ -11,9 +11,7 @@ describe('auth', () => {
     const teamName = 'Test'
     const team = Auth.createTeam(teamName, founderContext)
 
-    //
     // Add 100 test users
-    //
 
     const usernames = Array.from({ length: 100 }, (_, i) => `user-${i}`)
 
@@ -23,9 +21,7 @@ describe('auth', () => {
       team.addForTesting(user, [], Auth.redactDevice(device))
     }
 
-    //
     // Invite new user and have them join
-    //
 
     const { seed } = team.inviteMember({ maxUses: 1000 })
 
