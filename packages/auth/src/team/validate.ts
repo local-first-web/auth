@@ -114,7 +114,7 @@ const validators: TeamStateValidatorSet = {
   },
 
   /** Check if userId and userName are not used by any other member within the team */
-  mustBeUniqueUserNameAndUserId(...args) {
+  uniqueUserNameAndId(...args) {
     const [previousState, link] = args
     if (link.body.type === 'ADMIT_MEMBER') {
       const { userName, memberKeys } = link.body.payload
