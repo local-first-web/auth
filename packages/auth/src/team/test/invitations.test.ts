@@ -293,7 +293,7 @@ describe('Team', () => {
         // 🦹‍♀️ Eve prepares keys using Alice's userId
         const keysWithAliceUserId = {
           ...eve.user.keys,
-          name: alice.userId
+          name: alice.userId,
         }
 
         // 🦹‍♀️ Eve shows 👩🏾 Alice her proof of invitation, but uses Alice's userId
@@ -306,8 +306,10 @@ describe('Team', () => {
 
         // ❌ 🦹‍♀️ Eve is not on the team
         expect(alice.team.has(eve.userId)).toBe(false)
-        expect(alice.team.state.members.filter(({ userId }) => alice.userId)).toHaveLength(1)
-        expect(alice.team.members(alice.userId).userName == alice.userName).toBe(true)
+        expect(
+          alice.team.state.members.filter(({ userId }) => userId === alice.userId)
+        ).toHaveLength(1)
+        expect(alice.team.members(alice.userId).userName === alice.userName).toBe(true)
       })
 
       describe('devices', () => {

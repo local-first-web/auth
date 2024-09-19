@@ -556,19 +556,19 @@ export class Team extends EventEmitter<TeamEvents> {
 
   /** Check if userId and userName are not used by any other member within the team. */
   public validateUser = (userId: string, userName: string) => {
-    const memberWithSameUserId = this.members().find(member => member.userId == userId)
-    if (memberWithSameUserId != undefined) {
+    const memberWithSameUserId = this.members().find(member => member.userId === userId)
+    if (memberWithSameUserId !== undefined) {
       return invitations.fail('userId is not unique within the team.')
     }
 
-    const memberWithSameUserName = this.members().find(member =>
-      member.userName.toLowerCase() == userName.toLowerCase()
+    const memberWithSameUserName = this.members().find(
+      member => member.userName.toLowerCase() === userName.toLowerCase()
     )
-    if (memberWithSameUserName != undefined) {
+    if (memberWithSameUserName !== undefined) {
       return invitations.fail('Username is not unique within the team.')
     }
 
-    return VALID;
+    return VALID
   }
 
   /** An existing team member calls this to admit a new member & their device to the team based on proof of invitation */

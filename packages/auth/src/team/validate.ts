@@ -119,18 +119,18 @@ const validators: TeamStateValidatorSet = {
     if (link.body.type === 'ADMIT_MEMBER') {
       const { userName, memberKeys } = link.body.payload
 
-      const memberWithSameUserId = previousState.members.find(member => 
-        member.userId == memberKeys.name
+      const memberWithSameUserId = previousState.members.find(
+        member => member.userId === memberKeys.name
       )
-      if (memberWithSameUserId != undefined) {
+      if (memberWithSameUserId !== undefined) {
         return fail('userId is not unique within the team.', ...args)
       }
 
-      const memberWithSameUserName = previousState.members.find(member => 
-        member.userName.toLowerCase() == userName.toLowerCase()
+      const memberWithSameUserName = previousState.members.find(
+        member => member.userName.toLowerCase() === userName.toLowerCase()
       )
 
-      if (memberWithSameUserName != undefined) {
+      if (memberWithSameUserName !== undefined) {
         return fail('Username is not unique within the team.', ...args)
       }
     }
