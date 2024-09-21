@@ -1,4 +1,4 @@
-import { Repo, type PeerId } from '@automerge/automerge-repo'
+import { Repo } from '@automerge/automerge-repo'
 import { NodeWSServerAdapter } from '@automerge/automerge-repo-network-websocket'
 import { NodeFSStorageAdapter } from '@automerge/automerge-repo-storage-nodefs'
 import {
@@ -85,14 +85,12 @@ export class LocalFirstAuthSyncServer {
       const server: ServerWithSecrets = { host: this.host, keys }
       const user = castServer.toUser(server)
       const device = castServer.toDevice(server)
-      const peerId = this.host as PeerId
       const storage = new NodeFSStorageAdapter(storageDir)
       const auth = new AuthProvider({ user, device, storage })
 
       // Set up the repo
       const adapter = new NodeWSServerAdapter(this.webSocketServer)
       const _repo = new Repo({
-        peerId,
         // Use the auth provider to wrap our network adapter
         network: [auth.wrap(adapter)],
         // Use the same storage that the auth provider uses
