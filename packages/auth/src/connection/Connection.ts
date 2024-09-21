@@ -841,7 +841,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
 
   #logMessage(direction: 'in' | 'out', message: NumberedMessage<ConnectionMessage>) {
     const arrow = direction === 'in' ? '<-' : '->'
-    const peerUserName = this.#started ? this._context.peer?.userName ?? '?' : '?'
+    const peerUserName = this.#started ? (this._context.peer?.userName ?? '?') : '?'
     this.#log(`${arrow}${peerUserName} #${message.index} ${messageSummary(message)}`)
   }
 }
