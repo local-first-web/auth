@@ -32,6 +32,7 @@
     "test:pw": "pnpm -F @localfirst/automerge-repo-todos test:pw",
     "test:pw:log": "pnpm -F @localfirst/automerge-repo-todos test:pw:log",
     "test:pw:ui": "pnpm -F @localfirst/automerge-repo-todos test:pw:ui",
+    "bench": "cross-env DEBUG=localfirst*,automerge* DEBUG_COLORS=1 vitest bench",
     "watch": "lerna watch -- lerna run build --scope=\\$LERNA_PACKAGE_NAME --include-dependents"
   },
   "devDependencies": {
