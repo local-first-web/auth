@@ -34,7 +34,7 @@ it('Alice can create a team', async () => {
 
   // when we're authenticated, we get a peer event
   const { peerId } = await eventPromise(alice.repo.networkSubsystem, 'peer')
-  expect(peerId?.length).toBeGreaterThan(0)
+  expect(peerId.length).toBeGreaterThan(0)
 })
 
 it('Alice can create a team and manually register it with the server ', async () => {
@@ -68,7 +68,7 @@ it('Alice can create a team and manually register it with the server ', async ()
 
   // when we're authenticated, we get a peer event
   const { peerId } = await eventPromise(alice.repo.networkSubsystem, 'peer')
-  expect(peerId?.length).toBeGreaterThan(0)
+  expect(peerId.length).toBeGreaterThan(0)
 })
 
 // // TODO NEXT figure out how to make this test reflect reality & crash
