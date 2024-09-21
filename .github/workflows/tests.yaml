@@ -14,13 +14,13 @@ jobs:
     steps:
       - uses: actions/setup-node@v3
         with:
-          node-version: '18.x'
+          node-version: '20.x'
           registry-url: 'https://registry.npmjs.org'
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
           version: 8
           run_install: false
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ github.ref }}
@@ -30,3 +30,5 @@ jobs:
           pnpm build
       - name: Run tests
         run: pnpm test
+      - name: Run linter
+        run: pnpm lint
