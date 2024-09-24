@@ -51,33 +51,31 @@ export const decryptGraph: DecryptFn = <A extends Action, C>({
   keys: KeysetWithSecrets | KeysetWithSecrets[] | Keyring
 }): Graph<A, C> => {
   const { encryptedLinks, root, childMap = {} } = encryptedGraph
-
   const links = encryptedGraph.links ?? {}
+  const toVisit = [root]
+  const visited: Set<Hash> = new Set()
+  const decryptedLinks: Record<Hash, Link<A, C>> = {}
 
-  /** Recursively decrypts a link and its children. */
-  const decrypt = (
-    hash: Hash,
-    prevLinks: Record<Hash, Link<A, C>> = {}
-  ): Record<Hash, Link<A, C>> => {
-    // decrypt this link
-    const encryptedLink = encryptedLinks[hash]
+  while (toVisit.length > 0) {
+    const current = toVisit.pop() as Hash
+
+    if (visited.has(current)) {
+      continue
+    }
+
+    const encryptedLink = encryptedLinks[current]
     const decryptedLink =
-      links[hash] ?? // if it's already decrypted, don't bother decrypting it again
+      links[current] ?? // if it's already decrypted, don't bother decrypting it again
       decryptLink(encryptedLink, keys)
-    let newLinks = {
-      [hash]: decryptedLink,
-    }
 
-    // decrypt its children
-    const children = childMap[hash] ?? []
-    for (const hash of children) {
-      newLinks = { ...newLinks, ...decrypt(hash, newLinks) }
-    }
+    decryptedLinks[current] = decryptedLink
 
-    return { ...prevLinks, ...newLinks }
+    const children = childMap[current] ?? []
+    for (const child of children) {
+      toVisit.push(child)
+    }
+    visited.add(current)
   }
-
-  const decryptedLinks = decrypt(root)
 
   return {
     ...encryptedGraph,
