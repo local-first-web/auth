@@ -95,7 +95,7 @@ module.exports = {
     'unicorn/filename-case': [ERROR, { cases: { camelCase: true, pascalCase: true } }],
 
     // don't flag wallaby magic comment `//?`
-    'spaced-comment': [ERROR, ALWAYS, { block: { markers: ['?'], balanced: true } }],
+    'spaced-comment': [ERROR, ALWAYS, { line: { markers: ['?'] } }],
 
     'ava/no-import-test-files': [ERROR, { files: ['*.test.ts'] }],
   },

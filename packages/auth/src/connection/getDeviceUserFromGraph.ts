@@ -1,4 +1,4 @@
-import type { Keyring, UserWithSecrets } from '@localfirst/crdx'
+import { getLatestGeneration, type Keyring, type UserWithSecrets } from '@localfirst/crdx'
 import { assert } from '@localfirst/shared'
 import { generateProof } from 'invitation/generateProof.js'
 import { generateStarterKeys } from 'invitation/generateStarterKeys.js'
@@ -11,7 +11,12 @@ const { USER } = KeyType
 /**
  * If we're joining as a new device for an existing member, we don't have a user object yet, so we
  * need to get those from the graph. We use the invitation seed to generate the starter keys for the
- * new device. We can use these to unlock a lockbox on the team graph that contains our user keys.
+ * new device. We can use these to unlock the lockboxes on the team graph that contain our user
+ * keys.
+ *
+ * Because we need all previous user keys to decrypt the team graph, we return a keyring containing
+ * the full history of user keys, along with a user object containing just the latest generation of
+ * keys.
  */
 export const getDeviceUserFromGraph = ({
   serializedGraph,
@@ -21,7 +26,10 @@ export const getDeviceUserFromGraph = ({
   serializedGraph: Uint8Array
   teamKeyring: Keyring
   invitationSeed: string
-}): UserWithSecrets => {
+}): {
+  user: UserWithSecrets
+  userKeyring: Keyring
+} => {
   const starterKeys = generateStarterKeys(invitationSeed)
   const invitationId = generateProof(invitationSeed).id
   const state = getTeamState(serializedGraph, teamKeyring)
@@ -32,11 +40,9 @@ export const getDeviceUserFromGraph = ({
   const { userName } = select.member(state, userId)
   assert(userName) // this user must exist in the team graph
 
-  const userKeys = select.keys(state, starterKeys, { type: USER, name: userId })
+  const userKeyring = select.keyring(state, { type: USER, name: userId }, starterKeys)
+  const keys = getLatestGeneration(userKeyring)
+  const user = { userName, userId, keys }
 
-  return {
-    userName,
-    userId,
-    keys: userKeys,
-  }
+  return { user, userKeyring }
 }
