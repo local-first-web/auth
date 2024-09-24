@@ -22,9 +22,9 @@ import {
   NEITHER_IS_MEMBER,
   SERVER_REMOVED,
   TIMEOUT,
+  UNHANDLED,
   createErrorMessage,
   type ConnectionErrorType,
-  UNHANDLED,
 } from 'connection/errors.js'
 import { getDeviceUserFromGraph } from 'connection/getDeviceUserFromGraph.js'
 import * as identity from 'connection/identity.js'
@@ -214,13 +214,14 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           const { device, invitationSeed } = context
           assert(invitationSeed)
 
-          const user =
-            context.user ??
-            // If we're joining as a new device for an existing member, we won't have a user object
-            // yet, so we need to get those from the graph. We use the invitation seed to generate
-            // the starter keys for the new device. We can use these to unlock a lockbox on the team
-            // graph that contains our user keys.
-            getDeviceUserFromGraph({ serializedGraph, teamKeyring, invitationSeed })
+          // If we're joining as a new device for an existing member, we won't have a user object or
+          // user keys yet, so we need to get those from the graph. We use the invitation seed to
+          // generate the starter keys for the new device. We can use these to unlock the lockboxes
+          // on the team graph that contain our user keys.
+          const { user, userKeyring } =
+            context.user === undefined
+              ? getDeviceUserFromGraph({ serializedGraph, teamKeyring, invitationSeed })
+              : { user: context.user, userKeyring: undefined }
 
           // When admitting us, our peer added our user to the team graph. We've been given the
           // serialized and encrypted graph, and the team keyring. We can now decrypt the graph and
@@ -228,8 +229,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           const team = new Team({ source: serializedGraph, context: { user, device }, teamKeyring })
 
           // We join the team, which adds our device to the team graph.
-          team.join(teamKeyring)
+          team.join(teamKeyring, userKeyring)
+
           this.emit('joined', { team, user, teamKeyring })
+
           return { user, team }
         }),
 

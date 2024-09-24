@@ -12,6 +12,7 @@ import type {
   UserWithSecrets,
 } from '@localfirst/crdx'
 import {
+  createKeyring,
   createKeyset,
   createStore,
   getLatestGeneration,
@@ -137,9 +138,12 @@ export class Team extends EventEmitter<TeamEvents> {
     }
 
     this.state = this.store.getState()
+    this.updateUserKeys()
 
     // Wire up event listeners
     this.on('updated', () => {
+      this.updateUserKeys()
+
       // If we're admin, check for pending key rotations
       this.checkForPendingKeyRotations()
     })
@@ -502,20 +506,17 @@ export class Team extends EventEmitter<TeamEvents> {
     const invitation = invitations.create({ seed, expiration, maxUses, userId: this.userId })
 
     // In order for the invited device to be able to access the user's keys, we put the user keys in
-    // a lockbox that can be opened by an ephemeral keyset generated from the secret invitation
-    // seed.
+    // lockboxes that can be opened by an ephemeral keyset generated from the secret invitation seed.
     const starterKeys = invitations.generateStarterKeys(seed)
-    const lockboxUserKeysForDeviceStarterKeys = lockbox.create(this.context.user.keys, starterKeys)
+    const allUserKeys = Object.values(this.userKeyring())
+    const lockboxes = allUserKeys.map(keys => lockbox.create(keys, starterKeys))
 
     const { id } = invitation
 
     // Post invitation to graph
     this.dispatch({
       type: 'INVITE_DEVICE',
-      payload: {
-        invitation,
-        lockboxes: [lockboxUserKeysForDeviceStarterKeys],
-      },
+      payload: { invitation, lockboxes },
     })
 
     // Return the secret invitation seed (to pass on to invitee) and the invitation id (which could be used to revoke later)
@@ -585,8 +586,9 @@ export class Team extends EventEmitter<TeamEvents> {
 
     const { id } = proof
 
-    // we know the team keys, so we can put them in a lockbox for the new member now (even if we're not an admin)
-    const lockboxTeamKeysForMember = lockbox.create(this.teamKeys(), memberKeys)
+    // we know the team keys, so we can put them in lockboxes for the new member now (even if we're not an admin)
+    const allTeamKeys = Object.values(this.teamKeyring())
+    const lockboxes = allTeamKeys.map(keys => lockbox.create(keys, memberKeys))
 
     // Post admission to the graph
     this.dispatch({
@@ -595,7 +597,7 @@ export class Team extends EventEmitter<TeamEvents> {
         id,
         userName,
         memberKeys: redactKeys(memberKeys),
-        lockboxes: [lockboxTeamKeysForMember],
+        lockboxes,
       },
     })
   }
@@ -623,20 +625,21 @@ export class Team extends EventEmitter<TeamEvents> {
   }
 
   /** Once the new member has received the graph and can instantiate the team, they call this to add their device. */
-  public join = (teamKeyring: Keyring) => {
+  public join = (teamKeyring: Keyring, userKeyring = createKeyring(this.context.user.keys)) => {
     assert(!this.isServer, "Can't join as member on server")
 
-    const { user, device } = this.context
+    const { device } = this.context
     const teamKeys = getLatestGeneration(teamKeyring)
 
-    const lockboxUserKeysForDevice = lockbox.create(user.keys, device.keys)
+    // Create a lockbox for each generation of user keys
+    const lockboxes = Object.values(userKeyring).map(keys => lockbox.create(keys, device.keys))
 
     this.dispatch(
       {
         type: 'ADD_DEVICE',
         payload: {
           device: redactDevice(device),
-          lockboxes: [lockboxUserKeysForDevice],
+          lockboxes,
         },
       },
       teamKeys
@@ -782,6 +785,9 @@ export class Team extends EventEmitter<TeamEvents> {
   public keys = (scope: KeyMetadata | KeyScope) =>
     select.keys(this.state, this.context.device.keys, scope)
 
+  public userKeyring = (userId = this.userId) =>
+    select.keyring(this.state, { type: USER, name: userId }, this.context.device.keys)
+
   /** Returns the keys for the given role. */
   public roleKeys = (roleName: string, generation?: number) =>
     this.keys({ type: KeyType.ROLE, name: roleName, generation })
@@ -821,6 +827,15 @@ export class Team extends EventEmitter<TeamEvents> {
     // Update our keys in context
     if (isForServer || isForUser) user.keys = newKeys
     if (isForServer) device.keys = newKeys // (a server plays the role of both a user and a device)
+  }
+
+  private updateUserKeys() {
+    const { user } = this.context
+    const latestUserKeys = getLatestGeneration(this.userKeyring())
+
+    if (latestUserKeys && user.keys.generation < latestUserKeys.generation) {
+      user.keys = latestUserKeys
+    }
   }
 
   private checkForPendingKeyRotations() {

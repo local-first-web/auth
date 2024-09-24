@@ -17,6 +17,7 @@ import {
 } from 'util/testing/index.js'
 import { describe, expect, it } from 'vitest'
 import type { InviteeDeviceContext } from '../types.js'
+import { createDevice } from 'device/createDevice.js'
 
 describe('connection', () => {
   describe('authentication', () => {
@@ -248,7 +249,7 @@ describe('connection', () => {
 
         // Bob invites and admits his phone
 
-        const phone = bob.phone!
+        let phone = bob.phone!
 
         {
           const { seed } = bob.team.inviteDevice()
@@ -278,6 +279,12 @@ describe('connection', () => {
         }
         {
           // Bob invites his phone again
+
+          // The phone needs a new deviceId, otherwise the connection will immediately
+          // fail with DEVICE_REMOVED error after being established. It also gets a new
+          // device key as the old one could be compromised.
+          phone = createDevice({ userId: bob.userId, deviceName: phone.deviceName })
+          bob.phone = phone
 
           const { seed } = bob.team.inviteDevice()
           const phoneContext: InviteeDeviceContext = {

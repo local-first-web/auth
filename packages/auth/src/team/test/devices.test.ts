@@ -130,6 +130,8 @@ describe('Team', () => {
 
       // Keys have never been rotated
       expect(alice.team.teamKeys().generation).toBe(0)
+      expect(bob.team.members(bob.userId)?.keys.generation).toBe(0)
+      expect(bob.user.keys.generation).toBe(0)
       const { secretKey } = alice.team.teamKeys()
 
       // Add bob's phone
@@ -138,6 +140,10 @@ describe('Team', () => {
 
       // Remove bob's phone
       bob.team.removeDevice(phone.deviceId)
+
+      // User keys have now been rotated once
+      expect(bob.team.members(bob.userId)?.keys.generation).toBe(1)
+      expect(bob.user.keys.generation).toBe(1)
 
       // Team keys have now been rotated once
       expect(bob.team.teamKeys().generation).toBe(1)
