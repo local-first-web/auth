@@ -12,7 +12,7 @@ export const removeDevice =
       member.userId === userId
         ? {
             ...member,
-            devices: member.devices?.filter(d => d.deviceName !== removedDevice.deviceName),
+            devices: member.devices?.filter(d => d.deviceId !== removedDevice.deviceId),
           }
         : member
 

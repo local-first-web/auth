@@ -1,14 +1,16 @@
-﻿import { type ValidationResult, type ValidatorSet } from './types.js'
+﻿import { memoize } from '@localfirst/shared'
+import { type ValidationResult, type ValidatorSet } from './types.js'
 import { fail, validators } from './validators.js'
 import { VALID } from 'constants.js'
 import { hashEncryptedLink } from 'graph/hashLink.js'
 import { type Action, type Link, type Graph } from 'graph/types.js'
+import { hash } from '@localfirst/crypto'
 
 /**
  * Runs a hash graph through a series of validators to ensure that it is correctly formed, has
  * not been tampered with, etc.
  */
-export const validate = <A extends Action, C>(
+const _validate = <A extends Action, C>(
   /** The hash graph to validate. */
   graph: Graph<A, C>,
 
@@ -78,6 +80,8 @@ export const validate = <A extends Action, C>(
 
   return VALID
 }
+
+export const validate = memoize(_validate, graph => hash('memoize', graph))
 
 // merges multiple validator sets into one object
 const merge = (validatorSets: ValidatorSet[]) =>

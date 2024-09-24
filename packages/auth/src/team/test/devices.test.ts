@@ -1,4 +1,4 @@
-import { redactDevice } from 'index.js'
+import { createDevice, redactDevice } from 'index.js'
 import { setup as setupUsers } from 'util/testing/index.js'
 import { describe, expect, it } from 'vitest'
 
@@ -39,6 +39,26 @@ describe('Team', () => {
       }
 
       expect(tryToRemoveDevice).toThrowError()
+    })
+
+    it("doesn't remove other devices with the same name", () => {
+      const { alice } = setup()
+
+      // Alice already has a device called 'laptop'
+      const firstLaptop = alice.device
+      expect(firstLaptop.deviceName).toBe('laptop')
+      expect(alice.team.members(alice.userId).devices).toHaveLength(1)
+
+      // Alice adds a second device also called 'laptop'
+      const secondLaptop = createDevice({ userId: alice.userId, deviceName: 'laptop' })
+      alice.team.addForTesting(alice.user, [], redactDevice(secondLaptop))
+      expect(alice.team.members(alice.userId).devices).toHaveLength(2)
+
+      // Alice removes the first laptop
+      alice.team.removeDevice(alice.device.deviceId)
+
+      // The second laptop is still there
+      expect(alice.team.members(alice.userId).devices).toHaveLength(1)
     })
 
     it('deviceWasRemoved works as expected', () => {
