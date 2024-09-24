@@ -80,7 +80,7 @@ describe('Team', () => {
         expect(bobsTeam.memberIsAdmin(bob.userId)).toBe(false)
 
         // 👳🏽‍♂️ Charlie shows 👨🏻‍🦲 Bob his proof of invitation
-        bobsTeam.admitMember(proofOfInvitation, charlie.user.keys, bob.user.userName)
+        bobsTeam.admitMember(proofOfInvitation, charlie.user.keys, charlie.user.userName)
 
         // 👍👳🏽‍♂️ Charlie is now on the team
         expect(bobsTeam.has(charlie.userId)).toBe(true)
@@ -334,6 +334,58 @@ describe('Team', () => {
               teamKeyring: bobTeam.teamKeyring(),
             })
         ).not.toThrow()
+      })
+
+      it("won't accept proof of invitation with a username that is not unique", () => {
+        const { alice, bob } = setup('alice', { user: 'bob', member: false })
+
+        // 👩🏾 Alice invites 👨🏻‍🦲 Bob by sending him a random secret key
+        const { seed } = alice.team.inviteMember()
+
+        // 👨🏻‍🦲 Bob accepts the invitation
+        const proofOfInvitation = generateProof(seed)
+
+        // 👨🏻‍🦲 Bob shows 👩🏾 Alice his proof of invitation, but uses Alice's username
+        const tryToAdmitBob = () => {
+          alice.team.admitMember(proofOfInvitation, bob.user.keys, alice.user.userName)
+        }
+
+        // 👎 But the invitation is rejected because the username is not unique
+        expect(tryToAdmitBob).toThrowError('Username is not unique within the team.')
+
+        // ❌ 👨🏻‍🦲 Bob is not on the team
+        expect(alice.team.has(bob.userId)).toBe(false)
+      })
+
+      it("won't accept proof of invitation with a userId that is not unique", () => {
+        const { alice, eve } = setup('alice', { user: 'eve', member: false })
+
+        // 👩🏾 Alice invites 🦹‍♀️ Eve by sending her a random secret key
+        const { seed } = alice.team.inviteMember()
+
+        // 🦹‍♀️ Eve accepts the invitation
+        const proofOfInvitation = generateProof(seed)
+
+        // 🦹‍♀️ Eve prepares keys using Alice's userId
+        const keysWithAliceUserId = {
+          ...eve.user.keys,
+          name: alice.userId,
+        }
+
+        // 🦹‍♀️ Eve shows 👩🏾 Alice her proof of invitation, but uses Alice's userId
+        const tryToAdmitEve = () => {
+          alice.team.admitMember(proofOfInvitation, keysWithAliceUserId, eve.user.userName)
+        }
+
+        // 👎 But the invitation is rejected because the userId is not unique
+        expect(tryToAdmitEve).toThrowError('userId is not unique within the team.')
+
+        // ❌ 🦹‍♀️ Eve is not on the team
+        expect(alice.team.has(eve.userId)).toBe(false)
+        expect(
+          alice.team.state.members.filter(({ userId }) => userId === alice.userId)
+        ).toHaveLength(1)
+        expect(alice.team.members(alice.userId).userName === alice.userName).toBe(true)
       })
 
       describe('devices', () => {
