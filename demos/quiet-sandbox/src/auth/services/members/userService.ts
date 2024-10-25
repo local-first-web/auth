@@ -9,7 +9,6 @@ import * as lfa from '@localfirst/auth'
 import { SigChain } from '../../chain.js'
 import { DeviceService } from './deviceService.js'
 import { InviteService } from '../invites/inviteService.js'
-import { KeyMap } from '../../../../../../packages/auth/dist/team/selectors/keyMap.js'
 
 class UserService extends BaseChainService {
   public static init(sigChain: SigChain): UserService {
@@ -43,11 +42,6 @@ class UserService extends BaseChainService {
       inviteProof,
       publicKeys
     }
-  }
-
-  // ISLA: Can be deleted (Reason: only used for printing data in sandbox)
-  public getKeys(): KeyMap {
-    return this.sigChain.team.allKeys()
   }
 
   public getAllMembers(): lfa.Member[] {

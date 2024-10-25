@@ -3,10 +3,8 @@
  */
 
 import { BaseChainService } from "../baseService.js"
-import { ValidationResult } from "../../../../../../packages/crdx/dist/validator/types.js"
 import * as lfa from "@localfirst/auth"
 import { SigChain } from "../../chain.js"
-import { RoleName } from "../roles/roles.js"
 
 export const DEFAULT_MAX_USES = 1
 export const DEFAULT_INVITATION_VALID_FOR_MS = 604_800_000 // 1 week
@@ -44,14 +42,6 @@ class InviteService extends BaseChainService {
 
   public static generateProof(seed: string): lfa.ProofOfInvitation {
     return lfa.invitation.generateProof(seed)
-  }
-
-  // ISLA: Can be deleted (Reason: only used for admitting members in the sandbox)
-  public admitMemberFromInvite(proof: lfa.ProofOfInvitation, username: string, userId: string, publicKeys: lfa.Keyset): string {
-    this.sigChain.team.admitMember(proof, publicKeys, username)
-    this.sigChain.roles.addMember(userId, RoleName.MEMBER)
-    // this.activeSigChain.persist()
-    return username
   }
 
   // ISLA: Can be deleted (Reason: only used for printing data in sandbox)
