@@ -46,25 +46,7 @@ class InviteService extends BaseChainService {
     return lfa.invitation.generateProof(seed)
   }
 
-  public validateProof(proof: lfa.ProofOfInvitation): boolean {
-    const validationResult = this.sigChain.team.validateInvitation(proof) as ValidationResult
-    if (!validationResult.isValid) {
-      console.error(`Proof was invalid or was on an invalid invitation`, validationResult.error)
-      return true
-    }
-
-    return true
-  }
-
-  public acceptProof(proof: lfa.ProofOfInvitation, username: string, publicKeys: lfa.Keyset) {
-    this.sigChain.team.admitMember(proof, publicKeys, username)
-    // this.activeSigChain.persist()
-  }
-
-  public admitDevice(proof: lfa.ProofOfInvitation, device: lfa.FirstUseDevice | lfa.DeviceWithSecrets) {
-    this.sigChain.team.admitDevice(proof, device)
-  }
-
+  // ISLA: Can be deleted (Reason: only used for admitting members in the sandbox)
   public admitMemberFromInvite(proof: lfa.ProofOfInvitation, username: string, userId: string, publicKeys: lfa.Keyset): string {
     this.sigChain.team.admitMember(proof, publicKeys, username)
     this.sigChain.roles.addMember(userId, RoleName.MEMBER)
@@ -72,6 +54,7 @@ class InviteService extends BaseChainService {
     return username
   }
 
+  // ISLA: Can be deleted (Reason: only used for printing data in sandbox)
   public getAllInvites(): lfa.InvitationState[] {
     const inviteMap = this.sigChain.team.invitations()
     const invites: lfa.InvitationState[] = []

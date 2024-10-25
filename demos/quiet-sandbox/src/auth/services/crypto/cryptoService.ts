@@ -23,10 +23,12 @@ class CryptoService extends BaseChainService {
     })
   }
 
+  // ISLA: Can be deleted (Reason: only used for printing data in sandbox)
   public getKeysForRole(roleName: string, generation?: number): lfa.KeysetWithSecrets {
     return this.sigChain.team.roleKeys(roleName, generation)
   }
 
+  // ISLA: Can be deleted (Reason: only used for printing data in sandbox)
   public getKeysForChannel(channelName: string, generation?: number): lfa.KeysetWithSecrets {
     return this.getKeysForRole(ChannelService.getPrivateChannelRoleName(channelName), generation)
   }

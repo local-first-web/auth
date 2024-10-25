@@ -32,6 +32,7 @@ class DeviceService extends BaseChainService {
    * 
    * @returns Formatted MAC address of the current device
    */
+  // ISLA: We probably want to rethink how we generate device names
   public static determineDeviceName(): string {
     const mac = getMAC()
     return mac.replaceAll(':','')

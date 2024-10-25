@@ -7,6 +7,7 @@ import { SigChain } from "../../chain.js"
 import { BaseChainService } from "../baseService.js"
 import { Channel, QuietRole } from "./roles.js"
 
+// ISLA: We may want to rethink this strategy of just prefixing the name and instead choose to obfuscate whether something is a channel or not
 const CHANNEL_ROLE_KEY_PREFIX = "priv_chan_"
 
 class ChannelService extends BaseChainService {

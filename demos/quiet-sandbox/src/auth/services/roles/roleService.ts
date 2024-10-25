@@ -70,6 +70,7 @@ class RoleService extends BaseChainService {
     return this.roleToQuietRole(role, context)
   }
 
+  // ISLA: Can be deleted (Reason: only used for printing data in sandbox)
   public getAllRoles(context: LocalUserContext, haveAccessOnly: boolean = false): QuietRole[] {
     const allRoles = this.sigChain.team.roles().map(role => this.roleToQuietRole(role, context))
     if (haveAccessOnly) {

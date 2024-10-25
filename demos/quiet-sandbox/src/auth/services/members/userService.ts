@@ -45,6 +45,7 @@ class UserService extends BaseChainService {
     }
   }
 
+  // ISLA: Can be deleted (Reason: only used for printing data in sandbox)
   public getKeys(): KeyMap {
     return this.sigChain.team.allKeys()
   }
@@ -59,10 +60,6 @@ class UserService extends BaseChainService {
     }
 
     return this.sigChain.team.members(memberIds, options)
-  }
-
-  public getMemberByName(memberName: string): lfa.Member | undefined {
-    return this.getAllMembers().find((member) => member.userName === memberName)
   }
 
   public static redactUser(user: lfa.UserWithSecrets): lfa.User {

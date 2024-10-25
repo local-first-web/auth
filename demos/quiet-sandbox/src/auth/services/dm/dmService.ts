@@ -1,3 +1,5 @@
+// ISLA: Can be deleted (Reason: we don't currently have DMs and we don't really know what DMs will look like)
+
 /**
  * Handles DM/Group DM-related chain operations
  */

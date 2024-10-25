@@ -15,7 +15,7 @@ import { RoleName } from './services/roles/roles.js'
 import { findAllByKeyAndReplace } from '../utils/utils.js'
 
 class SigChain {
-  private _team: auth.Team
+  private _team: lfa.Team
   private _users: UserService | null = null
   private _devices: DeviceService | null = null
   private _roles: RoleService | null = null
@@ -24,7 +24,7 @@ class SigChain {
   private _invites: InviteService | null = null
   private _crypto: CryptoService | null = null
 
-  private constructor(team: auth.Team) {
+  private constructor(team: lfa.Team) {
     this._team = team
   }
 
@@ -48,7 +48,7 @@ class SigChain {
     }
   }
 
-  public static createFromTeam(team: auth.Team, context: auth.LocalUserContext): LoadedSigChain {
+  public static createFromTeam(team: lfa.Team, context: lfa.LocalUserContext): LoadedSigChain {
     const sigChain = this.init(team)
     return {
      context,
