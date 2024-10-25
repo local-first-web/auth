@@ -1,3 +1,4 @@
+// ISLA: This is what needs to be added to Quiet to make it work Libp2p and LFA work together
 import { ComponentLogger, Connection, PeerId, PeerStore, Stream, Topology } from "@libp2p/interface"
 import type { ConnectionManager, IncomingStreamData, Registrar } from '@libp2p/interface-internal'
 import { LocalStorage } from "../storage.js"

@@ -6,13 +6,11 @@ import { QuietAuthEvents } from './events.js'
 import { Libp2pService } from './libp2p/libp2p.js'
 import { OrbitDbService } from './orbitdb/orbitdb.js'
 import { MessageService } from './orbitdb/messages.js'
-import { SigChainService } from './orbitdb/sigchain.js'
 
 export class Networking {
   private _libp2p: Libp2pService
   private _orbitDb: OrbitDbService
   private _messages: MessageService
-  private _sigChain: SigChainService
   private _storage: LocalStorage
   private _events: QuietAuthEvents
 
@@ -20,13 +18,11 @@ export class Networking {
     libp2p: Libp2pService, 
     orbitDb: OrbitDbService, 
     messages: MessageService, 
-    sigChain: SigChainService, 
     events: QuietAuthEvents
   ) {
     this._libp2p = libp2p
     this._orbitDb = orbitDb
     this._messages = messages
-    this._sigChain = sigChain
     this._storage = libp2p.storage
     this._events = events
   }
@@ -53,11 +49,7 @@ export class Networking {
     LOGGER.info(`Initializing new message service`)
     await messages.init()
 
-    const sigChain = new SigChainService(orbitDb)
-    LOGGER.info(`Initializing new sigchain service`)
-    await sigChain.init()
-
-    return new Networking(libp2p, orbitDb, messages, sigChain, quietEvents)
+    return new Networking(libp2p, orbitDb, messages, quietEvents)
   }
 
   get libp2p(): Libp2pService {
@@ -70,10 +62,6 @@ export class Networking {
 
   get messages(): MessageService {
     return this._messages
-  }
-
-  get sigChain(): SigChainService {
-    return this._sigChain
   }
 
   get storage(): LocalStorage {

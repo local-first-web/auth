@@ -147,6 +147,7 @@ export class Libp2pService {
         identify: identify({
           timeout: 30_000
         }),
+        // ISLA: This is what needs to be added to Quiet to make it work Libp2p and LFA work together
         auth: libp2pAuth(peerIdFromString(this.peerId!.toString()), this.storage, this.events)
       },
       datastore
@@ -170,6 +171,7 @@ export class Libp2pService {
 
     this.LOGGER.info('Peer ID: ', peerId.toString())
 
+    // ISLA: The auth errors need to be reworked
     const onAuthError = async (errorMessage: string, errorData: { peerId: PeerId, remoteUsername: string | undefined }) => {
       this.LOGGER.error(errorMessage, errorData)
     }
