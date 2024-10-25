@@ -4,7 +4,7 @@
 
 import getMAC from "getmac"
 import { BaseChainService } from "../baseService.js"
-import { Device, DeviceWithSecrets } from "@localfirst/auth"
+import * as lfa from "@localfirst/auth"
 import { SigChain } from "../../chain.js"
 
 class DeviceService extends BaseChainService {
@@ -18,13 +18,13 @@ class DeviceService extends BaseChainService {
    * @param userId User ID that this device is associated with
    * @returns A newly generated QuietDevice instance
    */
-  public static generateDeviceForUser(userId: string, deviceName?: string): DeviceWithSecrets {
+  public static generateDeviceForUser(userId: string, deviceName?: string): lfa.DeviceWithSecrets {
     const params = {
       userId,
       deviceName: deviceName != null ? deviceName : DeviceService.determineDeviceName()
     }
 
-    return SigChain.lfa.createDevice(params)
+    return lfa.createDevice(params)
   }
 
   /**
@@ -37,8 +37,8 @@ class DeviceService extends BaseChainService {
     return mac.replaceAll(':','')
   }
 
-  public static redactDevice(device: DeviceWithSecrets): Device {
-    return SigChain.lfa.redactDevice(device)
+  public static redactDevice(device: lfa.DeviceWithSecrets): lfa.Device {
+    return lfa.redactDevice(device)
   }
 }
 

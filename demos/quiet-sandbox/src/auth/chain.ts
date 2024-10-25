@@ -2,7 +2,7 @@
  * Handles generating the chain and aggregating all chain operations
  */
 
-import * as auth from '@localfirst/auth'
+import * as lfa from '@localfirst/auth'
 import { LoadedSigChain } from './types.js'
 import { UserService } from './services/members/userService.js'
 import { RoleService } from './services/roles/roleService.js'
@@ -36,7 +36,7 @@ class SigChain {
    */
   public static create(teamName: string, username: string): LoadedSigChain {
     const context = UserService.create(username)
-    const team: auth.Team = this.lfa.createTeam(teamName, context)
+    const team: lfa.Team = lfa.createTeam(teamName, context)
     const sigChain = this.init(team)
     
     sigChain.roles.createWithMembers(RoleName.MEMBER, [context.user.userId])
@@ -57,8 +57,8 @@ class SigChain {
  }
 
   // TODO: Is this the right signature for this method?
-  public static join(context: auth.LocalUserContext, serializedTeam: Uint8Array, teamKeyRing: auth.Keyring): LoadedSigChain {
-    const team: auth.Team = this.lfa.loadTeam(serializedTeam, context, teamKeyRing)
+  public static join(context: lfa.LocalUserContext, serializedTeam: Uint8Array, teamKeyRing: lfa.Keyring): LoadedSigChain {
+    const team: lfa.Team = lfa.loadTeam(serializedTeam, context, teamKeyRing)
     team.join(teamKeyRing)
 
     const sigChain = this.init(team)
@@ -70,7 +70,7 @@ class SigChain {
     }
   }
 
-  private static init(team: auth.Team): SigChain {
+  private static init(team: lfa.Team): SigChain {
     const sigChain = new SigChain(team)
     sigChain.initServices()
 
@@ -92,15 +92,15 @@ class SigChain {
     return this.team.save() // this doesn't actually do anything but create the new state to save
   }
 
-  get team(): auth.Team {
+  get team(): lfa.Team {
     return this._team
   }
 
-  get teamGraph(): auth.TeamGraph {
+  get teamGraph(): lfa.TeamGraph {
     return this._team.graph
   }
 
-  get minifiedTeamGraph(): auth.TeamGraph {
+  get minifiedTeamGraph(): lfa.TeamGraph {
     return findAllByKeyAndReplace(JSON.parse(JSON.stringify(this.teamGraph)), [
       {
         key: 'data',
@@ -137,10 +137,6 @@ class SigChain {
 
   get crypto(): CryptoService {
     return this._crypto!
-  }
-
-  static get lfa(): typeof auth {
-    return auth
   }
 }
 

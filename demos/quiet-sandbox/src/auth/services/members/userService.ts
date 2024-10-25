@@ -5,7 +5,7 @@
 //import { KeyMap } from '../../../../../../packages/auth/dist/team/selectors/keyMap.js'
 import { BaseChainService } from '../baseService.js'
 import { ProspectiveUser, MemberSearchOptions, DEFAULT_SEARCH_OPTIONS } from './types.js'
-import { DeviceWithSecrets, LocalUserContext, Member, User, UserWithSecrets } from '@localfirst/auth'
+import * as lfa from '@localfirst/auth'
 import { SigChain } from '../../chain.js'
 import { DeviceService } from './deviceService.js'
 import { InviteService } from '../invites/inviteService.js'
@@ -23,9 +23,9 @@ class UserService extends BaseChainService {
    * @param id Optionally specify the user's ID (otherwise autogenerate)
    * @returns New QuietUser instance with an initial device
    */
-  public static create(name: string, id?: string, deviceName?: string): LocalUserContext {
-    const user: UserWithSecrets = SigChain.lfa.createUser(name, id)
-    const device: DeviceWithSecrets = DeviceService.generateDeviceForUser(user.userId, deviceName)
+  public static create(name: string, id?: string, deviceName?: string): lfa.LocalUserContext {
+    const user: lfa.UserWithSecrets = lfa.createUser(name, id)
+    const device: lfa.DeviceWithSecrets = DeviceService.generateDeviceForUser(user.userId, deviceName)
 
     return {
       user,
@@ -49,11 +49,11 @@ class UserService extends BaseChainService {
     return this.sigChain.team.allKeys()
   }
 
-  public getAllMembers(): Member[] {
+  public getAllMembers(): lfa.Member[] {
     return this.sigChain.team.members()
   }
 
-  public getMembersById(memberIds: string[], options: MemberSearchOptions = DEFAULT_SEARCH_OPTIONS): Member[] {
+  public getMembersById(memberIds: string[], options: MemberSearchOptions = DEFAULT_SEARCH_OPTIONS): lfa.Member[] {
     if (memberIds.length === 0) {
       return []
     }
@@ -61,12 +61,12 @@ class UserService extends BaseChainService {
     return this.sigChain.team.members(memberIds, options)
   }
 
-  public getMemberByName(memberName: string): Member | undefined {
+  public getMemberByName(memberName: string): lfa.Member | undefined {
     return this.getAllMembers().find((member) => member.userName === memberName)
   }
 
-  public static redactUser(user: UserWithSecrets): User {
-    return SigChain.lfa.redactUser(user)
+  public static redactUser(user: lfa.UserWithSecrets): lfa.User {
+    return lfa.redactUser(user)
   }
 }
 
