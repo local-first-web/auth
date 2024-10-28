@@ -24,7 +24,6 @@
     "lint": "xo",
     "linklocal": "node ./scripts/link-local.js",
     "unlinklocal": "node ./scripts/link-local.js --unlink && pnpm install",
-    "preinstall": "npx only-allow pnpm",
     "test": "vitest",
     "test:all": "run-s build lint test:run test:cy test:pw",
     "test:run": "vitest run",
