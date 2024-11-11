@@ -99,20 +99,20 @@ importers:
         specifier: ^2.1.9
         version: 2.2.2
       '@automerge/automerge-repo':
-        specifier: ^1.1.2
-        version: 1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
+        specifier: ^1.2.1
+        version: 1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
       '@automerge/automerge-repo-network-broadcastchannel':
-        specifier: ^1.1.2
-        version: 1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
+        specifier: ^1.2.1
+        version: 1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
       '@automerge/automerge-repo-network-websocket':
-        specifier: ^1.1.2
-        version: 1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
+        specifier: ^1.2.1
+        version: 1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
       '@automerge/automerge-repo-react-hooks':
-        specifier: ^1.1.2
-        version: 1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.4.5)
+        specifier: ^1.2.1
+        version: 1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.4.5)
       '@automerge/automerge-repo-storage-indexeddb':
-        specifier: ^1.1.2
-        version: 1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
+        specifier: ^1.2.1
+        version: 1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
       '@ibm/plex':
         specifier: ^6.1.1
         version: 6.4.1
@@ -329,8 +329,8 @@ importers:
   packages/auth-provider-automerge-repo:
     dependencies:
       '@automerge/automerge-repo':
-        specifier: ^1.1.2
-        version: 1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
+        specifier: ^1.2.1
+        version: 1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
       '@herbcaudill/eventemitter42':
         specifier: ^0.3.1
         version: 0.3.1
@@ -348,11 +348,11 @@ importers:
         version: 1.10.2
     devDependencies:
       '@automerge/automerge-repo-network-messagechannel':
-        specifier: ^1.1.2
-        version: 1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
+        specifier: ^1.2.1
+        version: 1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
       '@automerge/automerge-repo-storage-nodefs':
-        specifier: ^1.1.2
-        version: 1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
+        specifier: ^1.2.1
+        version: 1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
       rimraf:
         specifier: ^5.0.5
         version: 5.0.7
@@ -482,35 +482,47 @@ packages:
     resolution: {integrity: sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw==}
     engines: {node: '>=6.0.0'}
 
-  '@automerge/automerge-repo-network-broadcastchannel@1.1.12':
-    resolution: {integrity: sha512-XEyNWa43ixZtMOTUMAzeB0KY31EseLG3/AEJMnFQGIVwDyb95ihtuBSPWfdjshSZd46dJmCPxzNa4Niev80Siw==}
+  '@automerge/automerge-repo-network-broadcastchannel@1.2.1':
+    resolution: {integrity: sha512-Jm3NiuFe/+3aHpHhRYEYOchkMkavMw7+ysNKqYgC7zyGM8jtBowJhxmD4awvz+I5dWNA64KNJIt4k7h295HPAQ==}
 
-  '@automerge/automerge-repo-network-messagechannel@1.1.12':
-    resolution: {integrity: sha512-dJzUpKjAJ11EBQyYOMYKyystXxBLwxuNvVNKEBsh77yl9cZvUNJn1hqtGJj/Ffh9ytM8MKgciH6f5SZHNL/2wg==}
+  '@automerge/automerge-repo-network-messagechannel@1.2.1':
+    resolution: {integrity: sha512-MxWdCZ4EWWyL7V7K6v92XiZL+0qinnxYdGYDyvmSXDVVnkfZ94/J+i0lVt0uKdNs3EGGkKKGs6MIzsyR8llyRA==}
 
   '@automerge/automerge-repo-network-websocket@1.1.12':
     resolution: {integrity: sha512-+jRyPkLaNPm9MGnZ6xwGmBwS8Sye6hBhVcrs/1v6Kues06Lecyv8XZvfLkxqOCWSO8aHV6sGhiAj57tDsXXCiw==}
 
-  '@automerge/automerge-repo-react-hooks@1.1.12':
-    resolution: {integrity: sha512-mhyvcBUH+5BCY3ZN0v442yDCmgvGn1X94bsKE5PykECvucWw1gAGPBJkzf1MefiKsepvhMLYI+woAIU3ZmOjIg==}
+  '@automerge/automerge-repo-network-websocket@1.2.1':
+    resolution: {integrity: sha512-n4sI6l51iBf0edWtX+vhk+sc8wJL72IVZl682SvzRHakA5CzyNZiC8sVzc142zRT3RDN12jCWGpwA2Voq6EXsQ==}
+
+  '@automerge/automerge-repo-react-hooks@1.2.1':
+    resolution: {integrity: sha512-xRRPFRp7dMLZZoIPuczI6ll8U6Qo4NkLAstIHZloGcVefSEOLXRRObMwkITbVaRCEM2zyRLG0MfA9T4dA1JYFQ==}
     peerDependencies:
       react: '>16.8.0'
       react-dom: '>16.8.0'
 
-  '@automerge/automerge-repo-storage-indexeddb@1.1.12':
-    resolution: {integrity: sha512-kXnLg0PSNWUAyknW7LvZTt2wXIhufuQHpbCWJCOSS6AaIabRxfhzT31hwYLihA2J1A3fRe3vLbUAQ/C9vGoOfg==}
+  '@automerge/automerge-repo-storage-indexeddb@1.2.1':
+    resolution: {integrity: sha512-u+9eZZJK7DAr541buF4ut1ipkuiKRoaAtoFYo/ilq7zOLO7JX+GQOFx/8eKKRDlGt/AHTcDaFktkcaX0vKahQQ==}
 
   '@automerge/automerge-repo-storage-nodefs@1.1.12':
     resolution: {integrity: sha512-V5l8OdiavLfx67lzg2z+pLfJ3We8pmHbAeg0slX5cqeO0lfuZVX3DHoThfMcV5VnLhIE7VS9ckoOCRymNOUfpg==}
 
+  '@automerge/automerge-repo-storage-nodefs@1.2.1':
+    resolution: {integrity: sha512-MEbz4vul3frdl+zWDQE3ELBNjiC78QSOEb4reeEgCiGcoimLKxUmHvlQLxpiR209tw72Tf6RRFtvwoqV1I8TKw==}
+
   '@automerge/automerge-repo@1.1.12':
     resolution: {integrity: sha512-rhUcA24xN2+vt4dYt1BQdfaO4f8jC+suVZeqUjUlHKN2PTHe0aqJfy/WtwnRgp1d1VJulSMpusOYX0FMUqRcJw==}
+
+  '@automerge/automerge-repo@1.2.1':
+    resolution: {integrity: sha512-uEBr4bM01aSWkEt2tDKQxfW0Pahz2zbTTn4sRJfeKJlAg2SLr4QepFJ+3Tp4CNEkkU485olfnKYf6gt7uilMZQ==}
 
   '@automerge/automerge-wasm@0.17.0':
     resolution: {integrity: sha512-EPTqadOj+wzv73rPaa80Q+tKnM+XpEtYhqZ4reB9647OZdiQjQwlXo+y/7VrGO+x48Kow0sYpZa9rgx8t785kA==}
 
   '@automerge/automerge@2.2.2':
     resolution: {integrity: sha512-tjEMNWXr6wgIZuGpJ7JwFZuKoWBuYt7tl8lCRhC/Pyqht8LsXFMI1stfi3ZrUTqDkJ1qwPSOTS2iwKLw8ObErw==}
+
+  '@automerge/automerge@2.2.8':
+    resolution: {integrity: sha512-kP6Z9lIkNeIGe/jhF8SUQAgUMwVjtXCBL0eZEgQGCoWvPNTPcg8fnQco28XkYBrfkkuqiEUAbdHhJmSp0y79ug==}
 
   '@babel/code-frame@7.24.6':
     resolution: {integrity: sha512-ZJhac6FkEd1yhG2AHOmfcXG4ceoLltoCVJjN5XsWN9BifBQr+cHJbWi0h68HZuSORq+3WtJ2z0hwF2NG1b5kcA==}
@@ -1860,6 +1872,7 @@ packages:
 
   acorn-import-assertions@1.9.0:
     resolution: {integrity: sha512-cmMwop9x+8KFhxvKrKfPYmN6/pKTYYHBqLa0DfvVZcKMJWNyWLnaqND7dx/qn66R7ewM1UX5XMaDVP5wlVTaVA==}
+    deprecated: package has been renamed to acorn-import-attributes
     peerDependencies:
       acorn: ^8
 
@@ -6957,9 +6970,9 @@ snapshots:
       '@jridgewell/gen-mapping': 0.3.5
       '@jridgewell/trace-mapping': 0.3.25
 
-  '@automerge/automerge-repo-network-broadcastchannel@1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)':
+  '@automerge/automerge-repo-network-broadcastchannel@1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)':
     dependencies:
-      '@automerge/automerge-repo': 1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
+      '@automerge/automerge-repo': 1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
     transitivePeerDependencies:
       - '@swc/core'
       - '@swc/wasm'
@@ -6967,9 +6980,9 @@ snapshots:
       - supports-color
       - typescript
 
-  '@automerge/automerge-repo-network-messagechannel@1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)':
+  '@automerge/automerge-repo-network-messagechannel@1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)':
     dependencies:
-      '@automerge/automerge-repo': 1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
+      '@automerge/automerge-repo': 1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
       debug: 4.3.5(supports-color@8.1.1)
       eventemitter3: 5.0.1
     transitivePeerDependencies:
@@ -6996,10 +7009,27 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@automerge/automerge-repo-react-hooks@1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.4.5)':
+  '@automerge/automerge-repo-network-websocket@1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)':
     dependencies:
-      '@automerge/automerge': 2.2.2
-      '@automerge/automerge-repo': 1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
+      '@automerge/automerge-repo': 1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
+      cbor-x: 1.5.9
+      debug: 4.3.5(supports-color@8.1.1)
+      eventemitter3: 5.0.1
+      isomorphic-ws: 5.0.0(ws@8.17.0)
+      ws: 8.17.0
+    transitivePeerDependencies:
+      - '@swc/core'
+      - '@swc/wasm'
+      - '@types/node'
+      - bufferutil
+      - supports-color
+      - typescript
+      - utf-8-validate
+
+  '@automerge/automerge-repo-react-hooks@1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.4.5)':
+    dependencies:
+      '@automerge/automerge': 2.2.8
+      '@automerge/automerge-repo': 1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
       eventemitter3: 5.0.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
@@ -7011,9 +7041,9 @@ snapshots:
       - supports-color
       - typescript
 
-  '@automerge/automerge-repo-storage-indexeddb@1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)':
+  '@automerge/automerge-repo-storage-indexeddb@1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)':
     dependencies:
-      '@automerge/automerge-repo': 1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
+      '@automerge/automerge-repo': 1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
     transitivePeerDependencies:
       - '@swc/core'
       - '@swc/wasm'
@@ -7024,6 +7054,17 @@ snapshots:
   '@automerge/automerge-repo-storage-nodefs@1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)':
     dependencies:
       '@automerge/automerge-repo': 1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
+      rimraf: 5.0.7
+    transitivePeerDependencies:
+      - '@swc/core'
+      - '@swc/wasm'
+      - '@types/node'
+      - supports-color
+      - typescript
+
+  '@automerge/automerge-repo-storage-nodefs@1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)':
+    dependencies:
+      '@automerge/automerge-repo': 1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
       rimraf: 5.0.7
     transitivePeerDependencies:
       - '@swc/core'
@@ -7051,11 +7092,34 @@ snapshots:
       - supports-color
       - typescript
 
+  '@automerge/automerge-repo@1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)':
+    dependencies:
+      '@automerge/automerge': 2.2.8
+      bs58check: 3.0.1
+      cbor-x: 1.5.9
+      debug: 4.3.5(supports-color@8.1.1)
+      eventemitter3: 5.0.1
+      fast-sha256: 1.3.0
+      tiny-typed-emitter: 2.1.0
+      ts-node: 10.9.2(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
+      uuid: 9.0.1
+      xstate: 5.13.0
+    transitivePeerDependencies:
+      - '@swc/core'
+      - '@swc/wasm'
+      - '@types/node'
+      - supports-color
+      - typescript
+
   '@automerge/automerge-wasm@0.17.0': {}
 
   '@automerge/automerge@2.2.2':
     dependencies:
       '@automerge/automerge-wasm': 0.17.0
+      uuid: 9.0.1
+
+  '@automerge/automerge@2.2.8':
+    dependencies:
       uuid: 9.0.1
 
   '@babel/code-frame@7.24.6':
@@ -10050,7 +10114,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.8.1(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.4.5))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-webpack@0.13.8(eslint-plugin-import@2.27.5(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.4.5))(eslint@8.57.0))(webpack@5.91.0(@swc/core@1.5.24)(esbuild@0.19.12)))(eslint@8.57.0):
+  eslint-module-utils@2.8.1(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.4.5))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-webpack@0.13.8)(eslint@8.57.0):
     dependencies:
       debug: 3.2.7(supports-color@8.1.1)
     optionalDependencies:
@@ -10095,7 +10159,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 8.57.0
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.8.1(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.4.5))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-webpack@0.13.8(eslint-plugin-import@2.27.5(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.4.5))(eslint@8.57.0))(webpack@5.91.0(@swc/core@1.5.24)(esbuild@0.19.12)))(eslint@8.57.0)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.4.5))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-webpack@0.13.8)(eslint@8.57.0)
       has: 1.0.4
       is-core-module: 2.13.1
       is-glob: 4.0.3
