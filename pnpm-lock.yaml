@@ -82,10 +82,10 @@ importers:
         version: 5.4.5
       vite:
         specifier: ^5.2.11
-        version: 5.2.12(@types/node@18.19.33)(terser@5.31.0)
+        version: 5.2.14(@types/node@18.19.33)(terser@5.31.0)
       vite-tsconfig-paths:
         specifier: ^4.2.1
-        version: 4.3.2(typescript@5.4.5)(vite@5.2.12(@types/node@18.19.33)(terser@5.31.0))
+        version: 4.3.2(typescript@5.4.5)(vite@5.2.14(@types/node@18.19.33)(terser@5.31.0))
       vitest:
         specifier: ^1.6.0
         version: 1.6.0(@types/node@18.19.33)(terser@5.31.0)
@@ -363,14 +363,14 @@ importers:
   packages/auth-syncserver:
     dependencies:
       '@automerge/automerge-repo':
-        specifier: ^1.1.2
-        version: 1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
+        specifier: ^1.2.1
+        version: 1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
       '@automerge/automerge-repo-network-websocket':
-        specifier: ^1.1.2
-        version: 1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
+        specifier: ^1.2.1
+        version: 1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
       '@automerge/automerge-repo-storage-nodefs':
-        specifier: ^1.1.2
-        version: 1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
+        specifier: ^1.2.1
+        version: 1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
       '@localfirst/auth':
         specifier: workspace:*
         version: link:../auth
@@ -488,9 +488,6 @@ packages:
   '@automerge/automerge-repo-network-messagechannel@1.2.1':
     resolution: {integrity: sha512-MxWdCZ4EWWyL7V7K6v92XiZL+0qinnxYdGYDyvmSXDVVnkfZ94/J+i0lVt0uKdNs3EGGkKKGs6MIzsyR8llyRA==}
 
-  '@automerge/automerge-repo-network-websocket@1.1.12':
-    resolution: {integrity: sha512-+jRyPkLaNPm9MGnZ6xwGmBwS8Sye6hBhVcrs/1v6Kues06Lecyv8XZvfLkxqOCWSO8aHV6sGhiAj57tDsXXCiw==}
-
   '@automerge/automerge-repo-network-websocket@1.2.1':
     resolution: {integrity: sha512-n4sI6l51iBf0edWtX+vhk+sc8wJL72IVZl682SvzRHakA5CzyNZiC8sVzc142zRT3RDN12jCWGpwA2Voq6EXsQ==}
 
@@ -503,14 +500,8 @@ packages:
   '@automerge/automerge-repo-storage-indexeddb@1.2.1':
     resolution: {integrity: sha512-u+9eZZJK7DAr541buF4ut1ipkuiKRoaAtoFYo/ilq7zOLO7JX+GQOFx/8eKKRDlGt/AHTcDaFktkcaX0vKahQQ==}
 
-  '@automerge/automerge-repo-storage-nodefs@1.1.12':
-    resolution: {integrity: sha512-V5l8OdiavLfx67lzg2z+pLfJ3We8pmHbAeg0slX5cqeO0lfuZVX3DHoThfMcV5VnLhIE7VS9ckoOCRymNOUfpg==}
-
   '@automerge/automerge-repo-storage-nodefs@1.2.1':
     resolution: {integrity: sha512-MEbz4vul3frdl+zWDQE3ELBNjiC78QSOEb4reeEgCiGcoimLKxUmHvlQLxpiR209tw72Tf6RRFtvwoqV1I8TKw==}
-
-  '@automerge/automerge-repo@1.1.12':
-    resolution: {integrity: sha512-rhUcA24xN2+vt4dYt1BQdfaO4f8jC+suVZeqUjUlHKN2PTHe0aqJfy/WtwnRgp1d1VJulSMpusOYX0FMUqRcJw==}
 
   '@automerge/automerge-repo@1.2.1':
     resolution: {integrity: sha512-uEBr4bM01aSWkEt2tDKQxfW0Pahz2zbTTn4sRJfeKJlAg2SLr4QepFJ+3Tp4CNEkkU485olfnKYf6gt7uilMZQ==}
@@ -1000,6 +991,7 @@ packages:
   '@humanwhocodes/config-array@0.11.14':
     resolution: {integrity: sha512-3T8LkOmg45BV5FICb15QQMsyUSWrQ8AygVfC7ZG32zOalnqrilm018ZVCw0eapXux8FtA33q8PSRSstjee3jSg==}
     engines: {node: '>=10.10.0'}
+    deprecated: Use @eslint/config-array instead
 
   '@humanwhocodes/module-importer@1.0.1':
     resolution: {integrity: sha512-bxveV4V8v5Yb4ncFTT3rPSgZBOpCkjfK0y4oVVVJwIuDVBRMDXrPyXRL988i5ap9m9bnyEEjWfm5WkBmtffLfA==}
@@ -1007,6 +999,7 @@ packages:
 
   '@humanwhocodes/object-schema@2.0.3':
     resolution: {integrity: sha512-93zYdMES/c1D69yZiKDBj0V24vqNzB/koF26KPaagAfd3P/4gUlh3Dys5ogAK+Exi9QyzlD8x/08Zt7wIKcDcA==}
+    deprecated: Use @eslint/object-schema instead
 
   '@hutson/parse-repository-url@3.0.2':
     resolution: {integrity: sha512-H9XAx3hc0BQHY6l+IFSWHDySypcXsvsuLhgYLUGywmJ5pswRVQJUHpOsobnLYp2ZUaUlKiKDrgWWhosOwAEM8Q==}
@@ -2157,6 +2150,7 @@ packages:
 
   boolean@3.2.0:
     resolution: {integrity: sha512-d0II/GO9uf9lfUHH2BQsjxzRJZBdsjgsBiW4BvhWk/3qoKwQFjIDVN19PfX8F2D/r9PCMTtLWjYVCFrpeYUzsw==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   boxen@1.3.0:
     resolution: {integrity: sha512-TNPjfTr432qx7yOjQyaXm3dSR0MH9vXp7eT1BFSl/C51g+EFnOR9hTg1IreahGBmDNCehscshe45f+C1TBZbLw==}
@@ -3351,6 +3345,7 @@ packages:
   eslint@8.57.0:
     resolution: {integrity: sha512-dZ6+mexnaTIbSBZWgou51U6OmzIhYM2VcNdtiTtI7qPNZm35Akpr0f6vtw3w1Kmn5PYo+tZVfh13WrhpS6oLqQ==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
 
   esm-utils@4.3.0:
@@ -6722,6 +6717,34 @@ packages:
       terser:
         optional: true
 
+  vite@5.2.14:
+    resolution: {integrity: sha512-TFQLuwWLPms+NBNlh0D9LZQ+HXW471COABxw/9TEUBrjuHMo9BrYBPrN/SYAwIuVL+rLerycxiLT41t4f5MZpA==}
+    engines: {node: ^18.0.0 || >=20.0.0}
+    hasBin: true
+    peerDependencies:
+      '@types/node': ^18.0.0 || >=20.0.0
+      less: '*'
+      lightningcss: ^1.21.0
+      sass: '*'
+      stylus: '*'
+      sugarss: '*'
+      terser: ^5.4.0
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+      less:
+        optional: true
+      lightningcss:
+        optional: true
+      sass:
+        optional: true
+      stylus:
+        optional: true
+      sugarss:
+        optional: true
+      terser:
+        optional: true
+
   vitest@1.6.0:
     resolution: {integrity: sha512-H5r/dN06swuFnzNFhq/dnz37bPXnq8xB2xB5JOVk8K09rUtoeNN+LHWkoQ0A/i3hvbUKKcCei9KpbxqHMLhLLA==}
     engines: {node: ^18.0.0 || >=20.0.0}
@@ -6992,23 +7015,6 @@ snapshots:
       - supports-color
       - typescript
 
-  '@automerge/automerge-repo-network-websocket@1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)':
-    dependencies:
-      '@automerge/automerge-repo': 1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
-      cbor-x: 1.5.9
-      debug: 4.3.5(supports-color@8.1.1)
-      eventemitter3: 5.0.1
-      isomorphic-ws: 5.0.0(ws@8.17.0)
-      ws: 8.17.0
-    transitivePeerDependencies:
-      - '@swc/core'
-      - '@swc/wasm'
-      - '@types/node'
-      - bufferutil
-      - supports-color
-      - typescript
-      - utf-8-validate
-
   '@automerge/automerge-repo-network-websocket@1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)':
     dependencies:
       '@automerge/automerge-repo': 1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
@@ -7051,40 +7057,10 @@ snapshots:
       - supports-color
       - typescript
 
-  '@automerge/automerge-repo-storage-nodefs@1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)':
-    dependencies:
-      '@automerge/automerge-repo': 1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
-      rimraf: 5.0.7
-    transitivePeerDependencies:
-      - '@swc/core'
-      - '@swc/wasm'
-      - '@types/node'
-      - supports-color
-      - typescript
-
   '@automerge/automerge-repo-storage-nodefs@1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)':
     dependencies:
       '@automerge/automerge-repo': 1.2.1(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
       rimraf: 5.0.7
-    transitivePeerDependencies:
-      - '@swc/core'
-      - '@swc/wasm'
-      - '@types/node'
-      - supports-color
-      - typescript
-
-  '@automerge/automerge-repo@1.1.12(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)':
-    dependencies:
-      '@automerge/automerge': 2.2.2
-      bs58check: 3.0.1
-      cbor-x: 1.5.9
-      debug: 4.3.5(supports-color@8.1.1)
-      eventemitter3: 5.0.1
-      fast-sha256: 1.3.0
-      tiny-typed-emitter: 2.1.0
-      ts-node: 10.9.2(@swc/core@1.5.24)(@types/node@18.19.33)(typescript@5.4.5)
-      uuid: 9.0.1
-      xstate: 5.13.0
     transitivePeerDependencies:
       - '@swc/core'
       - '@swc/wasm'
@@ -10114,7 +10090,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.8.1(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.4.5))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-webpack@0.13.8)(eslint@8.57.0):
+  eslint-module-utils@2.8.1(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.4.5))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-webpack@0.13.8(eslint-plugin-import@2.27.5(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.4.5))(eslint@8.57.0))(webpack@5.91.0(@swc/core@1.5.24)(esbuild@0.19.12)))(eslint@8.57.0):
     dependencies:
       debug: 3.2.7(supports-color@8.1.1)
     optionalDependencies:
@@ -10159,7 +10135,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 8.57.0
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.8.1(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.4.5))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-webpack@0.13.8)(eslint@8.57.0)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.4.5))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-webpack@0.13.8(eslint-plugin-import@2.27.5(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.4.5))(eslint@8.57.0))(webpack@5.91.0(@swc/core@1.5.24)(esbuild@0.19.12)))(eslint@8.57.0)
       has: 1.0.4
       is-core-module: 2.13.1
       is-glob: 4.0.3
@@ -14051,7 +14027,7 @@ snapshots:
       debug: 4.3.5(supports-color@8.1.1)
       pathe: 1.1.2
       picocolors: 1.0.1
-      vite: 5.2.12(@types/node@18.19.33)(terser@5.31.0)
+      vite: 5.2.14(@types/node@18.19.33)(terser@5.31.0)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -14076,18 +14052,28 @@ snapshots:
     dependencies:
       vite: 5.2.12(@types/node@18.19.33)(terser@5.31.0)
 
-  vite-tsconfig-paths@4.3.2(typescript@5.4.5)(vite@5.2.12(@types/node@18.19.33)(terser@5.31.0)):
+  vite-tsconfig-paths@4.3.2(typescript@5.4.5)(vite@5.2.14(@types/node@18.19.33)(terser@5.31.0)):
     dependencies:
       debug: 4.3.5(supports-color@8.1.1)
       globrex: 0.1.2
       tsconfck: 3.1.0(typescript@5.4.5)
     optionalDependencies:
-      vite: 5.2.12(@types/node@18.19.33)(terser@5.31.0)
+      vite: 5.2.14(@types/node@18.19.33)(terser@5.31.0)
     transitivePeerDependencies:
       - supports-color
       - typescript
 
   vite@5.2.12(@types/node@18.19.33)(terser@5.31.0):
+    dependencies:
+      esbuild: 0.20.2
+      postcss: 8.4.38
+      rollup: 4.18.0
+    optionalDependencies:
+      '@types/node': 18.19.33
+      fsevents: 2.3.3
+      terser: 5.31.0
+
+  vite@5.2.14(@types/node@18.19.33)(terser@5.31.0):
     dependencies:
       esbuild: 0.20.2
       postcss: 8.4.38
@@ -14116,7 +14102,7 @@ snapshots:
       strip-literal: 2.1.0
       tinybench: 2.8.0
       tinypool: 0.8.4
-      vite: 5.2.12(@types/node@18.19.33)(terser@5.31.0)
+      vite: 5.2.14(@types/node@18.19.33)(terser@5.31.0)
       vite-node: 1.6.0(@types/node@18.19.33)(terser@5.31.0)
       why-is-node-running: 2.2.2
     optionalDependencies:
