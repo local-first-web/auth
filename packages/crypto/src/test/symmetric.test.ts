@@ -46,5 +46,18 @@ describe('crypto', () => {
       const decrypted = symmetric.decryptBytes(encrypted, bytePassword)
       expect(decrypted).toEqual(plaintext)
     })
+    
+    test('prevents invisible salamanders attack', () => {
+      // Encrypt a message
+      const encrypted = symmetric.encryptBytes(plaintext, password)
+      
+      // Attempt to decrypt with wrong password should fail with specific error
+      const attemptToDecrypt = () => symmetric.decryptBytes(encrypted, 'wrong-password')
+      expect(attemptToDecrypt).toThrow('Decryption failed - possible invisible salamanders attack')
+      
+      // Successful decryption with correct password
+      const decrypted = symmetric.decryptBytes(encrypted, password)
+      expect(decrypted).toEqual(plaintext)
+    })
   })
 })
