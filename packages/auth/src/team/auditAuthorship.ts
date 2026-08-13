@@ -1,8 +1,6 @@
 import { type Base58, type Hash, type UnixTimestamp } from '@localfirst/crdx'
-import { KeyType } from 'util/index.js'
+import { registeredEncryptionKeys } from './registeredEncryptionKeys.js'
 import { type TeamGraph, type TeamState } from './types.js'
-
-const { USER, SERVER } = KeyType
 
 /**
  * Finds links whose stated author doesn't match the key that actually encrypted them.
@@ -51,36 +49,6 @@ export const auditAuthorship = (
   }
 
   return anomalies
-}
-
-/**
- * Collects every encryption public key the team has ever registered for each member or server,
- * indexed by userId (or host).
- */
-const registeredEncryptionKeys = (state: TeamState) => {
-  const keys = new Map<string, Set<Base58>>()
-
-  const record = (name: string, publicKey: Base58) => {
-    const keysForName = keys.get(name) ?? new Set<Base58>()
-    keysForName.add(publicKey)
-    keys.set(name, keysForName)
-  }
-
-  // The current keys of everyone who is or was on the team
-  for (const member of [...state.members, ...state.removedMembers])
-    record(member.userId, member.keys.encryption)
-  for (const server of [...state.servers, ...state.removedServers])
-    record(server.host, server.keys.encryption)
-
-  // Every generation that has ever been lockboxed to or from a member or server. Lockbox manifests
-  // are unencrypted, so this recovers the earlier generations that rotation has since superseded —
-  // which is what lets us validate links authored before a rotation.
-  for (const { contents, recipient } of state.lockboxes)
-    for (const manifest of [contents, recipient])
-      if (manifest.type === USER || manifest.type === SERVER)
-        record(manifest.name, manifest.publicKey)
-
-  return keys
 }
 
 export type AuthorshipAnomaly = {

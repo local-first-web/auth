@@ -37,6 +37,7 @@ export const decryptLink = <A extends Action, C>(
   return {
     hash: hashEncryptedLink(encryptedBody),
     body: decryptedLinkBody,
+    senderPublicKey,
   }
 }
 

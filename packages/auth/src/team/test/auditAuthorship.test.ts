@@ -1,6 +1,7 @@
 import { append, createKeyset, redactKeys } from '@localfirst/crdx'
 import { createDevice, redactDevice } from 'index.js'
 import { generateProof } from 'invitation/index.js'
+import { auditAuthorship } from 'team/auditAuthorship.js'
 import { KeyType } from 'util/index.js'
 import { setup } from 'util/testing/index.js'
 import { describe, expect, it } from 'vitest'
@@ -58,7 +59,9 @@ describe('Team', () => {
     it('detects a forged link and names the member who really authored it', () => {
       const { alice, eve } = setup('alice', { user: 'eve', admin: false })
 
-      // Eve appends a link claiming to be Alice, using her own keys to encrypt it
+      // Eve appends a link claiming to be Alice, using her own keys to encrypt it. We audit the
+      // graph directly rather than merging it, because validation now rejects it outright — the
+      // audit is for chains that were built before that check existed.
       const forgedGraph = append({
         graph: eve.team.graph,
         action: { type: 'SET_TEAM_NAME', payload: { teamName: 'EVE WAS HERE' } } as any,
@@ -67,12 +70,7 @@ describe('Team', () => {
         keys: eve.team.teamKeys(),
       })
 
-      // Alice accepts it, because nothing in validation checks authorship
-      alice.team.merge(forgedGraph as any)
-      expect(alice.team.teamName).toBe('EVE WAS HERE')
-
-      // But the audit catches it
-      const anomalies = alice.team.auditAuthorship()
+      const anomalies = auditAuthorship(forgedGraph as any, alice.team.state)
       expect(anomalies).toHaveLength(1)
       expect(anomalies[0]).toMatchObject({
         linkType: 'SET_TEAM_NAME',
@@ -93,9 +91,8 @@ describe('Team', () => {
         context: { deviceId: eve.device.deviceId },
         keys: eve.team.teamKeys(),
       })
-      alice.team.merge(forgedGraph as any)
 
-      const anomalies = alice.team.auditAuthorship()
+      const anomalies = auditAuthorship(forgedGraph as any, alice.team.state)
       expect(anomalies).toHaveLength(1)
       expect(anomalies[0].claimedAuthor).toBe(alice.userId)
       expect(anomalies[0].actualAuthor).toBeUndefined()

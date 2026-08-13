@@ -3,6 +3,7 @@ import { ROOT } from '@localfirst/crdx'
 import { invitationCanBeUsed } from 'invitation/index.js'
 import { VALID, ValidationError, actionFingerprint } from 'util/index.js'
 import { isAdminOnlyAction } from './isAdminOnlyAction.js'
+import { isRegisteredEncryptionKey } from './registeredEncryptionKeys.js'
 import * as select from './selectors/index.js'
 import {
   type TeamLink,
@@ -27,6 +28,31 @@ export const validate: TeamStateValidator = (...args: ValidationArgs) => {
 }
 
 const validators: TeamStateValidatorSet = {
+  /**
+   * The link has to have been encrypted with a key belonging to the member it's attributed to.
+   *
+   * Every other validator here decides what an author is allowed to do, based on `body.userId` —
+   * so without this one, none of them mean anything: anyone holding the team keys could author a
+   * link naming someone else and inherit their authority. `senderPublicKey` is the author's own
+   * encryption key, and they can't misreport it, because the link only opens with the matching
+   * secret.
+   */
+  linkAuthorshipIsAuthentic(...args) {
+    const [previousState, link] = args
+    const { type, userId } = link.body
+
+    // The root link is what establishes the founding member's keys, so there's nothing yet to
+    // check it against
+    if (type === ROOT) return VALID
+
+    if (!isRegisteredEncryptionKey(previousState, userId, link.senderPublicKey)) {
+      const msg = `Can't verify authorship: this link is attributed to '${userId}', but wasn't encrypted with any key belonging to them.`
+      return fail(msg, ...args)
+    }
+
+    return VALID
+  },
+
   rootDeviceBelongsToRootUser(...args) {
     const [_previousState, link] = args
     const { type, payload } = link.body
