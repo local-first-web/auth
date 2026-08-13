@@ -27,6 +27,7 @@ import * as devices from 'device/index.js'
 import { redactDevice, type Device } from 'device/index.js'
 import * as invitations from 'invitation/index.js'
 import { type ProofOfInvitation } from 'invitation/index.js'
+import { InvitationValidationError } from 'invitation/validate.js'
 import { normalize } from 'invitation/normalize.js'
 import * as lockbox from 'lockbox/index.js'
 import { ADMIN, type Role } from 'role/index.js'
@@ -34,6 +35,7 @@ import { castServer } from 'server/castServer.js'
 import { type Host, type Server } from 'server/types.js'
 import { type LocalUserContext } from 'team/context.js'
 import { KeyType, VALID, scopesMatch } from 'util/index.js'
+import { auditAuthorship } from './auditAuthorship.js'
 import { ADMIN_SCOPE, ALL, TEAM_SCOPE, initialState } from './constants.js'
 import { membershipResolver as resolver } from './membershipResolver.js'
 import { redactUser } from './redactUser.js'
@@ -198,6 +200,12 @@ export class Team extends EventEmitter<TeamEvents> {
    */
 
   public save = () => serializeTeamGraph(this.graph)
+
+  /**
+   * Reports any links on this team's chain whose stated author doesn't match the key that actually
+   * encrypted them. An empty array means every link was authored by the member it's attributed to.
+   */
+  public auditAuthorship = () => auditAuthorship(this.graph, this.state)
 
   /**
    * Merges another graph (e.g. from a peer) with ours.
@@ -583,9 +591,7 @@ export class Team extends EventEmitter<TeamEvents> {
 
     // The proof is bound to a single userId; we can only admit the keys it names
     if (proof.invitee !== memberKeys.name) {
-      throw new invitations.InvitationValidationError(
-        'This invitation was issued to a different user.'
-      )
+      throw new InvitationValidationError('This invitation was issued to a different user.')
     }
 
     const userValidation = this.validateUser(memberKeys.name, userName)
@@ -616,9 +622,7 @@ export class Team extends EventEmitter<TeamEvents> {
 
     // The proof is bound to a single deviceId; we can only admit the device it names
     if (proof.invitee !== firstUseDevice.deviceId) {
-      throw new invitations.InvitationValidationError(
-        'This invitation was issued to a different device.'
-      )
+      throw new InvitationValidationError('This invitation was issued to a different device.')
     }
 
     const { id } = proof
