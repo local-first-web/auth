@@ -1,7 +1,7 @@
 import { debug, truncateHashes } from '@localfirst/shared'
 import { ROOT } from '@localfirst/crdx'
 import { invitationCanBeUsed, validate as validateProof } from 'invitation/index.js'
-import { VALID, ValidationError, actionFingerprint } from 'util/index.js'
+import { KeyType, VALID, ValidationError, actionFingerprint } from 'util/index.js'
 import { isAdminOnlyAction } from './isAdminOnlyAction.js'
 import { isRegisteredEncryptionKey } from './registeredEncryptionKeys.js'
 import * as select from './selectors/index.js'
@@ -173,6 +173,39 @@ const validators: TeamStateValidatorSet = {
         }
       }
     }
+    return VALID
+  },
+
+  /**
+   * Granting someone a role has to hand them that role's keys.
+   *
+   * The reducer applies whatever lockboxes it's given and adds the role either way, so an
+   * ADD_MEMBER_ROLE with an empty `lockboxes` array used to make `memberHasRole` return true for
+   * someone holding none of the role's keys. Applications gate on that predicate, so authorization
+   * would say yes while key possession says no.
+   */
+  roleGrantMustIncludeKeys(...args) {
+    const [previousState, link] = args
+    if (link.body.type !== 'ADD_MEMBER_ROLE') return VALID
+
+    const { userId, roleName, lockboxes = [] } = link.body.payload
+
+    // Any generation of the member's keys will do: their keys may have been rotated concurrently
+    // with this grant, and a lockbox addressed to the superseded generation still reaches them
+    const grantsRoleKeys = lockboxes.some(
+      ({ contents, recipient }) =>
+        contents.type === KeyType.ROLE &&
+        contents.name === roleName &&
+        recipient.type === KeyType.USER &&
+        recipient.name === userId &&
+        isRegisteredEncryptionKey(previousState, userId, recipient.publicKey)
+    )
+
+    if (!grantsRoleKeys) {
+      const msg = `Adding '${userId}' to the '${roleName}' role requires a lockbox holding that role's keys for them.`
+      return fail(msg, ...args)
+    }
+
     return VALID
   },
 

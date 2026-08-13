@@ -1,3 +1,4 @@
+import * as lockbox from 'lockbox/index.js'
 import { ADMIN } from 'role/index.js'
 import * as teams from 'team/index.js'
 import { setup } from 'util/testing/index.js'
@@ -79,6 +80,78 @@ describe('Team', () => {
       // 👨🏻‍🦲 Bob has admin keys
       const bobsAdminKeys = bob.team.roleKeys(ADMIN)
       expect(bobsAdminKeys).toLookLikeKeyset()
+    })
+
+    it("won't add a member to a role without a lockbox holding that role's keys", () => {
+      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+
+      // 👩🏾 Alice authors the role grant herself, leaving out the lockbox. Applications gate on
+      // `memberHasRole`, so without this check 👨🏻‍🦲 Bob would count as an admin everywhere while
+      // holding none of the admin keys.
+      const grantRoleWithNoLockbox = () => {
+        alice.team.dispatch({
+          type: 'ADD_MEMBER_ROLE',
+          payload: { userId: bob.userId, roleName: ADMIN, lockboxes: [] },
+        })
+      }
+
+      expect(grantRoleWithNoLockbox).toThrowError(/lockbox/i)
+      expect(alice.team.memberIsAdmin(bob.userId)).toBe(false)
+    })
+
+    it("won't add a member to a role with a lockbox addressed to someone else", () => {
+      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+
+      // 👩🏾 Alice grants 👨🏻‍🦲 Bob the admin role, but addresses the lockbox to herself
+      const lockboxForAlice = lockbox.create(
+        alice.team.roleKeys(ADMIN),
+        alice.team.members(alice.userId).keys
+      )
+      const grantRoleWithWrongLockbox = () => {
+        alice.team.dispatch({
+          type: 'ADD_MEMBER_ROLE',
+          payload: { userId: bob.userId, roleName: ADMIN, lockboxes: [lockboxForAlice] },
+        })
+      }
+
+      expect(grantRoleWithWrongLockbox).toThrowError(/lockbox/i)
+      expect(alice.team.memberIsAdmin(bob.userId)).toBe(false)
+    })
+
+    it("won't add a member to a role with a lockbox holding a different role's keys", () => {
+      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+      alice.team.addRole(managers)
+
+      // 👩🏾 Alice makes 👨🏻‍🦲 Bob an admin, but the lockbox only holds the managers' keys
+      const lockboxForBob = lockbox.create(
+        alice.team.roleKeys(MANAGERS),
+        alice.team.members(bob.userId).keys
+      )
+      const grantRoleWithWrongKeys = () => {
+        alice.team.dispatch({
+          type: 'ADD_MEMBER_ROLE',
+          payload: { userId: bob.userId, roleName: ADMIN, lockboxes: [lockboxForBob] },
+        })
+      }
+
+      expect(grantRoleWithWrongKeys).toThrowError(/lockbox/i)
+      expect(alice.team.memberIsAdmin(bob.userId)).toBe(false)
+    })
+
+    it('adds a member to a role when the lockbox is in order', () => {
+      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+      alice.team.addRole(managers)
+
+      // 👩🏾 Alice grants roles the normal way, so the keys go along with them
+      alice.team.addMemberRole(bob.userId, ADMIN)
+      alice.team.addMemberRole(bob.userId, MANAGERS)
+
+      // ✅ 👨🏻‍🦲 Bob has both roles, and the keys that come with them
+      bob.team = teams.load(alice.team.save(), bob.localContext, alice.team.teamKeys())
+      expect(bob.team.memberIsAdmin(bob.userId)).toBe(true)
+      expect(bob.team.memberHasRole(bob.userId, MANAGERS)).toBe(true)
+      expect(bob.team.roleKeys(ADMIN)).toLookLikeKeyset()
+      expect(bob.team.roleKeys(MANAGERS)).toLookLikeKeyset()
     })
 
     it('removes a member from a role', () => {
