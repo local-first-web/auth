@@ -22,17 +22,18 @@ export const invitationCanBeUsed = (invitation: InvitationState, timeOfUse: numb
 
 export const validate = memoize(
   (proof: ProofOfInvitation, invitation: Invitation): ValidationResult => {
-    const { id, signature } = proof
+    const { id, invitee, signature } = proof
 
     // Check that id from proof matches invitation
     if (id !== invitation.id) {
       return fail("IDs don't match", { proof, invitation })
     }
 
-    // Check signature on proof against public key from invitation
+    // Check signature on proof against public key from invitation. Since the invitee is part of the
+    // signed payload, a proof generated for one invitee can't be re-presented for another.
     const { publicKey } = invitation
     const signatureIsValid = signatures.verify({
-      payload: { id },
+      payload: { id, invitee },
       signature,
       publicKey,
     })

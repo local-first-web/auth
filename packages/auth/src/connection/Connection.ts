@@ -134,9 +134,9 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             if (isInviteeMemberContext(context)) {
               // I'm a new user and I have an invitation
               assert(context.invitationSeed)
-              const { userName, keys } = context.user
+              const { userId, userName, keys } = context.user
               return {
-                proofOfInvitation: invitations.generateProof(context.invitationSeed),
+                proofOfInvitation: invitations.generateProof(context.invitationSeed, userId),
                 userName,
                 userKeys: redactKeys(keys),
                 device: redactDevice(context.device),
@@ -147,7 +147,10 @@ export class Connection extends EventEmitter<ConnectionEvents> {
               assert(context.invitationSeed)
               const { userName, device } = context
               return {
-                proofOfInvitation: invitations.generateProof(context.invitationSeed),
+                proofOfInvitation: invitations.generateProof(
+                  context.invitationSeed,
+                  device.deviceId
+                ),
                 userName,
                 device: redactDevice(device),
               }
@@ -447,7 +450,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           // Make sure my invitation exists on the graph of the team I'm about to join. This check
           // prevents an attack in which a fake team pretends to accept my invitation.
           const state = getTeamState(serializedGraph, teamKeyring)
-          const { id } = invitations.generateProof(invitationSeed)
+          const id = invitations.deriveId(invitationSeed)
           return select.hasInvitation(state, id)
         },
 

@@ -172,7 +172,11 @@ describe('Team', () => {
       await connectWithServer(alice, server)
 
       // Now if Bob connects to the server, the server can admit him
-      server.team.admitMember(invitation.generateProof(bobInvite), bob.user.keys, bob.userId)
+      server.team.admitMember(
+        invitation.generateProof(bobInvite, bob.userId),
+        bob.user.keys,
+        bob.userId
+      )
       expect(server.team.members().length).toBe(2)
     })
 

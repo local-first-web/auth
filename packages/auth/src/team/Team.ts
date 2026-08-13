@@ -581,6 +581,13 @@ export class Team extends EventEmitter<TeamEvents> {
     const invitationValidation = this.validateInvitation(proof)
     if (!invitationValidation.isValid) throw invitationValidation.error
 
+    // The proof is bound to a single userId; we can only admit the keys it names
+    if (proof.invitee !== memberKeys.name) {
+      throw new invitations.InvitationValidationError(
+        'This invitation was issued to a different user.'
+      )
+    }
+
     const userValidation = this.validateUser(memberKeys.name, userName)
     if (!userValidation.isValid) throw userValidation.error
 
@@ -606,6 +613,13 @@ export class Team extends EventEmitter<TeamEvents> {
   public admitDevice = (proof: ProofOfInvitation, firstUseDevice: devices.FirstUseDevice) => {
     const validation = this.validateInvitation(proof)
     if (!validation.isValid) throw validation.error
+
+    // The proof is bound to a single deviceId; we can only admit the device it names
+    if (proof.invitee !== firstUseDevice.deviceId) {
+      throw new invitations.InvitationValidationError(
+        'This invitation was issued to a different device.'
+      )
+    }
 
     const { id } = proof
     const invitation = this.getInvitation(id)

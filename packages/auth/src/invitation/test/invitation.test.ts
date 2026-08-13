@@ -20,7 +20,7 @@ describe('invitations', () => {
     const invitation = create({ seed })
 
     // 👨🏻‍🦲 Bob accepts invitation and obtains a credential proving that he was invited.
-    const proofOfInvitation = generateProof(seed)
+    const proofOfInvitation = generateProof(seed, 'bob')
 
     // 👨🏻‍🦲 Bob shows up to join the team & sees 👳🏽‍♂️ Charlie. Bob shows Charlie his proof of invitation, and
     // 👳🏽‍♂️ Charlie checks it against the invitation that Alice posted on the signature chain.
@@ -38,7 +38,7 @@ describe('invitations', () => {
     const invitation = create({ seed })
 
     // 🦹‍♀️ Eve tries to accept the invitation in Bob's place, but she doesn't have the correct invitation key
-    const proofOfInvitation = generateProof('horsebatterycorrectstaple')
+    const proofOfInvitation = generateProof('horsebatterycorrectstaple', 'eve')
 
     // ❌ Nice try, Eve!!!
     const validationResult = validate(proofOfInvitation, invitation)

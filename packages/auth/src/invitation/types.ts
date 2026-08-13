@@ -41,6 +41,14 @@ export type ProofOfInvitation = {
   /** Public, unique identifier for the invitation */
   id: Base58
 
-  /** Signature of userId and invitation id, using the private signing key derived from the secret invitation key */
+  /**
+   * The identifier the invitee will be admitted under: their `userId` for a member invitation, or
+   * their `deviceId` for a device invitation. Binding this into the signature is what keeps the
+   * proof from being a bearer token — someone who intercepts a proof can't present it under
+   * identifiers of their own choosing.
+   */
+  invitee: string
+
+  /** Signature of the invitee and the invitation id, using the private signing key derived from the secret invitation key */
   signature: Base58
 }

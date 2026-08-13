@@ -28,7 +28,7 @@ describe('auth', () => {
     const username = 'new-user'
     const user = Auth.createUser(username, username)
     const device = Auth.createDevice({ userId: username, deviceName: 'laptop' })
-    const proofOfInvitation = Auth.generateProof(seed)
+    const proofOfInvitation = Auth.generateProof(seed, user.userId)
 
     team.admitMember(proofOfInvitation, Auth.redactKeys(user.keys), user.userName)
 

@@ -1,7 +1,13 @@
 import { type Hash, hash, stretch } from '@localfirst/crypto'
 import { HashPurpose } from 'util/index.js'
+import { normalize } from './normalize.js'
 
+/** Derives the public invitation id from the secret invitation seed. */
 export function deriveId(seed: string) {
+  // Normalize here rather than relying on callers, so that a seed typed with spaces or passed in a
+  // URL-safe form derives the same id
+  seed = normalize(seed)
+
   // ## Step 1b
   // The iKey is stretched using `scrypt` to discourage brute-force attacks (docs refer to this as
   // the `siKey`)
