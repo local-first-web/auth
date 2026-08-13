@@ -53,6 +53,36 @@ const validators: TeamStateValidatorSet = {
     return VALID
   },
 
+  /**
+   * A server can only admit invited members and devices.
+   *
+   * We give a server the team keys so it can decrypt and relay the graph, but it isn't a member and
+   * has no standing to change the team. Admitting invitees is the one exception, so that a device
+   * can join by way of a server in a star-shaped network. Without this rule, a server could author
+   * any action that isn't admin-only — including posting a device invitation naming a member as
+   * the owner, and then admitting a device of its own onto that member's account.
+   */
+  serversCanOnlyAdmit(...args) {
+    const [previousState, link] = args
+    const { type, userId } = link.body
+
+    // The root link can't have been authored by a server: a server can't create a team
+    if (type === ROOT) return VALID
+
+    // Removed servers are included: losing your place on the team doesn't earn you more authority
+    const authorIsServer = [...previousState.servers, ...previousState.removedServers].some(
+      ({ host }) => host === userId
+    )
+    if (!authorIsServer) return VALID
+
+    if (type !== 'ADMIT_MEMBER' && type !== 'ADMIT_DEVICE') {
+      const msg = `A server can only admit members and devices; '${userId}' can't author a '${type}' link.`
+      return fail(msg, ...args)
+    }
+
+    return VALID
+  },
+
   rootDeviceBelongsToRootUser(...args) {
     const [_previousState, link] = args
     const { type, payload } = link.body

@@ -250,7 +250,7 @@ describe('Team', () => {
       expect(alice.team.members(bob.userId).devices).toHaveLength(2)
     })
 
-    it('can change its own keys', async () => {
+    it(`can't change its own keys`, async () => {
       const { alice } = setupHumans('alice', 'bob')
       const { server, serverWithSecrets } = createServer(host)
       alice.team.addServer(server)
@@ -263,21 +263,64 @@ describe('Team', () => {
       const aliceTeamKeys = alice.team.teamKeys()
       const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, aliceTeamKeys)
 
-      const teamKeys0 = serverTeam.teamKeys()
-      expect(teamKeys0.generation).toBe(0)
+      expect(serverTeam.teamKeys().generation).toBe(0)
 
-      // Server changes their keys
-      serverTeam.changeKeys(createKeyset({ type: KeyType.SERVER, name: host }))
+      // A server can only admit members and devices, and changing keys isn't that — rotating the
+      // team keys is something only the team's own members get to do
+      expect(() => {
+        serverTeam.changeKeys(createKeyset({ type: KeyType.SERVER, name: host }))
+      }).toThrow(/server/i)
 
-      // Server keys have been rotated
-      expect(serverTeam.servers(host).keys.generation).toBe(1)
+      // No keys have been rotated
+      expect(serverTeam.teamKeys().generation).toBe(0)
+      expect(serverTeam.servers(host).keys.generation).toBe(0)
+    })
 
-      // Server still has access to team keys
-      const teamKeys1 = serverTeam.teamKeys()
+    it(`can't invite a device by authoring a link directly`, async () => {
+      const { server, alice } = setup('alice')
 
-      // The team keys were rotated, so these are new
-      expect(teamKeys1.encryption.publicKey).not.toEqual(teamKeys0.encryption.publicKey)
-      expect(teamKeys1.generation).toBe(1)
+      // A server holds the team keys, so it can author links itself rather than going through the
+      // methods that refuse to run on a server. If it could post an invitation, it could name any
+      // member as the owner and then admit a device of its own onto that member's account.
+      const tryToInviteDevice = () => {
+        server.team.dispatch({
+          type: 'INVITE_DEVICE',
+          payload: {
+            invitation: invitation.create({ seed: 'passw0rd', userId: alice.userId }),
+          },
+        })
+      }
+
+      expect(tryToInviteDevice).toThrow(/server/i)
+      expect(Object.keys(server.team.state.invitations)).toHaveLength(0)
+    })
+
+    it(`can't set the team name`, async () => {
+      const { server } = setup('alice')
+
+      const tryToRenameTeam = () => {
+        server.team.setTeamName('Servers Я Us')
+      }
+
+      expect(tryToRenameTeam).toThrow(/server/i)
+    })
+
+    it(`can't change a member's keys`, async () => {
+      const { server, alice } = setup('alice')
+
+      // The server makes up new keys for Alice, which it would then hold the secrets for
+      const evilKeys = createKeyset({ type: KeyType.USER, name: alice.userId })
+      const tryToChangeAlicesKeys = () => {
+        server.team.dispatch({
+          type: 'CHANGE_MEMBER_KEYS',
+          payload: { keys: redactKeys(evilKeys) },
+        })
+      }
+
+      expect(tryToChangeAlicesKeys).toThrow(/server/i)
+      expect(server.team.members(alice.userId).keys.encryption).not.toBe(
+        evilKeys.encryption.publicKey
+      )
     })
 
     it(`can't change another server's keys`, async () => {

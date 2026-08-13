@@ -691,7 +691,9 @@ export class Team extends EventEmitter<TeamEvents> {
    * The only actions that a server can dispatch to the graph are `ADMIT_MEMBER` and `ADMIT_DEVICE`.
    * The server needs to be able to admit invited members and devices in order to support
    * star-shaped networks where every device connects to a server, rather than directly to each
-   * other.)
+   * other.) This is enforced by the `serversCanOnlyAdmit` validator, so a server can't get around
+   * it by authoring links itself — including `CHANGE_SERVER_KEYS`, which means a server can't
+   * rotate its own keys; an admin has to remove it and add it back with new keys.
    */
   public addServer = (server: Server) => {
     const lockboxes = this.createMemberLockboxes(castServer.toMember(server))
