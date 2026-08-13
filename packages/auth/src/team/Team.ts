@@ -610,6 +610,7 @@ export class Team extends EventEmitter<TeamEvents> {
         id,
         userName,
         memberKeys: redactKeys(memberKeys),
+        proof,
         lockboxes,
       },
     })
@@ -638,6 +639,7 @@ export class Team extends EventEmitter<TeamEvents> {
       payload: {
         id,
         device,
+        proof,
       },
     })
   }

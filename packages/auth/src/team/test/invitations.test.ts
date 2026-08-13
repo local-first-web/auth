@@ -1,4 +1,10 @@
-import { createKeyring, createKeyset, type UnixTimestamp } from '@localfirst/crdx'
+import {
+  createKeyring,
+  createKeyset,
+  createUser,
+  redactKeys,
+  type UnixTimestamp,
+} from '@localfirst/crdx'
 import { signatures } from '@localfirst/crypto'
 import { createDevice, redactDevice, Team, type FirstUseDevice } from 'index.js'
 import { generateProof } from 'invitation/index.js'
@@ -644,6 +650,116 @@ describe('Team', () => {
                 teamKeyring: phoneTeam.teamKeyring(),
               })
           ).not.toThrow()
+        })
+      })
+
+      describe('admission is verifiable by every peer', () => {
+        it("won't accept an admission whose proof isn't signed with the invitation key", () => {
+          const { alice, bob, eve } = setup(
+            'alice',
+            { user: 'bob', member: false },
+            { user: 'eve', admin: false }
+          )
+
+          // 👩🏾 Alice invites 👨🏻‍🦲 Bob
+          const { id } = alice.team.inviteMember()
+
+          // 🦹‍♀️ Eve is a member, so she syncs up and holds the team keys; that lets her author
+          // links directly, without going through `admitMember`. She fabricates a proof and posts
+          // an admission with it.
+          eve.team = teams.load(alice.team.save(), eve.localContext, alice.team.teamKeys())
+          const signature = signatures.sign(
+            { id, invitee: bob.userId },
+            eve.user.keys.signature.secretKey
+          )
+          const forgedProof = { id, invitee: bob.userId, signature }
+
+          const admitWithForgedProof = () => {
+            eve.team.dispatch({
+              type: 'ADMIT_MEMBER',
+              payload: {
+                id,
+                userName: bob.userName,
+                memberKeys: redactKeys(bob.user.keys),
+                proof: forgedProof,
+                lockboxes: [],
+              },
+            })
+          }
+
+          // 👎 Every peer runs this through the reducer, so nobody accepts it
+          expect(admitWithForgedProof).toThrowError(/proof/i)
+          expect(eve.team.has(bob.userId)).toBe(false)
+        })
+
+        it("won't accept an admission whose proof names a different member", () => {
+          const { alice, bob, eve } = setup(
+            'alice',
+            { user: 'bob', member: false },
+            { user: 'eve', admin: false }
+          )
+
+          // 👩🏾 Alice invites 👨🏻‍🦲 Bob, and 👨🏻‍🦲 Bob generates a real proof
+          const { seed, id } = alice.team.inviteMember()
+          const bobsProof = generateProof(seed, bob.userId)
+
+          // 🦹‍♀️ Eve syncs up, gets hold of Bob's proof, and posts an admission that attaches it to
+          // her own choice of keys
+          eve.team = teams.load(alice.team.save(), eve.localContext, alice.team.teamKeys())
+          const mallory = createUser('mallory', 'mallory-user-id', 'mallory')
+          const admitSomeoneElse = () => {
+            eve.team.dispatch({
+              type: 'ADMIT_MEMBER',
+              payload: {
+                id,
+                userName: mallory.userName,
+                memberKeys: redactKeys(mallory.keys),
+                proof: bobsProof,
+                lockboxes: [],
+              },
+            })
+          }
+
+          // 👎 The proof only admits the identity it names
+          expect(admitSomeoneElse).toThrowError(/invitation/i)
+          expect(eve.team.has(mallory.userId)).toBe(false)
+        })
+
+        it("won't accept a device admission whose proof names a different device", () => {
+          const { alice, eve } = setup('alice', { user: 'eve', admin: false })
+
+          // 👩🏾 Alice invites 📱 her phone, and the phone generates a real proof
+          const { seed, id } = alice.team.inviteDevice()
+          const phonesProof = generateProof(seed, alice.phone!.deviceId)
+
+          // 🦹‍♀️ Eve syncs up, then posts an admission attaching the phone's proof to a device she
+          // controls
+          eve.team = teams.load(alice.team.save(), eve.localContext, alice.team.teamKeys())
+          const evesDevice = redactDevice(
+            createDevice({ userId: alice.userId, deviceName: 'eves device' })
+          )
+          const admitSomeoneElsesDevice = () => {
+            eve.team.dispatch({
+              type: 'ADMIT_DEVICE',
+              payload: { id, device: evesDevice, proof: phonesProof, lockboxes: [] },
+            })
+          }
+
+          // 👎 The proof only admits the device it names
+          expect(admitSomeoneElsesDevice).toThrowError(/invitation/i)
+          expect(eve.team.hasDevice(evesDevice.deviceId)).toBe(false)
+        })
+
+        it('accepts a legitimate admission when replayed by another peer', () => {
+          const { alice, bob, charlie } = setup('alice', { user: 'bob', member: false }, 'charlie')
+
+          // 👩🏾 Alice invites and admits 👨🏻‍🦲 Bob in the normal way
+          const { seed } = alice.team.inviteMember()
+          alice.team.admitMember(generateProof(seed, bob.userId), bob.user.keys, bob.userName)
+
+          // ✅ 👳🏽‍♂️ Charlie replays Alice's chain and independently accepts the admission
+          charlie.team = teams.load(alice.team.save(), charlie.localContext, alice.team.teamKeys())
+          expect(charlie.team.has(bob.userId)).toBe(true)
         })
       })
     })

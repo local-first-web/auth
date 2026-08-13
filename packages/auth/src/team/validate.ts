@@ -1,6 +1,6 @@
 import { debug, truncateHashes } from '@localfirst/shared'
 import { ROOT } from '@localfirst/crdx'
-import { invitationCanBeUsed } from 'invitation/index.js'
+import { invitationCanBeUsed, validate as validateProof } from 'invitation/index.js'
 import { VALID, ValidationError, actionFingerprint } from 'util/index.js'
 import { isAdminOnlyAction } from './isAdminOnlyAction.js'
 import { isRegisteredEncryptionKey } from './registeredEncryptionKeys.js'
@@ -154,6 +154,44 @@ const validators: TeamStateValidatorSet = {
       const invitation = select.getInvitation(previousState, id)
       return invitationCanBeUsed(invitation, link.body.timestamp)
     }
+    return VALID
+  },
+
+  /**
+   * An admission has to carry the invitee's proof of invitation, and that proof has to name the
+   * identity being admitted.
+   *
+   * The admitter checks the proof before posting, but their say-so is all any other peer used to
+   * have: an ADMIT link with a fabricated invitation id was accepted by everyone downstream. Since
+   * the proof is bound to the identity it admits, carrying it on the graph is safe, and it makes
+   * admission verifiable by everyone who replays the chain.
+   */
+  admissionMustBeProven(...args) {
+    const [previousState, link] = args
+    if (link.body.type !== 'ADMIT_MEMBER' && link.body.type !== 'ADMIT_DEVICE') return VALID
+
+    const { id, proof } = link.body.payload
+    if (!proof) {
+      return fail('This admission does not include a proof of invitation.', ...args)
+    }
+
+    // The proof has to be signed with the ephemeral key recorded in the invitation
+    const invitation = select.getInvitation(previousState, id)
+    const proofValidation = validateProof(proof, invitation)
+    if (!proofValidation.isValid) {
+      return fail(`Invalid proof of invitation: ${proofValidation.error.message}`, ...args)
+    }
+
+    // The proof names exactly one identity, and this has to be it
+    const invitee =
+      link.body.type === 'ADMIT_MEMBER'
+        ? link.body.payload.memberKeys.name
+        : link.body.payload.device.deviceId
+    if (proof.invitee !== invitee) {
+      const msg = `This invitation was issued to '${proof.invitee}', so it can't be used to admit '${invitee}'.`
+      return fail(msg, ...args)
+    }
+
     return VALID
   },
 

@@ -14,7 +14,7 @@ import type {
 } from '@localfirst/crdx'
 import type { Client, LocalContext } from 'team/context.js'
 import type { Device } from 'device/index.js'
-import type { Invitation, InvitationState } from 'invitation/types.js'
+import type { Invitation, InvitationState, ProofOfInvitation } from 'invitation/types.js'
 import type { Lockbox } from 'lockbox/index.js'
 import type { PermissionsMap, Role } from 'role/index.js'
 import type { Host, Server } from 'server/index.js'
@@ -178,6 +178,11 @@ export type AdmitMemberAction = {
     id: Base58 // Invitation ID
     userName: string
     memberKeys: Keyset // Member keys provided by the new member
+
+    /** The invitee's proof that they hold the secret invitation seed. This travels on the graph so
+     * that every peer can verify the admission for itself, rather than taking the admitter's word
+     * for it. */
+    proof: ProofOfInvitation
   }
 }
 
@@ -186,6 +191,9 @@ export type AdmitDeviceAction = {
   payload: BasePayload & {
     id: Base58 // Invitation ID
     device: Device
+
+    /** The invited device's proof that it holds the secret invitation seed. See `AdmitMemberAction`. */
+    proof: ProofOfInvitation
   }
 }
 
