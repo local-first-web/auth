@@ -84,6 +84,24 @@ describe('Team', () => {
       expect(alice.team.memberWasRemoved(charlie.userId)).toBe(false) // Charlie was never a member
     })
 
+    it('clears the tombstone for a re-added member, and only that member', () => {
+      const { alice, bob, charlie } = setup('alice', 'bob', 'charlie')
+
+      alice.team.remove(bob.userId)
+      alice.team.remove(charlie.userId)
+      expect(alice.team.memberWasRemoved(bob.userId)).toBe(true)
+      expect(alice.team.memberWasRemoved(charlie.userId)).toBe(true)
+
+      // Bob is re-added
+      alice.team.addForTesting(bob.user)
+
+      // Bob's tombstone is cleared, because he's a member again
+      expect(alice.team.memberWasRemoved(bob.userId)).toBe(false)
+
+      // Charlie's tombstone is untouched — re-adding Bob says nothing about Charlie
+      expect(alice.team.memberWasRemoved(charlie.userId)).toBe(true)
+    })
+
     it('only admins can remove members', () => {
       const { alice, bob, charlie } = setup('alice', { user: 'bob', admin: false }, 'charlie')
 

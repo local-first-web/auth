@@ -104,6 +104,25 @@ describe('Team', () => {
       expect(alice.team.deviceWasRemoved(bob.phone!.deviceId)).toBe(false) // Device never existed
     })
 
+    it('clears the tombstone for a re-added device, and only that device', () => {
+      const { alice, bob } = setup()
+      const bobsLaptop = alice.team.members(bob.userId).devices![0].deviceId
+      const bobsPhone = redactDevice(bob.phone!)
+
+      bob.team.addForTesting(bob.user, [], bobsPhone)
+      bob.team.removeDevice(bobsPhone.deviceId)
+      bob.team.removeDevice(bobsLaptop)
+      expect(bob.team.deviceWasRemoved(bobsPhone.deviceId)).toBe(true)
+      expect(bob.team.deviceWasRemoved(bobsLaptop)).toBe(true)
+
+      // The phone is re-added
+      bob.team.addForTesting(bob.user, [], bobsPhone)
+
+      // The phone's tombstone is cleared, but the laptop's is untouched
+      expect(bob.team.deviceWasRemoved(bobsPhone.deviceId)).toBe(false)
+      expect(bob.team.deviceWasRemoved(bobsLaptop)).toBe(true)
+    })
+
     it('throws when trying to remove a removed device', () => {
       const { alice, bob } = setup()
       const bobDevice = alice.team.members(bob.userId).devices![0].deviceId
