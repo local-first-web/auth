@@ -41,6 +41,41 @@ describe('Team', () => {
       expect(tryToRemoveDevice).toThrowError()
     })
 
+    it('Bob cannot add a device belonging to Alice', () => {
+      const { alice, bob } = setup()
+
+      // Bob creates a device that he controls, but claims it belongs to Alice
+      const bobsDeviceInAlicesName = createDevice({
+        userId: alice.userId,
+        deviceName: 'not really alices laptop',
+      })
+
+      const tryToAddDevice = () => {
+        bob.team.addForTesting(alice.user, [], redactDevice(bobsDeviceInAlicesName))
+      }
+
+      expect(tryToAddDevice).toThrowError()
+      expect(bob.team.members(alice.userId).devices).toHaveLength(1)
+    })
+
+    it("Alice can add a device belonging to Bob, because she's an admin", () => {
+      const { alice, bob } = setup()
+      const bobsPhone = redactDevice(bob.phone!)
+
+      alice.team.addForTesting(bob.user, [], bobsPhone)
+
+      expect(alice.team.members(bob.userId).devices).toHaveLength(2)
+    })
+
+    it('Bob can add his own device', () => {
+      const { bob } = setup()
+      const bobsPhone = redactDevice(bob.phone!)
+
+      bob.team.addForTesting(bob.user, [], bobsPhone)
+
+      expect(bob.team.members(bob.userId).devices).toHaveLength(2)
+    })
+
     it("doesn't remove other devices with the same name", () => {
       const { alice } = setup()
 

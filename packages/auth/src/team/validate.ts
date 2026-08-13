@@ -79,6 +79,24 @@ const validators: TeamStateValidatorSet = {
     return VALID
   },
 
+  /** Unless I'm an admin, I can't add devices for anyone but myself */
+  canOnlyAddYourOwnDevices(...args) {
+    const [previousState, link] = args
+    const author = link.body.userId
+
+    // Only admins can add a device for another user
+    const authorIsAdmin = select.memberIsAdmin(previousState, author)
+    if (authorIsAdmin) return VALID
+
+    if (link.body.type === 'ADD_DEVICE') {
+      const deviceOwner = link.body.payload.device.userId
+      if (author !== deviceOwner) {
+        return fail("Can't add a device for another user.", ...args)
+      }
+    }
+    return VALID
+  },
+
   /** Unless I'm an admin, I can't change anyone's keys but my own */
   canOnlyChangeYourOwnKeys(...args) {
     const [previousState, link] = args
