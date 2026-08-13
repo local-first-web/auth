@@ -2,6 +2,7 @@ import { createKeyset, redactKeys } from '@localfirst/crdx'
 import type { Host, Server, ServerWithSecrets } from 'server/index.js'
 import { KeyType } from 'util/index.js'
 import { eventPromise } from '@localfirst/shared'
+import { symmetric } from '@localfirst/crypto'
 import {
   TestChannel,
   all,
@@ -40,6 +41,35 @@ describe('Team', () => {
       alice.team.removeServer(host)
       expect(alice.team.servers().length).toBe(0)
       expect(alice.team.serverWasRemoved(host)).toBe(true)
+    })
+
+    it('loses access to the team keys when it is removed', () => {
+      const { alice, bob } = setupHumans('alice', 'bob')
+      const { server } = createServer(host)
+      alice.team.addServer(server)
+
+      // The server was given the team keys, so removing it has to leave those keys behind
+      const teamKeysWhileOnTheTeam = alice.team.teamKeys()
+      expect(teamKeysWhileOnTheTeam.generation).toBe(0)
+
+      alice.team.removeServer(host)
+
+      // The team keys have been rotated
+      const currentTeamKeys = alice.team.teamKeys()
+      expect(currentTeamKeys.generation).toBe(1)
+      expect(currentTeamKeys.encryption.publicKey).not.toEqual(
+        teamKeysWhileOnTheTeam.encryption.publicKey
+      )
+
+      // ❌ Anything the team encrypts from here on is closed to the ex-server
+      const encrypted = alice.team.encrypt('the eagle has landed')
+      expect(() =>
+        symmetric.decryptBytes(encrypted.contents, teamKeysWhileOnTheTeam.secretKey)
+      ).toThrow()
+
+      // ✅ But the members still on the team can read it
+      bob.team = loadTeam(alice.team.save(), bob.localContext, alice.team.teamKeyring())
+      expect(bob.team.decrypt(encrypted)).toEqual('the eagle has landed')
     })
 
     it("throws if a named server doesn't exist on the team", () => {

@@ -704,11 +704,20 @@ export class Team extends EventEmitter<TeamEvents> {
     })
   }
 
-  /** Removes a server from the team. */
+  /**
+   * Removes a server from the team.
+   *
+   * A server is given the team keys so it can decrypt the graph, so removing it means rotating
+   * those keys — just as removing a member does. Otherwise the ex-server keeps reading everything
+   * the team writes from here on.
+   */
   public removeServer = (host: string) => {
+    // Create new keys & lockboxes for any keys this server had access to
+    const lockboxes = this.rotateKeys({ type: KeyType.SERVER, name: host })
+
     this.dispatch({
       type: 'REMOVE_SERVER',
-      payload: { host },
+      payload: { host, lockboxes },
     })
   }
 
