@@ -688,7 +688,7 @@ describe('Team', () => {
           }
 
           // 👎 Every peer runs this through the reducer, so nobody accepts it
-          expect(admitWithForgedProof).toThrowError(/proof/i)
+          expect(admitWithForgedProof).toThrowError(/invalid proof of invitation/i)
           expect(eve.team.has(bob.userId)).toBe(false)
         })
 
@@ -721,7 +721,7 @@ describe('Team', () => {
           }
 
           // 👎 The proof only admits the identity it names
-          expect(admitSomeoneElse).toThrowError(/invitation/i)
+          expect(admitSomeoneElse).toThrowError(/can't be used to admit/i)
           expect(eve.team.has(mallory.userId)).toBe(false)
         })
 
@@ -746,7 +746,7 @@ describe('Team', () => {
           }
 
           // 👎 The proof only admits the device it names
-          expect(admitSomeoneElsesDevice).toThrowError(/invitation/i)
+          expect(admitSomeoneElsesDevice).toThrowError(/can't be used to admit/i)
           expect(eve.team.hasDevice(evesDevice.deviceId)).toBe(false)
         })
 
@@ -778,7 +778,7 @@ describe('Team', () => {
             })
           }
 
-          expect(admitOntoAlicesAccount).toThrowError(/invitation/i)
+          expect(admitOntoAlicesAccount).toThrowError(/can't be used to add a device to/i)
 
           // ❌ 👩🏾 Alice still has only her own device, so nobody resolves Bob's device to her
           expect(bob.team.members(alice.userId).devices).toHaveLength(1)
@@ -802,8 +802,102 @@ describe('Team', () => {
             })
           }
 
-          expect(inviteADeviceForAlice).toThrowError(/invitation/i)
+          expect(inviteADeviceForAlice).toThrowError(
+            /device invitation has to be for the member issuing it/i
+          )
           expect(Object.keys(bob.team.state.invitations)).toHaveLength(0)
+        })
+
+        it("won't admit a member using a device invitation", () => {
+          const { bob, eve } = setup(
+            'alice',
+            { user: 'bob', admin: false },
+            { user: 'eve', member: false }
+          )
+
+          // 👨🏻‍🦲 Bob is an ordinary member, so he isn't allowed to invite a member — but anyone
+          // can invite a device, and he holds that seed
+          const { seed, id } = bob.team.inviteDevice()
+
+          // `generateProof` signs whatever invitee string it's handed, so he mints one naming
+          // 🦹‍♀️ Eve's userId rather than a deviceId
+          const proof = generateProof(seed, eve.userId)
+
+          // ...and presents his device invitation as though it admitted a member
+          const admitEveAsAMember = () => {
+            bob.team.dispatch({
+              type: 'ADMIT_MEMBER',
+              payload: {
+                id,
+                userName: eve.userName,
+                memberKeys: redactKeys(eve.user.keys),
+                proof,
+                lockboxes: [],
+              },
+            })
+          }
+
+          // 👎 An invitation only admits the kind of invitee it was issued for
+          expect(admitEveAsAMember).toThrowError(
+            /device invitation.*can't be used to admit a member/i
+          )
+
+          // ❌ Bringing a new member onto the team is still an admin's call
+          expect(bob.team.has(eve.userId)).toBe(false)
+        })
+
+        it("won't admit a device using a member invitation", () => {
+          const { alice } = setup('alice')
+          const alicePhone = redactDevice(alice.phone!)
+
+          // 👩🏾 Alice invites a member, then tries to spend that invitation on a device
+          const { seed, id } = alice.team.inviteMember()
+          const proof = generateProof(seed, alicePhone.deviceId)
+
+          const admitADeviceInstead = () => {
+            alice.team.dispatch({
+              type: 'ADMIT_DEVICE',
+              payload: { id, device: alicePhone, proof, lockboxes: [] },
+            })
+          }
+
+          expect(admitADeviceInstead).toThrowError(
+            /member invitation.*can't be used to admit a device/i
+          )
+          expect(alice.team.members(alice.userId).devices).toHaveLength(1)
+        })
+
+        it("won't accept a member invitation that names a user", () => {
+          const { alice, bob } = setup('alice', 'bob')
+
+          // 👩🏾 Alice is an admin, so she may invite members — but a member invitation names
+          // nobody. One that named a user would double as a device invitation for them, and pass
+          // the owner check on a device admission.
+          const invitationNamingBob = createInvitation({ seed: 'passw0rd', userId: bob.userId })
+          const postInvitationNamingBob = () => {
+            alice.team.dispatch({
+              type: 'INVITE_MEMBER',
+              payload: { invitation: invitationNamingBob },
+            })
+          }
+
+          expect(postInvitationNamingBob).toThrowError(/member invitation can't name a user/i)
+          expect(Object.keys(alice.team.state.invitations)).toHaveLength(0)
+        })
+
+        it('still admits each kind of invitee with its own kind of invitation', () => {
+          const { alice, bob } = setup('alice', { user: 'bob', member: false })
+
+          // ✅ A member invitation admits a member
+          const { seed: memberSeed } = alice.team.inviteMember()
+          alice.team.admitMember(generateProof(memberSeed, bob.userId), bob.user.keys, bob.userName)
+          expect(alice.team.has(bob.userId)).toBe(true)
+
+          // ✅ A device invitation admits a device
+          const alicePhone = redactDevice(alice.phone!)
+          const { seed: deviceSeed } = alice.team.inviteDevice()
+          alice.team.admitDevice(generateProof(deviceSeed, alicePhone.deviceId), alicePhone)
+          expect(alice.team.members(alice.userId).devices).toHaveLength(2)
         })
 
         it('accepts a legitimate device admission when replayed by another peer', () => {
