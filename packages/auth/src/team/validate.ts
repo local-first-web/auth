@@ -255,6 +255,39 @@ const validators: TeamStateValidatorSet = {
       return fail(msg, ...args)
     }
 
+    // A device invitation also names the member the device will belong to. `admitDevice` takes the
+    // owner from the invitation, but that binds only the admitter's own copy: the payload is what
+    // every other peer applies, and `addDevice` files the device under whoever it names. Without
+    // this, a member could admit a device of their own onto someone else's account, and
+    // `memberByDeviceId` would resolve that device to its victim.
+    if (link.body.type === 'ADMIT_DEVICE') {
+      const owner = link.body.payload.device.userId
+      if (owner !== invitation.userId) {
+        const msg = `This invitation was issued for a device belonging to '${invitation.userId}', so it can't be used to add a device to '${owner}'.`
+        return fail(msg, ...args)
+      }
+    }
+
+    return VALID
+  },
+
+  /**
+   * A device invitation has to be issued in the name of the member who posts it.
+   *
+   * `inviteDevice` always names the author, but a member can author the link directly. An
+   * invitation naming someone else would admit a device onto that member's account — and the
+   * admission would look proper, since the device owner would match the invitation.
+   */
+  deviceInvitationsAreForTheirAuthor(...args) {
+    const [_previousState, link] = args
+    if (link.body.type !== 'INVITE_DEVICE') return VALID
+
+    const { userId: owner } = link.body.payload.invitation
+    if (owner !== link.body.userId) {
+      const msg = `A device invitation has to be for the member issuing it, but this one is for '${owner}'.`
+      return fail(msg, ...args)
+    }
+
     return VALID
   },
 

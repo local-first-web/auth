@@ -7,7 +7,7 @@ import {
 } from '@localfirst/crdx'
 import { signatures } from '@localfirst/crypto'
 import { createDevice, redactDevice, Team, type FirstUseDevice } from 'index.js'
-import { generateProof } from 'invitation/index.js'
+import { create as createInvitation, generateProof } from 'invitation/index.js'
 import * as teams from 'team/index.js'
 import { KeyType } from 'util/index.js'
 import { setup } from 'util/testing/index.js'
@@ -748,6 +748,76 @@ describe('Team', () => {
           // 👎 The proof only admits the device it names
           expect(admitSomeoneElsesDevice).toThrowError(/invitation/i)
           expect(eve.team.hasDevice(evesDevice.deviceId)).toBe(false)
+        })
+
+        it("won't admit a device onto another member's account", () => {
+          const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+
+          // 👨🏻‍🦲 Bob invites a device of his own, the ordinary way — the invitation names him as
+          // the owner
+          const { seed, id } = bob.team.inviteDevice()
+
+          // He holds the seed, so he can mint a real proof for a device he controls
+          const bobsOtherDevice = redactDevice(
+            createDevice({ userId: bob.userId, deviceName: 'bobs other device' })
+          )
+          const proof = generateProof(seed, bobsOtherDevice.deviceId)
+
+          // But he posts the admission with 👩🏾 Alice named as the owner. `admitDevice` takes the
+          // owner from the invitation, but that only binds the admitter's own copy — every other
+          // peer used to attach the device to whoever the payload named.
+          const admitOntoAlicesAccount = () => {
+            bob.team.dispatch({
+              type: 'ADMIT_DEVICE',
+              payload: {
+                id,
+                device: { ...bobsOtherDevice, userId: alice.userId },
+                proof,
+                lockboxes: [],
+              },
+            })
+          }
+
+          expect(admitOntoAlicesAccount).toThrowError(/invitation/i)
+
+          // ❌ 👩🏾 Alice still has only her own device, so nobody resolves Bob's device to her
+          expect(bob.team.members(alice.userId).devices).toHaveLength(1)
+          expect(bob.team.hasDevice(bobsOtherDevice.deviceId)).toBe(false)
+        })
+
+        it("won't accept a device invitation issued in another member's name", () => {
+          const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+
+          // 👨🏻‍🦲 Bob authors a device invitation naming 👩🏾 Alice as the owner. If this stood, he
+          // could mint a proof from his own seed and admit a device of his own onto her account —
+          // and the owner would match the invitation, so that admission would look proper.
+          const invitationForAlice = createInvitation({
+            seed: 'passw0rd',
+            userId: alice.userId,
+          })
+          const inviteADeviceForAlice = () => {
+            bob.team.dispatch({
+              type: 'INVITE_DEVICE',
+              payload: { invitation: invitationForAlice },
+            })
+          }
+
+          expect(inviteADeviceForAlice).toThrowError(/invitation/i)
+          expect(Object.keys(bob.team.state.invitations)).toHaveLength(0)
+        })
+
+        it('accepts a legitimate device admission when replayed by another peer', () => {
+          const { alice, bob } = setup('alice', 'bob')
+          const alicePhone = redactDevice(alice.phone!)
+
+          // 👩🏾 Alice invites and admits 📱 her phone in the normal way
+          const { seed } = alice.team.inviteDevice()
+          alice.team.admitDevice(generateProof(seed, alicePhone.deviceId), alicePhone)
+
+          // ✅ 👨🏻‍🦲 Bob replays Alice's chain and independently accepts the admission
+          bob.team = teams.load(alice.team.save(), bob.localContext, alice.team.teamKeys())
+          expect(bob.team.members(alice.userId).devices).toHaveLength(2)
+          expect(bob.team.memberByDeviceId(alicePhone.deviceId).userId).toBe(alice.userId)
         })
 
         it('accepts a legitimate admission when replayed by another peer', () => {
