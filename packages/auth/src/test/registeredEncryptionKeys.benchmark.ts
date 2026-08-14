@@ -17,7 +17,8 @@ import * as Auth from '../index.js'
  * O(lockboxes). It has two call sites:
  *
  * - `linkAuthorshipIsAuthentic`, which calls it once per link, so its cost is paid on every
- *   reduction of a whole graph. This is what the benchmarks below exercise.
+ *   reduction of a whole graph. This is what the benchmarks below exercise. A miss here costs one
+ *   full scan and then aborts the reduction, because failing that validator throws.
  * - `roleGrantMustIncludeKeys`, which calls it inside a `.some()` over an `ADD_MEMBER_ROLE`
  *   payload's lockboxes. A `false` there does not throw — `.some` moves to the next lockbox — so a
  *   single link can drive the fallback to completion several times over, once per payload lockbox
@@ -27,53 +28,72 @@ import * as Auth from '../index.js'
  *   separately as auth-8wx. **The scenario below emits no `ADD_MEMBER_ROLE` link** (asserted), so
  *   that second site is unexercised here and none of these numbers speak to it.
  *
- * At the first call site a miss costs one full scan and then aborts the reduction, because failing
- * that validator throws.
+ * ## The per-call cost is bimodal, by ~4.6x
  *
- * ## Which number to scale from
+ * The same lookup — same key, same 216 calls, same first match at lockbox 2018 of 2212, so
+ * byte-for-byte the same work — costs either ~0.06 ms or ~0.27 ms per call depending on where the
+ * state object it scans came from. Medians of 9 interleaved rounds:
  *
- * The per-call benchmarks below run against a state produced by a reduction, which is what the
- * validator sees in production. That matters more than it sounds: running the identical loop —
- * same key, same 121,140 lockbox visits — against a live `Team`'s `.state` instead took 15.2–16.9 ms
- * versus 3.1–4.2 ms against a reduced state. A long-lived team instance accumulates its state
- * object incrementally, and scanning it is ~4.6× slower than scanning the equivalent state that
- * came out of `teams.load`. Earlier drafts of this file measured the live state and so overstated
- * the per-call cost by that factor. **Scale from the per-call numbers here, which agree with what
- * the fallback actually costs inside a reduction.**
+ * | state scanned                                    | per call |
+ * | ------------------------------------------------- | -------- |
+ * | live `Team.state`, built up by a running team     | 0.272 ms |
+ * | `teams.load(bytes)` — a cold load                 | 0.059 ms |
+ * | `teams.load(graph)` — the merge path              | 0.271 ms |
+ * | live state, `lockboxes.slice()`                   | 0.270 ms |
+ * | live state, manifests rebuilt uniformly           | 0.048 ms |
+ *
+ * The determinant is the hidden-class provenance of the lockbox *manifest* objects, not how the
+ * array was accumulated. A fresh array over the same manifests stays slow; the same array with
+ * uniformly rebuilt manifests goes fast. A cold load is fast only because decoding every manifest
+ * through msgpackr gives the array one uniform shape, which keeps the `manifest.type` / `.name` /
+ * `.publicKey` loads in the scan monomorphic; locally constructed manifests mix shapes and
+ * depolymorphize them.
+ *
+ * **Which mode applies where matters, because the two are not equally relevant.** `Store.merge`
+ * calls `updateState()`, which runs `sequence.reduce(reducer, initialState)` over the in-memory
+ * graph (`makeMachine.ts:19`), and `maybeDeserialize` hands a `TeamGraph` source straight through
+ * without re-decoding (`serialize.ts:29-32`). So a merge reduces in the *slow* mode — and by the
+ * analysis further down, a merge is the only thing that reaches the fallback in bulk. The cold-load
+ * mode is the one a fresh load from storage runs in.
+ *
+ * Not measured here: a real sync produces a mixed array, since links that arrived over the wire are
+ * decoded while locally authored ones are not. Where the boundary lies between a mostly-decoded and
+ * a mostly-local array is an open question for whoever revisits this.
  *
  * ## Measurements
  *
  * M-series laptop, Node 20.10.0, at the sizes configured below: 217 links (216 validated), 2212
- * lockboxes, 60 links authored under a superseded generation, each scan stopping at lockbox 2019.
+ * lockboxes, 60 links authored under a superseded generation, each scan stopping at lockbox 2018.
  *
- * Instrumented in situ — temporary counters and timers added to `isRegisteredEncryptionKey`, not
- * committed — over six rounds with the two arms alternating order:
+ * End to end. Medians of 20 reps with the two arms interleaved, and the same pair as run by the
+ * committed benches below:
  *
- * | measurement                                  | value                       |
- * | --------------------------------------------- | --------------------------- |
- * | whole reduction, wall clock                   | 97–116 ms                   |
- * | 156 fast-path calls, total                    | 0.016–0.043 ms              |
- * | 60 fallback calls, total                      | 3.2–4.1 ms                  |
- * | lockbox visits on the fallback                | 121,140                     |
- * | => per fallback call                          | ~0.057 ms                   |
- * | => per lockbox visited                        | ~0.028 µs                   |
- * | => per link, baseline (whole reduction / 216) | ~0.46 ms                    |
+ * | mode       | fast-path arm | fallback arm  | gap                  |
+ * | ----------- | ------------- | ------------- | -------------------- |
+ * | cold load   | 104.4–107.7 ms | 106.4–108.5 ms | +0.8 to +2.5 ms (~+2%) |
+ * | merge path  | 22.5–23.6 ms  | 40.0–41.6 ms  | +16.5 to +18.4 ms (~+75%) |
  *
- * The committed per-call benchmarks below agree with that, which is the point of running them
- * against a reduced state:
+ * The merge path is cheaper overall because it skips decrypting the links — which is exactly why
+ * the fallback dominates it. Per link: the baseline is ~0.50 ms on a cold load and ~0.11 ms on a
+ * merge, while one fallback call costs ~0.059 ms and ~0.27 ms respectively. **On the merge path a
+ * single fallback link costs about 2.5 ordinary links.**
  *
- * | bench                                     | mean over 2 runs | per call   |
- * | ------------------------------------------ | ---------------- | ---------- |
- * | fast path × 216 calls                      | 0.044–0.047 ms   | 0.0002 ms  |
- * | superseded generation × 216 calls          | 11.9–12.2 ms     | 0.055 ms   |
- * | unregistered key, full scan × 216 calls    | 14.6–15.2 ms     | 0.069 ms   |
+ * The committed per-call benches reproduce the split directly:
  *
- * The end-to-end gap between the two reduction arms is *not* resolvable at this size: with the
- * order alternated the differences were +6.4, +3.9, −7.7, +7.9, −3.3, +3.3 ms — mean +1.8 ms,
- * changing sign, against a real fallback cost of ~3.4 ms. (An earlier draft reported a consistent
- * 5–7% gap; that was run-order bias, since vitest runs benches in declaration order and the
- * fallback arm was always second. Read the two reduction benches below as a shape control, not as a
- * measurement of the effect.)
+ * | bench                                                  | mean over 2 runs | per call      |
+ * | ------------------------------------------------------- | ---------------- | ------------- |
+ * | fast path × 216 calls                                   | 0.045–0.049 ms   | 0.0002 ms     |
+ * | superseded generation × 216, decoded state              | 11.0–12.8 ms     | 0.051–0.059 ms |
+ * | superseded generation × 216, locally built state        | 54.3–57.5 ms     | 0.251–0.266 ms |
+ * | unregistered key, full scan × 216, locally built state  | 64.9–68.7 ms     | 0.301–0.318 ms |
+ *
+ * The end-to-end gap is not resolvable by the two reduction benches below on the cold path: with
+ * the order alternated over six rounds the differences were +6.4, +3.9, -7.7, +7.9, -3.3, +3.3 ms
+ * against ~8 ms of noise. That is a power problem, not evidence of absence — 20 interleaved reps
+ * recover +2.5 ms, consistent with 60 calls at 0.059 ms. (An earlier draft reported a consistent
+ * 5-7% gap on that pair; that was run-order bias, since vitest runs benches in declaration order
+ * and the fallback arm was always second.) On the merge path the gap is far above the noise and the
+ * benches resolve it easily.
  *
  * ## How often the fallback is reached
  *
@@ -90,24 +110,30 @@ import * as Auth from '../index.js'
  *   after the rotation, decided by link hashes. That's what the scenario below builds.
  * - Scanning stops at the first match, and a generation was lockboxed when it was minted, so the
  *   cost is O(position of that generation), not O(lockboxes). Offline observation, not committed
- *   here: with the same counters, an offline run of 25 links over a 498-lockbox chain — the natural
+ *   here: with temporary counters, an offline run of 25 links over a 498-lockbox chain — the natural
  *   case, where the author's superseded keys are their original ones — visited 4 lockboxes per call,
  *   and the coin flip on which side of the rotation the run landed came out 3/8 and 5/8 over trials.
  *   The scenario below is the unfavorable case, arranged so the author's generation is minted late.
  *
  * ## Conclusion
  *
- * No change warranted, so none was made. Indexing the registered keys incrementally in `TeamState`
- * would make the lookup constant-time, but at this size it would remove ~3.4 ms from a ~100 ms
- * reduction in a case that has to be constructed on purpose, and ~0.04 ms in the ordinary case — in
- * exchange for derived state that every transform has to keep correct, and that `auditAuthorship`
- * also reads.
+ * No change warranted, so none was made — but this is a closer call than an earlier draft of this
+ * file made it look. Indexing the registered keys incrementally in `TeamState` would make the
+ * lookup constant-time. What it would buy is ~0.04 ms on an ordinary reduction, where nothing
+ * reaches the fallback, and ~18 ms — around +75% — on the merge of a deliberately constructed
+ * concurrent chain. What it would cost is derived state that every transform has to keep correct
+ * and that `auditAuthorship` also reads. On those numbers the trade still doesn't pay, because the
+ * ordinary case is the one that runs constantly; but the deciding factor is how rare the
+ * constructed case is, not how cheap the fallback is.
  *
- * Revisit trigger, computed rather than hand-waved: a fallback link costs ~0.028 µs per lockbox it
- * visits, against a baseline of ~0.46 ms per link. So even with *every* link on the fallback, 2212
- * lockboxes adds ~12%. The scan only matches the rest of a reduction — i.e. doubles it — at roughly
- * 17,000 lockboxes visited per link. Worth another look if lockbox counts approach that and
- * concurrent key rotation is common.
+ * Revisit trigger, computed rather than hand-waved, and stated per mode because they differ by 20x:
+ * a fallback link costs ~0.133 us per lockbox visited on the merge path and ~0.029 us on a cold
+ * load, against per-link baselines of ~0.11 ms and ~0.50 ms. So one fallback link costs as much as
+ * one ordinary link at roughly **810 lockboxes on the merge path**, and roughly 17,000 on a cold
+ * load. The merge-path figure is not a distant threshold: the 100-member/30-removal chain described
+ * above already carries 3263 lockboxes, four times past it. What keeps the cost small today is that
+ * almost no links reach the fallback — not that the fallback is cheap. Revisit if concurrent key
+ * rotation becomes common, rather than waiting for a lockbox count.
  *
  * ## Reproducibility
  *
@@ -241,41 +267,55 @@ const buildPair = () => {
 
 const { fastPath, fallback } = buildPair()
 
-// The two arms are only a control if they differ in exactly one thing, so check that they do
-const countLinks = ({ graph }: Scenario) => Object.keys(graph.links).length
-const reduceArm = ({ serialized, context, keyring }: Scenario) =>
+/** Reduces from serialized bytes, decoding every manifest on the way — the cold-load mode */
+const reduceFromBytes = ({ serialized, context, keyring }: Scenario) =>
   teams.load(serialized, context, keyring)
 
-const fallbackState = reduceArm(fallback).state
-const fastPathState = reduceArm(fastPath).state
+/** Reduces an in-memory graph, leaving locally built manifests as they are — the merge-path mode */
+const reduceFromGraph = ({ graph, context, keyring }: Scenario) =>
+  teams.load(graph, context, keyring)
+
+// The two arms are only a control if they differ in exactly one thing, so check that they do.
+// (The counts are hoisted because `assert`'s message argument is eager, and each of these replays
+// the whole chain.)
+const countLinks = ({ graph }: Scenario) => Object.keys(graph.links).length
+const fallbackLinks = countLinks(fallback)
+const fastPathLinks = countLinks(fastPath)
+const fallbackEntries = countFallbackEntries(fallback.graph)
+const fastPathEntries = countFallbackEntries(fastPath.graph)
+
+// One state object of each provenance, so the benches can measure both modes
+const decodedState = reduceFromBytes(fallback).state
+const locallyBuiltState = reduceFromGraph(fallback).state
+const fastPathLockboxes = reduceFromBytes(fastPath).state.lockboxes.length
 
 assert(
-  countLinks(fallback) === countLinks(fastPath),
-  `The two arms should have the same number of links (${countLinks(fallback)} vs ${countLinks(fastPath)})`
+  fallbackLinks === fastPathLinks,
+  `The two arms should have the same number of links (${fallbackLinks} vs ${fastPathLinks})`
 )
 assert(
-  fallbackState.lockboxes.length === fastPathState.lockboxes.length,
-  `The two arms should have the same number of lockboxes (${fallbackState.lockboxes.length} vs ${fastPathState.lockboxes.length})`
+  decodedState.lockboxes.length === fastPathLockboxes,
+  `The two arms should have the same number of lockboxes (${decodedState.lockboxes.length} vs ${fastPathLockboxes})`
 )
 assert(
-  countFallbackEntries(fallback.graph) === OFFLINE_LINKS,
-  `The fallback arm should put exactly ${OFFLINE_LINKS} links on the fallback, not ${countFallbackEntries(fallback.graph)}`
+  fallbackEntries === OFFLINE_LINKS,
+  `The fallback arm should put exactly ${OFFLINE_LINKS} links on the fallback, not ${fallbackEntries}`
 )
 assert(
-  countFallbackEntries(fastPath.graph) === 0,
-  `The fast-path arm should put no links on the fallback, not ${countFallbackEntries(fastPath.graph)}`
+  fastPathEntries === 0,
+  `The fast-path arm should put no links on the fallback, not ${fastPathEntries}`
 )
 assert(
   !linkTypes(fallback.graph).has('ADD_MEMBER_ROLE'),
   "These numbers don't cover the ADD_MEMBER_ROLE call site, and the scenario isn't supposed to contain one"
 )
 
-const linkCount = countLinks(fallback)
+const linkCount = fallbackLinks
 const validatedLinkCount = linkCount - 1 // the root link is exempt from this validator
-const lockboxCount = fallbackState.lockboxes.length
+const lockboxCount = decodedState.lockboxes.length
 
 // A key that's current for its member, so the member-list scan answers it
-const currentMember = fallbackState.members.at(-1)!
+const currentMember = decodedState.members.at(-1)!
 const currentKey = currentMember.keys.encryption
 
 // The generation Bob's offline run was authored under — the same lookup the fallback does in situ
@@ -290,30 +330,45 @@ const unregisteredKey = Auth.createUser('nobody', 'nobody').keys.encryption
   .publicKey as unknown as Base58
 
 describe(`registered encryption keys (${linkCount} links, ${lockboxCount} lockboxes)`, () => {
-  // A shape control, not a measurement: the arms differ only in which side of the rotation the
-  // offline run is sequenced on, but the gap is smaller than the noise at this size — and vitest
-  // runs benches in declaration order, which biases whichever one goes second
-  bench('reduce a chain whose offline run stays on the fast path', () => {
-    reduceArm(fastPath)
+  // End to end in both modes. The arms differ only in which side of the rotation the offline run is
+  // sequenced on. On the cold path the gap is below what this many samples can resolve; on the
+  // merge path it's the dominant term. Note that vitest runs benches in declaration order, which
+  // biases whichever one goes second — read the cold-path pair with that in mind.
+  bench('cold load — offline run stays on the fast path', () => {
+    reduceFromBytes(fastPath)
   })
 
-  bench(`reduce a chain with ${OFFLINE_LINKS} links on the fallback`, () => {
-    reduceArm(fallback)
+  bench(`cold load — ${OFFLINE_LINKS} links on the fallback`, () => {
+    reduceFromBytes(fallback)
   })
 
-  // The validator's own contribution, one call per validated link, on each path
+  bench('merge path — offline run stays on the fast path', () => {
+    reduceFromGraph(fastPath)
+  })
+
+  bench(`merge path — ${OFFLINE_LINKS} links on the fallback`, () => {
+    reduceFromGraph(fallback)
+  })
+
+  // The validator's own contribution, one call per validated link. The fast path never touches the
+  // lockboxes, so it doesn't care about provenance; the fallback arms run in both modes.
   bench(`fast path × ${validatedLinkCount} calls`, () => {
     for (let i = 0; i < validatedLinkCount; i++)
-      isRegisteredEncryptionKey(fallbackState, currentMember.userId, currentKey)
+      isRegisteredEncryptionKey(decodedState, currentMember.userId, currentKey)
   })
 
-  bench(`superseded generation × ${validatedLinkCount} calls`, () => {
+  bench(`superseded generation × ${validatedLinkCount} calls, decoded state`, () => {
     for (let i = 0; i < validatedLinkCount; i++)
-      isRegisteredEncryptionKey(fallbackState, fallback.bobUserId, supersededKey)
+      isRegisteredEncryptionKey(decodedState, fallback.bobUserId, supersededKey)
   })
 
-  bench(`unregistered key, full scan × ${validatedLinkCount} calls`, () => {
+  bench(`superseded generation × ${validatedLinkCount} calls, locally built state`, () => {
     for (let i = 0; i < validatedLinkCount; i++)
-      isRegisteredEncryptionKey(fallbackState, currentMember.userId, unregisteredKey)
+      isRegisteredEncryptionKey(locallyBuiltState, fallback.bobUserId, supersededKey)
+  })
+
+  bench(`unregistered key, full scan × ${validatedLinkCount} calls, locally built state`, () => {
+    for (let i = 0; i < validatedLinkCount; i++)
+      isRegisteredEncryptionKey(locallyBuiltState, currentMember.userId, unregisteredKey)
   })
 })
