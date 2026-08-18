@@ -403,6 +403,87 @@ describe('Team', () => {
         expect(alice.team.members(alice.userId).userName === alice.userName).toBe(true)
       })
 
+      it("won't re-admit a removed member by replaying their published proof", () => {
+        const { alice, bob, charlie } = setup(
+          'alice',
+          { user: 'bob', member: false },
+          { user: 'charlie', admin: false }
+        )
+
+        // 👩🏾 Alice posts an invitation that can be used more than once, and admits 👨🏻‍🦲 Bob with it
+        const { seed } = alice.team.inviteMember({ maxUses: 2 })
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
+        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.userName)
+        expect(alice.team.has(bob.userId)).toBe(true)
+
+        // 👩🏾 Alice removes 👨🏻‍🦲 Bob
+        alice.team.remove(bob.userId)
+        expect(alice.team.has(bob.userId)).toBe(false)
+
+        // 👳🏽‍♂️ Charlie is an ordinary member, not an admin. Bob's proof is published on the graph
+        // and the invitation still has a use left, so nothing stops him from replaying it — which
+        // would put Bob back on the team and hand him lockboxes for the current team keys.
+        charlie.team = teams.load(alice.team.save(), charlie.localContext, alice.team.teamKeyring())
+        const replayBobsAdmission = () => {
+          charlie.team.admitMember(proofOfInvitation, bob.user.keys, bob.userName)
+        }
+
+        expect(replayBobsAdmission).toThrowError(/userid belongs to a member who was removed/i)
+        expect(charlie.team.has(bob.userId)).toBe(false)
+      })
+
+      it("won't admit someone under a removed member's userName", () => {
+        const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+        alice.team.remove(bob.userId)
+
+        // 🦹‍♀️ Taking a removed member's name would let 👳🏽‍♂️ Charlie pass for them in anything
+        // that goes by userName
+        const { seed } = alice.team.inviteMember()
+        const keysUnderCharliesOwnId = charlie.user.keys
+        const admitCharlieAsBob = () => {
+          alice.team.admitMember(
+            generateProof(seed, keysUnderCharliesOwnId),
+            keysUnderCharliesOwnId,
+            bob.userName
+          )
+        }
+
+        expect(admitCharlieAsBob).toThrowError(/username belongs to a member who was removed/i)
+        expect(alice.team.has(charlie.userId)).toBe(false)
+      })
+
+      it('still admits a second, different member with a multi-use invitation', () => {
+        const { alice, bob, charlie } = setup(
+          'alice',
+          { user: 'bob', member: false },
+          { user: 'charlie', member: false }
+        )
+
+        // ✅ What a multi-use invitation is for: admitting more than one person
+        const { seed } = alice.team.inviteMember({ maxUses: 2 })
+        alice.team.admitMember(generateProof(seed, bob.user.keys), bob.user.keys, bob.userName)
+        alice.team.admitMember(
+          generateProof(seed, charlie.user.keys),
+          charlie.user.keys,
+          charlie.userName
+        )
+
+        expect(alice.team.has(bob.userId)).toBe(true)
+        expect(alice.team.has(charlie.userId)).toBe(true)
+      })
+
+      it('still lets an admin add a removed member back', () => {
+        const { alice, bob } = setup('alice', 'bob')
+        alice.team.remove(bob.userId)
+        expect(alice.team.has(bob.userId)).toBe(false)
+
+        // ✅ Re-admitting someone is still possible — but through ADD_MEMBER, which is admin-only,
+        // rather than by any member replaying a proof
+        alice.team.addForTesting(bob.user)
+        expect(alice.team.has(bob.userId)).toBe(true)
+        expect(alice.team.memberWasRemoved(bob.userId)).toBe(false)
+      })
+
       it("won't accept a proof replayed under someone else's keys", () => {
         const { alice, bob, eve } = setup(
           'alice',

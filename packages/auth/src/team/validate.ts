@@ -11,6 +11,7 @@ import { isAdminOnlyAction } from './isAdminOnlyAction.js'
 import { isRegisteredEncryptionKey } from './registeredEncryptionKeys.js'
 import * as select from './selectors/index.js'
 import {
+  type Member,
   type TeamLink,
   type TeamState,
   type TeamStateValidator,
@@ -383,25 +384,39 @@ const validators: TeamStateValidatorSet = {
     return VALID
   },
 
-  /** Check if userId and userName are not used by any other member within the team */
+  /**
+   * An admission can't name a userId or userName that the team has already seen — whether it
+   * belongs to a current member or to one who has been removed.
+   *
+   * The removed half is what keeps a removal from being undone by replay. A proof of invitation is
+   * published on the graph, so a removed member's proof is durably readable by everyone; and an
+   * invitation with `maxUses` greater than one still has uses left after they're admitted. Without
+   * this, any member — admin or not — could replay that proof together with the removed member's
+   * public keys, putting them back on the team and handing them lockboxes for the current team
+   * keys. Adding someone back is still possible through ADD_MEMBER, which is admin-only.
+   */
   uniqueUserNameAndId(...args) {
     const [previousState, link] = args
     if (link.body.type === 'ADMIT_MEMBER') {
       const { userName, memberKeys } = link.body.payload
+      const hasUserId = ({ userId }: Member) => userId === memberKeys.name
+      const hasUserName = (member: Member) =>
+        member.userName.toLowerCase() === userName.toLowerCase()
 
-      const memberWithSameUserId = previousState.members.find(
-        member => member.userId === memberKeys.name
-      )
-      if (memberWithSameUserId !== undefined) {
+      if (previousState.members.some(hasUserId)) {
         return fail('userId is not unique within the team.', ...args)
       }
 
-      const memberWithSameUserName = previousState.members.find(
-        member => member.userName.toLowerCase() === userName.toLowerCase()
-      )
-
-      if (memberWithSameUserName !== undefined) {
+      if (previousState.members.some(hasUserName)) {
         return fail('Username is not unique within the team.', ...args)
+      }
+
+      if (previousState.removedMembers.some(hasUserId)) {
+        return fail('This userId belongs to a member who was removed from the team.', ...args)
+      }
+
+      if (previousState.removedMembers.some(hasUserName)) {
+        return fail('This userName belongs to a member who was removed from the team.', ...args)
       }
     }
     return VALID
