@@ -1,3 +1,5 @@
+import { createDevice, loadTeam, redactDevice } from 'index.js'
+import { generateProof } from 'invitation/index.js'
 import { ADMIN } from 'role/index.js'
 import { setup } from 'util/testing/index.js'
 import 'util/testing/expect/toLookLikeKeyset.js'
@@ -125,6 +127,77 @@ describe('Team', () => {
       // Team keys & admin keys have now been rotated once
       expect(alice.team.teamKeys().generation).toBe(1)
       expect(alice.team.adminKeys().generation).toBe(1)
+    })
+
+    it("can't admit a member once they've been removed", () => {
+      const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+
+      // 👩🏾 Alice invites 👳🏽‍♂️ Charlie, so there's a live invitation on the graph
+      const { seed } = alice.team.inviteMember()
+
+      // 👩🏾 Alice removes 👨🏻‍🦲 Bob
+      alice.team.remove(bob.userId)
+
+      // In practice an ex-member can't read past their own removal, because removing them rotates
+      // the team keys — so anything they author is concurrent with the removal, which is the
+      // resolver's business (`cantDoAnythingWhenRemoved`). Here we hand 👨🏻‍🦲 Bob the post-removal
+      // graph and keyring, so that the admission is unambiguously downstream of the removal and
+      // it's the validator that has to say no.
+      const exMemberTeam = loadTeam(alice.team.save(), bob.localContext, alice.team.teamKeyring())
+      expect(exMemberTeam.memberWasRemoved(bob.userId)).toBe(true)
+
+      // ❌ 👨🏻‍🦲 Bob knows about the invitation, but admitting is no longer his to do. His keys
+      // stay registered so that what he authored while on the team remains valid, and admitting
+      // isn't admin-only — so nothing else here stops him.
+      const tryToAdmitCharlie = () => {
+        exMemberTeam.admitMember(
+          generateProof(seed, charlie.user.keys),
+          charlie.user.keys,
+          charlie.userName
+        )
+      }
+
+      expect(tryToAdmitCharlie).toThrow(/was removed from the team/i)
+      expect(exMemberTeam.has(charlie.userId)).toBe(false)
+
+      // ✅ 👩🏾 Alice is still on the team, so the same invitation still admits 👳🏽‍♂️ Charlie
+      alice.team.admitMember(
+        generateProof(seed, charlie.user.keys),
+        charlie.user.keys,
+        charlie.userName
+      )
+      expect(alice.team.has(charlie.userId)).toBe(true)
+    })
+
+    it("can't admit a device once they've been removed", () => {
+      const { alice, bob } = setup('alice', 'bob')
+      const bobsPhone = redactDevice(bob.phone!)
+
+      // 👨🏻‍🦲 Bob invites two devices of his own
+      const { seed: firstSeed } = bob.team.inviteDevice()
+      const { seed: secondSeed } = bob.team.inviteDevice()
+
+      // ✅ While he's on the team, his own invitation admits 📱 his phone
+      bob.team.admitDevice(generateProof(firstSeed, bobsPhone.keys), bobsPhone)
+      expect(bob.team.members(bob.userId).devices).toHaveLength(2)
+
+      // 👩🏾 Alice syncs up and removes him
+      alice.team.merge(bob.team.graph)
+      alice.team.remove(bob.userId)
+
+      const exMemberTeam = loadTeam(alice.team.save(), bob.localContext, alice.team.teamKeyring())
+      expect(exMemberTeam.memberWasRemoved(bob.userId)).toBe(true)
+
+      // ❌ His second invitation is still open, but he can't spend it either
+      const bobsOtherDevice = redactDevice(
+        createDevice({ userId: bob.userId, deviceName: 'bobs other device' })
+      )
+      const tryToAdmitAnotherDevice = () => {
+        exMemberTeam.admitDevice(generateProof(secondSeed, bobsOtherDevice.keys), bobsOtherDevice)
+      }
+
+      expect(tryToAdmitAnotherDevice).toThrow(/was removed from the team/i)
+      expect(exMemberTeam.hasDevice(bobsOtherDevice.deviceId)).toBe(false)
     })
 
     it("doesn't do anything if asked to remove a nonexistent member", () => {

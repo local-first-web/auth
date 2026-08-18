@@ -87,32 +87,38 @@ const validators: TeamStateValidatorSet = {
   },
 
   /**
-   * A server that's been removed from the team can't author anything at all.
+   * Someone who's been removed from the team can't author anything at all.
    *
-   * `serversCanOnlyAdmit` confines a removed server to admissions, but admitting is exactly what an
-   * ex-server is still in a position to do: its encryption key stays registered (so that the links
-   * it authored while on the team remain valid), admitting isn't admin-only, and an invitation it
-   * learned about before being removed is still open. So a server that's been let go could keep
-   * putting members and devices of its choosing onto the team.
+   * `serversCanOnlyAdmit` confines a removed server to admissions, but admitting is exactly what
+   * someone who's been let go is still in a position to do — an ex-member as much as an ex-server.
+   * Their encryption key stays registered (so that the links they authored while on the team remain
+   * valid), admitting isn't admin-only, and an invitation they learned about before being removed
+   * is still open. So without this, either of them could keep putting members and devices of their
+   * choosing onto the team.
    *
-   * This only speaks to links that come after the removal in the sequence. An admission the server
-   * makes concurrently with its own removal is the resolver's business — `cantDoAnythingWhenRemoved`
-   * discards those, the same way it does for a member who is concurrently removed.
+   * This only speaks to links that come after the removal in the sequence. Anything authored
+   * concurrently with the author's own removal is the resolver's business —
+   * `cantDoAnythingWhenRemoved` discards those.
    */
-  removedServersCantDoAnything(...args) {
+  removedMembersAndServersCantDoAnything(...args) {
     const [previousState, link] = args
     const { type, userId } = link.body
 
-    // A server can't have authored the root link: a server can't create a team
+    // The root link is what puts the founding member on the team, so there's nobody removed yet
     if (type === ROOT) return VALID
 
-    // Being re-added clears the tombstone, so a server that's back on the team is unencumbered
+    // Being re-added clears the tombstone, so anyone who's back on the team is unencumbered
+    const isCurrentMember = previousState.members.some(member => member.userId === userId)
     const isCurrentServer = previousState.servers.some(({ host }) => host === userId)
-    if (isCurrentServer) return VALID
+    if (isCurrentMember || isCurrentServer) return VALID
 
-    const wasRemoved = previousState.removedServers.some(({ host }) => host === userId)
-    if (wasRemoved) {
+    if (previousState.removedServers.some(({ host }) => host === userId)) {
       const msg = `The server '${userId}' was removed from the team, so it can't author a '${type}' link.`
+      return fail(msg, ...args)
+    }
+
+    if (previousState.removedMembers.some(member => member.userId === userId)) {
+      const msg = `'${userId}' was removed from the team, so they can't author a '${type}' link.`
       return fail(msg, ...args)
     }
 
