@@ -48,4 +48,33 @@ describe('invitations', () => {
     const validationResult = validate(proofOfInvitation, invitation)
     expect(validationResult.isValid).toBe(false)
   })
+
+  test('the same proof is rejected against a different invitation', () => {
+    const bobsKeys = createKeyset({ type: 'USER', name: 'bob' })
+    const proofOfInvitation = generateProof('passw0rd', bobsKeys)
+
+    // 👨🏻‍🦲 Bob's proof checks out against the invitation it was made for
+    const invitation = create({ kind: 'MEMBER', seed: 'passw0rd' })
+    expect(validate(proofOfInvitation, invitation).isValid).toBe(true)
+
+    // ❌ ...and not against any other invitation. Validation is memoized, so this only holds if the
+    // invitation is part of what the cache is keyed on.
+    const someoneElsesInvitation = create({ kind: 'MEMBER', seed: 'horsebatterycorrectstaple' })
+    expect(validate(proofOfInvitation, someoneElsesInvitation).isValid).toBe(false)
+
+    // ✅ The original answer is unchanged
+    expect(validate(proofOfInvitation, invitation).isValid).toBe(true)
+  })
+
+  test('a tampered proof is rejected even if it reuses a valid signature', () => {
+    const bobsKeys = createKeyset({ type: 'USER', name: 'bob' })
+    const invitation = create({ kind: 'MEMBER', seed: 'passw0rd' })
+    const proofOfInvitation = generateProof('passw0rd', bobsKeys)
+    expect(validate(proofOfInvitation, invitation).isValid).toBe(true)
+
+    // ❌ The signature covers the invitee and the hash of their keys, so a proof that keeps the
+    // signature but changes what it names is a forgery — including for the cache
+    const tamperedProof = { ...proofOfInvitation, invitee: 'eve' }
+    expect(validate(tamperedProof, invitation).isValid).toBe(false)
+  })
 })

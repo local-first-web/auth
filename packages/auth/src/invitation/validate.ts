@@ -43,7 +43,21 @@ export const validate = memoize(
     }
 
     return VALID
-  }
+  },
+
+  // Without a resolver, lodash keys the cache on the first argument alone — and by identity, since
+  // that argument is an object. That would make the answer for one proof stand in for the answer
+  // for any other proof that happens to be the same object, whatever invitation it's presented
+  // against. Everything either argument contributes to the answer goes into the key.
+  (proof, invitation) =>
+    [
+      proof.id,
+      proof.invitee,
+      proof.keyHash,
+      proof.signature,
+      invitation.id,
+      invitation.publicKey,
+    ].join(':')
 )
 
 export const fail = (message: string, details?: any) =>
