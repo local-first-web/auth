@@ -1,6 +1,10 @@
 import { debug, truncateHashes } from '@localfirst/shared'
 import { ROOT } from '@localfirst/crdx'
-import { invitationCanBeUsed, validate as validateProof } from 'invitation/index.js'
+import {
+  invitationCanBeUsed,
+  type Invitation,
+  validate as validateProof,
+} from 'invitation/index.js'
 import { KeyType, VALID, ValidationError, actionFingerprint } from 'util/index.js'
 import { isAdminOnlyAction } from './isAdminOnlyAction.js'
 import { isRegisteredEncryptionKey } from './registeredEncryptionKeys.js'
@@ -255,19 +259,18 @@ const validators: TeamStateValidatorSet = {
       return fail(msg, ...args)
     }
 
-    // An invitation only admits the kind of invitee it was issued for. Team state doesn't record
-    // which action posted an invitation, so its kind is read off `userId`, which only a device
-    // invitation carries (see `invitationsNameTheRightOwner`, which is what makes that reliable).
+    // An invitation only admits the kind of invitee it was issued for. The invitation says which
+    // kind it is; `invitationsNameTheRightKindAndOwner` is what makes that claim reliable.
     // Inviting a device is open to every member while inviting a member is admin-only, so without
     // this an ordinary member could spend a device invitation of their own on a member admission
     // and hand full membership — and the team keyring — to an outsider.
     if (link.body.type === 'ADMIT_MEMBER') {
-      if (invitation.userId !== undefined) {
+      if (invitation.kind !== 'MEMBER') {
         const msg = `This is a device invitation, so it can't be used to admit a member.`
         return fail(msg, ...args)
       }
     } else {
-      if (invitation.userId === undefined) {
+      if (invitation.kind !== 'DEVICE') {
         const msg = `This is a member invitation, so it can't be used to admit a device.`
         return fail(msg, ...args)
       }
@@ -288,31 +291,42 @@ const validators: TeamStateValidatorSet = {
   },
 
   /**
-   * An invitation's `userId` says what kind of invitation it is, and for a device invitation, who
-   * it's for: a member invitation names nobody, and a device invitation names the member whose
-   * device it is — who has to be the member issuing it.
+   * An invitation has to be the kind its link says it is, and a device invitation has to name the
+   * member issuing it as the owner.
    *
-   * `inviteMember` and `inviteDevice` have always populated this correctly, but a member can author
-   * the link directly. A device invitation naming someone else would admit a device onto that
-   * member's account; a member invitation carrying a `userId` would pass for a device invitation,
-   * since that's the only thing telling the two apart.
+   * `inviteMember` and `inviteDevice` populate both correctly, and the types make it impossible for
+   * them not to — but a member can author the link directly, and nothing about the graph stops them
+   * from putting whatever they like in the payload. Inviting a device is open to every member while
+   * inviting a member is admin-only, so an unchecked `kind` would let an ordinary member post a
+   * member invitation through `INVITE_DEVICE` and then hand full membership to an outsider. A
+   * device invitation naming someone else would admit a device onto that member's account.
    */
-  invitationsNameTheRightOwner(...args) {
+  invitationsNameTheRightKindAndOwner(...args) {
     const [_previousState, link] = args
 
+    // The payload types describe what honest code produces; what actually arrived is either kind
+    const invitation: Invitation | undefined =
+      link.body.type === 'INVITE_MEMBER' || link.body.type === 'INVITE_DEVICE'
+        ? link.body.payload.invitation
+        : undefined
+
+    if (invitation === undefined) return VALID
+
     if (link.body.type === 'INVITE_MEMBER') {
-      const { userId: owner } = link.body.payload.invitation
-      if (owner !== undefined) {
-        const msg = `A member invitation can't name a user, but this one names '${owner}'.`
+      if (invitation.kind !== 'MEMBER') {
+        const msg = `An INVITE_MEMBER link has to carry a member invitation, but this one carries a device invitation.`
         return fail(msg, ...args)
       }
 
       return VALID
     }
 
-    if (link.body.type !== 'INVITE_DEVICE') return VALID
+    if (invitation.kind !== 'DEVICE') {
+      const msg = `An INVITE_DEVICE link has to carry a device invitation, but this one carries a member invitation.`
+      return fail(msg, ...args)
+    }
 
-    const { userId: owner } = link.body.payload.invitation
+    const { userId: owner } = invitation
     if (owner !== link.body.userId) {
       const msg = `A device invitation has to be for the member issuing it, but this one is for '${owner}'.`
       return fail(msg, ...args)

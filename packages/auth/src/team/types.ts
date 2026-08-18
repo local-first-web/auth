@@ -14,7 +14,12 @@ import type {
 } from '@localfirst/crdx'
 import type { Client, LocalContext } from 'team/context.js'
 import type { Device } from 'device/index.js'
-import type { Invitation, InvitationState, ProofOfInvitation } from 'invitation/types.js'
+import type {
+  DeviceInvitation,
+  InvitationState,
+  MemberInvitation,
+  ProofOfInvitation,
+} from 'invitation/types.js'
 import type { Lockbox } from 'lockbox/index.js'
 import type { PermissionsMap, Role } from 'role/index.js'
 import type { Host, Server } from 'server/index.js'
@@ -154,14 +159,14 @@ export type RemoveDeviceAction = {
 export type InviteMemberAction = {
   type: 'INVITE_MEMBER'
   payload: BasePayload & {
-    invitation: Invitation
+    invitation: MemberInvitation
   }
 }
 
 export type InviteDeviceAction = {
   type: 'INVITE_DEVICE'
   payload: BasePayload & {
-    invitation: Invitation
+    invitation: DeviceInvitation
   }
 }
 

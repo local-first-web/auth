@@ -34,8 +34,9 @@ export const getDeviceUserFromGraph = ({
   const invitationId = deriveId(invitationSeed)
   const state = getTeamState(serializedGraph, teamKeyring)
 
-  const { userId } = select.getInvitation(state, invitationId)
-  assert(userId) // since this is a device invitation the invitation info includes the userId that created it
+  const invitation = select.getInvitation(state, invitationId)
+  assert(invitation.kind === 'DEVICE') // only a device invitation names the member it belongs to
+  const { userId } = invitation
 
   const { userName } = select.member(state, userId)
   assert(userName) // this user must exist in the team graph

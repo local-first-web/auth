@@ -1,10 +1,7 @@
 import { type Base58, type UnixTimestamp } from '@localfirst/crdx'
 
-/**
- * The public record of the invitation that Alice adds to the signature chain after inviting Bob
- * (or, that Bob's laptop adds after inviting Bob's phone).
- * */
-export type Invitation = {
+/** Properties shared by both kinds of invitation. */
+type InvitationBase = {
   /** Public, unique identifier for the invitation */
   id: Base58
 
@@ -16,22 +13,44 @@ export type Invitation = {
 
   /** Number of times the invitation can be used. If 0, the invitation can be used any number of times. */
   maxUses: number
-
-  /** (Device invitations only) User name the device will be associated with. */
-  userId?: string
 }
+
+/** An invitation to join the team as a new member. */
+export type MemberInvitation = {
+  kind: 'MEMBER'
+} & InvitationBase
+
+/** An invitation for a new device belonging to a member who is already on the team. */
+export type DeviceInvitation = {
+  kind: 'DEVICE'
+
+  /** The member the device will belong to. */
+  userId: string
+} & InvitationBase
+
+/**
+ * The public record of the invitation that Alice adds to the signature chain after inviting Bob
+ * (or, that Bob's laptop adds after inviting Bob's phone).
+ *
+ * `kind` says which of the two this is, and the union ties the device owner to it: `userId` is
+ * present exactly when the invitation is a device invitation. That's a compile-time guarantee about
+ * the code that builds invitations, not a runtime one about invitations arriving on the graph — a
+ * member can author an `INVITE_*` link directly, so `kind` still has to be validated against the
+ * link that posts it (see `invitationsNameTheRightKindAndOwner`).
+ * */
+export type Invitation = MemberInvitation | DeviceInvitation
 
 /**
  * The current state of the invitation; appears in the Team state. These properties are populated
  * by the reducer.
  * */
-export type InvitationState = {
+export type InvitationState = Invitation & {
   /** Number of times the invitation has been used */
   uses: number
 
   /** If true, this invitation was revoked at some point after it was created (but before it was used) */
   revoked: boolean
-} & Invitation
+}
 
 /**
  * The document an invitee presents the first time they connect to an admin, to prove that they've

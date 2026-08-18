@@ -469,7 +469,7 @@ export class Team extends EventEmitter<TeamEvents> {
     seed = normalize(seed)
 
     // Generate invitation
-    const invitation = invitations.create({ seed, expiration, maxUses })
+    const invitation = invitations.create({ kind: 'MEMBER', seed, expiration, maxUses })
     const { id } = invitation
 
     // Post invitation to graph
@@ -511,7 +511,13 @@ export class Team extends EventEmitter<TeamEvents> {
 
     // Generate invitation
     const maxUses = 1 // Can't invite multiple devices with the same invitation
-    const invitation = invitations.create({ seed, expiration, maxUses, userId: this.userId })
+    const invitation = invitations.create({
+      kind: 'DEVICE',
+      seed,
+      expiration,
+      maxUses,
+      userId: this.userId,
+    })
 
     // In order for the invited device to be able to access the user's keys, we put the user keys in
     // lockboxes that can be opened by an ephemeral keyset generated from the secret invitation seed.
@@ -589,6 +595,12 @@ export class Team extends EventEmitter<TeamEvents> {
     const invitationValidation = this.validateInvitation(proof)
     if (!invitationValidation.isValid) throw invitationValidation.error
 
+    if (this.getInvitation(proof.id).kind !== 'MEMBER') {
+      throw new InvitationValidationError(
+        "This is a device invitation, so it can't be used to admit a member."
+      )
+    }
+
     // The proof is bound to a single userId; we can only admit the keys it names
     if (proof.invitee !== memberKeys.name) {
       throw new InvitationValidationError('This invitation was issued to a different user.')
@@ -628,7 +640,13 @@ export class Team extends EventEmitter<TeamEvents> {
 
     const { id } = proof
     const invitation = this.getInvitation(id)
-    const userId = invitation.userId!
+    if (invitation.kind !== 'DEVICE') {
+      throw new InvitationValidationError(
+        "This is a member invitation, so it can't be used to admit a device."
+      )
+    }
+
+    const { userId } = invitation
 
     // Now we can add the userId to the device and post it to the graph
     const device: Device = { ...firstUseDevice, userId }

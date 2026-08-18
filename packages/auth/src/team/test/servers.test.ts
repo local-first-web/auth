@@ -316,7 +316,11 @@ describe('Team', () => {
         server.team.dispatch({
           type: 'INVITE_DEVICE',
           payload: {
-            invitation: invitation.create({ seed: 'passw0rd', userId: alice.userId }),
+            invitation: invitation.create({
+              kind: 'DEVICE',
+              seed: 'passw0rd',
+              userId: alice.userId,
+            }),
           },
         })
       }

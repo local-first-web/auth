@@ -4,7 +4,7 @@ import { create, generateProof, randomSeed, validate } from 'invitation/index.js
 describe('invitations', () => {
   test('create invitation', () => {
     const seed = randomSeed()
-    const invitation = create({ seed })
+    const invitation = create({ kind: 'MEMBER', seed })
     // Looks like an invitation
     expect(invitation).toHaveProperty('id')
     expect(invitation.id).toHaveLength(15)
@@ -17,7 +17,7 @@ describe('invitations', () => {
 
     // 👩🏾 Alice generates an invitation with this key. Normally the invitation would be stored on the
     // team's signature chain; here we're just keeping it around in a variable.
-    const invitation = create({ seed })
+    const invitation = create({ kind: 'MEMBER', seed })
 
     // 👨🏻‍🦲 Bob accepts invitation and obtains a credential proving that he was invited.
     const proofOfInvitation = generateProof(seed, 'bob')
@@ -35,7 +35,7 @@ describe('invitations', () => {
     const seed = 'passw0rd'
 
     // And uses it to create an invitation for him
-    const invitation = create({ seed })
+    const invitation = create({ kind: 'MEMBER', seed })
 
     // 🦹‍♀️ Eve tries to accept the invitation in Bob's place, but she doesn't have the correct invitation key
     const proofOfInvitation = generateProof('horsebatterycorrectstaple', 'eve')

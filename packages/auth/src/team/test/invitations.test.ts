@@ -7,7 +7,12 @@ import {
 } from '@localfirst/crdx'
 import { signatures } from '@localfirst/crypto'
 import { createDevice, redactDevice, Team, type FirstUseDevice } from 'index.js'
-import { create as createInvitation, generateProof } from 'invitation/index.js'
+import {
+  create as createInvitation,
+  generateProof,
+  type DeviceInvitation,
+  type MemberInvitation,
+} from 'invitation/index.js'
 import * as teams from 'team/index.js'
 import { KeyType } from 'util/index.js'
 import { setup } from 'util/testing/index.js'
@@ -792,6 +797,7 @@ describe('Team', () => {
           // could mint a proof from his own seed and admit a device of his own onto her account —
           // and the owner would match the invitation, so that admission would look proper.
           const invitationForAlice = createInvitation({
+            kind: 'DEVICE',
             seed: 'passw0rd',
             userId: alice.userId,
           })
@@ -867,22 +873,50 @@ describe('Team', () => {
           expect(alice.team.members(alice.userId).devices).toHaveLength(1)
         })
 
-        it("won't accept a member invitation that names a user", () => {
+        it("won't accept an INVITE_MEMBER link carrying a device invitation", () => {
           const { alice, bob } = setup('alice', 'bob')
 
-          // 👩🏾 Alice is an admin, so she may invite members — but a member invitation names
-          // nobody. One that named a user would double as a device invitation for them, and pass
-          // the owner check on a device admission.
-          const invitationNamingBob = createInvitation({ seed: 'passw0rd', userId: bob.userId })
-          const postInvitationNamingBob = () => {
+          // 👩🏾 Alice is an admin, so she may invite members. `inviteMember` can only produce a
+          // member invitation, so she authors the link herself and marks the invitation as a device
+          // invitation for 👨🏻‍🦲 Bob. If it stood, she could spend it on a device admission and
+          // put a device of her own onto his account.
+          const deviceInvitationForBob = createInvitation({
+            kind: 'DEVICE',
+            seed: 'passw0rd',
+            userId: bob.userId,
+          })
+          const postDeviceInvitationAsMemberInvitation = () => {
             alice.team.dispatch({
               type: 'INVITE_MEMBER',
-              payload: { invitation: invitationNamingBob },
+              payload: { invitation: deviceInvitationForBob as unknown as MemberInvitation },
             })
           }
 
-          expect(postInvitationNamingBob).toThrowError(/member invitation can't name a user/i)
+          expect(postDeviceInvitationAsMemberInvitation).toThrowError(
+            /invite_member link has to carry a member invitation/i
+          )
           expect(Object.keys(alice.team.state.invitations)).toHaveLength(0)
+        })
+
+        it("won't accept an INVITE_DEVICE link carrying a member invitation", () => {
+          const { bob } = setup('alice', { user: 'bob', admin: false })
+
+          // Inviting a member is admin-only, but inviting a device is open to every member. 👨🏻‍🦲
+          // Bob is an ordinary member, so he authors an INVITE_DEVICE link carrying a MEMBER
+          // invitation. If the kind went unchecked he could then spend it on a member admission and
+          // hand an outsider full membership — and the team keyring — without ever being an admin.
+          const memberInvitation = createInvitation({ kind: 'MEMBER', seed: 'passw0rd' })
+          const postMemberInvitationAsDeviceInvitation = () => {
+            bob.team.dispatch({
+              type: 'INVITE_DEVICE',
+              payload: { invitation: memberInvitation as unknown as DeviceInvitation },
+            })
+          }
+
+          expect(postMemberInvitationAsDeviceInvitation).toThrowError(
+            /invite_device link has to carry a device invitation/i
+          )
+          expect(Object.keys(bob.team.state.invitations)).toHaveLength(0)
         })
 
         it('still admits each kind of invitee with its own kind of invitation', () => {
