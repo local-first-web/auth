@@ -1,9 +1,13 @@
+import { type Base58 } from '@localfirst/crdx'
 import * as lockbox from 'lockbox/index.js'
 import { ADMIN } from 'role/index.js'
 import * as teams from 'team/index.js'
+import { type TeamLink, type TeamState } from 'team/types.js'
+import { validate } from 'team/validate.js'
 import { setup } from 'util/testing/index.js'
 import 'util/testing/expect/toLookLikeKeyset.js'
 import { symmetric } from '@localfirst/crypto'
+import { type InvalidResult } from 'util/types.js'
 import { describe, expect, it } from 'vitest'
 
 const MANAGERS = 'managers'
@@ -136,6 +140,55 @@ describe('Team', () => {
 
       expect(grantRoleWithWrongKeys).toThrowError(/lockbox/i)
       expect(alice.team.memberIsAdmin(bob.userId)).toBe(false)
+    })
+
+    it('does at most one lockbox scan, however many lockboxes the payload names', () => {
+      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+
+      // Looking up an encryption key means scanning every lockbox the team has. A payload can name
+      // any number of lockboxes, and a key that isn't registered costs a full scan to rule out — so
+      // checking them one at a time lets a single link cost O(payload × team) work, paid by every
+      // peer that replays the chain, from now on.
+      const templateLockbox = lockbox.create(
+        alice.team.roleKeys(ADMIN),
+        alice.team.members(bob.userId).keys
+      )
+      const lockboxes = Array.from({ length: 100 }, (_, i) => ({
+        ...templateLockbox,
+        recipient: { ...templateLockbox.recipient, publicKey: `notAKey${i}` as Base58 },
+      }))
+
+      // Count the times the validators reach for the team's lockboxes
+      let lockboxScans = 0
+      const { state } = alice.team
+      const countingState = {
+        ...state,
+        get lockboxes() {
+          lockboxScans += 1
+          return state.lockboxes
+        },
+      } as TeamState
+
+      const head = alice.team.graph.links[alice.team.graph.head[0]]
+      const link = {
+        ...head,
+        body: {
+          ...head.body,
+          type: 'ADD_MEMBER_ROLE',
+          payload: { userId: bob.userId, roleName: ADMIN, lockboxes },
+        },
+      } as unknown as TeamLink
+
+      const validation = validate(countingState, link)
+
+      // The grant is rejected, and it's this validator that rejects it
+      expect(validation.isValid).toBe(false)
+      expect((validation as InvalidResult).error.message).toMatch(
+        /requires a lockbox holding that role's keys/i
+      )
+
+      // ...and it cost one scan, not one per lockbox in the payload
+      expect(lockboxScans).toBeLessThanOrEqual(1)
     })
 
     it('adds a member to a role when the lockbox is in order', () => {

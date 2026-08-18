@@ -6,9 +6,10 @@ import {
   type Invitation,
   validate as validateProof,
 } from 'invitation/index.js'
+import { type Lockbox } from 'lockbox/index.js'
 import { KeyType, VALID, ValidationError, actionFingerprint } from 'util/index.js'
 import { isAdminOnlyAction } from './isAdminOnlyAction.js'
-import { isRegisteredEncryptionKey } from './registeredEncryptionKeys.js'
+import { isRegisteredEncryptionKey, registeredEncryptionKeys } from './registeredEncryptionKeys.js'
 import * as select from './selectors/index.js'
 import {
   type Member,
@@ -229,18 +230,7 @@ const validators: TeamStateValidatorSet = {
 
     const { userId, roleName, lockboxes = [] } = link.body.payload
 
-    // Any generation of the member's keys will do: their keys may have been rotated concurrently
-    // with this grant, and a lockbox addressed to the superseded generation still reaches them
-    const grantsRoleKeys = lockboxes.some(
-      ({ contents, recipient }) =>
-        contents.type === KeyType.ROLE &&
-        contents.name === roleName &&
-        recipient.type === KeyType.USER &&
-        recipient.name === userId &&
-        isRegisteredEncryptionKey(previousState, userId, recipient.publicKey)
-    )
-
-    if (!grantsRoleKeys) {
+    if (!grantsRoleKeys(lockboxes, roleName, userId, previousState)) {
       const msg = `Adding '${userId}' to the '${roleName}' role requires a lockbox holding that role's keys for them.`
       return fail(msg, ...args)
     }
@@ -421,6 +411,35 @@ const validators: TeamStateValidatorSet = {
     }
     return VALID
   },
+}
+
+/**
+ * Whether these lockboxes hand `userId` the keys for `roleName`.
+ *
+ * The work here is bounded on purpose. Looking up an encryption key costs a scan of every lockbox
+ * the team has when the key isn't registered, and a payload can name any number of lockboxes — so
+ * matching on the names first, and looking up keys only once for the ones that match, is what keeps
+ * a single crafted link from costing every peer O(payload × team) work forever.
+ */
+const grantsRoleKeys = (
+  lockboxes: Lockbox[],
+  roleName: string,
+  userId: string,
+  previousState: TeamState
+) => {
+  const namesTheGrant = lockboxes.filter(
+    ({ contents, recipient }) =>
+      contents.type === KeyType.ROLE &&
+      contents.name === roleName &&
+      recipient.type === KeyType.USER &&
+      recipient.name === userId
+  )
+  if (namesTheGrant.length === 0) return false
+
+  // Any generation of the member's keys will do: their keys may have been rotated concurrently with
+  // this grant, and a lockbox addressed to the superseded generation still reaches them
+  const usersKeys = registeredEncryptionKeys(previousState).get(userId) ?? new Set()
+  return namesTheGrant.some(({ recipient }) => usersKeys.has(recipient.publicKey))
 }
 
 const fail = (message: string, previousState: TeamState, link: TeamLink) => {
