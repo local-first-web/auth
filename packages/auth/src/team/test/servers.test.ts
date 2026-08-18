@@ -16,6 +16,7 @@ import {
   createTeam,
   invitation,
   loadTeam,
+  redactDevice,
   type Connection,
   type Context,
   type InviteeDeviceContext,
@@ -355,6 +356,132 @@ describe('Team', () => {
       expect(server.team.members(alice.userId).keys.encryption).not.toBe(
         evilKeys.encryption.publicKey
       )
+    })
+
+    it(`can't admit a member once it's been removed`, () => {
+      const { server, alice, bob } = setup('alice', { user: 'bob', member: false })
+      const { seed } = alice.team.inviteMember()
+
+      // 👩🏾 Alice removes the server
+      alice.team.removeServer(host)
+
+      // In practice an ex-server can't read past its own removal, because removing it rotates the
+      // team keys — so its admissions are concurrent with the removal, which is the resolver's
+      // business (see below). Here we hand it the post-removal graph, so that the admission is
+      // unambiguously downstream of the removal and it's the validator that has to say no.
+      const exServerTeam = loadTeam(
+        alice.team.save(),
+        { server: server.serverWithSecrets },
+        alice.team.teamKeyring()
+      )
+      expect(exServerTeam.serverWasRemoved(host)).toBe(true)
+
+      // ❌ The ex-server holds a live invitation, but admitting is no longer its to do
+      const tryToAdmitBob = () => {
+        exServerTeam.admitMember(
+          invitation.generateProof(seed, bob.user.keys),
+          bob.user.keys,
+          bob.userName
+        )
+      }
+      expect(tryToAdmitBob).toThrow(/was removed from the team/i)
+      expect(exServerTeam.has(bob.userId)).toBe(false)
+    })
+
+    it(`can't admit a device once it's been removed`, () => {
+      const { server, alice } = setup('alice')
+      const alicePhone = redactDevice(alice.phone!)
+      const { seed } = alice.team.inviteDevice()
+
+      alice.team.removeServer(host)
+
+      const exServerTeam = loadTeam(
+        alice.team.save(),
+        { server: server.serverWithSecrets },
+        alice.team.teamKeyring()
+      )
+      expect(exServerTeam.serverWasRemoved(host)).toBe(true)
+
+      // ❌ Same for devices: a device invitation in hand doesn't outlive the server's place on the team
+      const tryToAdmitAlicesPhone = () => {
+        exServerTeam.admitDevice(invitation.generateProof(seed, alicePhone.keys), alicePhone)
+      }
+      expect(tryToAdmitAlicesPhone).toThrow(/was removed from the team/i)
+      expect(exServerTeam.members(alice.userId).devices).toHaveLength(1)
+    })
+
+    it('discards an admission it makes concurrently with its own removal', () => {
+      const { server, alice, bob } = setup('alice', { user: 'bob', member: false })
+
+      // 👩🏾 Alice posts an invitation for 👨🏻‍🦲 Bob, and the server learns about it
+      const { seed } = alice.team.inviteMember()
+      server.team.merge(alice.team.graph)
+
+      // 🔌❌ Alice and the server are disconnected
+
+      // 👩🏾 Alice removes the server
+      alice.team.removeServer(host)
+
+      // Concurrently, the server admits Bob on its own stale copy of the graph. This is what an
+      // ex-server can actually do: it still holds the old team keys and a live invitation.
+      server.team.admitMember(
+        invitation.generateProof(seed, bob.user.keys),
+        bob.user.keys,
+        bob.userName
+      )
+      expect(server.team.has(bob.userId)).toBe(true)
+
+      // 🔌✔ They reconnect
+
+      // ❌ Anything a server does concurrently with its own removal is discarded, just as it is for
+      // a member who is concurrently removed
+      alice.team.merge(server.team.graph)
+      expect(alice.team.has(bob.userId)).toBe(false)
+      expect(alice.team.memberWasRemoved(bob.userId)).toBe(true)
+    })
+
+    it('still admits an invitee concurrently with an unrelated change', () => {
+      const { server, alice, bob } = setup('alice', { user: 'bob', member: false })
+
+      const { seed } = alice.team.inviteMember()
+      server.team.merge(alice.team.graph)
+
+      // 👩🏾 Alice makes an unrelated change while the server admits 👨🏻‍🦲 Bob
+      alice.team.addRole('MANAGER')
+      server.team.admitMember(
+        invitation.generateProof(seed, bob.user.keys),
+        bob.user.keys,
+        bob.userName
+      )
+
+      // ✅ Nothing removed the server, so its admission stands
+      alice.team.merge(server.team.graph)
+      expect(alice.team.has(bob.userId)).toBe(true)
+      expect(alice.team.memberWasRemoved(bob.userId)).toBe(false)
+    })
+
+    it('can admit an invitee again after being removed and re-added', () => {
+      const { server, alice, bob } = setup('alice', { user: 'bob', member: false })
+
+      // 👩🏾 Alice removes the server and then thinks better of it
+      alice.team.removeServer(host)
+      alice.team.addServer(server.server)
+      expect(alice.team.serverWasRemoved(host)).toBe(false)
+
+      const { seed } = alice.team.inviteMember()
+      const serverTeam = loadTeam(
+        alice.team.save(),
+        { server: server.serverWithSecrets },
+        alice.team.teamKeyring()
+      )
+
+      // ✅ The tombstone is gone, so the server can admit again
+      serverTeam.admitMember(
+        invitation.generateProof(seed, bob.user.keys),
+        bob.user.keys,
+        bob.userName
+      )
+      expect(serverTeam.has(bob.userId)).toBe(true)
     })
 
     it(`can't change another server's keys`, async () => {

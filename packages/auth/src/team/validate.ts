@@ -88,6 +88,39 @@ const validators: TeamStateValidatorSet = {
     return VALID
   },
 
+  /**
+   * A server that's been removed from the team can't author anything at all.
+   *
+   * `serversCanOnlyAdmit` confines a removed server to admissions, but admitting is exactly what an
+   * ex-server is still in a position to do: its encryption key stays registered (so that the links
+   * it authored while on the team remain valid), admitting isn't admin-only, and an invitation it
+   * learned about before being removed is still open. So a server that's been let go could keep
+   * putting members and devices of its choosing onto the team.
+   *
+   * This only speaks to links that come after the removal in the sequence. An admission the server
+   * makes concurrently with its own removal is the resolver's business — `cantDoAnythingWhenRemoved`
+   * discards those, the same way it does for a member who is concurrently removed.
+   */
+  removedServersCantDoAnything(...args) {
+    const [previousState, link] = args
+    const { type, userId } = link.body
+
+    // A server can't have authored the root link: a server can't create a team
+    if (type === ROOT) return VALID
+
+    // Being re-added clears the tombstone, so a server that's back on the team is unencumbered
+    const isCurrentServer = previousState.servers.some(({ host }) => host === userId)
+    if (isCurrentServer) return VALID
+
+    const wasRemoved = previousState.removedServers.some(({ host }) => host === userId)
+    if (wasRemoved) {
+      const msg = `The server '${userId}' was removed from the team, so it can't author a '${type}' link.`
+      return fail(msg, ...args)
+    }
+
+    return VALID
+  },
+
   rootDeviceBelongsToRootUser(...args) {
     const [_previousState, link] = args
     const { type, payload } = link.body

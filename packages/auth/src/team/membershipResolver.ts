@@ -9,6 +9,7 @@ import {
   type AddMemberRoleAction,
   type RemoveMemberAction,
   type RemoveMemberRoleAction,
+  type RemoveServerAction,
   type TeamAction,
   type TeamContext,
   type TeamLink,
@@ -102,10 +103,12 @@ const membershipRules: Record<string, MembershipRuleEnforcer> = {
     return getAdditions(links).filter(link => removedMembers.includes(addedUserId(link)))
   },
 
-  // RULE: If B is removed, anything they do concurrently is omitted
+  // RULE: If B is removed, anything they do concurrently is omitted. This covers servers as well as
+  // members: a server that's being removed can still author admissions, and its links carry its
+  // host as the author, so the same rule applies.
   cantDoAnythingWhenRemoved(links) {
-    const removedMembers = getRemovedMembers(links)
-    return links.filter(authorIn(removedMembers))
+    const removed = [...getRemovedMembers(links), ...getRemovedServers(links)]
+    return links.filter(authorIn(removed))
   },
 
   // RULE: If B is demoted, any admin-only actions they do concurrently are omitted
@@ -143,6 +146,11 @@ const getRemovedAndDemotedMembers = (links: TeamLink[]) =>
   getRemovalsAndDemotions(links).map(getTarget)
 
 const getRemovedMembers = (links: TeamLink[]) => getRemovals(links).map(getTarget)
+
+const getRemovedServers = (links: TeamLink[]) =>
+  links
+    .filter(link => link.body.type === 'REMOVE_SERVER')
+    .map(link => (link.body as RemoveServerAction).payload.host)
 const getDemotedMembers = (links: TeamLink[]) => getDemotions(links).map(getTarget)
 
 const getTarget = (link: RemoveActionLink): string => link.body.payload.userId
