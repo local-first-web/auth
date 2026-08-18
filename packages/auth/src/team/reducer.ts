@@ -11,7 +11,6 @@ import {
   addRole,
   addServer,
   changeMemberKeys,
-  changeServerKeys,
   collectLockboxes,
   postInvitation,
   removeDevice,
@@ -224,13 +223,6 @@ const getTransforms = (action: TeamAction): Transform[] => {
       const { host } = action.payload
       return [
         removeServer(host), // Remove the specified server from the team
-      ]
-    }
-
-    case 'CHANGE_SERVER_KEYS': {
-      const { keys } = action.payload
-      return [
-        changeServerKeys(keys), // Replace this server's public keys with the ones provided
       ]
     }
 

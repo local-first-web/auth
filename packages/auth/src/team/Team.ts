@@ -727,8 +727,9 @@ export class Team extends EventEmitter<TeamEvents> {
    * The server needs to be able to admit invited members and devices in order to support
    * star-shaped networks where every device connects to a server, rather than directly to each
    * other.) This is enforced by the `serversCanOnlyAdmit` validator, so a server can't author other
-   * kinds of link under its own name — including `CHANGE_SERVER_KEYS`, which means a server can't
-   * rotate its own keys; an admin has to remove it and add it back with new keys.
+   * kinds of link under its own name. In particular a server can't rotate its own keys, and there
+   * is no action for anyone else to do it on its behalf: to re-key a server, an admin removes it
+   * and adds it back with new keys, which rotates the team keys it could see.
    *
    * Note that this is a limit on what a server can do AS ITSELF. What keeps it from simply admitting
    * an invitee under keys it holds, and then acting as that member, is that the invitee's proof of
@@ -872,16 +873,22 @@ export class Team extends EventEmitter<TeamEvents> {
   public adminKeys = (generation?: number) => this.roleKeys(ADMIN, generation)
 
   /**
-   * Replaces the current user or device's secret keyset with the one provided.
-   * (This can also be used by an admin to change another user's secret keyset.)
+   * Replaces the current user's secret keyset with the one provided. (An admin can also use this to
+   * change another user's secret keyset.)
+   *
+   * This only ever rotates the caller's own user keys: the old keys come from `context.user` and
+   * the new ones are written back there. A server's keys can't be rotated at all — a server can
+   * only admit members and devices (`serversCanOnlyAdmit`), and nobody can do it on its behalf
+   * either. To re-key a server, remove it and add it back with new keys.
    */
   public changeKeys = (newKeys: KeysetWithSecrets) => {
-    const { device, user } = this.context
+    const { user } = this.context
     const { type } = newKeys
 
-    assert(type !== DEVICE, "Can't change device keys")
-    const isForUser = type === USER
-    const isForServer = type === KeyType.SERVER
+    assert(
+      type === USER,
+      `Only a member's own user keys can be changed; a server's keys can't be rotated (remove the server and add it back instead).`
+    )
 
     const oldKeys: KeysetWithSecrets = user.keys
     newKeys.generation = oldKeys.generation + 1
@@ -890,14 +897,11 @@ export class Team extends EventEmitter<TeamEvents> {
     const lockboxes = this.rotateKeys(newKeys)
 
     // Post our new public keys to the graph
-    const action = isForUser ? 'CHANGE_MEMBER_KEYS' : 'CHANGE_SERVER_KEYS'
-
     const keys = redactKeys(newKeys)
-    this.dispatch({ type: action, payload: { keys, lockboxes } })
+    this.dispatch({ type: 'CHANGE_MEMBER_KEYS', payload: { keys, lockboxes } })
 
     // Update our keys in context
-    if (isForServer || isForUser) user.keys = newKeys
-    if (isForServer) device.keys = newKeys // (a server plays the role of both a user and a device)
+    user.keys = newKeys
   }
 
   private updateUserKeys() {

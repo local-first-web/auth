@@ -242,17 +242,10 @@ const validators: TeamStateValidatorSet = {
 
     // Only admins can change another user's keys
     const authorIsAdmin = select.memberIsAdmin(previousState, author)
-    if (!authorIsAdmin) {
-      if (link.body.type === 'CHANGE_MEMBER_KEYS') {
-        const target = link.body.payload.keys.name
-        if (author !== target) {
-          return fail("Can't change another user's keys.", ...args)
-        }
-      } else if (link.body.type === 'CHANGE_SERVER_KEYS') {
-        const target = link.body.payload.keys.name
-        if (author !== target) {
-          return fail("Can't change another server's keys.", ...args)
-        }
+    if (!authorIsAdmin && link.body.type === 'CHANGE_MEMBER_KEYS') {
+      const target = link.body.payload.keys.name
+      if (author !== target) {
+        return fail("Can't change another user's keys.", ...args)
       }
     }
     return VALID

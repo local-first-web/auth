@@ -286,21 +286,19 @@ describe('Team', () => {
       const { server, serverWithSecrets } = createServer(host)
       alice.team.addServer(server)
 
-      const host2 = 'foo.com'
-      const { server: server2 } = createServer(host2)
-      alice.team.addServer(server2)
-
       const savedGraph = alice.team.save()
       const aliceTeamKeys = alice.team.teamKeys()
       const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, aliceTeamKeys)
 
       expect(serverTeam.teamKeys().generation).toBe(0)
 
-      // A server can only admit members and devices, and changing keys isn't that — rotating the
-      // team keys is something only the team's own members get to do
+      // There's no such thing as rotating a server's keys: a server can only admit members and
+      // devices, and nobody can re-key it on its behalf either. `changeKeys` rotates the caller's
+      // own user keys and nothing else, so it refuses a server keyset outright. To re-key a
+      // server, an admin removes it and adds it back.
       expect(() => {
         serverTeam.changeKeys(createKeyset({ type: KeyType.SERVER, name: host }))
-      }).toThrow(/server/i)
+      }).toThrow(/a server's keys can't be rotated/i)
 
       // No keys have been rotated
       expect(serverTeam.teamKeys().generation).toBe(0)
@@ -493,32 +491,6 @@ describe('Team', () => {
         bob.userName
       )
       expect(serverTeam.has(bob.userId)).toBe(true)
-    })
-
-    it(`can't change another server's keys`, async () => {
-      const { alice } = setupHumans('alice', 'bob')
-      const { server, serverWithSecrets } = createServer(host)
-      alice.team.addServer(server)
-
-      const host2 = 'foo.com'
-      const { server: server2 } = createServer(host2)
-      alice.team.addServer(server2)
-
-      const savedGraph = alice.team.save()
-      const aliceTeamKeys = alice.team.teamKeys()
-      const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, aliceTeamKeys)
-
-      expect(serverTeam.teamKeys().generation).toBe(0)
-      expect(serverTeam.servers(host2).keys.generation).toBe(0)
-
-      // server tries to change another server's keys
-      expect(() => {
-        serverTeam.changeKeys(createKeyset({ type: KeyType.SERVER, name: host2 }))
-      }).toThrow()
-
-      // No keys have been rotated
-      expect(serverTeam.teamKeys().generation).toBe(0)
-      expect(serverTeam.servers(host2).keys.generation).toBe(0)
     })
   })
 })

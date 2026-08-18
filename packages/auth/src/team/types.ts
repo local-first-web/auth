@@ -230,13 +230,6 @@ export type RemoveServerAction = {
   }
 }
 
-export type ChangeServerKeysAction = {
-  type: 'CHANGE_SERVER_KEYS'
-  payload: BasePayload & {
-    keys: Keyset
-  }
-}
-
 export type MessageAction = {
   type: 'MESSAGE'
   payload: BasePayload & {
@@ -270,7 +263,6 @@ export type TeamAction =
   | RotateKeysAction
   | AddServerAction
   | RemoveServerAction
-  | ChangeServerKeysAction
   | MessageAction
   | SetTeamNameAction
 
