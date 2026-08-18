@@ -1,3 +1,4 @@
+import { createKeyset } from '@localfirst/crdx'
 import { describe, expect, test } from 'vitest'
 import { create, generateProof, randomSeed, validate } from 'invitation/index.js'
 
@@ -19,8 +20,10 @@ describe('invitations', () => {
     // team's signature chain; here we're just keeping it around in a variable.
     const invitation = create({ kind: 'MEMBER', seed })
 
-    // 👨🏻‍🦲 Bob accepts invitation and obtains a credential proving that he was invited.
-    const proofOfInvitation = generateProof(seed, 'bob')
+    // 👨🏻‍🦲 Bob accepts invitation and obtains a credential proving that he was invited. His proof
+    // commits to the keys he'll be admitted under.
+    const bobsKeys = createKeyset({ type: 'USER', name: 'bob' })
+    const proofOfInvitation = generateProof(seed, bobsKeys)
 
     // 👨🏻‍🦲 Bob shows up to join the team & sees 👳🏽‍♂️ Charlie. Bob shows Charlie his proof of invitation, and
     // 👳🏽‍♂️ Charlie checks it against the invitation that Alice posted on the signature chain.
@@ -38,7 +41,8 @@ describe('invitations', () => {
     const invitation = create({ kind: 'MEMBER', seed })
 
     // 🦹‍♀️ Eve tries to accept the invitation in Bob's place, but she doesn't have the correct invitation key
-    const proofOfInvitation = generateProof('horsebatterycorrectstaple', 'eve')
+    const evesKeys = createKeyset({ type: 'USER', name: 'eve' })
+    const proofOfInvitation = generateProof('horsebatterycorrectstaple', evesKeys)
 
     // ❌ Nice try, Eve!!!
     const validationResult = validate(proofOfInvitation, invitation)

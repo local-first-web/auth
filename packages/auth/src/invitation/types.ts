@@ -68,6 +68,18 @@ export type ProofOfInvitation = {
    */
   invitee: string
 
-  /** Signature of the invitee and the invitation id, using the private signing key derived from the secret invitation key */
+  /**
+   * Fingerprint of the invitee's own public keyset (see `hashKeys`). The invitee chooses these keys
+   * and signs the fingerprint into the proof, so they can only be admitted under the keys they
+   * chose. Without it the ADMITTER picks the keys: the identifier would be the invitee's, but the
+   * secrets would be the admitter's, and from that point on the admitter could author links as the
+   * invitee and register devices under them.
+   */
+  keyHash: Base58
+
+  /**
+   * Signature over the invitation id, the invitee, and the invitee's key fingerprint, using the
+   * private signing key derived from the secret invitation key
+   */
   signature: Base58
 }

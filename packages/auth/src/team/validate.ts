@@ -1,6 +1,7 @@
 import { debug, truncateHashes } from '@localfirst/shared'
 import { ROOT } from '@localfirst/crdx'
 import {
+  hashKeys,
   invitationCanBeUsed,
   type Invitation,
   validate as validateProof,
@@ -256,6 +257,20 @@ const validators: TeamStateValidatorSet = {
         : link.body.payload.device.deviceId
     if (proof.invitee !== invitee) {
       const msg = `This invitation was issued to '${proof.invitee}', so it can't be used to admit '${invitee}'.`
+      return fail(msg, ...args)
+    }
+
+    // The proof also fingerprints the keyset the invitee chose for themselves, and this has to be
+    // that keyset. Without this the admitter would pick the keys: the identifier admitted would be
+    // the invitee's, but the secrets would be the admitter's, and the admitter could then author
+    // links as the invitee (`linkAuthorshipIsAuthentic` would accept them, since the key is
+    // registered to the invitee) and add devices of its own under them.
+    const admittedKeys =
+      link.body.type === 'ADMIT_MEMBER'
+        ? link.body.payload.memberKeys
+        : link.body.payload.device.keys
+    if (proof.keyHash !== hashKeys(admittedKeys)) {
+      const msg = `This proof of invitation commits to a different keyset than the one being admitted.`
       return fail(msg, ...args)
     }
 

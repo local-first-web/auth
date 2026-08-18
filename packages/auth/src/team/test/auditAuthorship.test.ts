@@ -41,7 +41,7 @@ describe('Team', () => {
 
       // Bob joins by invitation
       const { seed } = alice.team.inviteMember()
-      const proof = generateProof(seed, bob.userId)
+      const proof = generateProof(seed, bob.user.keys)
       alice.team.admitMember(proof, bob.user.keys, bob.user.userName)
 
       // Bob adds a device of his own

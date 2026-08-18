@@ -134,9 +134,11 @@ export class Connection extends EventEmitter<ConnectionEvents> {
             if (isInviteeMemberContext(context)) {
               // I'm a new user and I have an invitation
               assert(context.invitationSeed)
-              const { userId, userName, keys } = context.user
+              const { userName, keys } = context.user
               return {
-                proofOfInvitation: invitations.generateProof(context.invitationSeed, userId),
+                // The proof commits to the very keys we're claiming below, so an admitter can't
+                // admit us under keys of its own
+                proofOfInvitation: invitations.generateProof(context.invitationSeed, keys),
                 userName,
                 userKeys: redactKeys(keys),
                 device: redactDevice(context.device),
@@ -147,10 +149,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
               assert(context.invitationSeed)
               const { userName, device } = context
               return {
-                proofOfInvitation: invitations.generateProof(
-                  context.invitationSeed,
-                  device.deviceId
-                ),
+                proofOfInvitation: invitations.generateProof(context.invitationSeed, device.keys),
                 userName,
                 device: redactDevice(device),
               }

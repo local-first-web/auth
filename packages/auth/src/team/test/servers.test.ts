@@ -203,7 +203,7 @@ describe('Team', () => {
 
       // Now if Bob connects to the server, the server can admit him
       server.team.admitMember(
-        invitation.generateProof(bobInvite, bob.userId),
+        invitation.generateProof(bobInvite, bob.user.keys),
         bob.user.keys,
         bob.userId
       )

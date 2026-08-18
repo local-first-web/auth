@@ -10,6 +10,7 @@ import { createDevice, redactDevice, Team, type FirstUseDevice } from 'index.js'
 import {
   create as createInvitation,
   generateProof,
+  hashKeys,
   type DeviceInvitation,
   type MemberInvitation,
 } from 'invitation/index.js'
@@ -18,7 +19,7 @@ import { KeyType } from 'util/index.js'
 import { setup } from 'util/testing/index.js'
 import { describe, expect, it } from 'vitest'
 
-const { USER } = KeyType
+const { DEVICE, USER } = KeyType
 
 describe('Team', () => {
   describe('invitations', () => {
@@ -30,7 +31,7 @@ describe('Team', () => {
         const { seed } = alice.team.inviteMember()
 
         // 👨🏻‍🦲 Bob accepts the invitation
-        const proofOfInvitation = generateProof(seed, bob.userId)
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
 
         // 👨🏻‍🦲 Bob shows 👩🏾 Alice his proof of invitation, and she lets him in, associating
         // him with the public keys he's provided
@@ -47,7 +48,7 @@ describe('Team', () => {
         const seed = 'passw0rd'
         alice.team.inviteMember({ seed })
 
-        const proofOfInvitation = generateProof(seed, bob.userId)
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
 
         alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
 
@@ -63,7 +64,7 @@ describe('Team', () => {
         alice.team.inviteMember({ seed })
 
         // 👨🏻‍🦲 Bob accepts the invitation using a url-friendlier version of the key
-        const proofOfInvitation = generateProof('abc+def+ghi', bob.userId)
+        const proofOfInvitation = generateProof('abc+def+ghi', bob.user.keys)
         alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
 
         // ✅ Bob is on the team
@@ -81,7 +82,7 @@ describe('Team', () => {
         const { seed } = alice.team.inviteMember()
 
         // 👳🏽‍♂️ Charlie accepts the invitation
-        const proofOfInvitation = generateProof(seed, charlie.userId)
+        const proofOfInvitation = generateProof(seed, charlie.user.keys)
 
         // Later, 👩🏾 Alice is no longer around, but 👨🏻‍🦲 Bob is online
         let persistedTeam = alice.team.save()
@@ -108,7 +109,7 @@ describe('Team', () => {
         // 👩🏾 Alice invites 👨🏻‍🦲 Bob with a future expiration date
         const expiration = new Date(Date.UTC(2999, 12, 25)).valueOf() as UnixTimestamp // NOTE 👩‍🚀 this test will fail if run in the distant future
         const { seed } = alice.team.inviteMember({ expiration })
-        const proofOfInvitation = generateProof(seed, bob.userId)
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
         alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
 
         // ✅ 👨🏻‍🦲 Bob's invitation has not expired so he is on the team
@@ -121,7 +122,7 @@ describe('Team', () => {
         // A long time ago 👩🏾 Alice invited 👨🏻‍🦲 Bob
         const expiration = new Date(Date.UTC(2020, 12, 25)).valueOf() as UnixTimestamp
         const { seed } = alice.team.inviteMember({ expiration })
-        const proofOfInvitation = generateProof(seed, bob.userId)
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
 
         const tryToAdmitBob = () => {
           alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
@@ -144,8 +145,8 @@ describe('Team', () => {
         const { seed } = alice.team.inviteMember({ maxUses: 2 })
 
         // 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie each generate a proof from the same seed, bound to their own userIds
-        const bobsProof = generateProof(seed, bob.userId)
-        const charliesProof = generateProof(seed, charlie.userId)
+        const bobsProof = generateProof(seed, bob.user.keys)
+        const charliesProof = generateProof(seed, charlie.user.keys)
 
         // 👩🏾 Alice admits them both
 
@@ -172,7 +173,7 @@ describe('Team', () => {
           .split(',')
         for (const userId of invitees) {
           const userKeys = createKeyset({ type: USER, name: userId })
-          alice.team.admitMember(generateProof(seed, userId), userKeys, userId)
+          alice.team.admitMember(generateProof(seed, userKeys), userKeys, userId)
         }
 
         // ✅ they're all on the team
@@ -191,8 +192,8 @@ describe('Team', () => {
         const { seed } = alice.team.inviteMember({ maxUses: 1 })
 
         // 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie each generate a proof from the same seed, bound to their own userIds
-        const bobsProof = generateProof(seed, bob.userId)
-        const charliesProof = generateProof(seed, charlie.userId)
+        const bobsProof = generateProof(seed, bob.user.keys)
+        const charliesProof = generateProof(seed, charlie.user.keys)
 
         const tryToAdmitBob = () => {
           alice.team.admitMember(bobsProof, bob.user.keys, bob.user.userName)
@@ -226,7 +227,7 @@ describe('Team', () => {
         const { seed, id } = alice.team.inviteMember()
 
         // 👳🏽‍♂️ Charlie accepts the invitation
-        const proofOfInvitation = generateProof(seed, bob.userId)
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
 
         // 👩🏾 Alice changes her mind and revokes the invitation
         alice.team.revokeInvitation(id)
@@ -261,9 +262,10 @@ describe('Team', () => {
         const invitation = Object.values(team.state.invitations)[0]
         const { id } = invitation
 
-        const payload = { id, invitee: eve.userId }
+        const keyHash = hashKeys(eve.user.keys)
+        const payload = { id, invitee: eve.userId, keyHash }
         const signature = signatures.sign(payload, eve.user.keys.signature.secretKey)
-        const badProof = { id, invitee: eve.userId, signature }
+        const badProof = { id, invitee: eve.userId, keyHash, signature }
 
         // 🦹‍♀️ Eve shows 👩🏾 Alice her proof of invitation
         const submitBadProof = () => team.admitMember(badProof, eve.user.keys, 'bob')
@@ -299,7 +301,7 @@ describe('Team', () => {
         const { seed } = alice.team.inviteMember()
 
         // 👨🏻‍🦲 Bob accepts the invitation
-        const proofOfInvitation = generateProof(seed, bob.userId)
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
 
         // 👨🏻‍🦲 Bob shows 👩🏾 Alice his proof of invitation, and she lets him in
         alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
@@ -355,7 +357,7 @@ describe('Team', () => {
         const { seed } = alice.team.inviteMember()
 
         // 👨🏻‍🦲 Bob accepts the invitation
-        const proofOfInvitation = generateProof(seed, bob.userId)
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
 
         // 👨🏻‍🦲 Bob shows 👩🏾 Alice his proof of invitation, but uses Alice's username
         const tryToAdmitBob = () => {
@@ -375,15 +377,15 @@ describe('Team', () => {
         // 👩🏾 Alice invites 🦹‍♀️ Eve by sending her a random secret key
         const { seed } = alice.team.inviteMember()
 
-        // 🦹‍♀️ Eve accepts the invitation
-        // Eve binds her proof to Alice's userId, which is what she'll present as her own
-        const proofOfInvitation = generateProof(seed, alice.userId)
-
         // 🦹‍♀️ Eve prepares keys using Alice's userId
         const keysWithAliceUserId = {
           ...eve.user.keys,
           name: alice.userId,
         }
+
+        // 🦹‍♀️ Eve accepts the invitation, binding her proof to those keys — which carry Alice's
+        // userId, so that's what she'll present as her own
+        const proofOfInvitation = generateProof(seed, keysWithAliceUserId)
 
         // 🦹‍♀️ Eve shows 👩🏾 Alice her proof of invitation, but uses Alice's userId
         const tryToAdmitEve = () => {
@@ -412,7 +414,7 @@ describe('Team', () => {
         const { seed } = alice.team.inviteMember()
 
         // 👨🏻‍🦲 Bob generates his proof of invitation
-        const proofOfInvitation = generateProof(seed, bob.userId)
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
 
         // 🦹‍♀️ Eve intercepts Bob's proof and presents it as her own, under her own keys
         const tryToAdmitEve = () => {
@@ -420,7 +422,7 @@ describe('Team', () => {
         }
 
         // 👎 The proof is bound to 👨🏻‍🦲 Bob, so it doesn't get 🦹‍♀️ Eve in
-        expect(tryToAdmitEve).toThrowError(/invitation/i)
+        expect(tryToAdmitEve).toThrowError(/issued to a different user/i)
 
         // ❌ 🦹‍♀️ Eve is not on the team
         expect(alice.team.has(eve.userId)).toBe(false)
@@ -440,14 +442,14 @@ describe('Team', () => {
         const { seed } = alice.team.inviteMember()
 
         // 🦹‍♀️ Eve knows the seed, so she can mint a proof — but only one naming herself
-        const proofNamingEve = generateProof(seed, eve.userId)
+        const proofNamingEve = generateProof(seed, eve.user.keys)
 
         // She can't use it to get 👨🏻‍🦲 Bob's keys admitted
         const tryToAdmitBob = () => {
           alice.team.admitMember(proofNamingEve, bob.user.keys, bob.user.userName)
         }
 
-        expect(tryToAdmitBob).toThrowError(/invitation/i)
+        expect(tryToAdmitBob).toThrowError(/issued to a different user/i)
         expect(alice.team.has(bob.userId)).toBe(false)
       })
 
@@ -460,7 +462,7 @@ describe('Team', () => {
           const { seed } = aliceLaptop.team.inviteDevice()
 
           // 📱 the phone generates a proof bound to itself
-          const proofOfInvitation = generateProof(seed, alicePhone.deviceId)
+          const proofOfInvitation = generateProof(seed, alicePhone.keys)
 
           // 🦹‍♀️ Eve intercepts the proof and presents it for a device she controls
           const evesDevice = redactDevice(
@@ -470,7 +472,7 @@ describe('Team', () => {
             aliceLaptop.team.admitDevice(proofOfInvitation, evesDevice)
           }
 
-          expect(tryToAdmitEvesDevice).toThrowError(/invitation/i)
+          expect(tryToAdmitEvesDevice).toThrowError(/issued to a different device/i)
           expect(aliceLaptop.team.members(aliceLaptop.userId).devices).toHaveLength(1)
 
           // ✅ the real phone can still use its own proof
@@ -491,7 +493,7 @@ describe('Team', () => {
           // 📱 Alice gets the seed to her phone, perhaps by typing it in or by scanning a QR code.
 
           // Alice's phone uses the seed to generate her starter keys and her proof of invitation
-          const proofOfInvitation = generateProof(seed, alicePhone.deviceId)
+          const proofOfInvitation = generateProof(seed, alicePhone.keys)
 
           // 📱 Alice's phone connects with 💻 her laptop and presents the proof
           aliceLaptop.team.admitDevice(proofOfInvitation, redactDevice(alicePhone))
@@ -533,7 +535,7 @@ describe('Team', () => {
           // 📱 Alice gets the seed to her phone, perhaps by typing it in or by scanning a QR code.
 
           // Alice's phone uses the seed to generate her starter keys and her proof of invitation
-          const proofOfInvitation = generateProof(seed, alice.phone!.deviceId)
+          const proofOfInvitation = generateProof(seed, alice.phone!.keys)
 
           // 👨🏻‍🦲 Bob syncs up with Alice
           const savedTeam = alice.team.save()
@@ -559,9 +561,10 @@ describe('Team', () => {
           const invitation = Object.values(alice.team.state.invitations)[0]
           const { id } = invitation
 
-          const payload = { id, invitee: eve.device.deviceId }
+          const keyHash = hashKeys(eve.device.keys)
+          const payload = { id, invitee: eve.device.deviceId, keyHash }
           const signature = signatures.sign(payload, eve.user.keys.signature.secretKey)
-          const badProof = { id, invitee: eve.device.deviceId, signature }
+          const badProof = { id, invitee: eve.device.deviceId, keyHash, signature }
 
           // 🦹‍♀️ Eve shows 👩🏾 Alice her proof of invitation
           const submitBadProof = () =>
@@ -598,7 +601,7 @@ describe('Team', () => {
 
           // Alice invites and admits her phone
           const { seed } = aliceLaptop.team.inviteDevice()
-          const proofOfInvitation = generateProof(seed, alicePhone.deviceId)
+          const proofOfInvitation = generateProof(seed, alicePhone.keys)
           aliceLaptop.team.admitDevice(proofOfInvitation, redactDevice(alicePhone))
 
           // upon creating the invitation, Alice's laptop added 3 lockboxes containing 3 generations
@@ -673,11 +676,12 @@ describe('Team', () => {
           // links directly, without going through `admitMember`. She fabricates a proof and posts
           // an admission with it.
           eve.team = teams.load(alice.team.save(), eve.localContext, alice.team.teamKeys())
+          const keyHash = hashKeys(bob.user.keys)
           const signature = signatures.sign(
-            { id, invitee: bob.userId },
+            { id, invitee: bob.userId, keyHash },
             eve.user.keys.signature.secretKey
           )
-          const forgedProof = { id, invitee: bob.userId, signature }
+          const forgedProof = { id, invitee: bob.userId, keyHash, signature }
 
           const admitWithForgedProof = () => {
             eve.team.dispatch({
@@ -706,7 +710,7 @@ describe('Team', () => {
 
           // 👩🏾 Alice invites 👨🏻‍🦲 Bob, and 👨🏻‍🦲 Bob generates a real proof
           const { seed, id } = alice.team.inviteMember()
-          const bobsProof = generateProof(seed, bob.userId)
+          const bobsProof = generateProof(seed, bob.user.keys)
 
           // 🦹‍♀️ Eve syncs up, gets hold of Bob's proof, and posts an admission that attaches it to
           // her own choice of keys
@@ -735,7 +739,7 @@ describe('Team', () => {
 
           // 👩🏾 Alice invites 📱 her phone, and the phone generates a real proof
           const { seed, id } = alice.team.inviteDevice()
-          const phonesProof = generateProof(seed, alice.phone!.deviceId)
+          const phonesProof = generateProof(seed, alice.phone!.keys)
 
           // 🦹‍♀️ Eve syncs up, then posts an admission attaching the phone's proof to a device she
           // controls
@@ -755,6 +759,82 @@ describe('Team', () => {
           expect(eve.team.hasDevice(evesDevice.deviceId)).toBe(false)
         })
 
+        it("won't accept an admission under keys the invitee didn't choose", () => {
+          const { alice, bob, eve } = setup(
+            'alice',
+            { user: 'bob', member: false },
+            { user: 'eve', admin: false }
+          )
+
+          // 👩🏾 Alice invites 👨🏻‍🦲 Bob, and 👨🏻‍🦲 Bob generates a real proof under his own keys
+          const { seed, id } = alice.team.inviteMember()
+          const bobsProof = generateProof(seed, bob.user.keys)
+
+          // 🦹‍♀️ Eve relays for 👨🏻‍🦲 Bob, so she receives his genuine proof. She syncs up and posts
+          // the admission herself, naming him — but under keys she made up and holds the secrets
+          // for. Every other check passes: the proof is valid, it names the identity being
+          // admitted, the invitation is a member invitation, and the userId is unused. If this
+          // stood, she could author links as 👨🏻‍🦲 Bob and register devices under him: she would
+          // BE him.
+          eve.team = teams.load(alice.team.save(), eve.localContext, alice.team.teamKeys())
+          const evesKeysInBobsName = redactKeys(createKeyset({ type: USER, name: bob.userId }))
+          const admitBobUnderEvesKeys = () => {
+            eve.team.dispatch({
+              type: 'ADMIT_MEMBER',
+              payload: {
+                id,
+                userName: bob.userName,
+                memberKeys: evesKeysInBobsName,
+                proof: bobsProof,
+                lockboxes: [],
+              },
+            })
+          }
+
+          // 👎 The proof commits to the keyset 👨🏻‍🦲 Bob chose, so it can't be spent on another one
+          expect(admitBobUnderEvesKeys).toThrowError(/commits to a different keyset/i)
+          expect(eve.team.has(bob.userId)).toBe(false)
+
+          // ✅ 👨🏻‍🦲 Bob's own keys still go through on the same proof
+          eve.team.admitMember(bobsProof, redactKeys(bob.user.keys), bob.userName)
+          expect(eve.team.has(bob.userId)).toBe(true)
+        })
+
+        it("won't accept a device admission under keys the device didn't choose", () => {
+          const { alice, bob } = setup('alice', 'bob')
+          const alicePhone = redactDevice(alice.phone!)
+
+          // 👩🏾 Alice invites 📱 her phone, and the phone generates a real proof under its own keys
+          const { seed, id } = alice.team.inviteDevice()
+          const phonesProof = generateProof(seed, alicePhone.keys)
+
+          // 👨🏻‍🦲 Bob relays for the phone, so he receives its genuine proof. He posts the
+          // admission with the phone's own deviceId, but with device keys of his own making.
+          bob.team = teams.load(alice.team.save(), bob.localContext, alice.team.teamKeys())
+          const bobsKeysInThePhonesName = redactKeys(
+            createKeyset({ type: DEVICE, name: alicePhone.deviceId })
+          )
+          const admitThePhoneUnderBobsKeys = () => {
+            bob.team.dispatch({
+              type: 'ADMIT_DEVICE',
+              payload: {
+                id,
+                device: { ...alicePhone, keys: bobsKeysInThePhonesName },
+                proof: phonesProof,
+                lockboxes: [],
+              },
+            })
+          }
+
+          // 👎 The proof commits to the keyset the phone chose
+          expect(admitThePhoneUnderBobsKeys).toThrowError(/commits to a different keyset/i)
+          expect(bob.team.members(alice.userId).devices).toHaveLength(1)
+
+          // ✅ The phone's own keys still go through on the same proof
+          bob.team.admitDevice(phonesProof, alicePhone)
+          expect(bob.team.members(alice.userId).devices).toHaveLength(2)
+        })
+
         it("won't admit a device onto another member's account", () => {
           const { alice, bob } = setup('alice', { user: 'bob', admin: false })
 
@@ -766,7 +846,7 @@ describe('Team', () => {
           const bobsOtherDevice = redactDevice(
             createDevice({ userId: bob.userId, deviceName: 'bobs other device' })
           )
-          const proof = generateProof(seed, bobsOtherDevice.deviceId)
+          const proof = generateProof(seed, bobsOtherDevice.keys)
 
           // But he posts the admission with 👩🏾 Alice named as the owner. `admitDevice` takes the
           // owner from the invitation, but that only binds the admitter's own copy — every other
@@ -827,7 +907,7 @@ describe('Team', () => {
 
           // `generateProof` signs whatever invitee string it's handed, so he mints one naming
           // 🦹‍♀️ Eve's userId rather than a deviceId
-          const proof = generateProof(seed, eve.userId)
+          const proof = generateProof(seed, eve.user.keys)
 
           // ...and presents his device invitation as though it admitted a member
           const admitEveAsAMember = () => {
@@ -858,7 +938,7 @@ describe('Team', () => {
 
           // 👩🏾 Alice invites a member, then tries to spend that invitation on a device
           const { seed, id } = alice.team.inviteMember()
-          const proof = generateProof(seed, alicePhone.deviceId)
+          const proof = generateProof(seed, alicePhone.keys)
 
           const admitADeviceInstead = () => {
             alice.team.dispatch({
@@ -924,13 +1004,17 @@ describe('Team', () => {
 
           // ✅ A member invitation admits a member
           const { seed: memberSeed } = alice.team.inviteMember()
-          alice.team.admitMember(generateProof(memberSeed, bob.userId), bob.user.keys, bob.userName)
+          alice.team.admitMember(
+            generateProof(memberSeed, bob.user.keys),
+            bob.user.keys,
+            bob.userName
+          )
           expect(alice.team.has(bob.userId)).toBe(true)
 
           // ✅ A device invitation admits a device
           const alicePhone = redactDevice(alice.phone!)
           const { seed: deviceSeed } = alice.team.inviteDevice()
-          alice.team.admitDevice(generateProof(deviceSeed, alicePhone.deviceId), alicePhone)
+          alice.team.admitDevice(generateProof(deviceSeed, alicePhone.keys), alicePhone)
           expect(alice.team.members(alice.userId).devices).toHaveLength(2)
         })
 
@@ -940,7 +1024,7 @@ describe('Team', () => {
 
           // 👩🏾 Alice invites and admits 📱 her phone in the normal way
           const { seed } = alice.team.inviteDevice()
-          alice.team.admitDevice(generateProof(seed, alicePhone.deviceId), alicePhone)
+          alice.team.admitDevice(generateProof(seed, alicePhone.keys), alicePhone)
 
           // ✅ 👨🏻‍🦲 Bob replays Alice's chain and independently accepts the admission
           bob.team = teams.load(alice.team.save(), bob.localContext, alice.team.teamKeys())
@@ -953,7 +1037,7 @@ describe('Team', () => {
 
           // 👩🏾 Alice invites and admits 👨🏻‍🦲 Bob in the normal way
           const { seed } = alice.team.inviteMember()
-          alice.team.admitMember(generateProof(seed, bob.userId), bob.user.keys, bob.userName)
+          alice.team.admitMember(generateProof(seed, bob.user.keys), bob.user.keys, bob.userName)
 
           // ✅ 👳🏽‍♂️ Charlie replays Alice's chain and independently accepts the admission
           charlie.team = teams.load(alice.team.save(), charlie.localContext, alice.team.teamKeys())

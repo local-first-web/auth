@@ -606,6 +606,13 @@ export class Team extends EventEmitter<TeamEvents> {
       throw new InvitationValidationError('This invitation was issued to a different user.')
     }
 
+    // ...and to the keyset the invitee chose, so we can't substitute one of our own
+    if (proof.keyHash !== invitations.hashKeys(memberKeys)) {
+      throw new InvitationValidationError(
+        'This proof of invitation commits to a different keyset than the one being admitted.'
+      )
+    }
+
     const userValidation = this.validateUser(memberKeys.name, userName)
     if (!userValidation.isValid) throw userValidation.error
 
@@ -636,6 +643,13 @@ export class Team extends EventEmitter<TeamEvents> {
     // The proof is bound to a single deviceId; we can only admit the device it names
     if (proof.invitee !== firstUseDevice.deviceId) {
       throw new InvitationValidationError('This invitation was issued to a different device.')
+    }
+
+    // ...and to the keyset the device chose, so we can't substitute one of our own
+    if (proof.keyHash !== invitations.hashKeys(firstUseDevice.keys)) {
+      throw new InvitationValidationError(
+        'This proof of invitation commits to a different keyset than the one being admitted.'
+      )
     }
 
     const { id } = proof
@@ -709,9 +723,14 @@ export class Team extends EventEmitter<TeamEvents> {
    * The only actions that a server can dispatch to the graph are `ADMIT_MEMBER` and `ADMIT_DEVICE`.
    * The server needs to be able to admit invited members and devices in order to support
    * star-shaped networks where every device connects to a server, rather than directly to each
-   * other.) This is enforced by the `serversCanOnlyAdmit` validator, so a server can't get around
-   * it by authoring links itself — including `CHANGE_SERVER_KEYS`, which means a server can't
+   * other.) This is enforced by the `serversCanOnlyAdmit` validator, so a server can't author other
+   * kinds of link under its own name — including `CHANGE_SERVER_KEYS`, which means a server can't
    * rotate its own keys; an admin has to remove it and add it back with new keys.
+   *
+   * Note that this is a limit on what a server can do AS ITSELF. What keeps it from simply admitting
+   * an invitee under keys it holds, and then acting as that member, is that the invitee's proof of
+   * invitation commits to their own keyset (see `admissionMustBeProven`) — a server relaying a
+   * genuine proof can admit the invitee, but only under the keys the invitee chose.
    */
   public addServer = (server: Server) => {
     const lockboxes = this.createMemberLockboxes(castServer.toMember(server))
