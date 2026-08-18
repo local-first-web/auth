@@ -36,6 +36,7 @@ import { type Host, type Server } from 'server/types.js'
 import { type LocalUserContext } from 'team/context.js'
 import { KeyType, VALID, scopesMatch } from 'util/index.js'
 import { auditAuthorship } from './auditAuthorship.js'
+import { payloadProblem } from './checkPayload.js'
 import { ADMIN_SCOPE, ALL, TEAM_SCOPE, initialState } from './constants.js'
 import { membershipResolver as resolver } from './membershipResolver.js'
 import { redactUser } from './redactUser.js'
@@ -221,6 +222,13 @@ export class Team extends EventEmitter<TeamEvents> {
 
   /** Add a link to the graph, then recompute team state from the new graph */
   public dispatch(action: TeamAction, teamKeys: KeysetWithSecrets = this.teamKeys()) {
+    // A link is appended to the graph before the reducer ever sees it, so a payload the validators
+    // would refuse has to be caught here as well: refused on replay, it would leave a link on the
+    // graph that nobody — including us — could ever replay again. `payloadsMustBeWellFormed`
+    // applies this same rule to links that arrive from anywhere else.
+    const problem = payloadProblem(action)
+    assert(problem === undefined, problem)
+
     this.store.dispatch(action, teamKeys)
     this.state = this.store.getState()
 

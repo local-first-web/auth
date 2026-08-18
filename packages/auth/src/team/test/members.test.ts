@@ -1,7 +1,10 @@
-import { createUser } from '@localfirst/crdx'
+import { createUser, redactKeys } from '@localfirst/crdx'
 import { createDevice, loadTeam, redactDevice } from 'index.js'
 import { generateProof } from 'invitation/index.js'
 import { ADMIN } from 'role/index.js'
+import { invalidLinkReducer } from 'team/invalidLinkReducer.js'
+import { type TeamLink } from 'team/types.js'
+import { validate } from 'team/validate.js'
 import { setup } from 'util/testing/index.js'
 import 'util/testing/expect/toLookLikeKeyset.js'
 import { describe, expect, it } from 'vitest'
@@ -199,6 +202,82 @@ describe('Team', () => {
 
       expect(tryToAdmitAnotherDevice).toThrow(/was removed from the team/i)
       expect(exMemberTeam.hasDevice(bobsOtherDevice.deviceId)).toBe(false)
+    })
+
+    it("can't author anything once their admission has been invalidated", () => {
+      const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+
+      // 👨🏻‍🦲 Bob is an admin, so he invites 👳🏽‍♂️ Charlie and admits him
+      const { seed } = bob.team.inviteMember()
+      bob.team.admitMember(
+        generateProof(seed, charlie.user.keys),
+        charlie.user.keys,
+        charlie.userName
+      )
+      expect(bob.team.has(charlie.userId)).toBe(true)
+
+      // ...but 👩🏾 Alice removed him concurrently, so when the two graphs meet, everything that
+      // followed from his invitation is discarded. `invalidLinkReducer` treats the invalidated
+      // admission as a removal, which is the one way someone lands in `removedMembers` without
+      // ever having been in `members`.
+      alice.team.remove(bob.userId)
+      alice.team.merge(bob.team.graph)
+      expect(alice.team.has(charlie.userId)).toBe(false)
+      expect(alice.team.memberWasRemoved(charlie.userId)).toBe(true)
+
+      // 👳🏽‍♂️ Charlie was given keys while Bob's side still thought he was a member, and his own
+      // keys stay registered, so nothing about authorship stops him. We hand him the merged graph
+      // and the current team keys, so that what he authors is unambiguously downstream of the
+      // invalidation and it's the validator that has to say no.
+      const charliesTeam = loadTeam(
+        alice.team.save(),
+        charlie.localContext,
+        alice.team.teamKeyring()
+      )
+      const addADevice = () => {
+        charliesTeam.dispatch(
+          { type: 'ADD_DEVICE', payload: { device: redactDevice(charlie.phone!) } },
+          alice.team.teamKeys()
+        )
+      }
+
+      expect(addADevice).toThrow(/was removed from the team/i)
+      expect(charliesTeam.hasDevice(charlie.phone!.deviceId)).toBe(false)
+    })
+
+    it('can still act when a discarded admission has named them in removedMembers', () => {
+      const { alice, charlie } = setup('alice', 'bob', 'charlie')
+
+      // 👳🏽‍♂️ Charlie adds a device of his own, the ordinary way
+      charlie.team.dispatch({
+        type: 'ADD_DEVICE',
+        payload: { device: redactDevice(charlie.phone!) },
+      })
+      const [head] = charlie.team.graph.head
+      const charliesLink = charlie.team.graph.links[head]
+      expect(validate(alice.team.state, charliesLink).isValid).toBe(true)
+
+      // Now the state an invalidated admission leaves behind. `invalidLinkReducer` appends the
+      // admitted member to `removedMembers` and says so explicitly: it doesn't touch `members`,
+      // because the member it's discarding was never added. That's the one way to be named in both
+      // lists at once — and it's what the rule's early return is for.
+      //
+      // This goes through that reducer rather than staging a merge race, because which of two
+      // concurrent admissions lands last is decided by comparing link hashes, and those aren't the
+      // same from one run to the next.
+      const discardedAdmission = {
+        body: {
+          type: 'ADMIT_MEMBER',
+          payload: { memberKeys: redactKeys(charlie.user.keys) },
+        },
+      } as TeamLink
+      const afterDiscarding = invalidLinkReducer(alice.team.state, discardedAdmission)
+      expect(afterDiscarding.members.some(m => m.userId === charlie.userId)).toBe(true)
+      expect(afterDiscarding.removedMembers.some(m => m.userId === charlie.userId)).toBe(true)
+
+      // ✅ He's on the team, so a discarded link naming him in `removedMembers` doesn't lock him
+      // out of it
+      expect(validate(afterDiscarding, charliesLink).isValid).toBe(true)
     })
 
     it('can admit an invitee again after being removed and re-added', () => {

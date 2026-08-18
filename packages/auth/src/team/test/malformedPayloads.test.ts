@@ -1,11 +1,15 @@
-import { createKeyset, redactKeys, type Base58, type Keyset } from '@localfirst/crdx'
+import { createKeyset, redactKeys, type Base58, type Keyset, type Store } from '@localfirst/crdx'
 import { redactDevice, type Device } from 'index.js'
-import { generateProof, type MemberInvitation } from 'invitation/index.js'
+import {
+  create as createInvitation,
+  generateProof,
+  type MemberInvitation,
+} from 'invitation/index.js'
 import * as teams from 'team/index.js'
 import { redactUser } from 'team/redactUser.js'
-import { type Member } from 'team/types.js'
+import { type Member, type TeamAction, type TeamContext, type TeamState } from 'team/types.js'
 import { KeyType } from 'util/index.js'
-import { setup } from 'util/testing/index.js'
+import { setup, type UserStuff } from 'util/testing/index.js'
 import { describe, expect, it } from 'vitest'
 
 const { USER } = KeyType
@@ -20,6 +24,41 @@ const { USER } = KeyType
  * Both spellings of nothing are here on purpose. A field left off a payload arrives as `undefined`,
  * but one explicitly set to `null` survives the round trip as `null`.
  */
+
+/** Every action type there is. `checkPayload.ts` is exhaustive over these; this is how we notice
+ * if one of them never made it into the table below. */
+const everyActionType = [
+  'ROOT',
+  'ADD_MEMBER',
+  'ADD_DEVICE',
+  'ADD_ROLE',
+  'ADD_MEMBER_ROLE',
+  'REMOVE_MEMBER',
+  'REMOVE_DEVICE',
+  'REMOVE_ROLE',
+  'REMOVE_MEMBER_ROLE',
+  'INVITE_MEMBER',
+  'INVITE_DEVICE',
+  'REVOKE_INVITATION',
+  'ADMIT_MEMBER',
+  'ADMIT_DEVICE',
+  'CHANGE_MEMBER_KEYS',
+  'ROTATE_KEYS',
+  'ADD_SERVER',
+  'REMOVE_SERVER',
+  'MESSAGE',
+  'SET_TEAM_NAME',
+] as const
+
+/** A copy of `payload` with the field at `path` (e.g. `member.keys`) set to `value` */
+const setPath = (payload: any, path: string, value: unknown): any => {
+  const [field, ...rest] = path.split('.')
+  return {
+    ...payload,
+    [field]: rest.length === 0 ? value : setPath(payload[field] ?? {}, rest.join('.'), value),
+  }
+}
+
 describe('Team', () => {
   describe('a link with a malformed payload', () => {
     it("won't accept a ROOT link with no founding member or device", () => {
@@ -285,6 +324,271 @@ describe('Team', () => {
       // ✅ His own device is still his to remove
       bob.team.removeDevice(bob.device.deviceId)
       expect(bob.team.members(bob.userId).devices).toHaveLength(0)
+    })
+
+    /**
+     * The rest of this file is about particular fields; this is about the rule being total.
+     *
+     * Every action type is here, with every field anything downstream dereferences. Each one is
+     * tried both ways nothing arrives — left off, and explicitly `null` — and the arrays are tried
+     * as `null` too, since every default in the codebase is `= []` and that only catches the first
+     * spelling. A type missing from this table is caught by the compiler in `checkPayload.ts`,
+     * where the switch is exhaustive over `TeamAction`; a type missing from BOTH is caught by the
+     * list of expected types below.
+     */
+    describe('the payload rule is total', () => {
+      type ShapeCase = {
+        type: TeamAction['type']
+        /** A payload with everything on it. It doesn't have to be one the team would accept —
+         * nothing here is ever dispatched intact, only in the broken variants below. */
+        payload: Record<string, unknown>
+        /** Fields something downstream dereferences, or identifiers the team is indexed by */
+        required: string[]
+        /** Fields that may be left off, but can't be anything but an array if they're there */
+        arrays: string[]
+      }
+
+      const everyCase = (): { alice: UserStuff; bob: UserStuff; cases: ShapeCase[] } => {
+        const { alice, bob } = setup('alice', 'bob')
+
+        const member = redactUser(bob.user)
+        const device = redactDevice(bob.phone!)
+        const keys = redactKeys(createKeyset({ type: USER, name: bob.userId }))
+        const server = {
+          host: 'example.com',
+          keys: redactKeys(createKeyset({ type: KeyType.SERVER, name: 'example.com' })),
+        }
+        const invitation = createInvitation({ kind: 'MEMBER', seed: 'passw0rd' })
+        const deviceInvitation = createInvitation({
+          kind: 'DEVICE',
+          seed: 'passw0rd',
+          userId: bob.userId,
+        })
+        const proof = generateProof('passw0rd', bob.user.keys)
+        const lockboxes: never[] = []
+
+        const cases: ShapeCase[] = [
+          {
+            type: 'ROOT',
+            payload: { name: 'Team', rootMember: member, rootDevice: device, lockboxes },
+            required: [
+              'rootMember',
+              'rootMember.keys',
+              'rootMember.userId',
+              'rootMember.userName',
+              'rootDevice',
+              'rootDevice.keys',
+              'rootDevice.deviceId',
+              'rootDevice.userId',
+            ],
+            arrays: ['lockboxes'],
+          },
+          {
+            type: 'ADD_MEMBER',
+            payload: { member, roles: [], lockboxes },
+            required: ['member', 'member.keys', 'member.userId', 'member.userName'],
+            arrays: ['roles', 'lockboxes'],
+          },
+          {
+            type: 'ADD_DEVICE',
+            payload: { device, lockboxes },
+            required: ['device', 'device.keys', 'device.deviceId', 'device.userId'],
+            arrays: ['lockboxes'],
+          },
+          {
+            type: 'ADD_ROLE',
+            payload: { roleName: 'MANAGERS', lockboxes },
+            required: ['roleName'],
+            arrays: ['lockboxes'],
+          },
+          {
+            type: 'ADD_MEMBER_ROLE',
+            payload: { userId: bob.userId, roleName: 'MANAGERS', lockboxes },
+            required: ['userId', 'roleName'],
+            arrays: ['lockboxes'],
+          },
+          {
+            type: 'REMOVE_MEMBER_ROLE',
+            payload: { userId: bob.userId, roleName: 'MANAGERS', lockboxes },
+            required: ['userId', 'roleName'],
+            arrays: ['lockboxes'],
+          },
+          {
+            type: 'REMOVE_MEMBER',
+            payload: { userId: bob.userId, lockboxes },
+            required: ['userId'],
+            arrays: ['lockboxes'],
+          },
+          {
+            type: 'ROTATE_KEYS',
+            payload: { userId: bob.userId, lockboxes },
+            required: ['userId'],
+            arrays: ['lockboxes'],
+          },
+          {
+            type: 'REMOVE_DEVICE',
+            payload: { deviceId: bob.device.deviceId, lockboxes },
+            required: ['deviceId'],
+            arrays: ['lockboxes'],
+          },
+          {
+            type: 'REMOVE_ROLE',
+            payload: { roleName: 'MANAGERS', lockboxes },
+            required: ['roleName'],
+            arrays: ['lockboxes'],
+          },
+          {
+            type: 'INVITE_MEMBER',
+            payload: { invitation, lockboxes },
+            required: ['invitation', 'invitation.id'],
+            arrays: ['lockboxes'],
+          },
+          {
+            type: 'INVITE_DEVICE',
+            payload: { invitation: deviceInvitation, lockboxes },
+            required: ['invitation', 'invitation.id'],
+            arrays: ['lockboxes'],
+          },
+          {
+            type: 'REVOKE_INVITATION',
+            payload: { id: invitation.id, lockboxes },
+            required: ['id'],
+            arrays: ['lockboxes'],
+          },
+          {
+            type: 'ADMIT_MEMBER',
+            payload: {
+              id: invitation.id,
+              userName: bob.userName,
+              memberKeys: redactKeys(bob.user.keys),
+              proof,
+              lockboxes,
+            },
+            // `memberKeys.name` is `admissionMustBeProven`'s: it binds the identity being admitted
+            // to the proof of invitation, and it does so before the reducer reads it
+            required: ['id', 'memberKeys', 'userName'],
+            arrays: ['lockboxes'],
+          },
+          {
+            type: 'ADMIT_DEVICE',
+            payload: { id: deviceInvitation.id, device, proof, lockboxes },
+            // Likewise `device.deviceId` and `device.userId`
+            required: ['id', 'device', 'device.keys'],
+            arrays: ['lockboxes'],
+          },
+          {
+            type: 'CHANGE_MEMBER_KEYS',
+            payload: { keys, lockboxes },
+            required: ['keys', 'keys.name'],
+            arrays: ['lockboxes'],
+          },
+          {
+            type: 'ADD_SERVER',
+            payload: { server, lockboxes },
+            required: ['server', 'server.keys', 'server.host'],
+            arrays: ['lockboxes'],
+          },
+          {
+            type: 'REMOVE_SERVER',
+            payload: { host: server.host, lockboxes },
+            required: ['host'],
+            arrays: ['lockboxes'],
+          },
+          // Nothing takes these apart: the message and the team name are stored as they arrive
+          {
+            type: 'MESSAGE',
+            payload: { message: 'hello', lockboxes },
+            required: [],
+            arrays: ['lockboxes'],
+          },
+          {
+            type: 'SET_TEAM_NAME',
+            payload: { teamName: 'Team', lockboxes },
+            required: [],
+            arrays: ['lockboxes'],
+          },
+        ]
+
+        return { alice, bob, cases }
+      }
+
+      /** Every variant of a case that has to be refused, as `[label, action]` */
+      const brokenVariants = ({ type, payload, required, arrays }: ShapeCase) => {
+        const variants: Array<[string, unknown]> = [
+          [`${type} payload=null`, { type, payload: null }],
+        ]
+        for (const field of required) {
+          variants.push(
+            [`${type} ${field}=null`, { type, payload: setPath(payload, field, null) }],
+            [`${type} ${field}=undefined`, { type, payload: setPath(payload, field, undefined) }]
+          )
+        }
+
+        // An array field left off is legitimate — that's what every honest link that carries no
+        // lockboxes looks like. Only a value that isn't an array is refused.
+        for (const field of arrays) {
+          variants.push([`${type} ${field}=null`, { type, payload: setPath(payload, field, null) }])
+        }
+
+        return variants
+      }
+
+      it('refuses every one of them before anything reaches the graph', () => {
+        const { alice, bob, cases } = everyCase()
+
+        expect(cases.map(c => c.type).sort()).toEqual([...everyActionType].sort())
+
+        const outcomes = cases.flatMap(brokenVariants).map(([label, action]) => {
+          try {
+            alice.team.dispatch(action as TeamAction)
+            return `${label}: ACCEPTED`
+          } catch (error) {
+            const { message } = error as Error
+            const refused = /has to carry|needs a usable/.test(message)
+            return refused ? `${label}: refused` : `${label}: THREW ${message}`
+          }
+        })
+
+        // Every one of them refused, and none of them by a TypeError
+        expect(outcomes.filter(outcome => !outcome.endsWith('refused'))).toEqual([])
+        expect(outcomes).toHaveLength(125)
+
+        // ...and because they were refused before being appended, the graph is exactly as it was:
+        // 👩🏾 Alice can still reload it, and 👨🏻‍🦲 Bob can still merge it
+        const reloaded = teams.load(alice.team.save(), alice.localContext, alice.team.teamKeyring())
+        expect(reloaded.members()).toHaveLength(2)
+        bob.team.merge(alice.team.graph)
+        expect(bob.team.members()).toHaveLength(2)
+      })
+
+      it('refuses every one of them on replay, too', () => {
+        const { alice, cases } = everyCase()
+
+        // `Team.dispatch` refuses these before the store ever sees them, which is what keeps them
+        // off the graph — so going through it can't tell us what a peer replaying the chain would
+        // do. This goes around it, straight to the store, which appends and then reduces: the same
+        // path a link takes when it arrives from someone else.
+        const { store } = alice.team as unknown as {
+          store: Store<TeamState, TeamAction, TeamContext>
+        }
+        const teamKeys = alice.team.teamKeys()
+
+        const outcomes = cases.flatMap(brokenVariants).map(([label, action]) => {
+          try {
+            store.dispatch(action as TeamAction, teamKeys)
+            return `${label}: ACCEPTED`
+          } catch (error) {
+            const { message } = error as Error
+            const refused = /has to carry|needs a usable/.test(message)
+            return refused ? `${label}: refused` : `${label}: THREW ${message}`
+          }
+        })
+
+        expect(outcomes.filter(outcome => !outcome.endsWith('refused'))).toEqual([])
+
+        // This team's graph is now full of links that don't replay, which is exactly why
+        // `Team.dispatch` doesn't let them get this far (see auth-bs2)
+      })
     })
   })
 })

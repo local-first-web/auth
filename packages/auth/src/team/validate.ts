@@ -4,11 +4,13 @@ import { hashKeys, invitationCanBeUsed, validate as validateProof } from 'invita
 import { type Lockbox } from 'lockbox/index.js'
 import { ADMIN } from 'role/index.js'
 import { KeyType, VALID, ValidationError, actionFingerprint } from 'util/index.js'
+import { isUsableIdentifier, payloadProblem } from './checkPayload.js'
 import { isAdminOnlyAction } from './isAdminOnlyAction.js'
 import { isRegisteredEncryptionKey, registeredEncryptionKeys } from './registeredEncryptionKeys.js'
 import * as select from './selectors/index.js'
 import {
   type Member,
+  type TeamAction,
   type TeamLink,
   type TeamState,
   type TeamStateValidator,
@@ -126,104 +128,20 @@ const validators: TeamStateValidatorSet = {
   },
 
   /**
-   * A link's payload has to carry what the rest of these rules are about to reach into.
+   * A link's payload has to carry what everything downstream is about to reach into.
    *
-   * The payload types describe what honest code produces, but a member can author a link directly
-   * and put anything at all in it — or leave anything at all out. Every rule below this one takes
-   * some payload apart (`payload.device.userId`, `payload.keys.name`, `payload.memberKeys.name`),
-   * and a field that didn't arrive turns that into a TypeError thrown in the middle of replaying
-   * the chain: paid by every peer, forever, rather than a refusal. Both spellings of nothing reach
-   * a peer, so `undefined` alone is not what's being guarded against — `null` survives a round trip
-   * through the wire and `device === undefined` doesn't see it.
+   * `payloadProblem` is the whole of that rule — every field the validators, the reducer and the
+   * transforms dereference, for every action type — and `Team.dispatch` applies the same function
+   * before a link is ever appended. Here it's applied to links as they're replayed, which is what
+   * makes a peer's refusal independent of who sent it.
    *
-   * The identifiers get the same treatment for a different reason. One that's missing or empty is
-   * worse than a crash, because it doesn't crash: a nameless device still goes onto its owner's
-   * account and `memberByDeviceId` resolves a connecting peer by it, and a member with no userName
-   * makes `uniqueUserNameAndId` throw on every ADMISSION that comes after, not on the link that
-   * planted them.
-   *
-   * This is the one place that guards a payload dereference, and it runs ahead of every rule that
-   * makes one, so those rules can take their payloads apart without asking. Whatever gets added
-   * below inherits that, as long as what it reaches into is named here.
+   * This runs ahead of every rule that takes a payload apart, so those rules don't have to ask.
    */
   payloadsMustBeWellFormed(...args) {
     const [_previousState, link] = args
-
-    /** Something a link of this type has to carry, and this one didn't */
-    const missing = (what: string) =>
-      fail(`This ${link.body.type} link has to carry ${what}.`, ...args)
-
-    /** Something the team is indexed by, which can't be used as an identifier */
-    const unusable = (value: unknown, identifier: string) =>
-      fail(
-        `This ${link.body.type} link needs a usable ${identifier}, and '${String(value)}' is not one.`,
-        ...args
-      )
-
-    switch (link.body.type) {
-      case ROOT: {
-        const { rootMember, rootDevice } = link.body.payload
-        if (isMissing(rootMember)) return missing('a founding member')
-        if (isMissing(rootDevice)) return missing('a founding device')
-        if (isMissing(rootMember.keys)) return missing("the founding member's keys")
-        if (!isUsableIdentifier(rootMember.userId)) return unusable(rootMember.userId, 'userId')
-        if (!isUsableIdentifier(rootMember.userName))
-          return unusable(rootMember.userName, 'userName')
-        if (!isUsableIdentifier(rootDevice.deviceId))
-          return unusable(rootDevice.deviceId, 'deviceId')
-        return VALID
-      }
-
-      case 'ADD_MEMBER': {
-        const { member } = link.body.payload
-        if (isMissing(member)) return missing('a member')
-        if (isMissing(member.keys)) return missing("the member's keys")
-        if (!isUsableIdentifier(member.userId)) return unusable(member.userId, 'userId')
-        if (!isUsableIdentifier(member.userName)) return unusable(member.userName, 'userName')
-        return VALID
-      }
-
-      case 'ADD_DEVICE': {
-        const { device } = link.body.payload
-        if (isMissing(device)) return missing('a device')
-        if (!isUsableIdentifier(device.deviceId)) return unusable(device.deviceId, 'deviceId')
-        if (!isUsableIdentifier(device.userId)) return unusable(device.userId, 'userId')
-        return VALID
-      }
-
-      case 'CHANGE_MEMBER_KEYS': {
-        const { keys } = link.body.payload
-        if (isMissing(keys)) return missing('a keyset')
-        if (!isUsableIdentifier(keys.name)) return unusable(keys.name, 'keyset name')
-        return VALID
-      }
-
-      case 'INVITE_MEMBER':
-      case 'INVITE_DEVICE': {
-        const { invitation } = link.body.payload
-        if (isMissing(invitation)) return missing('an invitation')
-        if (!isUsableIdentifier(invitation.id)) return unusable(invitation.id, 'invitation id')
-        return VALID
-      }
-
-      case 'ADMIT_MEMBER': {
-        const { memberKeys, userName } = link.body.payload
-        if (isMissing(memberKeys)) return missing("the member's keys")
-        if (!isUsableIdentifier(userName)) return unusable(userName, 'userName')
-        return VALID
-      }
-
-      case 'ADMIT_DEVICE': {
-        const { device } = link.body.payload
-        if (isMissing(device)) return missing('a device')
-        if (isMissing(device.keys)) return missing("the device's keys")
-        return VALID
-      }
-
-      default: {
-        return VALID
-      }
-    }
+    const problem = payloadProblem(link.body as TeamAction)
+    if (problem !== undefined) return fail(problem, ...args)
+    return VALID
   },
 
   rootDeviceBelongsToRootUser(...args) {
@@ -619,24 +537,6 @@ const rolesWithKeys = (
       .map(({ contents }) => contents.name)
   )
 }
-
-/**
- * Nothing at all, in either of the spellings that reach a peer.
- *
- * A field left off a payload arrives as `undefined`, but one explicitly set to `null` survives the
- * round trip as `null` — so a guard that only knows `undefined` isn't a guard.
- */
-const isMissing = (value: unknown) => value === undefined || value === null
-
-/**
- * An identifier that something can actually be filed under: a non-empty string.
- *
- * Nothing about a keyset or a payload requires an identifier to be there, and every check that goes
- * by one reads as satisfied when it's missing on both sides — `undefined !== undefined` is false,
- * and the record of whom an invitation has admitted can't recognize whom it admitted.
- */
-const isUsableIdentifier = (value: unknown): value is string =>
-  typeof value === 'string' && value.length > 0
 
 /** For a member whose keys this very link establishes, the keyset it names is the only one there is. */
 const keyMatches = (publicKey: Base58) => (candidate: Base58) => candidate === publicKey
