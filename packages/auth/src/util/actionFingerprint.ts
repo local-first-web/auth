@@ -34,7 +34,9 @@ export const actionFingerprint = (link: TeamLink) => {
 
       case 'INVITE_MEMBER':
       case 'INVITE_DEVICE': {
-        return action.payload.invitation.id
+        // A link that arrives with no invitation on it is one of the things we fingerprint links in
+        // order to complain about, so this can't insist on finding one
+        return action.payload.invitation?.id ?? 'none'
       }
 
       case 'REVOKE_INVITATION': {

@@ -1080,6 +1080,36 @@ describe('Team', () => {
           expect(Object.keys(bob.team.state.invitations)).toHaveLength(0)
         })
 
+        it("won't accept an INVITE_MEMBER link with no invitation on it", () => {
+          const { alice } = setup('alice')
+
+          // A link that names no invitation at all used to get past the validators, and then blew
+          // up in the reducer while every peer was replaying the chain
+          const postAnEmptyInvitation = () => {
+            alice.team.dispatch({
+              type: 'INVITE_MEMBER',
+              payload: {} as { invitation: MemberInvitation },
+            })
+          }
+
+          expect(postAnEmptyInvitation).toThrowError(/has to carry an invitation/i)
+          expect(Object.keys(alice.team.state.invitations)).toHaveLength(0)
+        })
+
+        it("won't accept an INVITE_DEVICE link with no invitation on it", () => {
+          const { bob } = setup('alice', { user: 'bob', admin: false })
+
+          const postAnEmptyInvitation = () => {
+            bob.team.dispatch({
+              type: 'INVITE_DEVICE',
+              payload: {} as { invitation: DeviceInvitation },
+            })
+          }
+
+          expect(postAnEmptyInvitation).toThrowError(/has to carry an invitation/i)
+          expect(Object.keys(bob.team.state.invitations)).toHaveLength(0)
+        })
+
         it('still admits each kind of invitee with its own kind of invitation', () => {
           const { alice, bob } = setup('alice', { user: 'bob', member: false })
 

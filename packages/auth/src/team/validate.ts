@@ -1,11 +1,6 @@
 import { debug, truncateHashes } from '@localfirst/shared'
 import { ROOT, type Base58 } from '@localfirst/crdx'
-import {
-  hashKeys,
-  invitationCanBeUsed,
-  type Invitation,
-  validate as validateProof,
-} from 'invitation/index.js'
+import { hashKeys, invitationCanBeUsed, validate as validateProof } from 'invitation/index.js'
 import { type Lockbox } from 'lockbox/index.js'
 import { ADMIN } from 'role/index.js'
 import { KeyType, VALID, ValidationError, actionFingerprint } from 'util/index.js'
@@ -378,13 +373,16 @@ const validators: TeamStateValidatorSet = {
   invitationsNameTheRightKindAndOwner(...args) {
     const [_previousState, link] = args
 
-    // The payload types describe what honest code produces; what actually arrived is either kind
-    const invitation: Invitation | undefined =
-      link.body.type === 'INVITE_MEMBER' || link.body.type === 'INVITE_DEVICE'
-        ? link.body.payload.invitation
-        : undefined
+    if (link.body.type !== 'INVITE_MEMBER' && link.body.type !== 'INVITE_DEVICE') return VALID
 
-    if (invitation === undefined) return VALID
+    // The payload types describe what honest code produces; what actually arrived is either kind —
+    // or nothing at all, which the reducer would only discover by throwing on `invitation.id` while
+    // every peer is replaying the chain
+    const { invitation } = link.body.payload
+    if (invitation === undefined) {
+      const msg = `An ${link.body.type} link has to carry an invitation.`
+      return fail(msg, ...args)
+    }
 
     if (link.body.type === 'INVITE_MEMBER') {
       if (invitation.kind !== 'MEMBER') {
