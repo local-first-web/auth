@@ -3,8 +3,18 @@ import { signatures } from '@localfirst/crypto'
 import { type Invitation, type InvitationState, type ProofOfInvitation } from 'invitation/types.js'
 import { VALID, type ValidationResult } from 'util/index.js'
 
-export const invitationCanBeUsed = (invitation: InvitationState, timeOfUse: number) => {
-  const { revoked, maxUses, uses, expiration } = invitation
+/**
+ * Whether this invitation is still good for admitting `invitee`.
+ *
+ * The invitee is optional only because a link can arrive without a proof on it; `admissionMustBeProven`
+ * is what rejects that, and this says nothing about it.
+ */
+export const invitationCanBeUsed = (
+  invitation: InvitationState,
+  timeOfUse: number,
+  invitee?: string
+) => {
+  const { revoked, maxUses, uses, expiration, admitted } = invitation
   if (revoked) {
     return fail('The invitation has been revoked')
   }
@@ -15,6 +25,14 @@ export const invitationCanBeUsed = (invitation: InvitationState, timeOfUse: numb
 
   if (expiration > 0 && expiration < timeOfUse) {
     return fail('The invitation has expired')
+  }
+
+  // An invitation good for several uses is for admitting several people, not for admitting one of
+  // them twice. The proof is published on the graph and is bound to the invitee's own keys, so
+  // without this any member could replay it — putting someone the team had removed back on it,
+  // under the current generation of the team keys.
+  if (invitee !== undefined && admitted.includes(invitee)) {
+    return fail(`This invitation has already been used to admit '${invitee}'`)
   }
 
   return VALID

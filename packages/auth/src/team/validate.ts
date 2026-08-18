@@ -268,13 +268,18 @@ const validators: TeamStateValidatorSet = {
     return VALID
   },
 
-  /** Check for ADMIT with invitations that are revoked OR have been used more than maxUses OR are expired */
+  /**
+   * Check for ADMIT with invitations that are revoked, expired, used more than maxUses, or already
+   * spent on the invitee being admitted.
+   */
   cantAdmitWithInvalidInvitation(...args) {
     const [previousState, link] = args
     if (link.body.type === 'ADMIT_MEMBER' || link.body.type === 'ADMIT_DEVICE') {
-      const { id } = link.body.payload
+      const { id, proof } = link.body.payload
       const invitation = select.getInvitation(previousState, id)
-      return invitationCanBeUsed(invitation, link.body.timestamp)
+
+      // A missing proof is `admissionMustBeProven`'s to complain about
+      return invitationCanBeUsed(invitation, link.body.timestamp, proof?.invitee)
     }
     return VALID
   },
@@ -407,17 +412,7 @@ const validators: TeamStateValidatorSet = {
     return VALID
   },
 
-  /**
-   * An admission can't name a userId or userName that the team has already seen — whether it
-   * belongs to a current member or to one who has been removed.
-   *
-   * The removed half is what keeps a removal from being undone by replay. A proof of invitation is
-   * published on the graph, so a removed member's proof is durably readable by everyone; and an
-   * invitation with `maxUses` greater than one still has uses left after they're admitted. Without
-   * this, any member — admin or not — could replay that proof together with the removed member's
-   * public keys, putting them back on the team and handing them lockboxes for the current team
-   * keys. Adding someone back is still possible through ADD_MEMBER, which is admin-only.
-   */
+  /** Check if userId and userName are not used by any other member within the team */
   uniqueUserNameAndId(...args) {
     const [previousState, link] = args
     if (link.body.type === 'ADMIT_MEMBER') {
@@ -432,14 +427,6 @@ const validators: TeamStateValidatorSet = {
 
       if (previousState.members.some(hasUserName)) {
         return fail('Username is not unique within the team.', ...args)
-      }
-
-      if (previousState.removedMembers.some(hasUserId)) {
-        return fail('This userId belongs to a member who was removed from the team.', ...args)
-      }
-
-      if (previousState.removedMembers.some(hasUserName)) {
-        return fail('This userName belongs to a member who was removed from the team.', ...args)
       }
     }
     return VALID

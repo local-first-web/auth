@@ -185,7 +185,7 @@ const getTransforms = (action: TeamAction): Transform[] => {
       }
 
       return [
-        useInvitation(id), // Mark the invitation as used
+        useInvitation(id, userId), // Mark the invitation as used, and by whom
         addMember(member), // Add this member to the team
       ]
     }
@@ -194,7 +194,7 @@ const getTransforms = (action: TeamAction): Transform[] => {
       const { id, device } = action.payload
 
       return [
-        useInvitation(id), // Mark the invitation as used
+        useInvitation(id, device.deviceId), // Mark the invitation as used, and by whom
         addDevice(device), // Add this device
       ]
     }

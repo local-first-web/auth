@@ -561,8 +561,11 @@ export class Team extends EventEmitter<TeamEvents> {
 
     const invitation = this.getInvitation(id)
 
-    // Make sure the invitation hasn't already been used, hasn't expired, and hasn't been revoked
-    const canBeUsedResult = invitations.invitationCanBeUsed(invitation, Date.now())
+    // Make sure the invitation hasn't already been used (in general, or on this invitee in
+    // particular), hasn't expired, and hasn't been revoked. This mirrors what the validators will
+    // say when the link is replayed; doing it here means the caller gets it as a result rather than
+    // as a ValidationError thrown from the middle of `dispatch`.
+    const canBeUsedResult = invitations.invitationCanBeUsed(invitation, Date.now(), proof.invitee)
     if (canBeUsedResult !== VALID) return canBeUsedResult
 
     // Validate the proof of invitation

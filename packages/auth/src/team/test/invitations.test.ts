@@ -428,28 +428,60 @@ describe('Team', () => {
           charlie.team.admitMember(proofOfInvitation, bob.user.keys, bob.userName)
         }
 
-        expect(replayBobsAdmission).toThrowError(/userid belongs to a member who was removed/i)
+        expect(replayBobsAdmission).toThrowError(/already been used to admit/i)
         expect(charlie.team.has(bob.userId)).toBe(false)
       })
 
-      it("won't admit someone under a removed member's userName", () => {
-        const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
-        alice.team.remove(bob.userId)
+      it("won't spend an invitation twice on the same invitee, even one still on the team", () => {
+        const { alice, bob, charlie } = setup(
+          'alice',
+          { user: 'bob', member: false },
+          { user: 'charlie', admin: false }
+        )
 
-        // 🦹‍♀️ Taking a removed member's name would let 👳🏽‍♂️ Charlie pass for them in anything
-        // that goes by userName
-        const { seed } = alice.team.inviteMember()
-        const keysUnderCharliesOwnId = charlie.user.keys
-        const admitCharlieAsBob = () => {
-          alice.team.admitMember(
-            generateProof(seed, keysUnderCharliesOwnId),
-            keysUnderCharliesOwnId,
-            bob.userName
-          )
+        const { seed } = alice.team.inviteMember({ maxUses: 2 })
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
+        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.userName)
+
+        // 👳🏽‍♂️ Charlie replays the admission verbatim. The uniqueness check catches this one, but
+        // only incidentally — what makes it wrong is that this invitation has already admitted Bob.
+        charlie.team = teams.load(alice.team.save(), charlie.localContext, alice.team.teamKeyring())
+        const replayBobsAdmission = () => {
+          charlie.team.admitMember(proofOfInvitation, bob.user.keys, bob.userName)
         }
 
-        expect(admitCharlieAsBob).toThrowError(/username belongs to a member who was removed/i)
-        expect(alice.team.has(charlie.userId)).toBe(false)
+        expect(replayBobsAdmission).toThrowError(/already been used to admit/i)
+      })
+
+      it("won't spend a device invitation twice on the same device", () => {
+        const { alice } = setup('alice')
+        const alicePhone = redactDevice(alice.phone!)
+
+        // `inviteDevice` caps a device invitation at a single use, so a multi-use one has to be
+        // authored directly — which is within any member's power
+        const deviceInvitation = createInvitation({
+          kind: 'DEVICE',
+          seed: 'passw0rd',
+          userId: alice.userId,
+          maxUses: 2,
+        })
+        alice.team.dispatch({
+          type: 'INVITE_DEVICE',
+          payload: { invitation: deviceInvitation },
+        })
+
+        const proofOfInvitation = generateProof('passw0rd', alicePhone.keys)
+        alice.team.admitDevice(proofOfInvitation, alicePhone)
+        expect(alice.team.members(alice.userId).devices).toHaveLength(2)
+
+        // 👩🏾 Alice removes 📱 her phone; replaying its published proof would bring it back
+        alice.team.removeDevice(alicePhone.deviceId)
+        const replayThePhonesAdmission = () => {
+          alice.team.admitDevice(proofOfInvitation, alicePhone)
+        }
+
+        expect(replayThePhonesAdmission).toThrowError(/already been used to admit/i)
+        expect(alice.team.members(alice.userId).devices).toHaveLength(1)
       })
 
       it('still admits a second, different member with a multi-use invitation', () => {
@@ -472,16 +504,62 @@ describe('Team', () => {
         expect(alice.team.has(charlie.userId)).toBe(true)
       })
 
-      it('still lets an admin add a removed member back', () => {
-        const { alice, bob } = setup('alice', 'bob')
+      it('still lets an admin invite a removed member back', () => {
+        const { alice, bob } = setup('alice', { user: 'bob', member: false })
+
+        const { seed } = alice.team.inviteMember()
+        alice.team.admitMember(generateProof(seed, bob.user.keys), bob.user.keys, bob.userName)
         alice.team.remove(bob.userId)
         expect(alice.team.has(bob.userId)).toBe(false)
 
-        // ✅ Re-admitting someone is still possible — but through ADD_MEMBER, which is admin-only,
-        // rather than by any member replaying a proof
-        alice.team.addForTesting(bob.user)
+        // ✅ Removal isn't a permanent ban: a fresh invitation gets 👨🏻‍🦲 Bob back on the team,
+        // under the same userId and userName as before
+        const { seed: secondSeed } = alice.team.inviteMember()
+        alice.team.admitMember(
+          generateProof(secondSeed, bob.user.keys),
+          bob.user.keys,
+          bob.userName
+        )
+
         expect(alice.team.has(bob.userId)).toBe(true)
         expect(alice.team.memberWasRemoved(bob.userId)).toBe(false)
+      })
+
+      it('still admits an invitee whose earlier admission was undone by a concurrent removal', () => {
+        const { alice, bob, charlie } = setup('alice', 'bob', {
+          user: 'charlie',
+          member: false,
+        })
+
+        // 🔌❌ Alice and Bob are disconnected
+
+        // 👨🏻‍🦲 Bob invites and admits 👳🏽‍♂️ Charlie
+        const { seed } = bob.team.inviteMember()
+        bob.team.admitMember(
+          generateProof(seed, charlie.user.keys),
+          charlie.user.keys,
+          charlie.userName
+        )
+
+        // 👩🏾 Concurrently, Alice removes Bob
+        alice.team.remove(bob.userId)
+
+        // 🔌✔ They reconnect. Charlie's admission depended on Bob's invitation, so it's discarded —
+        // and the reducer records Charlie as removed so that his client knows to start over.
+        alice.team.merge(bob.team.graph)
+        expect(alice.team.has(charlie.userId)).toBe(false)
+        expect(alice.team.memberWasRemoved(charlie.userId)).toBe(true)
+
+        // ✅ 👳🏽‍♂️ Charlie was never a member and nobody removed him, so starting over has to work:
+        // 👩🏾 Alice invites him herself and admits him
+        const { seed: aliceSeed } = alice.team.inviteMember()
+        alice.team.admitMember(
+          generateProof(aliceSeed, charlie.user.keys),
+          charlie.user.keys,
+          charlie.userName
+        )
+
+        expect(alice.team.has(charlie.userId)).toBe(true)
       })
 
       it("won't accept a proof replayed under someone else's keys", () => {

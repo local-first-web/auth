@@ -50,6 +50,14 @@ export type InvitationState = Invitation & {
 
   /** If true, this invitation was revoked at some point after it was created (but before it was used) */
   revoked: boolean
+
+  /**
+   * The invitees this invitation has already admitted — userIds for a member invitation, deviceIds
+   * for a device invitation. An invitation that can be used more than once is for admitting more
+   * than one person, not for admitting the same one twice: proofs are published on the graph, so
+   * without this any member could replay one.
+   */
+  admitted: string[]
 }
 
 /**

@@ -434,10 +434,21 @@ describe('Team', () => {
       // 🔌✔ They reconnect
 
       // ❌ Anything a server does concurrently with its own removal is discarded, just as it is for
-      // a member who is concurrently removed
+      // a member who is concurrently removed. 👨🏻‍🦲 Bob is recorded as removed so that his client
+      // knows the copy of the chain he was given is no good.
       alice.team.merge(server.team.graph)
       expect(alice.team.has(bob.userId)).toBe(false)
       expect(alice.team.memberWasRemoved(bob.userId)).toBe(true)
+
+      // ✅ But Bob did nothing wrong and was never on the team, so a fresh invitation still gets
+      // him in
+      const { seed: secondSeed } = alice.team.inviteMember()
+      alice.team.admitMember(
+        invitation.generateProof(secondSeed, bob.user.keys),
+        bob.user.keys,
+        bob.userName
+      )
+      expect(alice.team.has(bob.userId)).toBe(true)
     })
 
     it('still admits an invitee concurrently with an unrelated change', () => {

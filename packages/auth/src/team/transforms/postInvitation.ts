@@ -8,6 +8,7 @@ export const postInvitation =
       ...invitation,
       uses: 0,
       revoked: false,
+      admitted: [],
     }
 
     return {
