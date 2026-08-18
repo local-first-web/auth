@@ -36,7 +36,7 @@ import { type Host, type Server } from 'server/types.js'
 import { type LocalUserContext } from 'team/context.js'
 import { KeyType, VALID, scopesMatch } from 'util/index.js'
 import { auditAuthorship } from './auditAuthorship.js'
-import { payloadProblem } from './checkPayload.js'
+import { assertLinksAreWellFormed, payloadProblem } from './checkPayload.js'
 import { ADMIN_SCOPE, ALL, TEAM_SCOPE, initialState } from './constants.js'
 import { membershipResolver as resolver } from './membershipResolver.js'
 import { redactUser } from './redactUser.js'
@@ -130,12 +130,18 @@ export class Team extends EventEmitter<TeamEvents> {
     } else {
       // Rehydrate a team from an existing graph
       // Create CRDX store
+      const graph = maybeDeserialize(options.source, options.teamKeyring)
+
+      // A team is most often loaded from a graph someone else sent us, so this is the same door as
+      // `merge`
+      assertLinksAreWellFormed(graph)
+
       this.store = createStore({
         user,
         reducer,
         resolver,
         initialState,
-        graph: maybeDeserialize(options.source, options.teamKeyring),
+        graph,
         keys: options.teamKeyring,
       })
     }
@@ -213,6 +219,12 @@ export class Team extends EventEmitter<TeamEvents> {
    * @returns This `Team` instance.
    */
   public merge = (theirGraph: TeamGraph) => {
+    // Whatever a peer sends us has to be something we can replay. This is the door: the resolver
+    // walks payloads before anything validates them, and links it discards go to
+    // `invalidLinkReducer` instead of to the validators — so the shape is settled here, once,
+    // rather than by each of them.
+    assertLinksAreWellFormed(theirGraph, this.graph.links)
+
     this.store.merge(theirGraph)
     this.state = this.store.getState()
 

@@ -1,6 +1,7 @@
 import { append, merge } from '@localfirst/crdx'
 import { describe, expect, it } from 'vitest'
 import { createTeam } from '../createTeam.js'
+import { membershipResolver } from '../membershipResolver.js'
 import { redactUser } from '../redactUser.js'
 import { type TeamAction, type TeamGraph } from '../types.js'
 import { ADMIN } from 'role/index.js'
@@ -287,6 +288,64 @@ describe('membershipResolver', () => {
     for (const graph of mergedGraphs) {
       expect(summary(graph)).toBe(expected)
     }
+  })
+
+  it("walks a discarded link's payload without taking the graph down", () => {
+    // 👩🏾 🡒 👨🏻‍🦲 Alice creates a graph and shares it with Bob
+    let { aGraph, bGraph, keys } = setup()
+
+    // 🔌❌ Now Alice and Bob are disconnected
+
+    // 👨🏻‍🦲 Bob adds 👳🏽‍♂️ Charlie, and posts an invitation link carrying no invitation
+    bGraph = append({
+      graph: bGraph,
+      action: ADD_CHARLIE,
+      user: bob.user,
+      context: bob.graphContext,
+      keys,
+    })
+    bGraph = append({
+      graph: bGraph,
+      action: { type: 'INVITE_MEMBER', payload: { invitation: null } } as unknown as TeamAction,
+      user: bob.user,
+      context: bob.graphContext,
+      keys,
+    })
+
+    // ...and an admission, which is what the resolver compares that invitation against
+    bGraph = append({
+      graph: bGraph,
+      action: {
+        type: 'ADMIT_MEMBER',
+        payload: {
+          id: 'some-invitation',
+          userName: charlie.userName,
+          memberKeys: { name: charlie.userId },
+        },
+      } as unknown as TeamAction,
+      user: bob.user,
+      context: bob.graphContext,
+      keys,
+    })
+
+    // 👩🏾 ...but concurrently Alice removes him
+    aGraph = append({
+      graph: aGraph,
+      action: REMOVE_BOB,
+      user: alice.user,
+      context: alice.graphContext,
+      keys,
+    })
+
+    // 🔌✔ When the graphs meet, everything 👨🏻‍🦲 Bob did is discarded — which means the resolver
+    // has to look at what his invitation link carries, to find the admissions that used it. It
+    // reads a payload nothing has validated, and does it before anything could: `Team.merge` is
+    // where a link like this is turned away, and this is below that.
+    const mergedGraph = merge(aGraph, bGraph)
+    expect(() => membershipResolver(mergedGraph)).not.toThrow()
+
+    // ✅ ...and it still discards what it's supposed to
+    expect(summary(mergedGraph)).toBe('ROOT,ADD:bob,REMOVE:bob')
   })
 
   const expectMergedResult = (

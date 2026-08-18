@@ -1,5 +1,5 @@
 import { ROOT } from '@localfirst/crdx'
-import { type TeamAction } from './types.js'
+import { type TeamAction, type TeamGraph, type TeamLinkMap } from './types.js'
 
 /**
  * Nothing at all, in either of the spellings that reach a peer.
@@ -70,10 +70,20 @@ export const payloadProblem = (action: TeamAction): string | undefined => {
   const { payload } = action
   if (isMissing(payload) || typeof payload !== 'object') return has('a payload')
 
-  // Whatever its type, a link's lockboxes are collected, and some rules walk them. `= []` catches
-  // a payload that carries none; it doesn't catch one that carries `null`.
+  // Whatever its type, a link's lockboxes are collected, and several rules walk them. `= []`
+  // catches a payload that carries none; it doesn't catch one that carries `null`.
   const { lockboxes } = payload as { lockboxes?: unknown }
   if (isNotAnArray(lockboxes)) return has('its lockboxes as an array')
+  if (Array.isArray(lockboxes)) {
+    // Being an array isn't enough: `collectLockboxes` concatenates the ELEMENTS into
+    // `state.lockboxes`, where every later link's rules destructure them — so one bad element
+    // outlives the link that carried it and breaks everything downstream of it.
+    for (const [index, lockbox] of lockboxes.entries()) {
+      const problem = lockboxProblem(lockbox)
+      if (problem !== undefined)
+        return `${has(`lockboxes it can use`).slice(0, -1)}: lockbox ${index} ${problem}.`
+    }
+  }
 
   switch (action.type) {
     case ROOT: {
@@ -96,6 +106,8 @@ export const payloadProblem = (action: TeamAction): string | undefined => {
       if (!isUsableIdentifier(member.userId)) return usable('userId', member.userId)
       if (!isUsableIdentifier(member.userName)) return usable('userName', member.userName)
       if (isNotAnArray(roles)) return has('its roles as an array')
+      if (Array.isArray(roles) && !roles.every(isUsableIdentifier))
+        return has('roles that are all usable role names')
       return undefined
     }
 
@@ -206,6 +218,73 @@ export const payloadProblem = (action: TeamAction): string | undefined => {
       // Exhaustive: a new action type won't compile until its payload is described above
       const unhandled: never = action
       return `Unrecognized link type '${String((unhandled as TeamAction).type)}'.`
+    }
+  }
+}
+
+/**
+ * What's wrong with the shape of this lockbox, or `undefined` if nothing is.
+ *
+ * A lockbox is not read by the link that carries it. `collectLockboxes` puts it in
+ * `state.lockboxes`, and from then on every link's rules walk that list —
+ * `registeredEncryptionKeys` reads both manifests to decide whether a link's author is who it says,
+ * `lockboxesInScope` and `removeRole` filter on them, `removeDevice` looks for one addressed to the
+ * departing device. So an element that can't be destructured isn't a problem for one link; it's a
+ * problem for every link that comes after it.
+ *
+ * `generation` is deliberately not required: it's only ever compared or added to, so a missing one
+ * makes a lockbox that never matches rather than one that throws.
+ */
+const lockboxProblem = (lockbox: unknown): string | undefined => {
+  if (isMissing(lockbox) || typeof lockbox !== 'object') return 'is not a lockbox'
+
+  const { contents, recipient, encryptionKey, encryptedPayload } = lockbox as Record<string, any>
+  for (const [name, manifest] of [
+    ['contents', contents],
+    ['recipient', recipient],
+  ] as const) {
+    if (isMissing(manifest) || typeof manifest !== 'object') return `has no ${name} manifest`
+    if (!isUsableIdentifier(manifest.type)) return `has no type on its ${name} manifest`
+    if (!isUsableIdentifier(manifest.name)) return `has no name on its ${name} manifest`
+    if (!isUsableIdentifier(manifest.publicKey)) return `has no public key on its ${name} manifest`
+  }
+
+  if (isMissing(encryptionKey) || !isUsableIdentifier(encryptionKey.publicKey))
+    return 'has no public key to open it with'
+  if (isMissing(encryptedPayload)) return 'has nothing in it'
+
+  return undefined
+}
+
+/**
+ * Refuses a graph carrying a link whose payload nothing downstream could safely take apart.
+ *
+ * Payload shape is syntactic: it says nothing about the team, so it can be settled once, at the
+ * door, rather than during reduction. That matters because reduction is not a chokepoint — the
+ * resolver walks payloads over a merged graph before anything has validated it, and the reducer
+ * hands links the resolver discarded to `invalidLinkReducer`, which runs INSTEAD of the validators.
+ * Checking here puts all three downstream of a checked payload by construction, rather than each
+ * needing a guard of its own.
+ *
+ * The whole graph is refused, rather than the offending links dropped. Links are hash-linked, so
+ * dropping one strands everything descending from it; and a graph that carries a link like this is
+ * one we could never finish replaying anyway. Refusing leaves OUR graph untouched, which is what
+ * keeps a peer who sends one of these from taking us down with them: we go on syncing with everyone
+ * else. What it costs is that we can't sync with that peer again until the link is gone from their
+ * chain — but there is no version of accepting it that leaves us able to compute team state.
+ */
+export const assertLinksAreWellFormed = (
+  graph: TeamGraph,
+  /** Links we've already checked — anything already in our own graph came through here or through
+   * `Team.dispatch`, so it doesn't need checking again */
+  alreadyChecked: TeamLinkMap = {}
+) => {
+  for (const hash in graph.links) {
+    if (hash in alreadyChecked) continue
+
+    const problem = payloadProblem(graph.links[hash].body as TeamAction)
+    if (problem !== undefined) {
+      throw new Error(`Refusing this graph: the link '${hash}' can't be replayed. ${problem}`)
     }
   }
 }

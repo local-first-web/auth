@@ -62,8 +62,10 @@ const findDependentLinks = (bubble: TeamLink[], invalidLink: TeamLink): TeamLink
   switch (invalidLink.body.type) {
     case 'INVITE_MEMBER':
     case 'INVITE_DEVICE': {
-      // Invalidate ADMIT actions that used this invitation
-      const invitation = invalidLink.body.payload?.invitation
+      // Invalidate ADMIT actions that used this invitation. `?? undefined` because a payload
+      // carries either spelling of nothing, and the invitation this hands on is only guarded
+      // against one of them.
+      const invitation = invalidLink.body.payload?.invitation ?? undefined
       dependentLinks.push(...bubble.filter(usesInvitation(invitation)))
       break
     }
@@ -151,24 +153,24 @@ const getRemovedAndDemotedMembers = (links: TeamLink[]) =>
 
 const getRemovedMembers = (links: TeamLink[]) => getRemovals(links).map(getTarget)
 
-const getRemovedServers = (links: TeamLink[]) =>
+const getRemovedServers = (links: TeamLink[]): Array<string | undefined> =>
   links
     .filter(link => link.body.type === 'REMOVE_SERVER')
     .map(link => (link.body as RemoveServerAction).payload?.host)
 const getDemotedMembers = (links: TeamLink[]) => getDemotions(links).map(getTarget)
 
-const getTarget = (link: RemoveActionLink): string => link.body.payload?.userId
+const getTarget = (link: RemoveActionLink): string | undefined => link.body.payload?.userId
 
 const getAuthor = (link: TeamLink): string => link.body.userId
 
 const authorIs = (author: string) => (link: TeamLink) => getAuthor(link) === author
 
 const authorIn =
-  (excludeList: string[]) =>
+  (excludeList: Array<string | undefined>) =>
   (link: TeamLink): boolean =>
     excludeList.includes(getAuthor(link))
 
-const addedUserId = (link: AddActionLink): string => {
+const addedUserId = (link: AddActionLink): string | undefined => {
   switch (link.body.type) {
     case 'ADD_MEMBER': {
       const addAction = link.body

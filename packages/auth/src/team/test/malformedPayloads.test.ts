@@ -5,6 +5,7 @@ import {
   generateProof,
   type MemberInvitation,
 } from 'invitation/index.js'
+import { type Lockbox } from 'lockbox/index.js'
 import * as teams from 'team/index.js'
 import { redactUser } from 'team/redactUser.js'
 import { type Member, type TeamAction, type TeamContext, type TeamState } from 'team/types.js'
@@ -327,6 +328,106 @@ describe('Team', () => {
     })
 
     /**
+     * These three are the paths that a check during reduction can't cover, which is why the check
+     * is at the door instead: a link the resolver discards is handed to `invalidLinkReducer`
+     * INSTEAD of to the validators, the resolver itself walks payloads before anything has
+     * validated them, and a lockbox element outlives the link that carried it.
+     */
+    describe('arriving in a concurrency bubble', () => {
+      /** 👨🏻‍🦲 Bob authors a link his own pre-check would have refused, by going around it */
+      const bobAuthorsDirectly = (bob: UserStuff, action: unknown) => {
+        const { store } = bob.team as unknown as {
+          store: Store<TeamState, TeamAction, TeamContext>
+        }
+        try {
+          store.dispatch(action as TeamAction, bob.team.teamKeys())
+        } catch {
+          // The validators refuse it, but it's on his graph either way — that's the point
+        }
+      }
+
+      it("won't merge a graph whose malformed link is one the resolver discards", () => {
+        const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+
+        // An admission with no keys on it. Nothing 👩🏾 Alice runs will validate this link, because
+        // 👨🏻‍🦲 Bob is about to be removed concurrently — so the resolver discards it, and the
+        // reducer hands it to `invalidLinkReducer`, which reads `payload.memberKeys.name`.
+        const { seed, id } = bob.team.inviteMember()
+        bobAuthorsDirectly(bob, {
+          type: 'ADMIT_MEMBER',
+          payload: {
+            id,
+            userName: charlie.userName,
+            memberKeys: null,
+            proof: generateProof(seed, charlie.user.keys),
+            lockboxes: [],
+          },
+        })
+
+        alice.team.remove(bob.userId)
+
+        expect(() => alice.team.merge(bob.team.graph)).toThrowError(/can't be replayed/i)
+
+        // ✅ Her own graph is untouched, so she can still reload it
+        expect(alice.team.has(charlie.userId)).toBe(false)
+        const reloaded = teams.load(alice.team.save(), alice.localContext, alice.team.teamKeyring())
+        expect(reloaded.members()).toHaveLength(1)
+      })
+
+      it("won't merge a graph whose malformed link the resolver has to walk", () => {
+        const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+
+        // 👨🏻‍🦲 Bob invites and admits 👳🏽‍♂️ Charlie for real, so the bubble has an ADMIT link in
+        // it, and then posts an INVITE carrying no invitation. When his links are discarded,
+        // `findDependentLinks` looks for admissions that used that invitation — reading `.id` off
+        // the nothing it carries.
+        const { seed } = bob.team.inviteMember()
+        bob.team.admitMember(
+          generateProof(seed, charlie.user.keys),
+          charlie.user.keys,
+          charlie.userName
+        )
+        bobAuthorsDirectly(bob, { type: 'INVITE_MEMBER', payload: { invitation: null } })
+
+        alice.team.remove(bob.userId)
+
+        expect(() => alice.team.merge(bob.team.graph)).toThrowError(/can't be replayed/i)
+
+        const reloaded = teams.load(alice.team.save(), alice.localContext, alice.team.teamKeyring())
+        expect(reloaded.members()).toHaveLength(1)
+        expect(Object.keys(reloaded.state.invitations)).toHaveLength(0)
+      })
+
+      it("won't accept a lockbox that nothing after it could read", () => {
+        const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+
+        // Removing your own device is open to every member, and the transform reads the lockboxes
+        // to find the one addressed to it. A lockbox is also collected into `state.lockboxes`,
+        // where every LATER link's rules destructure it — so one of these outlives its own link.
+        const removeHisOwnDevice = () => {
+          bob.team.dispatch({
+            type: 'REMOVE_DEVICE',
+            payload: { deviceId: bob.device.deviceId, lockboxes: [null] as unknown as Lockbox[] },
+          })
+        }
+
+        expect(removeHisOwnDevice).toThrowError(/lockbox 0 is not a lockbox/i)
+        expect(bob.team.members(bob.userId).devices).toHaveLength(1)
+
+        // ...and the same link arriving from him is refused at 👩🏾 Alice's door
+        bobAuthorsDirectly(bob, {
+          type: 'REMOVE_DEVICE',
+          payload: { deviceId: bob.device.deviceId, lockboxes: [{}] },
+        })
+        expect(() => alice.team.merge(bob.team.graph)).toThrowError(/can't be replayed/i)
+
+        // ✅ Both graphs are as they were
+        const reloaded = teams.load(alice.team.save(), alice.localContext, alice.team.teamKeyring())
+        expect(reloaded.members()).toHaveLength(2)
+      })
+    })
+
+    /**
      * The rest of this file is about particular fields; this is about the rule being total.
      *
      * Every action type is here, with every field anything downstream dereferences. Each one is
@@ -513,10 +614,15 @@ describe('Team', () => {
       }
 
       /** Every variant of a case that has to be refused, as `[label, action]` */
-      const brokenVariants = ({ type, payload, required, arrays }: ShapeCase) => {
+      const brokenVariants = (
+        { type, payload, required, arrays }: ShapeCase,
+        aRealLockbox: Lockbox
+      ) => {
         const variants: Array<[string, unknown]> = [
           [`${type} payload=null`, { type, payload: null }],
+          [`${type} payload=undefined`, { type, payload: undefined }],
         ]
+
         for (const field of required) {
           variants.push(
             [`${type} ${field}=null`, { type, payload: setPath(payload, field, null) }],
@@ -524,34 +630,66 @@ describe('Team', () => {
           )
         }
 
-        // An array field left off is legitimate — that's what every honest link that carries no
-        // lockboxes looks like. Only a value that isn't an array is refused.
+        // An array field left off is legitimate — that's what every honest link carrying no
+        // lockboxes looks like. Anything that isn't an array is not.
         for (const field of arrays) {
           variants.push([`${type} ${field}=null`, { type, payload: setPath(payload, field, null) }])
+        }
+
+        // Being an array isn't enough: the ELEMENTS are what `collectLockboxes` puts into
+        // `state.lockboxes`, where every later link's rules destructure them
+        const elements: Array<[string, unknown]> = [
+          ['[null]', [null]],
+          ['[undefined]', [undefined]],
+          ['[{}]', [{}]],
+          ['[lockbox with no recipient]', [{ ...aRealLockbox, recipient: null }]],
+        ]
+        for (const [label, value] of elements) {
+          variants.push([
+            `${type} lockboxes=${label}`,
+            { type, payload: setPath(payload, 'lockboxes', value) },
+          ])
+        }
+
+        if (type === 'ADD_MEMBER') {
+          variants.push(
+            [`${type} roles=[null]`, { type, payload: setPath(payload, 'roles', [null]) }],
+            [`${type} roles=['']`, { type, payload: setPath(payload, 'roles', ['']) }]
+          )
         }
 
         return variants
       }
 
+      /** What each attempt did, as a line we can read in a diff */
+      const outcome = (label: string, attempt: () => void) => {
+        try {
+          attempt()
+          return `${label}: ACCEPTED`
+        } catch (error) {
+          const { message } = error as Error
+          const refused = /has to carry|needs a usable|can't be replayed/.test(message)
+          return refused ? `${label}: refused` : `${label}: THREW ${message}`
+        }
+      }
+
       it('refuses every one of them before anything reaches the graph', () => {
         const { alice, bob, cases } = everyCase()
+        const [aRealLockbox] = alice.team.state.lockboxes
 
         expect(cases.map(c => c.type).sort()).toEqual([...everyActionType].sort())
 
-        const outcomes = cases.flatMap(brokenVariants).map(([label, action]) => {
-          try {
-            alice.team.dispatch(action as TeamAction)
-            return `${label}: ACCEPTED`
-          } catch (error) {
-            const { message } = error as Error
-            const refused = /has to carry|needs a usable/.test(message)
-            return refused ? `${label}: refused` : `${label}: THREW ${message}`
-          }
-        })
+        const outcomes = cases
+          .flatMap(shapeCase => brokenVariants(shapeCase, aRealLockbox))
+          .map(([label, action]) =>
+            outcome(label, () => {
+              alice.team.dispatch(action as TeamAction)
+            })
+          )
 
         // Every one of them refused, and none of them by a TypeError
-        expect(outcomes.filter(outcome => !outcome.endsWith('refused'))).toEqual([])
-        expect(outcomes).toHaveLength(125)
+        expect(outcomes.filter(result => !result.endsWith('refused'))).toEqual([])
+        expect(outcomes).toHaveLength(227)
 
         // ...and because they were refused before being appended, the graph is exactly as it was:
         // 👩🏾 Alice can still reload it, and 👨🏻‍🦲 Bob can still merge it
@@ -561,33 +699,53 @@ describe('Team', () => {
         expect(bob.team.members()).toHaveLength(2)
       })
 
-      it('refuses every one of them on replay, too', () => {
-        const { alice, cases } = everyCase()
+      it('refuses every one of them when they arrive from a peer', () => {
+        const { alice, bob, cases } = everyCase()
+        const [aRealLockbox] = alice.team.state.lockboxes
 
-        // `Team.dispatch` refuses these before the store ever sees them, which is what keeps them
-        // off the graph — so going through it can't tell us what a peer replaying the chain would
-        // do. This goes around it, straight to the store, which appends and then reduces: the same
-        // path a link takes when it arrives from someone else.
-        const { store } = alice.team as unknown as {
+        // Going through `Team.dispatch` can't tell us what happens when a link like this arrives
+        // from someone else, because it refuses them before the store ever sees them. So 👨🏻‍🦲 Bob
+        // goes around it, straight to his store, which appends and then reduces — and each link he
+        // manages to get onto his graph that way is handed to 👩🏾 Alice the way a peer's would be.
+        const { store } = bob.team as unknown as {
           store: Store<TeamState, TeamAction, TeamContext>
         }
-        const teamKeys = alice.team.teamKeys()
+        const teamKeys = bob.team.teamKeys()
+        const cleanGraph = alice.team.graph
 
-        const outcomes = cases.flatMap(brokenVariants).map(([label, action]) => {
-          try {
-            store.dispatch(action as TeamAction, teamKeys)
-            return `${label}: ACCEPTED`
-          } catch (error) {
-            const { message } = error as Error
-            const refused = /has to carry|needs a usable/.test(message)
-            return refused ? `${label}: refused` : `${label}: THREW ${message}`
+        const onReplay: string[] = []
+        const onArrival: string[] = []
+
+        for (const [label, action] of cases.flatMap(c => brokenVariants(c, aRealLockbox))) {
+          // What a peer replaying the chain says about it — the on-chain backstop
+          onReplay.push(
+            outcome(label, () => {
+              store.dispatch(action as TeamAction, teamKeys)
+            })
+          )
+
+          // The link is on Bob's graph now, refused or not. This is that link, arriving.
+          const [head] = store.getGraph().head
+          const theirGraph = {
+            ...cleanGraph,
+            links: { ...cleanGraph.links, [head]: store.getGraph().links[head] },
           }
-        })
+          onArrival.push(
+            outcome(label, () => {
+              alice.team.merge(theirGraph)
+            })
+          )
+        }
 
-        expect(outcomes.filter(outcome => !outcome.endsWith('refused'))).toEqual([])
+        expect(onReplay.filter(result => !result.endsWith('refused'))).toEqual([])
+        expect(onArrival.filter(result => !result.endsWith('refused'))).toEqual([])
 
-        // This team's graph is now full of links that don't replay, which is exactly why
-        // `Team.dispatch` doesn't let them get this far (see auth-bs2)
+        // 👩🏾 Alice refused every one of them at the door, so her graph is untouched — she can
+        // still reload it, and still merge a graph that doesn't carry one of these
+        const reloaded = teams.load(alice.team.save(), alice.localContext, alice.team.teamKeyring())
+        expect(reloaded.members()).toHaveLength(2)
+        alice.team.merge(cleanGraph)
+        expect(alice.team.members()).toHaveLength(2)
       })
     })
   })
