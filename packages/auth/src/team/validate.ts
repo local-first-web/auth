@@ -237,8 +237,8 @@ const validators: TeamStateValidatorSet = {
 
     if (link.body.type === 'ROOT') {
       const { rootMember, lockboxes = [] } = link.body.payload
-      const keysBeingAdded = () => new Set([rootMember.keys.encryption])
-      if (!grantsRoleKeys(lockboxes, ADMIN, rootMember.userId, keysBeingAdded)) {
+      const isTheirKey = keyMatches(rootMember.keys.encryption)
+      if (!rolesWithKeys(lockboxes, rootMember.userId, isTheirKey).has(ADMIN)) {
         return failedGrant(rootMember.userId, ADMIN)
       }
 
@@ -247,9 +247,10 @@ const validators: TeamStateValidatorSet = {
 
     if (link.body.type === 'ADD_MEMBER') {
       const { member, roles = [], lockboxes = [] } = link.body.payload
-      const keysBeingAdded = () => new Set([member.keys.encryption])
+      const isTheirKey = keyMatches(member.keys.encryption)
+      const granted = rolesWithKeys(lockboxes, member.userId, isTheirKey)
       for (const roleName of roles) {
-        if (!grantsRoleKeys(lockboxes, roleName, member.userId, keysBeingAdded)) {
+        if (!granted.has(roleName)) {
           return failedGrant(member.userId, roleName)
         }
       }
@@ -259,8 +260,8 @@ const validators: TeamStateValidatorSet = {
 
     if (link.body.type === 'ADD_MEMBER_ROLE') {
       const { userId, roleName, lockboxes = [] } = link.body.payload
-      const registeredKeys = () => registeredEncryptionKeys(previousState).get(userId) ?? new Set()
-      if (!grantsRoleKeys(lockboxes, roleName, userId, registeredKeys)) {
+      const isTheirKey = keyIsRegisteredTo(previousState, userId)
+      if (!rolesWithKeys(lockboxes, userId, isTheirKey).has(roleName)) {
         return failedGrant(userId, roleName)
       }
     }
@@ -434,31 +435,54 @@ const validators: TeamStateValidatorSet = {
 }
 
 /**
- * Whether these lockboxes hand `userId` the keys for `roleName`.
+ * The roles whose keys these lockboxes actually hand to `userId`.
  *
- * The work here is bounded on purpose. Looking up an encryption key costs a scan of every lockbox
- * the team has when the key isn't registered, and a payload can name any number of lockboxes — so
- * we match on the names first, and only then ask `usersKeys` which keys count as the member's. That
- * question is asked at most once, which is what keeps a single crafted link from costing every peer
- * O(payload × team) work forever.
+ * The work here is bounded on purpose. Ruling out an encryption key can cost a scan of every
+ * lockbox the team has, and a payload can name any number of lockboxes — so we match on the names
+ * first, and hand the survivors to `isTheirKey`, which does the expensive part at most once however
+ * many there are. One pass covers every role the payload grants, so a link granting many roles
+ * doesn't multiply the work either.
  */
-const grantsRoleKeys = (
+const rolesWithKeys = (
   lockboxes: Lockbox[],
-  roleName: string,
   userId: string,
-  usersKeys: () => Set<Base58>
+  isTheirKey: (publicKey: Base58) => boolean
 ) => {
-  const namesTheGrant = lockboxes.filter(
+  const roleKeysForThisUser = lockboxes.filter(
     ({ contents, recipient }) =>
-      contents.type === KeyType.ROLE &&
-      contents.name === roleName &&
-      recipient.type === KeyType.USER &&
-      recipient.name === userId
+      contents.type === KeyType.ROLE && recipient.type === KeyType.USER && recipient.name === userId
   )
-  if (namesTheGrant.length === 0) return false
 
-  const keys = usersKeys()
-  return namesTheGrant.some(({ recipient }) => keys.has(recipient.publicKey))
+  return new Set(
+    roleKeysForThisUser
+      .filter(({ recipient }) => isTheirKey(recipient.publicKey))
+      .map(({ contents }) => contents.name)
+  )
+}
+
+/** For a member whose keys this very link establishes, the keyset it names is the only one there is. */
+const keyMatches = (publicKey: Base58) => (candidate: Base58) => candidate === publicKey
+
+/**
+ * For a member who is already on the team, any generation of their keys will do: their keys may
+ * have been rotated concurrently with the grant, and a lockbox addressed to the superseded
+ * generation still reaches them.
+ *
+ * Their current keys answer the honest case without looking at any lockboxes at all; recovering the
+ * superseded generations means walking them, so that happens only if it has to, and only once.
+ */
+const keyIsRegisteredTo = (state: TeamState, userId: string) => {
+  const currentKey = (
+    state.members.find(m => m.userId === userId) ??
+    state.removedMembers.find(m => m.userId === userId)
+  )?.keys.encryption
+
+  let everyGeneration: Set<Base58> | undefined
+  return (candidate: Base58) => {
+    if (candidate === currentKey) return true
+    everyGeneration ??= registeredEncryptionKeys(state).get(userId) ?? new Set()
+    return everyGeneration.has(candidate)
+  }
 }
 
 const fail = (message: string, previousState: TeamState, link: TeamLink) => {

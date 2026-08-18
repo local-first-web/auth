@@ -211,6 +211,41 @@ describe('Team', () => {
       expect(bob.team.roleKeys(MANAGERS)).toLookLikeKeyset()
     })
 
+    it("does no lockbox scan at all for a grant naming the member's current keys", () => {
+      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+      alice.team.addRole(managers)
+
+      // The honest grant addresses the lockbox to the member's current keys, and those are on the
+      // member record — so answering it costs nothing beyond that lookup
+      const lockboxForBob = lockbox.create(
+        alice.team.roleKeys(MANAGERS),
+        alice.team.members(bob.userId).keys
+      )
+
+      let lockboxScans = 0
+      const { state } = alice.team
+      const countingState = {
+        ...state,
+        get lockboxes() {
+          lockboxScans += 1
+          return state.lockboxes
+        },
+      } as TeamState
+
+      const head = alice.team.graph.links[alice.team.graph.head[0]]
+      const link = {
+        ...head,
+        body: {
+          ...head.body,
+          type: 'ADD_MEMBER_ROLE',
+          payload: { userId: bob.userId, roleName: MANAGERS, lockboxes: [lockboxForBob] },
+        },
+      } as unknown as TeamLink
+
+      expect(validate(countingState, link).isValid).toBe(true)
+      expect(lockboxScans).toBe(0)
+    })
+
     it("won't add a member with a role without a lockbox holding that role's keys", () => {
       const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
