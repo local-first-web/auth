@@ -1284,6 +1284,43 @@ describe('Team', () => {
           expect(Object.keys(bob.team.state.invitations)).toHaveLength(0)
         })
 
+        it("won't accept a member admission with no userName on it", () => {
+          const { alice, bob, eve } = setup(
+            'alice',
+            { user: 'bob', member: false },
+            { user: 'eve', admin: false }
+          )
+
+          // 👩🏾 Alice invites 👨🏻‍🦲 Bob, and 👨🏻‍🦲 Bob generates a real proof
+          const { seed, id } = alice.team.inviteMember()
+          const bobsProof = generateProof(seed, bob.user.keys)
+
+          // 🦹‍♀️ Eve relays the admission, but leaves the userName off the payload. Nothing about
+          // the graph fills it in, and `uniqueUserNameAndId` calls `toLowerCase()` on it — so a
+          // link like this used to throw a TypeError in the middle of replaying the chain, on
+          // every peer, forever, instead of being refused.
+          eve.team = teams.load(alice.team.save(), eve.localContext, alice.team.teamKeys())
+          const admitBobWithNoUserName = () => {
+            eve.team.dispatch({
+              type: 'ADMIT_MEMBER',
+              payload: {
+                id,
+                userName: undefined as unknown as string,
+                memberKeys: redactKeys(bob.user.keys),
+                proof: bobsProof,
+                lockboxes: [],
+              },
+            })
+          }
+
+          expect(admitBobWithNoUserName).toThrowError(/not a usable userName/)
+          expect(eve.team.has(bob.userId)).toBe(false)
+
+          // ✅ The same admission with a userName on it still goes through
+          eve.team.admitMember(bobsProof, redactKeys(bob.user.keys), bob.userName)
+          expect(eve.team.has(bob.userId)).toBe(true)
+        })
+
         it('still admits each kind of invitee with its own kind of invitation', () => {
           const { alice, bob } = setup('alice', { user: 'bob', member: false })
 

@@ -132,6 +132,46 @@ const validators: TeamStateValidatorSet = {
     return VALID
   },
 
+  /**
+   * The identifiers a link asks the team to file it under have to be usable strings.
+   *
+   * The payload types describe what honest code produces, but a member can author a link directly
+   * and put anything at all in it. Where nothing checks an identifier, the first thing to touch it
+   * is whatever indexes it — `uniqueUserNameAndId` calling `toLowerCase()` on a missing userName,
+   * `canOnlyAddYourOwnDevices` reading `userId` off a missing device — so the failure is a
+   * TypeError in the middle of replaying the chain, paid by every peer, forever, rather than a
+   * refusal. And an identifier that is present but empty is worse than a crash: a nameless device
+   * still goes onto its owner's account, and `memberByDeviceId` is what resolves a connecting peer
+   * to a member.
+   *
+   * This runs ahead of the validators that read these fields, so that they can rely on them.
+   */
+  identifiersMustBeUsable(...args) {
+    const [_previousState, link] = args
+
+    if (link.body.type === 'ADMIT_MEMBER') {
+      const { userName } = link.body.payload
+      if (!isUsableIdentifier(userName)) {
+        const msg = `A member admission has to name the member it admits, and '${String(userName)}' is not a usable userName.`
+        return fail(msg, ...args)
+      }
+    }
+
+    if (link.body.type === 'ADD_DEVICE') {
+      const { device } = link.body.payload
+      if (device === undefined) {
+        return fail('An ADD_DEVICE link has to carry a device.', ...args)
+      }
+
+      if (!isUsableIdentifier(device.deviceId)) {
+        const msg = `A device has to have an identifier of its own, and '${String(device.deviceId)}' is not a usable deviceId.`
+        return fail(msg, ...args)
+      }
+    }
+
+    return VALID
+  },
+
   /** The user who made these changes was a member with appropriate rights at the time */
   mustBeAdmin(...args) {
     const [previousState, link] = args
@@ -321,7 +361,7 @@ const validators: TeamStateValidatorSet = {
     // check that goes by it reads as satisfied when it's missing on both sides. `proof.invitee !==
     // invitee` compares nothing to nothing; the record of whom an invitation has admitted can't
     // recognize whom it admitted; and a member ends up on the team with no userId to be removed by.
-    if (typeof invitee !== 'string' || invitee.length === 0) {
+    if (!isUsableIdentifier(invitee)) {
       const identifier = link.body.type === 'ADMIT_MEMBER' ? 'userId' : 'deviceId'
       const msg = `An admission has to name the invitee it admits, and '${String(invitee)}' is not a usable ${identifier}.`
       return fail(msg, ...args)
@@ -471,6 +511,16 @@ const rolesWithKeys = (
       .map(({ contents }) => contents.name)
   )
 }
+
+/**
+ * An identifier that something can actually be filed under: a non-empty string.
+ *
+ * Nothing about a keyset or a payload requires an identifier to be there, and every check that goes
+ * by one reads as satisfied when it's missing on both sides — `undefined !== undefined` is false,
+ * and the record of whom an invitation has admitted can't recognize whom it admitted.
+ */
+const isUsableIdentifier = (value: unknown): value is string =>
+  typeof value === 'string' && value.length > 0
 
 /** For a member whose keys this very link establishes, the keyset it names is the only one there is. */
 const keyMatches = (publicKey: Base58) => (candidate: Base58) => candidate === publicKey

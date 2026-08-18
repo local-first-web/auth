@@ -25,7 +25,9 @@ export const actionFingerprint = (link: TeamLink) => {
       }
 
       case 'ADD_DEVICE': {
-        return action.payload.device.deviceId
+        // Like an invitation, a device is one of the things we fingerprint a link in order to
+        // complain that it's missing, so this can't insist on finding one
+        return action.payload.device?.deviceId ?? 'none'
       }
 
       case 'REMOVE_DEVICE': {
