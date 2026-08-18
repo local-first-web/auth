@@ -315,6 +315,18 @@ const validators: TeamStateValidatorSet = {
       link.body.type === 'ADMIT_MEMBER'
         ? link.body.payload.memberKeys.name
         : link.body.payload.device.deviceId
+
+    // ...and that identity has to be an identity. A member's identifier is the `name` on the keyset
+    // they chose for themselves, and nothing about a keyset requires it to have one — but every
+    // check that goes by it reads as satisfied when it's missing on both sides. `proof.invitee !==
+    // invitee` compares nothing to nothing; the record of whom an invitation has admitted can't
+    // recognize whom it admitted; and a member ends up on the team with no userId to be removed by.
+    if (typeof invitee !== 'string' || invitee.length === 0) {
+      const identifier = link.body.type === 'ADMIT_MEMBER' ? 'userId' : 'deviceId'
+      const msg = `An admission has to name the invitee it admits, and '${String(invitee)}' is not a usable ${identifier}.`
+      return fail(msg, ...args)
+    }
+
     if (proof.invitee !== invitee) {
       const msg = `This invitation was issued to '${proof.invitee}', so it can't be used to admit '${invitee}'.`
       return fail(msg, ...args)

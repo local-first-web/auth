@@ -14,6 +14,7 @@ import {
   type DeviceInvitation,
   type MemberInvitation,
 } from 'invitation/index.js'
+import * as lockbox from 'lockbox/index.js'
 import * as teams from 'team/index.js'
 import { KeyType } from 'util/index.js'
 import { setup } from 'util/testing/index.js'
@@ -451,6 +452,101 @@ describe('Team', () => {
         }
 
         expect(replayBobsAdmission).toThrowError(/already been used to admit/i)
+      })
+
+      it("won't accept a replayed admission authored directly on the graph", () => {
+        const { alice, bob, charlie } = setup(
+          'alice',
+          { user: 'bob', member: false },
+          { user: 'charlie', admin: false }
+        )
+
+        const { seed } = alice.team.inviteMember({ maxUses: 2 })
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
+        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.userName)
+        alice.team.remove(bob.userId)
+
+        // An attacker doesn't have to go through `admitMember`, which checks the invitation before
+        // posting anything — they can author the link themselves. What every peer applies is the
+        // link, so it's the validators that have to refuse it.
+        charlie.team = teams.load(alice.team.save(), charlie.localContext, alice.team.teamKeyring())
+        const memberKeys = redactKeys(bob.user.keys)
+        const replayBobsAdmission = () => {
+          charlie.team.dispatch({
+            type: 'ADMIT_MEMBER',
+            payload: {
+              id: proofOfInvitation.id,
+              userName: bob.userName,
+              memberKeys,
+              proof: proofOfInvitation,
+              // 🦹‍♀️ The point of the exercise: handing Bob the current generation of team keys
+              lockboxes: Object.values(charlie.team.teamKeyring()).map(keys =>
+                lockbox.create(keys, memberKeys)
+              ),
+            },
+          })
+        }
+
+        expect(replayBobsAdmission).toThrowError(/already been used to admit/i)
+        expect(charlie.team.has(bob.userId)).toBe(false)
+      })
+
+      it("won't admit an invitee whose keyset has no name", () => {
+        const { alice, bob } = setup('alice', { user: 'bob', member: false })
+
+        // A member's identifier is the `name` on the keyset they choose for themselves, and nothing
+        // makes them give it one. A nameless invitee satisfies every check that goes by it —
+        // including the record of whom an invitation has already admitted, which is what keeps a
+        // published proof from being replayed. So they have to be turned away at the door.
+        const namelessKeys = { ...bob.user.keys, name: undefined as unknown as string }
+        const { seed } = alice.team.inviteMember({ maxUses: 2 })
+        const proofOfInvitation = generateProof(seed, namelessKeys)
+
+        const admitANamelessInvitee = () => {
+          alice.team.dispatch({
+            type: 'ADMIT_MEMBER',
+            payload: {
+              id: proofOfInvitation.id,
+              userName: bob.userName,
+              memberKeys: redactKeys(namelessKeys),
+              proof: proofOfInvitation,
+              lockboxes: [],
+            },
+          })
+        }
+
+        expect(admitANamelessInvitee).toThrowError(/not a usable userid/i)
+        expect(alice.team.members()).toHaveLength(1)
+      })
+
+      it("won't admit a device with no deviceId", () => {
+        const { alice } = setup('alice')
+        const alicePhone = redactDevice(alice.phone!)
+
+        // The device half of the same hole: a device's identifier is its `deviceId`, and
+        // `memberByDeviceId` is how a connecting peer is resolved to a member
+        const namelessDevice = {
+          ...alicePhone,
+          deviceId: undefined as unknown as string,
+          keys: { ...alicePhone.keys, name: undefined as unknown as string },
+        }
+        const { seed } = alice.team.inviteDevice()
+        const proofOfInvitation = generateProof(seed, namelessDevice.keys)
+
+        const admitANamelessDevice = () => {
+          alice.team.dispatch({
+            type: 'ADMIT_DEVICE',
+            payload: {
+              id: proofOfInvitation.id,
+              device: namelessDevice,
+              proof: proofOfInvitation,
+              lockboxes: [],
+            },
+          })
+        }
+
+        expect(admitANamelessDevice).toThrowError(/not a usable deviceid/i)
+        expect(alice.team.members(alice.userId).devices).toHaveLength(1)
       })
 
       it("won't spend a device invitation twice on the same device", () => {
