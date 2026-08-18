@@ -462,7 +462,7 @@ export class Team extends EventEmitter<TeamEvents> {
     /** Time when the invitation expires. If not provided, the invitation does not expire. */
     expiration?: UnixTimestamp
 
-    /** Number of times the invitation can be used. If not provided, the invitation can be used any number of times. */
+    /** Number of times the invitation can be used. Defaults to 1; if 0, the invitation can be used any number of times. */
     maxUses?: number
   } = {}): InviteResult {
     // Normalize the seed (all lower case, strip spaces & punctuation)

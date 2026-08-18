@@ -1160,8 +1160,8 @@ describe('Team', () => {
           // can invite a device, and he holds that seed
           const { seed, id } = bob.team.inviteDevice()
 
-          // `generateProof` signs whatever invitee string it's handed, so he mints one naming
-          // 🦹‍♀️ Eve's userId rather than a deviceId
+          // `generateProof` names the invitee by the `name` on the keyset it's handed, so a proof
+          // minted from 🦹‍♀️ Eve's user keys names her userId rather than a deviceId
           const proof = generateProof(seed, eve.user.keys)
 
           // ...and presents his device invitation as though it admitted a member
