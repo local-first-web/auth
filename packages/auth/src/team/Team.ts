@@ -472,6 +472,17 @@ export class Team extends EventEmitter<TeamEvents> {
     const invitation = invitations.create({ kind: 'MEMBER', seed, expiration, maxUses })
     const { id } = invitation
 
+    // The id is derived from the seed, so a seed that's been used before names an invitation the
+    // team already has. Posting it again would be refused by `invitationsCanOnlyBePostedOnce` — but
+    // a refused link is appended to the graph before the reducer ever sees it, so the refusal would
+    // leave a graph that neither we nor any peer could replay again. Say so before dispatching
+    // anything. (`normalize` strips everything but letters and digits, so 'Alpha-Bravo' and
+    // 'AlphaBravo' are the same seed.)
+    assert(
+      !this.hasInvitation(id),
+      `This invitation seed has already been used on this team (invitation '${id}'). Use a different seed.`
+    )
+
     // Post invitation to graph
     this.dispatch({
       type: 'INVITE_MEMBER',
@@ -526,6 +537,17 @@ export class Team extends EventEmitter<TeamEvents> {
     const lockboxes = allUserKeys.map(keys => lockbox.create(keys, starterKeys))
 
     const { id } = invitation
+
+    // The id is derived from the seed, so a seed that's been used before names an invitation the
+    // team already has. Posting it again would be refused by `invitationsCanOnlyBePostedOnce` — but
+    // a refused link is appended to the graph before the reducer ever sees it, so the refusal would
+    // leave a graph that neither we nor any peer could replay again. Say so before dispatching
+    // anything. (`normalize` strips everything but letters and digits, so 'Alpha-Bravo' and
+    // 'AlphaBravo' are the same seed.)
+    assert(
+      !this.hasInvitation(id),
+      `This invitation seed has already been used on this team (invitation '${id}'). Use a different seed.`
+    )
 
     // Post invitation to graph
     this.dispatch({
@@ -615,6 +637,14 @@ export class Team extends EventEmitter<TeamEvents> {
         'This proof of invitation commits to a different keyset than the one being admitted.'
       )
     }
+
+    // A member is indexed by their userName as well as their userId, and a link that names an
+    // unusable one is refused by `payloadsMustBeWellFormed` — which would leave this graph with a
+    // link on it that nobody can replay. Say so before dispatching anything.
+    assert(
+      typeof userName === 'string' && userName.length > 0,
+      `'${String(userName)}' is not a usable userName.`
+    )
 
     const userValidation = this.validateUser(memberKeys.name, userName)
     if (!userValidation.isValid) throw userValidation.error
@@ -873,21 +903,25 @@ export class Team extends EventEmitter<TeamEvents> {
   public adminKeys = (generation?: number) => this.roleKeys(ADMIN, generation)
 
   /**
-   * Replaces the current user's secret keyset with the one provided. (An admin can also use this to
-   * change another user's secret keyset.)
+   * Replaces the current user's secret keyset with the one provided.
    *
-   * This only ever rotates the caller's own user keys: the old keys come from `context.user` and
-   * the new ones are written back there. A server's keys can't be rotated at all — a server can
-   * only admit members and devices (`serversCanOnlyAdmit`), and nobody can do it on its behalf
-   * either. To re-key a server, remove it and add it back with new keys.
+   * The old keys are read from `context.user` and the new ones are written back there, so this
+   * rotates the caller's own keys. (`canOnlyChangeYourOwnKeys` does let an admin post a keyset
+   * naming another member, but the bookkeeping here still treats whatever it's handed as the
+   * caller's own — see auth-poy.)
+   *
+   * A server's keys can't be rotated at all: a server can only admit members and devices
+   * (`serversCanOnlyAdmit`), and there's no action for anyone to do it on its behalf either. To
+   * re-key a server, remove it and add it back with new keys.
    */
   public changeKeys = (newKeys: KeysetWithSecrets) => {
     const { user } = this.context
     const { type } = newKeys
 
+    assert(type !== DEVICE, "Can't change device keys")
     assert(
       type === USER,
-      `Only a member's own user keys can be changed; a server's keys can't be rotated (remove the server and add it back instead).`
+      `A server's keys can't be rotated (remove the server and add it back instead).`
     )
 
     const oldKeys: KeysetWithSecrets = user.keys

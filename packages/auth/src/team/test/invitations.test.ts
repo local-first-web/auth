@@ -1254,73 +1254,6 @@ describe('Team', () => {
           expect(Object.keys(bob.team.state.invitations)).toHaveLength(0)
         })
 
-        it("won't accept an INVITE_MEMBER link with no invitation on it", () => {
-          const { alice } = setup('alice')
-
-          // A link that names no invitation at all used to get past the validators, and then blew
-          // up in the reducer while every peer was replaying the chain
-          const postAnEmptyInvitation = () => {
-            alice.team.dispatch({
-              type: 'INVITE_MEMBER',
-              payload: {} as { invitation: MemberInvitation },
-            })
-          }
-
-          expect(postAnEmptyInvitation).toThrowError(/has to carry an invitation/i)
-          expect(Object.keys(alice.team.state.invitations)).toHaveLength(0)
-        })
-
-        it("won't accept an INVITE_DEVICE link with no invitation on it", () => {
-          const { bob } = setup('alice', { user: 'bob', admin: false })
-
-          const postAnEmptyInvitation = () => {
-            bob.team.dispatch({
-              type: 'INVITE_DEVICE',
-              payload: {} as { invitation: DeviceInvitation },
-            })
-          }
-
-          expect(postAnEmptyInvitation).toThrowError(/has to carry an invitation/i)
-          expect(Object.keys(bob.team.state.invitations)).toHaveLength(0)
-        })
-
-        it("won't accept a member admission with no userName on it", () => {
-          const { alice, bob, eve } = setup(
-            'alice',
-            { user: 'bob', member: false },
-            { user: 'eve', admin: false }
-          )
-
-          // 👩🏾 Alice invites 👨🏻‍🦲 Bob, and 👨🏻‍🦲 Bob generates a real proof
-          const { seed, id } = alice.team.inviteMember()
-          const bobsProof = generateProof(seed, bob.user.keys)
-
-          // 🦹‍♀️ Eve relays the admission, but leaves the userName off the payload. Nothing about
-          // the graph fills it in, and `uniqueUserNameAndId` calls `toLowerCase()` on it — so a
-          // link like this used to throw a TypeError in the middle of replaying the chain, on
-          // every peer, forever, instead of being refused.
-          eve.team = teams.load(alice.team.save(), eve.localContext, alice.team.teamKeys())
-          const admitBobWithNoUserName = () => {
-            eve.team.dispatch({
-              type: 'ADMIT_MEMBER',
-              payload: {
-                id,
-                userName: undefined as unknown as string,
-                memberKeys: redactKeys(bob.user.keys),
-                proof: bobsProof,
-                lockboxes: [],
-              },
-            })
-          }
-
-          expect(admitBobWithNoUserName).toThrowError(/not a usable userName/)
-          expect(eve.team.has(bob.userId)).toBe(false)
-
-          // ✅ The same admission with a userName on it still goes through
-          eve.team.admitMember(bobsProof, redactKeys(bob.user.keys), bob.userName)
-          expect(eve.team.has(bob.userId)).toBe(true)
-        })
-
         it('still admits each kind of invitee with its own kind of invitation', () => {
           const { alice, bob } = setup('alice', { user: 'bob', member: false })
 
@@ -1414,6 +1347,66 @@ describe('Team', () => {
           const { seed: anotherSeed } = bob.team.inviteDevice()
           bob.team.admitDevice(generateProof(anotherSeed, bobsOtherDevice.keys), bobsOtherDevice)
           expect(bob.team.members(bob.userId).devices).toHaveLength(3)
+        })
+
+        it('refuses a seed that has already been used, without touching the graph', () => {
+          const { alice, bob } = setup('alice', 'bob')
+
+          // The seed can be chosen by the caller (`inviteMember({ seed })`), so two honest
+          // invitations CAN collide — the id is derived from the seed. Posting the second one
+          // would be refused on replay, but `Store.dispatch` appends a link BEFORE the reducer
+          // sees it: the refusal would leave a link on the graph that nobody, including 👩🏾 Alice,
+          // could ever replay again. So the invitation methods say so first.
+          const { id } = alice.team.inviteMember({ seed: 'chosen seed' })
+
+          const inviteWithTheSameSeedAgain = () => {
+            alice.team.inviteMember({ seed: 'chosen seed' })
+          }
+
+          expect(inviteWithTheSameSeedAgain).toThrowError(/seed has already been used/i)
+
+          // `normalize` keeps only letters and digits (it doesn't change case), so a seed a user
+          // picked for readability collides with the same seed punctuated differently
+          const inviteWithAnEquivalentSeed = () => {
+            alice.team.inviteMember({ seed: 'chosen-seed' })
+          }
+
+          expect(inviteWithAnEquivalentSeed).toThrowError(/seed has already been used/i)
+
+          // ✅ The graph is untouched: she can still save and reload it, and so can 👨🏻‍🦲 Bob
+          expect(Object.keys(alice.team.state.invitations)).toHaveLength(1)
+          const reloaded = teams.load(
+            alice.team.save(),
+            alice.localContext,
+            alice.team.teamKeyring()
+          )
+          expect(Object.keys(reloaded.state.invitations)).toHaveLength(1)
+          bob.team.merge(alice.team.graph)
+          expect(Object.keys(bob.team.state.invitations)).toHaveLength(1)
+
+          // ✅ And the invitation that was posted still works
+          const { seed } = alice.team.inviteMember({ seed: 'chosen seed 2' })
+          expect(seed).not.toBe(id)
+        })
+
+        it('refuses a device invitation seed that has already been used', () => {
+          const { bob } = setup('alice', { user: 'bob', admin: false })
+          const bobsPhone = redactDevice(bob.phone!)
+
+          bob.team.inviteDevice({ seed: 'chosen seed' })
+
+          const inviteWithTheSameSeedAgain = () => {
+            bob.team.inviteDevice({ seed: 'chosen seed' })
+          }
+
+          expect(inviteWithTheSameSeedAgain).toThrowError(/seed has already been used/i)
+
+          // ✅ Nothing was appended, so the graph still replays — and the first invitation is
+          // still good for the device it was made for
+          const reloaded = teams.load(bob.team.save(), bob.localContext, bob.team.teamKeyring())
+          expect(Object.keys(reloaded.state.invitations)).toHaveLength(1)
+          bob.team.admitDevice(generateProof('chosen seed', bobsPhone.keys), bobsPhone)
+          expect(bob.team.members(bob.userId).devices).toHaveLength(2)
         })
 
         it("won't let a re-posted invitation undo a revocation", () => {

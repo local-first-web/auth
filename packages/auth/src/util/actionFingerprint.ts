@@ -8,7 +8,9 @@ export const actionFingerprint = (link: TeamLink) => {
   const fingerprintPayload = (action: TeamAction) => {
     switch (action.type) {
       case 'ADD_MEMBER': {
-        return action.payload.member.userId
+        // A member is one of the things we fingerprint a link in order to complain that it's
+        // missing, so this can't insist on finding one — same as the device and invitation cases
+        return action.payload.member?.userId ?? 'none'
       }
 
       case 'REMOVE_MEMBER': {

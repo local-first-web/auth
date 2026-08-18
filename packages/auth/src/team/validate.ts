@@ -125,6 +125,107 @@ const validators: TeamStateValidatorSet = {
     return VALID
   },
 
+  /**
+   * A link's payload has to carry what the rest of these rules are about to reach into.
+   *
+   * The payload types describe what honest code produces, but a member can author a link directly
+   * and put anything at all in it — or leave anything at all out. Every rule below this one takes
+   * some payload apart (`payload.device.userId`, `payload.keys.name`, `payload.memberKeys.name`),
+   * and a field that didn't arrive turns that into a TypeError thrown in the middle of replaying
+   * the chain: paid by every peer, forever, rather than a refusal. Both spellings of nothing reach
+   * a peer, so `undefined` alone is not what's being guarded against — `null` survives a round trip
+   * through the wire and `device === undefined` doesn't see it.
+   *
+   * The identifiers get the same treatment for a different reason. One that's missing or empty is
+   * worse than a crash, because it doesn't crash: a nameless device still goes onto its owner's
+   * account and `memberByDeviceId` resolves a connecting peer by it, and a member with no userName
+   * makes `uniqueUserNameAndId` throw on every ADMISSION that comes after, not on the link that
+   * planted them.
+   *
+   * This is the one place that guards a payload dereference, and it runs ahead of every rule that
+   * makes one, so those rules can take their payloads apart without asking. Whatever gets added
+   * below inherits that, as long as what it reaches into is named here.
+   */
+  payloadsMustBeWellFormed(...args) {
+    const [_previousState, link] = args
+
+    /** Something a link of this type has to carry, and this one didn't */
+    const missing = (what: string) =>
+      fail(`This ${link.body.type} link has to carry ${what}.`, ...args)
+
+    /** Something the team is indexed by, which can't be used as an identifier */
+    const unusable = (value: unknown, identifier: string) =>
+      fail(
+        `This ${link.body.type} link needs a usable ${identifier}, and '${String(value)}' is not one.`,
+        ...args
+      )
+
+    switch (link.body.type) {
+      case ROOT: {
+        const { rootMember, rootDevice } = link.body.payload
+        if (isMissing(rootMember)) return missing('a founding member')
+        if (isMissing(rootDevice)) return missing('a founding device')
+        if (isMissing(rootMember.keys)) return missing("the founding member's keys")
+        if (!isUsableIdentifier(rootMember.userId)) return unusable(rootMember.userId, 'userId')
+        if (!isUsableIdentifier(rootMember.userName))
+          return unusable(rootMember.userName, 'userName')
+        if (!isUsableIdentifier(rootDevice.deviceId))
+          return unusable(rootDevice.deviceId, 'deviceId')
+        return VALID
+      }
+
+      case 'ADD_MEMBER': {
+        const { member } = link.body.payload
+        if (isMissing(member)) return missing('a member')
+        if (isMissing(member.keys)) return missing("the member's keys")
+        if (!isUsableIdentifier(member.userId)) return unusable(member.userId, 'userId')
+        if (!isUsableIdentifier(member.userName)) return unusable(member.userName, 'userName')
+        return VALID
+      }
+
+      case 'ADD_DEVICE': {
+        const { device } = link.body.payload
+        if (isMissing(device)) return missing('a device')
+        if (!isUsableIdentifier(device.deviceId)) return unusable(device.deviceId, 'deviceId')
+        if (!isUsableIdentifier(device.userId)) return unusable(device.userId, 'userId')
+        return VALID
+      }
+
+      case 'CHANGE_MEMBER_KEYS': {
+        const { keys } = link.body.payload
+        if (isMissing(keys)) return missing('a keyset')
+        if (!isUsableIdentifier(keys.name)) return unusable(keys.name, 'keyset name')
+        return VALID
+      }
+
+      case 'INVITE_MEMBER':
+      case 'INVITE_DEVICE': {
+        const { invitation } = link.body.payload
+        if (isMissing(invitation)) return missing('an invitation')
+        if (!isUsableIdentifier(invitation.id)) return unusable(invitation.id, 'invitation id')
+        return VALID
+      }
+
+      case 'ADMIT_MEMBER': {
+        const { memberKeys, userName } = link.body.payload
+        if (isMissing(memberKeys)) return missing("the member's keys")
+        if (!isUsableIdentifier(userName)) return unusable(userName, 'userName')
+        return VALID
+      }
+
+      case 'ADMIT_DEVICE': {
+        const { device } = link.body.payload
+        if (isMissing(device)) return missing('a device')
+        if (isMissing(device.keys)) return missing("the device's keys")
+        return VALID
+      }
+
+      default: {
+        return VALID
+      }
+    }
+  },
+
   rootDeviceBelongsToRootUser(...args) {
     const [_previousState, link] = args
     const { type, payload } = link.body
@@ -135,46 +236,6 @@ const validators: TeamStateValidatorSet = {
       const msg = 'The founding device must belong to the founding member (userIds must match).'
       return fail(msg, ...args)
     }
-    return VALID
-  },
-
-  /**
-   * The identifiers a link asks the team to file it under have to be usable strings.
-   *
-   * The payload types describe what honest code produces, but a member can author a link directly
-   * and put anything at all in it. Where nothing checks an identifier, the first thing to touch it
-   * is whatever indexes it — `uniqueUserNameAndId` calling `toLowerCase()` on a missing userName,
-   * `canOnlyAddYourOwnDevices` reading `userId` off a missing device — so the failure is a
-   * TypeError in the middle of replaying the chain, paid by every peer, forever, rather than a
-   * refusal. And an identifier that is present but empty is worse than a crash: a nameless device
-   * still goes onto its owner's account, and `memberByDeviceId` is what resolves a connecting peer
-   * to a member.
-   *
-   * This runs ahead of the validators that read these fields, so that they can rely on them.
-   */
-  identifiersMustBeUsable(...args) {
-    const [_previousState, link] = args
-
-    if (link.body.type === 'ADMIT_MEMBER') {
-      const { userName } = link.body.payload
-      if (!isUsableIdentifier(userName)) {
-        const msg = `A member admission has to name the member it admits, and '${String(userName)}' is not a usable userName.`
-        return fail(msg, ...args)
-      }
-    }
-
-    if (link.body.type === 'ADD_DEVICE') {
-      const { device } = link.body.payload
-      if (device === undefined) {
-        return fail('An ADD_DEVICE link has to carry a device.', ...args)
-      }
-
-      if (!isUsableIdentifier(device.deviceId)) {
-        const msg = `A device has to have an identifier of its own, and '${String(device.deviceId)}' is not a usable deviceId.`
-        return fail(msg, ...args)
-      }
-    }
-
     return VALID
   },
 
@@ -197,23 +258,33 @@ const validators: TeamStateValidatorSet = {
     return VALID
   },
 
-  /** Unless I'm an admin, I can't remove anyone's devices but my own */
+  /**
+   * A removal has to name a device the team has, and unless I'm an admin it has to be one of mine.
+   *
+   * The existence check isn't only for this rule's benefit. `select.device` asserts rather than
+   * answering when an id names nothing, and both this rule and the `removeDevice` transform look
+   * the device up — so an id that names nothing came out of a replay as a bare Error rather than a
+   * refusal, on every peer, for good. Refusing the link keeps the transform from ever seeing it.
+   */
   canOnlyRemoveYourOwnDevices(...args) {
     const [previousState, link] = args
-    const author = link.body.userId
+    if (link.body.type !== 'REMOVE_DEVICE') return VALID
+
+    const target = link.body.payload.deviceId
+    if (!select.hasDevice(previousState, target)) {
+      const msg = `This link removes a device ('${String(target)}') that isn't on the team.`
+      return fail(msg, ...args)
+    }
 
     // Only admins can remove another user's devices
-    const authorIsAdmin = select.memberIsAdmin(previousState, author)
-    if (authorIsAdmin) return VALID
+    const author = link.body.userId
+    if (select.memberIsAdmin(previousState, author)) return VALID
 
-    if (link.body.type === 'REMOVE_DEVICE') {
-      const target = link.body.payload.deviceId
-      const device = select.device(previousState, target)
-      const deviceOwner = device.userId
-      if (author !== deviceOwner) {
-        return fail("Can't remove another user's device.", ...args)
-      }
+    const deviceOwner = select.device(previousState, target).userId
+    if (author !== deviceOwner) {
+      return fail("Can't remove another user's device.", ...args)
     }
+
     return VALID
   },
 
@@ -316,6 +387,16 @@ const validators: TeamStateValidatorSet = {
     const [previousState, link] = args
     if (link.body.type === 'ADMIT_MEMBER' || link.body.type === 'ADMIT_DEVICE') {
       const { id, proof } = link.body.payload
+
+      // The invitation has to be one the team has actually seen. `select.getInvitation` asserts
+      // when it isn't, which would leave a validator throwing a bare Error mid-replay instead of
+      // refusing the link — and `admissionMustBeProven`, which looks the same invitation up to
+      // check the proof against it, relies on this having happened first.
+      if (!select.hasInvitation(previousState, id)) {
+        const msg = `This admission names an invitation ('${String(id)}') that the team doesn't have.`
+        return fail(msg, ...args)
+      }
+
       const invitation = select.getInvitation(previousState, id)
 
       // A missing proof is `admissionMustBeProven`'s to complain about
@@ -432,14 +513,9 @@ const validators: TeamStateValidatorSet = {
 
     if (link.body.type !== 'INVITE_MEMBER' && link.body.type !== 'INVITE_DEVICE') return VALID
 
-    // The payload types describe what honest code produces; what actually arrived is either kind —
-    // or nothing at all, which the reducer would only discover by throwing on `invitation.id` while
-    // every peer is replaying the chain
+    // The payload types describe what honest code produces; what actually arrived is either kind.
+    // That there's an invitation here at all is `payloadsMustBeWellFormed`'s to insist on.
     const { invitation } = link.body.payload
-    if (invitation === undefined) {
-      const msg = `An ${link.body.type} link has to carry an invitation.`
-      return fail(msg, ...args)
-    }
 
     if (link.body.type === 'INVITE_MEMBER') {
       if (invitation.kind !== 'MEMBER') {
@@ -474,17 +550,21 @@ const validators: TeamStateValidatorSet = {
    * open to every member, so that handed each of them a way out of any limit or revocation on an
    * invitation of their own.
    *
-   * The id is derived from the secret seed, so two honest invitations never collide; a link that
-   * repeats an id is either a replay or an attempt at one, and neither is worth accepting.
+   * Merging instead of replacing would keep the counters honest, but it would also accept the
+   * second link and produce an invitation that is already spent — a seed the invitee is holding
+   * that can never be redeemed, and no way to tell that from the graph. Refusing says so.
+   *
+   * The id is derived from the seed, and the seed can be chosen by the caller, so two honest
+   * invitations CAN collide — `inviteMember`/`inviteDevice` catch that before dispatching anything,
+   * because a link refused here is still appended to the graph and would leave it unreplayable.
+   * This is the backstop for the links that don't come from there.
    */
   invitationsCanOnlyBePostedOnce(...args) {
     const [previousState, link] = args
     if (link.body.type !== 'INVITE_MEMBER' && link.body.type !== 'INVITE_DEVICE') return VALID
 
-    // A link with no invitation on it is `invitationsNameTheRightKindAndOwner`'s to complain about
+    // That there's an invitation here at all is `payloadsMustBeWellFormed`'s to insist on
     const { invitation } = link.body.payload
-    if (invitation === undefined) return VALID
-
     if (select.hasInvitation(previousState, invitation.id)) {
       const msg = `The invitation '${invitation.id}' has already been posted, and re-posting it would reset it.`
       return fail(msg, ...args)
@@ -539,6 +619,14 @@ const rolesWithKeys = (
       .map(({ contents }) => contents.name)
   )
 }
+
+/**
+ * Nothing at all, in either of the spellings that reach a peer.
+ *
+ * A field left off a payload arrives as `undefined`, but one explicitly set to `null` survives the
+ * round trip as `null` — so a guard that only knows `undefined` isn't a guard.
+ */
+const isMissing = (value: unknown) => value === undefined || value === null
 
 /**
  * An identifier that something can actually be filed under: a non-empty string.

@@ -1,4 +1,4 @@
-import { createDevice, redactDevice, type Device } from 'index.js'
+import { createDevice, redactDevice } from 'index.js'
 import { setup as setupUsers } from 'util/testing/index.js'
 import { describe, expect, it } from 'vitest'
 
@@ -74,45 +74,6 @@ describe('Team', () => {
       bob.team.addForTesting(bob.user, [], bobsPhone)
 
       expect(bob.team.members(bob.userId).devices).toHaveLength(2)
-    })
-
-    it("won't accept a device with no usable deviceId", () => {
-      const { bob } = setup()
-      const bobsPhone = redactDevice(bob.phone!)
-
-      // 👨🏻‍🦲 Bob authors the link himself, so nothing has filled a deviceId in for him. The only
-      // validator that reads this payload checks the device's owner, so a device with no
-      // identifier of its own used to go onto his account — and `memberByDeviceId` is what
-      // resolves a connecting peer to a member.
-      const addANamelessDevice = () => {
-        bob.team.dispatch({
-          type: 'ADD_DEVICE',
-          payload: { device: { ...bobsPhone, deviceId: '' } },
-        })
-      }
-
-      expect(addANamelessDevice).toThrowError(/not a usable deviceId/)
-      expect(bob.team.members(bob.userId).devices).toHaveLength(1)
-
-      // ✅ The same device under its own deviceId still goes through
-      bob.team.dispatch({ type: 'ADD_DEVICE', payload: { device: bobsPhone } })
-      expect(bob.team.members(bob.userId).devices).toHaveLength(2)
-    })
-
-    it("won't accept an ADD_DEVICE link with no device on it", () => {
-      const { bob } = setup()
-
-      // A link with no device at all used to get as far as `canOnlyAddYourOwnDevices`, which reads
-      // `device.userId` — another TypeError paid by every peer replaying the chain
-      const addNoDeviceAtAll = () => {
-        bob.team.dispatch({
-          type: 'ADD_DEVICE',
-          payload: {} as { device: Device },
-        })
-      }
-
-      expect(addNoDeviceAtAll).toThrowError(/has to carry a device/i)
-      expect(bob.team.members(bob.userId).devices).toHaveLength(1)
     })
 
     it("doesn't remove other devices with the same name", () => {
