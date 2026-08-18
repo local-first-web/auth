@@ -465,6 +465,35 @@ const validators: TeamStateValidatorSet = {
     return VALID
   },
 
+  /**
+   * An invitation can only be posted once.
+   *
+   * An invitation is public and sits on the graph, so anyone who has seen it can author another
+   * INVITE link carrying the very same one. `postInvitation` files it under its id, and a second
+   * link filing the same id used to replace what was there — putting `uses` back to 0, emptying
+   * the record of whom the invitation had admitted, and clearing `revoked`. Inviting a device is
+   * open to every member, so that handed each of them a way out of any limit or revocation on an
+   * invitation of their own.
+   *
+   * The id is derived from the secret seed, so two honest invitations never collide; a link that
+   * repeats an id is either a replay or an attempt at one, and neither is worth accepting.
+   */
+  invitationsCanOnlyBePostedOnce(...args) {
+    const [previousState, link] = args
+    if (link.body.type !== 'INVITE_MEMBER' && link.body.type !== 'INVITE_DEVICE') return VALID
+
+    // A link with no invitation on it is `invitationsNameTheRightKindAndOwner`'s to complain about
+    const { invitation } = link.body.payload
+    if (invitation === undefined) return VALID
+
+    if (select.hasInvitation(previousState, invitation.id)) {
+      const msg = `The invitation '${invitation.id}' has already been posted, and re-posting it would reset it.`
+      return fail(msg, ...args)
+    }
+
+    return VALID
+  },
+
   /** Check if userId and userName are not used by any other member within the team */
   uniqueUserNameAndId(...args) {
     const [previousState, link] = args

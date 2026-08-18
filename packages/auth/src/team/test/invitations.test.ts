@@ -1366,6 +1366,95 @@ describe('Team', () => {
           expect(charlie.team.has(bob.userId)).toBe(true)
         })
       })
+
+      describe('an invitation can only be posted once', () => {
+        it("won't accept an invitation that's already on the graph", () => {
+          const { bob } = setup('alice', { user: 'bob', admin: false })
+          const bobsPhone = redactDevice(bob.phone!)
+
+          // 👨🏻‍🦲 Bob is an ordinary member, but inviting a device is open to every member. His
+          // invitation is good for one use, and he spends it on 📱 his phone.
+          const { seed, id } = bob.team.inviteDevice()
+          bob.team.admitDevice(generateProof(seed, bobsPhone.keys), bobsPhone)
+          expect(bob.team.state.invitations[id].uses).toBe(1)
+
+          // The invitation is public and sits on the graph, so he can author a second
+          // INVITE_DEVICE link carrying the very same one. `postInvitation` used to overwrite
+          // whatever was already filed under that id, putting `uses` back to 0 and emptying the
+          // record of whom the invitation had admitted — so maxUses and revocation both came
+          // undone.
+          const theSameInvitation = createInvitation({
+            kind: 'DEVICE',
+            seed,
+            userId: bob.userId,
+          })
+          expect(theSameInvitation.id).toBe(id)
+          const repostTheInvitation = () => {
+            bob.team.dispatch({
+              type: 'INVITE_DEVICE',
+              payload: { invitation: theSameInvitation },
+            })
+          }
+
+          expect(repostTheInvitation).toThrowError(/has already been posted/i)
+
+          // ❌ The invitation is still spent, so it won't admit a second device
+          expect(bob.team.state.invitations[id].uses).toBe(1)
+          const bobsOtherDevice = redactDevice(
+            createDevice({ userId: bob.userId, deviceName: 'bobs other device' })
+          )
+          const admitAnotherDevice = () => {
+            bob.team.admitDevice(generateProof(seed, bobsOtherDevice.keys), bobsOtherDevice)
+          }
+
+          expect(admitAnotherDevice).toThrowError(/cannot be used again/i)
+          expect(bob.team.members(bob.userId).devices).toHaveLength(2)
+
+          // ✅ A fresh invitation of his own still admits it
+          const { seed: anotherSeed } = bob.team.inviteDevice()
+          bob.team.admitDevice(generateProof(anotherSeed, bobsOtherDevice.keys), bobsOtherDevice)
+          expect(bob.team.members(bob.userId).devices).toHaveLength(3)
+        })
+
+        it("won't let a re-posted invitation undo a revocation", () => {
+          const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+          const bobsPhone = redactDevice(bob.phone!)
+
+          // 👨🏻‍🦲 Bob invites 📱 his phone, and 👩🏾 Alice thinks better of it and revokes the
+          // invitation
+          const { seed, id } = bob.team.inviteDevice()
+          alice.team.merge(bob.team.graph)
+          alice.team.revokeInvitation(id)
+          bob.team.merge(alice.team.graph)
+          expect(bob.team.state.invitations[id].revoked).toBe(true)
+
+          // Revoking is an admin's call, but re-posting the invitation isn't: it used to clear the
+          // `revoked` flag along with everything else, which handed every member a way out of any
+          // revocation of an invitation of their own.
+          const theSameInvitation = createInvitation({
+            kind: 'DEVICE',
+            seed,
+            userId: bob.userId,
+          })
+          const repostTheInvitation = () => {
+            bob.team.dispatch({
+              type: 'INVITE_DEVICE',
+              payload: { invitation: theSameInvitation },
+            })
+          }
+
+          expect(repostTheInvitation).toThrowError(/has already been posted/i)
+
+          // ❌ The revocation stands
+          expect(bob.team.state.invitations[id].revoked).toBe(true)
+          const admitThePhone = () => {
+            bob.team.admitDevice(generateProof(seed, bobsPhone.keys), bobsPhone)
+          }
+
+          expect(admitThePhone).toThrowError(/revoked/i)
+          expect(bob.team.members(bob.userId).devices).toHaveLength(1)
+        })
+      })
     })
   })
 })
