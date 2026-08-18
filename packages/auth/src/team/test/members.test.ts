@@ -1,3 +1,4 @@
+import { createUser } from '@localfirst/crdx'
 import { createDevice, loadTeam, redactDevice } from 'index.js'
 import { generateProof } from 'invitation/index.js'
 import { ADMIN } from 'role/index.js'
@@ -198,6 +199,37 @@ describe('Team', () => {
 
       expect(tryToAdmitAnotherDevice).toThrow(/was removed from the team/i)
       expect(exMemberTeam.hasDevice(bobsOtherDevice.deviceId)).toBe(false)
+    })
+
+    it('can admit an invitee again after being removed and re-added', () => {
+      const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+
+      // 👨🏻‍🦲 Bob admitted people before he was removed, and those links still replay: the rule
+      // that stops an ex-member only speaks to what comes after the removal
+      const { seed: firstSeed } = alice.team.inviteMember()
+      bob.team.merge(alice.team.graph)
+      bob.team.admitMember(
+        generateProof(firstSeed, charlie.user.keys),
+        charlie.user.keys,
+        charlie.userName
+      )
+      alice.team.merge(bob.team.graph)
+      expect(alice.team.has(charlie.userId)).toBe(true)
+
+      // 👩🏾 Alice removes him and then thinks better of it
+      alice.team.remove(bob.userId)
+      alice.team.addForTesting(bob.user, [], redactDevice(bob.device))
+      expect(alice.team.memberWasRemoved(bob.userId)).toBe(false)
+
+      const { seed } = alice.team.inviteMember()
+      const bobsTeam = loadTeam(alice.team.save(), bob.localContext, alice.team.teamKeyring())
+
+      // ✅ The tombstone is gone, so he can admit again — and 👳🏽‍♂️ Charlie, whom he admitted
+      // before the removal, is still on the team
+      const dwight = createUser('dwight', 'dwight-user-id', 'dwight')
+      bobsTeam.admitMember(generateProof(seed, dwight.keys), dwight.keys, dwight.userName)
+      expect(bobsTeam.has(dwight.userId)).toBe(true)
+      expect(bobsTeam.has(charlie.userId)).toBe(true)
     })
 
     it("doesn't do anything if asked to remove a nonexistent member", () => {
