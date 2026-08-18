@@ -1,5 +1,5 @@
 import { debug, truncateHashes } from '@localfirst/shared'
-import { ROOT } from '@localfirst/crdx'
+import { ROOT, type Base58 } from '@localfirst/crdx'
 import {
   hashKeys,
   invitationCanBeUsed,
@@ -7,6 +7,7 @@ import {
   validate as validateProof,
 } from 'invitation/index.js'
 import { type Lockbox } from 'lockbox/index.js'
+import { ADMIN } from 'role/index.js'
 import { KeyType, VALID, ValidationError, actionFingerprint } from 'util/index.js'
 import { isAdminOnlyAction } from './isAdminOnlyAction.js'
 import { isRegisteredEncryptionKey, registeredEncryptionKeys } from './registeredEncryptionKeys.js'
@@ -219,20 +220,54 @@ const validators: TeamStateValidatorSet = {
   /**
    * Granting someone a role has to hand them that role's keys.
    *
-   * The reducer applies whatever lockboxes it's given and adds the role either way, so an
-   * ADD_MEMBER_ROLE with an empty `lockboxes` array used to make `memberHasRole` return true for
-   * someone holding none of the role's keys. Applications gate on that predicate, so authorization
-   * would say yes while key possession says no.
+   * The reducer applies whatever lockboxes it's given and adds the role either way, so a role grant
+   * with an empty `lockboxes` array used to make `memberHasRole` return true for someone holding
+   * none of the role's keys. Applications gate on that predicate, so authorization would say yes
+   * while key possession says no.
+   *
+   * All three paths that assign a role are covered: ADD_MEMBER_ROLE, the `roles` in an ADD_MEMBER
+   * payload, and the ROOT link, which makes the founding member an admin. ADD_MEMBER and ROOT
+   * establish the member's keys themselves, so the lockbox has to be addressed to the very keyset
+   * the payload names; for ADD_MEMBER_ROLE the member is already on the team, and any generation of
+   * their keys will do, since their keys may have been rotated concurrently with the grant and a
+   * lockbox addressed to the superseded generation still reaches them.
    */
   roleGrantMustIncludeKeys(...args) {
     const [previousState, link] = args
-    if (link.body.type !== 'ADD_MEMBER_ROLE') return VALID
+    const failedGrant = (userId: string, roleName: string) =>
+      fail(
+        `Adding '${userId}' to the '${roleName}' role requires a lockbox holding that role's keys for them.`,
+        ...args
+      )
 
-    const { userId, roleName, lockboxes = [] } = link.body.payload
+    if (link.body.type === 'ROOT') {
+      const { rootMember, lockboxes = [] } = link.body.payload
+      const keysBeingAdded = () => new Set([rootMember.keys.encryption])
+      if (!grantsRoleKeys(lockboxes, ADMIN, rootMember.userId, keysBeingAdded)) {
+        return failedGrant(rootMember.userId, ADMIN)
+      }
 
-    if (!grantsRoleKeys(lockboxes, roleName, userId, previousState)) {
-      const msg = `Adding '${userId}' to the '${roleName}' role requires a lockbox holding that role's keys for them.`
-      return fail(msg, ...args)
+      return VALID
+    }
+
+    if (link.body.type === 'ADD_MEMBER') {
+      const { member, roles = [], lockboxes = [] } = link.body.payload
+      const keysBeingAdded = () => new Set([member.keys.encryption])
+      for (const roleName of roles) {
+        if (!grantsRoleKeys(lockboxes, roleName, member.userId, keysBeingAdded)) {
+          return failedGrant(member.userId, roleName)
+        }
+      }
+
+      return VALID
+    }
+
+    if (link.body.type === 'ADD_MEMBER_ROLE') {
+      const { userId, roleName, lockboxes = [] } = link.body.payload
+      const registeredKeys = () => registeredEncryptionKeys(previousState).get(userId) ?? new Set()
+      if (!grantsRoleKeys(lockboxes, roleName, userId, registeredKeys)) {
+        return failedGrant(userId, roleName)
+      }
     }
 
     return VALID
@@ -418,14 +453,15 @@ const validators: TeamStateValidatorSet = {
  *
  * The work here is bounded on purpose. Looking up an encryption key costs a scan of every lockbox
  * the team has when the key isn't registered, and a payload can name any number of lockboxes — so
- * matching on the names first, and looking up keys only once for the ones that match, is what keeps
- * a single crafted link from costing every peer O(payload × team) work forever.
+ * we match on the names first, and only then ask `usersKeys` which keys count as the member's. That
+ * question is asked at most once, which is what keeps a single crafted link from costing every peer
+ * O(payload × team) work forever.
  */
 const grantsRoleKeys = (
   lockboxes: Lockbox[],
   roleName: string,
   userId: string,
-  previousState: TeamState
+  usersKeys: () => Set<Base58>
 ) => {
   const namesTheGrant = lockboxes.filter(
     ({ contents, recipient }) =>
@@ -436,10 +472,8 @@ const grantsRoleKeys = (
   )
   if (namesTheGrant.length === 0) return false
 
-  // Any generation of the member's keys will do: their keys may have been rotated concurrently with
-  // this grant, and a lockbox addressed to the superseded generation still reaches them
-  const usersKeys = registeredEncryptionKeys(previousState).get(userId) ?? new Set()
-  return namesTheGrant.some(({ recipient }) => usersKeys.has(recipient.publicKey))
+  const keys = usersKeys()
+  return namesTheGrant.some(({ recipient }) => keys.has(recipient.publicKey))
 }
 
 const fail = (message: string, previousState: TeamState, link: TeamLink) => {
