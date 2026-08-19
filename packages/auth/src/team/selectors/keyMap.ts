@@ -44,7 +44,10 @@ export const keyMap = (state: TeamState, deviceKeys: KeysetWithSecrets): KeyMap 
  *
  * That's the half of auth-9sl that's closed here. What isn't: nothing stops a member from claiming
  * a generation the recipient doesn't have yet, and being first is automatic when nobody else has
- * ever named it.
+ * ever named it — nor from reaching a scope SOONER than its honest delivery does, which is the role
+ * case written up in `docs/internals.md`. Rotating the scope recovers it, and the rotation itself
+ * isn't affected; the exposure is the window before that, during which a displaced admin hands on
+ * what they hold.
  */
 const organizeKeysIntoMap = (result: KeyMap, keys: KeysetWithSecrets) => {
   const { type, name, generation } = keys

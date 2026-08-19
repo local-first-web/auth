@@ -38,7 +38,9 @@ const LOCKBOX_MEMO = 'LOCKBOX_MEMO'
  * satisfied by a keyset a member minted and described honestly, so a lockbox can still carry keys
  * of its author's own choosing under any scope and generation it likes. `keyMap` keeps the first
  * keyset it sees for a scope and generation, which stops that from displacing keys the recipient
- * already has; claiming a generation they don't have yet is auth-9sl, and is still open.
+ * already has; claiming a generation they don't have yet, or reaching a scope sooner than its
+ * honest delivery does, is auth-9sl, and is still open. Rotating the scope recovers it — see
+ * `docs/internals.md`.
  */
 export const open = memoize(
   (lockbox: Lockbox, decryptionKeys: KeysetWithSecrets): KeysetWithSecrets | undefined => {
