@@ -17,10 +17,12 @@ export const makeMachine = <S, A extends Action, C>({
     //
     // Only the structural rules are fatal, and the line to draw is not 'does this rule read a
     // clock' — it's whether an honest peer can produce a graph that fails it. The timestamp rules
-    // both fail that test once two honest peers disagree about the time: one of them refuses a
-    // graph until wall clock catches up with it, and the other, which reads no clock at all,
-    // refuses it forever, because the graph never changes. Making either fatal would take an
-    // ordinary NTP step or resume from sleep and turn it into a team nobody can open.
+    // both fail that test once two honest peers disagree about the time. Making either fatal would
+    // take an ordinary NTP step or resume from sleep and lock someone out of a document they can
+    // otherwise replay perfectly well: for the future-timestamp rule, whoever's clock is behind is
+    // locked out until wall clock catches up (the fast peer that wrote the link never sees it), and
+    // for the order rule, which reads no clock at all, every peer is locked out for good, because
+    // the graph never changes.
     // `Store.validate` is where those get asked about, along with any validators the application
     // supplied. See `advisoryValidators`.
     const structure = validateStructure(graph)

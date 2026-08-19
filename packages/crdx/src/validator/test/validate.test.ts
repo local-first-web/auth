@@ -7,6 +7,8 @@ import { hashEncryptedLink } from 'graph/hashLink.js'
 import { append, createGraph, getHead, getLink, getRoot } from 'graph/index.js'
 import { type Hash } from 'util/index.js'
 import { validate } from 'validator/validate.js'
+import { fail } from 'validator/validators.js'
+import { type ValidatorSet } from 'validator/types.js'
 import 'util/testing/expect/toBeValid'
 
 const { setSystemTime } = vitest.useFakeTimers()
@@ -228,6 +230,36 @@ describe('graphs', () => {
         setSystemTime(now)
 
         expect(validate(graph2)).not.toBeValid()
+      })
+    })
+
+    /**
+     * `validate` used to be memoized on the graph, which is only sound for a function of the graph
+     * alone. It's neither: it takes a validator set, and one of its rules reads the clock.
+     */
+    describe('asking twice', () => {
+      test('answers for the validators it was handed, not the ones asked for first', () => {
+        const graph = createGraph({ user: alice, name: 'Spies Я Us', keys })
+        const alwaysFails: ValidatorSet = { alwaysFails: () => fail('nope') }
+
+        expect(validate(graph)).toBeValid()
+        expect(validate(graph, alwaysFails)).not.toBeValid()
+        expect(validate(graph)).toBeValid()
+      })
+
+      test('answers for the clock as it is now', () => {
+        const A_MINUTE = 60 * 1000
+        const now = Date.now()
+        const graph = createGraph({ user: alice, name: 'Spies Я Us', keys })
+        expect(validate(graph)).toBeValid()
+
+        // ⏰ an NTP step puts us a minute behind, so the root link is now in our future
+        setSystemTime(now - A_MINUTE)
+        expect(validate(graph)).not.toBeValid()
+
+        // ...and once our clock catches up again, the same graph is fine
+        setSystemTime(now)
+        expect(validate(graph)).toBeValid()
       })
     })
   })

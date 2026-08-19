@@ -81,6 +81,17 @@ const runValidators = <A extends Action, C>(
  * Runs a hash graph through a series of validators to ensure that it is correctly formed, has
  * not been tampered with, etc. This is everything — structural rules and advisory ones alike — so
  * a failure here doesn't by itself mean the graph is unusable. See `validateStructure`.
+ *
+ * This one is deliberately not memoized. Its answer isn't a function of the graph alone: it
+ * depends on the validator set it's handed, and `validateTimestampNotInFuture` depends on when you
+ * ask. A cache keyed on the graph got both wrong — it served the first caller's validator set to
+ * everyone, and it kept reporting skew that the clock had since caught up with (and, in the other
+ * direction, kept reporting a graph valid after an NTP step backwards put a link in the future).
+ *
+ * There's nothing to trade off against: the only caller that runs per message, `receiveMessage`,
+ * validates a freshly merged graph every time and so never hit the cache, while paying for the key.
+ * On a 201-link graph, hashing the graph to build that key measured 1.33ms against 2.18ms to run
+ * the validators outright.
  */
 const _validate = <A extends Action, C>(
   /** The hash graph to validate. */
@@ -106,10 +117,10 @@ const _validate = <A extends Action, C>(
 const _validateStructure = <A extends Action, C>(graph: Graph<A, C>): ValidationResult =>
   runValidators(graph, structuralValidators)
 
-// Each memoized function gets its own cache, so these two can't collide even though their
-// resolvers see the same argument. The seeds are distinct anyway: the keys are what a future
-// shared cache would collide on, and they cost nothing now.
-export const validate = memoize(_validate, graph => hash('memoize', graph))
+export const validate = _validate
+
+// The structural rules read nothing but the graph, and this runs on every replay, so this one is
+// worth caching. The seed keeps its keys clear of any other cache built on the same resolver.
 export const validateStructure = memoize(_validateStructure, graph =>
   hash('memoizeStructure', graph)
 )

@@ -20,8 +20,12 @@ export type StoreOptions<S, A extends Action, C> = {
    *  domain-specific conflict-resolution logic. */
   resolver?: Resolver<A, C>
 
-  /** Optional validators to ensure the graph is in a valid state. These are used in addition to
-   *  built-in validators, for example those that that validate cryptographic hashes and signatures. */
+  /** Optional validators expressing what this application means by a well-formed change.
+   *
+   *  These are not consulted when state is computed: `makeMachine` replays a graph against the
+   *  structural rules alone, so a link these would refuse still folds into state. They're run by
+   *  `Store.validate`, alongside the built-in rules — which check hashes, `prev` links and the ROOT
+   *  link, and do not check signatures — and that's where the application asks about them. */
   validators?: ValidatorSet
 
   /** The initial state to provide to the reducer's first action. By default this is an empty object `{}` */
