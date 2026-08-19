@@ -1,4 +1,5 @@
 import { createKeyset, redactKeys } from '@localfirst/crdx'
+import { generateProof } from 'invitation/index.js'
 import { ADMIN } from 'role/index.js'
 import { KeyType } from 'util/index.js'
 import 'util/testing/expect/toLookLikeKeyset.js'
@@ -114,27 +115,44 @@ describe('Team', () => {
     })
 
     /**
-     * The new keys supersede the target member's generation, not the caller's. In an ordinary team
-     * this is invisible: `lockbox.rotate` derives the generation from each lockbox it replaces, so
-     * it overwrites whatever `changeKeys` set. It shows through only for a member who has no
-     * lockboxes of their own — one who has never had a device, which is why this test has to reach
-     * for `addForTesting` to set it up.
+     * The new keys supersede the target member's generation, not the caller's.
+     *
+     * Usually you can't tell, because `lockbox.rotate` derives the generation from each lockbox it
+     * replaces and overwrites whatever `changeKeys` computed. It stands only when the member has no
+     * lockbox of their own to rotate — and there's a window in the ordinary join where that's true.
+     * `admitMember` posts ADMIT_MEMBER with lockboxes holding the *team* keys; the lockbox holding
+     * the member's own user keys isn't created until they add a device. Between those two links
+     * (`Connection` walks this path: admitMember, then the invitee's ADD_DEVICE) the member is on
+     * the team with nothing in their own scope, and it's the caller's generation that lands on
+     * them — which can be lower than, or equal to, one they've already used.
      */
     it("a member's keys supersede that member's generation, not the caller's", () => {
       const { alice, bob } = setup('alice', { user: 'bob', member: false })
-      alice.team.addForTesting(bob.user, [])
 
-      // Alice's own keys are two generations ahead of Bob's
+      // Alice's own keys are two generations ahead
       alice.team.changeKeys(createKeyset({ type: USER, name: alice.userId }))
       alice.team.changeKeys(createKeyset({ type: USER, name: alice.userId }))
       expect(alice.team.members(alice.userId).keys.generation).toBe(2)
+
+      // Bob is admitted by invitation, and hasn't added a device yet
+      const { seed } = alice.team.inviteMember()
+      alice.team.admitMember(generateProof(seed, bob.user.keys), bob.user.keys, bob.user.userName)
       expect(alice.team.members(bob.userId).keys.generation).toBe(0)
+      expect(alice.team.members(bob.userId).devices ?? []).toHaveLength(0)
 
       alice.team.changeKeys(createKeyset({ type: USER, name: bob.userId }))
       expect(alice.team.members(bob.userId).keys.generation).toBe(1)
     })
 
-    /** Rotating your own keys has to keep updating your context, or you can't sign anything after. */
+    /**
+     * Belt and braces, not the load-bearing part: deleting the `user.keys = newKeys` line leaves
+     * this green, because `dispatch` emits `updated`, and that handler's `updateUserKeys` finds the
+     * new keyset in the lockbox `rotateKeys` just addressed to Bob's device. What this pins is the
+     * outcome either way — that after rotating, Bob's context holds keys the graph recognizes as
+     * his, so the next link he signs is his. (A member with no device lockbox, where the assignment
+     * would be the only thing that repaired the context, can't reach this code: opening the team's
+     * keys at all starts from the device keyring.)
+     */
     it('Bob can rotate his own keys twice running', () => {
       const { bob } = setup('alice', 'bob')
 
