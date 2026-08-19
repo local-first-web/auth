@@ -47,7 +47,8 @@ const validators: TeamStateValidatorSet = {
     const { type, userId } = link.body
 
     // The root link is what establishes the founding member's keys, so there's nothing yet to
-    // check it against
+    // check it against. Standing aside costs nothing, because a link has to clear every rule here:
+    // `rootLinkCanOnlyBeTheFirstLink` refuses any ROOT link that isn't the graph's first.
     if (type === ROOT) return VALID
 
     if (!isRegisteredEncryptionKey(previousState, userId, link.senderPublicKey)) {
@@ -106,7 +107,9 @@ const validators: TeamStateValidatorSet = {
     const [previousState, link] = args
     const { type, userId } = link.body
 
-    // The root link is what puts the founding member on the team, so there's nobody removed yet
+    // The root link is what puts the founding member on the team, so there's nobody removed yet.
+    // `rootLinkCanOnlyBeTheFirstLink` is what makes that true of any ROOT link that gets applied:
+    // it refuses one whose previous state isn't empty.
     if (type === ROOT) return VALID
 
     // Being re-added clears the tombstone, so anyone who's back on the team is unencumbered
@@ -144,6 +147,63 @@ const validators: TeamStateValidatorSet = {
     return VALID
   },
 
+  /**
+   * A ROOT link is the link that creates the team, and nothing else is.
+   *
+   * `linkAuthorshipIsAuthentic`, `removedMembersAndServersCantDoAnything` and `mustBeAdmin` all
+   * step aside for `type === ROOT`, because at the founding of a team there is nothing to check an
+   * author against: no registered keys, no admins, nobody removed. That reasoning is sound only
+   * for the graph's first link — and a link's type is just a word in its body. `Team.dispatch`
+   * appends whatever action it's handed, so an ordinary member could post a ROOT link of their own
+   * onto a team that already exists. Those three rules would wave it through, and the reducer's
+   * ROOT case would then run `setTeamName`, `addMember` and `addMemberRoles(rootMember.userId,
+   * [ADMIN])` against the team as it stands: the author renames the team and makes themselves an
+   * admin. `roleGrantMustIncludeKeys` doesn't stand in the way, because the admin keys a ROOT link
+   * hands the founding member are the ones that link establishes — so a keyset the author minted
+   * for themselves satisfies it.
+   *
+   * This is what pins the type to the one position where it means what those three assume. A link
+   * has to clear every rule here to be applied, so their standing aside costs nothing: whatever
+   * they decline to say about a ROOT link, this refuses it unless two independent things hold.
+   *
+   * - The link names no predecessors. crdx's `validateRoot` says the same thing about the graph as
+   *   a whole — the predecessor-less link is the graph's root, and it's the ROOT link — so on a
+   *   graph that has been through `makeMachine` this is exactly 'this is the root'. Checking it
+   *   per link is what catches a dispatch, where no graph-wide validation runs.
+   * - Nothing has been applied yet. `setHead` records a head for every link the reducer applies,
+   *   so an empty `head` is the initial state and nothing else. This one holds whatever shape the
+   *   graph is in and whatever the link claims about its own position, and it's the direct form of
+   *   what those three rules assume: behind a ROOT link there is no team yet.
+   *
+   * Shape is settled before position is judged, so this sits after `payloadsMustBeWellFormed`.
+   */
+  rootLinkCanOnlyBeTheFirstLink(...args) {
+    const [previousState, link] = args
+    const { type } = link.body
+    const hasNoPredecessors = link.body.prev.length === 0
+
+    if (type === ROOT) {
+      if (!hasNoPredecessors) {
+        const msg = `A ROOT link founds the team, so it can't come after anything; this one names predecessors.`
+        return fail(msg, ...args)
+      }
+
+      if (previousState.head.length > 0) {
+        const msg = `A ROOT link founds the team, so it can't be applied to a team that already exists.`
+        return fail(msg, ...args)
+      }
+
+      return VALID
+    }
+
+    if (hasNoPredecessors) {
+      const msg = `Only a ROOT link can be the first link on the graph; this one is a '${type}'.`
+      return fail(msg, ...args)
+    }
+
+    return VALID
+  },
+
   rootDeviceBelongsToRootUser(...args) {
     const [_previousState, link] = args
     const { type, payload } = link.body
@@ -163,7 +223,9 @@ const validators: TeamStateValidatorSet = {
     const action = link.body
     const { type, userId } = action
 
-    // At root link, team doesn't yet have members
+    // At the root link the team doesn't yet have members, so there's no admin to be.
+    // `rootLinkCanOnlyBeTheFirstLink` is what makes that true of any ROOT link that gets applied:
+    // it refuses one whose previous state isn't empty.
     if (type === ROOT) return VALID
 
     // Certain actions are allowed to be performed by non-members

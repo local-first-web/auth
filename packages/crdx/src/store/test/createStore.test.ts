@@ -2,7 +2,6 @@ import { asymmetric } from '@localfirst/crypto'
 import { createGraph, getRoot, serialize } from 'graph/index.js'
 import { createStore } from 'store/index.js'
 import { createUser } from 'user/index.js'
-import 'util/testing/expect/toBeValid'
 import { TEST_GRAPH_KEYS as keys } from 'util/testing/setup.js'
 import { describe, expect, test } from 'vitest'
 import {
@@ -84,19 +83,16 @@ describe('createStore', () => {
 
     const tamperedSerializedGraph = serialize(tamperedGraph)
 
-    // 👩🏾 Alice tries to load the modified graph
-    const aliceStoreTheNextDay = createStore<
-      CounterState,
-      IncrementAction,
-      Record<string, unknown>
-    >({
-      user: alice,
-      graph: tamperedSerializedGraph,
-      reducer: counterReducer,
-      keys,
-    })
-
-    // 👩🏾 Alice is not fooled because the graph is no longer valid
-    expect(aliceStoreTheNextDay.validate()).not.toBeValid()
+    // 👩🏾 Alice tries to load the modified graph, and doesn't get a store at all: the state a
+    // store hands out is only meaningful if the graph it came from checks out, so a graph that
+    // doesn't is refused where it's read rather than left for the caller to ask about
+    expect(() =>
+      createStore<CounterState, IncrementAction, Record<string, unknown>>({
+        user: alice,
+        graph: tamperedSerializedGraph,
+        reducer: counterReducer,
+        keys,
+      })
+    ).toThrow(/hash/i)
   })
 })

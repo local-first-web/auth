@@ -9,8 +9,14 @@ export const makeMachine = <S, A extends Action, C>({
   validators,
 }: MachineParams<S, A, C>) => {
   return (graph: Graph<A, C>) => {
-    // Validate the graph's integrity.
-    validate(graph, validators)
+    // Validate the graph's integrity. Everything below reads the graph as though it holds — the
+    // resolver sequences it and the reducer folds it — so a graph that doesn't check out is
+    // refused here rather than replayed. This is what makes the base validators mean something on
+    // the paths that reach a graph by construction or by merge rather than over the wire:
+    // `validateRoot`, in particular, is the only thing that says a link claiming to be the ROOT
+    // link is the graph's root.
+    const validation = validate(graph, validators)
+    if (!validation.isValid) throw validation.error
 
     // Use the filter & sequencer to turn the graph into an ordered sequence
     const sequence = getSequence(graph, resolver)

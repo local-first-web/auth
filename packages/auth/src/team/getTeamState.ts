@@ -9,8 +9,8 @@ export const getTeamState = (serializedGraph: Uint8Array, keyring: Keyring) => {
   // This is a door like `Team.merge` is: the graph comes from whoever is admitting us, and
   // `teamMachine` runs the same resolver and reducer over it. Both callers reach it with the graph
   // off an ACCEPT_INVITATION message — `getDeviceUserFromGraph`, and the `joinedTheRightTeam` guard
-  // in `Connection`. There's no backstop below this: `makeMachine` calls crdx's `validate` and
-  // discards what it says.
+  // in `Connection`. `makeMachine` does check the graph's integrity below this, but the resolver
+  // walks payloads before any of that runs, so the shape is settled here.
   assertLinksAreWellFormed(graph)
 
   return teamMachine(graph)
