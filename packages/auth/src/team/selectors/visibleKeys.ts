@@ -14,8 +14,11 @@ export const visibleKeys = (state: TeamState, keyset: KeysetWithSecrets): Keyset
   // What lockboxes can I open with these keys?
   const lockboxesICanOpen = lockboxes.filter(({ recipient }) => recipient.publicKey === publicKey)
 
-  // Collect all the keys from those lockboxes
-  const keysets = lockboxesICanOpen.map(lockbox => open(lockbox, keyset))
+  // Collect all the keys from those lockboxes. A lockbox that doesn't open to the keyset its own
+  // manifest describes gives us nothing — see `lockbox.open`, which is where that's decided.
+  const keysets = lockboxesICanOpen
+    .map(lockbox => open(lockbox, keyset))
+    .filter((keys): keys is KeysetWithSecrets => keys !== undefined)
 
   // Recursively get all the keys *those* keys can access
   const keys = keysets.flatMap(keyset => visibleKeys(state, keyset))

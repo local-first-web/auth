@@ -26,9 +26,10 @@ describe('lockbox', () => {
     // Alice creates a lockbox for Bob containing the admin keys
     const lockbox = create(adminKeys, bob.user.keys)
 
-    // Eve tries to open the lockbox but can't
-    const eveTriesToOpen = () => open(lockbox, eve.user.keys)
-    expect(eveTriesToOpen).toThrow()
+    // Eve tries to open the lockbox but can't. She gets nothing back, rather than a throw: a
+    // lockbox is a thing you might not be able to open, and a peer who can't open one still has to
+    // be able to replay the link it arrived on.
+    expect(open(lockbox, eve.user.keys)).toBeUndefined()
   })
 
   it('can only be rotated with a keyset of the same type', () => {
