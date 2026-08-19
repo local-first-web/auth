@@ -29,7 +29,10 @@ export type StoreOptions<S, A extends Action, C> = {
    *  hash matches its bytes, the links named in its `prev` exist, the ROOT link is the graph's
    *  root, no link is stamped ahead of this device's clock, and no link is older than a link it
    *  descends from. The last two are advisory — honest peers whose clocks disagree trip them — so
-   *  expect to see them here. None of the five checks a signature. */
+   *  expect to see them here. None of the five checks a signature. A failure can also come from
+   *  `runValidators`' own bookkeeping, which runs before any of the five: `root` and `head` naming
+   *  links whose bytes hash to those names, and the count of encrypted links matching the count of
+   *  links. */
   validators?: ValidatorSet
 
   /** The initial state to provide to the reducer's first action. By default this is an empty object `{}` */

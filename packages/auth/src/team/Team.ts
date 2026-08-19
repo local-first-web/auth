@@ -219,8 +219,12 @@ export class Team extends EventEmitter<TeamEvents> {
    * shape — each link's hash matches its bytes, the links its `prev` names exist, and the ROOT link
    * is the graph's root — plus the two advisory rules about timestamps described below. Before any
    * of those run, `runValidators` checks the graph's own bookkeeping: that `root` and each `head`
-   * name a link whose bytes hash to that name, and that there's an encrypted link for every link
-   * and vice versa. A failure there comes back through here the same way.
+   * name a link whose bytes hash to that name, and that there are as many encrypted links as links
+   * (a count, not a correspondence — a graph with the right number of them under the wrong hashes
+   * gets past it, and `validateHash` is what catches that). A failure there comes back through here
+   * as an ordinary invalid result, with one exception: if a head's encrypted link is missing
+   * outright, that check throws rather than returning, so it reaches you as an exception. That's
+   * auth-xd2.
    *
    * Note what isn't in that list: CRDX doesn't verify signatures, here or anywhere. A link's stated
    * author is checked against the key that actually encrypted it by `linkAuthorshipIsAuthentic`,
