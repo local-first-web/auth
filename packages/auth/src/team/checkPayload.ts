@@ -53,37 +53,40 @@ export const isUsableBase58 = (value: unknown, byteLength: number): value is Bas
 }
 
 /**
- * A counter something does arithmetic on: a number, and one that arithmetic means something for.
+ * A counter something does arithmetic on, and files things under: a non-negative integer, and one
+ * that still has a successor.
  *
- * A generation is compared, and it is also ADDED TO — `lockbox.rotate` computes the next one as
- * `oldLockbox.contents.generation + 1`, and `Team.changeKeys` computes it as
- * `oldKeys.generation + 1`. Adding to a value is not the same kind of safe as comparing it:
- * JavaScript compares a BigInt against a number happily and refuses to add one to it, so a BigInt
- * generation sails through every filter that selects the lockbox to rotate and then throws
- * `Cannot mix BigInt and other types` in the line that rotates it. msgpackr round-trips a BigInt as
- * a BigInt, so one put on a payload arrives intact.
+ * A generation is compared, it is ADDED TO, and it is used as the key a keyset is filed under.
+ * Adding to a value is not the same kind of safe as comparing it: JavaScript compares a BigInt
+ * against a number happily and refuses to add one to it, so a BigInt generation sails through every
+ * filter that selects a lockbox and then throws `Cannot mix BigInt and other types` in the line that
+ * rotates it. msgpackr round-trips a BigInt as a BigInt, so one put on a payload arrives intact.
  *
- * The other types are not "caught by the comparisons", which is what an earlier version of this
- * said. Only ONE of the two comparisons is a test a forged value has to pass. `maxGeneration` asks
- * `generation > max`, which coerces — and then RETURNS THE VALUE ITSELF as the new max, so
- * `lockboxesInScope`'s `generation === latestGeneration` is comparing the forged value against
- * itself and cannot fail. (`===` doesn't coerce; it doesn't have to. For `'5'` that's string
- * equality, for a `Date` or an array it's reference identity.) So clearing `> 0` is the whole of
- * being selected, and it also DISPLACES the honest lockbox, whose generation is now below the max.
- * Measured against an honest generation 0: `'5'`, `true`, `Infinity`, a `Date` and even `[7]` each
- * end up as the only lockbox in scope, and only `null`, `undefined`, `NaN`, `{}` and `[]` fail
- * `> 0` and drop out. None of the selected ones throws on `+ 1` — they concatenate, or saturate, or
- * quietly produce a generation nobody can count from — so BigInt is the only one this check is
- * load-bearing against today. It's written as "a generation is a finite number" rather than "a
- * generation is not a BigInt" because saying what a field is is the only form of this that stays
- * true when a consumer changes.
+ * Being a finite number is not enough, which is what an earlier version of this settled for. The
+ * value reaches `Team.rotateKeys` through a `Math.max` over lockbox manifests and comes back out as
+ * `current + 1`, so what a forged one has to survive is arithmetic, not a filter — and every finite
+ * number survives arithmetic. Measured against an honest generation 0, `0.5`, `2**32`, `2**40`,
+ * `1e21` and `MAX_SAFE_INTEGER` each defeated key rotation outright: the removal reported success,
+ * `teamKeys().generation` stayed at 0, and the removed member went on reading messages posted after
+ * they left. The mechanism was that `keyMap` filed the rotated keyset under a value that isn't an
+ * array index, so the array it was filing into never grew and the latest generation resolved back
+ * to 0. `keyMap` no longer files by index, which is the durable half of that fix; this is the other
+ * half, and it's here because a generation that isn't a whole number isn't a generation.
  *
- * What none of this reaches is a generation that IS a finite number and is simply a lie. Being
- * selected is the whole mechanism above, and an honest-looking `3` wins that selection the same way
- * — see auth-xgl, which needs a rule about the team rather than a rule about the payload.
+ * The successor has to be a safe integer too, because rotation's whole job is to produce it. A
+ * generation at the top of the range would leave an honest rotation unable to name the one that
+ * supersedes it. That leaves 2**53 rotations of headroom, which is not a number of links.
+ *
+ * What none of this reaches is a generation that IS a usable one and is simply a lie: an
+ * honest-looking `3` is shape-identical to an honest `3`. That needs a rule about the team rather
+ * than a rule about the payload — see auth-xgl, fixed in `lockboxesInScope` by taking the decision
+ * away from the number, and auth-9sl, which is still open.
  */
 const isUsableGeneration = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isFinite(value)
+  typeof value === 'number' &&
+  Number.isSafeInteger(value) &&
+  value >= 0 &&
+  Number.isSafeInteger(value + 1)
 
 /**
  * An optional array field that arrived as something other than an array.
@@ -460,11 +463,14 @@ const proofProblem = (proof: unknown): string | undefined => {
  *
  * A manifest is a keyset's public half, so the fields it shares with a keyset get the rule a keyset
  * gives them. `generation` used to be excused here on the grounds that it's "only ever compared or
- * added to" — which named the danger and then filed it under safe. Added-to IS the throw:
- * `lockbox.rotate` computes `oldLockbox.contents.generation + 1`, and `lockboxesInScope` picks the
- * highest generation in scope, so a BigInt one is selected FIRST and guaranteed to reach that line.
- * Aimed at a member's own scope it disables `changeKeys` for them; aimed at the team's it disables
- * `remove` for everybody, permanently, on a graph that still loads.
+ * added to" — which named the danger and then filed it under safe. Added-to IS the danger:
+ * `Team.rotateKeys` takes the highest generation among the lockboxes it's replacing and computes
+ * the next one as `current + 1`, so a manifest's generation reaches arithmetic whatever else is
+ * true of it. A BigInt one throws `Cannot mix BigInt and other types` there; a finite one that
+ * isn't a whole number, or is past the range a generation can be counted in, used to come back out
+ * as a value that quietly wasn't a generation at all. Aimed at a member's own scope that disables
+ * `changeKeys` for them; aimed at the team's it disabled `remove` for everybody, silently, on a
+ * graph that still loads.
  *
  * `encryption` and `signature` are on a manifest too, and `removeDevice` promotes them: a lockbox
  * naming a later generation than the member has is treated as the authority on that member's public

@@ -7,7 +7,6 @@ import { keyMap } from './keyMap.js'
  */
 
 export const keyring = (state: TeamState, scope: KeyScope, keys: KeysetWithSecrets) => {
-  const foo = keyMap(state, keys)
-  const allKeys = foo[scope.type]?.[scope.name]
-  return createKeyring(allKeys)
+  const allKeys = keyMap(state, keys)[scope.type]?.[scope.name]
+  return createKeyring(allKeys === undefined ? [] : [...allKeys.values()])
 }

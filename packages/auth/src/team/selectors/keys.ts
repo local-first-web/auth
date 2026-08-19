@@ -1,5 +1,5 @@
 import { type KeyMetadata, type KeyScope, type KeysetWithSecrets } from '@localfirst/crdx'
-import { keyMap } from './keyMap.js'
+import { keyMap, type KeysetHistory } from './keyMap.js'
 import { type TeamState } from '../types.js'
 import { assert } from '@localfirst/shared'
 import { lockboxSummary } from '../../util/lockboxSummary.js'
@@ -22,7 +22,7 @@ export const keys = (
   // lockboxes, which meant a lockbox holding a BigInt broke every key lookup on the team. It also
   // meant secret keys in an error message, which is why the summary below names scopes and
   // generations instead.
-  if (keys === undefined) {
+  if (keys === undefined || keys.size === 0) {
     assert(
       false,
       `Couldn't find keys: ${type}:${name}
@@ -37,18 +37,27 @@ export const keys = (
       ? // Return specific generation if requested
         scope.generation
       : // Use latest generation by default
-        keys.length - 1
+        latestGeneration(keys)
 
-  return keys[generation]
+  return keys.get(generation)!
 }
 
+/**
+ * The highest generation of this scope that the device actually holds.
+ *
+ * This used to be `history.length - 1`, which was only the latest generation while every generation
+ * was a usable array index — and a `generation` is a number off a lockbox manifest, which anyone
+ * who can post a link can choose. Asking the history what it holds says the same thing about an
+ * honest scope and doesn't depend on that.
+ */
+const latestGeneration = (history: KeysetHistory) => Math.max(...history.keys())
+
 /** Which scopes this device recovered keys for, and which generations of each — no secrets */
-const summarize = (keysFromLockboxes: Record<string, Record<string, KeysetWithSecrets[]>>) =>
+const summarize = (keysFromLockboxes: Record<string, Record<string, KeysetHistory>>) =>
   Object.entries(keysFromLockboxes)
     .flatMap(([type, byName]) =>
-      Object.entries(byName).map(([name, history]) => {
-        const generations = [...history.keys()].filter(g => history[g] !== undefined)
-        return `${type}:${name}#${generations.join(',')}`
-      })
+      Object.entries(byName).map(
+        ([name, history]) => `${type}:${name}#${[...history.keys()].join(',')}`
+      )
     )
     .join(', ')

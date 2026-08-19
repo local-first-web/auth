@@ -991,8 +991,8 @@ export class Team extends EventEmitter<TeamEvents> {
     const targetIsMe = targetId === this.userId
 
     // The generation these keys supersede is the target member's, which is only ours if we're
-    // rotating our own. (`lockbox.rotate` derives the generation the same way from each lockbox it
-    // replaces; this is what stands if the member has no lockboxes of their own.)
+    // rotating our own. (`rotateKeys` settles a generation for any scope that has lockboxes, from
+    // the highest among them; this is what stands if the member has no lockboxes of their own.)
     const oldKeys: Keyset | KeysetWithSecrets = targetIsMe ? user.keys : this.members(targetId).keys
     newKeys.generation = oldKeys.generation + 1
 

@@ -32,6 +32,10 @@ import { type TeamState } from '../types.js'
  * The generation the replacements carry is not each old lockbox's own; `Team.rotateKeys` settles
  * one generation for the whole scope, so that a lockbox claiming to be ahead can't split a scope
  * into recipients holding the same keys under different numbers.
+ *
+ * Where two lockboxes for one holder name the same generation, the first on the graph is kept.
+ * Every tiebreak richer than that is one an author can write to their own advantage, since both
+ * manifests are theirs to fill in, and no honest flow was found that produces such a tie.
  */
 export const lockboxesInScope = (state: TeamState, scope: KeyScope): Lockbox[] => {
   const latestForEachRecipient = new Map<string, Lockbox>()
@@ -42,7 +46,7 @@ export const lockboxesInScope = (state: TeamState, scope: KeyScope): Lockbox[] =
 
     const key = recipientKey(lockbox)
     const latest = latestForEachRecipient.get(key)
-    if (latest === undefined || isNewerThan(lockbox, latest)) {
+    if (latest === undefined || contents.generation > latest.contents.generation) {
       latestForEachRecipient.set(key, lockbox)
     }
   }
@@ -55,13 +59,3 @@ const recipientKey = ({ recipient }: Lockbox) =>
   recipient.type === KeyType.EPHEMERAL
     ? `${recipient.type}:${recipient.publicKey}`
     : `${recipient.type}:${recipient.name}`
-
-/**
- * Later contents win; where two lockboxes hold the same generation of the scope's keys, the one
- * addressed to the recipient's later keys wins, so that a rotation doesn't hand a replacement to a
- * superseded generation of the recipient's own keyset.
- */
-const isNewerThan = (a: Lockbox, b: Lockbox) =>
-  a.contents.generation === b.contents.generation
-    ? a.recipient.generation > b.recipient.generation
-    : a.contents.generation > b.contents.generation

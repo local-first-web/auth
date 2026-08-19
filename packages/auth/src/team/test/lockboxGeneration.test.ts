@@ -12,10 +12,12 @@ import { type TeamAction, type TeamContext, type TeamState } from '../types.js'
 const { TEAM, ROLE, USER, EPHEMERAL } = KeyType
 
 /**
- * A lockbox's `contents.generation` is a plain number on a plaintext manifest, so a forged one is
- * shape-identical to an honest one and no ingress check can tell them apart. What decides whether
- * it matters is what the graph already says about that scope, and who ends up holding new keys
- * after a rotation — which is what these pin.
+ * A lockbox's `contents.generation` is a plain number on a plaintext manifest, so a forged one that
+ * is shape-identical to an honest one can't be told apart at the door. What decides whether it
+ * matters is who ends up holding new keys after a rotation — which is what these pin.
+ *
+ * The value 3 is not the interesting one; it's the one that was measured first. What a removal has
+ * to survive is every value that can reach the field, so the range is the test.
  */
 
 /** 👨🏻‍🦲 Bob authors a link his own pre-check would have refused, by going around it */
@@ -74,6 +76,72 @@ describe('Team', () => {
           .messages()
       expect(charlieReads).toThrowError(/don't have the correct keyset/)
     })
+
+    /**
+     * Every value that can reach `contents.generation`, not the one that was measured first.
+     *
+     * Each of these defeated removal outright before: `teamKeys().generation` stayed at 0 and the
+     * removed member read a message posted after they left. `0.5` and `2**40` did it without any
+     * arithmetic error, because the rotated keyset was filed under something that isn't an array
+     * index, so the history never grew and the latest generation resolved back to 0.
+     *
+     * Two outcomes are acceptable and both are allowed for below: the door refuses the link, or the
+     * rotation works. What isn't acceptable is the third one, which is what each of these did.
+     */
+    const everyGeneration = [
+      ['a whole number', 3],
+      ['a fraction', 0.5],
+      ['a negative number', -1],
+      ['the largest array index', 2 ** 32 - 1],
+      ['one past the largest array index', 2 ** 32],
+      ['a large safe integer', 2 ** 40],
+      ['a number too large to be an integer', 1e21],
+      ['the largest safe integer', Number.MAX_SAFE_INTEGER],
+    ] as const
+
+    for (const [description, generation] of everyGeneration) {
+      it(`never lets a removed member read what's posted after them: ${description}`, () => {
+        const { alice, bob, charlie } = setup([
+          'alice',
+          { user: 'bob', admin: false },
+          { user: 'charlie', admin: false },
+        ])
+        const charliesKeyring = charlie.team.teamKeyring()
+
+        const forged = lockbox.create(
+          { ...createKeyset({ type: TEAM, name: TEAM }), generation },
+          bob.user.keys
+        )
+        bobAuthorsDirectly(bob, {
+          type: 'ADD_DEVICE',
+          payload: { device: redactDevice(bob.phone!), lockboxes: [forged] },
+        })
+
+        // Either 👩🏾 Alice refuses his graph outright...
+        let merged = true
+        try {
+          alice.team.merge(bob.team.graph)
+        } catch {
+          merged = false
+        }
+
+        // ...or she takes it, and removal still moves the team keys past whatever it claimed
+        alice.team.remove(charlie.userId)
+        expect(alice.team.teamKeys().generation).toBeGreaterThan(merged ? generation : 0)
+
+        // ✅ Either way 👳🏽‍♂️ Charlie is locked out of what she posts next
+        alice.team.addMessage({ secret: 'after you left' })
+        const charlieReads = () =>
+          teams
+            .load(
+              alice.team.save(),
+              { user: charlie.user, device: charlie.device },
+              charliesKeyring
+            )
+            .messages()
+        expect(charlieReads).toThrowError(/don't have the correct keyset/)
+      })
+    }
 
     it("doesn't take the rotated keys away from everyone else", () => {
       const { alice, bob, charlie } = setup([
