@@ -1,12 +1,8 @@
-import { generateProof } from 'invitation/index.js'
 import * as teams from 'team/index.js'
 import { setup } from 'util/testing/index.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { type UnixTimestamp } from '@localfirst/crdx'
 
-const MINUTE = 60 * 1000
-const TEN_MINUTES = 10 * MINUTE
-const AN_HOUR = 60 * MINUTE
+const TEN_MINUTES = 10 * 60 * 1000
 
 /** Runs `fn` with this device's clock set `ms` ahead of where it really is. */
 const withClockAhead = <T>(ms: number, fn: () => T): T => {
@@ -26,9 +22,9 @@ describe('Team', () => {
     })
 
     /**
-     * `validateTimestamps` refuses a link whose timestamp is ahead of this device's clock, with no
-     * tolerance at all. That's a fair thing to report, but it can't be a reason to refuse to open a
-     * team: our clock runs behind the one that wrote a link whenever an NTP step corrects us
+     * `validateTimestampNotInFuture` refuses a link whose timestamp is ahead of this device's
+     * clock, with no tolerance at all. That's a fair thing to report, but it can't be a reason to
+     * refuse to open a team: our clock runs behind the one that wrote a link whenever an NTP step corrects us
      * backwards, whenever we resume from sleep, or simply whenever a peer is running a few minutes
      * fast — and `Store.dispatch` appends without validating, so a peer's fast clock gets onto the
      * graph unchallenged.
@@ -70,47 +66,37 @@ describe('Team', () => {
     })
 
     /**
-     * The other half of what `validateTimestamps` used to bundle together. A link can't be older
-     * than a link it descends from, and that's a statement about bytes already on the graph — no
-     * clock takes part, so it's structural and stays fatal.
+     * The sequence that made the order rule impossible to have as a fatal one: merge a peer whose
+     * clock is fast, then do anything at all on our own correct clock. `append` stamps `Date.now()`
+     * with no clamp against `graph.head`, so our link comes out older than the link it descends
+     * from — through no one's fault, with no adversary, and with nothing either peer could have
+     * done differently.
      *
-     * It has to be, because invitation expiry is judged against `link.body.timestamp`, a number
-     * the link's author chose. `Team.validateInvitation` checks expiry against the author's own
-     * `Date.now()`, so an author who sets their clock back gets past it, and peers replaying the
-     * ADMIT link judge expiry against the backdated timestamp it carries and admit the invitee. An
-     * author can't make the links they're building on any younger, though — so as long as the
-     * graph carries anything later than the timestamp they chose, every peer refuses the link.
+     * `dispatch` doesn't validate, so we'd see no error at the time; we'd find out on the next
+     * load, and the peer we merged from could never merge our graph again. Wall clock never
+     * repairs it, because the graph doesn't change. This is the case the earlier skew tests
+     * missed — they merged, but never appended afterwards.
      */
-    it('refuses a backdated link that is older than the link it descends from', () => {
-      const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
-      const { seed } = alice.team.inviteMember({
-        expiration: (Date.now() + 5 * MINUTE) as UnixTimestamp,
-      })
-      const proof = generateProof(seed, charlie.user.keys)
+    it('survives appending on a correct clock after merging a peer whose clock ran fast', () => {
+      const { alice, bob } = setup('alice', 'bob')
 
-      // An hour later the invitation has expired, and the team has gone on being used
-      withClockAhead(AN_HOUR, () => {
-        expect(() => {
-          alice.team.admitMember(proof, charlie.user.keys, charlie.user.userName)
-        }).toThrow(/expired/i)
-        alice.team.addRole('managers')
+      withClockAhead(TEN_MINUTES, () => {
+        bob.team.addRole('managers')
       })
+      alice.team.merge(bob.team.graph)
+      expect(alice.team.hasRole('managers')).toBe(true)
 
-      // 🦹‍♀️ So she puts her clock back to before the expiration and tries again. Her own
-      // `validateInvitation` checks against that clock, so it lets her through, and `dispatch`
-      // appends without consulting the graph — on her screen, Charlie is on the team
-      withClockAhead(MINUTE, () => {
-        alice.team.admitMember(proof, charlie.user.keys, charlie.user.userName)
-      })
-      expect(alice.team.has(charlie.user.userId)).toBe(true)
+      // 👩🏾 Alice, on a correct clock, does something ordinary. Her link is now ten minutes older
+      // than the one it descends from.
+      alice.team.addRole('editors')
 
-      // ...but her ADMIT link is older than the ADD_ROLE link it descends from, and that's on the
-      // graph for anyone to see. Nobody else ever admits Charlie.
-      expect(() => bob.team.merge(alice.team.graph)).toThrow(/earlier than a previous link/i)
-      expect(bob.team.has(charlie.user.userId)).toBe(false)
-      expect(() => teams.load(alice.team.save(), bob.localContext, bob.team.teamKeys())).toThrow(
-        /earlier than a previous link/i
-      )
+      // She can still put her team away and open it again...
+      const reloaded = teams.load(alice.team.save(), alice.localContext, alice.team.teamKeys())
+      expect(reloaded.hasRole('editors')).toBe(true)
+
+      // ...and 👨🏻‍🦲 Bob can still merge what she did
+      bob.team.merge(alice.team.graph)
+      expect(bob.team.hasRole('editors')).toBe(true)
     })
 
     /** The skew is still reported — it just isn't fatal. */

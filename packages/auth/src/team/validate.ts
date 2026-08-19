@@ -156,7 +156,7 @@ const validators: TeamStateValidatorSet = {
    * admins, no servers, nobody removed. That reasoning is sound only
    * for the graph's first link — and a link's type is just a word in its body. `Team.dispatch`
    * appends whatever action it's handed, so an ordinary member could post a ROOT link of their own
-   * onto a team that already exists. Those three rules would wave it through, and the reducer's
+   * onto a team that already exists. All four would wave it through, and the reducer's
    * ROOT case would then run `setTeamName`, `addMember` and `addMemberRoles(rootMember.userId,
    * [ADMIN])` against the team as it stands: the author renames the team and makes themselves an
    * admin. `roleGrantMustIncludeKeys` doesn't stand in the way, because the admin keys a ROOT link
@@ -176,11 +176,15 @@ const validators: TeamStateValidatorSet = {
    *   `servers`, `removedMembers` and `removedServers`, plus `lockboxes`, which
    *   `isRegisteredEncryptionKey` falls back to when looking for a superseded generation of
    *   someone's keys. A state with all five empty is precisely the state they assume, whatever
-   *   else may be true of it. `head` is in there too, because `setHead` records one for every link
-   *   the reducer applies — but nothing here rests on that. `invalidLinkReducer` is a live path
-   *   that returns without calling `setHead`, so if the resolver ever discarded a graph's first
-   *   link, an empty `head` would no longer mean 'nothing applied'. The five would still mean what
-   *   they say, and the predecessor rule above would still hold.
+   *   else may be true of it.
+   *
+   *   Only the first of those is load-bearing today, and the enumeration is deliberate rather than
+   *   necessary: `head` alone decides every reachable state, since `setHead` records one for every
+   *   link the reducer applies. Deleting the rest fails no test. They're here so the rule states
+   *   its own premise instead of resting on `head` being a faithful proxy for it —
+   *   `invalidLinkReducer` is a live path that returns without calling `setHead`, and if the
+   *   resolver ever discarded a graph's first link, an empty `head` would stop meaning 'nothing
+   *   applied' while the five would go on meaning exactly what they say.
    *
    * This leg holds whatever shape the graph is in and whatever the link claims about its own
    * position, and the one above holds whatever the reduction has done so far; neither leans on the

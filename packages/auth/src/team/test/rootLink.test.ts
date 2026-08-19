@@ -83,7 +83,7 @@ describe('Team', () => {
     /**
      * The two legs below aren't reachable through `dispatch` or `merge` once the graph-level rule
      * holds, so they're exercised against the validator directly: they're what makes the ROOT
-     * branches of `linkAuthorshipIsAuthentic`, `mustBeAdmin` and
+     * branches of `linkAuthorshipIsAuthentic`, `serversCanOnlyAdmit`, `mustBeAdmin` and
      * `removedMembersAndServersCantDoAnything` safe to skip.
      */
     it('refuses a ROOT link applied to a state that already has a team', () => {
