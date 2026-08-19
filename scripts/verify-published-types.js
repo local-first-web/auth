@@ -40,8 +40,11 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
  *
  * `lib` is spelled out per package rather than granted across the board, because a blanket `DOM`
  * hands every package the browser globals whether it has any business using them. `auth-syncserver`
- * is a Node process — express, `http`, `ws` — so it gets no DOM and has to reach `URL` and friends
- * through the `@types/node` it declares.
+ * is a Node process — its declarations reach `Server` from `http`, `WebSocketServer` from `ws` and
+ * `Debugger` from `debug`, and nothing else ambient — so it gets no DOM, and what it does need
+ * comes from the `@types/node` it declares.
+ *
+ * Every entry must say what its `lib` is; see the check below for why.
  */
 const packages = [
   {
@@ -77,6 +80,20 @@ const packages = [
     probe: `import { LocalFirstAuthSyncServer } from '@localfirst/auth-syncserver'`,
   },
 ]
+
+/**
+ * An entry that forgets `lib` doesn't get a narrower check — it gets a wider one. `lib: undefined`
+ * disappears from the emitted tsconfig (`JSON.stringify` drops undefined), and with no `lib` at all
+ * `target: ESNext` falls back to `lib.esnext.full.d.ts`, which is blanket DOM plus WebWorker plus
+ * ScriptHost. Measured: a probe of `document.createElement('div')` errors under `lib: ['ESNext']`
+ * and passes with `lib` omitted. So the per-package discipline is enforced here rather than merely
+ * documented above.
+ */
+const missingLib = packages.filter(({ lib }) => !Array.isArray(lib) || lib.length === 0)
+if (missingLib.length > 0) {
+  console.error(`✗ ${missingLib.map(({ dir }) => dir).join(', ')} — no \`lib\` declared; omitting it silently grants DOM.`)
+  process.exit(1)
+}
 
 /**
  * Broken declarations inside our dependencies hit consumers just as hard, but we can't fix them
@@ -169,13 +186,22 @@ const copyPackage = (fromDir, toDir, ownPackage) => {
 /**
  * Materialize a package and the transitive closure of everything it *declares* into the probe.
  *
- * Placement is nested rather than flat. That isn't just the stricter choice — it's a faithful model
- * of pnpm's default isolated layout, which is what this repo's own consumers use, since every
- * package here carries `only-allow pnpm`. A dependency is resolvable only from the package that
- * asked for it, so a `.d.ts` using a type its package doesn't declare fails, as it would for a real
- * pnpm consumer. There is no false-positive class here to trade against. Flat hoisting, by
- * contrast, reports zero errors for all of this — including the third-party ones — so a flat probe
- * would have shipped the `lodash-es` fragility that this one caught.
+ * Placement is nested rather than flat, because nested is the strictest layout a real consumer
+ * plausibly has: under pnpm's default isolated `node_modules` a dependency resolves only from the
+ * package that asked for it, so a `.d.ts` using a type its own package doesn't declare fails here
+ * exactly as it would there.
+ *
+ * That is a choice about strictness, not a claim to know what consumers run — we don't. Nothing
+ * we publish tells them which package manager to use, and pnpm itself can be told to produce a
+ * flat layout (`node-linker=hoisted`, `shamefully-hoist=true`), while npm and yarn hoist by
+ * default. So the false-positive class isn't empty: a package that under-declares something its
+ * consumer's layout happens to supply anyway fails here and works for them. It's just the cheap
+ * direction to be wrong in — a false positive costs a maintainer one failure and one
+ * `dependencies` line, and never a shipped bug.
+ *
+ * What settles it is the measurement. Hoist every dependency flat into the probe root and this
+ * same check reports zero errors for all six packages, including every third-party diagnostic it
+ * currently catches. A flat probe would have shipped the `lodash-es` fragility this one caught.
  *
  * `visible` maps the names already resolvable by walking up from `dir`, so a dependency that an
  * ancestor already supplies at the same version isn't copied again. That also terminates cycles.
@@ -262,11 +288,13 @@ const runTsc = (projectDir, tsc) => {
 const tsc = join(repoRoot, 'node_modules', 'typescript', 'bin', 'tsc')
 
 let failures = 0
+const baselineHits = new Set()
 for (const { dir, probe, lib } of packages) {
   const packageDir = join(repoRoot, 'packages', dir)
-  const name = readJson(join(packageDir, 'package.json')).name
   const projectDir = mkdtempSync(join(tmpdir(), 'lf-types-'))
+  let name = dir
   try {
+    name = readJson(join(packageDir, 'package.json')).name
     const probeModules = join(projectDir, 'node_modules')
     mkdirSync(join(projectDir, 'src'), { recursive: true })
     mkdirSync(probeModules, { recursive: true })
@@ -285,16 +313,22 @@ for (const { dir, probe, lib } of packages) {
     writeFileSync(join(projectDir, 'src', 'index.ts'), `${probe}\n`)
     const entry = runTsc(projectDir, tsc)
 
-    // 2. over every declaration file in `dist` — the entry point reaches only about half of them
+    // 2. over every declaration file in `dist` — the entry point reaches only about half of them.
+    // `.d.mts` and `.d.cts` count too: `copyPackage` already copies them, so without this they'd be
+    // published and present in the probe but never looked at. Nothing emits them today.
     const declarations = []
     const collect = d => {
       for (const entry of readdirSync(d, { withFileTypes: true })) {
         const p = join(d, entry.name)
         if (entry.isDirectory()) collect(p)
-        else if (entry.name.endsWith('.d.ts')) declarations.push(p)
+        else if (/\.d\.(ts|mts|cts)$/.test(entry.name)) declarations.push(p)
       }
     }
-    collect(join(probeModules, name, 'dist'))
+    // A package with no `dist` at all is a package that publishes no declarations. Reaching the
+    // check below rather than throwing out of the loop matters: an exception here would take the
+    // remaining packages with it, and they'd go unchecked behind a single failure.
+    const distDir = join(probeModules, name, 'dist')
+    if (isDir(distDir)) collect(distDir)
     if (declarations.length === 0) {
       failures++
       console.error(`✗ ${name} — publishes no declaration files at all`)
@@ -336,13 +370,41 @@ for (const { dir, probe, lib } of packages) {
     }
 
     // Known-broken dependency declarations hit consumers just as hard, but we can't fix them from
-    // this repo, so they're reported against their bead without failing the run.
+    // this repo, so they're reported against their bead without failing the run. Print what they
+    // said, not just how many there were — a count and a bead id mean editing this script to find
+    // out what actually fired, and the point of baselining rather than deleting is that someone
+    // can still read it.
     if (knownTheirs.length > 0) {
-      const beads = [...new Set(knownThirdPartyProblems.filter(({ match }) => knownTheirs.some(line => match.test(line))).map(({ bead }) => bead))]
+      const fired = knownThirdPartyProblems.filter(({ match }) => knownTheirs.some(line => match.test(line)))
+      for (const problem of fired) baselineHits.add(problem)
+      const beads = [...new Set(fired.map(({ bead }) => bead))]
       console.warn(`  ! ${knownTheirs.length} known error(s) in third-party declarations reached from ${name} (${beads.join(', ')})`)
+      console.warn(knownTheirs.map(line => `      ${line}`).join('\n'))
     }
+  } catch (error) {
+    // Anything unexpected fails this package and lets the rest be checked. A throw escaping the
+    // loop would report one package and silently skip every package after it.
+    failures++
+    console.error(`✗ ${name} — check threw: ${error?.stack ?? error}`)
   } finally {
     rmSync(projectDir, { recursive: true, force: true })
+  }
+}
+
+/**
+ * A baseline entry that matched nothing is one of two things: the upstream problem got fixed, or
+ * whatever reached it stopped being reached. Either way the entry is now claiming a problem that
+ * this run couldn't find, so it should be deleted and its bead closed.
+ *
+ * Reported rather than failed, and only on an otherwise-clean run. A package that failed early
+ * never got as far as producing third-party diagnostics, so its entries would look stale for the
+ * wrong reason; and an upstream fix landing shouldn't be the thing that blocks a release.
+ */
+if (failures === 0) {
+  const stale = knownThirdPartyProblems.filter(problem => !baselineHits.has(problem))
+  if (stale.length > 0) {
+    console.warn(`\n  ! ${stale.length} entr(ies) in knownThirdPartyProblems matched nothing — delete them and close the bead:`)
+    console.warn(stale.map(({ bead, match }) => `      ${bead}: ${match}`).join('\n'))
   }
 }
 
