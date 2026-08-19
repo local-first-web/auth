@@ -104,10 +104,16 @@ describe('Team', () => {
      * The control is the same attack without that one lockbox: it has to be what makes the
      * difference, or this test is measuring the wrong thing.
      */
-    const impersonate = (registerFirst: boolean) => {
+    const impersonate = ({
+      registerFirst,
+      attackerIsAdmin = false,
+    }: {
+      registerFirst: boolean
+      attackerIsAdmin?: boolean
+    }) => {
       const { alice, bob, charlie } = setup([
         'alice',
-        { user: 'bob', admin: false },
+        { user: 'bob', admin: attackerIsAdmin },
         { user: 'charlie', admin: false },
       ])
       const teamKeys = alice.team.teamKeys()
@@ -172,20 +178,35 @@ describe('Team', () => {
       }
     }
 
+    const nothingWorked = { authored: false, charlieAccepted: false, aliceAccepted: false }
+
     it("won't let a lockbox manifest make someone else's key one of yours", () => {
       // Control: without the registering lockbox, none of it works
-      expect(impersonate(false)).toEqual({
-        authored: false,
-        charlieAccepted: false,
-        aliceAccepted: false,
-      })
+      expect(impersonate({ registerFirst: false })).toEqual(nothingWorked)
 
       // ✅ ...and with it, still none of it works
-      expect(impersonate(true)).toEqual({
-        authored: false,
-        charlieAccepted: false,
-        aliceAccepted: false,
-      })
+      expect(impersonate({ registerFirst: true })).toEqual(nothingWorked)
+    })
+
+    /**
+     * Not even for an admin, and this is the direction that had no test.
+     *
+     * A first version of the fix let a lockbox register a key for someone else when the link's
+     * author was that member or an admin, on the grounds that this is the rule
+     * `canOnlyChangeYourOwnKeys` already applies to a re-key. It is not the same rule. A re-key is
+     * a `CHANGE_MEMBER_KEYS` link on the record, auditable as something an admin did; this
+     * registered a key silently, as a side effect of any admin-authored link that happened to
+     * carry a USER-scoped lockbox, and the links the admin then wrote in the member's name were
+     * indistinguishable from that member's own. An admin who can remove someone gains no
+     * capability by removing them as somebody else — they gain deniability, which is the property
+     * `auditAuthorship` exists to provide.
+     *
+     * Measured with that version in place: the admin authored as the victim, removed a third
+     * member, and the victim's own client and the third member's both accepted it.
+     */
+    it("won't let an admin's lockbox make the admin's key one of somebody else's", () => {
+      expect(impersonate({ registerFirst: false, attackerIsAdmin: true })).toEqual(nothingWorked)
+      expect(impersonate({ registerFirst: true, attackerIsAdmin: true })).toEqual(nothingWorked)
     })
   })
 })
