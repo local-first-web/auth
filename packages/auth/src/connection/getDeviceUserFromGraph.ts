@@ -43,11 +43,23 @@ export const getDeviceUserFromGraph = ({
 
   const userKeyring = select.keyring(state, { type: USER, name: userId }, starterKeys)
 
-  // `getLatestGeneration` returns undefined for an empty keyring, which is what we get if the
-  // starter keys derived from the invitation seed don't open this member's user lockboxes. That
-  // case flows on as a user with undefined keys today; the assertion below preserves that
-  // behaviour rather than changing it. See auth-wxt.
-  const keys = getLatestGeneration(userKeyring)!
+  // An empty keyring means the starter keys derived from the invitation seed didn't open any of
+  // this member's user lockboxes — the graph we were sent carries a device invitation for them,
+  // but not the user keys that invitation is supposed to come with. There is nothing to do with
+  // that but stop: every step after this one needs these keys.
+  //
+  // This is the only place that can say what went wrong, because it's the only place that knows
+  // the keys were supposed to come from an invitation. Letting it through produced a
+  // `UserWithSecrets` whose `keys` was undefined, which `Team` accepts without complaint; the
+  // failure landed later in `Team.join` as `TypeError: Cannot read properties of undefined
+  // (reading 'encryption')`, thrown from crdx's `append` while signing a link — three layers away,
+  // naming neither the invitation nor the lockboxes.
+  const keys = getLatestGeneration(userKeyring)
+  assert(
+    keys,
+    `The invitation seed didn't open any user keys for member '${userId}'. The graph we were sent has the invitation on it, but not the lockboxes holding that member's user keys.`
+  )
+
   const user = { userName, userId, keys }
 
   return { user, userKeyring }

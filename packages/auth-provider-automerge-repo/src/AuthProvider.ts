@@ -8,7 +8,7 @@ import type {
 import { EventEmitter } from '@herbcaudill/eventemitter42'
 import * as Auth from '@localfirst/auth'
 import { hash } from '@localfirst/crypto'
-import { debug, memoize, pause } from '@localfirst/shared'
+import { assert, debug, memoize, pause } from '@localfirst/shared'
 import { type AbstractConnection } from './AbstractConnection.js'
 import { AnonymousConnection } from './AnonymousConnection.js'
 import { buildServerUrl } from './buildServerUrl.js'
@@ -18,7 +18,6 @@ import { AuthenticatedNetworkAdapter as AuthNetworkAdapter } from './Authenticat
 import { CompositeMap } from './CompositeMap.js'
 import {
   isAuthMessage,
-  isDeviceInvitation,
   isJoinMessage,
   isPrivateShare,
   type AuthProviderEvents,
@@ -214,10 +213,9 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
    * Creates a team and registers it with all of our sync servers.
    */
   public async createTeam(teamName: string) {
-    // `#user` is optional because a new device joining by invitation doesn't have one yet; a caller
-    // that reaches `createTeam` without one gets whatever `createTeam` does with an undefined user,
-    // which is what happened before this was typed. See auth-wxt.
-    const context = { device: this.#device, user: this.#user } as Auth.LocalUserContext
+    // A team's founding member is a user, so there's no such thing as creating one from a device
+    // that doesn't have one yet.
+    const context: Auth.LocalUserContext = { device: this.#device, user: this.#requireUser() }
     const team = Auth.createTeam(teamName, context)
 
     await this.registerTeam(team)
@@ -415,6 +413,27 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
   #getStoredMessages(shareId: ShareId, peerId: PeerId) {
     return this.#storedMessages.get([shareId, peerId]) ?? []
+  }
+
+  /**
+   * `#user` is optional for exactly one reason: a device joining by invitation doesn't have a user
+   * until the connection hands it one. Every other path here needs one, and the ones that do used
+   * to reach for it through a cast — which produced a context whose `user` was undefined and a
+   * `TypeError: Cannot read properties of undefined (reading 'userId')` thrown from inside `new
+   * Team`, naming nothing about this provider or about who was supposed to supply the user.
+   *
+   * We keep the single optional field rather than modelling the two states as separate types: the
+   * transition happens at runtime when a connection emits `joined`, so a union would still need a
+   * narrowing check at each of these call sites. What it buys is that the check is written once and
+   * says what's wrong. What it costs is that the illegal state is still representable — the
+   * compiler can't stop you adding a fourth site that reads `#user` and hopes.
+   */
+  #requireUser() {
+    assert(
+      this.#user,
+      `This AuthProvider has no user. It was created with only a device, which is only good for joining a team with a device invitation; everything else needs the user's keys.`
+    )
+    return this.#user
   }
 
   /**
@@ -676,8 +695,10 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
             this.#device.keys.secretKey
           ) as Auth.KeysetWithSecrets
 
-          // `#user` may be undefined here; see auth-wxt.
-          const context = { device: this.#device, user: this.#user } as Auth.LocalContext
+          // We only ever saved this share after joining the team, which is where a device that
+          // arrived by invitation gets its user. So a stored team share and no user means the
+          // application restarted us without the user it was given last time.
+          const context: Auth.LocalContext = { device: this.#device, user: this.#requireUser() }
 
           const team = Auth.loadTeam(encryptedTeam, context, teamKeys)
           return this.addTeam(team)
@@ -703,7 +724,6 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
 
   #getContextForShare(shareId: ShareId) {
     const device = this.#device
-    const user = this.#user
     const invitation = this.#invitations.get(shareId)
     const share = this.#shares.get(shareId)
     if (share) {
@@ -712,26 +732,41 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
       }
 
       // this is a share we're already a member of
-      return {
+      const context: Auth.MemberContext = {
         device,
-        user,
+        user: this.#requireUser(),
         team: share.team,
-      } as Auth.MemberContext
-    } else if (invitation)
-      if (isDeviceInvitation(invitation))
-        // this is a share we've been invited to as a device
-        return {
-          device,
-          ...invitation,
-        } as Auth.InviteeDeviceContext
-      else {
-        // this is a share we've been invited to as a member
-        return {
-          device,
-          user,
-          ...invitation,
-        } as Auth.InviteeMemberContext
       }
+      return context
+    } else if (invitation) {
+      // This is the one place where not having a user is a state to branch on rather than a
+      // failure, so it's the one place that reads `#user` directly.
+      //
+      // Which of the two invitee contexts this is comes down to exactly that: someone joining as a
+      // new member made a user before asking to join, and a device is here precisely because it
+      // hasn't got one yet. `isDeviceInvitation` is meant to say this, but it can't — it asks for a
+      // `userId` that nothing puts on an invitation, so it has never once returned true, and the
+      // application supplies `userName` for both kinds anyway (see the todos demo's `JoinTeam`).
+      // Having a user is also what `Auth.Connection` itself goes by, in `isInviteeMemberContext`,
+      // so this is the classification that was already being made downstream — now it's made here,
+      // where the context is built, instead of being smuggled through as an undefined `user`. See
+      // auth-duh.
+      if (this.#user) {
+        // this is a share we've been invited to as a member
+        const context: Auth.InviteeMemberContext = { device, user: this.#user, ...invitation }
+        return context
+      }
+
+      // We're joining as a new device for an existing member. The member's `userName` is the only
+      // thing we can say about who we are until the connection gives us their keys, so an
+      // invitation without one leaves us nothing to introduce ourselves with.
+      assert(
+        'userName' in invitation,
+        `This AuthProvider has no user, so the invitation for share '${shareId}' can only be a device invitation — but it doesn't say which member the device belongs to.`
+      )
+      const context: Auth.InviteeDeviceContext = { device, ...invitation }
+      return context
+    }
 
     // we don't know about this share
     throw new Error(`no context for ${shareId}`)
