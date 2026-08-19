@@ -6,9 +6,16 @@ import {
   type MemberInvitation,
 } from 'invitation/index.js'
 import { type Lockbox } from 'lockbox/index.js'
+import { getTeamState } from 'team/getTeamState.js'
 import * as teams from 'team/index.js'
 import { redactUser } from 'team/redactUser.js'
-import { type Member, type TeamAction, type TeamContext, type TeamState } from 'team/types.js'
+import {
+  type Member,
+  type TeamAction,
+  type TeamContext,
+  type TeamGraph,
+  type TeamState,
+} from 'team/types.js'
 import { KeyType } from 'util/index.js'
 import { setup, type UserStuff } from 'util/testing/index.js'
 import { describe, expect, it } from 'vitest'
@@ -137,9 +144,9 @@ describe('Team', () => {
         bob.team.dispatch({ type: 'ADD_DEVICE', payload: { device } })
       }
 
-      expect(addDevice({ ...bobsPhone, deviceId: '' })).toThrowError(/needs a usable deviceId/)
+      expect(addDevice({ ...bobsPhone, deviceId: '' })).toThrowError(/not a usable deviceId/)
       expect(addDevice({ ...bobsPhone, userId: null as unknown as string })).toThrowError(
-        /needs a usable userId/
+        /not a usable userId/
       )
       expect(bob.team.members(bob.userId).devices).toHaveLength(1)
 
@@ -398,6 +405,87 @@ describe('Team', () => {
         expect(Object.keys(reloaded.state.invitations)).toHaveLength(0)
       })
 
+      it("won't accept a link with nothing on it at all", () => {
+        const { alice, bob } = setup('alice', 'bob')
+
+        // The guard reads the action off the link before it reads the payload off the action, so
+        // it has to allow for there being no action either — otherwise the one thing that must
+        // never throw is the thing that throws.
+        // A link 👨🏻‍🦲 Bob doesn't have yet, so it's one his door actually looks at
+        alice.team.dispatch({ type: 'MESSAGE', payload: { message: 'hello' } })
+        const cleanGraph = alice.team.graph
+        const [newest] = cleanGraph.head
+        const theirGraph = {
+          ...cleanGraph,
+          links: { ...cleanGraph.links, [newest]: { ...cleanGraph.links[newest], body: null } },
+        } as unknown as TeamGraph
+
+        expect(() => bob.team.merge(theirGraph)).toThrowError(/has to carry an action/i)
+
+        // ✅ Bob's graph is untouched, and a graph with links on it still merges
+        expect(bob.team.members()).toHaveLength(2)
+        bob.team.merge(cleanGraph)
+        expect(bob.team.members()).toHaveLength(2)
+      })
+
+      it("won't read team state out of a graph carrying one either", () => {
+        const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+
+        // The same admission with no keys on it, this time reaching the door that an INVITEE comes
+        // through: `getTeamState` deserializes the graph the admitter sends with ACCEPT_INVITATION
+        // and runs the same resolver and reducer over it — `getDeviceUserFromGraph` and the
+        // `joinedTheRightTeam` guard both land here, and crdx's own `validate` result is discarded
+        // below this, so there's nothing else between the graph and the dereference.
+        const { seed, id } = bob.team.inviteMember()
+        bobAuthorsDirectly(bob, {
+          type: 'ADMIT_MEMBER',
+          payload: {
+            id,
+            userName: charlie.userName,
+            memberKeys: null,
+            proof: generateProof(seed, charlie.user.keys),
+            lockboxes: [],
+          },
+        })
+        alice.team.remove(bob.userId)
+        bobAuthorsDirectly(bob, { type: 'MESSAGE', payload: { message: 'hello' } })
+
+        const theirGraph = bob.team.save()
+        const keyring = bob.team.teamKeyring()
+
+        expect(() => getTeamState(theirGraph, keyring)).toThrowError(/can't be replayed/i)
+
+        // ✅ The same blob is refused the same way by every other door
+        expect(() => teams.load(theirGraph, charlie.localContext, keyring)).toThrowError(
+          /can't be replayed/i
+        )
+      })
+
+      it("won't accept a member whose devices nothing after them could read", () => {
+        const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+
+        // A member arrives carrying their devices. Nothing reads them on the way in, and once
+        // they're on the team nothing checks them again: `addDevice` reads `member.devices` with
+        // `= []` and `getDevice` with `?? []`, and neither of those catches `null`. So the throw
+        // wouldn't land here — it would land on the next ordinary ADD_DEVICE for 👳🏽‍♂️ Charlie,
+        // for everyone, for good.
+        bobAuthorsDirectly(bob, {
+          type: 'ADD_MEMBER',
+          payload: { member: { ...redactUser(charlie.user), devices: null }, roles: [] },
+        })
+
+        expect(() => alice.team.merge(bob.team.graph)).toThrowError(/can't be replayed/i)
+        expect(alice.team.has(charlie.userId)).toBe(false)
+
+        // ✅ 👳🏽‍♂️ Charlie joins the ordinary way, and his device goes on afterwards
+        alice.team.addForTesting(charlie.user, [], redactDevice(charlie.device))
+        alice.team.dispatch({
+          type: 'ADD_DEVICE',
+          payload: { device: redactDevice(charlie.phone!) },
+        })
+        expect(alice.team.members(charlie.userId).devices).toHaveLength(2)
+      })
+
       it("won't accept a lockbox that nothing after it could read", () => {
         const { alice, bob } = setup('alice', { user: 'bob', admin: false })
 
@@ -643,6 +731,10 @@ describe('Team', () => {
           ['[undefined]', [undefined]],
           ['[{}]', [{}]],
           ['[lockbox with no recipient]', [{ ...aRealLockbox, recipient: null }]],
+          [
+            '[lockbox holding something other than bytes]',
+            [{ ...aRealLockbox, encryptedPayload: 'not-bytes' }],
+          ],
         ]
         for (const [label, value] of elements) {
           variants.push([
@@ -655,6 +747,33 @@ describe('Team', () => {
           variants.push(
             [`${type} roles=[null]`, { type, payload: setPath(payload, 'roles', [null]) }],
             [`${type} roles=['']`, { type, payload: setPath(payload, 'roles', ['']) }]
+          )
+        }
+
+        // A member arrives carrying their devices, and nothing looks at them again once they're on
+        // the team — so a bad one lands on the NEXT link that touches that member, not on this one.
+        // (`devices` left off entirely is what every honest link looks like, so that one is
+        // legitimate rather than refused.)
+        const memberField = type === 'ROOT' ? 'rootMember' : type === 'ADD_MEMBER' ? 'member' : ''
+        if (memberField !== '') {
+          variants.push(
+            [
+              `${type} ${memberField}.devices=null`,
+              { type, payload: setPath(payload, `${memberField}.devices`, null) },
+            ],
+            [
+              `${type} ${memberField}.devices=[null]`,
+              { type, payload: setPath(payload, `${memberField}.devices`, [null]) },
+            ],
+            [
+              `${type} ${memberField}.devices=[device with no keys]`,
+              {
+                type,
+                payload: setPath(payload, `${memberField}.devices`, [
+                  { deviceId: 'd', userId: 'u' },
+                ]),
+              },
+            ]
           )
         }
 
@@ -689,7 +808,7 @@ describe('Team', () => {
 
         // Every one of them refused, and none of them by a TypeError
         expect(outcomes.filter(result => !result.endsWith('refused'))).toEqual([])
-        expect(outcomes).toHaveLength(227)
+        expect(outcomes).toHaveLength(253)
 
         // ...and because they were refused before being appended, the graph is exactly as it was:
         // 👩🏾 Alice can still reload it, and 👨🏻‍🦲 Bob can still merge it

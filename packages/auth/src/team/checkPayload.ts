@@ -66,6 +66,15 @@ export const payloadProblem = (action: TeamAction): string | undefined => {
   const usable = (identifier: string, value: unknown) =>
     `This ${action.type} link needs a usable ${identifier}, and '${String(value)}' is not one.`
 
+  /** Something the link carries that can't be used, and what's wrong with it */
+  const detail = (what: string, problem: string) =>
+    `This ${action.type} link has to carry ${what}: ${problem}.`
+
+  // ...and nothing can look at a payload until we know there's an action for it to be on
+  if (isMissing(action) || typeof action !== 'object') {
+    return 'This link has to carry an action.'
+  }
+
   // Nothing below can look at a field until we know there's a payload for it to be on
   const { payload } = action
   if (isMissing(payload) || typeof payload !== 'object') return has('a payload')
@@ -92,11 +101,10 @@ export const payloadProblem = (action: TeamAction): string | undefined => {
       if (isMissing(rootMember.keys)) return has("the founding member's keys")
       if (!isUsableIdentifier(rootMember.userId)) return usable('userId', rootMember.userId)
       if (!isUsableIdentifier(rootMember.userName)) return usable('userName', rootMember.userName)
-      if (isMissing(rootDevice)) return has('a founding device')
-      if (isMissing(rootDevice.keys)) return has("the founding device's keys")
-      if (!isUsableIdentifier(rootDevice.deviceId)) return usable('deviceId', rootDevice.deviceId)
-      if (!isUsableIdentifier(rootDevice.userId)) return usable('userId', rootDevice.userId)
-      return undefined
+      const rootDeviceProblem = deviceProblem(rootDevice)
+      if (rootDeviceProblem !== undefined)
+        return detail('a founding device it can use', rootDeviceProblem)
+      return membersDevicesProblem(rootMember, detail)
     }
 
     case 'ADD_MEMBER': {
@@ -108,15 +116,12 @@ export const payloadProblem = (action: TeamAction): string | undefined => {
       if (isNotAnArray(roles)) return has('its roles as an array')
       if (Array.isArray(roles) && !roles.every(isUsableIdentifier))
         return has('roles that are all usable role names')
-      return undefined
+      return membersDevicesProblem(member, detail)
     }
 
     case 'ADD_DEVICE': {
-      const { device } = action.payload
-      if (isMissing(device)) return has('a device')
-      if (isMissing(device.keys)) return has("the device's keys")
-      if (!isUsableIdentifier(device.deviceId)) return usable('deviceId', device.deviceId)
-      if (!isUsableIdentifier(device.userId)) return usable('userId', device.userId)
+      const problem = deviceProblem(action.payload.device)
+      if (problem !== undefined) return detail('a device it can use', problem)
       return undefined
     }
 
@@ -182,7 +187,7 @@ export const payloadProblem = (action: TeamAction): string | undefined => {
       // proof, and `userId` to the member the invitation was issued for
       const { id, device } = action.payload
       if (!isUsableIdentifier(id)) return usable('invitation id', id)
-      if (isMissing(device)) return has('a device')
+      if (isMissing(device) || typeof device !== 'object') return has('a device')
       if (isMissing(device.keys)) return has("the device's keys")
       return undefined
     }
@@ -235,6 +240,26 @@ export const payloadProblem = (action: TeamAction): string | undefined => {
  * `generation` is deliberately not required: it's only ever compared or added to, so a missing one
  * makes a lockbox that never matches rather than one that throws.
  */
+/**
+ * What's wrong with the shape of this device, or `undefined` if nothing is.
+ *
+ * A device shows up in three places — the founding device, an ADD_DEVICE payload, and the `devices`
+ * on a member — and the same things read it wherever it came from: `addDevice` and `getDevice` go
+ * by `deviceId`, `removeDevice` files the device it removed under `removedDevices`, where a later
+ * `addDevice` reads `keys.name` off it, and `memberByDeviceId` resolves a connecting peer through
+ * all of it. So there's one rule, not three.
+ */
+const deviceProblem = (device: unknown): string | undefined => {
+  if (isMissing(device) || typeof device !== 'object') return "there isn't one"
+
+  const { deviceId, userId, keys } = device as Record<string, unknown>
+  if (isMissing(keys) || typeof keys !== 'object') return 'it has no keys'
+  if (!isUsableIdentifier(deviceId)) return `'${String(deviceId)}' is not a usable deviceId`
+  if (!isUsableIdentifier(userId)) return `'${String(userId)}' is not a usable userId`
+
+  return undefined
+}
+
 const lockboxProblem = (lockbox: unknown): string | undefined => {
   if (isMissing(lockbox) || typeof lockbox !== 'object') return 'is not a lockbox'
 
@@ -251,7 +276,11 @@ const lockboxProblem = (lockbox: unknown): string | undefined => {
 
   if (isMissing(encryptionKey) || !isUsableIdentifier(encryptionKey.publicKey))
     return 'has no public key to open it with'
+  // What's in a lockbox is bytes. Nothing on the way in reads them — the author isn't the
+  // recipient — so anything else in this field surfaces on the RECIPIENT's side, in the `updated`
+  // handler, after `Store.merge` has already committed the graph.
   if (isMissing(encryptedPayload)) return 'has nothing in it'
+  if (!(encryptedPayload instanceof Uint8Array)) return 'has something other than bytes in it'
 
   return undefined
 }
@@ -272,6 +301,13 @@ const lockboxProblem = (lockbox: unknown): string | undefined => {
  * keeps a peer who sends one of these from taking us down with them: we go on syncing with everyone
  * else. What it costs is that we can't sync with that peer again until the link is gone from their
  * chain — but there is no version of accepting it that leaves us able to compute team state.
+ *
+ * That last part is only true of what's refused HERE. `Store.merge` assigns the merged graph before
+ * it recomputes state, so anything this misses is already committed by the time it throws — and it
+ * throws every time the graph is replayed after that, including on load. A field this doesn't
+ * describe isn't a noisier error; it's a graph that can't be opened again. That is the whole reason
+ * to keep this total, and the reason a `never` check over action types isn't enough on its own: it
+ * catches a new action, not a new field.
  */
 export const assertLinksAreWellFormed = (
   graph: TeamGraph,
@@ -280,11 +316,37 @@ export const assertLinksAreWellFormed = (
   alreadyChecked: TeamLinkMap = {}
 ) => {
   for (const hash in graph.links) {
-    if (hash in alreadyChecked) continue
+    if (Object.hasOwn(alreadyChecked, hash)) continue
 
     const problem = payloadProblem(graph.links[hash].body as TeamAction)
     if (problem !== undefined) {
       throw new Error(`Refusing this graph: the link '${hash}' can't be replayed. ${problem}`)
     }
   }
+}
+
+/**
+ * A member arrives carrying their devices, and nothing checks them again once they're on the team.
+ *
+ * `addDevice` reads `member.devices` with `= []`, and `getDevice` reads it with `?? []`; both of
+ * those catch a member who came with none, and neither catches one who came with `null`. Because
+ * the member is state from then on, the throw doesn't land on the link that carried it — it lands
+ * on the next ordinary ADD_DEVICE for that member, on every peer, for good.
+ */
+const membersDevicesProblem = (
+  member: unknown,
+  detail: (what: string, problem: string) => string
+) => {
+  const { devices } = member as { devices?: unknown }
+
+  // A member who carries none is what every honest link looks like
+  if (devices === undefined) return undefined
+  if (!Array.isArray(devices)) return detail('devices it can use', "they aren't a list")
+
+  for (const [index, device] of devices.entries()) {
+    const problem = deviceProblem(device)
+    if (problem !== undefined) return detail('devices it can use', `device ${index}: ${problem}`)
+  }
+
+  return undefined
 }
