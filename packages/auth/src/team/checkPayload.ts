@@ -1,4 +1,5 @@
-import { ROOT } from '@localfirst/crdx'
+import { ROOT, type Base58 } from '@localfirst/crdx'
+import { base58 } from '@localfirst/crypto'
 import { type TeamAction, type TeamGraph, type TeamLinkMap } from './types.js'
 
 /**
@@ -19,6 +20,37 @@ export const isMissing = (value: unknown) => value === undefined || value === nu
  */
 export const isUsableIdentifier = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0
+
+/** What libsodium's key and signature arguments have to decode to, in bytes */
+const PUBLIC_KEY_BYTES = 32
+const SIGNATURE_BYTES = 64
+
+/**
+ * A string libsodium can actually take: base58, and the right number of bytes of it.
+ *
+ * Being a non-empty string is not enough for a field that ends up as a key or a signature. Every one
+ * of them is handed to `keyToBytes`, which is `base58.decode`, and then to libsodium — and each
+ * stage of that has its own way of throwing rather than answering. `base58.decode` throws
+ * `Expected String` for anything that isn't one, and `Non-base58 character` for a string outside the
+ * alphabet; libsodium throws `invalid signature length` or `invalid publicKey length` for base58
+ * that decodes to the wrong size. None of those are refusals — they're TypeErrors thrown out of the
+ * middle of a replay, which is the failure this whole file exists to prevent.
+ *
+ * So the length is part of the check, not just the alphabet: `''` and `'zzz'` are both perfectly
+ * good base58 and both blow up in libsodium.
+ */
+export const isUsableBase58 = (value: unknown, byteLength: number): value is Base58 => {
+  if (typeof value !== 'string' || value.length === 0) return false
+
+  // Decoding is what settles the length, and decoding is quadratic in the length of the string — so
+  // a peer could otherwise hand us a megabyte of '1's and make us pay for it before we refused it.
+  // Base58 never encodes a byte as more than two characters, so nothing of the right length is
+  // ruled out by bounding it here.
+  if (value.length > byteLength * 2) return false
+
+  if (!base58.detect(value)) return false
+  return base58.decode(value).length === byteLength
+}
 
 /**
  * An optional array field that arrived as something other than an array.
@@ -48,9 +80,24 @@ const isNotAnArray = (value: unknown) => value !== undefined && !Array.isArray(v
  * - this function itself dereferences nothing it hasn't just checked, so it can't fail the way it
  *   exists to prevent
  *
- * Two fields are deliberately left to another rule, because that rule has to look at them anyway
- * and does so before the reducer runs: the identity an admission names (`memberKeys.name`,
- * `device.deviceId`) is bound to the proof of invitation by `admissionMustBeProven`.
+ * Being present isn't the whole of being usable, and there are two other ways a field is described
+ * here:
+ *
+ * - **A field that ends up in libsodium has to be base58 of the right length.** `proof.signature`,
+ *   `invitation.publicKey`, a keyset's `encryption` and `signature`, and a lockbox's
+ *   `encryptionKey.publicKey` are all decoded before they're used, and both `base58.decode` and
+ *   libsodium throw rather than answering. These are described as a group by `isUsableBase58`,
+ *   because they fail as a group: the one that matters is whichever one a peer thinks to send.
+ * - **A device carried on a member has to be that member's.** Shape is per-field, but a device
+ *   naming a `userId` no member has is well-shaped and still unreplayable — `removeDevice` looks
+ *   its owner up and asserts. That's a relation between two fields of one payload rather than a
+ *   fact about the team, so it's settled here, next to them, rather than in a validator that a
+ *   discarded link would never reach. (`rootDeviceBelongsToRootUser` is the same invariant for the
+ *   founding device, where the team's own rules do have to speak to it.)
+ *
+ * One field is deliberately left to another rule, because that rule has to look at it anyway and
+ * does so before the reducer runs: the identity an admission names (`memberKeys.name`) is bound to
+ * the proof of invitation by `admissionMustBeProven`.
  *
  * It's used in two places. `payloadsMustBeWellFormed` applies it to links as they're replayed,
  * which is what makes a peer's refusal independent of who sent it. `Team.dispatch` applies it
@@ -98,7 +145,8 @@ export const payloadProblem = (action: TeamAction): string | undefined => {
     case ROOT: {
       const { rootMember, rootDevice } = action.payload
       if (isMissing(rootMember)) return has('a founding member')
-      if (isMissing(rootMember.keys)) return has("the founding member's keys")
+      const keysProblem = keysetProblem(rootMember.keys)
+      if (keysProblem !== undefined) return detail("the founding member's keys", keysProblem)
       if (!isUsableIdentifier(rootMember.userId)) return usable('userId', rootMember.userId)
       if (!isUsableIdentifier(rootMember.userName)) return usable('userName', rootMember.userName)
       const rootDeviceProblem = deviceProblem(rootDevice)
@@ -110,7 +158,8 @@ export const payloadProblem = (action: TeamAction): string | undefined => {
     case 'ADD_MEMBER': {
       const { member, roles } = action.payload
       if (isMissing(member)) return has('a member')
-      if (isMissing(member.keys)) return has("the member's keys")
+      const keysProblem = keysetProblem(member.keys)
+      if (keysProblem !== undefined) return detail("the member's keys", keysProblem)
       if (!isUsableIdentifier(member.userId)) return usable('userId', member.userId)
       if (!isUsableIdentifier(member.userName)) return usable('userName', member.userName)
       if (isNotAnArray(roles)) return has('its roles as an array')
@@ -161,8 +210,16 @@ export const payloadProblem = (action: TeamAction): string | undefined => {
     case 'INVITE_MEMBER':
     case 'INVITE_DEVICE': {
       const { invitation } = action.payload
-      if (isMissing(invitation)) return has('an invitation')
+      if (isMissing(invitation) || typeof invitation !== 'object') return has('an invitation')
       if (!isUsableIdentifier(invitation.id)) return usable('invitation id', invitation.id)
+
+      // The public key is the whole of what an invitation is for: `validate` verifies the invitee's
+      // proof against it. Nothing on the way in touches it — the invitation is just recorded — so a
+      // key that libsodium can't take is dormant on the graph until the first admission names it,
+      // and then it's every peer's problem at once, including peers who accepted the invitation
+      // link happily.
+      if (!isUsableBase58(invitation.publicKey, PUBLIC_KEY_BYTES))
+        return usable('invitation public key', invitation.publicKey)
       return undefined
     }
 
@@ -175,26 +232,34 @@ export const payloadProblem = (action: TeamAction): string | undefined => {
     case 'ADMIT_MEMBER': {
       // The identity being admitted (`memberKeys.name`) is `admissionMustBeProven`'s, which binds
       // it to the proof of invitation before the reducer reads it
-      const { id, memberKeys, userName } = action.payload
+      const { id, memberKeys, userName, proof } = action.payload
       if (!isUsableIdentifier(id)) return usable('invitation id', id)
-      if (isMissing(memberKeys)) return has("the member's keys")
+      const keysProblem = keysetProblem(memberKeys)
+      if (keysProblem !== undefined) return detail("the member's keys", keysProblem)
       if (!isUsableIdentifier(userName)) return usable('userName', userName)
+      const theProofProblem = proofProblem(proof)
+      if (theProofProblem !== undefined) return detail('a proof it can check', theProofProblem)
       return undefined
     }
 
     case 'ADMIT_DEVICE': {
-      // Likewise the device's own identifiers: `admissionMustBeProven` binds `deviceId` to the
-      // proof, and `userId` to the member the invitation was issued for
-      const { id, device } = action.payload
+      const { id, device, proof } = action.payload
       if (!isUsableIdentifier(id)) return usable('invitation id', id)
-      if (isMissing(device) || typeof device !== 'object') return has('a device')
-      if (isMissing(device.keys)) return has("the device's keys")
+
+      // This is the fourth place a device arrives, and it gets the same rule as the other three.
+      // Leaving the device's own identifiers to `admissionMustBeProven` was only ever sound while
+      // that rule ran, and a link the resolver discards is handed to `invalidLinkReducer` instead.
+      const theDeviceProblem = deviceProblem(device)
+      if (theDeviceProblem !== undefined) return detail('a device it can use', theDeviceProblem)
+      const theProofProblem = proofProblem(proof)
+      if (theProofProblem !== undefined) return detail('a proof it can check', theProofProblem)
       return undefined
     }
 
     case 'CHANGE_MEMBER_KEYS': {
       const { keys } = action.payload
-      if (isMissing(keys)) return has('a keyset')
+      const keysProblem = keysetProblem(keys)
+      if (keysProblem !== undefined) return detail('a keyset', keysProblem)
       if (!isUsableIdentifier(keys.name)) return usable('keyset name', keys.name)
       return undefined
     }
@@ -202,7 +267,8 @@ export const payloadProblem = (action: TeamAction): string | undefined => {
     case 'ADD_SERVER': {
       const { server } = action.payload
       if (isMissing(server)) return has('a server')
-      if (isMissing(server.keys)) return has("the server's keys")
+      const keysProblem = keysetProblem(server.keys)
+      if (keysProblem !== undefined) return detail("the server's keys", keysProblem)
       if (!isUsableIdentifier(server.host)) return usable('host', server.host)
       return undefined
     }
@@ -228,6 +294,76 @@ export const payloadProblem = (action: TeamAction): string | undefined => {
 }
 
 /**
+ * What's wrong with the shape of this device, or `undefined` if nothing is.
+ *
+ * A device shows up in four places — the founding device, an ADD_DEVICE payload, an ADMIT_DEVICE
+ * payload, and the `devices` on a member — and the same things read it wherever it came from:
+ * `addDevice` and `getDevice` go by `deviceId`, `removeDevice` files the device it removed under
+ * `removedDevices`, where a later `addDevice` reads `keys.name` off it, and `memberByDeviceId`
+ * resolves a connecting peer through all of it. So there's one rule, not four.
+ */
+const deviceProblem = (device: unknown): string | undefined => {
+  if (isMissing(device) || typeof device !== 'object') return "there isn't one"
+
+  const { deviceId, userId, keys } = device as Record<string, unknown>
+  const keysProblem = keysetProblem(keys)
+  if (keysProblem !== undefined) return `it has no keys we can use (${keysProblem})`
+  if (!isUsableIdentifier(deviceId)) return `'${String(deviceId)}' is not a usable deviceId`
+  if (!isUsableIdentifier(userId)) return `'${String(userId)}' is not a usable userId`
+
+  return undefined
+}
+
+/**
+ * What's wrong with the shape of this public keyset, or `undefined` if nothing is.
+ *
+ * A keyset arrives on six kinds of link, and the same two things happen to it wherever it came
+ * from. `hashKeys` fingerprints it to check an admission against the proof of invitation, and it
+ * does that through `redactKeys`, which reads `.hasOwnProperty` off `encryption` and `signature` —
+ * so a keyset carrying neither is a TypeError during validation, not a refusal. And both of those
+ * fields are base58 public keys that go on to `lockbox.create` and the connection handshake, which
+ * decode them. So there's one rule for keysets, and it says the keys are there and are keys.
+ *
+ * `name`, `type` and `generation` aren't here: they're compared and stored, never decoded, and
+ * where a particular one is load-bearing the case that carries it says so (`keys.name` on
+ * CHANGE_MEMBER_KEYS).
+ */
+const keysetProblem = (keys: unknown): string | undefined => {
+  if (isMissing(keys) || typeof keys !== 'object') return 'there is no keyset'
+
+  const { encryption, signature } = keys as Record<string, unknown>
+  if (!isUsableBase58(encryption, PUBLIC_KEY_BYTES))
+    return `'${String(encryption)}' is not a usable encryption key`
+  if (!isUsableBase58(signature, PUBLIC_KEY_BYTES))
+    return `'${String(signature)}' is not a usable signature key`
+
+  return undefined
+}
+
+/**
+ * What's wrong with the shape of this proof of invitation, or `undefined` if nothing is.
+ *
+ * The proof travels on the graph so that every peer can check the admission for itself, which means
+ * every peer runs `invitation/validate` over it — and the last thing that does is hand `signature`
+ * to `signatures.verify`, which decodes it and gives it to libsodium. Nothing down there returns
+ * `false` for a signature it can't read; it throws.
+ *
+ * Only the signature is described, because only the signature is decoded. `id`, `invitee` and
+ * `keyHash` are compared with `!==` and packed by msgpackr, neither of which can fail on them, and
+ * what they have to say about the identity being admitted is `admissionMustBeProven`'s — which
+ * says it better, because it can see the invitation too.
+ */
+const proofProblem = (proof: unknown): string | undefined => {
+  if (isMissing(proof) || typeof proof !== 'object') return "there isn't one"
+
+  const { signature } = proof as Record<string, unknown>
+  if (!isUsableBase58(signature, SIGNATURE_BYTES))
+    return `'${String(signature)}' is not a usable signature`
+
+  return undefined
+}
+
+/**
  * What's wrong with the shape of this lockbox, or `undefined` if nothing is.
  *
  * A lockbox is not read by the link that carries it. `collectLockboxes` puts it in
@@ -240,26 +376,6 @@ export const payloadProblem = (action: TeamAction): string | undefined => {
  * `generation` is deliberately not required: it's only ever compared or added to, so a missing one
  * makes a lockbox that never matches rather than one that throws.
  */
-/**
- * What's wrong with the shape of this device, or `undefined` if nothing is.
- *
- * A device shows up in three places — the founding device, an ADD_DEVICE payload, and the `devices`
- * on a member — and the same things read it wherever it came from: `addDevice` and `getDevice` go
- * by `deviceId`, `removeDevice` files the device it removed under `removedDevices`, where a later
- * `addDevice` reads `keys.name` off it, and `memberByDeviceId` resolves a connecting peer through
- * all of it. So there's one rule, not three.
- */
-const deviceProblem = (device: unknown): string | undefined => {
-  if (isMissing(device) || typeof device !== 'object') return "there isn't one"
-
-  const { deviceId, userId, keys } = device as Record<string, unknown>
-  if (isMissing(keys) || typeof keys !== 'object') return 'it has no keys'
-  if (!isUsableIdentifier(deviceId)) return `'${String(deviceId)}' is not a usable deviceId`
-  if (!isUsableIdentifier(userId)) return `'${String(userId)}' is not a usable userId`
-
-  return undefined
-}
-
 const lockboxProblem = (lockbox: unknown): string | undefined => {
   if (isMissing(lockbox) || typeof lockbox !== 'object') return 'is not a lockbox'
 
@@ -274,8 +390,15 @@ const lockboxProblem = (lockbox: unknown): string | undefined => {
     if (!isUsableIdentifier(manifest.publicKey)) return `has no public key on its ${name} manifest`
   }
 
-  if (isMissing(encryptionKey) || !isUsableIdentifier(encryptionKey.publicKey))
-    return 'has no public key to open it with'
+  // The key a lockbox was sealed with is base58 that `asymmetric.decryptBytes` decodes. Nothing on
+  // the way in reads it — the author isn't the recipient, and a non-recipient never opens the
+  // lockbox at all — so a key libsodium can't take is accepted everywhere and surfaces only at the
+  // one member the lockbox names, on load, for good. Lockbox manifests are plaintext on the graph,
+  // so anyone can copy a real lockbox and change this one field to aim that at a chosen member.
+  if (isMissing(encryptionKey) || typeof encryptionKey !== 'object')
+    return 'has no key to open it with'
+  if (!isUsableBase58(encryptionKey.publicKey, PUBLIC_KEY_BYTES))
+    return `has no usable public key to open it with ('${String(encryptionKey.publicKey)}')`
   // What's in a lockbox is bytes. Nothing on the way in reads them — the author isn't the
   // recipient — so anything else in this field surfaces on the RECIPIENT's side, in the `updated`
   // handler, after `Store.merge` has already committed the graph.
@@ -318,7 +441,11 @@ export const assertLinksAreWellFormed = (
   for (const hash in graph.links) {
     if (Object.hasOwn(alreadyChecked, hash)) continue
 
-    const problem = payloadProblem(graph.links[hash].body as TeamAction)
+    // A link entry is as much a peer's to make up as the payload on it, and this is the one place
+    // that reads one. `payloadProblem` allows for there being no action at all, so handing it
+    // whatever this is — including nothing — is the check; reaching for `.body` first is not.
+    const link = graph.links[hash] as { body?: unknown } | undefined
+    const problem = payloadProblem(link?.body as TeamAction)
     if (problem !== undefined) {
       throw new Error(`Refusing this graph: the link '${hash}' can't be replayed. ${problem}`)
     }
@@ -332,12 +459,19 @@ export const assertLinksAreWellFormed = (
  * those catch a member who came with none, and neither catches one who came with `null`. Because
  * the member is state from then on, the throw doesn't land on the link that carried it — it lands
  * on the next ordinary ADD_DEVICE for that member, on every peer, for good.
+ *
+ * The same is true of a device that is perfectly well shaped but names somebody else. A device
+ * carried this way is filed under the member carrying it and never checked against them again;
+ * `removeDevice` then looks its `userId` up among the members and asserts when it finds nobody. So
+ * the owner has to be the member here, in the payload, where both are in front of us —
+ * `rootDeviceBelongsToRootUser` says exactly this about the founding device, and until now nothing
+ * said it about the devices a member arrives with.
  */
 const membersDevicesProblem = (
   member: unknown,
   detail: (what: string, problem: string) => string
 ) => {
-  const { devices } = member as { devices?: unknown }
+  const { userId, devices } = member as { userId?: unknown; devices?: unknown }
 
   // A member who carries none is what every honest link looks like
   if (devices === undefined) return undefined
@@ -346,6 +480,15 @@ const membersDevicesProblem = (
   for (const [index, device] of devices.entries()) {
     const problem = deviceProblem(device)
     if (problem !== undefined) return detail('devices it can use', `device ${index}: ${problem}`)
+
+    // `deviceProblem` has just established that this is a usable userId, and the caller has
+    // established the same of the member's
+    const owner = (device as { userId: string }).userId
+    if (owner !== userId)
+      return detail(
+        'devices it can use',
+        `device ${index}: it belongs to '${owner}', not to '${String(userId)}'`
+      )
   }
 
   return undefined

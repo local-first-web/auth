@@ -58,6 +58,18 @@ const everyActionType = [
   'SET_TEAM_NAME',
 ] as const
 
+/** 👨🏻‍🦲 Bob authors a link his own pre-check would have refused, by going around it */
+const bobAuthorsDirectly = (bob: UserStuff, action: unknown) => {
+  const { store } = bob.team as unknown as {
+    store: Store<TeamState, TeamAction, TeamContext>
+  }
+  try {
+    store.dispatch(action as TeamAction, bob.team.teamKeys())
+  } catch {
+    // The validators refuse it, but it's on his graph either way — that's the point
+  }
+}
+
 /** A copy of `payload` with the field at `path` (e.g. `member.keys`) set to `value` */
 const setPath = (payload: any, path: string, value: unknown): any => {
   const [field, ...rest] = path.split('.')
@@ -280,9 +292,27 @@ describe('Team', () => {
 
       expect(admitADeviceWithNoDevice(null)).toThrowError(/has to carry a device/i)
       expect(admitADeviceWithNoDevice({ ...alicePhone, keys: null })).toThrowError(
-        /has to carry the device's keys/i
+        /has to carry a device it can use: it has no keys/i
+      )
+
+      // An admission is the fourth place a device arrives, and it used to be the one that settled
+      // for `keys` merely being there. `admissionMustBeProven` fingerprints whatever it finds, and
+      // `redactKeys` reads `.hasOwnProperty` off `encryption` and `signature` — so a keyset that
+      // is a string, or an object with no keys in it, was a TypeError rather than a refusal, on a
+      // link that was already on the graph. The same payload through ADD_DEVICE was refused, which
+      // is what made this a gap rather than a decision.
+      expect(admitADeviceWithNoDevice({ ...alicePhone, keys: 'nope' })).toThrowError(
+        /has to carry a device it can use: it has no keys/i
+      )
+      expect(admitADeviceWithNoDevice({ ...alicePhone, keys: {} })).toThrowError(
+        /has to carry a device it can use: it has no keys/i
       )
       expect(alice.team.members(alice.userId).devices).toHaveLength(1)
+
+      // ...and her graph is untouched by any of them, so it still reloads
+      expect(
+        teams.load(alice.team.save(), alice.localContext, alice.team.teamKeyring()).members()
+      ).toHaveLength(1)
 
       // ✅ The real device, with its own keys, still gets admitted
       alice.team.admitDevice(generateProof(deviceSeed, alicePhone.keys), alicePhone)
@@ -334,6 +364,210 @@ describe('Team', () => {
       expect(bob.team.members(bob.userId).devices).toHaveLength(0)
     })
 
+    it("won't accept a member carrying a device that isn't theirs", () => {
+      const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+      const ghost = {
+        deviceId: 'ghost',
+        userId: 'nobody',
+        keys: redactKeys(createKeyset({ type: KeyType.DEVICE, name: 'ghost' })),
+      }
+
+      // Every field on this device is fine; what's wrong is whose it says it is. A device carried
+      // on a member is filed under that member and never looked at again, so `removeDevice` — which
+      // resolves a device's owner among the members and asserts when it finds nobody — is where it
+      // lands, on a LATER link, for everybody. `rootDeviceBelongsToRootUser` says exactly this about
+      // the founding device; nothing said it about the devices a member arrives with.
+      const addCharlieWithAGhostDevice = () => {
+        alice.team.dispatch({
+          type: 'ADD_MEMBER',
+          payload: {
+            member: { ...redactUser(charlie.user), devices: [ghost] } as Member,
+            roles: [],
+          },
+        })
+      }
+
+      expect(addCharlieWithAGhostDevice).toThrowError(/it belongs to 'nobody'/i)
+      expect(alice.team.has(charlie.userId)).toBe(false)
+
+      // ...and the same link arriving from 👨🏻‍🦲 Bob is refused at her door
+      bobAuthorsDirectly(bob, {
+        type: 'ADD_MEMBER',
+        payload: { member: { ...redactUser(charlie.user), devices: [ghost] }, roles: [] },
+      })
+      expect(() => alice.team.merge(bob.team.graph)).toThrowError(/can't be replayed/i)
+      expect(alice.team.has(charlie.userId)).toBe(false)
+
+      // ✅ Her graph still reloads, and 👳🏽‍♂️ Charlie still joins carrying his OWN device
+      const reloaded = teams.load(alice.team.save(), alice.localContext, alice.team.teamKeyring())
+      expect(reloaded.members()).toHaveLength(2)
+      alice.team.addForTesting(charlie.user, [], redactDevice(charlie.device))
+      expect(alice.team.members(charlie.userId).devices).toHaveLength(1)
+    })
+
+    it("won't accept an admission whose proof nothing could verify", () => {
+      const { alice, bob } = setup('alice', { user: 'bob', member: false })
+
+      // A proof is checked by everyone who replays the chain, and the last thing that check does is
+      // hand `signature` to libsodium by way of `base58.decode`. Neither of them answers `false` for
+      // something they can't read: `decode` throws `Expected String` or `Non-base58 character`, and
+      // libsodium throws `invalid signature length` — including for '', which is perfectly good
+      // base58 of nothing at all.
+      const admitWithProof = (proof: unknown) => () => {
+        const { seed, id } = alice.team.inviteMember()
+        const realProof = generateProof(seed, bob.user.keys)
+        alice.team.dispatch({
+          type: 'ADMIT_MEMBER',
+          payload: {
+            id,
+            userName: bob.userName,
+            memberKeys: redactKeys(bob.user.keys),
+            proof: (typeof proof === 'object' && proof !== null
+              ? { ...realProof, ...proof }
+              : proof) as never,
+            lockboxes: [],
+          },
+        })
+      }
+
+      expect(admitWithProof(null)).toThrowError(/a proof it can check: there isn't one/i)
+      expect(admitWithProof(123)).toThrowError(/a proof it can check: there isn't one/i)
+      for (const signature of [null, 123, 'not-base58!!!', '', 'zzz']) {
+        expect(admitWithProof({ signature })).toThrowError(/is not a usable signature/i)
+      }
+
+      expect(alice.team.has(bob.userId)).toBe(false)
+
+      // ✅ A real proof still admits him
+      const { seed, id } = alice.team.inviteMember()
+      alice.team.dispatch({
+        type: 'ADMIT_MEMBER',
+        payload: {
+          id,
+          userName: bob.userName,
+          memberKeys: redactKeys(bob.user.keys),
+          proof: generateProof(seed, bob.user.keys),
+          lockboxes: [],
+        },
+      })
+      expect(alice.team.has(bob.userId)).toBe(true)
+    })
+
+    it("won't post an invitation nobody could ever admit on", () => {
+      const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+
+      // This is the one that doesn't look like a malformed payload at all. An invitation is only
+      // recorded on the way in — nothing reads its public key until somebody presents a proof
+      // against it — so a key libsodium can't take was accepted here, merged by every peer, and sat
+      // on the graph until the first admission named it. At that point it's not one peer's problem;
+      // it's everyone's, including the peers who took the invitation link happily.
+      const postAnInvitation = (publicKey: unknown) => () => {
+        const invitation = createInvitation({ kind: 'MEMBER', seed: 'passw0rd' })
+        alice.team.dispatch({
+          type: 'INVITE_MEMBER',
+          payload: { invitation: { ...invitation, publicKey } as never },
+        })
+      }
+
+      for (const publicKey of [null, undefined, 123, '', 'not-base58!!!', 'zzz']) {
+        expect(postAnInvitation(publicKey)).toThrowError(/needs a usable invitation public key/i)
+      }
+
+      expect(Object.keys(alice.team.state.invitations)).toHaveLength(0)
+
+      // ...and the same link arriving from 👨🏻‍🦲 Bob is refused at her door, rather than merging
+      // cleanly and detonating later
+      const bobsInvitation = createInvitation({ kind: 'MEMBER', seed: 'passw0rd' })
+      const { publicKey: _publicKey, ...withNoPublicKey } = bobsInvitation
+      bobAuthorsDirectly(bob, {
+        type: 'INVITE_MEMBER',
+        payload: { invitation: withNoPublicKey },
+      })
+      expect(() => alice.team.merge(bob.team.graph)).toThrowError(/can't be replayed/i)
+
+      // ✅ Her graph still reloads, and a real invitation still admits 👳🏽‍♂️ Charlie
+      const reloaded = teams.load(alice.team.save(), alice.localContext, alice.team.teamKeyring())
+      expect(reloaded.members()).toHaveLength(2)
+      const { seed, id } = alice.team.inviteMember()
+      alice.team.admitMember(
+        generateProof(seed, charlie.user.keys),
+        redactKeys(charlie.user.keys),
+        charlie.userName
+      )
+      expect(alice.team.has(charlie.userId)).toBe(true)
+      expect(id).toBeDefined()
+    })
+
+    it("won't accept a lockbox whose recipient couldn't open it", () => {
+      const { alice, bob } = setup('alice', 'bob')
+
+      // Lockbox manifests are plaintext on the graph, so anyone can copy a real lockbox and change
+      // the one field nobody reads on the way in. `encryptionKey.publicKey` is base58 that
+      // `asymmetric.decryptBytes` decodes, and only the member the lockbox is ADDRESSED to ever
+      // opens it — so a poisoned key merges cleanly everywhere else and takes down exactly the
+      // member it names, on load, for good.
+      const aRealLockbox = alice.team.state.lockboxes.find(l => l.recipient.name === bob.userId)!
+      const poisoned = (publicKey: unknown) =>
+        ({
+          ...aRealLockbox,
+          encryptionKey: { ...aRealLockbox.encryptionKey, publicKey },
+        }) as unknown as Lockbox
+
+      const sendALockbox = (publicKey: unknown) => () => {
+        alice.team.dispatch({
+          type: 'MESSAGE',
+          payload: { message: 'hello', lockboxes: [poisoned(publicKey)] },
+        })
+      }
+
+      for (const publicKey of [null, undefined, 123, '', 'not-base58!!!', 'zzz']) {
+        expect(sendALockbox(publicKey)).toThrowError(/lockbox 0 has no/i)
+      }
+
+      // ...and the same link arriving from 👨🏻‍🦲 Bob is refused at her door
+      bobAuthorsDirectly(bob, {
+        type: 'MESSAGE',
+        payload: { message: 'hello', lockboxes: [poisoned('not-base58!!!')] },
+      })
+      expect(() => alice.team.merge(bob.team.graph)).toThrowError(/can't be replayed/i)
+
+      // ✅ 👩🏾 Alice's graph is untouched — she can still reload it, and she can still send a
+      // message carrying the real lockbox. (👨🏻‍🦲 Bob's own graph is not: he went around his door
+      // to author that link, which is exactly the failure this rule keeps peers from inheriting.)
+      const reloaded = teams.load(alice.team.save(), alice.localContext, alice.team.teamKeyring())
+      expect(reloaded.members()).toHaveLength(2)
+      alice.team.dispatch({
+        type: 'MESSAGE',
+        payload: { message: 'hello', lockboxes: [aRealLockbox] },
+      })
+      expect(alice.team.members()).toHaveLength(2)
+    })
+
+    it("won't merge a graph whose links map carries something that isn't a link", () => {
+      const { alice, bob } = setup('alice', 'bob')
+
+      // The guard reads a payload off every link in the graph, and a link entry is as much a peer's
+      // to make up as the payload on it. A string entry was handled — `payloadProblem` allows for
+      // there being no action — but `null` was dereferenced before it was checked, by the one
+      // function whose whole job is not to do that.
+      const graphWithEntry = (entry: unknown) =>
+        ({
+          ...alice.team.graph,
+          links: { ...alice.team.graph.links, h: entry },
+        }) as unknown as TeamGraph
+
+      for (const entry of [null, undefined, 'nope', 123, {}, { body: null }]) {
+        expect(() => bob.team.merge(graphWithEntry(entry))).toThrowError(
+          /can't be replayed. this link has to carry an action/i
+        )
+      }
+
+      // ✅ 👨🏻‍🦲 Bob's graph is untouched, and the same graph without the entry still merges
+      expect(bob.team.members()).toHaveLength(2)
+      bob.team.merge(alice.team.graph)
+      expect(bob.team.members()).toHaveLength(2)
+    })
+
     /**
      * These three are the paths that a check during reduction can't cover, which is why the check
      * is at the door instead: a link the resolver discards is handed to `invalidLinkReducer`
@@ -341,18 +575,6 @@ describe('Team', () => {
      * validated them, and a lockbox element outlives the link that carried it.
      */
     describe('arriving in a concurrency bubble', () => {
-      /** 👨🏻‍🦲 Bob authors a link his own pre-check would have refused, by going around it */
-      const bobAuthorsDirectly = (bob: UserStuff, action: unknown) => {
-        const { store } = bob.team as unknown as {
-          store: Store<TeamState, TeamAction, TeamContext>
-        }
-        try {
-          store.dispatch(action as TeamAction, bob.team.teamKeys())
-        } catch {
-          // The validators refuse it, but it's on his graph either way — that's the point
-        }
-      }
-
       it("won't merge a graph whose malformed link is one the resolver discards", () => {
         const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
 
@@ -535,6 +757,9 @@ describe('Team', () => {
         required: string[]
         /** Fields that may be left off, but can't be anything but an array if they're there */
         arrays: string[]
+        /** Fields that end up in libsodium, and so have to be base58 of a particular length —
+         * being a non-empty string isn't enough for any of these */
+        base58: string[]
       }
 
       const everyCase = (): { alice: UserStuff; bob: UserStuff; cases: ShapeCase[] } => {
@@ -571,78 +796,100 @@ describe('Team', () => {
               'rootDevice.userId',
             ],
             arrays: ['lockboxes'],
+            base58: [
+              'rootMember.keys.encryption',
+              'rootMember.keys.signature',
+              'rootDevice.keys.encryption',
+              'rootDevice.keys.signature',
+            ],
           },
           {
             type: 'ADD_MEMBER',
             payload: { member, roles: [], lockboxes },
             required: ['member', 'member.keys', 'member.userId', 'member.userName'],
             arrays: ['roles', 'lockboxes'],
+            base58: ['member.keys.encryption', 'member.keys.signature'],
           },
           {
             type: 'ADD_DEVICE',
             payload: { device, lockboxes },
             required: ['device', 'device.keys', 'device.deviceId', 'device.userId'],
             arrays: ['lockboxes'],
+            base58: ['device.keys.encryption', 'device.keys.signature'],
           },
           {
             type: 'ADD_ROLE',
             payload: { roleName: 'MANAGERS', lockboxes },
             required: ['roleName'],
             arrays: ['lockboxes'],
+            base58: [],
           },
           {
             type: 'ADD_MEMBER_ROLE',
             payload: { userId: bob.userId, roleName: 'MANAGERS', lockboxes },
             required: ['userId', 'roleName'],
             arrays: ['lockboxes'],
+            base58: [],
           },
           {
             type: 'REMOVE_MEMBER_ROLE',
             payload: { userId: bob.userId, roleName: 'MANAGERS', lockboxes },
             required: ['userId', 'roleName'],
             arrays: ['lockboxes'],
+            base58: [],
           },
           {
             type: 'REMOVE_MEMBER',
             payload: { userId: bob.userId, lockboxes },
             required: ['userId'],
             arrays: ['lockboxes'],
+            base58: [],
           },
           {
             type: 'ROTATE_KEYS',
             payload: { userId: bob.userId, lockboxes },
             required: ['userId'],
             arrays: ['lockboxes'],
+            base58: [],
           },
           {
             type: 'REMOVE_DEVICE',
             payload: { deviceId: bob.device.deviceId, lockboxes },
             required: ['deviceId'],
             arrays: ['lockboxes'],
+            base58: [],
           },
           {
             type: 'REMOVE_ROLE',
             payload: { roleName: 'MANAGERS', lockboxes },
             required: ['roleName'],
             arrays: ['lockboxes'],
+            base58: [],
           },
           {
             type: 'INVITE_MEMBER',
             payload: { invitation, lockboxes },
             required: ['invitation', 'invitation.id'],
             arrays: ['lockboxes'],
+            // An invitation is only recorded on the way in; its public key isn't read until an
+            // admission presents a proof against it, which is what made a bad one dormant
+            base58: ['invitation.publicKey'],
           },
           {
             type: 'INVITE_DEVICE',
             payload: { invitation: deviceInvitation, lockboxes },
             required: ['invitation', 'invitation.id'],
             arrays: ['lockboxes'],
+            // An invitation is only recorded on the way in; its public key isn't read until an
+            // admission presents a proof against it, which is what made a bad one dormant
+            base58: ['invitation.publicKey'],
           },
           {
             type: 'REVOKE_INVITATION',
             payload: { id: invitation.id, lockboxes },
             required: ['id'],
             arrays: ['lockboxes'],
+            base58: [],
           },
           {
             type: 'ADMIT_MEMBER',
@@ -655,33 +902,40 @@ describe('Team', () => {
             },
             // `memberKeys.name` is `admissionMustBeProven`'s: it binds the identity being admitted
             // to the proof of invitation, and it does so before the reducer reads it
-            required: ['id', 'memberKeys', 'userName'],
+            required: ['id', 'memberKeys', 'userName', 'proof'],
             arrays: ['lockboxes'],
+            base58: ['memberKeys.encryption', 'memberKeys.signature', 'proof.signature'],
           },
           {
             type: 'ADMIT_DEVICE',
             payload: { id: deviceInvitation.id, device, proof, lockboxes },
-            // Likewise `device.deviceId` and `device.userId`
-            required: ['id', 'device', 'device.keys'],
+            // An admission is the fourth place a device arrives, and it gets the same rule as the
+            // other three — leaving its identifiers to `admissionMustBeProven` was only ever sound
+            // while that rule ran, and a discarded link goes to `invalidLinkReducer` instead
+            required: ['id', 'device', 'device.keys', 'device.deviceId', 'device.userId', 'proof'],
             arrays: ['lockboxes'],
+            base58: ['device.keys.encryption', 'device.keys.signature', 'proof.signature'],
           },
           {
             type: 'CHANGE_MEMBER_KEYS',
             payload: { keys, lockboxes },
             required: ['keys', 'keys.name'],
             arrays: ['lockboxes'],
+            base58: ['keys.encryption', 'keys.signature'],
           },
           {
             type: 'ADD_SERVER',
             payload: { server, lockboxes },
             required: ['server', 'server.keys', 'server.host'],
             arrays: ['lockboxes'],
+            base58: ['server.keys.encryption', 'server.keys.signature'],
           },
           {
             type: 'REMOVE_SERVER',
             payload: { host: server.host, lockboxes },
             required: ['host'],
             arrays: ['lockboxes'],
+            base58: [],
           },
           // Nothing takes these apart: the message and the team name are stored as they arrive
           {
@@ -689,12 +943,14 @@ describe('Team', () => {
             payload: { message: 'hello', lockboxes },
             required: [],
             arrays: ['lockboxes'],
+            base58: [],
           },
           {
             type: 'SET_TEAM_NAME',
             payload: { teamName: 'Team', lockboxes },
             required: [],
             arrays: ['lockboxes'],
+            base58: [],
           },
         ]
 
@@ -703,8 +959,9 @@ describe('Team', () => {
 
       /** Every variant of a case that has to be refused, as `[label, action]` */
       const brokenVariants = (
-        { type, payload, required, arrays }: ShapeCase,
-        aRealLockbox: Lockbox
+        { type, payload, required, arrays, base58 }: ShapeCase,
+        aRealLockbox: Lockbox,
+        someoneElsesDevice: Device
       ) => {
         const variants: Array<[string, unknown]> = [
           [`${type} payload=null`, { type, payload: null }],
@@ -716,6 +973,19 @@ describe('Team', () => {
             [`${type} ${field}=null`, { type, payload: setPath(payload, field, null) }],
             [`${type} ${field}=undefined`, { type, payload: setPath(payload, field, undefined) }]
           )
+        }
+
+        // A field that ends up in libsodium has to be base58 of the right length. Both spellings of
+        // nothing are here for the same reason they are above, and so are the three ways a string
+        // can still be unusable: not a string at all, the right alphabet at the wrong length (''
+        // and 'zzz' both decode fine and both blow up in libsodium), and the wrong alphabet.
+        for (const field of base58) {
+          for (const value of [null, undefined, 1234, '', 'zzz', 'not-base58!!!']) {
+            variants.push([
+              `${type} ${field}=${JSON.stringify(value)}`,
+              { type, payload: setPath(payload, field, value) },
+            ])
+          }
         }
 
         // An array field left off is legitimate — that's what every honest link carrying no
@@ -734,6 +1004,26 @@ describe('Team', () => {
           [
             '[lockbox holding something other than bytes]',
             [{ ...aRealLockbox, encryptedPayload: 'not-bytes' }],
+          ],
+          // The key a lockbox was sealed with is decoded by its RECIPIENT and by nobody else, so
+          // this is the one field on a copied lockbox that reaches only the member it names
+          [
+            '[lockbox with a key that is not base58]',
+            [
+              {
+                ...aRealLockbox,
+                encryptionKey: { ...aRealLockbox.encryptionKey, publicKey: 'not-base58!!!' },
+              },
+            ],
+          ],
+          [
+            '[lockbox with a key of the wrong length]',
+            [
+              {
+                ...aRealLockbox,
+                encryptionKey: { ...aRealLockbox.encryptionKey, publicKey: 'zzz' },
+              },
+            ],
           ],
         ]
         for (const [label, value] of elements) {
@@ -773,6 +1063,16 @@ describe('Team', () => {
                   { deviceId: 'd', userId: 'u' },
                 ]),
               },
+            ],
+            // Well-shaped in every field, and still unreplayable: a device carried on a member is
+            // filed under that member and never checked against them again, so the throw lands on
+            // the next link that removes it
+            [
+              `${type} ${memberField}.devices=[somebody else's device]`,
+              {
+                type,
+                payload: setPath(payload, `${memberField}.devices`, [someoneElsesDevice]),
+              },
             ]
           )
         }
@@ -798,8 +1098,9 @@ describe('Team', () => {
 
         expect(cases.map(c => c.type).sort()).toEqual([...everyActionType].sort())
 
+        const someoneElsesDevice = redactDevice(alice.device)
         const outcomes = cases
-          .flatMap(shapeCase => brokenVariants(shapeCase, aRealLockbox))
+          .flatMap(shapeCase => brokenVariants(shapeCase, aRealLockbox, someoneElsesDevice))
           .map(([label, action]) =>
             outcome(label, () => {
               alice.team.dispatch(action as TeamAction)
@@ -808,7 +1109,7 @@ describe('Team', () => {
 
         // Every one of them refused, and none of them by a TypeError
         expect(outcomes.filter(result => !result.endsWith('refused'))).toEqual([])
-        expect(outcomes).toHaveLength(253)
+        expect(outcomes).toHaveLength(423)
 
         // ...and because they were refused before being appended, the graph is exactly as it was:
         // 👩🏾 Alice can still reload it, and 👨🏻‍🦲 Bob can still merge it
@@ -835,7 +1136,10 @@ describe('Team', () => {
         const onReplay: string[] = []
         const onArrival: string[] = []
 
-        for (const [label, action] of cases.flatMap(c => brokenVariants(c, aRealLockbox))) {
+        const someoneElsesDevice = redactDevice(alice.device)
+        for (const [label, action] of cases.flatMap(c =>
+          brokenVariants(c, aRealLockbox, someoneElsesDevice)
+        )) {
           // What a peer replaying the chain says about it — the on-chain backstop
           onReplay.push(
             outcome(label, () => {
