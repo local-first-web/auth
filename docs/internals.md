@@ -90,21 +90,51 @@ lockboxes are edges.
 
 ![](img/key-graph.png)
 
-Note that "acyclic" describes what honest peers produce, not what the format guarantees. Any member can post a lockbox holding a keyset they minted themselves, so the graph a peer replays is only as well-shaped as the links on it. Two consequences are worth knowing about.
+Note that "acyclic" describes what honest peers produce, not what the format guarantees. Any member can post a lockbox holding a keyset they minted themselves, naming any scope and any generation, so the graph a peer replays is only as well-shaped as the links on it.
 
 ### Cycles
 
 Nothing in a lockbox says which way the graph runs, so a member can post `create(k1, k2)` alongside `create(k2, k1)` and make the edges point at each other. Both walks over the key graph — `visibleKeys`, which opens lockboxes, and `visibleScopes`, which reads their manifests — carry a visited set for this reason. Aimed at one member's own scope, an unguarded walk took away both of the remediations the team has against that member: they could no longer be removed and no longer be re-keyed, by anybody, permanently.
 
-### A forged lockbox can displace a role's keys
+### A member can displace a scope's keys
 
-**Limitation.** A member reaches a role's keys through their user keys, and an admin reaches roles they don't belong to through the admin role — one step further out. A lockbox holding a keyset of the author's own, addressed to an admin's user keys and naming that role, therefore reaches them sooner than the real one does, and wins. The pairing is one honest flows produce, so nothing at the door can refuse it, and the displaced admin gets no error.
+**This includes the team keys, and it takes one link from a member with no roles at all.** Lockbox manifests are plaintext, so the public key of every member's user keyset is on the graph. A member mints a keyset of their own, names it `TEAM`, and posts one lockbox per member addressed to those user keys — the same pairing `createTeam` and `admitMember` produce, so nothing at the door can refuse it. Every member who replays that link, admins included, then treats the forger's keyset as the team keys. They get no error. What they encrypt for the team, the forger can read and the rest of the team cannot.
 
-It doesn't stop there: `team.addMemberRole` puts the role keys *as the granting admin sees them* into a lockbox for the new member, so an admin who has been displaced hands the forged keyset on to members who never saw the forgery.
+The same works for a role, addressed to an admin's user keys. It propagates from there: `team.addMemberRole` puts the role keys *as the granting admin sees them* into a lockbox for the new member, so a displaced admin hands the forged keyset to members who never saw the forgery.
 
-**What it costs.** The affected members hold a keyset the forger chose, so what they encrypt for that role is readable by the forger and not by the rest of the role. Team keys aren't reachable this way — a lockbox addressed to a device is refused unless it holds that device's user keys, and one addressed to a member's user keys loses to the real team keys, which are the same distance out and already on the graph.
+**Recovery: rotate the scope.** Rotating appends the replacement to the graph's own record of the keysets a scope has carried, and that record — not the `generation` number written inside a lockbox — is what decides which keyset is current. So the replacement takes over regardless of what the forgery claimed.
 
-**Recovery.** Rotating the role replaces the keys for everyone holding them, and the rotation itself is not affected — its generation comes from the graph rather than from any lockbox. Removing a member from the role rotates it, so `team.removeMemberRole(someone, role)` is enough; so is `team.addMemberRole` followed by `removeMemberRole` if nobody needs removing. Verify with `team.roleKeys(role).generation`, which advances. **If you suspect a forged role lockbox, rotate the role.**
+| what was displaced | what to run |
+| --- | --- |
+| the team keys | `team.remove(forger)` — removing any member rotates the team keys |
+| a role's keys | `team.addMemberRole(someone, role)` then `team.removeMemberRole(someone, role)` |
+| a member's own keys | `team.changeKeys(...)` for yourself, or an admin re-keys you |
+
+**How you would notice.** This is the hard part, and there is no reliable alarm. The displaced member gets no error, and if everybody has been displaced they all agree with each other, so nothing local looks wrong. Two things are observable:
+
+- **The generation isn't where your own history says it should be.** A scope's generation counts the keysets the graph has carried for it, so after each rotation you perform it should go up by exactly one. A jump, or a drop — a rotation taking it from 9 to 2 — means the graph carried keysets nobody on the team created.
+- **Peers disagree.** Members who should share a scope's keys fail to decrypt each other's messages for it.
+
+If you have reason to think a scope was forged over, rotate it; rotating a scope that was fine costs nothing but a round of re-encryption.
+
+### The rule this is all an instance of
+
+Four separate security fixes in this area turned out to be the same bug wearing different hats, because each one moved an authority off one attacker-writable quantity and onto another. The rule that would have caught all four:
+
+> **No selector may treat a quantity derived from the lockbox graph as authoritative unless the graph itself assigns it.**
+
+A member can post a lockbox naming any scope, generation and recipient, so everything *written in* a lockbox is an assertion by its author. The one quantity here that isn't is `state.keyHistory`: the reducer appends a scope's keyset the first time the graph carries it, in replay order, so a member moves it by one slot per lockbox they actually post and cannot claim a position. Where these sites stand:
+
+| site | what it decides | status |
+| --- | --- | --- |
+| `selectors/keys` | which generation of a scope is current | **satisfies** — resolved from `keyHistory` order, not from the highest `generation` held |
+| `Team.rotateKeys` | the generation a rotation writes | **satisfies** — `keyHistory.length` |
+| `Team.updateUserKeys` | when to adopt new keys for ourselves | **satisfies** — asks `select.keys`, having previously compared `generation` fields |
+| `selectors/keyMap` | which keyset wins when two claim the same generation | **exception** — the slot is author-asserted. First on the graph wins, which is the conservative choice: it can only ever keep a keyset the team already had |
+| `selectors/lockboxesInScope` | who gets a replacement when a scope rotates | **exception** — grouped by the recipient scope on the manifest, which is author-asserted. Conservative in the same way: a finer grouping only ever adds recipients to a rotation, never drops one |
+| `connection/getDeviceUserFromGraph` | which user keys a joining device adopts | **open** — takes `getLatestGeneration` over a keyring built from the graph, which is the shape fixed in `updateUserKeys` |
+
+The two exceptions are recorded rather than fixed because both fail safe: they can add work or keep an older keyset, but neither can hand over a keyset the team never had. Any new selector reading the lockbox graph should be checked against the rule above and added to this table.
 
 ## API
 

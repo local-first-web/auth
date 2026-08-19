@@ -226,6 +226,8 @@ Assign a role to a member.
 team.addMemberRole('charlie', 'manager')
 ```
 
+> **Note:** rotating a role is also the remediation if you suspect its keys have been forged over — see [the key graph](./internals.md#a-member-can-displace-a-scopes-keys) in Internals.
+
 #### `team.removeMemberRole(userName, roleName)`
 
 Remove a role from a member.
