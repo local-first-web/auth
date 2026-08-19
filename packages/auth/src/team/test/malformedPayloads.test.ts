@@ -643,11 +643,13 @@ describe('Team', () => {
       // depending on which value the peer picked. Removing your own device is open to every
       // member, so 👨🏻‍🦲 Bob doesn't need to be an admin to say this about himself.
       //
-      // Those four are the ENCRYPTION key's. The signature key is checked alongside it and is
-      // covered below, but no value of it was found to throw: `hasSecrets` short-circuits on
-      // `keys.encryption`, `lockbox.create` reads only `.encryption`, and the promoted signature is
-      // read only by `Team.verify`, outside replay. It's here because it's the same field of the
-      // same manifest, which is a reason to check it — not evidence that it breaks anything.
+      // Those four are the ENCRYPTION key's — `hasSecrets` short-circuits on `keys.encryption` and
+      // `lockbox.create` reads only `.encryption`, so the signature reaches neither. The signature
+      // breaks something else, outside replay: `Team.verify` hands `keys.signature` straight to
+      // libsodium, so `team.verify()` on anything 👨🏻‍🦲 Bob signs throws for every peer from then
+      // on rather than answering — measured for all of `null`, `''`, `123`, `{}`, `1n`, `'zzz'` and
+      // `'not-base58!!!'`, none of which returns `false`. Both halves are load-bearing; they just
+      // break for different callers.
       const hisOwn = bob.team.state.lockboxes.find(
         l => l.contents.type === USER && l.contents.name === bob.userId
       )!

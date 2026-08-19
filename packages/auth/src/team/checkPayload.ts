@@ -64,14 +64,19 @@ export const isUsableBase58 = (value: unknown, byteLength: number): value is Bas
  * a BigInt, so one put on a payload arrives intact.
  *
  * The other types are not "caught by the comparisons", which is what an earlier version of this
- * said. `maxGeneration` asks `generation > max` and `lockboxesInScope` then asks
- * `generation === latestGeneration`, and both of those coerce: measured, `'5'`, `true`, `Infinity`,
- * a `Date` and even `[7]` are all SELECTED, and only `null`, `undefined`, `NaN`, `{}` and `[]` fail
- * both tests and drop out. None of the selected ones throws on `+ 1` — they concatenate, or
- * saturate, or quietly produce a generation nobody can count from — so BigInt is the only one this
- * check is load-bearing against today. It's written as "a generation is a finite number" rather
- * than "a generation is not a BigInt" because saying what a field is is the only form of this that
- * stays true when a consumer changes.
+ * said. Only ONE of the two comparisons is a test a forged value has to pass. `maxGeneration` asks
+ * `generation > max`, which coerces — and then RETURNS THE VALUE ITSELF as the new max, so
+ * `lockboxesInScope`'s `generation === latestGeneration` is comparing the forged value against
+ * itself and cannot fail. (`===` doesn't coerce; it doesn't have to. For `'5'` that's string
+ * equality, for a `Date` or an array it's reference identity.) So clearing `> 0` is the whole of
+ * being selected, and it also DISPLACES the honest lockbox, whose generation is now below the max.
+ * Measured against an honest generation 0: `'5'`, `true`, `Infinity`, a `Date` and even `[7]` each
+ * end up as the only lockbox in scope, and only `null`, `undefined`, `NaN`, `{}` and `[]` fail
+ * `> 0` and drop out. None of the selected ones throws on `+ 1` — they concatenate, or saturate, or
+ * quietly produce a generation nobody can count from — so BigInt is the only one this check is
+ * load-bearing against today. It's written as "a generation is a finite number" rather than "a
+ * generation is not a BigInt" because saying what a field is is the only form of this that stays
+ * true when a consumer changes.
  *
  * What none of this reaches is a generation that IS a finite number and is simply a lie. Being
  * selected is the whole mechanism above, and an honest-looking `3` wins that selection the same way
@@ -467,12 +472,18 @@ const proofProblem = (proof: unknown): string | undefined => {
  * From there `createMemberLockboxes` hands the ENCRYPTION key to `lockbox.create`, so granting that
  * member a role throws in libsodium rather than refusing.
  *
- * Only the encryption key was demonstrated fatal, and the two are here for different reasons.
- * `redactKeys` decides what to do with the promoted keyset by asking `hasSecrets`, which reads
- * `keys.encryption.hasOwnProperty` first and short-circuits there; `lockbox.create` then reads
- * `.encryption` and nothing else. The promoted `signature` is only ever read by `Team.verify`,
- * outside replay — probed with every value, it throws nowhere. It's described here by symmetry with
- * the field beside it, which is a reason to keep a check and not a reason to claim a failure.
+ * The two are load-bearing for different callers, and neither is here by symmetry. The encryption
+ * key is the one that breaks a REPLAY: `redactKeys` asks `hasSecrets`, which reads
+ * `keys.encryption.hasOwnProperty` first and short-circuits there, and `lockbox.create` then reads
+ * `.encryption` and nothing else — so the signature never reaches either. What the signature
+ * breaks is `Team.verify`, which hands `members(author).keys.signature` straight to libsodium.
+ * Measured over every value: `null`, `123`, `{}` and `1n` give `Expected String`, `'zzz'` and `''`
+ * give `invalid publicKey length`, and `'not-base58!!!'` gives `Non-base58 character`. Not one of
+ * them returns `false`. So any member can poison another member's promoted signature by removing
+ * their OWN device, and `team.verify()` on anything that member signs throws on every peer from
+ * then on, instead of answering — a permanent, remotely planted throw in a public API. It's outside
+ * replay, which is why it isn't a graph you can't open; it is not a reason to think the check
+ * optional.
  *
  * They're optional because a manifest built from another manifest doesn't carry them — and
  * `undefined` is exactly what `removeDevice` checks for before promoting, so absence is the one
