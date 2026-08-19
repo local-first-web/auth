@@ -1,12 +1,12 @@
 ﻿/* eslint-disable @typescript-eslint/ban-ts-comment */
-import { asymmetric } from '@localfirst/crypto'
+import { asymmetric, hash } from '@localfirst/crypto'
 import { buildGraph } from '../../util/testing/graph.js'
 import { TEST_GRAPH_KEYS as keys, setup } from '../../util/testing/setup.js'
 import { describe, expect, test, vitest } from 'vitest'
 import { hashEncryptedLink } from '../../graph/hashLink.js'
 import { append, createGraph, getHead, getLink, getRoot, type Graph } from '../../graph/index.js'
 import { type Hash } from '../../util/index.js'
-import { validate } from '../validate.js'
+import { validate, validateStructure } from '../validate.js'
 import { fail } from '../validators.js'
 import { type ValidationResult, type ValidatorSet } from '../types.js'
 import '../../util/testing/expect/toBeValid.js'
@@ -14,6 +14,15 @@ import '../../util/testing/expect/toBeValid.js'
 const { setSystemTime } = vitest.useFakeTimers()
 
 const { alice, eve } = setup('alice', 'eve')
+
+/** Enough of lodash's memo cache interface for these tests to poke at it. */
+type MemoCache = {
+  size: number
+  has: (key: string) => boolean
+  get: (key: string) => ValidationResult | undefined
+  set: (key: string, value: ValidationResult) => unknown
+  clear: () => void
+}
 
 describe('graphs', () => {
   describe('validation', () => {
@@ -283,6 +292,73 @@ describe('graphs', () => {
         setSystemTime(now)
 
         expect(validate(graph2)).not.toBeValid()
+      })
+    })
+
+    /**
+     * `validateStructure` IS a function of the graph alone, so it keeps its memo. What it doesn't
+     * get is lodash's default cache, which never evicts; see auth-bmx.
+     */
+    describe(`validateStructure's cache`, () => {
+      const cacheOf = () => (validateStructure as unknown as { cache: MemoCache }).cache
+      const keyFor = (graph: Graph<any, any>) => hash('memoizeStructure', graph)
+
+      const chain = (length: number) => {
+        let graph: Graph<any, any> = createGraph({ user: alice, name: 'Spies Я Us', keys })
+        for (let i = 0; i < length; i++)
+          graph = append({ graph, action: { type: 'FOO', payload: i }, user: alice, keys })
+        return graph
+      }
+
+      test('still answers from the cache when asked about the same graph twice', () => {
+        const graph = chain(3)
+        expect(validateStructure(graph)).toBeValid()
+
+        // a cached answer is the only way this comes back
+        const sentinel = fail('served from the cache')
+        cacheOf().set(keyFor(graph), sentinel)
+        expect(validateStructure(graph)).toBe(sentinel)
+      })
+
+      test('drops old entries rather than gaining one per graph version', () => {
+        const versions = 200
+        cacheOf().clear()
+
+        let graph: Graph<any, any> = createGraph({ user: alice, name: 'Spies Я Us', keys })
+        for (let i = 0; i < versions; i++) {
+          graph = append({ graph, action: { type: 'FOO', payload: i }, user: alice, keys })
+          expect(validateStructure(graph)).toBeValid()
+        }
+
+        expect(cacheOf().size).toBeGreaterThan(0)
+        // generous: the point is that it's bounded, not that it's bounded at any exact number
+        expect(cacheOf().size).toBeLessThanOrEqual(20)
+      })
+
+      test('sees link bytes replaced in place, which a cheaper key would not', () => {
+        const graph = chain(3)
+        expect(validateStructure(graph)).toBeValid()
+
+        const headBefore = [...graph.head]
+
+        // 🦹‍♀️ Eve replaces a link's bytes in place and reencrypts with her own key
+        const linkHash = graph.head[0]
+        const link = getLink(graph, linkHash)
+        link.body.payload = 'tampered'
+        graph.encryptedLinks[linkHash] = {
+          encryptedBody: asymmetric.encryptBytes({
+            secret: link.body,
+            recipientPublicKey: keys.encryption.publicKey,
+            senderSecretKey: eve.keys.encryption.secretKey,
+          }),
+          recipientPublicKey: keys.encryption.publicKey,
+          senderPublicKey: eve.keys.encryption.publicKey,
+        }
+
+        // the graph object and its head are exactly what they were, so a cache keyed on either
+        // would still be serving the answer from before the tampering
+        expect(graph.head).toEqual(headBefore)
+        expect(validateStructure(graph)).not.toBeValid()
       })
     })
 
