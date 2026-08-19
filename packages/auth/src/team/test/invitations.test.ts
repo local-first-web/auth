@@ -499,9 +499,12 @@ describe('Team', () => {
         // including the record of whom an invitation has already admitted, which is what keeps a
         // published proof from being replayed. So they have to be turned away at the door.
         //
-        // Two rules say so now, in the same words: `admissionMustBeProven`, which can see the
-        // invitation as well as the admission, and `payloadProblem`, which speaks first because it
-        // also has to speak for the links `admissionMustBeProven` never sees.
+        // Two rules say so now — `admissionMustBeProven`, which can see the invitation as well as
+        // the admission, and `payloadProblem`, which also has to speak for the links
+        // `admissionMustBeProven` never sees. Through `dispatch` it is always the second one that
+        // answers, because the payload is checked before the link is built, so that's the message
+        // this expects. (`admissionMustBeProven`'s wording is pinned by the merge-path tests in
+        // `malformedPayloads.test.ts`.)
         const namelessKeys = { ...bob.user.keys, name: undefined as unknown as string }
         const { seed } = alice.team.inviteMember({ maxUses: 2 })
         const proofOfInvitation = generateProof(seed, namelessKeys)
@@ -519,7 +522,9 @@ describe('Team', () => {
           })
         }
 
-        expect(admitANamelessInvitee).toThrowError(/usable userid/i)
+        expect(admitANamelessInvitee).toThrowError(
+          "This ADMIT_MEMBER link needs a usable userId, and 'undefined' is not one."
+        )
         expect(alice.team.members()).toHaveLength(1)
       })
 

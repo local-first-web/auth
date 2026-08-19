@@ -53,6 +53,25 @@ export const isUsableBase58 = (value: unknown, byteLength: number): value is Bas
 }
 
 /**
+ * A counter something does arithmetic on: a number, and one that arithmetic means something for.
+ *
+ * A generation is compared, and it is also ADDED TO — `lockbox.rotate` computes the next one as
+ * `oldLockbox.contents.generation + 1`, and `Team.changeKeys` computes it as
+ * `oldKeys.generation + 1`. Adding to a value is not the same kind of safe as comparing it:
+ * JavaScript compares a BigInt against a number happily and refuses to add one to it, so a BigInt
+ * generation sails through every filter that selects the lockbox to rotate and then throws
+ * `Cannot mix BigInt and other types` in the line that rotates it. msgpackr round-trips a BigInt as
+ * a BigInt, so one put on a payload arrives intact.
+ *
+ * (Every other type is caught by the comparisons instead: a string, an object, `null` or a missing
+ * one is a generation that never compares equal to anything, so the lockbox holding it is never
+ * selected. Being harmless by never matching is not a property worth keeping, though — this says
+ * what a generation is, so that nothing downstream has to.)
+ */
+const isUsableGeneration = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value)
+
+/**
  * An optional array field that arrived as something other than an array.
  *
  * `undefined` is what a link that carries none of these looks like, and that's what `= []` is for.
@@ -80,8 +99,11 @@ const isNotAnArray = (value: unknown) => value !== undefined && !Array.isArray(v
  * - this function itself dereferences nothing it hasn't just checked, so it can't fail the way it
  *   exists to prevent
  *
- * Being present isn't the whole of being usable, and there are three other ways a field is
- * described here:
+ * Being present isn't the whole of being usable, and there are four other ways a field is described
+ * here. Three of them are about the TYPE a field arrives as, and they exist because absence is only
+ * the most obvious way a field can be wrong: msgpackr round-trips numbers, strings, BigInts,
+ * objects and arrays alike, so every one of those is a value a peer can put anywhere. Establishing
+ * that a field is safe for one of them establishes nothing about the rest.
  *
  * - **A field that ends up in libsodium has to be base58 of the right length.** `proof.signature`,
  *   `invitation.publicKey`, a keyset's `encryption` and `signature`, and a lockbox's
@@ -90,11 +112,17 @@ const isNotAnArray = (value: unknown) => value !== undefined && !Array.isArray(v
  *   by `isUsableBase58`, because they fail as a group: the one that matters is whichever one a peer
  *   thinks to send.
  * - **A field that reaches `JSON.stringify` has to be a string.** `JSON.stringify` throws on a
- *   BigInt, and msgpackr round-trips a BigInt as a BigInt, so one put on a payload arrives intact.
- *   The place that matters is the lodash `memoize` resolver at `invitation/validate.ts`, which
- *   serializes `proof.id`, `proof.invitee` and `proof.keyHash` to build its cache key — before the
- *   memoized body runs, so before anything compares them. (`actionFingerprint` is the other
- *   `JSON.stringify` a payload reaches, and it already catches what it throws.)
+ *   BigInt. The place that matters is the lodash `memoize` resolver at `invitation/validate.ts`,
+ *   which serializes `proof.id`, `proof.invitee` and `proof.keyHash` to build its cache key —
+ *   before the memoized body runs, so before anything compares them. Payload data reaches three
+ *   other `JSON.stringify`s, and none of them is a reason to check anything here:
+ *   `actionFingerprint` catches what it throws; `assertScopesMatch` and the `Couldn't find keys`
+ *   assert both build their message EAGERLY, on every rotate and every key lookup respectively, but
+ *   only ever over a scope's `type` and `name` — which this file requires to be strings wherever
+ *   they can reach either one. That last part is load-bearing, not incidental: those two are safe
+ *   because of a rule here, not on their own.
+ * - **A field something does arithmetic on has to be a number.** A generation is compared AND added
+ *   to, and those aren't the same kind of safe — see `isUsableGeneration`.
  * - **A device carried on a member has to be that member's.** Shape is per-field, but a device
  *   naming a `userId` no member has is well-shaped and still unreplayable — `removeDevice` looks
  *   its owner up and asserts. That's a relation between two fields of one payload rather than a
@@ -340,18 +368,28 @@ const deviceProblem = (device: unknown): string | undefined => {
  * fields are base58 public keys that go on to `lockbox.create` and the connection handshake, which
  * decode them. So there's one rule for keysets, and it says the keys are there and are keys.
  *
- * `name`, `type` and `generation` aren't here: they're compared and stored, never decoded, and
- * where a particular one is load-bearing the case that carries it says so (`keys.name` on
- * CHANGE_MEMBER_KEYS).
+ * `generation` is here because it is added to, not just compared: `Team.changeKeys` computes a
+ * member's next generation as `oldKeys.generation + 1`, so a keyset that arrives on the graph
+ * carrying a BigInt is a member nobody can ever re-key. Both halves of that were established by
+ * trying every type a payload can carry, not by reading the callers — reading is what missed it.
+ *
+ * `name` and `type` aren't here, and the reason is narrower than "they're only compared". They're
+ * copied verbatim into the recipient manifest of every lockbox later addressed to this keyset, and
+ * `lockboxProblem` requires a manifest's to be strings — so a keyset carrying a `name` that isn't
+ * one costs that member the ability to be granted a role, at the door of the link that would grant
+ * it. That's a refusal rather than a throw during a replay, which is the line this file draws, but
+ * it isn't nothing: see auth-2oa. Where a particular one is load-bearing on arrival, the case that
+ * carries it says so (`keys.name` on CHANGE_MEMBER_KEYS, `memberKeys.name` on ADMIT_MEMBER).
  */
 const keysetProblem = (keys: unknown): string | undefined => {
   if (isMissing(keys) || typeof keys !== 'object') return 'there is no keyset'
 
-  const { encryption, signature } = keys as Record<string, unknown>
+  const { encryption, signature, generation } = keys as Record<string, unknown>
   if (!isUsableBase58(encryption, PUBLIC_KEY_BYTES))
     return `'${String(encryption)}' is not a usable encryption key`
   if (!isUsableBase58(signature, PUBLIC_KEY_BYTES))
     return `'${String(signature)}' is not a usable signature key`
+  if (!isUsableGeneration(generation)) return `'${String(generation)}' is not a usable generation`
 
   return undefined
 }
@@ -400,8 +438,22 @@ const proofProblem = (proof: unknown): string | undefined => {
  * departing device. So an element that can't be destructured isn't a problem for one link; it's a
  * problem for every link that comes after it.
  *
- * `generation` is deliberately not required: it's only ever compared or added to, so a missing one
- * makes a lockbox that never matches rather than one that throws.
+ * A manifest is a keyset's public half, so the fields it shares with a keyset get the rule a keyset
+ * gives them. `generation` used to be excused here on the grounds that it's "only ever compared or
+ * added to" — which named the danger and then filed it under safe. Added-to IS the throw:
+ * `lockbox.rotate` computes `oldLockbox.contents.generation + 1`, and `lockboxesInScope` picks the
+ * highest generation in scope, so a BigInt one is selected FIRST and guaranteed to reach that line.
+ * Aimed at a member's own scope it disables `changeKeys` for them; aimed at the team's it disables
+ * `remove` for everybody, permanently, on a graph that still loads.
+ *
+ * `encryption` and `signature` are on a manifest too, and `removeDevice` promotes them: a lockbox
+ * naming a later generation than the member has is treated as the authority on that member's public
+ * keys, and its `encryption` and `signature` are written into `state.members[…].keys` verbatim.
+ * From there `createMemberLockboxes` hands the encryption key to `lockbox.create`, so granting that
+ * member a role throws in libsodium rather than refusing. They're optional because a manifest built
+ * from another manifest doesn't carry them — but `undefined` is exactly what `removeDevice` checks
+ * for before promoting, so absence is the one value it already handles and every other value is one
+ * it doesn't.
  */
 const lockboxProblem = (lockbox: unknown): string | undefined => {
   if (isMissing(lockbox) || typeof lockbox !== 'object') return 'is not a lockbox'
@@ -428,6 +480,17 @@ const lockboxProblem = (lockbox: unknown): string | undefined => {
     // to look at.
     if (!isUsableBase58(manifest.publicKey, PUBLIC_KEY_BYTES))
       return `has no usable public key on its ${name} manifest ('${String(manifest.publicKey)}')`
+
+    if (!isUsableGeneration(manifest.generation))
+      return `has no usable generation on its ${name} manifest ('${String(manifest.generation)}')`
+
+    // A manifest built from another manifest carries no public keys of its own, and `removeDevice`
+    // already handles that: it promotes these two only when both are there. Every other value is
+    // one it doesn't handle.
+    for (const key of ['encryption', 'signature'] as const) {
+      if (manifest[key] !== undefined && !isUsableBase58(manifest[key], PUBLIC_KEY_BYTES))
+        return `has no usable ${key} key on its ${name} manifest ('${String(manifest[key])}')`
+    }
   }
 
   // The key a lockbox was sealed with is base58 that `asymmetric.decryptBytes` decodes. Nothing on

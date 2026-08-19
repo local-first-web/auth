@@ -543,6 +543,141 @@ describe('Team', () => {
       expect(alice.team.members()).toHaveLength(2)
     })
 
+    it("won't accept a keyset nobody could ever count from", () => {
+      const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+
+      // The same arithmetic, one level up. `Team.changeKeys` computes a member's next generation as
+      // `oldKeys.generation + 1`, so a keyset that arrives carrying a BigInt compares fine against
+      // every number the team holds and throws in that one line: the member goes on the team, the
+      // graph replays and reloads, and nobody can ever re-key them. This came out of trying each
+      // type a payload can carry against `generation` rather than out of reading the callers —
+      // only BigInt does this, and the doc that excused the field named the danger and then filed
+      // it under safe.
+      const withGeneration = (generation: unknown) =>
+        ({
+          type: 'ADD_MEMBER',
+          payload: {
+            member: {
+              ...redactUser(charlie.user),
+              keys: { ...redactKeys(charlie.user.keys), generation },
+            },
+            roles: [],
+            lockboxes: [],
+          },
+        }) as unknown as TeamAction
+
+      for (const generation of [1n, null, undefined, '5', {}]) {
+        expect(() => {
+          alice.team.dispatch(withGeneration(generation))
+        }).toThrowError(/is not a usable generation/i)
+      }
+
+      // ...and the same link arriving from 👨🏻‍🦲 Bob is refused at 👩🏾 Alice's door
+      bobAuthorsDirectly(bob, withGeneration(1n))
+      expect(() => alice.team.merge(bob.team.graph)).toThrowError(/can't be replayed/i)
+
+      // ✅ 👳🏽‍♂️ Charlie joins with an ordinary keyset, and 👩🏾 Alice can re-key him
+      alice.team.addForTesting(charlie.user, [], redactDevice(charlie.device))
+      alice.team.changeKeys(createKeyset({ type: USER, name: charlie.userId }))
+      expect(alice.team.members(charlie.userId).keys.generation).toBe(1)
+    })
+
+    it("won't accept a lockbox whose generation nothing could count from", () => {
+      const { alice, bob, charlie } = setup('alice', { user: 'bob', admin: false }, 'charlie')
+
+      // A generation is compared AND added to, and those aren't the same kind of safe. JavaScript
+      // compares a BigInt against a number happily and refuses to add one to it — so a BigInt
+      // generation isn't merely accepted, it's SELECTED: `lockboxesInScope` takes the highest
+      // generation in scope, which guarantees the forged lockbox is the one handed to
+      // `lockbox.rotate`, whose first act is `oldLockbox.contents.generation + 1`. The graph still
+      // loads; what it can't do again is rotate keys in that scope.
+      const forge = (l: Lockbox, generation: unknown) =>
+        ({ ...l, contents: { ...l.contents, generation } }) as unknown as Lockbox
+
+      const hisOwn = bob.team.state.lockboxes.find(
+        l => l.contents.type === USER && l.contents.name === bob.userId
+      )!
+      const teamScoped = bob.team.state.lockboxes.find(l => l.contents.type === 'TEAM')!
+
+      const addHisPhone = (lockbox: Lockbox) => () => {
+        bob.team.dispatch({
+          type: 'ADD_DEVICE',
+          payload: { device: redactDevice(bob.phone!), lockboxes: [lockbox] },
+        })
+      }
+
+      // Only a BigInt is fatal; the rest are refused because a generation is a number, not because
+      // we found a throw for each of them
+      for (const generation of [1n, null, undefined, '5', {}]) {
+        expect(addHisPhone(forge(hisOwn, generation))).toThrowError(
+          /lockbox 0 has no usable generation on its contents manifest/i
+        )
+      }
+
+      // ...and the same link arriving from 👨🏻‍🦲 Bob is refused at 👩🏾 Alice's door. Aimed at the
+      // TEAM scope it isn't one member's problem: `remove` rotates the team keys, so it would have
+      // cost 👩🏾 Alice the ability to remove ANYONE.
+      bobAuthorsDirectly(bob, {
+        type: 'ADD_DEVICE',
+        payload: { device: redactDevice(bob.phone!), lockboxes: [forge(teamScoped, 1n)] },
+      })
+      expect(() => alice.team.merge(bob.team.graph)).toThrowError(/can't be replayed/i)
+
+      // ✅ 👩🏾 Alice can still re-key 👨🏻‍🦲 Bob and still remove 👳🏽‍♂️ Charlie
+      alice.team.changeKeys(createKeyset({ type: USER, name: bob.userId }))
+      alice.team.remove(charlie.userId)
+      expect(alice.team.members()).toHaveLength(2)
+    })
+
+    it("won't accept a lockbox that lies about a member's keys", () => {
+      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+      alice.team.addRole({ roleName: 'MANAGERS' })
+      bob.team.merge(alice.team.graph)
+
+      // A manifest carries the public half of the keyset it names, and `removeDevice` treats a
+      // lockbox naming a later generation than the member has as the authority on that member's
+      // keys: it writes the manifest's `encryption` and `signature` straight into
+      // `state.members[…].keys`. From there `createMemberLockboxes` hands the encryption key to
+      // `lockbox.create`, so it's an admin GRANTING A ROLE who pays — `Non-base58 character`,
+      // `invalid publicKey length`, `Expected String` or `Cannot read properties of null`,
+      // depending on which value the peer picked. Removing your own device is open to every
+      // member, so 👨🏻‍🦲 Bob doesn't need to be an admin to say this about himself.
+      const hisOwn = bob.team.state.lockboxes.find(
+        l => l.contents.type === USER && l.contents.name === bob.userId
+      )!
+      const forged = (field: string, value: unknown) =>
+        ({
+          ...hisOwn,
+          contents: { ...hisOwn.contents, generation: 5, [field]: value },
+        }) as unknown as Lockbox
+
+      const removeHisOwnDevice = (lockbox: Lockbox) => () => {
+        bob.team.dispatch({
+          type: 'REMOVE_DEVICE',
+          payload: { deviceId: bob.device.deviceId, lockboxes: [lockbox] },
+        })
+      }
+
+      for (const field of ['encryption', 'signature']) {
+        for (const value of [null, 123, '', 'zzz', 'not-base58!!!', {}]) {
+          expect(removeHisOwnDevice(forged(field, value))).toThrowError(
+            new RegExp(`lockbox 0 has no usable ${field} key on its contents manifest`, 'i')
+          )
+        }
+      }
+
+      // ...and the same link arriving from him is refused at 👩🏾 Alice's door
+      bobAuthorsDirectly(bob, {
+        type: 'REMOVE_DEVICE',
+        payload: { deviceId: bob.device.deviceId, lockboxes: [forged('encryption', 'zzz')] },
+      })
+      expect(() => alice.team.merge(bob.team.graph)).toThrowError(/can't be replayed/i)
+
+      // ✅ 👨🏻‍🦲 Bob's keys on the team are still his own, so 👩🏾 Alice can still grant him a role
+      alice.team.addMemberRole(bob.userId, 'MANAGERS')
+      expect(alice.team.memberHasRole(bob.userId, 'MANAGERS')).toBe(true)
+    })
+
     it("won't accept a lockbox nobody could ever re-key", () => {
       const { alice, bob } = setup('alice', { user: 'bob', admin: false })
 
@@ -888,6 +1023,9 @@ describe('Team', () => {
          * have to be strings — msgpackr round-trips a BigInt as a BigInt, and `JSON.stringify`
          * throws on one */
         serialized: string[]
+        /** Fields something does arithmetic on, and so have to be numbers — a BigInt compares
+         * fine everywhere it's compared and throws in the one line that adds to it */
+        numbers: string[]
         /** Fields that end up in libsodium, and so have to be base58 of a particular length —
          * being a non-empty string isn't enough for any of these */
         base58: string[]
@@ -928,6 +1066,7 @@ describe('Team', () => {
             ],
             arrays: ['lockboxes'],
             serialized: [],
+            numbers: ['rootMember.keys.generation', 'rootDevice.keys.generation'],
             base58: [
               'rootMember.keys.encryption',
               'rootMember.keys.signature',
@@ -941,6 +1080,7 @@ describe('Team', () => {
             required: ['member', 'member.keys', 'member.userId', 'member.userName'],
             arrays: ['roles', 'lockboxes'],
             serialized: [],
+            numbers: ['member.keys.generation'],
             base58: ['member.keys.encryption', 'member.keys.signature'],
           },
           {
@@ -949,6 +1089,7 @@ describe('Team', () => {
             required: ['device', 'device.keys', 'device.deviceId', 'device.userId'],
             arrays: ['lockboxes'],
             serialized: [],
+            numbers: ['device.keys.generation'],
             base58: ['device.keys.encryption', 'device.keys.signature'],
           },
           {
@@ -957,6 +1098,7 @@ describe('Team', () => {
             required: ['roleName'],
             arrays: ['lockboxes'],
             serialized: [],
+            numbers: [],
             base58: [],
           },
           {
@@ -965,6 +1107,7 @@ describe('Team', () => {
             required: ['userId', 'roleName'],
             arrays: ['lockboxes'],
             serialized: [],
+            numbers: [],
             base58: [],
           },
           {
@@ -973,6 +1116,7 @@ describe('Team', () => {
             required: ['userId', 'roleName'],
             arrays: ['lockboxes'],
             serialized: [],
+            numbers: [],
             base58: [],
           },
           {
@@ -981,6 +1125,7 @@ describe('Team', () => {
             required: ['userId'],
             arrays: ['lockboxes'],
             serialized: [],
+            numbers: [],
             base58: [],
           },
           {
@@ -989,6 +1134,7 @@ describe('Team', () => {
             required: ['userId'],
             arrays: ['lockboxes'],
             serialized: [],
+            numbers: [],
             base58: [],
           },
           {
@@ -997,6 +1143,7 @@ describe('Team', () => {
             required: ['deviceId'],
             arrays: ['lockboxes'],
             serialized: [],
+            numbers: [],
             base58: [],
           },
           {
@@ -1005,6 +1152,7 @@ describe('Team', () => {
             required: ['roleName'],
             arrays: ['lockboxes'],
             serialized: [],
+            numbers: [],
             base58: [],
           },
           {
@@ -1013,6 +1161,7 @@ describe('Team', () => {
             required: ['invitation', 'invitation.id'],
             arrays: ['lockboxes'],
             serialized: [],
+            numbers: [],
             // An invitation is only recorded on the way in; its public key isn't read until an
             // admission presents a proof against it, which is what made a bad one dormant
             base58: ['invitation.publicKey'],
@@ -1023,6 +1172,7 @@ describe('Team', () => {
             required: ['invitation', 'invitation.id'],
             arrays: ['lockboxes'],
             serialized: [],
+            numbers: [],
             // An invitation is only recorded on the way in; its public key isn't read until an
             // admission presents a proof against it, which is what made a bad one dormant
             base58: ['invitation.publicKey'],
@@ -1033,6 +1183,7 @@ describe('Team', () => {
             required: ['id'],
             arrays: ['lockboxes'],
             serialized: [],
+            numbers: [],
             base58: [],
           },
           {
@@ -1051,6 +1202,7 @@ describe('Team', () => {
             required: ['id', 'memberKeys', 'memberKeys.name', 'userName', 'proof'],
             arrays: ['lockboxes'],
             serialized: ['proof.id', 'proof.invitee', 'proof.keyHash'],
+            numbers: ['memberKeys.generation'],
             base58: ['memberKeys.encryption', 'memberKeys.signature', 'proof.signature'],
           },
           {
@@ -1062,6 +1214,7 @@ describe('Team', () => {
             required: ['id', 'device', 'device.keys', 'device.deviceId', 'device.userId', 'proof'],
             arrays: ['lockboxes'],
             serialized: ['proof.id', 'proof.invitee', 'proof.keyHash'],
+            numbers: ['device.keys.generation'],
             base58: ['device.keys.encryption', 'device.keys.signature', 'proof.signature'],
           },
           {
@@ -1070,6 +1223,7 @@ describe('Team', () => {
             required: ['keys', 'keys.name'],
             arrays: ['lockboxes'],
             serialized: [],
+            numbers: ['keys.generation'],
             base58: ['keys.encryption', 'keys.signature'],
           },
           {
@@ -1078,6 +1232,7 @@ describe('Team', () => {
             required: ['server', 'server.keys', 'server.host'],
             arrays: ['lockboxes'],
             serialized: [],
+            numbers: ['server.keys.generation'],
             base58: ['server.keys.encryption', 'server.keys.signature'],
           },
           {
@@ -1086,6 +1241,7 @@ describe('Team', () => {
             required: ['host'],
             arrays: ['lockboxes'],
             serialized: [],
+            numbers: [],
             base58: [],
           },
           // Nothing takes these apart: the message and the team name are stored as they arrive
@@ -1095,6 +1251,7 @@ describe('Team', () => {
             required: [],
             arrays: ['lockboxes'],
             serialized: [],
+            numbers: [],
             base58: [],
           },
           {
@@ -1103,6 +1260,7 @@ describe('Team', () => {
             required: [],
             arrays: ['lockboxes'],
             serialized: [],
+            numbers: [],
             base58: [],
           },
         ]
@@ -1112,7 +1270,7 @@ describe('Team', () => {
 
       /** Every variant of a case that has to be refused, as `[label, action]` */
       const brokenVariants = (
-        { type, payload, required, arrays, serialized, base58 }: ShapeCase,
+        { type, payload, required, arrays, serialized, numbers, base58 }: ShapeCase,
         aRealLockbox: Lockbox,
         someoneElsesDevice: Device
       ) => {
@@ -1147,6 +1305,19 @@ describe('Team', () => {
         // intact, and `JSON.stringify` throws on it rather than answering.
         for (const field of serialized) {
           for (const value of [null, undefined, 1234, '', 1n]) {
+            variants.push([
+              `${type} ${field}=${String(value)}`,
+              { type, payload: setPath(payload, field, value) },
+            ])
+          }
+        }
+
+        // A field something adds to has to be a number. `1n` is the one that matters — it compares
+        // fine everywhere it's compared, so it reaches the line that adds to it and throws there.
+        // The rest are refused because a generation is a number, not because each has its own
+        // throw: `'5'` concatenates, and the others make a generation that never matches.
+        for (const field of numbers) {
+          for (const value of [null, undefined, 1n, '5', {}]) {
             variants.push([
               `${type} ${field}=${String(value)}`,
               { type, payload: setPath(payload, field, value) },
@@ -1220,6 +1391,41 @@ describe('Team', () => {
           [
             "[lockbox whose contents' key is the wrong length]",
             [{ ...aRealLockbox, contents: { ...aRealLockbox.contents, publicKey: 'zzz' } }],
+          ],
+          // A generation is added to, not just compared, and `lockboxesInScope` picks the HIGHEST
+          // one in scope — so a BigInt is selected first and guaranteed to reach the line that
+          // adds to it
+          [
+            '[lockbox whose generation is a BigInt]',
+            [{ ...aRealLockbox, contents: { ...aRealLockbox.contents, generation: 1n } }],
+          ],
+          [
+            '[lockbox whose generation is a string]',
+            [{ ...aRealLockbox, contents: { ...aRealLockbox.contents, generation: '5' } }],
+          ],
+          [
+            "[lockbox whose recipient's generation is missing]",
+            [{ ...aRealLockbox, recipient: { ...aRealLockbox.recipient, generation: null } }],
+          ],
+          // A manifest also carries the public half of the keyset it names, and `removeDevice`
+          // promotes those into the member's own keys
+          [
+            "[lockbox claiming a member's encryption key is not base58]",
+            [
+              {
+                ...aRealLockbox,
+                contents: { ...aRealLockbox.contents, generation: 5, encryption: 'not-base58!!!' },
+              },
+            ],
+          ],
+          [
+            "[lockbox claiming a member's signature key is null]",
+            [
+              {
+                ...aRealLockbox,
+                contents: { ...aRealLockbox.contents, generation: 5, signature: null },
+              },
+            ],
           ],
         ]
         for (const [label, value] of elements) {
@@ -1305,7 +1511,7 @@ describe('Team', () => {
 
         // Every one of them refused, and none of them by a TypeError
         expect(outcomes.filter(result => !result.endsWith('refused'))).toEqual([])
-        expect(outcomes).toHaveLength(535)
+        expect(outcomes).toHaveLength(675)
 
         // ...and because they were refused before being appended, the graph is exactly as it was:
         // 👩🏾 Alice can still reload it, and 👨🏻‍🦲 Bob can still merge it
