@@ -2,6 +2,7 @@
 import { getRoot } from '../graph/getRoot.js'
 import { hashEncryptedLink } from '../graph/hashLink.js'
 import { ValidationError, type ValidatorSet } from './types.js'
+import { type Hash } from '../util/index.js'
 
 /**
  * Rules about the shape of the graph itself: that a link is the bytes it claims to be, that the
@@ -34,8 +35,9 @@ export const structuralValidators: ValidatorSet = {
   /** Does this link's hash check out? */
   validateHash(link, graph) {
     const { hash } = link
-    const { encryptedBody } = graph.encryptedLinks[hash]
-    const computedHash = hashEncryptedLink(encryptedBody)
+    const encryptedLink = graph.encryptedLinks[hash]
+    if (encryptedLink === undefined) return missingEncryptedLink(hash, 'link')
+    const computedHash = hashEncryptedLink(encryptedLink.encryptedBody)
     if (hash === computedHash) return VALID
     return fail(`The hash calculated for this link does not match.`, {
       link,
@@ -144,6 +146,17 @@ export const advisoryValidators: ValidatorSet = {
 
 /** Every rule there is. This is what `Store.validate` and the sync protocol check against. */
 export const validators: ValidatorSet = { ...structuralValidators, ...advisoryValidators }
+
+/**
+ * A link's bytes live in its encrypted link, so with that entry missing there's nothing to hash
+ * and nothing to compare a hash against. `runValidators` reaches for one in three places — the
+ * root check, the head check, and `validateHash` — and all three report a miss this way, so the
+ * caller gets the same named failure wherever the hole is. It used to be a `TypeError`: the two
+ * bookkeeping checks threw it out of `validate` altogether, and `validateHash` threw a destructuring
+ * message that `runOneLink`'s try/catch turned into a failure. See auth-xd2.
+ */
+export const missingEncryptedLink = (hash: Hash, role: 'root' | 'head' | 'link') =>
+  fail(`The graph has no encrypted link for this ${role}`, { hash, role })
 
 export const fail = (msg: string, args?: any) => {
   return {

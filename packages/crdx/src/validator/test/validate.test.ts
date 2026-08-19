@@ -4,11 +4,11 @@ import { buildGraph } from '../../util/testing/graph.js'
 import { TEST_GRAPH_KEYS as keys, setup } from '../../util/testing/setup.js'
 import { describe, expect, test, vitest } from 'vitest'
 import { hashEncryptedLink } from '../../graph/hashLink.js'
-import { append, createGraph, getHead, getLink, getRoot } from '../../graph/index.js'
+import { append, createGraph, getHead, getLink, getRoot, type Graph } from '../../graph/index.js'
 import { type Hash } from '../../util/index.js'
 import { validate } from '../validate.js'
 import { fail } from '../validators.js'
-import { type ValidatorSet } from '../types.js'
+import { type ValidationResult, type ValidatorSet } from '../types.js'
 import '../../util/testing/expect/toBeValid.js'
 
 const { setSystemTime } = vitest.useFakeTimers()
@@ -212,6 +212,59 @@ describe('graphs', () => {
         setSystemTime(now)
 
         expect(validate(graph2)).not.toBeValid()
+      })
+
+      /**
+       * `runValidators` looks up encrypted links by hash in three places: the root check, the head
+       * check, and `validateHash`. Each of those can miss, and a miss has to come back as a result
+       * rather than as an exception — `Store.validate` and `Team.validate` both promise a
+       * `ValidationResult`. See auth-xd2.
+       *
+       * Each case here breaks the link/encryptedLink correspondence while keeping the counts equal,
+       * so the count check in `runValidators` still passes and validation gets as far as the lookup.
+       */
+      describe(`a link's encrypted link is missing`, () => {
+        const orphanHash = 'NotAHashOfAnyLink' as Hash
+
+        const removeEncryptedLink = (graph: Graph<any, any>, hash: Hash) => {
+          graph.encryptedLinks[orphanHash] = graph.encryptedLinks[hash]
+          delete graph.encryptedLinks[hash] // eslint-disable-line @typescript-eslint/no-dynamic-delete
+        }
+
+        const messageFrom = (result: ValidationResult) =>
+          result.isValid ? '(valid)' : result.error.message
+
+        test(`the root's`, () => {
+          const graph = setupGraph()
+          // the root of this graph isn't one of its heads, so the head check doesn't cover it
+          expect(graph.head).not.toContain(graph.root)
+          removeEncryptedLink(graph, graph.root)
+
+          const result = validate(graph)
+          expect(result.isValid).toBe(false)
+          expect(messageFrom(result)).toMatch(/no encrypted link/i)
+        })
+
+        test(`a head's`, () => {
+          const graph = setupGraph()
+          removeEncryptedLink(graph, graph.head[0])
+
+          const result = validate(graph)
+          expect(result.isValid).toBe(false)
+          expect(messageFrom(result)).toMatch(/no encrypted link/i)
+        })
+
+        test(`one that is neither root nor head`, () => {
+          const graph = setupGraph()
+          const victim = Object.keys(graph.links).find(
+            hash => hash !== graph.root && !graph.head.includes(hash as Hash)
+          ) as Hash
+          removeEncryptedLink(graph, victim)
+
+          const result = validate(graph)
+          expect(result.isValid).toBe(false)
+          expect(messageFrom(result)).toMatch(/no encrypted link/i)
+        })
       })
 
       test(`timestamp in the future`, () => {

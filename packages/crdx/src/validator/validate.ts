@@ -1,6 +1,6 @@
 import { memoize } from '@localfirst/shared'
 import { type ValidationResult, type ValidatorSet } from './types.js'
-import { fail, structuralValidators, validators } from './validators.js'
+import { fail, missingEncryptedLink, structuralValidators, validators } from './validators.js'
 import { VALID } from '../constants.js'
 import { hashEncryptedLink } from '../graph/hashLink.js'
 import { type Action, type Link, type Graph } from '../graph/types.js'
@@ -22,6 +22,7 @@ const runValidators = <A extends Action, C>(
   {
     const rootHash = graph.root
     const rootLink = graph.encryptedLinks[rootHash]
+    if (rootLink === undefined) return missingEncryptedLink(rootHash, 'root')
     const computedHash = hashEncryptedLink(rootLink.encryptedBody)
     if (computedHash !== rootHash)
       return fail('Root hash does not match the hash of the root link', {
@@ -34,6 +35,7 @@ const runValidators = <A extends Action, C>(
   // Confirm that each head hash matches the computed hash of the head link
   for (const headHash of graph.head) {
     const headLink = graph.encryptedLinks[headHash]
+    if (headLink === undefined) return missingEncryptedLink(headHash, 'head')
     const computedHash = hashEncryptedLink(headLink.encryptedBody)
     if (computedHash !== headHash)
       return fail('Head hash does not match the hash of the head link', {
@@ -46,9 +48,8 @@ const runValidators = <A extends Action, C>(
   // Confirm that there are as many encrypted links as links. This compares counts, not the
   // correspondence itself: a graph can have the right number of encrypted links under the wrong
   // hashes and get past here. What catches that is `validateHash`, which looks the encrypted link
-  // up by hash and throws on the missing one, and `runOneLink`'s try/catch turns into a failure —
-  // except when the link in question is a head, since the loop above dereferences without a guard.
-  // That case throws out of `validate` instead of returning a result; see auth-xd2.
+  // up by hash and reports a miss as `missingEncryptedLink` — the same failure the root and head
+  // checks above return, so a hole anywhere comes back as a result rather than as an exception.
   const encryptedLinkHashes = Object.keys(graph.encryptedLinks)
   const linkHashes = Object.keys(graph.links)
   if (encryptedLinkHashes.length !== linkHashes.length)
