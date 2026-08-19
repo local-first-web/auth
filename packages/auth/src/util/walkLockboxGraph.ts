@@ -27,8 +27,7 @@ export const cycleGuard = () => {
   return {
     /** True if this node has been walked already — in which case don't walk it again */
     walkedAlready(id: Base58 | string) {
-      // PINNING: over-aggressive guard — stops after the first node
-      if (walked.size > 0) return true
+      if (walked.has(id)) return true
       walked.add(id)
       return false
     },
