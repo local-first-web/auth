@@ -96,6 +96,10 @@ describe('Team', () => {
       ['one past the largest array index', 2 ** 32],
       ['a large safe integer', 2 ** 40],
       ['a number too large to be an integer', 1e21],
+      // The value that used to make the REMOVER's own link unrepresentable: it passes the payload
+      // check because its own successor is a safe integer, and the rotation that has to supersede
+      // it needs one more than that
+      ['one below the largest safe integer', Number.MAX_SAFE_INTEGER - 1],
       ['the largest safe integer', Number.MAX_SAFE_INTEGER],
     ] as const
 
@@ -125,9 +129,13 @@ describe('Team', () => {
           merged = false
         }
 
-        // ...or she takes it, and removal still moves the team keys past whatever it claimed
+        // ...or she takes it — and either way removal moves the team keys on by one, from the
+        // generation she actually holds. What the forged lockbox claimed doesn't enter into it:
+        // counting from the highest number any manifest named is what let a value at the top of
+        // the range make her own removal link unrepresentable.
+        expect(merged || generation < 0 || !Number.isSafeInteger(generation + 1)).toBe(true)
         alice.team.remove(charlie.userId)
-        expect(alice.team.teamKeys().generation).toBeGreaterThan(merged ? generation : 0)
+        expect(alice.team.teamKeys().generation).toBe(1)
 
         // ✅ Either way 👳🏽‍♂️ Charlie is locked out of what she posts next
         alice.team.addMessage({ secret: 'after you left' })
@@ -143,7 +151,26 @@ describe('Team', () => {
       })
     }
 
-    it("doesn't take the rotated keys away from everyone else", () => {
+    it("doesn't take the rotated keys away from the members who didn't write it", () => {
+      const { alice, bob, charlie, dwight } = setup([
+        'alice',
+        { user: 'bob', admin: false },
+        { user: 'charlie', admin: false },
+        { user: 'dwight', admin: false },
+      ])
+
+      forgeALockboxClaimingGeneration3(bob)
+      alice.team.merge(bob.team.graph)
+      alice.team.remove(charlie.userId)
+
+      // ✅ 🧔🏾‍♂️ Dwight, who had nothing to do with it, holds the new keys under the same generation
+      // 👩🏾 Alice used, so a message she encrypts is one he can read
+      dwight.team.merge(alice.team.graph)
+      expect(dwight.team.teamKeys()).toEqual(alice.team.teamKeys())
+      expect(dwight.team.decrypt(alice.team.encrypt('hello'))).toBe('hello')
+    })
+
+    it('only costs the member who wrote it', () => {
       const { alice, bob, charlie } = setup([
         'alice',
         { user: 'bob', admin: false },
@@ -153,14 +180,17 @@ describe('Team', () => {
       forgeALockboxClaimingGeneration3(bob)
       alice.team.merge(bob.team.graph)
       alice.team.remove(charlie.userId)
-
-      // ✅ Everyone still on the team holds the new keys, under the same generation 👩🏾 Alice used
       bob.team.merge(alice.team.graph)
-      expect(bob.team.teamKeys()).toEqual(alice.team.teamKeys())
 
-      // ✅ ...so a message she encrypts is one he can read
-      const message = alice.team.encrypt('hello')
-      expect(bob.team.decrypt(message)).toBe('hello')
+      // 👨🏻‍🦲 Bob gave himself a generation above the team's, so his own lookup keeps finding his
+      // rather than theirs, and what he encrypts is addressed to a generation nobody else has.
+      // That's his to undo; it doesn't stop 👩🏾 Alice rotating or anyone else receiving the keys.
+      expect(bob.team.teamKeys()).not.toEqual(alice.team.teamKeys())
+      expect(bob.team.teamKeys().generation).toBe(3)
+      expect(() => alice.team.decrypt(bob.team.encrypt('hello'))).toThrow()
+
+      // He can still read hers, because the rotation reached him like everyone else
+      expect(bob.team.decrypt(alice.team.encrypt('hello'))).toBe('hello')
     })
 
     it("isn't the only lockbox rotation can see", () => {

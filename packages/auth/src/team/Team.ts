@@ -1077,11 +1077,35 @@ export class Team extends EventEmitter<TeamEvents> {
      * A scope with no lockboxes at all keeps whatever generation it arrived with. That's the case
      * `changeKeys` relies on to supersede a member's own generation when they haven't added a device
      * yet.
+     *
+     * The generation we count from is the one we can actually OPEN for that scope, not the highest
+     * any manifest claims. A manifest's generation belongs to whoever wrote the lockbox, and taking
+     * the maximum over all of them put that number in the arithmetic every rotation does. That has
+     * no safe bound: whatever ceiling a payload check enforces, a member can name the largest value
+     * it accepts, and the rotation that has to supersede it then needs one more than the ceiling.
+     * Measured at generation 2**53-2 — accepted, because its own successor is representable — the
+     * removal that followed was refused by the remover's OWN payload check, permanently, and the
+     * member being removed went on reading what was posted afterwards.
+     *
+     * Counting from what we hold takes that number out of the arithmetic. Every honest holder of
+     * the scope's keys holds the same generation we do, having received the same lockboxes, so
+     * one more than ours supersedes theirs. A member who has given themselves a higher number
+     * keeps using it and stops being able to read the team — which is their own doing, and is not
+     * a way to stop anybody else's rotation.
      */
+    const heldGeneration = ({ type, name }: KeyScope) => {
+      const history = select.keyMap(this.state, this.context.device.keys)[type]?.[name]
+      return history === undefined || history.size === 0 ? undefined : Math.max(...history.keys())
+    }
+
     const rotations = newKeysets.map(newKeyset => {
       const oldLockboxes = select.lockboxesInScope(this.state, newKeyset)
       if (oldLockboxes.length > 0) {
-        const current = Math.max(...oldLockboxes.map(({ contents }) => contents.generation))
+        // Falling back to the manifests covers a scope we can't see into — re-keying somebody else,
+        // where the keys being replaced are ones only they could ever open
+        const current =
+          heldGeneration(newKeyset) ??
+          Math.max(...oldLockboxes.map(({ contents }) => contents.generation))
         newKeyset.generation = current + 1
       }
 
