@@ -24,14 +24,14 @@ describe('Team', () => {
     /**
      * `validateTimestampNotInFuture` refuses a link whose timestamp is ahead of this device's
      * clock, with no tolerance at all. That's a fair thing to report, but it can't be a reason to
-     * refuse to open a team: our clock runs behind the one that wrote a link whenever an NTP step corrects us
-     * backwards, whenever we resume from sleep, or simply whenever a peer is running a few minutes
-     * fast — and `Store.dispatch` appends without validating, so a peer's fast clock gets onto the
-     * graph unchallenged.
+     * refuse to open a team: our clock runs behind the one that wrote a link whenever an NTP step
+     * corrects us backwards, whenever we resume from sleep, or simply whenever a peer is running a
+     * few minutes fast — and `Store.dispatch` appends without validating, so a peer's fast clock
+     * gets onto the graph unchallenged.
      *
      * The graph can't change to fix that, so refusing it would make the team unopenable until wall
      * clock passed the highest timestamp in it. Hence only the structural rules are fatal in
-     * `makeMachine`; these are advisory, and `Store.validate` is where they're asked about.
+     * `makeMachine`; this rule is advisory, and `Store.validate` is where it gets asked about.
      */
     it('loads a team whose links were written by a clock running ahead of ours', () => {
       const saved = withClockAhead(TEN_MINUTES, () => {

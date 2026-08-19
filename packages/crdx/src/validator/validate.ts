@@ -95,8 +95,9 @@ const _validate = <A extends Action, C>(
  * graph that can be replayed at all.
  *
  * This is what `makeMachine` refuses a graph for, and it's deliberately narrower than `validate`.
- * The advisory rules compare the graph against this device's clock, and a graph that fails one of
- * those is still perfectly replayable — see `advisoryValidators`.
+ * A graph that fails an advisory rule is still perfectly replayable — clock disagreement between
+ * honest peers is enough to trip either of those, whether or not the rule itself reads a clock.
+ * See `advisoryValidators`.
  *
  * Application-supplied validators aren't included either. They express what the application means
  * by a well-formed change rather than what the graph structurally is, and the application decides

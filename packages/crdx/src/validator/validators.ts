@@ -10,12 +10,25 @@ import { ValidationError, type ValidatorSet } from './types.js'
  * A graph that breaks one of these isn't a graph anyone can replay — every answer read out of it
  * afterwards is meaningless — so `makeMachine` refuses one outright rather than folding it.
  *
- * Being decidable from the graph alone is necessary for membership here and is NOT sufficient, a
- * distinction that cost a round: `validateTimestampOrder` is perfectly decidable from the bytes,
- * and putting it here bricked graphs for honest users. What actually qualifies a rule is that an
- * honest peer cannot produce a graph that fails it. These three hold because a correct
- * implementation cannot emit a mis-hashed link, a dangling `prev`, or a second ROOT — no matter
- * what any clock says, and no matter what a peer it is syncing with did.
+ * Membership takes two things, and a rule needs both.
+ *
+ * The positive reason is the paragraph above: breaking this rule is what makes a graph
+ * unreplayable, so refusing the whole graph is the proportionate response. That alone doesn't
+ * qualify a rule — `@localfirst/auth`'s `payloadsMustBeWellFormed` catches links that nothing can
+ * reduce, and it stays out of a set like this on purpose, because refusing the one bad link is a
+ * better answer than bricking everything stored alongside it.
+ *
+ * The gate is that an honest peer must not be able to produce a graph that fails it. This is where
+ * `validateTimestampOrder` was let in and had to be taken back out: it is perfectly decidable from
+ * the graph's bytes, which looked like reason enough, but merging a peer whose clock is fast and
+ * then appending on a correct one produces an out-of-order link through nobody's fault — and no
+ * passage of time repairs it. Being clock-free is not the same as being skew-free.
+ *
+ * These three pass both. A correct implementation cannot emit a mis-hashed link, a dangling `prev`
+ * or a second ROOT, whatever any clock says. (The gate is about what an implementation emits. A
+ * graph assembled mid-sync is a different thing: `receiveMessage` merges as soon as any links
+ * arrive, so a partial delivery can transiently dangle a `prev` — that path runs the full set and
+ * retries, and is auth-b63's business, not this set's.)
  */
 export const structuralValidators: ValidatorSet = {
   /** Does this link's hash check out? */
