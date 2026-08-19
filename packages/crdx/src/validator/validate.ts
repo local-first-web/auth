@@ -43,7 +43,12 @@ const runValidators = <A extends Action, C>(
       })
   }
 
-  // Confirm that there is an encrypted link for each link in the graph and vice versa
+  // Confirm that there are as many encrypted links as links. This compares counts, not the
+  // correspondence itself: a graph can have the right number of encrypted links under the wrong
+  // hashes and get past here. What catches that is `validateHash`, which looks the encrypted link
+  // up by hash and throws on the missing one, and `runOneLink`'s try/catch turns into a failure —
+  // except when the link in question is a head, since the loop above dereferences without a guard.
+  // That case throws out of `validate` instead of returning a result; see auth-xd2.
   const encryptedLinkHashes = Object.keys(graph.encryptedLinks)
   const linkHashes = Object.keys(graph.links)
   if (encryptedLinkHashes.length !== linkHashes.length)
@@ -88,16 +93,28 @@ const runValidators = <A extends Action, C>(
  * everyone, and it kept reporting skew that the clock had since caught up with (and, in the other
  * direction, kept reporting a graph valid after an NTP step backwards put a link in the future).
  *
- * Don't reinstate it with a better key. Any key over a graph means hashing the whole graph, and
- * that costs more than the validators it would save — so a cache here loses money even when it
- * hits. Medians of 50 samples after warmup, on a 201-link team graph: hashing 2.49ms against
- * 1.00ms to run every validator, a ratio of about 2.5. The ratio narrows on smaller links but
- * never turns over (a bare crdx chain of the same length: 0.89 against 0.81 with empty payloads,
- * 1.31 against 1.04 with 1 KB ones).
+ * That reason is about the answer, not about the key, so it survives any key you might reach for.
+ * Two you might: this package keys over graphs cheaply in four places already — `getPredecessors`
+ * and `getSuccessors` on `` `${graph.head.join('')}:${hash}` ``, `calculateConcurrency` and
+ * `calculateChildren` on the graph object's identity — and on a 201-link team graph both measured
+ * at 0.000ms, below timer resolution, against 2.53ms to content-hash the same graph. So cost is no
+ * objection to those.
  *
- * Removing it is a straight win for the sync path on top of that. `receiveMessage` validates a
- * freshly merged graph on every message, so it never hit the cache and paid for the key every
- * time: ~3.5ms per message on that team graph, now ~1.0ms.
+ * Correctness is. Neither notices link bytes replaced in place, which leaves both the head and the
+ * object identity untouched — and catching exactly that is what `validateHash` is for; several
+ * cases in `validate.test.ts` tamper with a graph that way. Run against a tampered graph, `validate`
+ * says invalid while a head-keyed or identity-keyed cache of it goes on saying valid. Confirmed by
+ * building both and asking them.
+ *
+ * The content hash does see that tampering, and it's the one that costs more than the work it
+ * protects, so it loses money even on a hit: medians of 50 samples after warmup, 2.49ms to hash
+ * against 1.00ms to run every validator, a ratio of about 2.5. That ratio narrows on smaller links
+ * but never turns over (a bare crdx chain of the same length: 0.89 against 0.81 with empty
+ * payloads, 1.31 against 1.04 with 1 KB ones).
+ *
+ * Removing the cache is a straight win for the sync path on top of all that. `receiveMessage`
+ * validates a freshly merged graph on every message, so it never hit the cache and paid for the key
+ * every time: ~3.5ms per message on that team graph, now ~1.0ms.
  */
 const _validate = <A extends Action, C>(
   /** The hash graph to validate. */
