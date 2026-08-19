@@ -80,10 +80,15 @@ describe('Team', () => {
     /**
      * Every value that can reach `contents.generation`, not the one that was measured first.
      *
-     * Each of these defeated removal outright before: `teamKeys().generation` stayed at 0 and the
+     * Most of these defeated removal outright before: `teamKeys().generation` stayed at 0 and the
      * removed member read a message posted after they left. `0.5` and `2**40` did it without any
      * arithmetic error, because the rotated keyset was filed under something that isn't an array
      * index, so the history never grew and the latest generation resolved back to 0.
+     *
+     * `-1` is the exception and is here as a boundary rather than as an exploit: it never defeated
+     * removal, because `Math.max` and `lockboxesInScope` both step over a generation below the
+     * honest one. Disabling any of the checks below leaves this row passing. It's in the table so
+     * that the range is the range, not so that it pins anything.
      *
      * Two outcomes are acceptable and both are allowed for below: the door refuses the link, or the
      * rotation works. What isn't acceptable is the third one, which is what each of these did.
@@ -129,13 +134,13 @@ describe('Team', () => {
           merged = false
         }
 
-        // ...or she takes it — and either way removal moves the team keys on by one, from the
-        // generation she actually holds. What the forged lockbox claimed doesn't enter into it:
-        // counting from the highest number any manifest named is what let a value at the top of
-        // the range make her own removal link unrepresentable.
-        expect(merged || generation < 0 || !Number.isSafeInteger(generation + 1)).toBe(true)
+        // ...or she takes it — and either way the number the forgery named doesn't decide anything.
+        // A rotation counts the keysets the graph has carried for the scope, so the forged keyset
+        // costs it one slot and nothing more: two if her graph took the link, one if it didn't.
+        // Counting from the largest number a manifest named is what let a value at the top of the
+        // range make her own removal link unrepresentable, permanently.
         alice.team.remove(charlie.userId)
-        expect(alice.team.teamKeys().generation).toBe(1)
+        expect(alice.team.teamKeys().generation).toBe(merged ? 2 : 1)
 
         // ✅ Either way 👳🏽‍♂️ Charlie is locked out of what she posts next
         alice.team.addMessage({ secret: 'after you left' })
@@ -187,7 +192,16 @@ describe('Team', () => {
       // That's his to undo; it doesn't stop 👩🏾 Alice rotating or anyone else receiving the keys.
       expect(bob.team.teamKeys()).not.toEqual(alice.team.teamKeys())
       expect(bob.team.teamKeys().generation).toBe(3)
-      expect(() => alice.team.decrypt(bob.team.encrypt('hello'))).toThrow()
+
+      // Stated as the fact rather than as a throw: what he writes is addressed to a generation
+      // 👩🏾 Alice doesn't hold. Asserting that it throws would pass today for a reason that has
+      // nothing to do with this — `select.keys` returns `undefined` for a generation you don't
+      // have and the caller destructures it (auth-x4r) — and would go on passing once that's fixed.
+      const envelope = bob.team.encrypt('hello')
+      expect(envelope.recipient.generation).toBe(3)
+      expect(
+        Object.values(alice.team.teamKeyring()).map(keyset => keyset.generation)
+      ).not.toContain(3)
 
       // He can still read hers, because the rotation reached him like everyone else
       expect(bob.team.decrypt(alice.team.encrypt('hello'))).toBe('hello')
@@ -215,6 +229,78 @@ describe('Team', () => {
           .map(l => l.recipient.name)
           .sort()
       )
+    })
+  })
+
+  describe('a lockbox naming a generation at the top of the range', () => {
+    /**
+     * A rotation has to produce a generation that supersedes what it replaces. While that number
+     * came from the largest one any manifest claimed, there was no ceiling that helped: whatever
+     * value a payload check accepts as the largest, a member can name it, and the rotation that has
+     * to beat it needs one past the largest acceptable value — so the REMOVER's own link is refused
+     * by the remover's own check, for good.
+     *
+     * Both routes below reached that. Neither is a shape any rule could refuse: one is
+     * `Team.ts:106`'s own pairing, and the other is a lockbox nobody but its author can ever open.
+     */
+    const nearlyTheLargest = Number.MAX_SAFE_INTEGER - 1
+
+    it("doesn't stop removals when it's addressed to an admin's own keys", () => {
+      const { alice, bob, charlie } = setup([
+        'alice',
+        { user: 'bob', admin: false },
+        { user: 'charlie', admin: false },
+      ])
+
+      // TEAM keys to a member's USER keys is what `create` and `admitMember` both post
+      bobAuthorsDirectly(bob, {
+        type: 'ADD_DEVICE',
+        payload: {
+          device: redactDevice(bob.phone!),
+          lockboxes: [
+            lockbox.create(
+              { ...createKeyset({ type: TEAM, name: TEAM }), generation: nearlyTheLargest },
+              alice.user.keys
+            ),
+          ],
+        },
+      })
+      alice.team.merge(bob.team.graph)
+
+      // ✅ 👩🏾 Alice can still remove people — both of them, one after the other
+      expect(() => alice.team.remove(charlie.userId)).not.toThrow()
+      expect(() => alice.team.remove(bob.userId)).not.toThrow()
+    })
+
+    it("doesn't stop removals when nobody but its author can open it", () => {
+      const { alice, bob, charlie } = setup([
+        'alice',
+        { user: 'bob', admin: false },
+        { user: 'charlie', admin: false },
+      ])
+
+      // Addressed to himself, naming 👳🏽‍♂️ Charlie's scope — the one a remover can never open, so
+      // there is nothing to count from but the manifest
+      bobAuthorsDirectly(bob, {
+        type: 'ADD_DEVICE',
+        payload: {
+          device: redactDevice(bob.phone!),
+          lockboxes: [
+            lockbox.create(
+              {
+                ...createKeyset({ type: USER, name: charlie.userId }),
+                generation: nearlyTheLargest,
+              },
+              bob.user.keys
+            ),
+          ],
+        },
+      })
+      alice.team.merge(bob.team.graph)
+
+      // ✅ 👳🏽‍♂️ Charlie can still be removed, and so can 👨🏻‍🦲 Bob
+      expect(() => alice.team.remove(charlie.userId)).not.toThrow()
+      expect(() => alice.team.remove(bob.userId)).not.toThrow()
     })
   })
 

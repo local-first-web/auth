@@ -18,6 +18,7 @@ export const initialState: TeamState = {
   removedDevices: [],
   removedServers: [],
   pendingKeyRotations: [],
+  keyHistory: {},
 }
 
 export const TEAM_SCOPE = { type: KeyType.TEAM, name: KeyType.TEAM } as KeyScope

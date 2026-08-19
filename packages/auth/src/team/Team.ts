@@ -36,6 +36,7 @@ import { type Host, type Server } from '../server/types.js'
 import { type LocalUserContext } from './context.js'
 import { KeyType, VALID, scopesMatch } from '../util/index.js'
 import { auditAuthorship } from './auditAuthorship.js'
+import { keyHistoryKey } from './transforms/collectLockboxes.js'
 import { assertLinksAreWellFormed, payloadProblem } from './checkPayload.js'
 import { ADMIN_SCOPE, ALL, TEAM_SCOPE, initialState } from './constants.js'
 import { membershipResolver as resolver } from './membershipResolver.js'
@@ -1078,35 +1079,39 @@ export class Team extends EventEmitter<TeamEvents> {
      * `changeKeys` relies on to supersede a member's own generation when they haven't added a device
      * yet.
      *
-     * The generation we count from is the one we can actually OPEN for that scope, not the highest
-     * any manifest claims. A manifest's generation belongs to whoever wrote the lockbox, and taking
-     * the maximum over all of them put that number in the arithmetic every rotation does. That has
-     * no safe bound: whatever ceiling a payload check enforces, a member can name the largest value
-     * it accepts, and the rotation that has to supersede it then needs one more than the ceiling.
-     * Measured at generation 2**53-2 — accepted, because its own successor is representable — the
-     * removal that followed was refused by the remover's OWN payload check, permanently, and the
-     * member being removed went on reading what was posted afterwards.
+     * The generation comes from the graph, not from any manifest and not from what we hold.
      *
-     * Counting from what we hold takes that number out of the arithmetic. Every honest holder of
-     * the scope's keys holds the same generation we do, having received the same lockboxes, so
-     * one more than ours supersedes theirs. A member who has given themselves a higher number
-     * keeps using it and stops being able to read the team — which is their own doing, and is not
-     * a way to stop anybody else's rotation.
+     * A manifest's generation belongs to whoever wrote the lockbox, and `current + 1` over the
+     * maximum of them put that number in the arithmetic every rotation does. Counting from the
+     * generation we can OPEN instead — which this did — doesn't escape that, because a lockbox
+     * addressed to us is also a write by someone else into our key history: it made the member a
+     * forgery is aimed at into the numbering authority for the whole team.
+     *
+     * There is no ceiling that fixes this. Whatever value a payload check accepts as the largest, a
+     * member can name it, and the rotation that has to supersede it then needs one more than the
+     * largest acceptable value — so its own link is refused, by its own author's check. Measured
+     * at generation 2**53-2, by both routes: `remove` threw `no usable generation on its contents
+     * manifest ('9007199254740991')` and went on throwing, for every member, permanently.
+     *
+     * `state.keyHistory` is not something an author can assert. The reducer appends a keyset to a
+     * scope's list the first time the graph carries it, so a member can move a scope's count by one
+     * per lockbox they actually post, and no further — a number, however large, buys nothing. On a
+     * graph with nothing forged on it this is exactly the old arithmetic: each generation of a scope
+     * contributes one keyset, so the list's length is the next generation.
+     *
+     * It also answers for a scope we can't see into. `remove(userId)` rotates `{type: USER, name:
+     * userId}`, which the remover can never open, so every removal used to take the fallback to the
+     * manifests — and one unopenable lockbox claiming a large generation for the member being
+     * removed was enough to stop them ever being removed.
+     *
+     * A scope the graph has never carried keeps whatever generation it arrived with. That's the case
+     * `changeKeys` relies on to supersede a member's own generation when they haven't added a device
+     * yet.
      */
-    const heldGeneration = ({ type, name }: KeyScope) => {
-      const history = select.keyMap(this.state, this.context.device.keys)[type]?.[name]
-      return history === undefined || history.size === 0 ? undefined : Math.max(...history.keys())
-    }
-
     const rotations = newKeysets.map(newKeyset => {
       const oldLockboxes = select.lockboxesInScope(this.state, newKeyset)
       if (oldLockboxes.length > 0) {
-        // Falling back to the manifests covers a scope we can't see into — re-keying somebody else,
-        // where the keys being replaced are ones only they could ever open
-        const current =
-          heldGeneration(newKeyset) ??
-          Math.max(...oldLockboxes.map(({ contents }) => contents.generation))
-        newKeyset.generation = current + 1
+        newKeyset.generation = (this.state.keyHistory[keyHistoryKey(newKeyset)] ?? []).length
       }
 
       return { newKeyset, oldLockboxes }

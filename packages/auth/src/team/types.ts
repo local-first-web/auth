@@ -306,6 +306,13 @@ export type TeamState = {
   // If a member's admission is reversed, we need to flag them as compromised so an admin can
   // rotate any keys they had access to at the first opportunity
   pendingKeyRotations: string[]
+
+  /**
+   * For each scope (`type:name`), every distinct keyset the graph has carried for it, by encryption
+   * public key, in the order the graph introduced them. This is what a rotation counts from — see
+   * `keyHistoryKey` and `Team.rotateKeys`.
+   */
+  keyHistory: Record<string, Base58[]>
 }
 
 export type InvitationMap = Record<string, InvitationState>
