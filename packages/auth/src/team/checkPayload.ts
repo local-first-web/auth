@@ -63,10 +63,19 @@ export const isUsableBase58 = (value: unknown, byteLength: number): value is Bas
  * `Cannot mix BigInt and other types` in the line that rotates it. msgpackr round-trips a BigInt as
  * a BigInt, so one put on a payload arrives intact.
  *
- * (Every other type is caught by the comparisons instead: a string, an object, `null` or a missing
- * one is a generation that never compares equal to anything, so the lockbox holding it is never
- * selected. Being harmless by never matching is not a property worth keeping, though — this says
- * what a generation is, so that nothing downstream has to.)
+ * The other types are not "caught by the comparisons", which is what an earlier version of this
+ * said. `maxGeneration` asks `generation > max` and `lockboxesInScope` then asks
+ * `generation === latestGeneration`, and both of those coerce: measured, `'5'`, `true`, `Infinity`,
+ * a `Date` and even `[7]` are all SELECTED, and only `null`, `undefined`, `NaN`, `{}` and `[]` fail
+ * both tests and drop out. None of the selected ones throws on `+ 1` — they concatenate, or
+ * saturate, or quietly produce a generation nobody can count from — so BigInt is the only one this
+ * check is load-bearing against today. It's written as "a generation is a finite number" rather
+ * than "a generation is not a BigInt" because saying what a field is is the only form of this that
+ * stays true when a consumer changes.
+ *
+ * What none of this reaches is a generation that IS a finite number and is simply a lie. Being
+ * selected is the whole mechanism above, and an honest-looking `3` wins that selection the same way
+ * — see auth-xgl, which needs a rule about the team rather than a rule about the payload.
  */
 const isUsableGeneration = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value)
@@ -114,13 +123,19 @@ const isNotAnArray = (value: unknown) => value !== undefined && !Array.isArray(v
  * - **A field that reaches `JSON.stringify` has to be a string.** `JSON.stringify` throws on a
  *   BigInt. The place that matters is the lodash `memoize` resolver at `invitation/validate.ts`,
  *   which serializes `proof.id`, `proof.invitee` and `proof.keyHash` to build its cache key —
- *   before the memoized body runs, so before anything compares them. Payload data reaches three
- *   other `JSON.stringify`s, and none of them is a reason to check anything here:
- *   `actionFingerprint` catches what it throws; `assertScopesMatch` and the `Couldn't find keys`
- *   assert both build their message EAGERLY, on every rotate and every key lookup respectively, but
- *   only ever over a scope's `type` and `name` — which this file requires to be strings wherever
- *   they can reach either one. That last part is load-bearing, not incidental: those two are safe
- *   because of a rule here, not on their own.
+ *   before the memoized body runs, so before anything compares them. Three other `JSON.stringify`s
+ *   see data off the graph, and they divide into three different answers rather than one:
+ *   `actionFingerprint` catches what it throws. `assertScopesMatch` builds its message EAGERLY, on
+ *   every rotate, but only over `getScope`, which is a `type` and a `name` — and those reach it
+ *   only from a lockbox manifest, which this file requires to be strings; so that one is safe
+ *   because of a rule here, not on its own. The `Couldn't find keys` assert in `selectors/keys.ts`
+ *   is EAGER too, on every key lookup including the ones that succeed, and it is not confined to a
+ *   scope: it summarizes every lockbox in state and runs `JSON.stringify` over the keysets `keyMap`
+ *   recovered from the lockboxes this device could OPEN. The summary is within this file's reach;
+ *   the recovered keysets are not, because they come out of a ciphertext — nobody but the recipient
+ *   can see them, so no door can. Measured: a lockbox that opens and unpacks to a keyset carrying a
+ *   BigInt makes `teamKeys()` itself throw. That's auth-csu's family, and it's the reason the
+ *   sentence this replaces was wrong to describe both asserts as one safe case.
  * - **A field something does arithmetic on has to be a number.** A generation is compared AND added
  *   to, and those aren't the same kind of safe — see `isUsableGeneration`.
  * - **A device carried on a member has to be that member's.** Shape is per-field, but a device
@@ -449,11 +464,19 @@ const proofProblem = (proof: unknown): string | undefined => {
  * `encryption` and `signature` are on a manifest too, and `removeDevice` promotes them: a lockbox
  * naming a later generation than the member has is treated as the authority on that member's public
  * keys, and its `encryption` and `signature` are written into `state.members[…].keys` verbatim.
- * From there `createMemberLockboxes` hands the encryption key to `lockbox.create`, so granting that
- * member a role throws in libsodium rather than refusing. They're optional because a manifest built
- * from another manifest doesn't carry them — but `undefined` is exactly what `removeDevice` checks
- * for before promoting, so absence is the one value it already handles and every other value is one
- * it doesn't.
+ * From there `createMemberLockboxes` hands the ENCRYPTION key to `lockbox.create`, so granting that
+ * member a role throws in libsodium rather than refusing.
+ *
+ * Only the encryption key was demonstrated fatal, and the two are here for different reasons.
+ * `redactKeys` decides what to do with the promoted keyset by asking `hasSecrets`, which reads
+ * `keys.encryption.hasOwnProperty` first and short-circuits there; `lockbox.create` then reads
+ * `.encryption` and nothing else. The promoted `signature` is only ever read by `Team.verify`,
+ * outside replay — probed with every value, it throws nowhere. It's described here by symmetry with
+ * the field beside it, which is a reason to keep a check and not a reason to claim a failure.
+ *
+ * They're optional because a manifest built from another manifest doesn't carry them — and
+ * `undefined` is exactly what `removeDevice` checks for before promoting, so absence is the one
+ * value it already handles and every other value is one it doesn't.
  */
 const lockboxProblem = (lockbox: unknown): string | undefined => {
   if (isMissing(lockbox) || typeof lockbox !== 'object') return 'is not a lockbox'

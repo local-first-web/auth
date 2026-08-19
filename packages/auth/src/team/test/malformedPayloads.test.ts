@@ -642,6 +642,12 @@ describe('Team', () => {
       // `invalid publicKey length`, `Expected String` or `Cannot read properties of null`,
       // depending on which value the peer picked. Removing your own device is open to every
       // member, so 👨🏻‍🦲 Bob doesn't need to be an admin to say this about himself.
+      //
+      // Those four are the ENCRYPTION key's. The signature key is checked alongside it and is
+      // covered below, but no value of it was found to throw: `hasSecrets` short-circuits on
+      // `keys.encryption`, `lockbox.create` reads only `.encryption`, and the promoted signature is
+      // read only by `Team.verify`, outside replay. It's here because it's the same field of the
+      // same manifest, which is a reason to check it — not evidence that it breaks anything.
       const hisOwn = bob.team.state.lockboxes.find(
         l => l.contents.type === USER && l.contents.name === bob.userId
       )!
