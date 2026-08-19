@@ -1064,11 +1064,33 @@ export class Team extends EventEmitter<TeamEvents> {
     // Generate new keys for each one
     const newKeysets = [newKeyset, ...otherNewKeysets]
 
-    // Create new lockboxes for each of these
-    const newLockboxes = newKeysets.flatMap(newKeyset => {
+    /**
+     * Settle each scope's new generation before making any lockboxes.
+     *
+     * Every recipient of a scope's keys has to end up holding them under the same number, because
+     * that number is what `Team.encrypt` writes onto a message and what the reader looks the keys up
+     * by. Deriving it per lockbox — from the one it replaces, as `lockbox.rotate` used to — meant a
+     * single lockbox claiming to be ahead of the others split the scope: its recipient's replacement
+     * came out several generations clear of everyone else's, holding the same secret under a number
+     * nobody else could find it by.
+     *
+     * A scope with no lockboxes at all keeps whatever generation it arrived with. That's the case
+     * `changeKeys` relies on to supersede a member's own generation when they haven't added a device
+     * yet.
+     */
+    const rotations = newKeysets.map(newKeyset => {
       const oldLockboxes = select.lockboxesInScope(this.state, newKeyset)
+      if (oldLockboxes.length > 0) {
+        const current = Math.max(...oldLockboxes.map(({ contents }) => contents.generation))
+        newKeyset.generation = current + 1
+      }
 
-      return oldLockboxes.map(oldLockbox => {
+      return { newKeyset, oldLockboxes }
+    })
+
+    // Create new lockboxes for each of these
+    const newLockboxes = rotations.flatMap(({ newKeyset, oldLockboxes }) =>
+      oldLockboxes.map(oldLockbox => {
         // Check whether we have new keys for the recipient of this lockbox
         const updatedKeyset = newKeysets.find(k => scopesMatch(k, oldLockbox.recipient))
         return lockbox.rotate({
@@ -1078,7 +1100,7 @@ export class Team extends EventEmitter<TeamEvents> {
           updatedRecipientKeys: updatedKeyset ? redactKeys(updatedKeyset) : undefined,
         })
       })
-    })
+    )
 
     return newLockboxes
   }

@@ -12,8 +12,19 @@ import { assertScopesMatch } from '../util/index.js'
  *
  * ```js
  * const newAdminKeys = createKeyset({ type: ROLE, name: ADMIN })
- * const newAdminLockboxForAlice = lockbox.rotate(adminLockboxForAlice, newAdminKeys)
+ * newAdminKeys.generation = adminKeys.generation + 1
+ * const newAdminLockboxForAlice = lockbox.rotate({
+ *   oldLockbox: adminLockboxForAlice,
+ *   newContents: newAdminKeys,
+ * })
  * ```
+ *
+ * The generation the new keys carry is the caller's to set, and `Team.rotateKeys` is what sets it.
+ * A generation belongs to the scope, not to one lockbox: every recipient of a scope's keys has to
+ * hold them under the same number, or a reader can't find them by the number a writer recorded.
+ * This used to compute `oldLockbox.contents.generation + 1` per lockbox, which meant one lockbox
+ * claiming to be ahead of the rest gave its own recipient a replacement several generations clear
+ * of everyone else's.
  */
 export const rotate = ({
   oldLockbox,
@@ -27,9 +38,6 @@ export const rotate = ({
   if (updatedRecipientKeys) {
     assertScopesMatch(oldLockbox.recipient, updatedRecipientKeys)
   }
-
-  // The new keys have the next generation index
-  newContents.generation = oldLockbox.contents.generation + 1
 
   // If we have updated keys for the recipient, use them; otherwise the recipient manifest is the same as before
   const recipientManifest = updatedRecipientKeys ?? oldLockbox.recipient
