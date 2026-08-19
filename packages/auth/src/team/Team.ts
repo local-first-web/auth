@@ -217,7 +217,10 @@ export class Team extends EventEmitter<TeamEvents> {
   /**
    * Reports what CRDX's validators make of this team's graph. That's three rules about the graph's
    * shape — each link's hash matches its bytes, the links its `prev` names exist, and the ROOT link
-   * is the graph's root — plus the two advisory rules about timestamps.
+   * is the graph's root — plus the two advisory rules about timestamps described below. Before any
+   * of those run, `runValidators` checks the graph's own bookkeeping: that `root` and each `head`
+   * name a link whose bytes hash to that name, and that there's an encrypted link for every link
+   * and vice versa. A failure there comes back through here the same way.
    *
    * Note what isn't in that list: CRDX doesn't verify signatures, here or anywhere. A link's stated
    * author is checked against the key that actually encrypted it by `linkAuthorshipIsAuthentic`,
