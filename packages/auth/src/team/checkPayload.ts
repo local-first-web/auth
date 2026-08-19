@@ -80,14 +80,21 @@ const isNotAnArray = (value: unknown) => value !== undefined && !Array.isArray(v
  * - this function itself dereferences nothing it hasn't just checked, so it can't fail the way it
  *   exists to prevent
  *
- * Being present isn't the whole of being usable, and there are two other ways a field is described
- * here:
+ * Being present isn't the whole of being usable, and there are three other ways a field is
+ * described here:
  *
  * - **A field that ends up in libsodium has to be base58 of the right length.** `proof.signature`,
  *   `invitation.publicKey`, a keyset's `encryption` and `signature`, and a lockbox's
- *   `encryptionKey.publicKey` are all decoded before they're used, and both `base58.decode` and
- *   libsodium throw rather than answering. These are described as a group by `isUsableBase58`,
- *   because they fail as a group: the one that matters is whichever one a peer thinks to send.
+ *   `encryptionKey.publicKey` and `recipient.publicKey` are all decoded before they're used, and
+ *   both `base58.decode` and libsodium throw rather than answering. These are described as a group
+ *   by `isUsableBase58`, because they fail as a group: the one that matters is whichever one a peer
+ *   thinks to send.
+ * - **A field that reaches `JSON.stringify` has to be a string.** `JSON.stringify` throws on a
+ *   BigInt, and msgpackr round-trips a BigInt as a BigInt, so one put on a payload arrives intact.
+ *   The place that matters is the lodash `memoize` resolver at `invitation/validate.ts`, which
+ *   serializes `proof.id`, `proof.invitee` and `proof.keyHash` to build its cache key — before the
+ *   memoized body runs, so before anything compares them. (`actionFingerprint` is the other
+ *   `JSON.stringify` a payload reaches, and it already catches what it throws.)
  * - **A device carried on a member has to be that member's.** Shape is per-field, but a device
  *   naming a `userId` no member has is well-shaped and still unreplayable — `removeDevice` looks
  *   its owner up and asserts. That's a relation between two fields of one payload rather than a
@@ -95,9 +102,10 @@ const isNotAnArray = (value: unknown) => value !== undefined && !Array.isArray(v
  *   discarded link would never reach. (`rootDeviceBelongsToRootUser` is the same invariant for the
  *   founding device, where the team's own rules do have to speak to it.)
  *
- * One field is deliberately left to another rule, because that rule has to look at it anyway and
- * does so before the reducer runs: the identity an admission names (`memberKeys.name`) is bound to
- * the proof of invitation by `admissionMustBeProven`.
+ * Nothing is left to a validator to describe. Deferring a field to a rule that reads it anyway was
+ * only ever sound while that rule ran, and the two paths this file exists for are exactly the paths
+ * where it doesn't: the resolver walks payloads before anything has validated them, and a link the
+ * resolver discards goes to `invalidLinkReducer` INSTEAD of to the validators.
  *
  * It's used in two places. `payloadsMustBeWellFormed` applies it to links as they're replayed,
  * which is what makes a peer's refusal independent of who sent it. `Team.dispatch` applies it
@@ -230,12 +238,20 @@ export const payloadProblem = (action: TeamAction): string | undefined => {
     }
 
     case 'ADMIT_MEMBER': {
-      // The identity being admitted (`memberKeys.name`) is `admissionMustBeProven`'s, which binds
-      // it to the proof of invitation before the reducer reads it
       const { id, memberKeys, userName, proof } = action.payload
       if (!isUsableIdentifier(id)) return usable('invitation id', id)
       const keysProblem = keysetProblem(memberKeys)
       if (keysProblem !== undefined) return detail("the member's keys", keysProblem)
+
+      // The identity being admitted is the `name` on the keyset the invitee chose, and it's the
+      // userId the team files them under from then on. `admissionMustBeProven` says this too, and
+      // says it better, because it can see the invitation — but that was only ever enough while
+      // that rule ran. A link the resolver discards goes to `invalidLinkReducer`, which reads
+      // `memberKeys.name` and puts it in `removedMembers` and `pendingKeyRotations`; the merge
+      // COMMITS, and then the `updated` handler dispatches a ROTATE_KEYS naming `undefined`, which
+      // no admin can ever get past again — on a graph that reloads fine, so it survives a restart.
+      if (!isUsableIdentifier(memberKeys.name)) return usable('userId', memberKeys.name)
+
       if (!isUsableIdentifier(userName)) return usable('userName', userName)
       const theProofProblem = proofProblem(proof)
       if (theProofProblem !== undefined) return detail('a proof it can check', theProofProblem)
@@ -348,17 +364,28 @@ const keysetProblem = (keys: unknown): string | undefined => {
  * to `signatures.verify`, which decodes it and gives it to libsodium. Nothing down there returns
  * `false` for a signature it can't read; it throws.
  *
- * Only the signature is described, because only the signature is decoded. `id`, `invitee` and
- * `keyHash` are compared with `!==` and packed by msgpackr, neither of which can fail on them, and
- * what they have to say about the identity being admitted is `admissionMustBeProven`'s — which
- * says it better, because it can see the invitation too.
+ * `id`, `invitee` and `keyHash` aren't decoded, but they aren't only compared either: they're the
+ * cache key. `validate` is a lodash `memoize`, and its resolver runs `JSON.stringify` over them to
+ * build that key — before the memoized body, so before the `!==` that would otherwise be all that
+ * happens to them. `JSON.stringify` throws on a BigInt, and msgpackr round-trips a BigInt as a
+ * BigInt, so a proof carrying one for any of these three is a TypeError thrown out of validation
+ * rather than a refusal, on every peer, forever. Being a string is the whole of what they need to
+ * be here; what they have to SAY about the identity being admitted is still
+ * `admissionMustBeProven`'s, which says it better because it can see the invitation too.
  */
 const proofProblem = (proof: unknown): string | undefined => {
   if (isMissing(proof) || typeof proof !== 'object') return "there isn't one"
 
-  const { signature } = proof as Record<string, unknown>
+  const { id, invitee, keyHash, signature } = proof as Record<string, unknown>
   if (!isUsableBase58(signature, SIGNATURE_BYTES))
     return `'${String(signature)}' is not a usable signature`
+  for (const [name, value] of [
+    ['id', id],
+    ['invitee', invitee],
+    ['keyHash', keyHash],
+  ] as const) {
+    if (!isUsableIdentifier(value)) return `'${String(value)}' is not a usable ${name}`
+  }
 
   return undefined
 }
@@ -387,7 +414,20 @@ const lockboxProblem = (lockbox: unknown): string | undefined => {
     if (isMissing(manifest) || typeof manifest !== 'object') return `has no ${name} manifest`
     if (!isUsableIdentifier(manifest.type)) return `has no type on its ${name} manifest`
     if (!isUsableIdentifier(manifest.name)) return `has no name on its ${name} manifest`
-    if (!isUsableIdentifier(manifest.publicKey)) return `has no public key on its ${name} manifest`
+
+    // A manifest's `publicKey` is a key, and one of them is decoded. Re-keying a member replaces
+    // every lockbox they can see, and `lockbox.rotate` hands the OLD lockbox's recipient manifest
+    // straight back to `lockbox.create`, which takes `manifest.publicKey` as the
+    // `recipientPublicKey` it encrypts to — `keyToBytes`, then libsodium. Nothing on the way in
+    // touches it, so a forged one merges cleanly everywhere and loads fine, and detonates the
+    // first time an admin re-keys that member: the one remediation the team has for a compromised
+    // member is the thing it disables, and it's disabled for good, because the lockbox is on the
+    // chain. Any member can post a lockbox, so this doesn't take an admin to do. The contents
+    // manifest's key isn't decoded anywhere today — it's the same field of the same kind of
+    // manifest, and describing one of the two would just be a note about which caller we happened
+    // to look at.
+    if (!isUsableBase58(manifest.publicKey, PUBLIC_KEY_BYTES))
+      return `has no usable public key on its ${name} manifest ('${String(manifest.publicKey)}')`
   }
 
   // The key a lockbox was sealed with is base58 that `asymmetric.decryptBytes` decodes. Nothing on

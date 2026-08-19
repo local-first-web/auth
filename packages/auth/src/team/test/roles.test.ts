@@ -1,4 +1,4 @@
-import { createGraph, createKeyset, type Base58 } from '@localfirst/crdx'
+import { createGraph, createKeyset } from '@localfirst/crdx'
 import * as lockbox from 'lockbox/index.js'
 import { ADMIN } from 'role/index.js'
 import { redactDevice } from 'device/index.js'
@@ -10,7 +10,7 @@ import { type TeamAction, type TeamContext, type TeamLink, type TeamState } from
 import { validate } from 'team/validate.js'
 import { setup } from 'util/testing/index.js'
 import 'util/testing/expect/toLookLikeKeyset.js'
-import { symmetric } from '@localfirst/crypto'
+import { asymmetric, symmetric } from '@localfirst/crypto'
 import { type InvalidResult } from 'util/types.js'
 import { describe, expect, it } from 'vitest'
 
@@ -157,9 +157,15 @@ describe('Team', () => {
         alice.team.roleKeys(ADMIN),
         alice.team.members(bob.userId).keys
       )
-      const lockboxes = Array.from({ length: 100 }, (_, i) => ({
+      // Each one is addressed to a perfectly good key that just isn't anybody's — a manifest key
+      // has to be base58 libsodium could take (`payloadsMustBeWellFormed` sees to that), and what
+      // this test is about is the cost of finding out that it isn't registered
+      const lockboxes = Array.from({ length: 100 }, () => ({
         ...templateLockbox,
-        recipient: { ...templateLockbox.recipient, publicKey: `notAKey${i}` as Base58 },
+        recipient: {
+          ...templateLockbox.recipient,
+          publicKey: asymmetric.keyPair().publicKey,
+        },
       }))
 
       // Count the times the validators reach for the team's lockboxes

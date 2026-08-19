@@ -498,6 +498,10 @@ describe('Team', () => {
         // makes them give it one. A nameless invitee satisfies every check that goes by it —
         // including the record of whom an invitation has already admitted, which is what keeps a
         // published proof from being replayed. So they have to be turned away at the door.
+        //
+        // Two rules say so now, in the same words: `admissionMustBeProven`, which can see the
+        // invitation as well as the admission, and `payloadProblem`, which speaks first because it
+        // also has to speak for the links `admissionMustBeProven` never sees.
         const namelessKeys = { ...bob.user.keys, name: undefined as unknown as string }
         const { seed } = alice.team.inviteMember({ maxUses: 2 })
         const proofOfInvitation = generateProof(seed, namelessKeys)
@@ -515,7 +519,7 @@ describe('Team', () => {
           })
         }
 
-        expect(admitANamelessInvitee).toThrowError(/not a usable userid/i)
+        expect(admitANamelessInvitee).toThrowError(/usable userid/i)
         expect(alice.team.members()).toHaveLength(1)
       })
 

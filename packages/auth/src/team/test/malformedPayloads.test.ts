@@ -543,6 +543,96 @@ describe('Team', () => {
       expect(alice.team.members()).toHaveLength(2)
     })
 
+    it("won't accept a lockbox nobody could ever re-key", () => {
+      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+
+      // The other manifest key a peer can pick. Re-keying a member replaces every lockbox they can
+      // see, and `lockbox.rotate` hands the OLD lockbox's recipient manifest straight back to
+      // `lockbox.create`, which encrypts to `manifest.publicKey` — `keyToBytes`, then libsodium.
+      // Nothing on the way in reads it, so a forged one merges cleanly and loads fine, and then
+      // disables the one remediation the team has for a compromised member, permanently, because
+      // the lockbox is on the chain. Posting a lockbox doesn't take an admin: 👨🏻‍🦲 Bob isn't one.
+      const hisOwn = bob.team.state.lockboxes.find(
+        l => l.contents.type === USER && l.contents.name === bob.userId
+      )!
+      const forged = (publicKey: unknown) =>
+        ({
+          ...hisOwn,
+          recipient: { ...hisOwn.recipient, publicKey },
+        }) as unknown as Lockbox
+
+      const addHisPhone = (publicKey: unknown) => () => {
+        bob.team.dispatch({
+          type: 'ADD_DEVICE',
+          payload: { device: redactDevice(bob.phone!), lockboxes: [forged(publicKey)] },
+        })
+      }
+
+      for (const publicKey of [null, undefined, 123, '', 'not-base58!!!', 'zzz']) {
+        expect(addHisPhone(publicKey)).toThrowError(
+          /lockbox 0 has no usable public key on its recipient manifest/i
+        )
+      }
+
+      // ...and the same link arriving from him is refused at 👩🏾 Alice's door
+      bobAuthorsDirectly(bob, {
+        type: 'ADD_DEVICE',
+        payload: { device: redactDevice(bob.phone!), lockboxes: [forged('not-base58!!!')] },
+      })
+      expect(() => alice.team.merge(bob.team.graph)).toThrowError(/can't be replayed/i)
+
+      // ✅ 👩🏾 Alice can still re-key 👨🏻‍🦲 Bob, which is exactly what a forged one took away
+      alice.team.changeKeys(createKeyset({ type: USER, name: bob.userId }))
+      expect(alice.team.members(bob.userId).keys.generation).toBe(1)
+    })
+
+    it("won't accept a proof nothing could even look up", () => {
+      const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+
+      // `invitation/validate` is a lodash `memoize`, and its resolver builds the cache key by
+      // running `JSON.stringify` over `proof.id`, `proof.invitee` and `proof.keyHash`. That happens
+      // BEFORE the memoized body, so before the `!==` that is otherwise all these three get.
+      // msgpackr round-trips a BigInt as a BigInt, and `JSON.stringify` throws on one — so a proof
+      // carrying one was a TypeError thrown out of validation, on every peer, forever.
+      const { seed, id } = bob.team.inviteMember()
+      alice.team.merge(bob.team.graph)
+      const proof = generateProof(seed, charlie.user.keys)
+
+      const admitWith = (field: string, value: unknown) => () => {
+        bob.team.dispatch({
+          type: 'ADMIT_MEMBER',
+          payload: {
+            id,
+            userName: charlie.userName,
+            memberKeys: redactKeys(charlie.user.keys),
+            proof: setPath(proof, field, value),
+            lockboxes: [],
+          },
+        })
+      }
+
+      expect(admitWith('id', 1n)).toThrowError(/is not a usable id/i)
+      expect(admitWith('invitee', 1n)).toThrowError(/is not a usable invitee/i)
+      expect(admitWith('keyHash', 1n)).toThrowError(/is not a usable keyhash/i)
+
+      // ...and the same link arriving from 👨🏻‍🦲 Bob is refused at 👩🏾 Alice's door
+      bobAuthorsDirectly(bob, {
+        type: 'ADMIT_MEMBER',
+        payload: {
+          id,
+          userName: charlie.userName,
+          memberKeys: redactKeys(charlie.user.keys),
+          proof: setPath(proof, 'id', 1n),
+          lockboxes: [],
+        },
+      })
+      expect(() => alice.team.merge(bob.team.graph)).toThrowError(/can't be replayed/i)
+
+      // ✅ The honest admission still goes through
+      alice.team.admitMember(proof, redactKeys(charlie.user.keys), charlie.userName)
+      expect(alice.team.has(charlie.userId)).toBe(true)
+    })
+
     it("won't merge a graph whose links map carries something that isn't a link", () => {
       const { alice, bob } = setup('alice', 'bob')
 
@@ -600,6 +690,43 @@ describe('Team', () => {
         // ✅ Her own graph is untouched, so she can still reload it
         expect(alice.team.has(charlie.userId)).toBe(false)
         const reloaded = teams.load(alice.team.save(), alice.localContext, alice.team.teamKeyring())
+        expect(reloaded.members()).toHaveLength(1)
+      })
+
+      it("won't merge a graph whose admission names nobody", () => {
+        const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+
+        // The identity an admission confers is the `name` on the keyset the invitee chose, and it
+        // used to be left to `admissionMustBeProven` on the grounds that that rule looks at it
+        // anyway. It doesn't here: 👨🏻‍🦲 Bob is removed concurrently, so the resolver discards this
+        // link and the reducer hands it to `invalidLinkReducer`, which reads `memberKeys.name` and
+        // files `undefined` under `removedMembers` and `pendingKeyRotations`. That merge COMMITTED
+        // — and the `updated` handler then dispatched a ROTATE_KEYS naming `undefined`, which
+        // every admin's own door refuses. The graph replays, so it reloads perfectly well; what it
+        // can never do again is accept a link from any admin.
+        const { seed, id } = bob.team.inviteMember()
+        const memberKeys = { ...redactKeys(charlie.user.keys), name: undefined }
+        bobAuthorsDirectly(bob, {
+          type: 'ADMIT_MEMBER',
+          payload: {
+            id,
+            userName: charlie.userName,
+            memberKeys,
+            proof: generateProof(seed, charlie.user.keys),
+            lockboxes: [],
+          },
+        })
+
+        alice.team.remove(bob.userId)
+
+        expect(() => alice.team.merge(bob.team.graph)).toThrowError(/needs a usable userid/i)
+
+        // ✅ Nothing was filed against a member who doesn't exist, so 👩🏾 Alice can still write to
+        // her own team — and so can she after a reload, which is what used to survive
+        expect(alice.team.state.pendingKeyRotations).toEqual([])
+        alice.team.dispatch({ type: 'MESSAGE', payload: { message: 'hello' } })
+        const reloaded = teams.load(alice.team.save(), alice.localContext, alice.team.teamKeyring())
+        reloaded.dispatch({ type: 'MESSAGE', payload: { message: 'hello' } })
         expect(reloaded.members()).toHaveLength(1)
       })
 
@@ -757,6 +884,10 @@ describe('Team', () => {
         required: string[]
         /** Fields that may be left off, but can't be anything but an array if they're there */
         arrays: string[]
+        /** Fields something runs `JSON.stringify` over before anything else looks at them, and so
+         * have to be strings — msgpackr round-trips a BigInt as a BigInt, and `JSON.stringify`
+         * throws on one */
+        serialized: string[]
         /** Fields that end up in libsodium, and so have to be base58 of a particular length —
          * being a non-empty string isn't enough for any of these */
         base58: string[]
@@ -796,6 +927,7 @@ describe('Team', () => {
               'rootDevice.userId',
             ],
             arrays: ['lockboxes'],
+            serialized: [],
             base58: [
               'rootMember.keys.encryption',
               'rootMember.keys.signature',
@@ -808,6 +940,7 @@ describe('Team', () => {
             payload: { member, roles: [], lockboxes },
             required: ['member', 'member.keys', 'member.userId', 'member.userName'],
             arrays: ['roles', 'lockboxes'],
+            serialized: [],
             base58: ['member.keys.encryption', 'member.keys.signature'],
           },
           {
@@ -815,6 +948,7 @@ describe('Team', () => {
             payload: { device, lockboxes },
             required: ['device', 'device.keys', 'device.deviceId', 'device.userId'],
             arrays: ['lockboxes'],
+            serialized: [],
             base58: ['device.keys.encryption', 'device.keys.signature'],
           },
           {
@@ -822,6 +956,7 @@ describe('Team', () => {
             payload: { roleName: 'MANAGERS', lockboxes },
             required: ['roleName'],
             arrays: ['lockboxes'],
+            serialized: [],
             base58: [],
           },
           {
@@ -829,6 +964,7 @@ describe('Team', () => {
             payload: { userId: bob.userId, roleName: 'MANAGERS', lockboxes },
             required: ['userId', 'roleName'],
             arrays: ['lockboxes'],
+            serialized: [],
             base58: [],
           },
           {
@@ -836,6 +972,7 @@ describe('Team', () => {
             payload: { userId: bob.userId, roleName: 'MANAGERS', lockboxes },
             required: ['userId', 'roleName'],
             arrays: ['lockboxes'],
+            serialized: [],
             base58: [],
           },
           {
@@ -843,6 +980,7 @@ describe('Team', () => {
             payload: { userId: bob.userId, lockboxes },
             required: ['userId'],
             arrays: ['lockboxes'],
+            serialized: [],
             base58: [],
           },
           {
@@ -850,6 +988,7 @@ describe('Team', () => {
             payload: { userId: bob.userId, lockboxes },
             required: ['userId'],
             arrays: ['lockboxes'],
+            serialized: [],
             base58: [],
           },
           {
@@ -857,6 +996,7 @@ describe('Team', () => {
             payload: { deviceId: bob.device.deviceId, lockboxes },
             required: ['deviceId'],
             arrays: ['lockboxes'],
+            serialized: [],
             base58: [],
           },
           {
@@ -864,6 +1004,7 @@ describe('Team', () => {
             payload: { roleName: 'MANAGERS', lockboxes },
             required: ['roleName'],
             arrays: ['lockboxes'],
+            serialized: [],
             base58: [],
           },
           {
@@ -871,6 +1012,7 @@ describe('Team', () => {
             payload: { invitation, lockboxes },
             required: ['invitation', 'invitation.id'],
             arrays: ['lockboxes'],
+            serialized: [],
             // An invitation is only recorded on the way in; its public key isn't read until an
             // admission presents a proof against it, which is what made a bad one dormant
             base58: ['invitation.publicKey'],
@@ -880,6 +1022,7 @@ describe('Team', () => {
             payload: { invitation: deviceInvitation, lockboxes },
             required: ['invitation', 'invitation.id'],
             arrays: ['lockboxes'],
+            serialized: [],
             // An invitation is only recorded on the way in; its public key isn't read until an
             // admission presents a proof against it, which is what made a bad one dormant
             base58: ['invitation.publicKey'],
@@ -889,6 +1032,7 @@ describe('Team', () => {
             payload: { id: invitation.id, lockboxes },
             required: ['id'],
             arrays: ['lockboxes'],
+            serialized: [],
             base58: [],
           },
           {
@@ -900,10 +1044,13 @@ describe('Team', () => {
               proof,
               lockboxes,
             },
-            // `memberKeys.name` is `admissionMustBeProven`'s: it binds the identity being admitted
-            // to the proof of invitation, and it does so before the reducer reads it
-            required: ['id', 'memberKeys', 'userName', 'proof'],
+            // `memberKeys.name` is the identity being admitted, and the userId the team files them
+            // under from then on. `admissionMustBeProven` binds it to the proof of invitation —
+            // but that rule doesn't run on a link the resolver discards, and `invalidLinkReducer`
+            // reads this field.
+            required: ['id', 'memberKeys', 'memberKeys.name', 'userName', 'proof'],
             arrays: ['lockboxes'],
+            serialized: ['proof.id', 'proof.invitee', 'proof.keyHash'],
             base58: ['memberKeys.encryption', 'memberKeys.signature', 'proof.signature'],
           },
           {
@@ -914,6 +1061,7 @@ describe('Team', () => {
             // while that rule ran, and a discarded link goes to `invalidLinkReducer` instead
             required: ['id', 'device', 'device.keys', 'device.deviceId', 'device.userId', 'proof'],
             arrays: ['lockboxes'],
+            serialized: ['proof.id', 'proof.invitee', 'proof.keyHash'],
             base58: ['device.keys.encryption', 'device.keys.signature', 'proof.signature'],
           },
           {
@@ -921,6 +1069,7 @@ describe('Team', () => {
             payload: { keys, lockboxes },
             required: ['keys', 'keys.name'],
             arrays: ['lockboxes'],
+            serialized: [],
             base58: ['keys.encryption', 'keys.signature'],
           },
           {
@@ -928,6 +1077,7 @@ describe('Team', () => {
             payload: { server, lockboxes },
             required: ['server', 'server.keys', 'server.host'],
             arrays: ['lockboxes'],
+            serialized: [],
             base58: ['server.keys.encryption', 'server.keys.signature'],
           },
           {
@@ -935,6 +1085,7 @@ describe('Team', () => {
             payload: { host: server.host, lockboxes },
             required: ['host'],
             arrays: ['lockboxes'],
+            serialized: [],
             base58: [],
           },
           // Nothing takes these apart: the message and the team name are stored as they arrive
@@ -943,6 +1094,7 @@ describe('Team', () => {
             payload: { message: 'hello', lockboxes },
             required: [],
             arrays: ['lockboxes'],
+            serialized: [],
             base58: [],
           },
           {
@@ -950,6 +1102,7 @@ describe('Team', () => {
             payload: { teamName: 'Team', lockboxes },
             required: [],
             arrays: ['lockboxes'],
+            serialized: [],
             base58: [],
           },
         ]
@@ -959,7 +1112,7 @@ describe('Team', () => {
 
       /** Every variant of a case that has to be refused, as `[label, action]` */
       const brokenVariants = (
-        { type, payload, required, arrays, base58 }: ShapeCase,
+        { type, payload, required, arrays, serialized, base58 }: ShapeCase,
         aRealLockbox: Lockbox,
         someoneElsesDevice: Device
       ) => {
@@ -983,6 +1136,19 @@ describe('Team', () => {
           for (const value of [null, undefined, 1234, '', 'zzz', 'not-base58!!!']) {
             variants.push([
               `${type} ${field}=${JSON.stringify(value)}`,
+              { type, payload: setPath(payload, field, value) },
+            ])
+          }
+        }
+
+        // A field something serializes has to be a string. The two spellings of nothing are here
+        // for the reason they always are; `1234` and `''` are the ordinary ways a string field
+        // isn't one; and `1n` is the one that only serialization notices — msgpackr round-trips it
+        // intact, and `JSON.stringify` throws on it rather than answering.
+        for (const field of serialized) {
+          for (const value of [null, undefined, 1234, '', 1n]) {
+            variants.push([
+              `${type} ${field}=${String(value)}`,
               { type, payload: setPath(payload, field, value) },
             ])
           }
@@ -1024,6 +1190,36 @@ describe('Team', () => {
                 encryptionKey: { ...aRealLockbox.encryptionKey, publicKey: 'zzz' },
               },
             ],
+          ],
+          // A manifest's `publicKey` is a key too, and the recipient's is decoded: `lockbox.rotate`
+          // hands the old manifest back to `lockbox.create`, which encrypts to it. That's the path
+          // an admin takes to re-key a compromised member, so a forged one disables the team's one
+          // remedy — and the contents manifest gets the same rule, being the same field.
+          [
+            "[lockbox whose recipient's key is not base58]",
+            [
+              {
+                ...aRealLockbox,
+                recipient: { ...aRealLockbox.recipient, publicKey: 'not-base58!!!' },
+              },
+            ],
+          ],
+          [
+            "[lockbox whose recipient's key is the wrong length]",
+            [{ ...aRealLockbox, recipient: { ...aRealLockbox.recipient, publicKey: 'zzz' } }],
+          ],
+          [
+            "[lockbox whose contents' key is not base58]",
+            [
+              {
+                ...aRealLockbox,
+                contents: { ...aRealLockbox.contents, publicKey: 'not-base58!!!' },
+              },
+            ],
+          ],
+          [
+            "[lockbox whose contents' key is the wrong length]",
+            [{ ...aRealLockbox, contents: { ...aRealLockbox.contents, publicKey: 'zzz' } }],
           ],
         ]
         for (const [label, value] of elements) {
@@ -1109,7 +1305,7 @@ describe('Team', () => {
 
         // Every one of them refused, and none of them by a TypeError
         expect(outcomes.filter(result => !result.endsWith('refused'))).toEqual([])
-        expect(outcomes).toHaveLength(423)
+        expect(outcomes).toHaveLength(535)
 
         // ...and because they were refused before being appended, the graph is exactly as it was:
         // 👩🏾 Alice can still reload it, and 👨🏻‍🦲 Bob can still merge it
