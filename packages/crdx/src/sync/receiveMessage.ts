@@ -69,9 +69,9 @@ export const receiveMessage = <A extends Action, C>(
     // merge with our graph
     const mergedGraph = merge(graph, theirGraph)
 
-    // Check the integrity of the merged graph. The full set runs first because it's the cheaper
-    // question — `validateStructure`'s memo key is a content hash of the whole graph, and paying
-    // for one on every message is what made this path slow before. On the happy path we never do.
+    // Check the integrity of the merged graph. The full set runs first because it's a superset of
+    // the structural one, so on the happy path a single pass answers both questions. Only when
+    // something has failed do we pay for a second pass to find out which kind of failure it was.
     const validation = validate(mergedGraph)
     if (validation.isValid) {
       graph = mergedGraph

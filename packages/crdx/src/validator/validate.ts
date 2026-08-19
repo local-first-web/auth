@@ -1,10 +1,8 @@
-import { memoize } from '@localfirst/shared'
 import { type ValidationResult, type ValidatorSet } from './types.js'
 import { fail, missingEncryptedLink, structuralValidators, validators } from './validators.js'
 import { VALID } from '../constants.js'
 import { hashEncryptedLink } from '../graph/hashLink.js'
 import { type Action, type Link, type Graph } from '../graph/types.js'
-import { hash } from '@localfirst/crypto'
 
 /**
  * Runs every link in a hash graph through a set of validators.
@@ -139,100 +137,35 @@ const _validate = <A extends Action, C>(
  * Application-supplied validators aren't included either. They express what the application means
  * by a well-formed change rather than what the graph structurally is, and the application decides
  * when to ask, via `Store.validate`.
+ *
+ * NOT MEMOIZED, and unlike `validate` that isn't because a cache here would answer wrongly. This
+ * one really is a function of the graph alone. It's that the only sound key costs more than the
+ * work it would save.
+ *
+ * Sound rules out the cheap keys. `validateHash` exists to catch link bytes replaced in place,
+ * which leaves both `graph.head` and the graph object's identity untouched — so a cache keyed on
+ * either goes on answering 'valid' for a graph this function has to call invalid. Confirmed by
+ * building one and asking it. That leaves a content hash of the whole graph, which does see what
+ * this function sees.
+ *
+ * And a content hash costs about half of what it saves, so the memo only pays if the hit rate
+ * clears `key / work` — and that ratio doesn't fall away with size. Medians of 21 batches of 50
+ * calls: 0.0145ms against 0.0228ms at 3 links, 0.0592 against 0.1045 at 25, 0.4151 against 0.7850
+ * at 201. Break-even sits between about 50% and 65% at every size. The real hit rate is 45.7% —
+ * 1077 of 2358 calls, counting both copies of this module the suites load, the source one crdx's
+ * own tests import and the built one `packages/auth` resolves to through its `exports` field.
+ * Below break-even everywhere.
+ *
+ * An A/B says the same thing end to end: 400 calls over 200 successive graph versions, each
+ * version validated twice for a 50% hit rate — better than the real one — takes ~170ms memoized
+ * against ~162ms with no cache. Removing it is the faster option, not the resigned one.
+ *
+ * That also settles auth-bmx, which was filed because lodash's default cache gained an entry per
+ * graph version and never dropped one: 200 appends, 200 entries; 201 in the built copy under the
+ * auth suite. Nothing grows without bound if nothing is kept, and a memo that loses money is not
+ * worth bounding.
  */
-const _validateStructure = <A extends Action, C>(graph: Graph<A, C>): ValidationResult =>
+export const validateStructure = <A extends Action, C>(graph: Graph<A, C>): ValidationResult =>
   runValidators(graph, structuralValidators)
 
 export const validate = _validate
-
-/**
- * How many graph versions `validateStructure` keeps answers for.
- *
- * A replay asks about the graph in front of it, so the entries that earn their keep are the most
- * recent few — the current graph, and any a still-running caller is holding. Ten is enough to lose
- * nothing: counting every call across the auth and crdx suites, this cache and the unbounded one it
- * replaced both take 32 hits out of 95 calls, while the number of entries held goes from 24 to 10.
- */
-const MEMOIZED_GRAPH_VERSIONS = 10
-
-/**
- * A `Map` that drops its least recently used entry once it's full — enough of lodash's cache
- * interface for `memoize` to use in place of its default.
- *
- * `Map` iterates in insertion order, so re-inserting on read is what makes the first key out the
- * least recently used one rather than the oldest.
- */
-class LruCache<K, V> {
-  readonly #entries = new Map<K, V>()
-
-  constructor(private readonly maxSize: number) {}
-
-  get size() {
-    return this.#entries.size
-  }
-
-  has(key: K) {
-    return this.#entries.has(key)
-  }
-
-  get(key: K) {
-    if (!this.#entries.has(key)) return undefined
-    // re-insert to mark this the most recently used
-    const value = this.#entries.get(key)!
-    this.#entries.delete(key)
-    this.#entries.set(key, value)
-    return value
-  }
-
-  set(key: K, value: V) {
-    this.#entries.delete(key)
-    this.#entries.set(key, value)
-    if (this.#entries.size > this.maxSize) {
-      const leastRecentlyUsed = this.#entries.keys().next().value as K
-      this.#entries.delete(leastRecentlyUsed)
-    }
-
-    return this
-  }
-
-  delete(key: K) {
-    return this.#entries.delete(key)
-  }
-
-  clear() {
-    this.#entries.clear()
-  }
-}
-
-/**
- * The structural rules read nothing but the graph, and this runs on every replay, so this one is
- * worth caching. The seed keeps its keys clear of any other cache built on the same resolver.
- *
- * The key stays a content hash of the whole graph, and that isn't a detail that can be traded for a
- * cheaper one. `validateHash` exists to catch link bytes replaced in place, which leaves both
- * `graph.head` and the graph object's identity untouched — so a cache keyed on either would go on
- * answering 'valid' for a graph this function has to call invalid. The content hash is the only key
- * here that sees what the function sees.
- *
- * It's a real cost: medians of 50 samples on a 201-link chain, 0.42ms to compute the key against
- * 0.77ms to run the three rules (0.84ms against 1.02ms with 1 KB payloads). So a hit saves rather
- * less than half of what it spends getting there, and a miss pays for the key on top of the work.
- * It stays because it does hit — a third of calls across the auth and crdx suites — and because
- * the alternative to this key isn't a cheaper one, it's no cache at all.
- *
- * What it doesn't get to do is grow forever. Every dispatch and every merge makes a new graph
- * object, so lodash's default cache — a `Map` nothing evicts — gained an entry per graph version
- * for the life of the process: 200 appends, 200 entries, measured. An LRU bounds that at
- * `MEMOIZED_GRAPH_VERSIONS` and, measured the same way, takes exactly the same number of hits.
- */
-export const validateStructure = memoize(_validateStructure, graph =>
-  hash('memoizeStructure', graph)
-)
-
-// `memoize` hands back a function with a replaceable `cache`; `nomemoize` (the BYPASS path in
-// `@localfirst/shared`) hands back the bare function, which has none and needs none.
-if ('cache' in validateStructure) {
-  ;(validateStructure as { cache: unknown }).cache = new LruCache<string, ValidationResult>(
-    MEMOIZED_GRAPH_VERSIONS
-  )
-}

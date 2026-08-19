@@ -1,5 +1,5 @@
 ﻿/* eslint-disable @typescript-eslint/ban-ts-comment */
-import { asymmetric, hash } from '@localfirst/crypto'
+import { asymmetric } from '@localfirst/crypto'
 import { buildGraph } from '../../util/testing/graph.js'
 import { TEST_GRAPH_KEYS as keys, setup } from '../../util/testing/setup.js'
 import { describe, expect, test, vitest } from 'vitest'
@@ -14,15 +14,6 @@ import '../../util/testing/expect/toBeValid.js'
 const { setSystemTime } = vitest.useFakeTimers()
 
 const { alice, eve } = setup('alice', 'eve')
-
-/** Enough of lodash's memo cache interface for these tests to poke at it. */
-type MemoCache = {
-  size: number
-  has: (key: string) => boolean
-  get: (key: string) => ValidationResult | undefined
-  set: (key: string, value: ValidationResult) => unknown
-  clear: () => void
-}
 
 describe('graphs', () => {
   describe('validation', () => {
@@ -296,13 +287,12 @@ describe('graphs', () => {
     })
 
     /**
-     * `validateStructure` IS a function of the graph alone, so it keeps its memo. What it doesn't
-     * get is lodash's default cache, which never evicts; see auth-bmx.
+     * `validateStructure` used to be memoized on a content hash of the graph. It isn't any more —
+     * the key costs about half of what the work costs, and the real hit rate is below the
+     * break-even that implies, so the cache was losing money as well as growing without bound
+     * (auth-bmx). These two guard the ways it could come back wrong.
      */
-    describe(`validateStructure's cache`, () => {
-      const cacheOf = () => (validateStructure as unknown as { cache: MemoCache }).cache
-      const keyFor = (graph: Graph<any, any>) => hash('memoizeStructure', graph)
-
+    describe('validateStructure', () => {
       const chain = (length: number) => {
         let graph: Graph<any, any> = createGraph({ user: alice, name: 'Spies Я Us', keys })
         for (let i = 0; i < length; i++)
@@ -310,32 +300,17 @@ describe('graphs', () => {
         return graph
       }
 
-      test('still answers from the cache when asked about the same graph twice', () => {
-        const graph = chain(3)
-        expect(validateStructure(graph)).toBeValid()
-
-        // a cached answer is the only way this comes back
-        const sentinel = fail('served from the cache')
-        cacheOf().set(keyFor(graph), sentinel)
-        expect(validateStructure(graph)).toBe(sentinel)
+      /**
+       * A tripwire, not a behaviour: `memoize` hangs a `cache` on the function it returns, so this
+       * fails the moment someone wraps this in one again. Re-memoizing may well be right some day —
+       * but the numbers that say it isn't are in `validate.ts`, and this is here to make sure they
+       * get re-read rather than re-assumed.
+       */
+      test('keeps no cache to grow', () => {
+        expect('cache' in validateStructure).toBe(false)
       })
 
-      test('drops old entries rather than gaining one per graph version', () => {
-        const versions = 200
-        cacheOf().clear()
-
-        let graph: Graph<any, any> = createGraph({ user: alice, name: 'Spies Я Us', keys })
-        for (let i = 0; i < versions; i++) {
-          graph = append({ graph, action: { type: 'FOO', payload: i }, user: alice, keys })
-          expect(validateStructure(graph)).toBeValid()
-        }
-
-        expect(cacheOf().size).toBeGreaterThan(0)
-        // generous: the point is that it's bounded, not that it's bounded at any exact number
-        expect(cacheOf().size).toBeLessThanOrEqual(20)
-      })
-
-      test('sees link bytes replaced in place, which a cheaper key would not', () => {
+      test('sees link bytes replaced in place, which a cheaper key would not have', () => {
         const graph = chain(3)
         expect(validateStructure(graph)).toBeValid()
 
@@ -355,8 +330,9 @@ describe('graphs', () => {
           senderPublicKey: eve.keys.encryption.publicKey,
         }
 
-        // the graph object and its head are exactly what they were, so a cache keyed on either
-        // would still be serving the answer from before the tampering
+        // the graph object and its head are exactly what they were. Any memo keyed on either would
+        // still be serving the answer from before the tampering, which is why neither is an option
+        // if this ever gets memoized again.
         expect(graph.head).toEqual(headBefore)
         expect(validateStructure(graph)).not.toBeValid()
       })
