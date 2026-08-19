@@ -83,7 +83,8 @@ export class Store<
     this.keyring = createKeyring(keys)
 
     // set the initial state
-    this.updateState()
+    this.state = this.replay(this.graph)
+    this.emit('updated', { head: this.graph.head })
   }
 
   /** Returns the store's most recent state. */
@@ -144,6 +145,12 @@ export class Store<
     }
 
     // append this action as a new link to the graph
+    //
+    // Note that this path still commits the link before the reducer sees it, so an action our own
+    // reducer refuses lands on our graph anyway — the same brick `merge` no longer produces. The
+    // door for this path is in the application: `Team.dispatch` refuses a malformed payload before
+    // it gets here. Closing it here as well is a separate change, because the tests that forge a
+    // peer's malformed link do it by dispatching one through this path on purpose.
     this.graph = append({
       graph: this.graph,
       action: actionWithPayload,
@@ -170,8 +177,19 @@ export class Store<
    * @returns this `Store` instance
    */
   public merge(theirGraph: Graph<A, C>) {
-    this.graph = merge(this.graph, theirGraph)
-    this.updateState()
+    // Refusing a peer's graph has to leave us as we were. Replay happens against a candidate, and
+    // we only adopt it if that succeeds — otherwise a refusal would leave the offending link on our
+    // graph, and a graph we've refused once we can never load again. Everything that says no to a
+    // link says it by throwing from here, so this is what keeps a refusal a refusal rather than a
+    // graph nobody can open.
+    const candidate = merge(this.graph, theirGraph)
+    const state = this.replay(candidate)
+
+    this.graph = candidate
+    this.state = state
+
+    // notify listeners
+    this.emit('updated', { head: this.graph.head })
   }
 
   /**
@@ -184,19 +202,21 @@ export class Store<
 
   // PRIVATE
 
-  private updateState() {
+  /**
+   * Replays a graph from its root and returns the resulting state. Throws if the graph can't be
+   * replayed — either because it isn't structurally sound, or because the reducer refuses one of
+   * its links. Nothing here touches this store, so the caller decides whether to adopt the graph.
+   */
+  private replay(graph: Graph<A, C>) {
     // `makeMachine` refuses a graph that isn't structurally replayable. Application validators
     // aren't its business — they say what this application means by a well-formed change, and
-    // `validate` below is where the application asks about them.
+    // `validate` is where the application asks about them.
     const machine = makeMachine({
       initialState: this.initialState,
       reducer: this.reducer,
       resolver: this.resolver,
     })
-    this.state = machine(this.graph)
-
-    // notify listeners
-    this.emit('updated', { head: this.graph.head })
+    return machine(graph)
   }
 }
 
