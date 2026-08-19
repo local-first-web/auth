@@ -1,5 +1,6 @@
 import { ROOT, type Base58, type Hash } from '@localfirst/crdx'
 import { base58 } from '@localfirst/crypto'
+import { KeyType } from '../util/types.js'
 import { type TeamAction, type TeamGraph, type TeamLinkMap } from './types.js'
 
 /**
@@ -542,6 +543,32 @@ const lockboxProblem = (lockbox: unknown): string | undefined => {
         return `has no usable ${key} key on its ${name} manifest ('${String(manifest[key])}')`
     }
   }
+
+  // A device is only ever handed the keys of the user it belongs to.
+  //
+  // `visibleKeys` walks outward from a device's own keyset, and every scope a member reaches, they
+  // reach THROUGH their user keys: device -> user -> team, roles. That shape isn't an accident of
+  // the walk, it's what the ten `lockbox.create` sites produce — the three that address a device
+  // (`create`, `addDevice`, `join`) all put the user's own keys in it, and `lockbox.rotate`
+  // preserves both scopes, so a rotation can't introduce a pair that wasn't already there.
+  // Measured over the whole suite — 634 tests, including invitations, first-use devices, servers,
+  // and the connection and sync flows — the only lockbox any honest path addresses to a DEVICE
+  // holds USER keys; the six pairs it does produce are TEAM/ROLE -> USER, ROLE -> ROLE,
+  // TEAM -> SERVER, USER -> DEVICE and USER -> EPHEMERAL.
+  //
+  // Nothing enforced it, and the walk's shape is what made that expensive. A member's real team
+  // keys are two steps out (device -> user -> team), so a lockbox holding team keys of one's own
+  // addressed to somebody's DEVICE reaches them in one step and is offered first. A device
+  // encryption key is plaintext on every lockbox recipient manifest, so addressing it takes
+  // nothing. Measured: one ADD_DEVICE from a non-admin, at generation 0, with no forged number
+  // anywhere, replaced the team keys of every other member including both admins —
+  // `teamKeys().secretKey` came back the attacker's, and what those members then encrypted only
+  // the attacker could read.
+  //
+  // Refused here rather than skipped during the walk, because this is a lockbox that no honest
+  // peer can produce: it isn't a lockbox we can't use, it's one that was never a lockbox.
+  if (recipient.type === KeyType.DEVICE && contents.type !== KeyType.USER)
+    return `holds ${String(contents.type)} keys and is addressed to a device, which is only ever handed the keys of the user it belongs to`
 
   // The key a lockbox was sealed with is base58 that `asymmetric.decryptBytes` decodes. Nothing on
   // the way in reads it — the author isn't the recipient, and a non-recipient never opens the

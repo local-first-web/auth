@@ -9,7 +9,7 @@ import * as teams from '../index.js'
 import * as select from '../selectors/index.js'
 import { type TeamAction, type TeamContext, type TeamState } from '../types.js'
 
-const { USER, TEAM } = KeyType
+const { USER, TEAM, ROLE } = KeyType
 
 /**
  * A lockbox's payload is ciphertext addressed to one recipient, so nobody else can see what it
@@ -196,47 +196,94 @@ describe('Team', () => {
   })
 
   describe('a keyset whose fields are strings but not keys', () => {
-    it("doesn't become the keys its recipient encrypts with", () => {
+    it("doesn't become keys its recipient tries to use", () => {
       const { alice, bob } = setup(['alice', { user: 'bob', admin: false }])
-      const teamKeyring = alice.team.teamKeyring()
-      const realTeamKeys = alice.team.teamKeys()
 
       // Every field is present and every field is a non-empty string, so a check that asks only
       // that much is satisfied — and the manifest is built by redacting this, so it agrees with
       // itself too. What isn't true is that any of the secrets is a key.
       const keypair = asymmetric.keyPair()
       const notKeys = {
-        type: TEAM,
-        name: TEAM,
+        type: ROLE,
+        name: 'managers',
         generation: 0,
         secretKey: 'notAKey',
         encryption: { publicKey: keypair.publicKey, secretKey: 'notAKey' },
         signature: { publicKey: keypair.publicKey, secretKey: 'notAKey' },
       }
 
-      // Addressed to 👩🏾 Alice's DEVICE, which is where the walk starts — so this is the first
-      // keyset offered for the TEAM scope, ahead of the real one her user keys open
+      // Addressed to 👩🏾 Alice's user keys, which is where a role's keys honestly reach her — and
+      // naming a role she has no keys for, so nothing else is competing to be the answer
       bobAuthorsDirectly(bob, {
         type: 'ADD_DEVICE',
         payload: {
           device: redactDevice(bob.phone!),
-          lockboxes: [
-            create(notKeys as unknown as KeysetWithSecrets, redactKeys(alice.device.keys)),
-          ],
+          lockboxes: [create(notKeys as unknown as KeysetWithSecrets, alice.user.keys)],
         },
       })
       alice.team.merge(bob.team.graph)
 
-      // ✅ Her team keys are still the team's
-      expect(alice.team.teamKeys()).toEqual(realTeamKeys)
+      // ✅ 👩🏾 Alice has no keys for that role, rather than a keyset of strings she'd hand libsodium
+      expect(() => alice.team.roleKeys('managers')).toThrowError(/Couldn't find keys/)
+    })
+  })
 
-      // ✅ ...so her own saved graph still loads
-      const reloaded = teams.load(
-        alice.team.save(),
-        { user: alice.user, device: alice.device },
-        teamKeyring
-      )
-      expect(reloaded.teamName).toBe(alice.team.teamName)
+  describe('a lockbox addressed to a device', () => {
+    /**
+     * `visibleKeys` walks device -> user -> team, so a member's real team keys are two steps out. A
+     * lockbox holding team keys of the author's own, addressed to somebody's DEVICE, reaches them
+     * in one step — and a device encryption key is plaintext on every lockbox recipient manifest,
+     * so addressing it takes nothing. That beat the real keys for every member at once, at
+     * generation 0, with no forged number anywhere.
+     *
+     * No walk order fixes this: the honest delivery is always deeper than the forgery, and an
+     * attacker appending later always wins the other way round. What settles it is that no honest
+     * path produces this lockbox at all.
+     */
+    it("can't hold anything but the keys of the user it belongs to", () => {
+      const { alice, bob, charlie, dwight } = setup([
+        'alice',
+        'charlie',
+        { user: 'bob', admin: false },
+        { user: 'dwight', admin: false },
+      ])
+      const realTeamKeys = alice.team.teamKeys()
+      const bobsKeys = createKeyset({ type: TEAM, name: TEAM })
+
+      // 👨🏻‍🦲 Bob aims one ADD_DEVICE at everyone else's device at once, both admins included
+      bobAuthorsDirectly(bob, {
+        type: 'ADD_DEVICE',
+        payload: {
+          device: redactDevice(bob.phone!),
+          lockboxes: [alice, charlie, dwight].map(victim =>
+            create(bobsKeys, redactKeys(victim.device.keys))
+          ),
+        },
+      })
+
+      // ✅ Nobody replays it
+      for (const victim of [alice, charlie, dwight]) {
+        expect(() => victim.team.merge(bob.team.graph)).toThrowError(/addressed to a device/)
+        expect(victim.team.teamKeys().secretKey).not.toBe(bobsKeys.secretKey)
+      }
+
+      // ✅ ...and 👩🏾 Alice still holds the team's own keys, so the team still works
+      expect(alice.team.teamKeys()).toEqual(realTeamKeys)
+      expect(alice.team.decrypt(alice.team.encrypt('hello'))).toBe('hello')
+    })
+
+    it('still carries the user keys it should', () => {
+      const { bob } = setup(['alice', { user: 'bob', admin: false }])
+
+      // ✅ The honest shape — a member's own user keys, to a device of their own — still goes on
+      bob.team.dispatch({
+        type: 'ADD_DEVICE',
+        payload: {
+          device: redactDevice(bob.phone!),
+          lockboxes: [create(bob.user.keys, bob.phone!.keys)],
+        },
+      })
+      expect(bob.team.members(bob.userId).devices).toHaveLength(2)
     })
   })
 
