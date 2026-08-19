@@ -41,6 +41,13 @@ const appendSecondRootLink = (attacker: ReturnType<typeof setup>['alice']) =>
 
 describe('Team', () => {
   describe('the root link', () => {
+    /**
+     * The attack itself. Note that both legs of `rootLinkCanOnlyBeTheFirstLink` refuse this one —
+     * the link names predecessors AND it lands on a team that already exists — so disabling either
+     * leg alone still leaves the escalation refused. What this pins is the first leg's message;
+     * what makes the test worth having is the two assertions below it, which are the security
+     * property and hold whichever leg does the refusing.
+     */
     it('refuses a ROOT link dispatched onto a team that already exists', () => {
       const { bob } = setup('alice', { user: 'bob', admin: false })
       expect(bob.team.memberIsAdmin(bob.userId)).toBe(false)

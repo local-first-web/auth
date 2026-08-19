@@ -170,10 +170,18 @@ const validators: TeamStateValidatorSet = {
    *   a whole — the predecessor-less link is the graph's root, and it's the ROOT link — so on a
    *   graph that has been through `makeMachine` this is exactly 'this is the root'. Checking it
    *   per link is what catches a dispatch, where no graph-wide validation runs.
-   * - Nothing has been applied yet. `setHead` records a head for every link the reducer applies,
-   *   so an empty `head` is the initial state and nothing else. This one holds whatever shape the
-   *   graph is in and whatever the link claims about its own position, and it's the direct form of
-   *   what those three rules assume: behind a ROOT link there is no team yet.
+   * - There is no team behind it yet. This is stated as what it is rather than by proxy: the four
+   *   registries listed in `teamAlreadyExists` are the ones those three rules read, so a state
+   *   with all four empty is precisely the state they assume, whatever else may be true of it.
+   *   `head` is in there too, because `setHead` records one for every link the reducer applies —
+   *   but nothing here rests on that. `invalidLinkReducer` is a live path that returns without
+   *   calling `setHead`, so if the resolver ever discarded a graph's first link, an empty `head`
+   *   would no longer mean 'nothing applied'. The registries would still mean what they say, and
+   *   the predecessor rule above would still hold.
+   *
+   * This leg holds whatever shape the graph is in and whatever the link claims about its own
+   * position, and the one above holds whatever the reduction has done so far; neither leans on the
+   * other, and either alone refuses the dispatch attack.
    *
    * Shape is settled before position is judged, so this sits after `payloadsMustBeWellFormed`.
    */
@@ -188,7 +196,13 @@ const validators: TeamStateValidatorSet = {
         return fail(msg, ...args)
       }
 
-      if (previousState.head.length > 0) {
+      const teamAlreadyExists =
+        previousState.head.length > 0 ||
+        previousState.members.length > 0 ||
+        previousState.servers.length > 0 ||
+        previousState.removedMembers.length > 0 ||
+        previousState.removedServers.length > 0
+      if (teamAlreadyExists) {
         const msg = `A ROOT link founds the team, so it can't be applied to a team that already exists.`
         return fail(msg, ...args)
       }

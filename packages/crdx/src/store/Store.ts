@@ -185,11 +185,13 @@ export class Store<
   // PRIVATE
 
   private updateState() {
+    // `makeMachine` refuses a graph that isn't structurally replayable. Application validators
+    // aren't its business — they say what this application means by a well-formed change, and
+    // `validate` below is where the application asks about them.
     const machine = makeMachine({
       initialState: this.initialState,
       reducer: this.reducer,
       resolver: this.resolver,
-      validators: this.validators,
     })
     this.state = machine(this.graph)
 
