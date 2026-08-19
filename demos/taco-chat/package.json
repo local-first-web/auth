@@ -8,7 +8,7 @@
   "description": "Demo app for @localfirst/auth",
   "repository": "http://github.com/local-first-web/auth",
   "license": "MIT",
-  "private": false,
+  "private": true,
   "type": "module",
   "scripts": {
     "dev:relay": "cross-env NODE_NO_WARNINGS=1 DEBUG='localfirst*' DEBUG_COLORS=1 node ./scripts/start-relay-server.js",
@@ -65,9 +65,6 @@
       "tailwindcss": {},
       "autoprefixer": {}
     }
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "gitHead": "9a7b871e9e34268b32cc6e574189ec2350787b81"
 }
