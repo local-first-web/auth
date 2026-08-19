@@ -129,10 +129,10 @@ const _validate = <A extends Action, C>(
  * Runs a hash graph through the structural validators alone: the rules that say whether this is a
  * graph that can be replayed at all.
  *
- * This is what `makeMachine` refuses a graph for, and it's deliberately narrower than `validate`.
- * A graph that fails an advisory rule is still perfectly replayable — clock disagreement between
- * honest peers is enough to trip either of those, whether or not the rule itself reads a clock.
- * See `advisoryValidators`.
+ * This is what `makeMachine` refuses a graph for and what `receiveMessage` refuses a merge for, and
+ * it's deliberately narrower than `validate`. A graph that fails an advisory rule is still
+ * perfectly replayable — clock disagreement between honest peers is enough to trip either of those,
+ * whether or not the rule itself reads a clock. See `advisoryValidators`.
  *
  * Application-supplied validators aren't included either. They express what the application means
  * by a well-formed change rather than what the graph structurally is, and the application decides

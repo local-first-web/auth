@@ -28,8 +28,9 @@ import { type Hash } from '../util/index.js'
  * These three pass both. A correct implementation cannot emit a mis-hashed link, a dangling `prev`
  * or a second ROOT, whatever any clock says. (The gate is about what an implementation emits. A
  * graph assembled mid-sync is a different thing: `receiveMessage` merges as soon as any links
- * arrive, so a partial delivery can transiently dangle a `prev` — that path runs the full set and
- * retries, and is auth-b63's business, not this set's.)
+ * arrive, so a partial delivery can transiently dangle a `prev`. That path discards the merge and
+ * waits for the rest, which is the same answer this set wants and the reason it's what the wire
+ * path refuses on.)
  */
 export const structuralValidators: ValidatorSet = {
   /** Does this link's hash check out? */
@@ -89,14 +90,18 @@ export const structuralValidators: ValidatorSet = {
  * the document unopenable: for a future timestamp until wall clock caught up, and for an
  * out-of-order one forever, since the graph can't change and no clock repairs it.
  *
- * 'Advisory' describes what `makeMachine` does with a failure, and nothing more. `Store.validate`
- * reports these alongside the structural rules, which is where an application is meant to ask. The
- * sync protocol does NOT treat them as advice: `receiveMessage` runs the full set over the merged
- * graph and, on any failure, discards the merge outright, increments `failedSyncCount` and sends
- * the error back to the peer. So a peer whose clock runs fast is still refused over the wire, and
- * a reader shouldn't conclude from this comment that clock skew is harmless everywhere — only that
- * it no longer makes a stored graph unopenable. Bringing the wire path in line is tracked
- * separately.
+ * 'Advisory' now describes what happens to a failure wherever it's checked, not just in one place.
+ * `makeMachine` won't refuse a graph for one. `receiveMessage` won't refuse a merge for one either:
+ * it takes the merge and counts what it saw under `advisoryFailureCount`, which is deliberately not
+ * the `failedSyncCount` an application reads to decide a peer isn't worth talking to, and doesn't
+ * send it back to the peer, because nothing was refused. `Store.validate` reports these alongside
+ * the structural rules, which is where an application is meant to ask.
+ *
+ * What that costs is worth naming rather than leaving to be discovered. The wire path used to
+ * reject a backdated link, as a side effect of running the whole set: it doesn't any more. That
+ * rejection was never worth much — see `validateTimestampOrder`, whose comparison the author can
+ * arrange around in one line — and the price of it was refusing honest peers outright. Backdating
+ * needs a defence that doesn't rest on a rule the author controls both sides of; that's auth-6bw.
  */
 export const advisoryValidators: ValidatorSet = {
   /**

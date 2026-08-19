@@ -34,8 +34,29 @@ export type SyncState = {
   /** The head we had in common with this peer the last time we synced. If empty, we haven't synced before. */
   lastCommonHead: Hash[]
 
-  /** We increment this each time a sync fails because we would have ended up with an invalid graph */
+  /**
+   * We increment this each time we refuse a merge because we would have ended up with a graph we
+   * couldn't replay — a link whose bytes don't match its hash, a `prev` naming a link nobody has, a
+   * second ROOT. An application can read this as a reason to stop talking to a peer.
+   *
+   * Timestamps are not in here. See `advisoryFailureCount`.
+   */
   failedSyncCount: number
+
+  /**
+   * We increment this each time a merge we accepted failed one of the advisory rules — the graph
+   * replays, but its timestamps don't line up with our clock or with each other.
+   *
+   * This is deliberately not `failedSyncCount` and deliberately not sent back to the peer. Nothing
+   * was refused, so calling it a failed sync would be false; and clock disagreement between honest
+   * peers is routine, so feeding it to the counter an application uses to decide whom to trust
+   * would punish a peer for an NTP step. What it is good for is telling someone their clock is
+   * wrong. See `advisoryValidators`.
+   */
+  advisoryFailureCount: number
+
+  /** The most recent advisory failure, if any, for an application that wants to surface it. */
+  lastAdvisoryError?: ValidationError
 }
 
 export type SyncMessage = {

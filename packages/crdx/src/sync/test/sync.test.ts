@@ -1,3 +1,4 @@
+import { asymmetric } from '@localfirst/crypto'
 import { assert } from '@localfirst/shared'
 import { append, createGraph, headsAreEqual, type Graph } from '../../graph/index.js'
 import { generateMessage, initSyncState, receiveMessage } from '../index.js'
@@ -640,11 +641,16 @@ describe('sync', () => {
     }
   })
 
-  describe('failure handling', () => {
-    const appendLinkInThePast = (graph: Graph<any, any>, user: UserWithSecrets) => {
-      const IN_THE_PAST = new Date('2020-01-01').getTime()
+  describe('clock skew', () => {
+    const TEN_MINUTES = 10 * 60 * 1000
+
+    const appendWithClockOffset = (
+      graph: Graph<any, any>,
+      user: UserWithSecrets,
+      offset: number
+    ) => {
       const now = Date.now()
-      setSystemTime(IN_THE_PAST)
+      setSystemTime(now + offset)
       const updatedGraph = append({
         graph,
         action: { type: 'FOO', payload: 'pizza' },
@@ -652,6 +658,91 @@ describe('sync', () => {
         keys,
       })
       setSystemTime(now)
+      return updatedGraph
+    }
+
+    it('syncs with a peer whose clock is ten minutes fast', () => {
+      const {
+        userRecords: { alice, bob },
+        network,
+      } = setup('alice', 'bob')
+      network.connect(alice.peer, bob.peer)
+      expectToBeSynced(alice, bob)
+
+      // 👨🏻‍🦲 Bob's clock is ten minutes fast — no adversary, just an NTP step or a resume from sleep
+      bob.peer.graph = appendWithClockOffset(bob.peer.graph, bob.user, TEN_MINUTES)
+      const newHash = bob.peer.graph.head[0]
+
+      bob.peer.sync()
+      network.deliverAll()
+
+      // 👩🏾 Alice takes his link; a timestamp she can't yet vouch for isn't a reason to refuse it
+      expect(alice.peer.graph.links).toHaveProperty(newHash)
+      expectToBeSynced(alice, bob)
+
+      // and she doesn't hold it against him — but she does notice, and can say so
+      expect(alice.peer.syncStates.bob.failedSyncCount).toBe(0)
+      expect(alice.peer.syncStates.bob.advisoryFailureCount).toBe(1)
+      expect(alice.peer.syncStates.bob.lastAdvisoryError?.message).toMatch(
+        /timestamp is in the future/
+      )
+    })
+
+    it('syncs a link that is older than the link it descends from', () => {
+      const {
+        userRecords: { alice, bob },
+        network,
+      } = setup('alice', 'bob')
+      network.connect(alice.peer, bob.peer)
+
+      // 👨🏻‍🦲 Bob appends on a clock ten minutes fast...
+      bob.peer.graph = appendWithClockOffset(bob.peer.graph, bob.user, TEN_MINUTES)
+      bob.peer.sync()
+      network.deliverAll()
+
+      // ...and then, on a correct clock, appends again: the new link is older than its parent
+      bob.peer.graph = appendWithClockOffset(bob.peer.graph, bob.user, 0)
+      const outOfOrderHash = bob.peer.graph.head[0]
+
+      bob.peer.sync()
+      network.deliverAll()
+
+      expect(alice.peer.graph.links).toHaveProperty(outOfOrderHash)
+      expectToBeSynced(alice, bob)
+      expect(alice.peer.syncStates.bob.failedSyncCount).toBe(0)
+      expect(alice.peer.syncStates.bob.advisoryFailureCount).toBeGreaterThan(0)
+      expect(alice.peer.syncStates.bob.lastAdvisoryError?.message).toMatch(/timestamp/)
+    })
+  })
+
+  describe('failure handling', () => {
+    /**
+     * Appends a link and then rewrites its body without rewriting its hash, so the link no longer
+     * is the bytes it claims to be. That's structural — it fails the head bookkeeping check on the
+     * way in, and `validateHash` behind it — and structural is what the wire path refuses a merge
+     * for. (This used to be a backdated link, which is now advisory; see the clock skew tests.)
+     */
+    const appendTamperedLink = (graph: Graph<any, any>, user: UserWithSecrets) => {
+      const updatedGraph = append({
+        graph,
+        action: { type: 'FOO', payload: 'pizza' },
+        user,
+        keys,
+      })
+
+      const hash = updatedGraph.head[0]
+      const link = updatedGraph.links[hash]
+      link.body.payload = 'tampered'
+      updatedGraph.encryptedLinks[hash] = {
+        encryptedBody: asymmetric.encryptBytes({
+          secret: link.body,
+          recipientPublicKey: keys.encryption.publicKey,
+          senderSecretKey: user.keys.encryption.secretKey,
+        }),
+        recipientPublicKey: keys.encryption.publicKey,
+        senderPublicKey: user.keys.encryption.publicKey,
+      }
+
       return updatedGraph
     }
 
@@ -665,20 +756,24 @@ describe('sync', () => {
       // no changes yet; 👩🏾 Alice and 🦹‍♀️ Eve are synced up
       expectToBeSynced(alice, eve)
 
-      // 🦹‍♀️ Eve sets her system clock back when appending a link
-      eve.peer.graph = appendLinkInThePast(eve.peer.graph, eve.user)
+      // 🦹‍♀️ Eve rewrites a link's body without rewriting its hash
+      eve.peer.graph = appendTamperedLink(eve.peer.graph, eve.user)
       const badHash = eve.peer.graph.head[0]
 
       eve.peer.sync()
 
       // Since Eve's graph is invalid, the sync fails
-      expect(() => network.deliverAll()).toThrow(`timestamp can't be earlier`)
+      expect(() => network.deliverAll()).toThrow(`Head hash does not match`)
 
       // They are not synced
       expectNotToBeSynced(alice, eve)
 
       // Alice doesn't have the bad link
       expect(alice.peer.graph.links).not.toHaveProperty(badHash)
+
+      // and this is a failed sync, not a note about someone's clock
+      expect(alice.peer.syncStates.eve.failedSyncCount).toBe(1)
+      expect(alice.peer.syncStates.eve.advisoryFailureCount).toBe(0)
     })
 
     it('repeated failures', () => {
@@ -695,14 +790,14 @@ describe('sync', () => {
 
       const TRIES = 10
       for (let i = 0; i < TRIES; i++) {
-        // 🦹‍♀️ Eve sets her system clock back when appending a link
-        eve.peer.graph = appendLinkInThePast(originalGraph, eve.user)
+        // 🦹‍♀️ Eve rewrites a link's body without rewriting its hash
+        eve.peer.graph = appendTamperedLink(originalGraph, eve.user)
         const badHash = eve.peer.graph.head[0]
 
         eve.peer.sync()
 
         // Since Eve's graph is invalid, the sync fails
-        expect(() => network.deliverAll()).toThrow("timestamp can't be earlier")
+        expect(() => network.deliverAll()).toThrow('Head hash does not match')
 
         // They are not synced
         expectNotToBeSynced(alice, eve)
