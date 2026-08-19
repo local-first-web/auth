@@ -472,18 +472,28 @@ const proofProblem = (proof: unknown): string | undefined => {
  * From there `createMemberLockboxes` hands the ENCRYPTION key to `lockbox.create`, so granting that
  * member a role throws in libsodium rather than refusing.
  *
- * The two are load-bearing for different callers, and neither is here by symmetry. The encryption
- * key is the one that breaks a REPLAY: `redactKeys` asks `hasSecrets`, which reads
- * `keys.encryption.hasOwnProperty` first and short-circuits there, and `lockbox.create` then reads
- * `.encryption` and nothing else — so the signature never reaches either. What the signature
- * breaks is `Team.verify`, which hands `members(author).keys.signature` straight to libsodium.
- * Measured over every value: `null`, `123`, `{}` and `1n` give `Expected String`, `'zzz'` and `''`
- * give `invalid publicKey length`, and `'not-base58!!!'` gives `Non-base58 character`. Not one of
- * them returns `false`. So any member can poison another member's promoted signature by removing
- * their OWN device, and `team.verify()` on anything that member signs throws on every peer from
- * then on, instead of answering — a permanent, remotely planted throw in a public API. It's outside
- * replay, which is why it isn't a graph you can't open; it is not a reason to think the check
- * optional.
+ * The two are load-bearing for different callers, and neither is here by symmetry — but NEITHER of
+ * them breaks a replay, which is worth saying plainly, because a throw during one is the criterion
+ * at the top of this file and it would give the wrong answer here. Every replay-side reader of a
+ * promoted key only compares it or files it away; measured, a poisoned `encryption` merges cleanly,
+ * survives a full re-replay from `save()`, and leaves `members()` and `teamKeys()` working. What
+ * breaks is an operation somebody AUTHORS afterwards, aimed at the member the lockbox lied about.
+ *
+ * For the encryption key that operation is granting them a role. `redactKeys` asks `hasSecrets`,
+ * which reads `keys.encryption.hasOwnProperty` first and short-circuits there, and `lockbox.create`
+ * then reads `.encryption` and nothing else — so `Team.addMemberRole` throws `invalid publicKey
+ * length`, `Non-base58 character` or `Cannot read properties of null` before it has a link to
+ * dispatch. For the signature key it's `Team.verify`, which hands `members(author).keys.signature`
+ * straight to libsodium: measured over every value, `null`, `123`, `{}` and `1n` give `Expected
+ * String`, `'zzz'` and `''` give `invalid publicKey length`, and `'not-base58!!!'` gives
+ * `Non-base58 character`. Not one of them returns `false`.
+ *
+ * `removeDevice` resolves the member from the device being REMOVED and promotes only from a lockbox
+ * in that member's own scope, so what a member can do unaided is poison their own record — after
+ * which every peer's `team.verify()` throws on anything they sign, permanently, instead of
+ * answering. Aiming it at somebody else takes an admin, because `canOnlyRemoveYourOwnDevices`
+ * stands in the way of removing their device. Being outside replay is why neither of these is a
+ * graph you can't open; it is not a reason to think either check optional.
  *
  * They're optional because a manifest built from another manifest doesn't carry them — and
  * `undefined` is exactly what `removeDevice` checks for before promoting, so absence is the one

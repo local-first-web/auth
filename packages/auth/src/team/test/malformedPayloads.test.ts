@@ -645,11 +645,12 @@ describe('Team', () => {
       //
       // Those four are the ENCRYPTION key's — `hasSecrets` short-circuits on `keys.encryption` and
       // `lockbox.create` reads only `.encryption`, so the signature reaches neither. The signature
-      // breaks something else, outside replay: `Team.verify` hands `keys.signature` straight to
+      // breaks a different caller again: `Team.verify` hands `keys.signature` straight to
       // libsodium, so `team.verify()` on anything 👨🏻‍🦲 Bob signs throws for every peer from then
       // on rather than answering — measured for all of `null`, `''`, `123`, `{}`, `1n`, `'zzz'` and
-      // `'not-base58!!!'`, none of which returns `false`. Both halves are load-bearing; they just
-      // break for different callers.
+      // `'not-base58!!!'`, none of which returns `false`. Both halves are load-bearing, and neither
+      // of them is a replay: a poisoned key merges, re-replays from `save()` and leaves `members()`
+      // working. What it takes down is whatever an admin or a peer AUTHORS next about that member.
       const hisOwn = bob.team.state.lockboxes.find(
         l => l.contents.type === USER && l.contents.name === bob.userId
       )!
