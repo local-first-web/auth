@@ -1,6 +1,6 @@
 import { memoize } from '@localfirst/shared'
 import { type KeysetWithSecrets } from '@localfirst/crdx'
-import { asymmetric, hash } from '@localfirst/crypto'
+import { asymmetric, base58, hash } from '@localfirst/crypto'
 import { type KeyManifest, type Lockbox } from './types.js'
 
 /** Domain separator for the memo key below — this hash is a cache key, never a security claim */
@@ -72,14 +72,46 @@ export const open = memoize(
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0
 
-const isKeypair = (value: unknown): value is { publicKey: string; secretKey: string } =>
+/**
+ * A string libsodium can take as a key of this kind: base58, decoding to exactly this many bytes.
+ *
+ * Being a non-empty string is not enough, which is what an earlier version of this settled for.
+ * `'notAKey'` is a non-empty string, and a keyset with `'notAKey'` in every secret is a keyset in
+ * every respect these checks were asking about — it went into `keyMap`, came back out of
+ * `teamKeys()`, and left the victim's saved graph unloadable. Every one of these fields is handed
+ * to libsodium, which throws rather than refusing, so the length is part of what the field is.
+ *
+ * The lengths are what `createKeyset` produces: 32 bytes for the symmetric secret and for both
+ * halves of the encryption keypair and the signature public key, 64 for the signature secret.
+ */
+const isUsableKey = (value: unknown, byteLength: number): value is string => {
+  if (!isNonEmptyString(value)) return false
+  // Decoding is quadratic in the length of the string, and base58 never encodes a byte as more than
+  // two characters — so nothing of the right length is ruled out by bounding it first
+  if (value.length > byteLength * 2) return false
+  if (!base58.detect(value)) return false
+  return base58.decode(value).length === byteLength
+}
+
+const isKeypair = (
+  value: unknown,
+  secretKeyBytes: number
+): value is { publicKey: string; secretKey: string } =>
   typeof value === 'object' &&
   value !== null &&
-  isNonEmptyString((value as Record<string, unknown>).publicKey) &&
-  isNonEmptyString((value as Record<string, unknown>).secretKey)
+  isUsableKey((value as Record<string, unknown>).publicKey, PUBLIC_KEY_BYTES) &&
+  isUsableKey((value as Record<string, unknown>).secretKey, secretKeyBytes)
+
+/** What `createKeyset` produces, in bytes */
+const PUBLIC_KEY_BYTES = 32
+const SYMMETRIC_KEY_BYTES = 32
+const ENCRYPTION_SECRET_KEY_BYTES = 32
+const SIGNATURE_SECRET_KEY_BYTES = 64
 
 /**
  * A keyset every consumer of `visibleKeys` can take, filed where its manifest says to file it.
+ *
+ * Every field has to be a key libsodium could actually use, not merely a string — see `isUsableKey`.
  *
  * `generation` has to be a plain non-negative integer because `keyMap` uses it as an array index
  * and `keys` counts on it to find the latest — and because it's the field a BigInt arrived on. It
@@ -98,12 +130,12 @@ const isTheKeysetDescribedBy =
     const isWellFormed =
       isNonEmptyString(type) &&
       isNonEmptyString(name) &&
-      isNonEmptyString(secretKey) &&
+      isUsableKey(secretKey, SYMMETRIC_KEY_BYTES) &&
       typeof generation === 'number' &&
       Number.isSafeInteger(generation) &&
       generation >= 0 &&
-      isKeypair(encryption) &&
-      isKeypair(signature)
+      isKeypair(encryption, ENCRYPTION_SECRET_KEY_BYTES) &&
+      isKeypair(signature, SIGNATURE_SECRET_KEY_BYTES)
     if (!isWellFormed) return false
 
     return (

@@ -1,4 +1,4 @@
-import { createKeyset, redactKeys, type Store } from '@localfirst/crdx'
+import { createKeyset, redactKeys, type KeysetWithSecrets, type Store } from '@localfirst/crdx'
 import { asymmetric } from '@localfirst/crypto'
 import { describe, expect, it } from 'vitest'
 import { redactDevice } from '../../device/index.js'
@@ -192,6 +192,51 @@ describe('Team', () => {
       // ✅ 👩🏾 Alice still has the team's own keys, not the ones 👨🏻‍🦲 Bob minted
       expect(alice.team.teamKeys()).toEqual(realTeamKeys)
       expect(alice.team.teamKeys().secretKey).not.toBe(bobsKeys.secretKey)
+    })
+  })
+
+  describe('a keyset whose fields are strings but not keys', () => {
+    it("doesn't become the keys its recipient encrypts with", () => {
+      const { alice, bob } = setup(['alice', { user: 'bob', admin: false }])
+      const teamKeyring = alice.team.teamKeyring()
+      const realTeamKeys = alice.team.teamKeys()
+
+      // Every field is present and every field is a non-empty string, so a check that asks only
+      // that much is satisfied — and the manifest is built by redacting this, so it agrees with
+      // itself too. What isn't true is that any of the secrets is a key.
+      const keypair = asymmetric.keyPair()
+      const notKeys = {
+        type: TEAM,
+        name: TEAM,
+        generation: 0,
+        secretKey: 'notAKey',
+        encryption: { publicKey: keypair.publicKey, secretKey: 'notAKey' },
+        signature: { publicKey: keypair.publicKey, secretKey: 'notAKey' },
+      }
+
+      // Addressed to 👩🏾 Alice's DEVICE, which is where the walk starts — so this is the first
+      // keyset offered for the TEAM scope, ahead of the real one her user keys open
+      bobAuthorsDirectly(bob, {
+        type: 'ADD_DEVICE',
+        payload: {
+          device: redactDevice(bob.phone!),
+          lockboxes: [
+            create(notKeys as unknown as KeysetWithSecrets, redactKeys(alice.device.keys)),
+          ],
+        },
+      })
+      alice.team.merge(bob.team.graph)
+
+      // ✅ Her team keys are still the team's
+      expect(alice.team.teamKeys()).toEqual(realTeamKeys)
+
+      // ✅ ...so her own saved graph still loads
+      const reloaded = teams.load(
+        alice.team.save(),
+        { user: alice.user, device: alice.device },
+        teamKeyring
+      )
+      expect(reloaded.teamName).toBe(alice.team.teamName)
     })
   })
 
