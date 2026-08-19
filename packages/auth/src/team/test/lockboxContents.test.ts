@@ -1,4 +1,4 @@
-import { createKeyset, type Store } from '@localfirst/crdx'
+import { createKeyset, redactKeys, type Store } from '@localfirst/crdx'
 import { asymmetric } from '@localfirst/crypto'
 import { describe, expect, it } from 'vitest'
 import { redactDevice } from '../../device/index.js'
@@ -80,6 +80,18 @@ describe('Team', () => {
         'a keyset for the right scope but not the right keys',
         createKeyset({ type: TEAM, name: TEAM }),
       ],
+      // The manifest these are filed behind says TEAM generation 0. Tying the payload to it is what
+      // makes the checks the door does on a manifest — `isUsableGeneration` among them — mean
+      // anything about what comes out of the payload, and stops a lockbox being filed under a scope
+      // or generation other than the one it publicly claims.
+      [
+        'a keyset claiming a generation its own manifest does not',
+        { ...createKeyset({ type: TEAM, name: TEAM }), generation: 1 },
+      ],
+      [
+        'a keyset claiming a scope its own manifest does not',
+        createKeyset({ type: 'ROLE', name: 'admin' }),
+      ],
     ] as const
 
     for (const [description, payload] of cases) {
@@ -107,17 +119,109 @@ describe('Team', () => {
       })
     }
 
-    it("doesn't displace the real keys it was addressed over", () => {
+    /**
+     * A payload that is a keyset in every respect the consumers care about, and agrees with its
+     * manifest on scope, generation and public key — but has no secrets in it. It's the one payload
+     * the manifest-match check can't tell from an honest keyset, so it's what the well-formedness
+     * check is for: without it, `teamKeys().secretKey` comes back `undefined`.
+     */
+    it('is refused for having no secrets in it, even when it matches its own manifest', () => {
+      const { alice, bob } = setup(['alice', { user: 'bob', admin: false }])
+
+      // 👨🏻‍🦲 Bob mints team keys of his own at a generation 👩🏾 Alice doesn't have, describes them
+      // honestly on the manifest, and puts their public half in the payload
+      const bobsKeys = { ...createKeyset({ type: TEAM, name: TEAM }), generation: 1 }
+      const secretless = {
+        type: bobsKeys.type,
+        name: bobsKeys.name,
+        generation: bobsKeys.generation,
+        encryption: { publicKey: bobsKeys.encryption.publicKey },
+        signature: { publicKey: bobsKeys.signature.publicKey },
+      }
+      // The ephemeral keypair the manifest names has to be the one the payload was encrypted with,
+      // or this never gets as far as looking at what's inside
+      const ephemeral = asymmetric.keyPair()
+      const forged = {
+        ...create(bobsKeys, alice.user.keys),
+        encryptionKey: { type: 'EPHEMERAL', publicKey: ephemeral.publicKey },
+        encryptedPayload: asymmetric.encryptBytes({
+          secret: secretless,
+          recipientPublicKey: redactKeys(alice.user.keys).encryption,
+          senderSecretKey: ephemeral.secretKey,
+        }),
+      } as Lockbox
+      bobAuthorsDirectly(bob, {
+        type: 'ADD_DEVICE',
+        payload: { device: redactDevice(bob.phone!), lockboxes: [forged] },
+      })
+      alice.team.merge(bob.team.graph)
+
+      // ✅ 👩🏾 Alice's team keys are still a keyset she can encrypt with
+      expect(typeof alice.team.teamKeys().secretKey).toBe('string')
+      expect(alice.team.decrypt(alice.team.encrypt('hello'))).toBe('hello')
+    })
+
+    /**
+     * `keyMap` keeps the first keyset it sees for a scope and generation. Two lockboxes reaching one
+     * device for the same scope and generation hold the same keyset if both are honest, so which is
+     * kept can't matter on an honest graph — and decides everything on a graph where one of them
+     * isn't.
+     *
+     * This closes only the half of auth-9sl where the forged lockbox names a generation the
+     * recipient already has. Naming one they DON'T have still displaces their view of the scope's
+     * keys, because being first is automatic when nobody else has ever named it. That needs a way
+     * to tell a keyset the team issued from one a member minted, which the graph doesn't carry —
+     * see auth-9sl, still open.
+     */
+    it("doesn't displace keys the recipient already has for that generation", () => {
       const { alice, bob } = setup(['alice', { user: 'bob', admin: false }])
       const realTeamKeys = alice.team.teamKeys()
 
-      // The forged lockbox copies the manifest of a real one holding the team keys, and puts team
-      // keys of 👨🏻‍🦲 Bob's own behind it — same scope, same generation, different secrets
-      bobPostsALockboxForAlice(bob, alice.userId, createKeyset({ type: TEAM, name: TEAM }))
+      // 👨🏻‍🦲 Bob mints team keys of his own at generation 0, describes them honestly, and addresses
+      // them to 👩🏾 Alice. No forged number anywhere — his link simply comes later than hers.
+      const bobsKeys = createKeyset({ type: TEAM, name: TEAM })
+      bobAuthorsDirectly(bob, {
+        type: 'ADD_DEVICE',
+        payload: {
+          device: redactDevice(bob.phone!),
+          lockboxes: [create(bobsKeys, alice.user.keys)],
+        },
+      })
       alice.team.merge(bob.team.graph)
 
       // ✅ 👩🏾 Alice still has the team's own keys, not the ones 👨🏻‍🦲 Bob minted
       expect(alice.team.teamKeys()).toEqual(realTeamKeys)
+      expect(alice.team.teamKeys().secretKey).not.toBe(bobsKeys.secretKey)
+    })
+  })
+
+  describe('a run of lockboxes that points back at itself', () => {
+    it("doesn't send its recipient into an endless walk", () => {
+      const { alice, bob } = setup(['alice', { user: 'bob', admin: false }])
+      const teamKeyring = alice.team.teamKeyring()
+
+      // 👨🏻‍🦲 Bob mints two keysets of his own and puts each one in a lockbox the other one opens.
+      // Nothing here is malformed: every lockbox holds exactly the keyset its manifest describes.
+      // What's wrong is the shape of the run, and only a walk can see it.
+      const k1 = createKeyset({ type: 'ROLE', name: 'x1' })
+      const k2 = createKeyset({ type: 'ROLE', name: 'x2' })
+      bobAuthorsDirectly(bob, {
+        type: 'ADD_DEVICE',
+        payload: {
+          device: redactDevice(bob.phone!),
+          lockboxes: [create(k1, alice.user.keys), create(k2, k1), create(k1, k2)],
+        },
+      })
+
+      // ✅ 👩🏾 Alice replays it, goes on working, and can reload her own saved graph
+      expect(() => alice.team.merge(bob.team.graph)).not.toThrow()
+      expect(() => alice.team.addRole('managers')).not.toThrow()
+      const reloaded = teams.load(
+        alice.team.save(),
+        { user: alice.user, device: alice.device },
+        teamKeyring
+      )
+      expect(reloaded.hasRole('managers')).toBe(true)
     })
   })
 
@@ -130,9 +234,13 @@ describe('Team', () => {
       // ✅ The honest lockbox opens, and holds what its manifest says
       expect(open(create(teamKeys, alice.user.keys), alice.user.keys)).toEqual(teamKeys)
 
-      // ✅ Keys that aren't the recipient's get nothing, rather than a throw out of msgpack.
-      // (A second lockbox, because `open` is memoized on the lockbox it's given.)
-      expect(open(create(teamKeys, alice.user.keys), bob.user.keys)).toBeUndefined()
+      // ✅ Keys that aren't the recipient's get nothing, rather than a throw out of msgpack
+      const forSomeoneElse = create(teamKeys, alice.user.keys)
+      expect(open(forSomeoneElse, bob.user.keys)).toBeUndefined()
+
+      // ✅ ...and being asked with the wrong keys first doesn't answer for the right ones. Both
+      // arguments decide the answer, so both are in the memo key.
+      expect(open(forSomeoneElse, alice.user.keys)).toEqual(teamKeys)
     })
   })
 

@@ -1,7 +1,10 @@
 import { memoize } from '@localfirst/shared'
 import { type KeysetWithSecrets } from '@localfirst/crdx'
-import { asymmetric } from '@localfirst/crypto'
+import { asymmetric, hash } from '@localfirst/crypto'
 import { type KeyManifest, type Lockbox } from './types.js'
+
+/** Domain separator for the memo key below — this hash is a cache key, never a security claim */
+const LOCKBOX_MEMO = 'LOCKBOX_MEMO'
 
 /**
  * Opens a lockbox, if these are the keys that open it and what's inside is what the lockbox says
@@ -30,6 +33,12 @@ import { type KeyManifest, type Lockbox } from './types.js'
  * second half is what ties the ciphertext to the public part: `create` builds the manifest by
  * redacting the contents, so scope, generation and public key agree on every honest lockbox, and
  * the checks the door does make on the manifest carry over to what comes out.
+ *
+ * What this does NOT do is decide whether the keyset is the one the TEAM issued. Both halves are
+ * satisfied by a keyset a member minted and described honestly, so a lockbox can still carry keys
+ * of its author's own choosing under any scope and generation it likes. `keyMap` keeps the first
+ * keyset it sees for a scope and generation, which stops that from displacing keys the recipient
+ * already has; claiming a generation they don't have yet is auth-9sl, and is still open.
  */
 export const open = memoize(
   (lockbox: Lockbox, decryptionKeys: KeysetWithSecrets): KeysetWithSecrets | undefined => {
@@ -48,7 +57,16 @@ export const open = memoize(
     }
 
     return isTheKeysetDescribedBy(contents)(decrypted) ? decrypted : undefined
-  }
+  },
+  // Both arguments decide the answer, so both have to be in the key. The default resolver uses only
+  // the first, which was survivable while a wrong key threw — a throw isn't cached — and stopped
+  // being survivable when a wrong key started returning `undefined`: one call with anybody else's
+  // keys would answer for the real recipient from then on. Every plaintext field of a lockbox can
+  // be copied onto another one, so the payload is what makes the key identify a lockbox.
+  (lockbox, decryptionKeys) =>
+    `${hash(LOCKBOX_MEMO, lockbox.encryptedPayload)}:${lockbox.contents.publicKey}:${
+      lockbox.encryptionKey.publicKey
+    }:${decryptionKeys.encryption.publicKey}`
 )
 
 const isNonEmptyString = (value: unknown): value is string =>
