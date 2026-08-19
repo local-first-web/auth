@@ -288,22 +288,35 @@ describe('Team', () => {
   })
 
   describe('a run of lockboxes that points back at itself', () => {
-    it("doesn't send its recipient into an endless walk", () => {
-      const { alice, bob } = setup(['alice', { user: 'bob', admin: false }])
-      const teamKeyring = alice.team.teamKeyring()
-
-      // 👨🏻‍🦲 Bob mints two keysets of his own and puts each one in a lockbox the other one opens.
-      // Nothing here is malformed: every lockbox holds exactly the keyset its manifest describes.
-      // What's wrong is the shape of the run, and only a walk can see it.
-      const k1 = createKeyset({ type: 'ROLE', name: 'x1' })
-      const k2 = createKeyset({ type: 'ROLE', name: 'x2' })
+    /**
+     * 👨🏻‍🦲 Bob mints two keysets of his own and puts each one in a lockbox the other one opens.
+     * Nothing here is malformed: every lockbox holds exactly the keyset its manifest describes, and
+     * every pairing is one an honest flow produces — ROLE to USER, then ROLE to ROLE. What's wrong
+     * is the shape of the run, and only a walk can see it.
+     *
+     * There are two walks over the lockbox graph and they are easy to mistake for each other, so
+     * both are exercised here. `visibleKeys` is reached by reading keys; `visibleScopes` is reached
+     * only by ROTATING them, which is why a version of this test that stopped at `merge` and
+     * `addRole` passed for two rounds while `Team.rotateKeys` still went round the loop forever.
+     */
+    /** The cycle proper: k1 -> k2 -> k1, addressed into the victim's own reach */
+    const postACycleAimedAt = (bob: UserStuff, victim: UserStuff) => {
+      const k1 = createKeyset({ type: ROLE, name: 'x1' })
+      const k2 = createKeyset({ type: ROLE, name: 'x2' })
       bobAuthorsDirectly(bob, {
         type: 'ADD_DEVICE',
         payload: {
           device: redactDevice(bob.phone!),
-          lockboxes: [create(k1, alice.user.keys), create(k2, k1), create(k1, k2)],
+          lockboxes: [create(k1, victim.user.keys), create(k2, k1), create(k1, k2)],
         },
       })
+    }
+
+    it("doesn't send its recipient into an endless walk", () => {
+      const { alice, bob } = setup(['alice', { user: 'bob', admin: false }])
+      const teamKeyring = alice.team.teamKeyring()
+
+      postACycleAimedAt(bob, alice)
 
       // ✅ 👩🏾 Alice replays it, goes on working, and can reload her own saved graph
       expect(() => alice.team.merge(bob.team.graph)).not.toThrow()
@@ -314,6 +327,75 @@ describe('Team', () => {
         teamKeyring
       )
       expect(reloaded.hasRole('managers')).toBe(true)
+    })
+
+    /**
+     * Aimed at a member's own scope, this took away the only two remediations the team has against
+     * that member: `remove` and `changeKeys` both walk `visibleScopes` from the scope being
+     * rotated, and both threw `Maximum call stack size exceeded`, for every admin, permanently,
+     * surviving a reload — while removing anybody else went on working, so nothing looked broken.
+     */
+    it("doesn't stop the member it names from being removed or re-keyed", () => {
+      const poisoned = () => {
+        const team = setup([
+          'alice',
+          { user: 'bob', admin: false },
+          { user: 'charlie', admin: false },
+        ])
+        postACycleAimedAt(team.bob, team.charlie)
+        team.alice.team.merge(team.bob.team.graph)
+        return team
+      }
+
+      // ✅ 👳🏽‍♂️ Charlie can still be removed
+      const removal = poisoned()
+      expect(() => removal.alice.team.remove(removal.charlie.userId)).not.toThrow()
+
+      // ✅ ...and re-keyed, which is the other remediation
+      const rekey = poisoned()
+      expect(() =>
+        rekey.alice.team.changeKeys(createKeyset({ type: USER, name: rekey.charlie.userId }))
+      ).not.toThrow()
+
+      // ✅ ...and it survives a reload
+      const reloaded = poisoned()
+      const copy = teams.load(
+        reloaded.alice.team.save(),
+        { user: reloaded.alice.user, device: reloaded.alice.device },
+        reloaded.alice.team.teamKeyring()
+      )
+      expect(() => copy.remove(reloaded.charlie.userId)).not.toThrow()
+
+      // ✅ ...and a role rotation, which walks the same scopes
+      const role = poisoned()
+      role.alice.team.addRole('managers')
+      role.alice.team.addMemberRole(role.charlie.userId, 'managers')
+      expect(() => role.alice.team.removeMemberRole(role.charlie.userId, 'managers')).not.toThrow()
+    })
+
+    it('still lets a legitimate chain of lockboxes deliver its keys', () => {
+      const { alice, bob } = setup(['alice', { user: 'bob', admin: false }])
+
+      // a -> b -> c, no cycle: the guard must not cut a walk short
+      const a = createKeyset({ type: ROLE, name: 'a' })
+      const b = createKeyset({ type: ROLE, name: 'b' })
+      const c = createKeyset({ type: ROLE, name: 'c' })
+      bobAuthorsDirectly(bob, {
+        type: 'ADD_DEVICE',
+        payload: {
+          device: redactDevice(bob.phone!),
+          lockboxes: [create(a, alice.user.keys), create(b, a), create(c, b)],
+        },
+      })
+      alice.team.merge(bob.team.graph)
+
+      // ✅ Both walks reach the far end of the chain
+      expect(select.visibleKeys(alice.team.state, alice.user.keys).map(k => k.name)).toEqual(
+        expect.arrayContaining(['a', 'b', 'c'])
+      )
+      expect(
+        select.visibleScopes(alice.team.state, { type: USER, name: alice.userId }).map(s => s.name)
+      ).toEqual(expect.arrayContaining(['a', 'b', 'c']))
     })
   })
 
