@@ -92,12 +92,16 @@ export type DecryptFnParams<A extends Action, C> = {
 }
 
 /**
- * A function that decrypts a graph. This is deliberately parameterized rather than generic: a
- * caller supplies a decryptor for the specific action & context types of the graph it is syncing,
- * and a decryptor for one graph shape can't honor a signature that promises to work for every
- * shape.
+ * A function that decrypts a graph.
+ *
+ * This is parameterized rather than generic. The generic form promised to work for every action and
+ * context type, which only a decryptor as general as `decryptGraph` can deliver — a caller with a
+ * decryptor for one specific graph shape could not satisfy it. That never showed up because the
+ * published declarations resolved to `any` (see auth-ax2).
+ *
+ * The defaults keep the bare name `DecryptFn` compiling for anyone who wrote it that way.
  */
-export type DecryptFn<A extends Action, C> = ({
+export type DecryptFn<A extends Action = Action, C = unknown> = ({
   encryptedGraph,
   keys,
 }: DecryptFnParams<A, C>) => Graph<A, C>
