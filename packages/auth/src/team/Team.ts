@@ -215,6 +215,30 @@ export class Team extends EventEmitter<TeamEvents> {
   public auditAuthorship = () => auditAuthorship(this.graph, this.state)
 
   /**
+   * Reports what CRDX's validators make of this team's graph: that each link's hash matches its
+   * bytes and its signature checks out, plus the advisory rules — currently that no link is
+   * timestamped in the future of this device's clock.
+   *
+   * The advisory rules are why this exists. A peer whose clock runs a few minutes fast writes links
+   * we can't refuse without making the team unopenable, so we load and merge them and report them
+   * here instead; the application decides what a skewed timestamp is worth. `isValid: false` is
+   * therefore not by itself a reason to stop using the team — read the error and decide.
+   *
+   * What this does *not* re-run are the team's own membership rules — who may add whom, who may
+   * change whose keys. Those are applied as the graph is replayed, on load and on every merge and
+   * dispatch, so a team whose state you can read has already been through them.
+   *
+   * Two things to know about the answer:
+   *
+   * - It's the first failure found, not a list of them.
+   * - It's memoized against the graph, so it's computed once and reused until the graph changes
+   *   (auth-jy5). Since the failure that motivates this method is the one rule that reads the local
+   *   clock, an answer of "a link is in the future" outlives the clock catching up — asking again
+   *   on an unchanged graph gives the same answer.
+   */
+  public validate = () => this.store.validate()
+
+  /**
    * Merges another graph (e.g. from a peer) with ours.
    * @returns This `Team` instance.
    */
