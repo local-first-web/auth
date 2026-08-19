@@ -104,7 +104,9 @@ describe('Store', () => {
       aliceStore.dispatch({ type: 'INCREMENT', payload: 1 })
       const linkCount = Object.keys(aliceStore.getGraph().links).length
       const head = [...aliceStore.getGraph().head]
-      const state = aliceStore.getState()
+      // A snapshot, not the object the store is holding: comparing that with itself passes however
+      // the merge mangled it, which would make this leg of the test say nothing at all
+      const state = structuredClone(aliceStore.getState())
 
       bobStore.dispatch({ type: 'REFUSED', payload: undefined })
       expect(() => aliceStore.merge(bobStore.getGraph())).toThrow()
