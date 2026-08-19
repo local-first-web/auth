@@ -1,4 +1,4 @@
-import { createKeyset, type Store } from '@localfirst/crdx'
+import { createKeyset, redactKeys, type Store } from '@localfirst/crdx'
 import { describe, expect, it } from 'vitest'
 import { redactDevice } from '../../device/index.js'
 import * as lockbox from '../../lockbox/index.js'
@@ -175,7 +175,7 @@ describe('Team', () => {
       expect(dwight.team.decrypt(alice.team.encrypt('hello'))).toBe('hello')
     })
 
-    it('only costs the member who wrote it', () => {
+    it('stops being current for anyone as soon as the scope is rotated', () => {
       const { alice, bob, charlie } = setup([
         'alice',
         { user: 'bob', admin: false },
@@ -184,51 +184,159 @@ describe('Team', () => {
 
       forgeALockboxClaimingGeneration3(bob)
       alice.team.merge(bob.team.graph)
+      bob.team.merge(alice.team.graph)
+
+      // Until somebody rotates, a keyset a member added is the newest one the graph carries for
+      // that scope, so it's current for whoever can open it. That's auth-9sl, still open.
+      expect(bob.team.teamKeys().generation).toBe(3)
+
+      // 👩🏾 Alice removes 👳🏽‍♂️ Charlie, which rotates the team keys
       alice.team.remove(charlie.userId)
       bob.team.merge(alice.team.graph)
 
-      // 👨🏻‍🦲 Bob gave himself a generation above the team's, so his own lookup keeps finding his
-      // rather than theirs, and what he encrypts is addressed to a generation nobody else has.
-      // That's his to undo; it doesn't stop 👩🏾 Alice rotating or anyone else receiving the keys.
-      expect(bob.team.teamKeys()).not.toEqual(alice.team.teamKeys())
-      expect(bob.team.teamKeys().generation).toBe(3)
-
-      // Stated as the fact rather than as a throw: what he writes is addressed to a generation
-      // 👩🏾 Alice doesn't hold. Asserting that it throws would pass today for a reason that has
-      // nothing to do with this — `select.keys` returns `undefined` for a generation you don't
-      // have and the caller destructures it (auth-x4r) — and would go on passing once that's fixed.
-      const envelope = bob.team.encrypt('hello')
-      expect(envelope.recipient.generation).toBe(3)
-      expect(
-        Object.values(alice.team.teamKeyring()).map(keyset => keyset.generation)
-      ).not.toContain(3)
-
-      // He can still read hers, because the rotation reached him like everyone else
+      // ✅ The rotation is the newest thing on the graph, so it's current for both of them — the
+      // number the forgery claimed doesn't keep it in front. Deciding this by the highest
+      // generation held instead left the forgery current forever, and made "rotate the scope" — the
+      // documented remediation — do nothing at all.
+      expect(bob.team.teamKeys()).toEqual(alice.team.teamKeys())
+      expect(bob.team.teamKeys().generation).not.toBe(3)
       expect(bob.team.decrypt(alice.team.encrypt('hello'))).toBe('hello')
     })
+  })
 
-    it("isn't the only lockbox rotation can see", () => {
+  describe('rotating a scope that has been forged over', () => {
+    /**
+     * The remediation `docs/internals.md` gives has to work whatever number the forgery claimed.
+     * While "current" was the highest generation the device held, it worked for a forgery at
+     * generation 0 and did nothing for one at generation 9: a rotation numbers its replacement from
+     * `keyHistory.length`, which is small, so the honest keyset came out below the forgery and never
+     * became current. Rotating twice more didn't help either.
+     */
+    for (const generation of [0, 9, 2 ** 32]) {
+      it(`takes a role back from a forgery claiming generation ${generation}`, () => {
+        const { alice, bob, charlie } = setup([
+          'alice',
+          { user: 'bob', admin: false },
+          { user: 'charlie', admin: false },
+        ])
+        alice.team.addRole('managers')
+
+        const forged = { ...createKeyset({ type: ROLE, name: 'managers' }), generation }
+        bobAuthorsDirectly(bob, {
+          type: 'ADD_DEVICE',
+          payload: {
+            device: redactDevice(bob.phone!),
+            lockboxes: [lockbox.create(forged, alice.user.keys)],
+          },
+        })
+        alice.team.merge(bob.team.graph)
+
+        // The documented remediation: rotate the role
+        alice.team.addMemberRole(charlie.userId, 'managers')
+        alice.team.removeMemberRole(charlie.userId, 'managers')
+
+        // ✅ The role's keys are the team's again
+        expect(alice.team.roleKeys('managers').secretKey).not.toBe(forged.secretKey)
+      })
+    }
+
+    it('takes the team keys back, for everyone, when the forger is removed', () => {
+      const { alice, bob, charlie, dwight } = setup([
+        'alice',
+        'charlie',
+        { user: 'bob', admin: false },
+        { user: 'dwight', admin: false },
+      ])
+
+      // One link, addressed to each member's USER keys — `Team.ts:106`'s own pairing, so nothing at
+      // the door can refuse it — replaces the team keys for everyone, both admins included
+      const forged = { ...createKeyset({ type: TEAM, name: TEAM }), generation: 9 }
+      bobAuthorsDirectly(bob, {
+        type: 'ADD_DEVICE',
+        payload: {
+          device: redactDevice(bob.phone!),
+          lockboxes: [alice, charlie, dwight].map(victim =>
+            lockbox.create(forged, victim.user.keys)
+          ),
+        },
+      })
+      for (const victim of [alice, charlie, dwight]) victim.team.merge(bob.team.graph)
+      expect(alice.team.teamKeys().secretKey).toBe(forged.secretKey)
+
+      // ✅ Removing the forger rotates the team keys, and the rotation is the newest thing on the
+      // graph — so everyone still on the team comes back to keys he doesn't have
+      alice.team.remove(bob.userId)
+      expect(alice.team.teamKeys().secretKey).not.toBe(forged.secretKey)
+      for (const victim of [charlie, dwight]) {
+        victim.team.merge(alice.team.graph)
+        expect(victim.team.teamKeys()).toEqual(alice.team.teamKeys())
+      }
+    })
+
+    /**
+     * `updateUserKeys` picks up new keys for ourselves after a rotation. It used to take the highest
+     * `generation` among the keysets in our keyring — a number off a lockbox — so a member could
+     * hand us a keyset of theirs called generation 9 and we would adopt it as our own, and no later
+     * rotation could get us back, because the honest replacement is numbered below it.
+     *
+     * Taking the keyset the GRAPH makes current does not stop us adopting it — a keyset a member
+     * appends really is the newest one the graph carries for that scope, which is auth-9sl and is
+     * still open. What it fixes is that re-keying now gets us out.
+     */
+    it('lets us re-key our way out of a lockbox aimed at our own device', () => {
       const { alice, bob } = setup(['alice', { user: 'bob', admin: false }])
 
-      // The same forgery, put straight into state
-      const forged = lockbox.create(
-        { ...createKeyset({ type: TEAM, name: TEAM }), generation: 3 },
-        bob.user.keys
-      )
-      const state = {
-        ...alice.team.state,
-        lockboxes: [...alice.team.state.lockboxes, forged],
-      }
+      // USER keys to a DEVICE is the one pairing addressed to a device that the door has to allow
+      const forged = { ...createKeyset({ type: USER, name: alice.userId }), generation: 9 }
+      bobAuthorsDirectly(bob, {
+        type: 'ADD_DEVICE',
+        payload: {
+          device: redactDevice(bob.phone!),
+          lockboxes: [lockbox.create(forged, redactKeys(alice.device.keys))],
+        },
+      })
+      alice.team.merge(bob.team.graph)
 
-      // ✅ The selector that decides who gets replacement keys still names every honest recipient,
-      // rather than the one lockbox that claims to be ahead of them
-      const inScope = select.lockboxesInScope(state, { type: TEAM, name: TEAM })
-      expect(inScope.map(l => l.recipient.name).sort()).toEqual(
-        alice.team.state.lockboxes
-          .filter(l => l.contents.type === TEAM)
-          .map(l => l.recipient.name)
-          .sort()
-      )
+      // She adopts it — this is the displacement auth-9sl is about
+      expect(alice.user.keys.encryption.publicKey).toBe(forged.encryption.publicKey)
+
+      // ✅ ...and re-keying takes her back off it, which is what the old rule made impossible
+      alice.team.changeKeys(createKeyset({ type: USER, name: alice.userId }))
+      expect(alice.user.keys.encryption.publicKey).not.toBe(forged.encryption.publicKey)
+    })
+
+    /**
+     * The remediation for a member whose keys are compromised is that an admin re-keys them, and
+     * they pick the new keyset up on their next merge. That pick-up compared `generation` fields, so
+     * a member sitting on a forgery called generation 9 never took the admin's replacement — its
+     * generation comes from `keyHistory.length` and is small. The one remediation aimed at exactly
+     * this situation did nothing, permanently, and neither of them would see an error.
+     */
+    it('lets an admin re-key a member who is sitting on a forged keyset', () => {
+      const { alice, bob, charlie } = setup([
+        'alice',
+        { user: 'bob', admin: false },
+        { user: 'charlie', admin: false },
+      ])
+
+      const forged = { ...createKeyset({ type: USER, name: bob.userId }), generation: 9 }
+      bobAuthorsDirectly(charlie, {
+        type: 'ADD_DEVICE',
+        payload: {
+          device: redactDevice(charlie.phone!),
+          lockboxes: [lockbox.create(forged, redactKeys(bob.device.keys))],
+        },
+      })
+      bob.team.merge(charlie.team.graph)
+      expect(bob.user.keys.encryption.publicKey).toBe(forged.encryption.publicKey)
+
+      // 👩🏾 Alice, an admin, re-keys 👨🏻‍🦲 Bob
+      alice.team.merge(charlie.team.graph)
+      alice.team.changeKeys(createKeyset({ type: USER, name: bob.userId }))
+
+      // ✅ 👨🏻‍🦲 Bob picks up the keys she made for him, rather than staying on the forgery
+      bob.team.merge(alice.team.graph)
+      expect(bob.user.keys.encryption.publicKey).not.toBe(forged.encryption.publicKey)
     })
   })
 

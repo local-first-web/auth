@@ -1,5 +1,6 @@
 import { type KeyMetadata, type KeyScope, type KeysetWithSecrets } from '@localfirst/crdx'
 import { keyMap, type KeysetHistory } from './keyMap.js'
+import { keyHistoryKey } from '../transforms/collectLockboxes.js'
 import { type TeamState } from '../types.js'
 import { assert } from '@localfirst/shared'
 import { lockboxSummary } from '../../util/lockboxSummary.js'
@@ -36,21 +37,51 @@ export const keys = (
     'generation' in scope && scope.generation !== undefined
       ? // Return specific generation if requested
         scope.generation
-      : // Use latest generation by default
-        latestGeneration(keys)
+      : // Use the current generation by default
+        currentGeneration(state, scope, keys)
 
   return keys.get(generation)!
 }
 
 /**
- * The highest generation of this scope that the device actually holds.
+ * Which generation of this scope is the current one, decided by the graph rather than by a number
+ * on a lockbox.
  *
- * This used to be `history.length - 1`, which was only the latest generation while every generation
- * was a usable array index — and a `generation` is a number off a lockbox manifest, which anyone
- * who can post a link can choose. Asking the history what it holds says the same thing about an
- * honest scope and doesn't depend on that.
+ * A keyset's `generation` is a field inside a lockbox, so it is whatever its author wrote. Taking
+ * the highest one the device holds made "current" an assertion anybody could make: a member who
+ * put a keyset of their own in a lockbox and called it generation 9 became the answer, and stayed
+ * the answer — a rotation numbers its replacement from `keyHistory.length`, which is small, so the
+ * honest keyset came out BELOW the forgery and never became current. Measured: after a forgery at
+ * generation 9, rotating the role twice left it still reading the forger's keyset. That made the
+ * documented remediation — rotate the scope — do nothing, and it applied to the team keys as much
+ * as to a role's.
+ *
+ * `state.keyHistory` is the one quantity here the graph assigns rather than the author: the reducer
+ * appends a scope's keyset the first time the graph carries it, in replay order, so its position is
+ * not something a payload can claim. The current keyset is the last one in that order that this
+ * device actually holds — which on a graph with nothing forged on it is the highest generation,
+ * exactly as before, because each rotation appends the next one.
+ *
+ * Two things this deliberately does not do. It does not stop a forged keyset from BEING current
+ * before anyone rotates: an author can append to the history, one slot per lockbox they post, and
+ * the newest entry wins. That is auth-9sl, still open. And it does not decide between two keysets
+ * claiming the SAME generation — `keyMap` keeps the first it sees, so a forgery colliding with a
+ * generation the device already holds never reaches this list at all.
  */
-const latestGeneration = (history: KeysetHistory) => Math.max(...history.keys())
+const currentGeneration = (state: TeamState, scope: KeyScope, held: KeysetHistory) => {
+  const generationOf = new Map<string, number>()
+  for (const [generation, keyset] of held) generationOf.set(keyset.encryption.publicKey, generation)
+
+  const assignedByTheGraph = state.keyHistory[keyHistoryKey(scope)] ?? []
+  for (let i = assignedByTheGraph.length - 1; i >= 0; i--) {
+    const generation = generationOf.get(assignedByTheGraph[i])
+    if (generation !== undefined) return generation
+  }
+
+  // Every keyset the device holds got there by opening a lockbox, and the reducer records every
+  // lockbox's contents — so the loop above finds one. This stands for a state assembled by hand.
+  return Math.max(...held.keys())
+}
 
 /** Which scopes this device recovered keys for, and which generations of each — no secrets */
 const summarize = (keysFromLockboxes: Record<string, Record<string, KeysetHistory>>) =>

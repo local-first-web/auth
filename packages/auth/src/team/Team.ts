@@ -1008,12 +1008,28 @@ export class Team extends EventEmitter<TeamEvents> {
     if (targetIsMe) user.keys = newKeys
   }
 
+  /**
+   * Picks up new keys for ourselves after a rotation.
+   *
+   * The keyset we take is the one the graph makes current for our own scope, not the highest
+   * generation in our keyring. Both halves of the old version were numbers off a lockbox:
+   * `getLatestGeneration` takes the largest `generation` field among the keysets, and the
+   * comparison that guarded it read the same field. So a member could hand us a keyset of theirs,
+   * addressed to our device and called generation 9 — `USER` keys to a `DEVICE`, which is the one
+   * pairing the door has to allow — and we would adopt it as our own. Measured: `user.keys` became
+   * the forger's, which is what we sign links with.
+   *
+   * See `select.keys`, which is where "current" is decided from `state.keyHistory`.
+   */
   private updateUserKeys() {
     const { user } = this.context
-    const latestUserKeys = getLatestGeneration(this.userKeyring())
+    const scope = { type: USER, name: this.userId }
+    const held = select.keyMap(this.state, this.context.device.keys)[scope.type]?.[scope.name]
+    if (held === undefined || held.size === 0) return
 
-    if (latestUserKeys && user.keys.generation < latestUserKeys.generation) {
-      user.keys = latestUserKeys
+    const currentKeys = select.keys(this.state, this.context.device.keys, scope)
+    if (currentKeys.encryption.publicKey !== user.keys.encryption.publicKey) {
+      user.keys = currentKeys
     }
   }
 
