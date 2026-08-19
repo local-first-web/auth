@@ -1,6 +1,6 @@
 import { redactKeys, type Base58, type Keyset, type KeysetWithSecrets } from '@localfirst/crdx'
 import { hash } from '@localfirst/crypto'
-import { HashPurpose } from 'util/index.js'
+import { HashPurpose } from '../util/index.js'
 
 /**
  * Fingerprints a public keyset, for the invitee to commit to in their proof of invitation.

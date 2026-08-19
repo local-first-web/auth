@@ -1,5 +1,5 @@
 import { type Base58 } from '@localfirst/crdx'
-import { KeyType } from 'util/index.js'
+import { KeyType } from '../util/index.js'
 import { type TeamState } from './types.js'
 
 const { USER, SERVER } = KeyType

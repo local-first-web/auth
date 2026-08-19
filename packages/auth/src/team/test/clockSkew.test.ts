@@ -1,5 +1,5 @@
-import * as teams from 'team/index.js'
-import { setup } from 'util/testing/index.js'
+import * as teams from '../index.js'
+import { setup } from '../../util/testing/index.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const TEN_MINUTES = 10 * 60 * 1000

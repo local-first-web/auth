@@ -1,23 +1,23 @@
 import { createKeyset, redactKeys, type Base58, type Keyset, type Store } from '@localfirst/crdx'
-import { redactDevice, type Device } from 'index.js'
+import { redactDevice, type Device } from '../../index.js'
 import {
   create as createInvitation,
   generateProof,
   type MemberInvitation,
-} from 'invitation/index.js'
-import { type Lockbox } from 'lockbox/index.js'
-import { getTeamState } from 'team/getTeamState.js'
-import * as teams from 'team/index.js'
-import { redactUser } from 'team/redactUser.js'
+} from '../../invitation/index.js'
+import { type Lockbox } from '../../lockbox/index.js'
+import { getTeamState } from '../getTeamState.js'
+import * as teams from '../index.js'
+import { redactUser } from '../redactUser.js'
 import {
   type Member,
   type TeamAction,
   type TeamContext,
   type TeamGraph,
   type TeamState,
-} from 'team/types.js'
-import { KeyType } from 'util/index.js'
-import { setup, type UserStuff } from 'util/testing/index.js'
+} from '../types.js'
+import { KeyType } from '../../util/index.js'
+import { setup, type UserStuff } from '../../util/testing/index.js'
 import { describe, expect, it } from 'vitest'
 
 const { USER } = KeyType

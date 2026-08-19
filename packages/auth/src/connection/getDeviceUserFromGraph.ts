@@ -1,8 +1,8 @@
 import { getLatestGeneration, type Keyring, type UserWithSecrets } from '@localfirst/crdx'
 import { assert } from '@localfirst/shared'
-import { deriveId } from 'invitation/deriveId.js'
-import { generateStarterKeys } from 'invitation/generateStarterKeys.js'
-import { KeyType } from 'util/index.js'
+import { deriveId } from '../invitation/deriveId.js'
+import { generateStarterKeys } from '../invitation/generateStarterKeys.js'
+import { KeyType } from '../util/index.js'
 import { getTeamState } from '../team/getTeamState.js'
 import * as select from '../team/selectors/index.js'
 
@@ -42,7 +42,12 @@ export const getDeviceUserFromGraph = ({
   assert(userName) // this user must exist in the team graph
 
   const userKeyring = select.keyring(state, { type: USER, name: userId }, starterKeys)
-  const keys = getLatestGeneration(userKeyring)
+
+  // `getLatestGeneration` returns undefined for an empty keyring, which is what we get if the
+  // starter keys derived from the invitation seed don't open this member's user lockboxes. That
+  // case flows on as a user with undefined keys today; the assertion below preserves that
+  // behaviour rather than changing it. See auth-wxt.
+  const keys = getLatestGeneration(userKeyring)!
   const user = { userName, userId, keys }
 
   return { user, userKeyring }

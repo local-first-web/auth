@@ -1,9 +1,9 @@
 import { append, createKeyset } from '@localfirst/crdx'
 import { unpack } from 'msgpackr'
-import { serializeTeamGraph } from 'team/serialize.js'
-import * as teams from 'team/index.js'
-import { KeyType } from 'util/index.js'
-import { setup } from 'util/testing/index.js'
+import { serializeTeamGraph } from '../serialize.js'
+import * as teams from '../index.js'
+import { KeyType } from '../../util/index.js'
+import { setup } from '../../util/testing/index.js'
 import { describe, expect, it } from 'vitest'
 
 /** Appends a link to Eve's graph attributed to someone else, bypassing `Team.dispatch`. */

@@ -9,25 +9,28 @@ import { EventEmitter } from '@herbcaudill/eventemitter42'
 import * as Auth from '@localfirst/auth'
 import { hash } from '@localfirst/crypto'
 import { debug, memoize, pause } from '@localfirst/shared'
-import { type AbstractConnection } from 'AbstractConnection.js'
-import { AnonymousConnection } from 'AnonymousConnection.js'
-import { buildServerUrl } from 'buildServerUrl.js'
-import { getShareId } from 'getShareId.js'
+import { type AbstractConnection } from './AbstractConnection.js'
+import { AnonymousConnection } from './AnonymousConnection.js'
+import { buildServerUrl } from './buildServerUrl.js'
+import { getShareId } from './getShareId.js'
 import { pack, unpack } from 'msgpackr'
-import { isJoinMessage, type JoinMessage } from 'types.js'
 import { AuthenticatedNetworkAdapter as AuthNetworkAdapter } from './AuthenticatedNetworkAdapter.js'
 import { CompositeMap } from './CompositeMap.js'
-import type {
-  AuthProviderEvents,
-  Invitation,
-  LocalFirstAuthMessage,
-  LocalFirstAuthMessagePayload,
-  SerializedShare,
-  SerializedState,
-  Share,
-  ShareId,
+import {
+  isAuthMessage,
+  isDeviceInvitation,
+  isJoinMessage,
+  isPrivateShare,
+  type AuthProviderEvents,
+  type Invitation,
+  type JoinMessage,
+  type LocalFirstAuthMessage,
+  type LocalFirstAuthMessagePayload,
+  type SerializedShare,
+  type SerializedState,
+  type Share,
+  type ShareId,
 } from './types.js'
-import { isAuthMessage, isDeviceInvitation, isPrivateShare } from './types.js'
 
 const { encryptBytes, decryptBytes } = Auth.symmetric
 const log = debug.extend('auth-provider')
@@ -211,10 +214,11 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
    * Creates a team and registers it with all of our sync servers.
    */
   public async createTeam(teamName: string) {
-    const team = await Auth.createTeam(teamName, {
-      device: this.#device,
-      user: this.#user,
-    })
+    // `#user` is optional because a new device joining by invitation doesn't have one yet; a caller
+    // that reaches `createTeam` without one gets whatever `createTeam` does with an undefined user,
+    // which is what happened before this was typed. See auth-wxt.
+    const context = { device: this.#device, user: this.#user } as Auth.LocalUserContext
+    const team = Auth.createTeam(teamName, context)
 
     await this.registerTeam(team)
     return team
@@ -672,9 +676,10 @@ export class AuthProvider extends EventEmitter<AuthProviderEvents> {
             this.#device.keys.secretKey
           ) as Auth.KeysetWithSecrets
 
-          const context = { device: this.#device, user: this.#user }
+          // `#user` may be undefined here; see auth-wxt.
+          const context = { device: this.#device, user: this.#user } as Auth.LocalContext
 
-          const team = await Auth.loadTeam(encryptedTeam, context, teamKeys)
+          const team = Auth.loadTeam(encryptedTeam, context, teamKeys)
           return this.addTeam(team)
         } else {
           return this.joinPublicShare(share.shareId)

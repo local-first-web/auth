@@ -4,9 +4,9 @@ import { createTeam } from '../createTeam.js'
 import { membershipResolver } from '../membershipResolver.js'
 import { redactUser } from '../redactUser.js'
 import { type TeamAction, type TeamGraph } from '../types.js'
-import { ADMIN } from 'role/index.js'
-import { clone, graphSummary } from 'util/index.js'
-import { setup as userSetup } from 'util/testing/index.js'
+import { ADMIN } from '../../role/index.js'
+import { clone, graphSummary } from '../../util/index.js'
+import { setup as userSetup } from '../../util/testing/index.js'
 
 describe('membershipResolver', () => {
   const setup = () => {

@@ -1,9 +1,9 @@
 import { append, createKeyset, redactKeys } from '@localfirst/crdx'
-import { createDevice, redactDevice } from 'index.js'
-import { generateProof } from 'invitation/index.js'
-import { auditAuthorship } from 'team/auditAuthorship.js'
-import { KeyType } from 'util/index.js'
-import { setup } from 'util/testing/index.js'
+import { createDevice, redactDevice } from '../../index.js'
+import { generateProof } from '../../invitation/index.js'
+import { auditAuthorship } from '../auditAuthorship.js'
+import { KeyType } from '../../util/index.js'
+import { setup } from '../../util/testing/index.js'
 import { describe, expect, it } from 'vitest'
 
 describe('Team', () => {

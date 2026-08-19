@@ -1,9 +1,9 @@
 import { createKeyset, redactKeys } from '@localfirst/crdx'
-import { generateProof } from 'invitation/index.js'
-import { ADMIN } from 'role/index.js'
-import { KeyType } from 'util/index.js'
-import 'util/testing/expect/toLookLikeKeyset.js'
-import { setup } from 'util/testing/index.js'
+import { generateProof } from '../../invitation/index.js'
+import { ADMIN } from '../../role/index.js'
+import { KeyType } from '../../util/index.js'
+import '../../util/testing/expect/toLookLikeKeyset.js'
+import { setup } from '../../util/testing/index.js'
 import { describe, expect, it } from 'vitest'
 
 const { USER, DEVICE } = KeyType

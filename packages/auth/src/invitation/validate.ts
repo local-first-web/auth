@@ -1,7 +1,7 @@
 import { memoize } from '@localfirst/shared'
 import { signatures } from '@localfirst/crypto'
-import { type Invitation, type InvitationState, type ProofOfInvitation } from 'invitation/types.js'
-import { VALID, type ValidationResult } from 'util/index.js'
+import { type Invitation, type InvitationState, type ProofOfInvitation } from './types.js'
+import { VALID, type ValidationResult } from '../util/index.js'
 
 /**
  * Whether this invitation is still good for admitting `invitee`.

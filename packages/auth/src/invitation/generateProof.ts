@@ -1,9 +1,9 @@
 import { type Keyset, type KeysetWithSecrets } from '@localfirst/crdx'
 import { memoize } from '@localfirst/shared'
 import { signatures } from '@localfirst/crypto'
-import { deriveId } from 'invitation/deriveId.js'
-import { hashKeys } from 'invitation/hashKeys.js'
-import { type ProofOfInvitation } from 'invitation/types.js'
+import { deriveId } from './deriveId.js'
+import { hashKeys } from './hashKeys.js'
+import { type ProofOfInvitation } from './types.js'
 import { generateStarterKeys } from './generateStarterKeys.js'
 import { normalize } from './normalize.js'
 

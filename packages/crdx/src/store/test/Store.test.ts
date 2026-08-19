@@ -1,8 +1,8 @@
-import { createGraph, type RootAction } from 'graph/index.js'
-import { createStore } from 'store/index.js'
-import { type Reducer } from 'store/types.js'
-import { createUser } from 'user/index.js'
-import { TEST_GRAPH_KEYS as keys } from 'util/testing/setup.js'
+import { createGraph, type RootAction } from '../../graph/index.js'
+import { createStore } from '../index.js'
+import { type Reducer } from '../types.js'
+import { createUser } from '../../user/index.js'
+import { TEST_GRAPH_KEYS as keys } from '../../util/testing/setup.js'
 import { describe, expect, test } from 'vitest'
 
 const alice = createUser('alice')

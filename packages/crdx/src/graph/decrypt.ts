@@ -8,9 +8,9 @@ import {
   type LinkBody,
   type MaybePartlyDecryptedGraph,
 } from './types.js'
-import { createKeyring } from 'keyset/createKeyring.js'
-import { type Keyring, type KeysetWithSecrets } from 'keyset/index.js'
-import { type Hash } from 'util/index.js'
+import { createKeyring } from '../keyset/createKeyring.js'
+import { type Keyring, type KeysetWithSecrets } from '../keyset/index.js'
+import { type Hash } from '../util/index.js'
 import { assert } from '@localfirst/shared'
 
 /**
@@ -44,7 +44,7 @@ export const decryptLink = <A extends Action, C>(
 /**
  * Decrypts a graph using a one or more keys.
  */
-export const decryptGraph: DecryptFn = <A extends Action, C>({
+export const decryptGraph = <A extends Action, C>({
   encryptedGraph,
   keys,
 }: {
@@ -91,7 +91,13 @@ export type DecryptFnParams<A extends Action, C> = {
   keys: KeysetWithSecrets | KeysetWithSecrets[] | Keyring
 }
 
-export type DecryptFn = <A extends Action, C>({
+/**
+ * A function that decrypts a graph. This is deliberately parameterized rather than generic: a
+ * caller supplies a decryptor for the specific action & context types of the graph it is syncing,
+ * and a decryptor for one graph shape can't honor a signature that promises to work for every
+ * shape.
+ */
+export type DecryptFn<A extends Action, C> = ({
   encryptedGraph,
   keys,
 }: DecryptFnParams<A, C>) => Graph<A, C>

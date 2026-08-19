@@ -1,4 +1,4 @@
-import { ROOT, type Base58 } from '@localfirst/crdx'
+import { ROOT, type Base58, type Hash } from '@localfirst/crdx'
 import { base58 } from '@localfirst/crypto'
 import { type TeamAction, type TeamGraph, type TeamLinkMap } from './types.js'
 
@@ -591,7 +591,7 @@ export const assertLinksAreWellFormed = (
     // A link entry is as much a peer's to make up as the payload on it, and this is the one place
     // that reads one. `payloadProblem` allows for there being no action at all, so handing it
     // whatever this is — including nothing — is the check; reaching for `.body` first is not.
-    const link = graph.links[hash] as { body?: unknown } | undefined
+    const link = graph.links[hash as Hash] as { body?: unknown } | undefined
     const problem = payloadProblem(link?.body as TeamAction)
     if (problem !== undefined) {
       throw new Error(`Refusing this graph: the link '${hash}' can't be replayed. ${problem}`)

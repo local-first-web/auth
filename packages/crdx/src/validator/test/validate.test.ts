@@ -1,15 +1,15 @@
 ﻿/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { asymmetric } from '@localfirst/crypto'
-import { buildGraph } from 'util/testing/graph.js'
-import { TEST_GRAPH_KEYS as keys, setup } from 'util/testing/setup.js'
+import { buildGraph } from '../../util/testing/graph.js'
+import { TEST_GRAPH_KEYS as keys, setup } from '../../util/testing/setup.js'
 import { describe, expect, test, vitest } from 'vitest'
-import { hashEncryptedLink } from 'graph/hashLink.js'
-import { append, createGraph, getHead, getLink, getRoot } from 'graph/index.js'
-import { type Hash } from 'util/index.js'
-import { validate } from 'validator/validate.js'
-import { fail } from 'validator/validators.js'
-import { type ValidatorSet } from 'validator/types.js'
-import 'util/testing/expect/toBeValid'
+import { hashEncryptedLink } from '../../graph/hashLink.js'
+import { append, createGraph, getHead, getLink, getRoot } from '../../graph/index.js'
+import { type Hash } from '../../util/index.js'
+import { validate } from '../validate.js'
+import { fail } from '../validators.js'
+import { type ValidatorSet } from '../types.js'
+import '../../util/testing/expect/toBeValid.js'
 
 const { setSystemTime } = vitest.useFakeTimers()
 

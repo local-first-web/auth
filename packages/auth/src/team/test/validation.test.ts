@@ -1,4 +1,4 @@
-import { setup } from 'util/testing/index.js'
+import { setup } from '../../util/testing/index.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const TEN_MINUTES = 10 * 60 * 1000

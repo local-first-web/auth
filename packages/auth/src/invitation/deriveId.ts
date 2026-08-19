@@ -1,5 +1,5 @@
 import { type Hash, hash, stretch } from '@localfirst/crypto'
-import { HashPurpose } from 'util/index.js'
+import { HashPurpose } from '../util/index.js'
 import { normalize } from './normalize.js'
 
 /** Derives the public invitation id from the secret invitation seed. */

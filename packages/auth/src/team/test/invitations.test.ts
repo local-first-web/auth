@@ -6,18 +6,18 @@ import {
   type UnixTimestamp,
 } from '@localfirst/crdx'
 import { signatures } from '@localfirst/crypto'
-import { createDevice, redactDevice, Team, type FirstUseDevice } from 'index.js'
+import { createDevice, redactDevice, Team, type FirstUseDevice } from '../../index.js'
 import {
   create as createInvitation,
   generateProof,
   hashKeys,
   type DeviceInvitation,
   type MemberInvitation,
-} from 'invitation/index.js'
-import * as lockbox from 'lockbox/index.js'
-import * as teams from 'team/index.js'
-import { KeyType } from 'util/index.js'
-import { setup } from 'util/testing/index.js'
+} from '../../invitation/index.js'
+import * as lockbox from '../../lockbox/index.js'
+import * as teams from '../index.js'
+import { KeyType } from '../../util/index.js'
+import { setup } from '../../util/testing/index.js'
 import { describe, expect, it } from 'vitest'
 
 const { DEVICE, USER } = KeyType
