@@ -11,6 +11,9 @@
   "type": "module",
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=18"
+  },
   "files": [
     "dist"
   ],
@@ -25,6 +28,9 @@
     "debug": "^4.3.4",
     "eventemitter3": "^5.0.1",
     "lodash-es": "^4.17.21"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "gitHead": "9a7b871e9e34268b32cc6e574189ec2350787b81"
 }
