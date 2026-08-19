@@ -105,8 +105,9 @@ const _validate = <A extends Action, C>(
 const _validateStructure = <A extends Action, C>(graph: Graph<A, C>): ValidationResult =>
   runValidators(graph, structuralValidators)
 
-// The memoized results are keyed on the graph alone, so each entry point needs its own namespace —
-// otherwise the narrower answer would be handed out in place of the broader one, or vice versa.
+// Each memoized function gets its own cache, so these two can't collide even though their
+// resolvers see the same argument. The seeds are distinct anyway: the keys are what a future
+// shared cache would collide on, and they cost nothing now.
 export const validate = memoize(_validate, graph => hash('memoize', graph))
 export const validateStructure = memoize(_validateStructure, graph =>
   hash('memoizeStructure', graph)

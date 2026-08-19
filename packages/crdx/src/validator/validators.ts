@@ -56,6 +56,35 @@ export const structuralValidators: ValidatorSet = {
         : 'The link referenced by the graph `root` property must be a ROOT link' // not ROOT but is the graph root
     return fail(message, { link, graph })
   },
+
+  /**
+   * A link can't be older than a link it descends from.
+   *
+   * This is a statement about the graph and nothing else: both timestamps are bytes already on it,
+   * every peer reads the same pair, and no clock anywhere takes part. It belongs here rather than
+   * with the clock rules it used to share a function with, by the same test as everything else in
+   * this set — nothing about the passage of time can turn a pass into a failure or back.
+   *
+   * It's also the only thing standing between a backdated link and the peers who replay it.
+   * Anything the application judges against `link.body.timestamp` — `@localfirst/auth` judges
+   * invitation expiry that way — is judging a number the link's author chose, and an author who
+   * sets their clock back can choose one that has already gone by. What they can't do is make the
+   * links they're building on any younger, so a backdated link is refused by every peer as long as
+   * the graph it's appended to carries anything later.
+   */
+  validateTimestampOrder(link, graph) {
+    const { timestamp } = link.body
+    for (const hash of link.body.prev) {
+      const prevLink = graph.links[hash]
+      if (prevLink.body.timestamp > timestamp)
+        return fail(`This link's timestamp can't be earlier than a previous link.`, {
+          link,
+          prevLink,
+        })
+    }
+
+    return VALID
+  },
 }
 
 /**
@@ -68,30 +97,22 @@ export const structuralValidators: ValidatorSet = {
  * would make the document unopenable — not until the graph changed, which it can't, but until wall
  * clock caught up with it.
  *
- * So a failure here is something to report, not something to act on: `Store.validate` runs these
- * along with the structural rules, and the sync protocol counts them toward `failedSyncCount` and
- * lets the application decide how much to trust the peer.
+ * 'Advisory' describes what `makeMachine` does with a failure, and nothing more. `Store.validate`
+ * reports these alongside the structural rules, which is where an application is meant to ask. The
+ * sync protocol does NOT treat them as advice: `receiveMessage` runs the full set over the merged
+ * graph and, on any failure, discards the merge outright, increments `failedSyncCount` and sends
+ * the error back to the peer. So a peer whose clock runs fast is still refused over the wire, and
+ * a reader shouldn't conclude from this comment that clock skew is harmless everywhere — only that
+ * it no longer makes a stored graph unopenable. Bringing the wire path in line is tracked
+ * separately.
  */
 export const advisoryValidators: ValidatorSet = {
-  /** Sanity check on timestamps: They can't be in the future, relative to the current time on this
-   * device. And they can't be earlier than any links they depend on. */
-  validateTimestamps(link, graph) {
+  /** A link's timestamp can't be in the future, relative to the current time on this device. */
+  validateTimestampNotInFuture(link, _graph) {
     const { timestamp } = link.body
-
-    // timestamp can't be in the future
     const now = Date.now()
     if (timestamp > now) {
       return fail(`The link's timestamp is in the future.`, { link, now })
-    }
-
-    // timestamp can't be earlier than any previous link's timestamp
-    for (const hash of link.body.prev) {
-      const prevLink = graph.links[hash]
-      if (prevLink.body.timestamp > timestamp)
-        return fail(`This link's timestamp can't be earlier than a previous link.`, {
-          link,
-          prevLink,
-        })
     }
 
     return VALID

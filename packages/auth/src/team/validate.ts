@@ -150,9 +150,10 @@ const validators: TeamStateValidatorSet = {
   /**
    * A ROOT link is the link that creates the team, and nothing else is.
    *
-   * `linkAuthorshipIsAuthentic`, `removedMembersAndServersCantDoAnything` and `mustBeAdmin` all
-   * step aside for `type === ROOT`, because at the founding of a team there is nothing to check an
-   * author against: no registered keys, no admins, nobody removed. That reasoning is sound only
+   * Four rules step aside for `type === ROOT` — `linkAuthorshipIsAuthentic`,
+   * `serversCanOnlyAdmit`, `removedMembersAndServersCantDoAnything` and `mustBeAdmin` — because at
+   * the founding of a team there is nothing to check an author against: no registered keys, no
+   * admins, no servers, nobody removed. That reasoning is sound only
    * for the graph's first link — and a link's type is just a word in its body. `Team.dispatch`
    * appends whatever action it's handed, so an ordinary member could post a ROOT link of their own
    * onto a team that already exists. Those three rules would wave it through, and the reducer's
@@ -162,7 +163,7 @@ const validators: TeamStateValidatorSet = {
    * hands the founding member are the ones that link establishes — so a keyset the author minted
    * for themselves satisfies it.
    *
-   * This is what pins the type to the one position where it means what those three assume. A link
+   * This is what pins the type to the one position where it means what those four assume. A link
    * has to clear every rule here to be applied, so their standing aside costs nothing: whatever
    * they decline to say about a ROOT link, this refuses it unless two independent things hold.
    *
@@ -170,14 +171,16 @@ const validators: TeamStateValidatorSet = {
    *   a whole — the predecessor-less link is the graph's root, and it's the ROOT link — so on a
    *   graph that has been through `makeMachine` this is exactly 'this is the root'. Checking it
    *   per link is what catches a dispatch, where no graph-wide validation runs.
-   * - There is no team behind it yet. This is stated as what it is rather than by proxy: the four
-   *   registries listed in `teamAlreadyExists` are the ones those three rules read, so a state
-   *   with all four empty is precisely the state they assume, whatever else may be true of it.
-   *   `head` is in there too, because `setHead` records one for every link the reducer applies —
-   *   but nothing here rests on that. `invalidLinkReducer` is a live path that returns without
-   *   calling `setHead`, so if the resolver ever discarded a graph's first link, an empty `head`
-   *   would no longer mean 'nothing applied'. The registries would still mean what they say, and
-   *   the predecessor rule above would still hold.
+   * - There is no team behind it yet. This is stated as what it is rather than by proxy:
+   *   `teamAlreadyExists` names every part of the state those four rules read — `members`,
+   *   `servers`, `removedMembers` and `removedServers`, plus `lockboxes`, which
+   *   `isRegisteredEncryptionKey` falls back to when looking for a superseded generation of
+   *   someone's keys. A state with all five empty is precisely the state they assume, whatever
+   *   else may be true of it. `head` is in there too, because `setHead` records one for every link
+   *   the reducer applies — but nothing here rests on that. `invalidLinkReducer` is a live path
+   *   that returns without calling `setHead`, so if the resolver ever discarded a graph's first
+   *   link, an empty `head` would no longer mean 'nothing applied'. The five would still mean what
+   *   they say, and the predecessor rule above would still hold.
    *
    * This leg holds whatever shape the graph is in and whatever the link claims about its own
    * position, and the one above holds whatever the reduction has done so far; neither leans on the
@@ -201,7 +204,8 @@ const validators: TeamStateValidatorSet = {
         previousState.members.length > 0 ||
         previousState.servers.length > 0 ||
         previousState.removedMembers.length > 0 ||
-        previousState.removedServers.length > 0
+        previousState.removedServers.length > 0 ||
+        previousState.lockboxes.length > 0
       if (teamAlreadyExists) {
         const msg = `A ROOT link founds the team, so it can't be applied to a team that already exists.`
         return fail(msg, ...args)
