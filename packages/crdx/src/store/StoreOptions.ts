@@ -24,8 +24,12 @@ export type StoreOptions<S, A extends Action, C> = {
    *
    *  These are not consulted when state is computed: `makeMachine` replays a graph against the
    *  structural rules alone, so a link these would refuse still folds into state. They're run by
-   *  `Store.validate`, alongside the built-in rules — which check hashes, `prev` links and the ROOT
-   *  link, and do not check signatures — and that's where the application asks about them. */
+   *  `Store.validate`, which is where the application asks about them — and which runs all five
+   *  built-in rules alongside them, not just the structural three. Those five are: each link's
+   *  hash matches its bytes, the links named in its `prev` exist, the ROOT link is the graph's
+   *  root, no link is stamped ahead of this device's clock, and no link is older than a link it
+   *  descends from. The last two are advisory — honest peers whose clocks disagree trip them — so
+   *  expect to see them here. None of the five checks a signature. */
   validators?: ValidatorSet
 
   /** The initial state to provide to the reducer's first action. By default this is an empty object `{}` */

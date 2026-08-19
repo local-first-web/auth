@@ -88,10 +88,16 @@ const runValidators = <A extends Action, C>(
  * everyone, and it kept reporting skew that the clock had since caught up with (and, in the other
  * direction, kept reporting a graph valid after an NTP step backwards put a link in the future).
  *
- * There's nothing to trade off against: the only caller that runs per message, `receiveMessage`,
- * validates a freshly merged graph every time and so never hit the cache, while paying for the key.
- * On a 201-link graph, hashing the graph to build that key measured 1.33ms against 2.18ms to run
- * the validators outright.
+ * Don't reinstate it with a better key. Any key over a graph means hashing the whole graph, and
+ * that costs more than the validators it would save — so a cache here loses money even when it
+ * hits. Medians of 50 samples after warmup, on a 201-link team graph: hashing 2.49ms against
+ * 1.00ms to run every validator, a ratio of about 2.5. The ratio narrows on smaller links but
+ * never turns over (a bare crdx chain of the same length: 0.89 against 0.81 with empty payloads,
+ * 1.31 against 1.04 with 1 KB ones).
+ *
+ * Removing it is a straight win for the sync path on top of that. `receiveMessage` validates a
+ * freshly merged graph on every message, so it never hit the cache and paid for the key every
+ * time: ~3.5ms per message on that team graph, now ~1.0ms.
  */
 const _validate = <A extends Action, C>(
   /** The hash graph to validate. */
@@ -121,6 +127,8 @@ export const validate = _validate
 
 // The structural rules read nothing but the graph, and this runs on every replay, so this one is
 // worth caching. The seed keeps its keys clear of any other cache built on the same resolver.
+// (Its cache is lodash's default: an unbounded Map that gains an entry per graph version and never
+// drops one. Pre-existing, small entries, and tracked as auth-bmx rather than fixed here.)
 export const validateStructure = memoize(_validateStructure, graph =>
   hash('memoizeStructure', graph)
 )
