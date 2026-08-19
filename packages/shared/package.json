@@ -16,8 +16,7 @@
   ],
   "scripts": {
     "build": "tsup",
-    "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly",
-    "preinstall": "npx only-allow pnpm"
+    "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly"
   },
   "dependencies": {
     "@herbcaudill/eventemitter42": "^0.3.1",

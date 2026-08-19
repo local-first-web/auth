@@ -15,7 +15,6 @@
     "dev:serve": "vite --force --port 3000",
     "dev": "run-p dev:relay dev:serve",
     "dev:cy": "cross-env CYPRESS_REMOTE_DEBUGGING_PORT=9222 run-p dev test:cy:ui",
-    "preinstall": "npx only-allow pnpm",
     "preview": "run-s build && vite preview",
     "test:cy:ui": "cypress open --browser chrome --e2e",
     "test:cy": "run-p --race dev test:cy:exec",

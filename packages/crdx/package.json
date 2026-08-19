@@ -17,7 +17,6 @@
   "scripts": {
     "build": "tsup",
     "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly",
-    "preinstall": "npx only-allow pnpm",
     "test": "vitest"
   },
   "dependencies": {

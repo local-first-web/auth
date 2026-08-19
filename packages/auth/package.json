@@ -21,7 +21,6 @@
   "scripts": {
     "build": "tsup",
     "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly",
-    "preinstall": "npx only-allow pnpm",
     "test": "vitest",
     "test:log": "cross-env DEBUG='localfirst*' DEBUG_COLORS=1 vitest --reporter basic"
   },
