@@ -215,26 +215,31 @@ export class Team extends EventEmitter<TeamEvents> {
   public auditAuthorship = () => auditAuthorship(this.graph, this.state)
 
   /**
-   * Reports what CRDX's validators make of this team's graph: that each link's hash matches its
-   * bytes and its signature checks out, plus the advisory rules — currently that no link is
-   * timestamped in the future of this device's clock.
+   * Reports what CRDX's validators make of this team's graph. That's three rules about the graph's
+   * shape — each link's hash matches its bytes, the links its `prev` names exist, and the ROOT link
+   * is the graph's root — plus the two advisory rules about timestamps.
    *
-   * The advisory rules are why this exists. A peer whose clock runs a few minutes fast writes links
-   * we can't refuse without making the team unopenable, so we load and merge them and report them
-   * here instead; the application decides what a skewed timestamp is worth. `isValid: false` is
-   * therefore not by itself a reason to stop using the team — read the error and decide.
+   * Note what isn't in that list: CRDX doesn't verify signatures, here or anywhere. A link's stated
+   * author is checked against the key that actually encrypted it by `linkAuthorshipIsAuthentic`,
+   * which runs during replay, not here; `Team.auditAuthorship` reports on it after the fact. Nor
+   * does this re-run the team's own membership rules — who may add whom, who may change whose keys.
+   * Those are applied as the graph is replayed, on load and on every merge and dispatch, so a team
+   * whose state you can read has already been through them. A valid answer from this method is not
+   * a statement about any of that.
    *
-   * What this does *not* re-run are the team's own membership rules — who may add whom, who may
-   * change whose keys. Those are applied as the graph is replayed, on load and on every merge and
-   * dispatch, so a team whose state you can read has already been through them.
+   * The advisory rules are why this exists, since they're reported rather than enforced, and the
+   * two of them want different things from a caller:
    *
-   * Two things to know about the answer:
+   * - `validateTimestampNotInFuture` fails on a link stamped later than this device's clock. That
+   *   resolves itself: the peer who wrote it is a few minutes fast, and once our clock passes the
+   *   timestamp the same graph validates.
+   * - `validateTimestampOrder` fails on a link older than a link it descends from, which is what
+   *   merging a fast peer and then appending on a correct clock produces. Nothing repairs that —
+   *   the graph can't change, and no amount of waiting helps. Don't treat it as transient skew.
    *
-   * - It's the first failure found, not a list of them.
-   * - It's memoized against the graph, so it's computed once and reused until the graph changes
-   *   (auth-jy5). Since the failure that motivates this method is the one rule that reads the local
-   *   clock, an answer of "a link is in the future" outlives the clock catching up — asking again
-   *   on an unchanged graph gives the same answer.
+   * Two more things to know about the answer: it's the first failure found rather than a list of
+   * them, and it's computed fresh on each call, so asking again after the clock moves is
+   * meaningful.
    */
   public validate = () => this.store.validate()
 
