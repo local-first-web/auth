@@ -94,9 +94,11 @@ const runValidators = <A extends Action, C>(
  * everyone, and it kept reporting skew that the clock had since caught up with (and, in the other
  * direction, kept reporting a graph valid after an NTP step backwards put a link in the future).
  *
- * That reason is about the answer, not about the key, so it survives any key you might reach for.
- * Two you might: this package keys over graphs cheaply in four places already — `getPredecessors`
- * and `getSuccessors` on `` `${graph.head.join('')}:${hash}` ``, `calculateConcurrency` and
+ * That reason is about the answer, not about the key, so it survives any key over the graph. (Only
+ * over the graph: a key that also captured the validator set and a clock bucket would answer it,
+ * and would then have to get past the two objections below.) Two such keys you might reach for: this
+ * package keys over graphs cheaply in four places already — `getPredecessors` and
+ * `getSuccessors` on `` `${graph.head.join('')}:${hash}` ``, `calculateConcurrency` and
  * `calculateChildren` on the graph object's identity — and on a 201-link team graph both measured
  * at 0.000ms, below timer resolution, against 2.53ms to content-hash the same graph. So cost is no
  * objection to those.

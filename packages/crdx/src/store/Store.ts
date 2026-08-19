@@ -195,6 +195,16 @@ export class Store<
   /**
    * Validates the store's integrity, using the built-in validators (verify hashes, check
    * timestamps, etc.) as well as any custom validators provided by the application.
+   *
+   * Everything it finds comes back as a `ValidationResult`, including the bookkeeping `runValidators`
+   * checks before any validator runs: that `root` and each `head` name a link whose bytes hash to
+   * that name, that an encrypted link exists wherever one is looked up, and that there are as many
+   * encrypted links as links. A missing encrypted link used to throw out of here instead of
+   * returning; it doesn't any more.
+   *
+   * A failure here doesn't mean the store is unusable — this runs the advisory timestamp rules and
+   * the application's own validators as well as the structural ones, and only the structural ones
+   * say whether a graph can be replayed at all.
    */
   public validate() {
     return validate(this.graph, this.validators)

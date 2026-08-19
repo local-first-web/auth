@@ -32,7 +32,7 @@ export type StoreOptions<S, A extends Action, C> = {
    *  expect to see them here. None of the five checks a signature. A failure can also come from
    *  `runValidators`' own bookkeeping, which runs before any of the five: `root` and `head` naming
    *  links whose bytes hash to those names, and the count of encrypted links matching the count of
-   *  links. */
+   *  links. Those report a failure the same way the five do, as a result rather than an exception. */
   validators?: ValidatorSet
 
   /** The initial state to provide to the reducer's first action. By default this is an empty object `{}` */
