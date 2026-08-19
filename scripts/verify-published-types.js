@@ -82,16 +82,29 @@ const packages = [
 ]
 
 /**
- * An entry that forgets `lib` doesn't get a narrower check — it gets a wider one. `lib: undefined`
- * disappears from the emitted tsconfig (`JSON.stringify` drops undefined), and with no `lib` at all
- * `target: ESNext` falls back to `lib.esnext.full.d.ts`, which is blanket DOM plus WebWorker plus
- * ScriptHost. Measured: a probe of `document.createElement('div')` errors under `lib: ['ESNext']`
- * and passes with `lib` omitted. So the per-package discipline is enforced here rather than merely
- * documented above.
+ * Both fields are mandatory, because omitting either one loosens the check silently instead of
+ * failing loudly.
+ *
+ * `lib: undefined` disappears from the emitted tsconfig (`JSON.stringify` drops undefined), and
+ * with no `lib` at all `target: ESNext` falls back to `lib.esnext.full.d.ts` — blanket DOM plus
+ * WebWorker plus ScriptHost. Measured: a probe of `document.createElement('div')` errors under
+ * `lib: ['ESNext']` and passes with `lib` omitted.
+ *
+ * `probe: undefined` is worse. It interpolates into `src/index.ts` as the single line `undefined`,
+ * which is a valid expression statement and typechecks clean — so the entry-point half of the
+ * check silently stops checking anything. That half is the only one that exercises package
+ * resolution at all: the dist-wide pass addresses declaration files by path and never consults
+ * `exports` or `types`. Measured: with `shared`'s `exports`/`types` pointed at a file that does
+ * not exist, the run fails with TS2307 while its probe is present, and passes — `✓ entry point
+ * clean` — with only the `probe:` line removed.
  */
-const missingLib = packages.filter(({ lib }) => !Array.isArray(lib) || lib.length === 0)
-if (missingLib.length > 0) {
-  console.error(`✗ ${missingLib.map(({ dir }) => dir).join(', ')} — no \`lib\` declared; omitting it silently grants DOM.`)
+const isNonEmptyString = value => typeof value === 'string' && value.trim().length > 0
+const incomplete = packages.filter(
+  ({ lib, probe }) => !Array.isArray(lib) || lib.length === 0 || !isNonEmptyString(probe)
+)
+if (incomplete.length > 0) {
+  console.error(`✗ ${incomplete.map(({ dir }) => dir).join(', ')} — every entry needs both \`lib\` and \`probe\`.`)
+  console.error(`    Omitting \`lib\` silently grants DOM; omitting \`probe\` silently stops checking the entry point.`)
   process.exit(1)
 }
 
@@ -293,6 +306,16 @@ for (const { dir, probe, lib } of packages) {
   const packageDir = join(repoRoot, 'packages', dir)
   const projectDir = mkdtempSync(join(tmpdir(), 'lf-types-'))
   let name = dir
+  // One package, at most one failure. Counting inline let a throw *after* a package had already
+  // been marked failed — anywhere between the pass/fail branch and the end of the iteration — add
+  // it to the tally a second time, so the summary line reported more failing packages than there
+  // were. Everything below routes through this instead of touching `failures`.
+  let counted = false
+  const fail = () => {
+    if (counted) return
+    counted = true
+    failures++
+  }
   try {
     name = readJson(join(packageDir, 'package.json')).name
     const probeModules = join(projectDir, 'node_modules')
@@ -301,7 +324,7 @@ for (const { dir, probe, lib } of packages) {
 
     const missing = install(join(probeModules, name), name, packageDir, new Map([[name, packageDir]]))
     if (missing.length > 0) {
-      failures++
+      fail()
       console.error(`✗ ${name} — declared dependencies not installed: ${missing.join('; ')}`)
       continue
     }
@@ -330,7 +353,7 @@ for (const { dir, probe, lib } of packages) {
     const distDir = join(probeModules, name, 'dist')
     if (isDir(distDir)) collect(distDir)
     if (declarations.length === 0) {
-      failures++
+      fail()
       console.error(`✗ ${name} — publishes no declaration files at all`)
       continue
     }
@@ -342,7 +365,7 @@ for (const { dir, probe, lib } of packages) {
 
     const fatal = entry.fatal ?? everyFile.fatal
     if (fatal) {
-      failures++
+      fail()
       console.error(`✗ ${name} — could not be checked: ${fatal}`)
       continue
     }
@@ -352,10 +375,15 @@ for (const { dir, probe, lib } of packages) {
     const knownTheirs = theirs.filter(line => knownThirdPartyProblems.some(({ match }) => match.test(line)))
     const newTheirs = theirs.filter(line => !knownThirdPartyProblems.some(({ match }) => match.test(line)))
 
+    // Recorded before the reporting branch below, so an entry counts as reached whether or not
+    // its diagnostics end up being printed. The staleness check at the end reads this.
+    const fired = knownThirdPartyProblems.filter(({ match }) => knownTheirs.some(line => match.test(line)))
+    for (const problem of fired) baselineHits.add(problem)
+
     if (ours.length === 0 && newTheirs.length === 0) {
       console.log(`✓ ${name} — entry point clean, all ${declarations.length} declaration files clean`)
     } else {
-      failures++
+      fail()
       if (ours.length > 0) {
         console.error(`✗ ${name} — ${ours.length} error(s) in our own declarations (${declarations.length} files checked)`)
         console.error(ours.slice(0, 25).map(line => `    ${line}`).join('\n'))
@@ -375,36 +403,18 @@ for (const { dir, probe, lib } of packages) {
     // out what actually fired, and the point of baselining rather than deleting is that someone
     // can still read it.
     if (knownTheirs.length > 0) {
-      const fired = knownThirdPartyProblems.filter(({ match }) => knownTheirs.some(line => match.test(line)))
-      for (const problem of fired) baselineHits.add(problem)
       const beads = [...new Set(fired.map(({ bead }) => bead))]
       console.warn(`  ! ${knownTheirs.length} known error(s) in third-party declarations reached from ${name} (${beads.join(', ')})`)
-      console.warn(knownTheirs.map(line => `      ${line}`).join('\n'))
+      console.warn(knownTheirs.slice(0, 10).map(line => `      ${line}`).join('\n'))
+      if (knownTheirs.length > 10) console.warn(`      …and ${knownTheirs.length - 10} more`)
     }
   } catch (error) {
     // Anything unexpected fails this package and lets the rest be checked. A throw escaping the
     // loop would report one package and silently skip every package after it.
-    failures++
+    fail()
     console.error(`✗ ${name} — check threw: ${error?.stack ?? error}`)
   } finally {
     rmSync(projectDir, { recursive: true, force: true })
-  }
-}
-
-/**
- * A baseline entry that matched nothing is one of two things: the upstream problem got fixed, or
- * whatever reached it stopped being reached. Either way the entry is now claiming a problem that
- * this run couldn't find, so it should be deleted and its bead closed.
- *
- * Reported rather than failed, and only on an otherwise-clean run. A package that failed early
- * never got as far as producing third-party diagnostics, so its entries would look stale for the
- * wrong reason; and an upstream fix landing shouldn't be the thing that blocks a release.
- */
-if (failures === 0) {
-  const stale = knownThirdPartyProblems.filter(problem => !baselineHits.has(problem))
-  if (stale.length > 0) {
-    console.warn(`\n  ! ${stale.length} entr(ies) in knownThirdPartyProblems matched nothing — delete them and close the bead:`)
-    console.warn(stale.map(({ bead, match }) => `      ${bead}: ${match}`).join('\n'))
   }
 }
 
@@ -413,3 +423,24 @@ if (failures > 0) {
   process.exit(1)
 }
 console.log(`\nAll ${packages.length} published packages' own declarations typecheck from an isolated install.`)
+
+/**
+ * A baseline entry that matched nothing has outlived its problem — upstream fixed it, or whatever
+ * reached it is no longer a dependency. `baselineHits` is filled across every package, so an entry
+ * only reads stale when *nothing anywhere* in the run reached it; there is no partial-coverage
+ * reading of that. And this sits after the exit above, so a package that failed early — which
+ * never gets as far as producing third-party diagnostics — can't strand an entry that was fine.
+ *
+ * It fails rather than warns, for the same reason an unbaselined third-party error fails: a
+ * warning nobody reads is not a check. This one would be worse than the case described up at the
+ * allowlist, because a stale entry prints on a *green* step, where nothing draws the eye to it at
+ * all. The entry and its bead have to be retired together, and this is the only thing that makes
+ * that happen. The cost of being wrong is one red run and a two-line deletion.
+ */
+const stale = knownThirdPartyProblems.filter(problem => !baselineHits.has(problem))
+if (stale.length > 0) {
+  console.error(`\n${stale.length} entr(y/ies) in knownThirdPartyProblems matched nothing in this run.`)
+  console.error(`    The problem is fixed or no longer reachable. Delete the entry and close its bead.`)
+  console.error(stale.map(({ bead, match }) => `    ${bead}: ${match}`).join('\n'))
+  process.exit(1)
+}
