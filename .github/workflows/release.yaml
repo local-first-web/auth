@@ -47,6 +47,12 @@ jobs:
         id: build_release
         run: |
           pnpm build
+      # The published .d.ts files have to resolve from a consumer's project, not just from inside
+      # this repo. Nothing else in this workflow checks that. See auth-ax2.
+      - name: Verify published types
+        id: verify_types
+        run: |
+          pnpm verify:types
       - name: Sync README
         run: |
           git config user.name github-actions
@@ -61,12 +67,6 @@ jobs:
             git commit -m "Sync README.md"
             git push origin ${{ github.ref }}
           fi
-      # The published .d.ts files have to resolve from a consumer's project, not just from inside
-      # this repo. Nothing else in this workflow checks that. See auth-ax2.
-      - name: Verify published types
-        id: verify_types
-        run: |
-          pnpm verify:types
       - name: Run Tests
         id: tests
         run: |
