@@ -102,6 +102,17 @@ export const structuralValidators: ValidatorSet = {
  * rejection was never worth much — see `validateTimestampOrder`, whose comparison the author can
  * arrange around in one line — and the price of it was refusing honest peers outright. Backdating
  * needs a defence that doesn't rest on a rule the author controls both sides of; that's auth-6bw.
+ *
+ * The other thing it gave up is a link stamped far in the future. One peer can post a timestamp of
+ * the year 10000 and every honest peer now merges it — and from then on `validate`,
+ * `Store.validate` and `Team.validate` call that graph invalid for everyone, permanently: no append
+ * on a correct clock repairs it and no passage of wall clock catches up with it. Nothing else
+ * breaks; authorization, replay, expiry and convergence are all untouched, and a future timestamp
+ * only makes an invitation more expired, never less. What it jams is the one channel these rules
+ * exist to report on, so an application gating on `validate().isValid` has a permanent denial of
+ * service from a single link posted by any member. A ceiling on how far ahead a timestamp may be is
+ * the obvious answer, and it's safe here in a way it wasn't for key generations, because wall clock
+ * advances to meet it. That's auth-lx7.
  */
 export const advisoryValidators: ValidatorSet = {
   /**
