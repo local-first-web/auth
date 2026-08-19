@@ -923,12 +923,20 @@ export class Team extends EventEmitter<TeamEvents> {
   public adminKeys = (generation?: number) => this.roleKeys(ADMIN, generation)
 
   /**
-   * Replaces the current user's secret keyset with the one provided.
+   * Replaces a member's secret keyset with the one provided. Whose keys these are is decided by
+   * the name on the keyset, not by who's calling: normally you're rotating your own, but an admin
+   * can re-key another member, which is what `canOnlyChangeYourOwnKeys` allows and what you'd do
+   * for a member whose keys were compromised. The member picks the new keys up from the lockboxes
+   * this rotates for their devices.
    *
-   * The old keys are read from `context.user` and the new ones are written back there, so this
-   * rotates the caller's own keys. (`canOnlyChangeYourOwnKeys` does let an admin post a keyset
-   * naming another member, but the bookkeeping here still treats whatever it's handed as the
-   * caller's own — see auth-poy.)
+   * Two consequences of re-keying someone else are worth being clear about: the admin who does it
+   * necessarily generates the member's new secret keys and therefore knows them, and the member's
+   * old keys are gone as far as the team is concerned. It isn't a substitute for removing someone.
+   *
+   * Only the caller's own keys are written back to `context.user` — an admin re-keying another
+   * member has no business holding a keyset named for someone else. (That used to happen, and it
+   * left the admin signing links with the other member's keys, which
+   * `linkAuthorshipIsAuthentic` then rejected: her own team object was unusable from then on.)
    *
    * A server's keys can't be rotated at all: a server can only admit members and devices
    * (`serversCanOnlyAdmit`), and there's no action for anyone to do it on its behalf either. To
@@ -936,7 +944,7 @@ export class Team extends EventEmitter<TeamEvents> {
    */
   public changeKeys = (newKeys: KeysetWithSecrets) => {
     const { user } = this.context
-    const { type } = newKeys
+    const { type, name: targetId } = newKeys
 
     assert(type !== DEVICE, "Can't change device keys")
     assert(
@@ -944,18 +952,23 @@ export class Team extends EventEmitter<TeamEvents> {
       `A server's keys can't be rotated (remove the server and add it back instead).`
     )
 
-    const oldKeys: KeysetWithSecrets = user.keys
+    const targetIsMe = targetId === this.userId
+
+    // The generation these keys supersede is the target member's, which is only ours if we're
+    // rotating our own. (`lockbox.rotate` derives the generation the same way from each lockbox it
+    // replaces; this is what stands if the member has no lockboxes of their own.)
+    const oldKeys: Keyset | KeysetWithSecrets = targetIsMe ? user.keys : this.members(targetId).keys
     newKeys.generation = oldKeys.generation + 1
 
     // Treat the old keys as compromised, and generate new lockboxes for any keys they could see
     const lockboxes = this.rotateKeys(newKeys)
 
-    // Post our new public keys to the graph
+    // Post the new public keys to the graph
     const keys = redactKeys(newKeys)
     this.dispatch({ type: 'CHANGE_MEMBER_KEYS', payload: { keys, lockboxes } })
 
-    // Update our keys in context
-    user.keys = newKeys
+    // Update our keys in context — but only if they're ours
+    if (targetIsMe) user.keys = newKeys
   }
 
   private updateUserKeys() {

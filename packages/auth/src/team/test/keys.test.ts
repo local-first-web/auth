@@ -71,6 +71,83 @@ describe('Team', () => {
       expect(tryToChangeBobsKeys).not.toThrow()
     })
 
+    /**
+     * `changeKeys` used to write the keyset it was handed back to `context.user.keys` no matter
+     * whose name was on it, so an admin who re-keyed someone else was left holding a keyset
+     * belonging to that member. Nothing repaired it — `updateUserKeys` only moves the context
+     * forward to a *later* generation of the user's own keys — so every link she signed after that
+     * was encrypted with someone else's keys, and `linkAuthorshipIsAuthentic` rejected it.
+     */
+    it("changing Bob's keys leaves Alice's own keys alone", () => {
+      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+
+      // Alice rotates her own keys first, so her generation is ahead of Bob's
+      alice.team.changeKeys(createKeyset({ type: USER, name: alice.userId }))
+      const alicesKeys = alice.team.members(alice.userId).keys
+
+      alice.team.changeKeys(createKeyset({ type: USER, name: bob.userId }))
+
+      // Bob's keys are the ones that were replaced, and they supersede *his* generation, not hers
+      expect(alice.team.members(bob.userId).keys.generation).toBe(1)
+      expect(alice.team.members(alice.userId).keys).toEqual(alicesKeys)
+
+      // `alice.user` is the very object the team holds as `context.user`
+      expect(alice.user.keys.name).toBe(alice.userId)
+      expect(alice.user.keys.signature.publicKey).toBe(alicesKeys.signature)
+
+      // ...so she can still sign links that are recognizably hers
+      alice.team.addRole('managers')
+      expect(alice.team.hasRole('managers')).toBe(true)
+    })
+
+    /** The other half of that: the member whose keys were changed does end up with them. */
+    it('Bob picks up the keys Alice made for him', () => {
+      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+
+      const bobsNewKeys = createKeyset({ type: USER, name: bob.userId })
+      alice.team.changeKeys(bobsNewKeys)
+      bob.team.merge(alice.team.graph)
+
+      expect(bob.user.keys.encryption.secretKey).toBe(bobsNewKeys.encryption.secretKey)
+      expect(bob.team.members(bob.userId).keys.generation).toBe(1)
+      expect(bob.team.teamKeys().generation).toBe(1)
+    })
+
+    /**
+     * The new keys supersede the target member's generation, not the caller's. In an ordinary team
+     * this is invisible: `lockbox.rotate` derives the generation from each lockbox it replaces, so
+     * it overwrites whatever `changeKeys` set. It shows through only for a member who has no
+     * lockboxes of their own — one who has never had a device, which is why this test has to reach
+     * for `addForTesting` to set it up.
+     */
+    it("a member's keys supersede that member's generation, not the caller's", () => {
+      const { alice, bob } = setup('alice', { user: 'bob', member: false })
+      alice.team.addForTesting(bob.user, [])
+
+      // Alice's own keys are two generations ahead of Bob's
+      alice.team.changeKeys(createKeyset({ type: USER, name: alice.userId }))
+      alice.team.changeKeys(createKeyset({ type: USER, name: alice.userId }))
+      expect(alice.team.members(alice.userId).keys.generation).toBe(2)
+      expect(alice.team.members(bob.userId).keys.generation).toBe(0)
+
+      alice.team.changeKeys(createKeyset({ type: USER, name: bob.userId }))
+      expect(alice.team.members(bob.userId).keys.generation).toBe(1)
+    })
+
+    /** Rotating your own keys has to keep updating your context, or you can't sign anything after. */
+    it('Bob can rotate his own keys twice running', () => {
+      const { bob } = setup('alice', 'bob')
+
+      bob.team.changeKeys(createKeyset({ type: USER, name: bob.userId }))
+      expect(bob.user.keys.name).toBe(bob.userId)
+      expect(bob.user.keys.signature.publicKey).toBe(bob.team.members(bob.userId).keys.signature)
+
+      // The second rotation is signed with the keys the first one put in his context
+      bob.team.changeKeys(createKeyset({ type: USER, name: bob.userId }))
+      expect(bob.team.members(bob.userId).keys.generation).toBe(2)
+      expect(bob.user.keys.signature.publicKey).toBe(bob.team.members(bob.userId).keys.signature)
+    })
+
     it('Every time Alice changes her keys, the admin keys are rotated', () => {
       const { alice } = setup('alice')
       const changeKeys = () => {
