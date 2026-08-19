@@ -5,6 +5,7 @@
   "version": "6.0.0-alpha.6",
   "type": "module",
   "scripts": {
+    "typecheck": "tsc --noEmit",
     "dev": "run-p dev:open dev:syncserver:log",
     "dev:start": "vite --port 3000",
     "dev:open": "pnpm dev:start --open",

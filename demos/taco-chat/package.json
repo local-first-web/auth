@@ -11,6 +11,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "typecheck": "run-s typecheck:src typecheck:cypress",
+    "typecheck:src": "tsc --noEmit",
+    "typecheck:cypress": "tsc --noEmit -p cypress",
     "dev:relay": "cross-env NODE_NO_WARNINGS=1 DEBUG='localfirst*' DEBUG_COLORS=1 node ./scripts/start-relay-server.js",
     "dev:serve": "vite --force --port 3000",
     "dev": "run-p dev:relay dev:serve",

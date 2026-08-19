@@ -4,6 +4,7 @@ import * as React from 'react'
 import { type AlertInfo, type PeerState } from '../types.js'
 import { assert } from '@localfirst/shared'
 import { ConnectionManager } from 'ConnectionManager.js'
+import { type DemoConnection } from 'DemoConnection.js'
 import { teamContext } from 'components/TeamProvider.js'
 import { randomTeamName } from 'util/randomTeamName.js'
 
@@ -133,8 +134,10 @@ export const useTeam = () => {
       })
 
       // when we connect to a peer, expose the latest team info from the connection
-      .on('connected', (connection: auth.Connection) => {
-        setTeam(connection.team)
+      .on('connected', (connection: DemoConnection) => {
+        // A connection only has a team once we've joined one; if we're still an invitee working
+        // through an invitation, there's nothing to expose yet.
+        if (connection.team) setTeam(connection.team)
       })
 
       .on('remoteError', (error: auth.connection.ConnectionErrorPayload) => {
@@ -146,9 +149,7 @@ export const useTeam = () => {
           }
         }
 
-        // if we have a detailed error message, use that
-        const message = error.details ?? error.message
-        addAlert(message)
+        addAlert(error.message)
       })
 
       // when we disconnect from a peer, update our connection status

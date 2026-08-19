@@ -23,7 +23,7 @@ export type StoredPeerState = {
   userId: string
   user?: auth.UserWithSecrets
   device: auth.DeviceWithSecrets
-  teamGraph?: string
+  teamGraph?: Uint8Array
   teamKeys?: auth.KeysetWithSecrets
 }
 

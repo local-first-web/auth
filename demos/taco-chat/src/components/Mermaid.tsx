@@ -1,5 +1,5 @@
 import mermaid from 'mermaid'
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 export type MermaidProps = {
   id: string

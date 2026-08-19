@@ -55,7 +55,7 @@ export class DemoConnection extends EventEmitter<ConnectionEvents> {
   }
 
   get state() {
-    return this.authConnection.state as Auth.ConnectionState
+    return this.authConnection.state
   }
 }
 

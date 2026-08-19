@@ -28,6 +28,8 @@ jobs:
         run: |
           pnpm install
           pnpm build
+      - name: Typecheck the demos
+        run: pnpm typecheck
       - name: Verify published types
         run: pnpm verify:types
       - name: Run tests
