@@ -1,4 +1,7 @@
-import { append, createKeyset } from '@localfirst/crdx'
+import { append, createKeyring, createKeyset, redactKeys, type Store } from '@localfirst/crdx'
+import { redactDevice } from '../../device/index.js'
+import * as lockbox from '../../lockbox/index.js'
+import { type TeamAction, type TeamContext, type TeamState } from '../types.js'
 import { unpack } from 'msgpackr'
 import { serializeTeamGraph } from '../serialize.js'
 import * as teams from '../index.js'
@@ -87,6 +90,102 @@ describe('Team', () => {
       // Bob's earlier link is still accepted, even though its sender key is now superseded
       expect(() => alice.team.merge(bob.team.graph)).not.toThrow()
       expect(alice.team.hasRole('managers')).toBe(true)
+    })
+
+    /**
+     * The rule is only worth what "belonging to them" is worth.
+     *
+     * Which keys belong to a member used to include any key named on a lockbox manifest scoped to
+     * them — a manifest being plaintext, author-written, and no evidence at all that its author
+     * holds the key. So one ordinary lockbox, of a shape the door has to allow, registered a
+     * keyset of 👨🏻‍🦲 Bob's own as 👩🏾 Alice's, and from there he could author links in her name that
+     * every peer accepted: hers and an admin's included. He removed a member wearing her name.
+     *
+     * The control is the same attack without that one lockbox: it has to be what makes the
+     * difference, or this test is measuring the wrong thing.
+     */
+    const impersonate = (registerFirst: boolean) => {
+      const { alice, bob, charlie } = setup([
+        'alice',
+        { user: 'bob', admin: false },
+        { user: 'charlie', admin: false },
+      ])
+      const teamKeys = alice.team.teamKeys()
+
+      // 👨🏻‍🦲 Bob mints a keyset and calls it 👩🏾 Alice's
+      const forged = createKeyset({ type: KeyType.USER, name: alice.userId })
+
+      if (registerFirst) {
+        // One lockbox. USER keys to a DEVICE is an honest pairing — it's how every member's own
+        // device gets their keys — so nothing at the door can refuse it.
+        const { store } = bob.team as unknown as {
+          store: Store<TeamState, TeamAction, TeamContext>
+        }
+        store.dispatch(
+          {
+            type: 'ADD_DEVICE',
+            payload: {
+              device: redactDevice(bob.phone!),
+              lockboxes: [lockbox.create(forged, redactKeys(bob.device.keys))],
+            },
+          } as TeamAction,
+          bob.team.teamKeys()
+        )
+        bob.team.merge(bob.team.graph)
+      }
+
+      // He builds a team wearing her name, keeping his own device so he can still open team keys
+      const spoofed = teams.load(
+        bob.team.save(),
+        {
+          user: { userName: alice.userName, userId: alice.userId, keys: forged },
+          device: bob.device,
+        },
+        createKeyring(teamKeys)
+      )
+
+      let authored = true
+      try {
+        spoofed.dispatch({
+          type: 'ADD_DEVICE',
+          payload: {
+            device: { ...redactDevice(bob.phone!), deviceId: 'planted', userId: alice.userId },
+          },
+        } as TeamAction)
+      } catch {
+        authored = false
+      }
+
+      const accepted = (team: (typeof alice)['team']) => {
+        try {
+          team.merge(spoofed.graph)
+          return team.members(alice.userId).devices!.some(d => d.deviceId === 'planted')
+        } catch {
+          return false
+        }
+      }
+
+      return {
+        authored,
+        charlieAccepted: accepted(charlie.team),
+        aliceAccepted: accepted(alice.team),
+      }
+    }
+
+    it("won't let a lockbox manifest make someone else's key one of yours", () => {
+      // Control: without the registering lockbox, none of it works
+      expect(impersonate(false)).toEqual({
+        authored: false,
+        charlieAccepted: false,
+        aliceAccepted: false,
+      })
+
+      // ✅ ...and with it, still none of it works
+      expect(impersonate(true)).toEqual({
+        authored: false,
+        charlieAccepted: false,
+        aliceAccepted: false,
+      })
     })
   })
 })

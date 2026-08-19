@@ -123,18 +123,20 @@ Four separate security fixes in this area turned out to be the same bug wearing 
 
 > **No selector may treat a quantity derived from the lockbox graph as authoritative unless the graph itself assigns it.**
 
-A member can post a lockbox naming any scope, generation and recipient, so everything *written in* a lockbox is an assertion by its author. The one quantity here that isn't is `state.keyHistory`: the reducer appends a scope's keyset the first time the graph carries it, in replay order, so a member moves it by one slot per lockbox they actually post and cannot claim a position. Where these sites stand:
+A member can post a lockbox naming any scope, generation and recipient, so everything *written in* a lockbox is an assertion by its author — including the fields on its manifests, which are plaintext and prove nothing about who holds the key they name. The one quantity here that isn't an assertion is `state.keyHistory`: the reducer appends a scope's keyset the first time the graph carries it, in replay order, so a member moves it by one slot per lockbox they actually post and cannot claim a position. Where these sites stand:
 
 | site | what it decides | status |
 | --- | --- | --- |
 | `selectors/keys` | which generation of a scope is current | **satisfies** — resolved from `keyHistory` order, not from the highest `generation` held |
 | `Team.rotateKeys` | the generation a rotation writes | **satisfies** — `keyHistory.length` |
-| `Team.updateUserKeys` | when to adopt new keys for ourselves | **satisfies** — asks `select.keys`, having previously compared `generation` fields |
-| `selectors/keyMap` | which keyset wins when two claim the same generation | **exception** — the slot is author-asserted. First on the graph wins, which is the conservative choice: it can only ever keep a keyset the team already had |
-| `selectors/lockboxesInScope` | who gets a replacement when a scope rotates | **exception** — grouped by the recipient scope on the manifest, which is author-asserted. Conservative in the same way: a finer grouping only ever adds recipients to a rotation, never drops one |
-| `connection/getDeviceUserFromGraph` | which user keys a joining device adopts | **open** — takes `getLatestGeneration` over a keyring built from the graph, which is the shape fixed in `updateUserKeys` |
+| `Team.updateUserKeys` | when to adopt new keys for ourselves | **satisfies** — asks `select.keys`, and adopts only a key the team has registered for us |
+| `registeredEncryptionKeys` | which keys belong to a member, which is what every authorship rule rests on | **satisfies** — from keysets the team registered through checked actions, never from a manifest scoped to the member. Harvesting manifests here let any member author links in any other member's name |
+| `transforms/removeDevice` | promotes a manifest into a member's registered keyset | **gated** — `canOnlyRemoveYourOwnDevices` confines it to the author's own record unless they are an admin, so it can't be aimed at a third party |
+| `selectors/keyMap` | which keyset wins when two claim the same generation | **open** — an earlier version of this page called it a safe exception; that was measured false. `admitMember` is open to non-admins and the admitting member posts an invitee's first `TEAM` lockbox, which first-wins then keeps. See `auth-uvp` |
+| `selectors/lockboxesInScope` | who gets a replacement when a scope rotates | **open** — also wrongly called safe here. A lockbox whose recipient manifest carries the victim's name but an attacker's public key wins the group, and the rotation re-addresses the replacement to the attacker. See `auth-72n` |
+| `connection/getDeviceUserFromGraph` | which user keys a joining device adopts | **open** — takes `getLatestGeneration` over a keyring built from the graph, the shape fixed in `updateUserKeys`, and reaches the same place as the authorship hole above. See `auth-4yb` |
 
-The two exceptions are recorded rather than fixed because both fail safe: they can add work or keep an older keyset, but neither can hand over a keyset the team never had. Any new selector reading the lockbox graph should be checked against the rule above and added to this table.
+Any new selector reading the lockbox graph should be checked against the rule above and added to this table. The check is greppable: reads of `.contents.` and `.recipient.` outside `lockbox.open`.
 
 ## API
 

@@ -283,7 +283,7 @@ describe('Team', () => {
      * appends really is the newest one the graph carries for that scope, which is auth-9sl and is
      * still open. What it fixes is that re-keying now gets us out.
      */
-    it('lets us re-key our way out of a lockbox aimed at our own device', () => {
+    it("doesn't adopt a keyset the team never registered as ours", () => {
       const { alice, bob } = setup(['alice', { user: 'bob', admin: false }])
 
       // USER keys to a DEVICE is the one pairing addressed to a device that the door has to allow
@@ -295,14 +295,15 @@ describe('Team', () => {
           lockboxes: [lockbox.create(forged, redactKeys(alice.device.keys))],
         },
       })
+      const realKeys = alice.user.keys.encryption.publicKey
       alice.team.merge(bob.team.graph)
 
-      // She adopts it — this is the displacement auth-9sl is about
-      expect(alice.user.keys.encryption.publicKey).toBe(forged.encryption.publicKey)
+      // ✅ She doesn't adopt it: the team never registered it as hers, and a lockbox naming her
+      // scope is something anybody can post
+      expect(alice.user.keys.encryption.publicKey).toBe(realKeys)
 
-      // ✅ ...and re-keying takes her back off it, which is what the old rule made impossible
-      alice.team.changeKeys(createKeyset({ type: USER, name: alice.userId }))
-      expect(alice.user.keys.encryption.publicKey).not.toBe(forged.encryption.publicKey)
+      // ✅ ...and she can still act, which she couldn't if she'd taken up a key no peer recognises
+      expect(() => alice.team.addRole('managers')).not.toThrow()
     })
 
     /**
@@ -328,15 +329,18 @@ describe('Team', () => {
         },
       })
       bob.team.merge(charlie.team.graph)
-      expect(bob.user.keys.encryption.publicKey).toBe(forged.encryption.publicKey)
+      expect(bob.user.keys.encryption.publicKey).not.toBe(forged.encryption.publicKey)
 
       // 👩🏾 Alice, an admin, re-keys 👨🏻‍🦲 Bob
       alice.team.merge(charlie.team.graph)
-      alice.team.changeKeys(createKeyset({ type: USER, name: bob.userId }))
+      const replacement = createKeyset({ type: USER, name: bob.userId })
+      alice.team.changeKeys(replacement)
 
-      // ✅ 👨🏻‍🦲 Bob picks up the keys she made for him, rather than staying on the forgery
+      // ✅ 👨🏻‍🦲 Bob picks up the keys she made for him — the team registered those, so he takes
+      // them, and they're what he signs with from here
       bob.team.merge(alice.team.graph)
-      expect(bob.user.keys.encryption.publicKey).not.toBe(forged.encryption.publicKey)
+      expect(bob.user.keys.encryption.publicKey).toBe(replacement.encryption.publicKey)
+      expect(() => bob.team.addMessage).not.toThrow()
     })
   })
 

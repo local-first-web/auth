@@ -1,14 +1,19 @@
 import { type Base58 } from '@localfirst/crdx'
-import { KeyType } from '../util/index.js'
 import { type TeamState } from './types.js'
-
-const { USER, SERVER } = KeyType
 
 /**
  * Whether the given encryption key is one the team has registered for this member or server.
  *
  * Members' keys rotate, and a link stays valid under the generation it was authored with, so this
  * accepts any generation the team has ever registered for them — not just the current one.
+ *
+ * "Registered" means the team put it on this member: it was their keyset in `state.members` at some
+ * point, which only happens through an action that cleared the rules for it. It does NOT mean
+ * "appears somewhere on a lockbox". This used to scan lockbox manifests for one scoped to the
+ * member, which is what `linkAuthorshipIsAuthentic` then rested on — and a manifest is plaintext,
+ * written by whoever posted the lockbox, and proves nothing about who holds the key it names. One
+ * lockbox whose contents manifest read `{type: USER, name: <victim>, publicKey: <mine>}` was enough
+ * to author links in the victim's name that every peer accepted, the victim's own client included.
  */
 export const isRegisteredEncryptionKey = (
   /** Team state as of the point in the chain we're asking about */
@@ -28,13 +33,8 @@ export const isRegisteredEncryptionKey = (
     state.servers.find(s => s.host === userId) ?? state.removedServers.find(s => s.host === userId)
   if (server?.keys.encryption === publicKey) return true
 
-  // Otherwise look for any generation ever lockboxed to or from them
-  for (const { contents, recipient } of state.lockboxes)
-    for (const manifest of [contents, recipient])
-      if (isScopedTo(manifest.type, userId, manifest.name) && manifest.publicKey === publicKey)
-        return true
-
-  return false
+  // Otherwise, any generation the team registered for them earlier
+  return (state.registeredKeys[userId] ?? []).includes(publicKey)
 }
 
 /**
@@ -56,16 +56,9 @@ export const registeredEncryptionKeys = (state: TeamState) => {
   for (const server of [...state.servers, ...state.removedServers])
     record(server.host, server.keys.encryption)
 
-  // Every generation that has ever been lockboxed to or from a member or server. Lockbox manifests
-  // are unencrypted, so this recovers the earlier generations that rotation has since superseded.
-  for (const { contents, recipient } of state.lockboxes)
-    for (const manifest of [contents, recipient])
-      if (manifest.type === USER || manifest.type === SERVER)
-        record(manifest.name, manifest.publicKey)
+  // ...and every generation the team registered for them before that
+  for (const [name, publicKeys] of Object.entries(state.registeredKeys))
+    for (const publicKey of publicKeys) record(name, publicKey)
 
   return keys
 }
-
-/** Whether a lockbox manifest belongs to the given member or server. */
-const isScopedTo = (type: string, userId: string, name: string) =>
-  (type === USER || type === SERVER) && name === userId

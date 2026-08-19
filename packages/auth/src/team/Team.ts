@@ -36,6 +36,7 @@ import { type Host, type Server } from '../server/types.js'
 import { type LocalUserContext } from './context.js'
 import { KeyType, VALID, scopesMatch } from '../util/index.js'
 import { auditAuthorship } from './auditAuthorship.js'
+import { isRegisteredEncryptionKey } from './registeredEncryptionKeys.js'
 import { keyHistoryKey } from './transforms/collectLockboxes.js'
 import { assertLinksAreWellFormed, payloadProblem } from './checkPayload.js'
 import { ADMIN_SCOPE, ALL, TEAM_SCOPE, initialState } from './constants.js'
@@ -1028,9 +1029,15 @@ export class Team extends EventEmitter<TeamEvents> {
     if (held === undefined || held.size === 0) return
 
     const currentKeys = select.keys(this.state, this.context.device.keys, scope)
-    if (currentKeys.encryption.publicKey !== user.keys.encryption.publicKey) {
-      user.keys = currentKeys
-    }
+    if (currentKeys.encryption.publicKey === user.keys.encryption.publicKey) return
+
+    // ...but only if they're keys the team registered as ours. A lockbox naming our scope is one
+    // anybody can post, and adopting one of those would leave us signing links under a key no peer
+    // recognises — unable to act at all, and holding a keyset its author can read.
+    if (!isRegisteredEncryptionKey(this.state, this.userId, currentKeys.encryption.publicKey))
+      return
+
+    user.keys = currentKeys
   }
 
   private checkForPendingKeyRotations() {

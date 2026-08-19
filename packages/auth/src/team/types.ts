@@ -313,6 +313,12 @@ export type TeamState = {
    * `keyHistoryKey` and `Team.rotateKeys`.
    */
   keyHistory: Record<string, Base58[]>
+
+  /**
+   * Every encryption public key the team has registered for each member or server, by userId (or
+   * host), in the order the graph registered them. See `recordRegisteredKeys`.
+   */
+  registeredKeys: Record<string, Base58[]>
 }
 
 export type InvitationMap = Record<string, InvitationState>

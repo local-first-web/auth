@@ -13,6 +13,7 @@ import {
   changeMemberKeys,
   collectLockboxes,
   postInvitation,
+  recordRegisteredKeys,
   removeDevice,
   removeMember,
   removeMemberRole,
@@ -30,6 +31,7 @@ import {
   type TeamState,
   type Transform,
 } from './types.js'
+import * as select from './selectors/index.js'
 import { validate } from './validate.js'
 
 /**
@@ -70,6 +72,13 @@ export const reducer: Reducer<TeamState, TeamAction, TeamContext> = (state, link
     setHead(link),
     collectLockboxes(action.payload.lockboxes), // Any payload can include lockboxes
     ...getTransforms(action), // Get the specific transforms indicated by this action
+    // Last: records whatever keys those transforms registered, plus any this link's lockboxes
+    // name for someone its author was entitled to set keys for
+    recordRegisteredKeys({
+      author: link.body.userId,
+      authorCanSetOthersKeys: select.memberIsAdmin(state, link.body.userId),
+      lockboxes: action.payload.lockboxes,
+    }),
   ])
   const newState = applyTransforms(state)
 
