@@ -76,7 +76,31 @@ export const lockboxesInScope = (state: TeamState, scope: KeyScope): Lockbox[] =
  */
 const isAHolderTheTeamKnows = (state: TeamState, recipient: Lockbox['recipient']) => {
   const { type, name, publicKey } = recipient
-  if (type === KeyType.ROLE || type === KeyType.EPHEMERAL) return true
+
+  // A role's keys live only in lockboxes, but the graph still says which keyset is the role's: it
+  // is the one `keyHistory` carries last for that scope, which is what `select.keys` resolves to.
+  // A manifest naming `ROLE:admin` while carrying its author's own key used to win that group, and
+  // then `removeMemberRole` rotated a role whose real holder was no longer in the set — measured,
+  // the keyset didn't change at all.
+  if (type === KeyType.ROLE) {
+    if (!state.roles.some(r => r.roleName === name)) return false
+    const carried = state.keyHistory[`${type}:${name}`] ?? []
+    return carried.at(-1) === publicKey
+  }
+
+  // An invitation's starter keys never touch the graph, but its signature half does: the invitation
+  // record carries it, and `redactKeys` puts it on the ear's manifest. So an ear belongs to an
+  // invitation the team actually issued, and is the one that invitation's own link posted — the
+  // earliest lockbox naming it, which nobody can get in front of without the seed.
+  if (type === KeyType.EPHEMERAL) {
+    const { signature } = recipient as { signature?: string }
+    if (signature === undefined) return false
+    if (!Object.values(state.invitations).some(i => i.publicKey === signature)) return false
+    const theInvitationsOwn = state.lockboxes.find(
+      l => l.recipient.type === KeyType.EPHEMERAL && sameSignature(l.recipient, signature)
+    )
+    return theInvitationsOwn?.recipient.publicKey === publicKey
+  }
 
   const attested =
     type === KeyType.USER
@@ -88,6 +112,9 @@ const isAHolderTheTeamKnows = (state: TeamState, recipient: Lockbox['recipient']
 
   return attested !== undefined && attested === publicKey
 }
+
+const sameSignature = (manifest: Lockbox['recipient'], signature: string) =>
+  (manifest as { signature?: string }).signature === signature
 
 /** What makes two lockboxes' recipients the same holder */
 const recipientKey = ({ recipient }: Lockbox) =>
