@@ -27,22 +27,24 @@ jobs:
     if: |
       needs.check_if_version_upgraded.outputs.has_updated == 'true'
     steps:
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '20.x'
-          registry-url: 'https://registry.npmjs.org'
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 8
-          run_install: false
+      # Checkout comes first: pnpm/action-setup reads the `packageManager` field out of
+      # package.json, so package.json has to be on disk before it runs.
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ github.ref }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+      # No `version:` — CI and a developer's machine then run the same pnpm.
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
       - name: Install Dependencies
         id: deps
         run: |
-          pnpm install
+          pnpm install --frozen-lockfile
       - name: Build Release
         id: build_release
         run: |
