@@ -119,24 +119,37 @@ If you have reason to think a scope was forged over, rotate it; rotating a scope
 
 ### The rule this is all an instance of
 
-Four separate security fixes in this area turned out to be the same bug wearing different hats, because each one moved an authority off one attacker-writable quantity and onto another. The rule that would have caught all four:
+Six security fixes in this area turned out to be the same defect wearing different hats, because each one moved an authority off one attacker-writable quantity and onto another. The rule that would have caught all of them:
 
-> **No selector may treat a quantity derived from the lockbox graph as authoritative unless the graph itself assigns it.**
+> **A lockbox manifest is a claim by its author about a key they have not proved they hold. Nothing outside `lockbox.open` may treat a manifest field as an assertion about a member.**
 
-A member can post a lockbox naming any scope, generation and recipient, so everything *written in* a lockbox is an assertion by its author — including the fields on its manifests, which are plaintext and prove nothing about who holds the key they name. The one quantity here that isn't an assertion is `state.keyHistory`: the reducer appends a scope's keyset the first time the graph carries it, in replay order, so a member moves it by one slot per lockbox they actually post and cannot claim a position. Where these sites stand:
+A manifest is plaintext and anyone can post a lockbox, so `contents.name`, `recipient.name`, `contents.publicKey`, `recipient.publicKey` and `contents.generation` are all things somebody wrote down, not things the team established. `lockbox.open` is the one place that turns a claim into a fact, because it is the only place where holding the key is what decides.
+
+An earlier version of this rule was stated about *generations* only. It was applied faithfully and closed that class, and then three more holes turned up that were the same defect in fields that aren't generations — a key claimed as a member's, a name claimed as a holder's, and a position claimed by being first.
+
+Two mechanical checks, and it matters that neither alone is enough:
+
+- `grep -rn '\.contents\.\|\.recipient\.' packages/auth/src` outside `lockbox/open.ts` finds everything that reads a manifest directly.
+- That grep **does not** find code that consumes manifest-derived data *after* `open` has handed it on as a keyset — `keyMap` files by the keyset's own `type`/`name`/`generation`, and `getDeviceUserFromGraph` picks by `generation`, and neither contains the string. Both were sites of real holes. So the second check is: anything deciding *which* keyset, member, or holder something is about must name the graph-assigned quantity it uses to decide.
+
+The quantities the graph assigns, rather than an author: `state.keyHistory` (a scope's keysets, in the order the graph carried them), `state.registeredKeys` (the keys the team registered for each member, written only by actions that cleared their own rules), and the member, device and server records themselves.
 
 | site | what it decides | status |
 | --- | --- | --- |
-| `selectors/keys` | which generation of a scope is current | **satisfies** — resolved from `keyHistory` order, not from the highest `generation` held |
+| `selectors/keys` | which generation of a scope is current | **satisfies** — `keyHistory` order |
 | `Team.rotateKeys` | the generation a rotation writes | **satisfies** — `keyHistory.length` |
-| `Team.updateUserKeys` | when to adopt new keys for ourselves | **satisfies** — asks `select.keys`, and adopts only a key the team has registered for us |
-| `registeredEncryptionKeys` | which keys belong to a member, which is what every authorship rule rests on | **satisfies** — from keysets the team registered through checked actions, never from a manifest scoped to the member. Harvesting manifests here let any member author links in any other member's name |
-| `transforms/removeDevice` | promotes a manifest into a member's registered keyset | **gated** — `canOnlyRemoveYourOwnDevices` confines it to the author's own record unless they are an admin, so it can't be aimed at a third party |
-| `selectors/keyMap` | which keyset wins when two claim the same generation | **open** — an earlier version of this page called it a safe exception; that was measured false. `admitMember` is open to non-admins and the admitting member posts an invitee's first `TEAM` lockbox, which first-wins then keeps. See `auth-uvp` |
-| `selectors/lockboxesInScope` | who gets a replacement when a scope rotates | **open** — also wrongly called safe here. A lockbox whose recipient manifest carries the victim's name but an attacker's public key wins the group, and the rotation re-addresses the replacement to the attacker. See `auth-72n` |
-| `connection/getDeviceUserFromGraph` | which user keys a joining device adopts | **open** — takes `getLatestGeneration` over a keyring built from the graph, the shape fixed in `updateUserKeys`, and reaches the same place as the authorship hole above. See `auth-4yb` |
+| `Team.updateUserKeys` | when to adopt new keys for ourselves | **satisfies** — `select.keys`, and only a key the team registered for us |
+| `registeredEncryptionKeys` | which keys belong to a member — what every authorship rule rests on | **satisfies** — from keysets the team registered, never from a manifest |
+| `transforms/removeDevice` | promotes a manifest into a member's registered keyset | **gated** — `canOnlyRemoveYourOwnDevices` confines it to the author's own record |
+| `selectors/visibleKeys` | which lockboxes I can open | **satisfies** — matches `recipient.publicKey` against a key actually held |
+| `validate` `rolesWithKeys` | which roles a grant hands to a member | **gated** — narrows by `recipient.name` but decides on `recipient.publicKey` through the registered-key record, and role grants are admin-only |
+| `transforms/removeRole`, `removeMemberRole` | which lockboxes to prune | **audited** — prunes by manifest name, but what protects the role is the rotation that accompanies it, not the pruning |
+| `selectors/visibleScopes` | which scopes a rotation should cover | **unmeasured** — a manifest can add scopes to a rotation. "Can only add" was the reasoning that turned out to be false twice below, so it is recorded as unmeasured rather than safe |
+| `selectors/lockboxesInScope` | who gets a replacement when a scope rotates | see `auth-72n` |
+| `selectors/keyMap` | which keyset wins for a scope and generation | see `auth-uvp` |
+| `connection/getDeviceUserFromGraph` | which user keys a joining device adopts | see `auth-4yb` |
 
-Any new selector reading the lockbox graph should be checked against the rule above and added to this table. The check is greppable: reads of `.contents.` and `.recipient.` outside `lockbox.open`.
+Any new selector reading the lockbox graph, or reading a keyset that came out of one, should be checked against the rule above and added to this table.
 
 ## API
 
