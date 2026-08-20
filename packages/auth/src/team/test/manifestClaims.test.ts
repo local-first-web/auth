@@ -1,8 +1,10 @@
-import { createKeyset, redactKeys, type Store } from '@localfirst/crdx'
+import { createKeyring, createKeyset, redactKeys, type Store } from '@localfirst/crdx'
 import { describe, expect, it } from 'vitest'
 import * as devices from '../../device/index.js'
 import { redactDevice } from '../../device/index.js'
 import { generateProof } from '../../invitation/index.js'
+import { generateStarterKeys } from '../../invitation/generateStarterKeys.js'
+import { getDeviceUserFromGraph } from '../../connection/getDeviceUserFromGraph.js'
 import * as lockbox from '../../lockbox/index.js'
 import { KeyType } from '../../util/index.js'
 import { setup } from '../../util/testing/index.js'
@@ -151,6 +153,63 @@ describe('Team', () => {
       expect(attacked.alice.team.has(attacked.charlie.userId)).toBe(true)
       expect(attacked.charlie.team.teamKeys()).toEqual(attacked.alice.team.teamKeys())
       expect(attacked.charlie.team.decrypt(attacked.alice.team.encrypt('hello'))).toBe('hello')
+    })
+
+    /**
+     * A joining device has no source for its own user keys but the graph, and it takes them from
+     * the keyring `select.keyring` builds out of whatever lockboxes it can open. An outstanding
+     * device invitation's starter keys are derived from a seed, and the public half is plaintext on
+     * the graph — so anyone can address a lockbox to them. `USER -> EPHEMERAL` is an honest pairing
+     * (it is how an invitation carries a member's keys to their new device), so the door has to
+     * allow it.
+     *
+     * The keyset a joining device adopts includes the signature secret it will sign links with.
+     */
+    it("doesn't let a lockbox choose a joining device's own user keys", () => {
+      const join = (withForgery: boolean) => {
+        const { alice, bob } = setup(['alice', { user: 'bob', admin: false }])
+        const teamKeys = alice.team.teamKeys()
+        const { seed } = alice.team.inviteDevice()
+        const forged = { ...createKeyset({ type: USER, name: alice.userId }), generation: 9 }
+
+        if (withForgery) {
+          const { store } = bob.team as unknown as {
+            store: Store<TeamState, TeamAction, TeamContext>
+          }
+          store.dispatch(
+            {
+              type: 'ADD_DEVICE',
+              payload: {
+                device: redactDevice(bob.phone!),
+                lockboxes: [lockbox.create(forged, generateStarterKeys(seed))],
+              },
+            } as TeamAction,
+            bob.team.teamKeys()
+          )
+          bob.team.merge(bob.team.graph)
+          alice.team.merge(bob.team.graph)
+        }
+
+        const { user } = getDeviceUserFromGraph({
+          serializedGraph: alice.team.save(),
+          teamKeyring: createKeyring(teamKeys),
+          invitationSeed: seed,
+        })
+        return {
+          adopted: user.keys.encryption.publicKey,
+          real: alice.user.keys.encryption.publicKey,
+          forged,
+        }
+      }
+
+      // Control: the joining device picks up the member's own keys
+      const control = join(false)
+      expect(control.adopted).toBe(control.real)
+
+      // ✅ ...and it still does with a keyset somebody else addressed to the invitation
+      const attacked = join(true)
+      expect(attacked.adopted).toBe(attacked.real)
+      expect(attacked.adopted).not.toBe(attacked.forged.encryption.publicKey)
     })
   })
 })

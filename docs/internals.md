@@ -144,10 +144,11 @@ The quantities the graph assigns, rather than an author: `state.keyHistory` (a s
 | `selectors/visibleKeys` | which lockboxes I can open | **satisfies** — matches `recipient.publicKey` against a key actually held |
 | `validate` `rolesWithKeys` | which roles a grant hands to a member | **gated** — narrows by `recipient.name` but decides on `recipient.publicKey` through the registered-key record, and role grants are admin-only |
 | `transforms/removeRole`, `removeMemberRole` | which lockboxes to prune | **audited** — prunes by manifest name, but what protects the role is the rotation that accompanies it, not the pruning |
+| `selectors/keyring` | which generations of a member's keys a device may use | **satisfies** — for a scope that is somebody, only keysets the team registered for them |
 | `selectors/visibleScopes` | which scopes a rotation should cover | **unmeasured** — a manifest can add scopes to a rotation. "Can only add" was the reasoning that turned out to be false twice below, so it is recorded as unmeasured rather than safe |
-| `selectors/lockboxesInScope` | who gets a replacement when a scope rotates | see `auth-72n` |
-| `selectors/keyMap` | which keyset wins for a scope and generation | see `auth-uvp` |
-| `connection/getDeviceUserFromGraph` | which user keys a joining device adopts | see `auth-4yb` |
+| `selectors/lockboxesInScope` | who gets a replacement when a scope rotates | **satisfies** for members, servers and devices — a lockbox counts as a holder's only if its `recipient.publicKey` is the key the team has on record for that name. ROLE and EPHEMERAL recipients have no such record and are still taken at face value |
+| `selectors/keyMap` | which keyset wins for a scope and generation | **unchanged, and no longer load-bearing** — first-wins still decides ties, but `selectors/keys` no longer treats a keyset the graph never carried as current, and an admission can no longer introduce one |
+| `connection/getDeviceUserFromGraph` | which user keys a joining device adopts | **satisfies** — the keyring it picks from now holds only keysets the team registered for that member (`selectors/keyring`) |
 
 Any new selector reading the lockbox graph, or reading a keyset that came out of one, should be checked against the rule above and added to this table.
 
