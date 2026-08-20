@@ -43,7 +43,7 @@ export const lockboxesInScope = (state: TeamState, scope: KeyScope): Lockbox[] =
   for (const lockbox of state.lockboxes) {
     const { contents, recipient } = lockbox
     if (contents.type !== scope.type || contents.name !== scope.name) continue
-    if (!isAHolderTheTeamKnows(state, recipient)) continue
+    if (!isAHolderTheTeamKnows(state, recipient, scope)) continue
 
     const key = recipientKey(lockbox)
     const latest = latestForEachRecipient.get(key)
@@ -74,7 +74,11 @@ export const lockboxesInScope = (state: TeamState, scope: KeyScope): Lockbox[] =
  * an invitation's starter keys are derived from a seed that never touches the graph — so those are
  * still taken at face value, and are listed as unfinished in `docs/internals.md`.
  */
-const isAHolderTheTeamKnows = (state: TeamState, recipient: Lockbox['recipient']) => {
+const isAHolderTheTeamKnows = (
+  state: TeamState,
+  recipient: Lockbox['recipient'],
+  scope: KeyScope
+) => {
   const { type, name, publicKey } = recipient
 
   // A role's keys live only in lockboxes, but the graph still says which keyset is the role's: it
@@ -99,7 +103,20 @@ const isAHolderTheTeamKnows = (state: TeamState, recipient: Lockbox['recipient']
     const { signature } = recipient as { signature?: string }
     if (signature === undefined) return false
     const invitation = Object.values(state.invitations).find(i => i.publicKey === signature)
-    return invitation?.earPublicKey === publicKey
+    if (invitation?.earPublicKey !== publicKey) return false
+
+    // ...and it only stands in for the member whose invitation it is. An ear exists so that a new
+    // device can pick up ITS OWN member's keys, so it has no business in any other scope's
+    // rotation — otherwise a member could issue a perfectly legitimate invitation of their own,
+    // hang a lockbox naming somebody else's USER scope on its ear, and collect that member's keys
+    // every time they were re-keyed. Measured: without this, the attacker's own ear received the
+    // victim's actual re-keyed user keys, and no uniqueness rule touches it, because the invitation
+    // is genuinely theirs.
+    return (
+      invitation.kind === 'DEVICE' &&
+      scope.type === KeyType.USER &&
+      scope.name === invitation.userId
+    )
   }
 
   const attested =

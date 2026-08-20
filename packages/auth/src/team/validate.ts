@@ -572,6 +572,25 @@ const validators: TeamStateValidatorSet = {
       return fail(msg, ...args)
     }
 
+    // The id is not the only thing that has to be new. An invitation's `publicKey` is what a proof
+    // is checked against and what an ear is looked up by, and the lookup is a `find` over
+    // `state.invitations` — so two records carrying the same one make it ambiguous, and which one
+    // answers is insertion order, which is replay order, which an author moves by choosing `prev`.
+    // Measured with a second invitation carrying a copy of the key: six of twelve attempts put the
+    // attacker's record first, and when it does the real invitee's ear stops receiving rotations.
+    // Grinding for a favourable hash is free, so a coin flip is a win.
+    //
+    // Re-inviting after a revocation still works: the id is derived from the seed, so a genuine
+    // re-invitation uses a new seed and therefore a new key, and re-using the old seed was already
+    // refused by the id check above.
+    const publicKeyIsTaken = Object.values(previousState.invitations).some(
+      i => i.publicKey === invitation.publicKey
+    )
+    if (publicKeyIsTaken) {
+      const msg = `An invitation with this public key has already been posted.`
+      return fail(msg, ...args)
+    }
+
     return VALID
   },
 

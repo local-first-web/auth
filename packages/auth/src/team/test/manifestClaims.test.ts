@@ -478,5 +478,129 @@ describe('Team', () => {
       expect(backdated.hisEarCounts({ type: USER, name: backdated.alice.userId })).toBe(false)
       expect(backdated.realEarCounts).toBe(true)
     })
+
+    /**
+     * Moving the ear's identity into reducer-written state fixed the VALUE but not the SELECTION:
+     * the lookup is a `find` over `state.invitations`, whose iteration order is insertion order,
+     * which is replay order, which an author moves by choosing `prev`. Nothing required an
+     * invitation's `publicKey` to be new — only its `id` — so a second record could carry a copy of
+     * the key and race the real one. Measured over twelve attempts, six put the attacker's record
+     * first, and grinding for a favourable hash is free.
+     */
+    it('refuses an invitation whose public key is already on the graph', () => {
+      const { alice, bob } = setup(['alice', { user: 'bob', admin: false }])
+      const { seed } = alice.team.inviteDevice()
+      bob.team.merge(alice.team.graph)
+      const stolen = redactKeys(generateStarterKeys(seed)).signature
+
+      const postACopy = () => {
+        const { store } = bob.team as unknown as {
+          store: Store<TeamState, TeamAction, TeamContext>
+        }
+        store.dispatch(
+          {
+            type: 'INVITE_DEVICE',
+            payload: {
+              invitation: {
+                kind: 'DEVICE',
+                id: 'a-different-id',
+                publicKey: stolen,
+                expiration: 0,
+                maxUses: 1,
+                userId: bob.userId,
+              },
+            },
+          } as TeamAction,
+          bob.team.teamKeys()
+        )
+      }
+
+      expect(postACopy).toThrowError(/public key has already been posted/)
+    })
+
+    it('still lets an invitation be reissued after it is revoked', () => {
+      const { alice } = setup('alice')
+      const first = alice.team.inviteDevice()
+      alice.team.revokeInvitation(first.id)
+
+      // ✅ A genuine reissue uses a new seed, so a new key, and the uniqueness rule doesn't bite
+      expect(() => alice.team.inviteDevice()).not.toThrow()
+
+      // ...and reusing the old seed was already refused, by the seed check that predates this
+      expect(() => alice.team.inviteDevice({ seed: first.seed })).toThrowError(/already been used/)
+    })
+
+    /**
+     * An ear exists so a new device can pick up ITS OWN member's keys. Without that restriction a
+     * member could issue a perfectly legitimate invitation — unique key, their own userId, nothing
+     * for a uniqueness rule to catch — and hang a lockbox naming somebody else's USER scope on its
+     * ear.
+     */
+    it("doesn't let an ear collect a scope that isn't its member's", () => {
+      const { alice, bob } = setup(['alice', { user: 'bob', admin: false }])
+      const { seed } = bob.team.inviteDevice()
+      const hisEar = generateStarterKeys(seed)
+
+      const { store } = bob.team as unknown as { store: Store<TeamState, TeamAction, TeamContext> }
+      store.dispatch(
+        {
+          type: 'ADD_DEVICE',
+          payload: {
+            device: redactDevice(bob.phone!),
+            lockboxes: [
+              lockbox.create(createKeyset({ type: USER, name: alice.userId }), redactKeys(hisEar)),
+            ],
+          },
+        } as TeamAction,
+        bob.team.teamKeys()
+      )
+      alice.team.merge(bob.team.graph)
+
+      // 👩🏾 Alice re-keys herself
+      alice.team.changeKeys(createKeyset({ type: USER, name: alice.userId }))
+
+      // ✅ His ear did not receive her actual new keys. (Comparing against her real secret, not
+      // just "can it open something" — his own decoy is of course openable by him.)
+      const hers = alice.user.keys.encryption.secretKey
+      const collected = alice.team.state.lockboxes
+        .filter(
+          l =>
+            l.contents.type === USER &&
+            l.contents.name === alice.userId &&
+            l.recipient.publicKey === redactKeys(hisEar).encryption
+        )
+        .some(l => lockbox.open(l, hisEar)?.encryption.secretKey === hers)
+      expect(collected).toBe(false)
+    })
+
+    /**
+     * `keyMap`'s first-wins tie rule, which nothing pinned and which `docs/internals.md` wrongly
+     * described as no longer load-bearing. It is what stops a minted generation-0 TEAM keyset from
+     * becoming current when it ends up LAST in `keyHistory` — which backdating does reach: of four
+     * attempts, one placed the forgery last.
+     *
+     * Built directly rather than through the resolver, because which position a backdated link
+     * lands in varies run to run and a test over that would be flaky.
+     */
+    it('keeps the keyset it already had when a later one claims the same generation', () => {
+      const { alice, charlie } = setup(['alice', { user: 'charlie', admin: false }])
+      alice.team.remove(charlie.userId) // so there is a generation 1 as well
+
+      const forged = createKeyset({ type: TEAM, name: TEAM }) // generation 0, minted
+      const state = {
+        ...alice.team.state,
+        lockboxes: [...alice.team.state.lockboxes, lockbox.create(forged, alice.user.keys)],
+        keyHistory: {
+          ...alice.team.state.keyHistory,
+          'TEAM:TEAM': [...alice.team.state.keyHistory['TEAM:TEAM'], redactKeys(forged).encryption],
+        },
+      } as TeamState
+
+      // ✅ The forgery is the newest thing in the scope's history and still isn't current, because
+      // generation 0 is a slot 👩🏾 Alice already had
+      expect(
+        select.keys(state, alice.device.keys, { type: TEAM, name: TEAM }).encryption.publicKey
+      ).not.toBe(redactKeys(forged).encryption)
+    })
   })
 })
