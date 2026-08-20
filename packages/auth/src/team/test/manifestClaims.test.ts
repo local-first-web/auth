@@ -1,6 +1,7 @@
 import { createKeyset, redactKeys, type Store } from '@localfirst/crdx'
 import { describe, expect, it } from 'vitest'
 import * as devices from '../../device/index.js'
+import { redactDevice } from '../../device/index.js'
 import { generateProof } from '../../invitation/index.js'
 import * as lockbox from '../../lockbox/index.js'
 import { KeyType } from '../../util/index.js'
@@ -90,6 +91,66 @@ describe('Team', () => {
       // keys at all, which is the truth: nobody ever gave her any.
       const substituted = admitWith(true)
       expect(substituted.resolve).toThrowError(/Couldn't find keys the team issued/)
+    })
+
+    /**
+     * `recipient.name` says who a lockbox is for; `recipient.publicKey` decides who can open it.
+     * Nothing tied the two together, and both are fields a lockbox's author writes — so a lockbox
+     * naming the victim while carrying somebody else's key joined the victim's group in
+     * `lockboxesInScope`, and at a higher `contents.generation` it won that group. The rotation
+     * then addressed the victim's replacement to the other key.
+     */
+    const rotateWith = (decoy: boolean) => {
+      const { alice, bob, charlie, dwight } = setup([
+        'alice',
+        { user: 'bob', admin: false },
+        { user: 'charlie', admin: false },
+        { user: 'dwight', admin: false },
+      ])
+
+      if (decoy) {
+        // Named for 👳🏽‍♂️ Charlie, carrying 👨🏻‍🦲 Bob's public key, claiming a later generation
+        const real = alice.team.state.lockboxes.find(
+          l => l.contents.type === TEAM && l.recipient.name === charlie.userId
+        )!
+        const forged = {
+          ...lockbox.create(
+            { ...createKeyset({ type: TEAM, name: TEAM }), generation: 5 },
+            bob.user.keys
+          ),
+          recipient: { ...real.recipient, publicKey: redactKeys(bob.user.keys).encryption },
+        }
+        const { store } = bob.team as unknown as {
+          store: Store<TeamState, TeamAction, TeamContext>
+        }
+        store.dispatch(
+          {
+            type: 'ADD_DEVICE',
+            payload: { device: redactDevice(bob.phone!), lockboxes: [forged] },
+          } as TeamAction,
+          bob.team.teamKeys()
+        )
+        bob.team.merge(bob.team.graph)
+        alice.team.merge(bob.team.graph)
+      }
+
+      // 👩🏾 Alice rotates the team keys by removing somebody unrelated
+      alice.team.remove(dwight.userId)
+      charlie.team.merge(alice.team.graph)
+      return { alice, charlie }
+    }
+
+    it("doesn't let a name on a manifest take a member out of a rotation", () => {
+      // Control: 👳🏽‍♂️ Charlie comes through the rotation holding the team's new keys
+      const control = rotateWith(false)
+      expect(control.charlie.team.teamKeys()).toEqual(control.alice.team.teamKeys())
+
+      // ✅ ...and with the decoy on the graph, he still does — he stayed a member, so a rotation
+      // has to reach him
+      const attacked = rotateWith(true)
+      expect(attacked.alice.team.has(attacked.charlie.userId)).toBe(true)
+      expect(attacked.charlie.team.teamKeys()).toEqual(attacked.alice.team.teamKeys())
+      expect(attacked.charlie.team.decrypt(attacked.alice.team.encrypt('hello'))).toBe('hello')
     })
   })
 })

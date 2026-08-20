@@ -41,8 +41,9 @@ export const lockboxesInScope = (state: TeamState, scope: KeyScope): Lockbox[] =
   const latestForEachRecipient = new Map<string, Lockbox>()
 
   for (const lockbox of state.lockboxes) {
-    const { contents } = lockbox
+    const { contents, recipient } = lockbox
     if (contents.type !== scope.type || contents.name !== scope.name) continue
+    if (!isAHolderTheTeamKnows(state, recipient)) continue
 
     const key = recipientKey(lockbox)
     const latest = latestForEachRecipient.get(key)
@@ -52,6 +53,40 @@ export const lockboxesInScope = (state: TeamState, scope: KeyScope): Lockbox[] =
   }
 
   return [...latestForEachRecipient.values()]
+}
+
+/**
+ * Whether this lockbox is addressed to a holder the team can vouch for.
+ *
+ * `recipient.name` says who a lockbox is for and `recipient.publicKey` decides who can actually
+ * open it, and nothing tied them together — both are fields its author wrote. So a lockbox naming
+ * the victim while carrying somebody else's public key joined the victim's group here, and if it
+ * claimed a higher `contents.generation` it won the group; the rotation then addressed the
+ * victim's replacement to the other key. Measured: the victim goes on being a member and silently
+ * stops receiving rotated keys, and a second rotation doesn't get them back either.
+ *
+ * For the recipient kinds the team keeps a record of — members, servers, devices — the record is
+ * what says which key is theirs, so a manifest that disagrees isn't their lockbox. A name the team
+ * has no record of isn't a holder either: without this, rotation would hand new keys to whatever
+ * key a made-up name carried.
+ *
+ * ROLE and EPHEMERAL recipients have no such record. A role's keys are only ever in lockboxes, and
+ * an invitation's starter keys are derived from a seed that never touches the graph — so those are
+ * still taken at face value, and are listed as unfinished in `docs/internals.md`.
+ */
+const isAHolderTheTeamKnows = (state: TeamState, recipient: Lockbox['recipient']) => {
+  const { type, name, publicKey } = recipient
+  if (type === KeyType.ROLE || type === KeyType.EPHEMERAL) return true
+
+  const attested =
+    type === KeyType.USER
+      ? state.members.find(m => m.userId === name)?.keys.encryption
+      : type === KeyType.SERVER
+        ? state.servers.find(s => s.host === name)?.keys.encryption
+        : state.members.flatMap(m => m.devices ?? []).find(d => d.deviceId === name)?.keys
+            .encryption
+
+  return attested !== undefined && attested === publicKey
 }
 
 /** What makes two lockboxes' recipients the same holder */
