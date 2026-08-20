@@ -46,6 +46,9 @@ import { validate } from './validate.js'
  * @param state The team state as of the previous link in the signature chain.
  * @param link The current link being processed.
  */
+/** Admissions redistribute keys the team already has; they never issue new ones. */
+const isAdmission = (type: string) => type === 'ADMIT_MEMBER' || type === 'ADMIT_DEVICE'
+
 export const reducer: Reducer<TeamState, TeamAction, TeamContext> = (state, link) => {
   // Invalid links are marked to be discarded by the MembershipResolver due to conflicting
   // concurrent actions. In most cases we just ignore these links and they don't affect state at
@@ -69,7 +72,10 @@ export const reducer: Reducer<TeamState, TeamAction, TeamContext> = (state, link
   // Get all transforms and compose them into a single function
   const applyTransforms = composeTransforms([
     setHead(link),
-    collectLockboxes(action.payload.lockboxes), // Any payload can include lockboxes
+    collectLockboxes(
+      action.payload.lockboxes, // Any payload can include lockboxes
+      !isAdmission(action.type)
+    ),
     ...getTransforms(action), // Get the specific transforms indicated by this action
     recordRegisteredKeys(), // Last: records whatever keys those transforms registered
   ])

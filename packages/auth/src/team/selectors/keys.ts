@@ -40,7 +40,14 @@ export const keys = (
       : // Use the current generation by default
         currentGeneration(state, scope, keys)
 
-  return keys.get(generation)!
+  const found = generation === undefined ? undefined : keys.get(generation)
+  assert(
+    found,
+    `Couldn't find keys the team issued: ${type}:${name}
+     Device: ${deviceKeys.name}
+     Keys this device can see: ${summarize(keysFromLockboxes)}`
+  )
+  return found
 }
 
 /**
@@ -78,9 +85,13 @@ const currentGeneration = (state: TeamState, scope: KeyScope, held: KeysetHistor
     if (generation !== undefined) return generation
   }
 
-  // Every keyset the device holds got there by opening a lockbox, and the reducer records every
-  // lockbox's contents — so the loop above finds one. This stands for a state assembled by hand.
-  return Math.max(...held.keys())
+  // Nothing this device holds for the scope is a keyset the graph carried, so the team never
+  // issued any of them to it. Falling back to the highest generation held used to hand one back
+  // anyway, and that is the whole of `auth-uvp`: an invitee holds exactly one TEAM keyset — the one
+  // whoever admitted them put in their first lockbox — so the fallback returned it however it got
+  // there. Answering "none" lets `keys` refuse, which is what an invitee handed a keyset the team
+  // never had should hear.
+  return undefined
 }
 
 /** Which scopes this device recovered keys for, and which generations of each — no secrets */

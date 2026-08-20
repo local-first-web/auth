@@ -6,7 +6,7 @@ import { type Transform } from '../types.js'
 export const keyHistoryKey = ({ type, name }: KeyScope) => `${type}:${name}`
 
 export const collectLockboxes =
-  (newLockboxes?: Lockbox[]): Transform =>
+  (newLockboxes?: Lockbox[], mayIntroduceKeysets = true): Transform =>
   state => {
     if (!newLockboxes) return state
 
@@ -31,6 +31,16 @@ export const collectLockboxes =
         seen = new Set(state.keyHistory[key])
         seenByScope.set(key, seen)
       }
+
+      // An admission hands the new member keys the team already has; it does not issue any. So a
+      // keyset that first appears on one is not a keyset the team ever had — see `auth-uvp`, where
+      // a non-admin admitting an invitee put a keyset of their own in the invitee's first TEAM
+      // lockbox, and the invitee resolved `TEAM:TEAM` to it because being first is all
+      // `keyMap`'s tie rule asks for and a brand-new member has nothing older to prefer. Letting
+      // the link through but not letting it write here is deliberate: a refusal would be a graph
+      // nobody could replay, and a concurrent rotation that the resolver discards would then be
+      // able to brick an honest admission.
+      if (!mayIntroduceKeysets) continue
 
       if (!seen.has(contents.publicKey)) {
         seen.add(contents.publicKey)
