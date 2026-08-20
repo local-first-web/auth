@@ -58,6 +58,18 @@ export type InvitationState = Invitation & {
    * without this any member could replay one.
    */
   admitted: string[]
+
+  /**
+   * The encryption public key of the ear this invitation was posted with, if it came with one —
+   * the keyset lockboxes for the invitee are addressed to.
+   *
+   * `publicKey` above is the SIGNATURE half of the starter keys, which is what a proof is checked
+   * against; the encryption half is what a lockbox is addressed to, and the two are independent
+   * derivations from the seed, so one does not give you the other. Recording it here is what lets
+   * `lockboxesInScope` tell the invitation's own ear from a lockbox somebody else addressed to a
+   * keyset of their own while copying this invitation's signature key onto the manifest.
+   */
+  earPublicKey?: Base58
 }
 
 /**

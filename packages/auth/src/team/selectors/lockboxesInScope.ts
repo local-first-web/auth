@@ -88,18 +88,18 @@ const isAHolderTheTeamKnows = (state: TeamState, recipient: Lockbox['recipient']
     return carried.at(-1) === publicKey
   }
 
-  // An invitation's starter keys never touch the graph, but its signature half does: the invitation
-  // record carries it, and `redactKeys` puts it on the ear's manifest. So an ear belongs to an
-  // invitation the team actually issued, and is the one that invitation's own link posted — the
-  // earliest lockbox naming it, which nobody can get in front of without the seed.
+  // An invitation's starter keys never touch the graph, but the reducer records the ear it was
+  // posted with, on the link that posted it. That is what an ear has to match — NOT "the earliest
+  // lockbox naming this invitation's signature key". Position in the replayed graph is settled by
+  // the resolver, and the resolver's input includes a `prev` its author chose, so someone who
+  // learns the signature key from the public invitation link can post an ear of their own on an
+  // older head and come out first. See `postInvitation`, and `docs/internals.md` on why an ordering
+  // is not a graph-assigned quantity.
   if (type === KeyType.EPHEMERAL) {
     const { signature } = recipient as { signature?: string }
     if (signature === undefined) return false
-    if (!Object.values(state.invitations).some(i => i.publicKey === signature)) return false
-    const theInvitationsOwn = state.lockboxes.find(
-      l => l.recipient.type === KeyType.EPHEMERAL && sameSignature(l.recipient, signature)
-    )
-    return theInvitationsOwn?.recipient.publicKey === publicKey
+    const invitation = Object.values(state.invitations).find(i => i.publicKey === signature)
+    return invitation?.earPublicKey === publicKey
   }
 
   const attested =
@@ -112,9 +112,6 @@ const isAHolderTheTeamKnows = (state: TeamState, recipient: Lockbox['recipient']
 
   return attested !== undefined && attested === publicKey
 }
-
-const sameSignature = (manifest: Lockbox['recipient'], signature: string) =>
-  (manifest as { signature?: string }).signature === signature
 
 /** What makes two lockboxes' recipients the same holder */
 const recipientKey = ({ recipient }: Lockbox) =>

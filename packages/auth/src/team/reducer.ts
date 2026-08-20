@@ -160,16 +160,18 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     case 'INVITE_MEMBER': {
-      const { invitation } = action.payload
+      const { invitation, lockboxes } = action.payload
       return [
-        postInvitation(invitation), // Add the invitation to the list of open invitations.
+        // Add the invitation to the list of open invitations, along with the ear it came with
+        postInvitation(invitation, lockboxes),
       ]
     }
 
     case 'INVITE_DEVICE': {
-      const { invitation } = action.payload
+      const { invitation, lockboxes } = action.payload
       return [
-        postInvitation(invitation), // Add the invitation to the list of open invitations.
+        // Add the invitation to the list of open invitations, along with the ear it came with
+        postInvitation(invitation, lockboxes),
       ]
     }
 

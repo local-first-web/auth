@@ -567,6 +567,23 @@ const lockboxProblem = (lockbox: unknown): string | undefined => {
   //
   // Refused here rather than skipped during the walk, because this is a lockbox that no honest
   // peer can produce: it isn't a lockbox we can't use, it's one that was never a lockbox.
+  // An invitation's ear is only ever handed the keys of the member it belongs to. `inviteDevice` is
+  // the one site that addresses a lockbox to starter keys, and it puts the inviting member's own
+  // keyring in it; measured over the whole suite, `USER -> EPHEMERAL` is the only pairing any
+  // honest path produces for an EPHEMERAL recipient.
+  //
+  // This is not covered by the anchor in `lockboxesInScope`, and the difference is what an author
+  // controls. The anchor decides WHICH ear is the invitation's, from what the reducer recorded. This
+  // decides what an ear may hold at all, whoever it turns out to belong to — so a lockbox claiming
+  // the TEAM scope and addressed to an ear is refused before either question arises, including on a
+  // backdated link, where the author picks `prev` and can put themselves anywhere in replay order.
+  //
+  // It was removed once as redundant, on a pinning run where the only test touching this path was
+  // the anchor's own — which the anchor passes. There was no test for the shape this uniquely
+  // catches, so the pin had nothing to say about it. That test now exists.
+  if (recipient.type === KeyType.EPHEMERAL && contents.type !== KeyType.USER)
+    return `holds ${String(contents.type)} keys and is addressed to an invitation, which is only ever handed the keys of the member it belongs to`
+
   if (recipient.type === KeyType.DEVICE && contents.type !== KeyType.USER)
     return `holds ${String(contents.type)} keys and is addressed to a device, which is only ever handed the keys of the user it belongs to`
 

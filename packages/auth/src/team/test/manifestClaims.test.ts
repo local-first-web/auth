@@ -8,6 +8,7 @@ import { getDeviceUserFromGraph } from '../../connection/getDeviceUserFromGraph.
 import * as lockbox from '../../lockbox/index.js'
 import { KeyType } from '../../util/index.js'
 import { setup } from '../../util/testing/index.js'
+import * as teams from '../index.js'
 import * as select from '../selectors/index.js'
 import { type TeamAction, type TeamContext, type TeamState } from '../types.js'
 
@@ -367,6 +368,115 @@ describe('Team', () => {
         invitationSeed: seed,
       })
       expect(user.keys.encryption.publicKey).toBe(alice.user.keys.encryption.publicKey)
+    })
+
+    /**
+     * An author picks the `prev` of the link they write, so "the earliest lockbox naming this
+     * invitation's key" is not something the team decides — it is something the author can place
+     * themselves in front of. Bob merges Alice's graph, reads the invitation's signature key off the
+     * public INVITE link, and then writes his own ear on a head from before the invitation existed.
+     *
+     * Both of these were live when the ear was anchored to replay position: his ear joined the
+     * rotation set AND the real invitee's ear was evicted from it, from one link.
+     */
+    const backdatedEar = (contentsScope: 'TEAM' | 'USER') => {
+      const { alice, bob } = setup(['alice', { user: 'bob', admin: false }])
+      const teamKeys = alice.team.teamKeys()
+
+      // 👨🏻‍🦲 Bob keeps a copy of the graph from before the invitation exists
+      const bobBefore = teams.load(
+        bob.team.save(),
+        { user: bob.user, device: bob.device },
+        createKeyring(teamKeys)
+      )
+
+      const { seed } = alice.team.inviteDevice()
+      bob.team.merge(alice.team.graph)
+      const starter = generateStarterKeys(seed)
+
+      // ...and writes an ear of his own on the old head, copying the invitation's signature key
+      const mine = createKeyset({ type: KeyType.EPHEMERAL, name: KeyType.EPHEMERAL })
+      const contents =
+        contentsScope === 'TEAM'
+          ? createKeyset({ type: TEAM, name: TEAM })
+          : createKeyset({ type: USER, name: alice.userId })
+      const forgedEar = {
+        ...lockbox.create(contents, redactKeys(mine)),
+        recipient: {
+          ...redactKeys(mine),
+          signature: redactKeys(starter).signature,
+          publicKey: redactKeys(mine).encryption,
+        },
+      }
+
+      const { store } = bobBefore as unknown as {
+        store: Store<TeamState, TeamAction, TeamContext>
+      }
+      let landed = true
+      try {
+        store.dispatch(
+          {
+            type: 'ADD_DEVICE',
+            payload: { device: redactDevice(bob.phone!), lockboxes: [forgedEar] },
+          } as TeamAction,
+          bobBefore.teamKeys()
+        )
+        alice.team.merge(bobBefore.graph)
+      } catch {
+        landed = false
+      }
+
+      return {
+        landed,
+        hisEarCounts: (scope: { type: string; name: string }) =>
+          select
+            .lockboxesInScope(alice.team.state, scope)
+            .some(l => l.recipient.publicKey === redactKeys(mine).encryption),
+        realEarCounts: select
+          .lockboxesInScope(alice.team.state, { type: USER, name: alice.userId })
+          .some(l => l.recipient.publicKey === redactKeys(starter).encryption),
+        alice,
+      }
+    }
+
+    /**
+     * What the door rule uniquely catches, and the reason it is not redundant with the anchor: the
+     * anchor decides which ear belongs to an invitation, and an ear that belongs to nobody is
+     * simply not in the rotation set — but only once the question is asked in replay order the
+     * author didn't choose. Refusing TEAM keys in an ear settles it before ordering matters at all.
+     */
+    it("won't take an ear holding anything but the member's own keys, backdated or not", () => {
+      const backdated = backdatedEar('TEAM')
+      expect(backdated.landed).toBe(false)
+      expect(backdated.hisEarCounts({ type: TEAM, name: TEAM })).toBe(false)
+      expect(backdated.realEarCounts).toBe(true)
+    })
+
+    /**
+     * The anchor's source, pinned directly — because the attack above cannot pin it reliably. Which
+     * ear wins under the old rule depends on where the resolver puts the backdated link, and that
+     * varies run to run: reverting the anchor to "earliest lockbox" and running the suite three
+     * times gave one pass and two failures. An anchor whose correctness is a coin flip is not an
+     * anchor, and a test over it would be a flaky pin.
+     */
+    it('records which ear an invitation was posted with, on the link that posted it', () => {
+      const { alice } = setup('alice')
+      const { seed, id } = alice.team.inviteDevice()
+
+      expect(alice.team.state.invitations[id].earPublicKey).toBe(
+        redactKeys(generateStarterKeys(seed)).encryption
+      )
+    })
+
+    it("doesn't let a backdated ear take the invitation's place", () => {
+      // A `USER`-scoped ear is a shape the door has to allow, so this one lands on the graph
+      const backdated = backdatedEar('USER')
+      expect(backdated.landed).toBe(true)
+
+      // ✅ ...and it is still not the invitation's ear, because which ear that is was written by
+      // the reducer on the link that posted the invitation, not decided by arrival order
+      expect(backdated.hisEarCounts({ type: USER, name: backdated.alice.userId })).toBe(false)
+      expect(backdated.realEarCounts).toBe(true)
     })
   })
 })
