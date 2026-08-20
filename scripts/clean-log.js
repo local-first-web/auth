@@ -1,10 +1,3 @@
-import { exec as _exec } from 'child_process'
-import fs, { appendFileSync } from 'fs'
-import path from 'path'
-import { fileURLToPath } from 'url'
-import { promisify } from 'util'
-const exec = promisify(_exec)
-
 /*
 example usage:
 
@@ -25,7 +18,7 @@ function cleanLogs(output) {
   const A = 65
   const Z = 90
   let i = A
-  let tokens = {
+  const tokens = {
     // A1FR9f: A,
     // Q4SKk9: B,
     // etc.
@@ -35,7 +28,7 @@ function cleanLogs(output) {
   // this makes it possible to diff different runs of the test
   function tokenize(match, p1) {
     if (i > Z) i = A
-    const token = tokens[p1] ?? String.fromCharCode(i++)
+    const token = tokens[p1] ?? String.fromCodePoint(i++)
     tokens[p1] = token
     return match.replace(p1, token)
   }
@@ -63,20 +56,23 @@ function cleanLogs(output) {
 
   const transforms = [
     // Remove quotes
-    [/"|'|`/g, ''],
+    [/["'`]/g, ''],
 
-    [/^\>.*?$/gm, ''],
+    [/^>.*?$/gm, ''],
     [/^RUN.*?$/gm, ''],
-    [/^\[vite\].*?$/gm, ''],
+    [/^\[vite].*?$/gm, ''],
     [/^Download the React DevTools.*?$/gm, ''],
     [/^.*websocket:.*?$/gm, ''],
 
-    // Remove ANSI escape codes
+    // Remove ANSI escape codes. Matching them means putting a control character in a regex, which
+    // is exactly what no-control-regex is for; here it's the point of the transform.
+    /* eslint-disable no-control-regex */
     [/\u001B\[\d+m/g, ''],
-    [/\[[0-9;]+m/g, ''],
+    [/\u001B\[[\d;]+m/g, ''],
+    /* eslint-enable no-control-regex */
 
     // Remove prefixes
-    [/\[WebServer\]|localfirst\:|auth\:|automerge-repo\:|/g, ''],
+    [/\[WebServer]|localfirst:|auth:|automerge-repo:|/g, ''],
 
     // Remove timestamps
     [/\+\d+(ms|s)/g, ''],
@@ -119,15 +115,15 @@ function cleanLogs(output) {
       ]),
 
     // Tokenize remaining hashes
-    [/\b(?=\w*\d)((?:\w|-){10,})\b/g, tokenize],
+    [/\b(?=\w*\d)([-\w]{10,})\b/g, tokenize],
 
     // Remove buffers
-    [/(<Buffer(\w|\s|\.)+(>|$))/gm, '...'],
-    [/({\s*0:[0-9:,]+})|\[(\s|\d|,)+\d+?(]|$)/gm, '...'],
-    [/\s*(([0-9]+,)\s+){4,}(\.\.\. \d+ more items)?\s*/g, '...'],
+    [/(<Buffer([.\s\w])+(>|$))/gm, '...'],
+    [/({\s*0:[\d:,]+})|\[([,\d\s])+\d+?(]|$)/gm, '...'],
+    [/\s*((\d+,)\s+){4,}(\.{3} \d+ more items)?\s*/g, '...'],
 
-    [/\[Object]/gi, '{...}'],
-    [/\[Array]/gi, '[...]'],
+    [/\[object]/gi, '{...}'],
+    [/\[array]/gi, '[...]'],
 
     // emoji
     [/noise/gi, '🐒'],

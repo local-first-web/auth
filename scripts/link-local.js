@@ -16,12 +16,12 @@ const isUnlink = process.argv.includes('--unlink')
 
 log(chalk.yellow(`${isUnlink ? 'Unlinking from' : 'Linking to'} local automerge-repo packages`))
 
-localPackages.forEach(localPackage => {
+for (const localPackage of localPackages) {
   log(`${chalk.dim('package: ')} ${chalk.yellow(localPackage)}`)
   const cmd = `pnpm -C packages/${localPackage} ${isUnlink ? 'unlink' : 'link'} --global ${remotePackages}`
   log(chalk.dim(`> ${cmd}`), '')
   execSync(cmd, { stdio: 'inherit' })
-})
+}
 
 function log(...lines) {
   console.log([''].concat(lines).join('\n'))

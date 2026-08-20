@@ -27,7 +27,18 @@
  * Exits non-zero if any package fails.
  */
 import { execFileSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -103,8 +114,12 @@ const incomplete = packages.filter(
   ({ lib, probe }) => !Array.isArray(lib) || lib.length === 0 || !isNonEmptyString(probe)
 )
 if (incomplete.length > 0) {
-  console.error(`✗ ${incomplete.map(({ dir }) => dir).join(', ')} — every entry needs both \`lib\` and \`probe\`.`)
-  console.error(`    Omitting \`lib\` silently grants DOM; omitting \`probe\` silently stops checking the entry point.`)
+  console.error(
+    `✗ ${incomplete.map(({ dir }) => dir).join(', ')} — every entry needs both \`lib\` and \`probe\`.`
+  )
+  console.error(
+    `    Omitting \`lib\` silently grants DOM; omitting \`probe\` silently stops checking the entry point.`
+  )
   process.exit(1)
 }
 
@@ -117,7 +132,8 @@ if (incomplete.length > 0) {
 const knownThirdPartyProblems = [
   {
     bead: 'auth-ap1',
-    match: /@herbcaudill\/eventemitter42\/dist\/eventPromise\.d\.ts.*Cannot find module 'eventemitter3'/,
+    match:
+      /@herbcaudill\/eventemitter42\/dist\/eventPromise\.d\.ts.*Cannot find module 'eventemitter3'/,
   },
   {
     bead: 'auth-ap1',
@@ -140,7 +156,13 @@ const consumerTsconfig = lib => ({
 })
 
 const readJson = path => JSON.parse(readFileSync(path, 'utf8'))
-const isDir = path => { try { return statSync(path).isDirectory() } catch { return false } }
+const isDir = path => {
+  try {
+    return statSync(path).isDirectory()
+  } catch {
+    return false
+  }
+}
 
 /**
  * Where the monorepo actually installed `name` for the package living at `fromDir`. We follow
@@ -150,7 +172,7 @@ const isDir = path => { try { return statSync(path).isDirectory() } catch { retu
  */
 const findInstalled = (fromDir, name) => {
   let dir = realpathSync(fromDir)
-  while (true) {
+  for (;;) {
     const candidate = join(dir, 'node_modules', name)
     if (isDir(candidate)) return realpathSync(candidate)
     const parent = dirname(dir)
@@ -189,6 +211,7 @@ const copyPackage = (fromDir, toDir, ownPackage) => {
       }
     }
   }
+
   if (ownPackage) {
     if (isDir(join(fromDir, 'dist'))) copy(join(fromDir, 'dist'), join(toDir, 'dist'))
   } else {
@@ -242,13 +265,16 @@ const install = (dir, name, source, visible) => {
       missing.push(`${dep} (declared by ${name}, not installed anywhere in this monorepo)`)
       continue
     }
+
     if (visible.get(dep) === depSource) continue
     childVisible.set(dep, depSource)
     toPlace.push([dep, depSource])
   }
+
   for (const [dep, depSource] of toPlace) {
     missing.push(...install(join(dir, 'node_modules', dep), dep, depSource, childVisible))
   }
+
   return missing
 }
 
@@ -269,7 +295,7 @@ const isThirdParty = line => {
   if (!path) return false
   const segments = path.split('node_modules/')
   if (segments.length === 1) return false
-  return !segments[segments.length - 1].startsWith('@localfirst/')
+  return !segments.at(-1).startsWith('@localfirst/')
 }
 
 /**
@@ -288,10 +314,14 @@ const runTsc = (projectDir, tsc) => {
     output = `${error.stdout ?? ''}${error.stderr ?? ''}`.trim()
     status = error.status ?? `signal ${error.signal ?? 'unknown'}`
   }
+
   const diagnostics = output.split('\n').filter(line => / error TS/.test(line))
   if (status !== 0 && diagnostics.length === 0) {
-    return { fatal: `tsc exited with ${status} without reporting any diagnostic — it did not run.\n${output || '(no output)'}` }
+    return {
+      fatal: `tsc exited with ${status} without reporting any diagnostic — it did not run.\n${output || '(no output)'}`,
+    }
   }
+
   return {
     ours: diagnostics.filter(line => !isThirdParty(line)),
     theirs: diagnostics.filter(line => isThirdParty(line)),
@@ -316,20 +346,29 @@ for (const { dir, probe, lib } of packages) {
     counted = true
     failures++
   }
+
   try {
     name = readJson(join(packageDir, 'package.json')).name
     const probeModules = join(projectDir, 'node_modules')
     mkdirSync(join(projectDir, 'src'), { recursive: true })
     mkdirSync(probeModules, { recursive: true })
 
-    const missing = install(join(probeModules, name), name, packageDir, new Map([[name, packageDir]]))
+    const missing = install(
+      join(probeModules, name),
+      name,
+      packageDir,
+      new Map([[name, packageDir]])
+    )
     if (missing.length > 0) {
       fail()
       console.error(`✗ ${name} — declared dependencies not installed: ${missing.join('; ')}`)
       continue
     }
 
-    writeFileSync(join(projectDir, 'package.json'), JSON.stringify({ name: 'probe', private: true, type: 'module', version: '0.0.0' }))
+    writeFileSync(
+      join(projectDir, 'package.json'),
+      JSON.stringify({ name: 'probe', private: true, type: 'module', version: '0.0.0' })
+    )
     writeFileSync(join(projectDir, 'tsconfig.json'), JSON.stringify(consumerTsconfig(lib), null, 2))
 
     // 1. through the public entry point, the way a consumer imports it
@@ -347,6 +386,7 @@ for (const { dir, probe, lib } of packages) {
         else if (/\.d\.(ts|mts|cts)$/.test(entry.name)) declarations.push(p)
       }
     }
+
     // A package with no `dist` at all is a package that publishes no declarations. Reaching the
     // check below rather than throwing out of the loop matters: an exception here would take the
     // remaining packages with it, and they'd go unchecked behind a single failure.
@@ -357,9 +397,18 @@ for (const { dir, probe, lib } of packages) {
       console.error(`✗ ${name} — publishes no declaration files at all`)
       continue
     }
+
     writeFileSync(
       join(projectDir, 'tsconfig.json'),
-      JSON.stringify({ ...consumerTsconfig(lib), include: undefined, files: declarations.map(p => relative(projectDir, p)) }, null, 2)
+      JSON.stringify(
+        {
+          ...consumerTsconfig(lib),
+          include: undefined,
+          files: declarations.map(p => relative(projectDir, p)),
+        },
+        null,
+        2
+      )
     )
     const everyFile = runTsc(projectDir, tsc)
 
@@ -372,27 +421,52 @@ for (const { dir, probe, lib } of packages) {
 
     const ours = [...new Set([...entry.ours, ...everyFile.ours])]
     const theirs = [...new Set([...entry.theirs, ...everyFile.theirs])]
-    const knownTheirs = theirs.filter(line => knownThirdPartyProblems.some(({ match }) => match.test(line)))
-    const newTheirs = theirs.filter(line => !knownThirdPartyProblems.some(({ match }) => match.test(line)))
+    const knownTheirs = theirs.filter(line =>
+      knownThirdPartyProblems.some(({ match }) => match.test(line))
+    )
+    const newTheirs = theirs.filter(
+      line => !knownThirdPartyProblems.some(({ match }) => match.test(line))
+    )
 
     // Recorded before the reporting branch below, so an entry counts as reached whether or not
     // its diagnostics end up being printed. The staleness check at the end reads this.
-    const fired = knownThirdPartyProblems.filter(({ match }) => knownTheirs.some(line => match.test(line)))
+    const fired = knownThirdPartyProblems.filter(({ match }) =>
+      knownTheirs.some(line => match.test(line))
+    )
     for (const problem of fired) baselineHits.add(problem)
 
     if (ours.length === 0 && newTheirs.length === 0) {
-      console.log(`✓ ${name} — entry point clean, all ${declarations.length} declaration files clean`)
+      console.log(
+        `✓ ${name} — entry point clean, all ${declarations.length} declaration files clean`
+      )
     } else {
       fail()
       if (ours.length > 0) {
-        console.error(`✗ ${name} — ${ours.length} error(s) in our own declarations (${declarations.length} files checked)`)
-        console.error(ours.slice(0, 25).map(line => `    ${line}`).join('\n'))
+        console.error(
+          `✗ ${name} — ${ours.length} error(s) in our own declarations (${declarations.length} files checked)`
+        )
+        console.error(
+          ours
+            .slice(0, 25)
+            .map(line => `    ${line}`)
+            .join('\n')
+        )
         if (ours.length > 25) console.error(`    …and ${ours.length - 25} more`)
       }
+
       if (newTheirs.length > 0) {
-        console.error(`✗ ${name} — ${newTheirs.length} unrecognised error(s) in third-party declarations.`)
-        console.error(`    Fix upstream, or file it and add it to knownThirdPartyProblems in this file.`)
-        console.error(newTheirs.slice(0, 10).map(line => `    ${line}`).join('\n'))
+        console.error(
+          `✗ ${name} — ${newTheirs.length} unrecognised error(s) in third-party declarations.`
+        )
+        console.error(
+          `    Fix upstream, or file it and add it to knownThirdPartyProblems in this file.`
+        )
+        console.error(
+          newTheirs
+            .slice(0, 10)
+            .map(line => `    ${line}`)
+            .join('\n')
+        )
         if (newTheirs.length > 10) console.error(`    …and ${newTheirs.length - 10} more`)
       }
     }
@@ -404,8 +478,15 @@ for (const { dir, probe, lib } of packages) {
     // can still read it.
     if (knownTheirs.length > 0) {
       const beads = [...new Set(fired.map(({ bead }) => bead))]
-      console.warn(`  ! ${knownTheirs.length} known error(s) in third-party declarations reached from ${name} (${beads.join(', ')})`)
-      console.warn(knownTheirs.slice(0, 10).map(line => `      ${line}`).join('\n'))
+      console.warn(
+        `  ! ${knownTheirs.length} known error(s) in third-party declarations reached from ${name} (${beads.join(', ')})`
+      )
+      console.warn(
+        knownTheirs
+          .slice(0, 10)
+          .map(line => `      ${line}`)
+          .join('\n')
+      )
       if (knownTheirs.length > 10) console.warn(`      …and ${knownTheirs.length - 10} more`)
     }
   } catch (error) {
@@ -419,10 +500,15 @@ for (const { dir, probe, lib } of packages) {
 }
 
 if (failures > 0) {
-  console.error(`\n${failures} package(s) publish declarations that don't typecheck from an isolated install.`)
+  console.error(
+    `\n${failures} package(s) publish declarations that don't typecheck from an isolated install.`
+  )
   process.exit(1)
 }
-console.log(`\nAll ${packages.length} published packages' own declarations typecheck from an isolated install.`)
+
+console.log(
+  `\nAll ${packages.length} published packages' own declarations typecheck from an isolated install.`
+)
 
 /**
  * A baseline entry that matched nothing has outlived its problem — upstream fixed it, or whatever
@@ -439,8 +525,12 @@ console.log(`\nAll ${packages.length} published packages' own declarations typec
  */
 const stale = knownThirdPartyProblems.filter(problem => !baselineHits.has(problem))
 if (stale.length > 0) {
-  console.error(`\n${stale.length} entr(y/ies) in knownThirdPartyProblems matched nothing in this run.`)
-  console.error(`    The problem is fixed or no longer reachable. Delete the entry and close its bead.`)
+  console.error(
+    `\n${stale.length} entr(y/ies) in knownThirdPartyProblems matched nothing in this run.`
+  )
+  console.error(
+    `    The problem is fixed or no longer reachable. Delete the entry and close its bead.`
+  )
   console.error(stale.map(({ bead, match }) => `    ${bead}: ${match}`).join('\n'))
   process.exit(1)
 }

@@ -11,10 +11,14 @@ module.exports = {
   prettier: true,
 
   ignore: [
-    // not bothering with config files & scripts for now
-    '*.cjs',
-    '*.js',
-    // or with the demo
+    // Config files aren't worth linting, but these patterns are gitignore-style: a bare `*.js`
+    // matches at any depth, which used to silently exempt every .js file in the repo — including
+    // `scripts/verify-published-types.js`, the CI gate for auth-ax2. Anchor them to the root (and
+    // name the one per-package config explicitly) so `scripts/` is covered.
+    '/*.cjs',
+    '/*.js',
+    'packages/*/xo.config.cjs',
+    // not bothering with the demos
     'demos/**/*',
   ],
 
@@ -74,20 +78,6 @@ module.exports = {
 
     // MODIFIED RULES
 
-    // default makes us wrap every arrow function shorthand expression with braces,
-    // which spreads a single line out to 3 lines
-    '@typescript-eslint/no-confusing-void-expression': [WARN, { ignoreArrowShorthand: true }],
-
-    // default is camelCase only. We want PascalCase for React components, and UPPER_CASE for constants.
-    '@typescript-eslint/naming-convention': [
-      ERROR,
-      {
-        selector: 'variable',
-        format: ['camelCase', 'PascalCase', 'UPPER_CASE'],
-        leadingUnderscore: 'allow',
-      },
-    ],
-
     // require file extensions on imports
     'import/extensions': [ERROR, ALWAYS, { ignorePackages: true }],
 
@@ -100,5 +90,37 @@ module.exports = {
     'ava/no-import-test-files': [ERROR, { files: ['*.test.ts'] }],
   },
 
-  overrides: [],
+  overrides: [
+    {
+      // The @typescript-eslint plugin is only loaded for TypeScript files, so *configuring* one of
+      // its rules at the top level makes every .js file report "Definition for rule ... was not
+      // found". Turning one OFF up there is harmless; switching one on has to live here.
+      files: '**/*.ts',
+      rules: {
+        // default makes us wrap every arrow function shorthand expression with braces,
+        // which spreads a single line out to 3 lines
+        '@typescript-eslint/no-confusing-void-expression': [WARN, { ignoreArrowShorthand: true }],
+
+        // default is camelCase only. We want PascalCase for React components, and UPPER_CASE for constants.
+        '@typescript-eslint/naming-convention': [
+          ERROR,
+          {
+            selector: 'variable',
+            format: ['camelCase', 'PascalCase', 'UPPER_CASE'],
+            leadingUnderscore: 'allow',
+          },
+        ],
+      },
+    },
+    {
+      // scripts/ holds CLI entry points, not library code: they're invoked by name from
+      // package.json, so their kebab-case filenames are deliberate, and exiting with a status code
+      // is the whole interface.
+      files: 'scripts/**/*.js',
+      rules: {
+        'unicorn/filename-case': OFF,
+        'unicorn/no-process-exit': OFF,
+      },
+    },
+  ],
 }
