@@ -1,4 +1,10 @@
-import { createKeyring, createKeyset, redactKeys, type Store } from '@localfirst/crdx'
+import {
+  createKeyring,
+  createKeyset,
+  redactKeys,
+  type Store,
+  type UnixTimestamp,
+} from '@localfirst/crdx'
 import { describe, expect, it } from 'vitest'
 import * as devices from '../../device/index.js'
 import { redactDevice } from '../../device/index.js'
@@ -738,6 +744,152 @@ describe('Team', () => {
 
       expect(run(false)).toBe(false)
       expect(run(true)).toBe(false)
+    })
+
+    /**
+     * The SERVER relation had no pin — replacing it with `return true` failed zero tests
+     * (`auth-g3d`). That is exactly the history of the DEVICE door rule, which was deleted once on
+     * a redundancy argument that measured wrong precisely because nothing tested what it uniquely
+     * caught. A server is given the team keys so it can relay the graph, and it never has roles:
+     * `castServer.toMember` hardcodes `roles: []` and `addMemberRole` never touches
+     * `state.servers`.
+     */
+    it("won't send a role's keys to a server", () => {
+      const run = (decoy: boolean) => {
+        const { alice, bob, charlie } = setup([
+          'alice',
+          { user: 'bob', admin: false },
+          { user: 'charlie', admin: false },
+        ])
+        const host = 'sync.example.com'
+        const serverKeys = createKeyset({ type: KeyType.SERVER, name: host })
+        alice.team.addServer({ host, keys: redactKeys(serverKeys) })
+        alice.team.addRole('managers')
+        alice.team.addMemberRole(charlie.userId, 'managers')
+        bob.team.merge(alice.team.graph)
+
+        if (decoy) {
+          postDecoy(bob, [
+            lockbox.create(createKeyset({ type: ROLE, name: 'managers' }), redactKeys(serverKeys)),
+          ])
+          alice.team.merge(bob.team.graph)
+        }
+
+        alice.team.removeMemberRole(charlie.userId, 'managers')
+        return holdsRealSecret(
+          alice.team.state,
+          { type: ROLE, name: 'managers' },
+          serverKeys,
+          alice.team.roleKeys('managers').encryption.secretKey
+        )
+      }
+
+      expect(run(false)).toBe(false)
+      expect(run(true)).toBe(false)
+    })
+  })
+
+  /**
+   * A lockbox is a standing grant, not a past event. Every rotation re-honours it, so the
+   * conditions that made it legitimate have to still hold at that moment — not merely have held
+   * when it was posted.
+   *
+   * An invitation seed is a bearer token handed over a side channel, and revocation exists because
+   * seeds leak. Revoking one used to stop it being used to join and do nothing about the keys.
+   */
+  describe('a grant whose conditions have stopped holding', () => {
+    const seedHolderGetsHerNewSecret = (lifecycle: (team: UserStuff, id: string) => void) => {
+      const { alice } = setup('alice')
+      const { seed, id } = alice.team.inviteDevice()
+      const ear = generateStarterKeys(seed)
+      lifecycle(alice, id)
+
+      alice.team.changeKeys(createKeyset({ type: USER, name: alice.userId }))
+      const hers = alice.user.keys.encryption.secretKey
+      return alice.team.state.lockboxes
+        .filter(
+          l =>
+            l.contents.type === USER &&
+            l.contents.name === alice.userId &&
+            l.recipient.publicKey === redactKeys(ear).encryption
+        )
+        .some(l => lockbox.open(l, ear)?.encryption.secretKey === hers)
+    }
+
+    it('stops sending keys to a revoked invitation', () => {
+      // Control: a live invitation is still honoured
+      expect(seedHolderGetsHerNewSecret(() => {})).toBe(true)
+
+      // ✅ ...and a revoked one is not
+      expect(seedHolderGetsHerNewSecret((team, id) => team.team.revokeInvitation(id))).toBe(false)
+    })
+
+    it('stops sending keys to an expired invitation', () => {
+      const { alice } = setup('alice')
+      const { seed } = alice.team.inviteDevice({
+        expiration: (Date.now() - 60_000) as UnixTimestamp,
+      })
+      const ear = generateStarterKeys(seed)
+
+      alice.team.changeKeys(createKeyset({ type: USER, name: alice.userId }))
+      const hers = alice.user.keys.encryption.secretKey
+      const got = alice.team.state.lockboxes
+        .filter(l => l.recipient.publicKey === redactKeys(ear).encryption)
+        .some(l => lockbox.open(l, ear)?.encryption.secretKey === hers)
+      expect(got).toBe(false)
+    })
+
+    it('stops sending keys to an invitation that has been used up', () => {
+      const { alice } = setup('alice')
+      const { seed, id } = alice.team.inviteDevice()
+      const ear = generateStarterKeys(seed)
+      const invitation = alice.team.state.invitations[id]
+
+      const spent = {
+        ...alice.team.state,
+        invitations: {
+          ...alice.team.state.invitations,
+          [id]: { ...invitation, uses: invitation.maxUses },
+        },
+      } as TeamState
+
+      expect(
+        select
+          .lockboxesInScope(spent, { type: USER, name: alice.userId })
+          .some(l => l.recipient.publicKey === redactKeys(ear).encryption)
+      ).toBe(false)
+    })
+
+    /**
+     * The inverse risk of the entitlement work: a lifecycle check where a grant is honoured can cut
+     * off an honest holder mid-flow. It fails closed on what is distributed NEXT and leaves
+     * everything already delivered alone.
+     */
+    it('leaves what was already delivered alone, and still serves a live invitation', () => {
+      // A joiner partway through a live invitation still comes up on the current keys
+      const { alice } = setup('alice')
+      const teamKeys = alice.team.teamKeys()
+      const { seed } = alice.team.inviteDevice()
+      alice.team.changeKeys(createKeyset({ type: USER, name: alice.userId }))
+      const { user } = getDeviceUserFromGraph({
+        serializedGraph: alice.team.save(),
+        teamKeyring: createKeyring(teamKeys),
+        invitationSeed: seed,
+      })
+      expect(user.keys.encryption.publicKey).toBe(alice.user.keys.encryption.publicKey)
+
+      // ...and revoking takes away what comes next, not what was already handed over
+      const revoked = setup('alice')
+      const issued = revoked.alice.team.inviteDevice()
+      const ear = generateStarterKeys(issued.seed)
+      const delivered = revoked.alice.user.keys.encryption.secretKey
+      revoked.alice.team.revokeInvitation(issued.id)
+      revoked.alice.team.changeKeys(createKeyset({ type: USER, name: revoked.alice.userId }))
+
+      const opensWhatItHad = revoked.alice.team.state.lockboxes
+        .filter(l => l.recipient.publicKey === redactKeys(ear).encryption)
+        .some(l => lockbox.open(l, ear)?.encryption.secretKey === delivered)
+      expect(opensWhatItHad).toBe(true)
     })
   })
 })

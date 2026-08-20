@@ -1,5 +1,6 @@
 import { type KeyScope } from '@localfirst/crdx'
 import { type Lockbox } from '../../lockbox/index.js'
+import { invitationCanBeUsed } from '../../invitation/validate.js'
 import { ADMIN } from '../../role/index.js'
 import { KeyType } from '../../util/types.js'
 import { memberHasRole } from './memberHasRole.js'
@@ -39,13 +40,22 @@ import { type TeamState } from '../types.js'
  * Every tiebreak richer than that is one an author can write to their own advantage, since both
  * manifests are theirs to fill in, and no honest flow was found that produces such a tie.
  */
-export const lockboxesInScope = (state: TeamState, scope: KeyScope): Lockbox[] => {
+export const lockboxesInScope = (
+  state: TeamState,
+  scope: KeyScope,
+  /**
+   * When the rotation is happening, for grants that expire. This is a local decision by the member
+   * doing the rotating, and the lockboxes it produces go on the graph explicitly, so peers don't
+   * have to agree about the clock — nobody re-derives this from the graph later.
+   */
+  now: number = Date.now()
+): Lockbox[] => {
   const latestForEachRecipient = new Map<string, Lockbox>()
 
   for (const lockbox of state.lockboxes) {
     const { contents, recipient } = lockbox
     if (contents.type !== scope.type || contents.name !== scope.name) continue
-    if (!isEntitledTo(state, recipient, scope)) continue
+    if (!isEntitledTo(state, recipient, scope, now)) continue
 
     const key = recipientKey(lockbox)
     const latest = latestForEachRecipient.get(key)
@@ -88,7 +98,12 @@ export const lockboxesInScope = (state: TeamState, scope: KeyScope): Lockbox[] =
  *
  * Anything not in that table is refused, so a pairing honest code never produces cannot be used.
  */
-const isEntitledTo = (state: TeamState, recipient: Lockbox['recipient'], scope: KeyScope) => {
+const isEntitledTo = (
+  state: TeamState,
+  recipient: Lockbox['recipient'],
+  scope: KeyScope,
+  now: number
+) => {
   const { type, name, publicKey } = recipient
 
   switch (type) {
@@ -147,11 +162,23 @@ const isEntitledTo = (state: TeamState, recipient: Lockbox['recipient'], scope: 
       if (invitation?.earPublicKey !== publicKey) return false
 
       // Relation: an ear exists so a new device can pick up ITS OWN member's keys
-      return (
-        invitation.kind === 'DEVICE' &&
-        scope.type === KeyType.USER &&
-        scope.name === invitation.userId
+      if (
+        invitation.kind !== 'DEVICE' ||
+        scope.type !== KeyType.USER ||
+        scope.name !== invitation.userId
       )
+        return false
+
+      // Still live: a lockbox is a standing grant, not a past event — every rotation re-honours it,
+      // so the conditions that made it legitimate have to still hold now, not merely have held when
+      // it was posted. An invitation seed is a bearer token handed over a side channel, and
+      // revocation exists because seeds leak; revoking one used to stop it being used to join and do
+      // nothing about the keys, so whoever held it went on receiving every future rotation of the
+      // inviting member's own keys, for good. Expiry and a used-up `maxUses` were the same.
+      //
+      // This is the same rule that governs redeeming an invitation, applied where the grant is
+      // honoured — which is the point: one predicate, both places.
+      return invitationCanBeUsed(invitation, now).isValid
     }
 
     default: {

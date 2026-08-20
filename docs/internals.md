@@ -170,6 +170,21 @@ Enumerate the pairings honest code produces, and write down the relation each ca
 
 `selectors/lockboxesInScope` checks that table, and refuses anything not in it. Four of those rows were holes when the table was first written down, and two of the four had been flagged as "candidates, unmeasured" — both turned out to be real, which is the argument for enumerating the whole table rather than fixing the rows somebody happened to notice.
 
+### And a grant is standing, not a past event
+
+The three statements above all evaluate a lockbox as if the moment it was posted is the only moment that matters. None of them asks whether the grant is still live:
+
+> **A lockbox is a standing grant, not a past event. Every rotation re-honours it, so each of the conditions that made it legitimate has to still hold at that moment — not merely have held when it was posted. For anything with a lifecycle — revoked, expired, used up, superseded — the check belongs where the grant is honoured, not only where it is redeemed.**
+
+An invitation ear was anchored to an invitation that exists, selected unambiguously, and entitled to exactly its own member's scope — all three earlier statements satisfied — and nothing consulted `revoked`, `expiration` or `maxUses`. An invitation seed is a bearer token handed over a side channel, and revocation exists *because seeds leak*; revoking one stopped it being used to join and did nothing about the keys, so whoever held it went on receiving every future rotation of the inviting member's own keys, permanently. Expiry and exhaustion were the same. `invitationCanBeUsed` is now called in both places — where an invitation is redeemed, and where its grant is honoured.
+
+Two things measured rather than assumed while writing this down:
+
+- **Role membership is re-read per rotation**, so it is clean by construction: removing a member from a role drops them from that role's rotation set on the next rotation (`USER recipients before 2, after removing one 1`).
+- **The two "any member / any server" rows in the pairing table are stronger than that label.** The identity lookups read `state.members` and `state.servers`, which exclude removed members and servers, and a discarded admission never reaches `state.members` at all — so "any member" is really "any *current* member", enforced by the identity half rather than by a separate rule.
+
+**The inverse risk is real and is the thing to measure when adding a check here.** An entitlement omission silently loses keys; a lifecycle check silently cuts off an honest holder mid-flow. The rule that keeps both in view: fail closed on what is distributed *next*, and leave anything already delivered intact. Measured — a joiner partway through a live invitation still comes up on the current keys across a rotation, and revoking removes what comes next while the lockbox already handed over still opens.
+
 ### The observable that decides whether a reproduction means anything
 
 This has been wrong three times in this work, and each time it turned a real hole into a clean-looking result or the reverse:
