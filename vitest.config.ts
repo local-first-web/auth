@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import tsconfigPaths from 'vite-tsconfig-paths'
@@ -31,9 +31,19 @@ const packagesDir = fileURLToPath(new URL('packages', import.meta.url))
  * nothing else, so the redirect lands where it's wanted and nowhere else.
  */
 const toSource = (dir: string) => {
-  const { name } = JSON.parse(readFileSync(join(packagesDir, dir, 'package.json'), 'utf8')) as {
-    name: string
-  }
+  const { name, exports } = JSON.parse(
+    readFileSync(join(packagesDir, dir, 'package.json'), 'utf8')
+  ) as { name: string; exports?: unknown }
+
+  // One alias stands in for one entry point. Every package here declares exactly
+  // `"exports": "./dist/index.js"`; the day one grows subpath exports or a second entry, a single
+  // alias would cover part of it and leave the rest resolving to `dist` — the same split this
+  // file exists to remove, and just as quiet. Fail loudly instead.
+  if (exports !== './dist/index.js')
+    throw new Error(
+      `${name} no longer declares a single "./dist/index.js" entry point — map each of its entry points to source explicitly.`
+    )
+
   return {
     // Anchored, so `@localfirst/auth` can't swallow `@localfirst/auth-syncserver`, and so the
     // published `@localfirst/relay` that the taco-chat demo depends on is left alone.
@@ -42,7 +52,17 @@ const toSource = (dir: string) => {
   }
 }
 
-const sourceAliases = ['shared', 'crypto', 'crdx'].map(dir => toSource(dir))
+/**
+ * Every workspace package, not a list of the ones that have bitten us. `packages/auth` reading a
+ * stale `crdx` was the first half of this; the second was `auth-syncserver` and
+ * `auth-provider-automerge-repo` reading a stale `packages/auth`, measured the same way — with
+ * `createTeam` sabotaged to throw, `packages/auth` failed 324 of its own tests while those two
+ * packages passed all 28 of theirs. A hand-maintained list would go stale the first time someone
+ * adds a package and doesn't think of this file.
+ */
+const sourceAliases = readdirSync(packagesDir, { withFileTypes: true })
+  .filter(entry => entry.isDirectory() && existsSync(join(packagesDir, entry.name, 'package.json')))
+  .map(entry => toSource(entry.name))
 
 export default defineConfig({
   plugins: [tsconfigPaths()],
