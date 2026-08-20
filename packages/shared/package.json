@@ -19,7 +19,8 @@
   ],
   "scripts": {
     "build": "tsup",
-    "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly"
+    "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@herbcaudill/eventemitter42": "^0.3.1",
