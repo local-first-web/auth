@@ -7,7 +7,7 @@ import { generateStarterKeys } from '../../invitation/generateStarterKeys.js'
 import { getDeviceUserFromGraph } from '../../connection/getDeviceUserFromGraph.js'
 import * as lockbox from '../../lockbox/index.js'
 import { KeyType } from '../../util/index.js'
-import { setup } from '../../util/testing/index.js'
+import { setup, type UserStuff } from '../../util/testing/index.js'
 import * as teams from '../index.js'
 import * as select from '../selectors/index.js'
 import { type TeamAction, type TeamContext, type TeamState } from '../types.js'
@@ -601,6 +601,143 @@ describe('Team', () => {
       expect(
         select.keys(state, alice.device.keys, { type: TEAM, name: TEAM }).encryption.publicKey
       ).not.toBe(redactKeys(forged).encryption)
+    })
+  })
+
+  /**
+   * A lockbox is a grant, and a grant has two halves that must agree: the scope it hands over and
+   * the holder it hands it to. Every round before this one made the HOLDER more trustworthy, which
+   * is orthogonal to whether that holder should be in that SCOPE — so none of them touched this.
+   *
+   * None of these needs a forgery. The attacker uses their own genuine registered keys as the
+   * recipient; the only lie is which scope the contents name. Each is measured against the victim's
+   * ACTUAL current secret, not against "can they open something naming the victim's scope" — a
+   * decoy satisfies that, and it has produced three false readings in this work.
+   */
+  describe('a lockbox handing a scope to a holder with no claim on it', () => {
+    const postDecoy = (who: UserStuff, boxes: unknown[]) => {
+      const { store } = who.team as unknown as { store: Store<TeamState, TeamAction, TeamContext> }
+      store.dispatch(
+        {
+          type: 'ADD_DEVICE',
+          payload: { device: redactDevice(who.phone!), lockboxes: boxes },
+        } as TeamAction,
+        who.team.teamKeys()
+      )
+      who.team.merge(who.team.graph)
+    }
+
+    /** Whether `holder` ends up holding the scope's real secret as it now stands */
+    const holdsRealSecret = (
+      state: TeamState,
+      scope: { type: string; name: string },
+      holder: Parameters<typeof lockbox.open>[1],
+      realSecret: string
+    ) =>
+      state.lockboxes
+        .filter(
+          l =>
+            l.contents.type === scope.type &&
+            l.contents.name === scope.name &&
+            l.recipient.publicKey === redactKeys(holder).encryption
+        )
+        .some(l => lockbox.open(l, holder)?.encryption.secretKey === realSecret)
+
+    for (const recipientKind of ['DEVICE', 'USER'] as const) {
+      it(`won't send a member's own keys to another member's ${recipientKind.toLowerCase()}`, () => {
+        const run = (decoy: boolean) => {
+          const { alice, bob } = setup(['alice', { user: 'bob', admin: false }])
+          const his = recipientKind === 'DEVICE' ? bob.device.keys : bob.user.keys
+          if (decoy) {
+            // Nothing forged: his own registered keys as the recipient, her scope on the contents
+            postDecoy(bob, [
+              lockbox.create(createKeyset({ type: USER, name: alice.userId }), redactKeys(his)),
+            ])
+            alice.team.merge(bob.team.graph)
+          }
+
+          alice.team.changeKeys(createKeyset({ type: USER, name: alice.userId }))
+          return holdsRealSecret(
+            alice.team.state,
+            { type: USER, name: alice.userId },
+            his,
+            alice.user.keys.encryption.secretKey
+          )
+        }
+
+        expect(run(false)).toBe(false)
+        expect(run(true)).toBe(false)
+      })
+    }
+
+    it("won't send a role's keys to a member who isn't in that role", () => {
+      const run = (decoy: boolean) => {
+        const { alice, bob, charlie } = setup([
+          'alice',
+          { user: 'bob', admin: false },
+          { user: 'charlie', admin: false },
+        ])
+        alice.team.addRole('managers')
+        alice.team.addMemberRole(charlie.userId, 'managers')
+        bob.team.merge(alice.team.graph)
+
+        if (decoy) {
+          // 👨🏻‍🦲 Bob can't open the managers' keys, but he can name the scope
+          postDecoy(bob, [
+            lockbox.create(
+              createKeyset({ type: ROLE, name: 'managers' }),
+              redactKeys(bob.user.keys)
+            ),
+          ])
+          alice.team.merge(bob.team.graph)
+        }
+
+        alice.team.removeMemberRole(charlie.userId, 'managers') // rotates managers
+        return holdsRealSecret(
+          alice.team.state,
+          { type: ROLE, name: 'managers' },
+          bob.user.keys,
+          alice.team.roleKeys('managers').encryption.secretKey
+        )
+      }
+
+      expect(run(false)).toBe(false)
+      expect(run(true)).toBe(false)
+    })
+
+    it("won't send one role's keys to a different role", () => {
+      const run = (decoy: boolean) => {
+        const { alice, bob, charlie } = setup([
+          'alice',
+          { user: 'bob', admin: false },
+          { user: 'charlie', admin: false },
+        ])
+        alice.team.addRole('managers')
+        alice.team.addMemberRole(charlie.userId, 'managers')
+        alice.team.addRole('engineers')
+        alice.team.addMemberRole(bob.userId, 'engineers')
+        bob.team.merge(alice.team.graph)
+        const engineers = bob.team.roleKeys('engineers')
+
+        if (decoy) {
+          // Addressed to a role 👨🏻‍🦲 Bob really is in, carrying its real current key
+          postDecoy(bob, [
+            lockbox.create(createKeyset({ type: ROLE, name: 'managers' }), redactKeys(engineers)),
+          ])
+          alice.team.merge(bob.team.graph)
+        }
+
+        alice.team.removeMemberRole(charlie.userId, 'managers')
+        return holdsRealSecret(
+          alice.team.state,
+          { type: ROLE, name: 'managers' },
+          engineers,
+          alice.team.roleKeys('managers').encryption.secretKey
+        )
+      }
+
+      expect(run(false)).toBe(false)
+      expect(run(true)).toBe(false)
     })
   })
 })

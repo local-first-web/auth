@@ -148,6 +148,36 @@ Two rules in this codebase are still ordering-shaped, and a maintainer changing 
 
 Both of those corrections are the same shape as a check that was deleted from `checkPayload` on a redundancy argument and had to be restored: **a right conclusion resting on a wrong reason will retire the thing that is doing the work.** When a rule here is described as safe, the description has to name what makes it safe, and that has to be the thing a test fails without.
 
+### And a lockbox is a grant, so both halves have to agree
+
+The two statements above are both about **identity** — *which* keyset, member or holder is this about — and both are phrased about one field's provenance. That leaves a whole class untouched, because a lockbox is a grant and a grant has two halves:
+
+> **A lockbox hands a scope to a holder, and both halves have to agree. Anchoring the holder is not enough: for each (contents scope, recipient) pairing, name the relation that entitles that holder to that scope, and check it BY NAME rather than by type. A holder the team knows is not thereby entitled to every scope.**
+
+Nothing here needs a forgery. The attacker uses their own genuine, registered device or user keys as the recipient — every identity check passes, because nothing about them is false — and the only lie is which scope the contents name. A door rule that checked the contents *type* and not the *name* passed it while its own error message stated the invariant it wasn't enforcing.
+
+Enumerate the pairings honest code produces, and write down the relation each carries:
+
+| contents | recipient | relation that entitles the holder |
+| --- | --- | --- |
+| TEAM | USER | any member |
+| TEAM | SERVER | any server (a server never has roles) |
+| ROLE r | USER | a member who is **in role r** |
+| ROLE r | ROLE | the recipient role is **admin** |
+| USER u | DEVICE | **u's own** device |
+| USER u | EPHEMERAL | **u's own** invitation |
+| USER | USER | not an honest pairing — refused |
+
+`selectors/lockboxesInScope` checks that table, and refuses anything not in it. Four of those rows were holes when the table was first written down, and two of the four had been flagged as "candidates, unmeasured" — both turned out to be real, which is the argument for enumerating the whole table rather than fixing the rows somebody happened to notice.
+
+### The observable that decides whether a reproduction means anything
+
+This has been wrong three times in this work, and each time it turned a real hole into a clean-looking result or the reverse:
+
+> Do not ask **"can the attacker reach something that names the victim's scope"** — a decoy the attacker planted names it too, and they can of course open their own decoy. Ask whether they hold the victim's **actual current secret**, by comparing against it.
+
+The same applies to "did this rotation do anything": compare the keyset before and after, rather than asking whether some lockbox exists.
+
 The quantities the graph assigns, rather than an author: `state.keyHistory` (a scope's keysets, in the order the graph carried them), `state.registeredKeys` (the keys the team registered for each member, written only by actions that cleared their own rules), and the member, device and server records themselves.
 
 | site | what it decides | status |

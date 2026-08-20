@@ -1,6 +1,8 @@
 import { type KeyScope } from '@localfirst/crdx'
 import { type Lockbox } from '../../lockbox/index.js'
+import { ADMIN } from '../../role/index.js'
 import { KeyType } from '../../util/types.js'
+import { memberHasRole } from './memberHasRole.js'
 import { type TeamState } from '../types.js'
 
 /**
@@ -43,7 +45,7 @@ export const lockboxesInScope = (state: TeamState, scope: KeyScope): Lockbox[] =
   for (const lockbox of state.lockboxes) {
     const { contents, recipient } = lockbox
     if (contents.type !== scope.type || contents.name !== scope.name) continue
-    if (!isAHolderTheTeamKnows(state, recipient, scope)) continue
+    if (!isEntitledTo(state, recipient, scope)) continue
 
     const key = recipientKey(lockbox)
     const latest = latestForEachRecipient.get(key)
@@ -56,78 +58,106 @@ export const lockboxesInScope = (state: TeamState, scope: KeyScope): Lockbox[] =
 }
 
 /**
- * Whether this lockbox is addressed to a holder the team can vouch for.
+ * Whether this lockbox hands a scope to a holder entitled to it.
  *
- * `recipient.name` says who a lockbox is for and `recipient.publicKey` decides who can actually
- * open it, and nothing tied them together — both are fields its author wrote. So a lockbox naming
- * the victim while carrying somebody else's public key joined the victim's group here, and if it
- * claimed a higher `contents.generation` it won the group; the rotation then addressed the
- * victim's replacement to the other key. Measured: the victim goes on being a member and silently
- * stops receiving rotated keys, and a second rotation doesn't get them back either.
+ * A lockbox is a grant, and a grant has two halves that have to agree: the scope it hands over, and
+ * the holder it hands it to. Both halves are fields its author wrote, so both have to be checked,
+ * and the second one has to be checked BY NAME.
  *
- * For the recipient kinds the team keeps a record of — members, servers, devices — the record is
- * what says which key is theirs, so a manifest that disagrees isn't their lockbox. A name the team
- * has no record of isn't a holder either: without this, rotation would hand new keys to whatever
- * key a made-up name carried.
+ * The identity half — is this holder who the manifest says — was the subject of several earlier
+ * rounds, and it is the first thing each branch below does. It is not enough on its own. An
+ * attacker using their OWN registered device or their OWN user keys as the recipient passes every
+ * identity check there is, because nothing about them is forged; the only lie is which scope the
+ * contents name. Measured, comparing against the victim's actual re-keyed secret rather than
+ * against "can they open something naming her scope": a lockbox naming Alice's USER scope,
+ * addressed to Bob's own device or his own user keys, put him in her rotation set and delivered her
+ * new secret to him. A door rule checking the contents TYPE didn't see it — its message named the
+ * invariant ("only ever handed the keys of the user it belongs to") that the code never enforced.
  *
- * ROLE and EPHEMERAL recipients have no such record. A role's keys are only ever in lockboxes, and
- * an invitation's starter keys are derived from a seed that never touches the graph — so those are
- * still taken at face value, and are listed as unfinished in `docs/internals.md`.
+ * So each branch names the relation that entitles that holder to that scope:
+ *
+ * | contents | recipient   | relation                                    |
+ * | -------- | ----------- | ------------------------------------------- |
+ * | TEAM     | USER        | any member                                  |
+ * | TEAM     | SERVER      | any server                                  |
+ * | ROLE r   | USER        | a member who is IN role r                   |
+ * | ROLE r   | ROLE        | the recipient role is ADMIN                 |
+ * | USER u   | DEVICE      | u's OWN device                              |
+ * | USER u   | EPHEMERAL   | u's OWN invitation                          |
+ * | USER     | USER        | not an honest pairing — refused             |
+ *
+ * Anything not in that table is refused, so a pairing honest code never produces cannot be used.
  */
-const isAHolderTheTeamKnows = (
-  state: TeamState,
-  recipient: Lockbox['recipient'],
-  scope: KeyScope
-) => {
+const isEntitledTo = (state: TeamState, recipient: Lockbox['recipient'], scope: KeyScope) => {
   const { type, name, publicKey } = recipient
 
-  // A role's keys live only in lockboxes, but the graph still says which keyset is the role's: it
-  // is the one `keyHistory` carries last for that scope, which is what `select.keys` resolves to.
-  // A manifest naming `ROLE:admin` while carrying its author's own key used to win that group, and
-  // then `removeMemberRole` rotated a role whose real holder was no longer in the set — measured,
-  // the keyset didn't change at all.
-  if (type === KeyType.ROLE) {
-    if (!state.roles.some(r => r.roleName === name)) return false
-    const carried = state.keyHistory[`${type}:${name}`] ?? []
-    return carried.at(-1) === publicKey
+  switch (type) {
+    case KeyType.USER: {
+      // Identity: the team's record of this member says which key is theirs
+      const member = state.members.find(m => m.userId === name)
+      if (member?.keys.encryption !== publicKey) return false
+
+      // Relation: every member holds the team keys; a role's keys only if they're in that role.
+      // Measured before this: a member who was not in the role collected its rotated keys.
+      if (scope.type === KeyType.TEAM) return true
+      if (scope.type === KeyType.ROLE) return memberHasRole(state, name, scope.name)
+      return false
+    }
+
+    case KeyType.SERVER: {
+      const server = state.servers.find(s => s.host === name)
+      if (server?.keys.encryption !== publicKey) return false
+
+      // A server is given the team keys so it can relay the graph. It never has roles —
+      // `castServer.toMember` gives it `roles: []` — so nothing else is its business.
+      return scope.type === KeyType.TEAM
+    }
+
+    case KeyType.DEVICE: {
+      const owner = state.members.find(m => m.devices?.some(d => d.deviceId === name))
+      const device = owner?.devices?.find(d => d.deviceId === name)
+      if (device?.keys.encryption !== publicKey) return false
+
+      // Relation: a device is handed ITS OWN user's keys, and nothing else. This is the invariant
+      // the type-only door rule claimed and didn't check.
+      return scope.type === KeyType.USER && scope.name === owner!.userId
+    }
+
+    case KeyType.ROLE: {
+      // Identity: the role exists, and the manifest carries the keyset `keyHistory` carries last
+      // for it — which is what `select.keys` resolves to
+      if (!state.roles.some(r => r.roleName === name)) return false
+      const carried = state.keyHistory[`${type}:${name}`] ?? []
+      if (carried.at(-1) !== publicKey) return false
+
+      // Relation: the admin role is the one role that holds every other role's keys. Measured
+      // before this: a lockbox naming one role, addressed to another the author belonged to,
+      // delivered the first role's rotated keys to the second.
+      return scope.type === KeyType.ROLE && name === ADMIN
+    }
+
+    case KeyType.EPHEMERAL: {
+      // Identity: the ear the reducer recorded on the link that posted the invitation — NOT "the
+      // earliest lockbox naming this invitation's signature key". Position in the replayed graph is
+      // settled by the resolver, whose input includes a `prev` its author chose. The key it is
+      // looked up by is unique because `invitationsCanOnlyBePostedOnce` requires it to be.
+      const { signature } = recipient as { signature?: string }
+      if (signature === undefined) return false
+      const invitation = Object.values(state.invitations).find(i => i.publicKey === signature)
+      if (invitation?.earPublicKey !== publicKey) return false
+
+      // Relation: an ear exists so a new device can pick up ITS OWN member's keys
+      return (
+        invitation.kind === 'DEVICE' &&
+        scope.type === KeyType.USER &&
+        scope.name === invitation.userId
+      )
+    }
+
+    default: {
+      return false
+    }
   }
-
-  // An invitation's starter keys never touch the graph, but the reducer records the ear it was
-  // posted with, on the link that posted it. That is what an ear has to match — NOT "the earliest
-  // lockbox naming this invitation's signature key". Position in the replayed graph is settled by
-  // the resolver, and the resolver's input includes a `prev` its author chose, so someone who
-  // learns the signature key from the public invitation link can post an ear of their own on an
-  // older head and come out first. See `postInvitation`, and `docs/internals.md` on why an ordering
-  // is not a graph-assigned quantity.
-  if (type === KeyType.EPHEMERAL) {
-    const { signature } = recipient as { signature?: string }
-    if (signature === undefined) return false
-    const invitation = Object.values(state.invitations).find(i => i.publicKey === signature)
-    if (invitation?.earPublicKey !== publicKey) return false
-
-    // ...and it only stands in for the member whose invitation it is. An ear exists so that a new
-    // device can pick up ITS OWN member's keys, so it has no business in any other scope's
-    // rotation — otherwise a member could issue a perfectly legitimate invitation of their own,
-    // hang a lockbox naming somebody else's USER scope on its ear, and collect that member's keys
-    // every time they were re-keyed. Measured: without this, the attacker's own ear received the
-    // victim's actual re-keyed user keys, and no uniqueness rule touches it, because the invitation
-    // is genuinely theirs.
-    return (
-      invitation.kind === 'DEVICE' &&
-      scope.type === KeyType.USER &&
-      scope.name === invitation.userId
-    )
-  }
-
-  const attested =
-    type === KeyType.USER
-      ? state.members.find(m => m.userId === name)?.keys.encryption
-      : type === KeyType.SERVER
-        ? state.servers.find(s => s.host === name)?.keys.encryption
-        : state.members.flatMap(m => m.devices ?? []).find(d => d.deviceId === name)?.keys
-            .encryption
-
-  return attested !== undefined && attested === publicKey
 }
 
 /** What makes two lockboxes' recipients the same holder */
