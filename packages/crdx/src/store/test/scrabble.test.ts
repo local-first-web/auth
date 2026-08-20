@@ -405,7 +405,7 @@ const omniscientlyFlipTileByLetter = (
   }
 }
 
-export const initialTiles = (seed: string = new Date().toISOString()) => {
+export const initialTiles = (seed: string = new Date().toISOString()): TileSet => {
   const r = makeRandom(seed)
   const randomSort = () => r.plusOrMinus()
 
@@ -432,7 +432,7 @@ export const initialTiles = (seed: string = new Date().toISOString()) => {
     .map(makeTile)
 
   // turn into map for easy lookup
-  return tileSet.reduce(arrayToMap('id'), {})
+  return tileSet.reduce(arrayToMap<Tile>('id'), {})
 }
 
 // constants

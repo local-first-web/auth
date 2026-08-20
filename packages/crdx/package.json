@@ -17,6 +17,7 @@
   "scripts": {
     "build": "tsup",
     "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "typecheck": "tsc --noEmit",
     "test": "vitest"
   },
   "dependencies": {
