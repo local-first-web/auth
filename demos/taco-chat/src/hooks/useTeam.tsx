@@ -8,8 +8,7 @@ import { type DemoConnection } from 'DemoConnection.js'
 import { teamContext } from 'components/TeamProvider.js'
 import { randomTeamName } from 'util/randomTeamName.js'
 
-// TODO: make this an environment var
-const relayUrls = ['ws://localhost:8080']
+const relayUrls = [import.meta.env.VITE_RELAY_URL || 'ws://localhost:8080']
 
 export const useTeam = () => {
   const context = React.useContext(teamContext)

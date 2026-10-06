@@ -7,13 +7,15 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "dev": "run-p dev:open dev:syncserver:log",
-    "dev:start": "vite --port 3000",
+    "dev:start": "vite",
     "dev:open": "pnpm dev:start --open",
     "dev:syncserver": "cross-env NODE_ENV=development node ./syncserver.js",
     "dev:syncserver:log": "cross-env DEBUG=localfirst*,automerge* pnpm dev:syncserver",
     "preview": "vite preview",
     "test:pw": "playwright test --project=chromium",
-    "test:pw:log": "cross-env DEBUG=localfirst*,automerge* pnpm test:pw"
+    "test:pw:log": "cross-env DEBUG=localfirst*,automerge* pnpm test:pw",
+    "dev:routed": "run-p dev:start dev:syncserver:routed",
+    "dev:syncserver:routed": "localhost-dev --service sync pnpm dev:syncserver"
   },
   "dependencies": {
     "@automerge/automerge": "^2.1.9",

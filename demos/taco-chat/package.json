@@ -15,13 +15,15 @@
     "typecheck:src": "tsc --noEmit",
     "typecheck:cypress": "tsc --noEmit -p cypress",
     "dev:relay": "cross-env NODE_NO_WARNINGS=1 DEBUG='localfirst*' DEBUG_COLORS=1 node ./scripts/start-relay-server.js",
-    "dev:serve": "vite --force --port 3000",
+    "dev:serve": "vite --force",
     "dev": "run-p dev:relay dev:serve",
     "dev:cy": "cross-env CYPRESS_REMOTE_DEBUGGING_PORT=9222 run-p dev test:cy:ui",
     "preview": "run-s build && vite preview",
     "test:cy:ui": "cypress open --browser chrome --e2e",
     "test:cy": "run-p --race dev test:cy:exec",
-    "test:cy:exec": "cypress run --browser chrome --e2e"
+    "test:cy:exec": "cypress run --browser chrome --e2e",
+    "dev:routed": "run-p dev:serve dev:relay:routed",
+    "dev:relay:routed": "localhost-dev --service relay pnpm dev:relay"
   },
   "dependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
