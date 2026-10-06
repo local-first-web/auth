@@ -8,4 +8,4 @@ The default app is Todos, with its sync service at `https://sync.auth.localhost`
 
 The HTTPS address is a new browser origin with separate local storage, IndexedDB, and service workers. Existing data at old addresses remains intact; use the app’s existing linking or export/import flow when needed. Existing external services and credentials remain required as documented in the app’s README.
 
-`pnpm dev:app` starts the direct server without the shared routing wrapper. Existing browser tests use direct servers and do not reuse the live routed app.
+`pnpm dev:direct` starts the original direct Todos workflow. Use `pnpm --filter @localfirst/taco-chat dev` for direct Taco chat development. The `dev:app` script is the internal continuation of the named workflow. Existing browser tests use direct servers and do not reuse the live routed app.
