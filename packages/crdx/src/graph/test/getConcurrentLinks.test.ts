@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { buildGraph, byPayload, findByPayload, getPayloads } from 'util/testing/graph.js'
-import { type Graph, getConcurrentBubbles, getConcurrentLinks } from 'graph/index.js'
+import { buildGraph, byPayload, findByPayload, getPayloads } from '../../util/testing/graph.js'
+import { type Graph, getConcurrentBubbles, getConcurrentLinks } from '../index.js'
 
 describe('graphs', () => {
   describe('getConcurrentLinks', () => {

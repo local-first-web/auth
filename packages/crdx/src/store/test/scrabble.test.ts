@@ -1,11 +1,11 @@
 import { makeRandom } from '@herbcaudill/random'
-import { TEST_GRAPH_KEYS as keys } from 'util/testing/setup.js'
+import { TEST_GRAPH_KEYS as keys } from '../../util/testing/setup.js'
 import { describe, expect, test } from 'vitest'
-import { type RootAction, createGraph } from 'graph/index.js'
-import { type Store, createStore } from 'store/index.js'
-import { type Reducer } from 'store/types.js'
-import { createUser } from 'user/index.js'
-import { arrayToMap } from 'util/index.js'
+import { type RootAction, createGraph } from '../../graph/index.js'
+import { type Store, createStore } from '../index.js'
+import { type Reducer } from '../types.js'
+import { createUser } from '../../user/index.js'
+import { arrayToMap } from '../../util/index.js'
 
 /*
 This is a somewhat more complicated example, modeling the game Scrabble Attacks (created by Nancy
@@ -405,7 +405,7 @@ const omniscientlyFlipTileByLetter = (
   }
 }
 
-export const initialTiles = (seed: string = new Date().toISOString()) => {
+export const initialTiles = (seed: string = new Date().toISOString()): TileSet => {
   const r = makeRandom(seed)
   const randomSort = () => r.plusOrMinus()
 
@@ -432,7 +432,7 @@ export const initialTiles = (seed: string = new Date().toISOString()) => {
     .map(makeTile)
 
   // turn into map for easy lookup
-  return tileSet.reduce(arrayToMap('id'), {})
+  return tileSet.reduce(arrayToMap<Tile>('id'), {})
 }
 
 // constants

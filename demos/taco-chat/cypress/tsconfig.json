@@ -1,5 +1,8 @@
 {
   "compilerOptions": {
+    // Cypress's own type definitions don't typecheck under these settings; nothing here is
+    // responsible for them, and the rest of the repo skips lib checks too.
+    "skipLibCheck": true,
     "target": "es5",
     "lib": [
       "es5",

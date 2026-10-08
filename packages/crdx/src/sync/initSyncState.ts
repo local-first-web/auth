@@ -15,4 +15,5 @@ export const initSyncState = (): SyncState => ({
 
   lastCommonHead: [],
   failedSyncCount: 0,
+  advisoryFailureCount: 0,
 })

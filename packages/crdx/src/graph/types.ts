@@ -1,4 +1,4 @@
-﻿import type { Base58, Hash, Optional, UnixTimestamp } from 'util/types.js'
+﻿import type { Base58, Hash, Optional, UnixTimestamp } from '../util/types.js'
 
 /**
  * A hash graph is an acyclic directed graph of links. Each link is **asymmetrically encrypted and
@@ -116,6 +116,16 @@ export type Link<A extends Action, C> = {
 
   /** The part of the link that is encrypted */
   body: LinkBody<A, C>
+
+  /**
+   * The public half of the keypair that encrypted this link — in other words, the author's own
+   * encryption key. The author can't misreport this, since the link only opens with the matching
+   * secret key, which makes it the only trustworthy evidence of who actually wrote the link.
+   *
+   * This is carried over from the link's encrypted counterpart when it's decrypted; it isn't
+   * separately serialized.
+   */
+  senderPublicKey: Base58
 
   isInvalid?: boolean
 }

@@ -1,21 +1,22 @@
 import { getConcurrentBubbles, type Link, type Resolver } from '@localfirst/crdx'
 import { isAdminOnlyAction } from './isAdminOnlyAction.js'
-import { type Invitation } from 'invitation/index.js'
-import { ADMIN } from 'role/index.js'
-import { bySeniority } from 'team/bySeniority.js'
+import { type Invitation } from '../invitation/index.js'
+import { ADMIN } from '../role/index.js'
+import { bySeniority } from './bySeniority.js'
 import {
   type MembershipRuleEnforcer,
   type AddMemberAction,
   type AddMemberRoleAction,
   type RemoveMemberAction,
   type RemoveMemberRoleAction,
+  type RemoveServerAction,
   type TeamAction,
   type TeamContext,
   type TeamLink,
   type TeamGraph,
   type AdmitMemberAction,
-} from 'team/types.js'
-import { arraysAreEqual } from 'util/arraysAreEqual.js'
+} from './types.js'
+import { arraysAreEqual } from '../util/arraysAreEqual.js'
 
 /**
  * This is a custom resolver, used to flatten a graph of team membership operations into a strictly
@@ -48,6 +49,10 @@ export const membershipResolver: Resolver<TeamAction, TeamContext> = graph => {
 }
 
 /**
+ * The reads below use `?.` throughout on purpose: this runs over a graph merged from a peer, before
+ * anything has validated what's on it, so a malformed payload here would throw before any rule
+ * could refuse the link.
+ *
  * If we invalidate a link, we need to invalidate all links that depend on it. For example, if
  * someone joins the group but their invitation turns out to be invalid, then anything they do needs
  * to be invalidated, including if _they_ invited someone else — and so on recursively.
@@ -57,15 +62,17 @@ const findDependentLinks = (bubble: TeamLink[], invalidLink: TeamLink): TeamLink
   switch (invalidLink.body.type) {
     case 'INVITE_MEMBER':
     case 'INVITE_DEVICE': {
-      // Invalidate ADMIT actions that used this invitation
-      const { invitation } = invalidLink.body.payload
+      // Invalidate ADMIT actions that used this invitation. `?? undefined` because a payload
+      // carries either spelling of nothing, and the invitation this hands on is only guarded
+      // against one of them.
+      const invitation = invalidLink.body.payload?.invitation ?? undefined
       dependentLinks.push(...bubble.filter(usesInvitation(invitation)))
       break
     }
 
     case 'ADMIT_MEMBER': {
       // Invalidate anything the admitted member did
-      const userId = invalidLink.body.payload.memberKeys.name
+      const userId = invalidLink.body.payload?.memberKeys?.name
       dependentLinks.push(...bubble.filter(authorIs(userId)))
       break
     }
@@ -102,10 +109,12 @@ const membershipRules: Record<string, MembershipRuleEnforcer> = {
     return getAdditions(links).filter(link => removedMembers.includes(addedUserId(link)))
   },
 
-  // RULE: If B is removed, anything they do concurrently is omitted
+  // RULE: If B is removed, anything they do concurrently is omitted. This covers servers as well as
+  // members: a server that's being removed can still author admissions, and its links carry its
+  // host as the author, so the same rule applies.
   cantDoAnythingWhenRemoved(links) {
-    const removedMembers = getRemovedMembers(links)
-    return links.filter(authorIn(removedMembers))
+    const removed = [...getRemovedMembers(links), ...getRemovedServers(links)]
+    return links.filter(authorIn(removed))
   },
 
   // RULE: If B is demoted, any admin-only actions they do concurrently are omitted
@@ -132,7 +141,7 @@ const getAdditions = (links: TeamLink[]) => links.filter(isAddAction)
 const getRemovals = (links: TeamLink[]) => links.filter(isRemovalAction) as RemoveActionLink[]
 
 const isDemotionAction = (link: TeamLink): boolean =>
-  link.body.type === 'REMOVE_MEMBER_ROLE' && link.body.payload.roleName === ADMIN
+  link.body.type === 'REMOVE_MEMBER_ROLE' && link.body.payload?.roleName === ADMIN
 
 const getDemotions = (links: TeamLink[]) => links.filter(isDemotionAction) as RemoveActionLink[]
 
@@ -143,34 +152,39 @@ const getRemovedAndDemotedMembers = (links: TeamLink[]) =>
   getRemovalsAndDemotions(links).map(getTarget)
 
 const getRemovedMembers = (links: TeamLink[]) => getRemovals(links).map(getTarget)
+
+const getRemovedServers = (links: TeamLink[]): Array<string | undefined> =>
+  links
+    .filter(link => link.body.type === 'REMOVE_SERVER')
+    .map(link => (link.body as RemoveServerAction).payload?.host)
 const getDemotedMembers = (links: TeamLink[]) => getDemotions(links).map(getTarget)
 
-const getTarget = (link: RemoveActionLink): string => link.body.payload.userId
+const getTarget = (link: RemoveActionLink): string | undefined => link.body.payload?.userId
 
 const getAuthor = (link: TeamLink): string => link.body.userId
 
 const authorIs = (author: string) => (link: TeamLink) => getAuthor(link) === author
 
 const authorIn =
-  (excludeList: string[]) =>
+  (excludeList: Array<string | undefined>) =>
   (link: TeamLink): boolean =>
     excludeList.includes(getAuthor(link))
 
-const addedUserId = (link: AddActionLink): string => {
+const addedUserId = (link: AddActionLink): string | undefined => {
   switch (link.body.type) {
     case 'ADD_MEMBER': {
       const addAction = link.body
-      return addAction.payload.member.userId
+      return addAction.payload?.member?.userId
     }
 
     case 'ADD_MEMBER_ROLE': {
       const addAction = link.body
-      return addAction.payload.userId
+      return addAction.payload?.userId
     }
 
     case 'ADMIT_MEMBER': {
       const addAction = link.body
-      return addAction.payload.memberKeys.name
+      return addAction.payload?.memberKeys?.name
     }
   }
 }
@@ -180,9 +194,10 @@ const linkNotIn =
   (link: TeamLink): boolean =>
     !excludeList.includes(link)
 
-const usesInvitation = (invitation: Invitation) => (l: TeamLink) =>
+const usesInvitation = (invitation?: Invitation) => (l: TeamLink) =>
+  invitation !== undefined &&
   (l.body.type === 'ADMIT_MEMBER' || l.body.type === 'ADMIT_DEVICE') &&
-  l.body.payload.id === invitation.id
+  l.body.payload?.id === invitation.id
 
 type RemoveActionLink = Link<RemoveMemberAction | RemoveMemberRoleAction, TeamContext>
 type AddActionLink = Link<AddMemberAction | AddMemberRoleAction | AdmitMemberAction, TeamContext>

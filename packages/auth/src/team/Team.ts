@@ -21,19 +21,24 @@ import {
 } from '@localfirst/crdx'
 import { randomKey, signatures, symmetric, type Base58 } from '@localfirst/crypto'
 import { assert, debug } from '@localfirst/shared'
-import * as identity from 'connection/identity.js'
-import { type Challenge } from 'connection/types.js'
-import * as devices from 'device/index.js'
-import { redactDevice, type Device } from 'device/index.js'
-import * as invitations from 'invitation/index.js'
-import { type ProofOfInvitation } from 'invitation/index.js'
-import { normalize } from 'invitation/normalize.js'
-import * as lockbox from 'lockbox/index.js'
-import { ADMIN, type Role } from 'role/index.js'
-import { castServer } from 'server/castServer.js'
-import { type Host, type Server } from 'server/types.js'
-import { type LocalUserContext } from 'team/context.js'
-import { KeyType, VALID, scopesMatch } from 'util/index.js'
+import * as identity from '../connection/identity.js'
+import { type Challenge } from '../connection/types.js'
+import * as devices from '../device/index.js'
+import { redactDevice, type Device } from '../device/index.js'
+import * as invitations from '../invitation/index.js'
+import { type ProofOfInvitation } from '../invitation/index.js'
+import { InvitationValidationError } from '../invitation/validate.js'
+import { normalize } from '../invitation/normalize.js'
+import * as lockbox from '../lockbox/index.js'
+import { ADMIN, type Role } from '../role/index.js'
+import { castServer } from '../server/castServer.js'
+import { type Host, type Server } from '../server/types.js'
+import { type LocalUserContext } from './context.js'
+import { KeyType, VALID, scopesMatch } from '../util/index.js'
+import { auditAuthorship } from './auditAuthorship.js'
+import { isRegisteredEncryptionKey } from './registeredEncryptionKeys.js'
+import { keyHistoryKey } from './transforms/collectLockboxes.js'
+import { assertLinksAreWellFormed, payloadProblem } from './checkPayload.js'
 import { ADMIN_SCOPE, ALL, TEAM_SCOPE, initialState } from './constants.js'
 import { membershipResolver as resolver } from './membershipResolver.js'
 import { redactUser } from './redactUser.js'
@@ -127,12 +132,18 @@ export class Team extends EventEmitter<TeamEvents> {
     } else {
       // Rehydrate a team from an existing graph
       // Create CRDX store
+      const graph = maybeDeserialize(options.source, options.teamKeyring)
+
+      // A team is most often loaded from a graph someone else sent us, so this is the same door as
+      // `merge`
+      assertLinksAreWellFormed(graph)
+
       this.store = createStore({
         user,
         reducer,
         resolver,
         initialState,
-        graph: maybeDeserialize(options.source, options.teamKeyring),
+        graph,
         keys: options.teamKeyring,
       })
     }
@@ -200,10 +211,58 @@ export class Team extends EventEmitter<TeamEvents> {
   public save = () => serializeTeamGraph(this.graph)
 
   /**
+   * Reports any links on this team's chain whose stated author doesn't match the key that actually
+   * encrypted them. An empty array means every link was authored by the member it's attributed to.
+   */
+  public auditAuthorship = () => auditAuthorship(this.graph, this.state)
+
+  /**
+   * Reports what CRDX's validators make of this team's graph. That's three rules about the graph's
+   * shape — each link's hash matches its bytes, the links its `prev` names exist, and the ROOT link
+   * is the graph's root — plus the two advisory rules about timestamps described below. Before any
+   * of those run, `runValidators` checks the graph's own bookkeeping: that `root` and each `head`
+   * name a link whose bytes hash to that name, and that there are as many encrypted links as links
+   * (a count, not a correspondence — a graph with the right number of them under the wrong hashes
+   * gets past it, and `validateHash` is what catches that). A failure there comes back through here
+   * as an ordinary invalid result, with one exception: if a head's encrypted link is missing
+   * outright, that check throws rather than returning, so it reaches you as an exception. That's
+   * auth-xd2.
+   *
+   * Note what isn't in that list: CRDX doesn't verify signatures, here or anywhere. A link's stated
+   * author is checked against the key that actually encrypted it by `linkAuthorshipIsAuthentic`,
+   * which runs during replay, not here; `Team.auditAuthorship` reports on it after the fact. Nor
+   * does this re-run the team's own membership rules — who may add whom, who may change whose keys.
+   * Those are applied as the graph is replayed, on load and on every merge and dispatch, so a team
+   * whose state you can read has already been through them. A valid answer from this method is not
+   * a statement about any of that.
+   *
+   * The advisory rules are why this exists, since they're reported rather than enforced, and the
+   * two of them want different things from a caller:
+   *
+   * - `validateTimestampNotInFuture` fails on a link stamped later than this device's clock. That
+   *   resolves itself: the peer who wrote it is a few minutes fast, and once our clock passes the
+   *   timestamp the same graph validates.
+   * - `validateTimestampOrder` fails on a link older than a link it descends from, which is what
+   *   merging a fast peer and then appending on a correct clock produces. Nothing repairs that —
+   *   the graph can't change, and no amount of waiting helps. Don't treat it as transient skew.
+   *
+   * Two more things to know about the answer: it's the first failure found rather than a list of
+   * them, and it's computed fresh on each call, so asking again after the clock moves is
+   * meaningful.
+   */
+  public validate = () => this.store.validate()
+
+  /**
    * Merges another graph (e.g. from a peer) with ours.
    * @returns This `Team` instance.
    */
   public merge = (theirGraph: TeamGraph) => {
+    // Whatever a peer sends us has to be something we can replay. This is the door: the resolver
+    // walks payloads before anything validates them, and links it discards go to
+    // `invalidLinkReducer` instead of to the validators — so the shape is settled here, once,
+    // rather than by each of them.
+    assertLinksAreWellFormed(theirGraph, this.graph.links)
+
     this.store.merge(theirGraph)
     this.state = this.store.getState()
 
@@ -213,6 +272,13 @@ export class Team extends EventEmitter<TeamEvents> {
 
   /** Add a link to the graph, then recompute team state from the new graph */
   public dispatch(action: TeamAction, teamKeys: KeysetWithSecrets = this.teamKeys()) {
+    // A link is appended to the graph before the reducer ever sees it, so a payload the validators
+    // would refuse has to be caught here as well: refused on replay, it would leave a link on the
+    // graph that nobody — including us — could ever replay again. `payloadsMustBeWellFormed`
+    // applies this same rule to links that arrive from anywhere else.
+    const problem = payloadProblem(action)
+    assert(problem === undefined, problem)
+
     this.store.dispatch(action, teamKeys)
     this.state = this.store.getState()
 
@@ -454,15 +520,26 @@ export class Team extends EventEmitter<TeamEvents> {
     /** Time when the invitation expires. If not provided, the invitation does not expire. */
     expiration?: UnixTimestamp
 
-    /** Number of times the invitation can be used. If not provided, the invitation can be used any number of times. */
+    /** Number of times the invitation can be used. Defaults to 1; if 0, the invitation can be used any number of times. */
     maxUses?: number
   } = {}): InviteResult {
     // Normalize the seed (all lower case, strip spaces & punctuation)
     seed = normalize(seed)
 
     // Generate invitation
-    const invitation = invitations.create({ seed, expiration, maxUses })
+    const invitation = invitations.create({ kind: 'MEMBER', seed, expiration, maxUses })
     const { id } = invitation
+
+    // The id is derived from the seed, so a seed that's been used before names an invitation the
+    // team already has. Posting it again would be refused by `invitationsCanOnlyBePostedOnce` — but
+    // a refused link is appended to the graph before the reducer ever sees it, so the refusal would
+    // leave a graph that neither we nor any peer could replay again. Say so before dispatching
+    // anything. (`normalize` strips everything but letters and digits, so 'Alpha-Bravo' and
+    // 'AlphaBravo' are the same seed.)
+    assert(
+      !this.hasInvitation(id),
+      `This invitation seed has already been used on this team (invitation '${id}'). Use a different seed.`
+    )
 
     // Post invitation to graph
     this.dispatch({
@@ -503,7 +580,13 @@ export class Team extends EventEmitter<TeamEvents> {
 
     // Generate invitation
     const maxUses = 1 // Can't invite multiple devices with the same invitation
-    const invitation = invitations.create({ seed, expiration, maxUses, userId: this.userId })
+    const invitation = invitations.create({
+      kind: 'DEVICE',
+      seed,
+      expiration,
+      maxUses,
+      userId: this.userId,
+    })
 
     // In order for the invited device to be able to access the user's keys, we put the user keys in
     // lockboxes that can be opened by an ephemeral keyset generated from the secret invitation seed.
@@ -512,6 +595,17 @@ export class Team extends EventEmitter<TeamEvents> {
     const lockboxes = allUserKeys.map(keys => lockbox.create(keys, starterKeys))
 
     const { id } = invitation
+
+    // The id is derived from the seed, so a seed that's been used before names an invitation the
+    // team already has. Posting it again would be refused by `invitationsCanOnlyBePostedOnce` — but
+    // a refused link is appended to the graph before the reducer ever sees it, so the refusal would
+    // leave a graph that neither we nor any peer could replay again. Say so before dispatching
+    // anything. (`normalize` strips everything but letters and digits, so 'Alpha-Bravo' and
+    // 'AlphaBravo' are the same seed.)
+    assert(
+      !this.hasInvitation(id),
+      `This invitation seed has already been used on this team (invitation '${id}'). Use a different seed.`
+    )
 
     // Post invitation to graph
     this.dispatch({
@@ -547,8 +641,11 @@ export class Team extends EventEmitter<TeamEvents> {
 
     const invitation = this.getInvitation(id)
 
-    // Make sure the invitation hasn't already been used, hasn't expired, and hasn't been revoked
-    const canBeUsedResult = invitations.invitationCanBeUsed(invitation, Date.now())
+    // Make sure the invitation hasn't already been used (in general, or on this invitee in
+    // particular), hasn't expired, and hasn't been revoked. This mirrors what the validators will
+    // say when the link is replayed; doing it here means the caller gets it as a result rather than
+    // as a ValidationError thrown from the middle of `dispatch`.
+    const canBeUsedResult = invitations.invitationCanBeUsed(invitation, Date.now(), proof.invitee)
     if (canBeUsedResult !== VALID) return canBeUsedResult
 
     // Validate the proof of invitation
@@ -581,6 +678,32 @@ export class Team extends EventEmitter<TeamEvents> {
     const invitationValidation = this.validateInvitation(proof)
     if (!invitationValidation.isValid) throw invitationValidation.error
 
+    if (this.getInvitation(proof.id).kind !== 'MEMBER') {
+      throw new InvitationValidationError(
+        "This is a device invitation, so it can't be used to admit a member."
+      )
+    }
+
+    // The proof is bound to a single userId; we can only admit the keys it names
+    if (proof.invitee !== memberKeys.name) {
+      throw new InvitationValidationError('This invitation was issued to a different user.')
+    }
+
+    // ...and to the keyset the invitee chose, so we can't substitute one of our own
+    if (proof.keyHash !== invitations.hashKeys(memberKeys)) {
+      throw new InvitationValidationError(
+        'This proof of invitation commits to a different keyset than the one being admitted.'
+      )
+    }
+
+    // A member is indexed by their userName as well as their userId, and a link that names an
+    // unusable one is refused by `payloadsMustBeWellFormed` — which would leave this graph with a
+    // link on it that nobody can replay. Say so before dispatching anything.
+    assert(
+      typeof userName === 'string' && userName.length > 0,
+      `'${String(userName)}' is not a usable userName.`
+    )
+
     const userValidation = this.validateUser(memberKeys.name, userName)
     if (!userValidation.isValid) throw userValidation.error
 
@@ -597,6 +720,7 @@ export class Team extends EventEmitter<TeamEvents> {
         id,
         userName,
         memberKeys: redactKeys(memberKeys),
+        proof,
         lockboxes,
       },
     })
@@ -607,9 +731,27 @@ export class Team extends EventEmitter<TeamEvents> {
     const validation = this.validateInvitation(proof)
     if (!validation.isValid) throw validation.error
 
+    // The proof is bound to a single deviceId; we can only admit the device it names
+    if (proof.invitee !== firstUseDevice.deviceId) {
+      throw new InvitationValidationError('This invitation was issued to a different device.')
+    }
+
+    // ...and to the keyset the device chose, so we can't substitute one of our own
+    if (proof.keyHash !== invitations.hashKeys(firstUseDevice.keys)) {
+      throw new InvitationValidationError(
+        'This proof of invitation commits to a different keyset than the one being admitted.'
+      )
+    }
+
     const { id } = proof
     const invitation = this.getInvitation(id)
-    const userId = invitation.userId!
+    if (invitation.kind !== 'DEVICE') {
+      throw new InvitationValidationError(
+        "This is a member invitation, so it can't be used to admit a device."
+      )
+    }
+
+    const { userId } = invitation
 
     // Now we can add the userId to the device and post it to the graph
     const device: Device = { ...firstUseDevice, userId }
@@ -620,6 +762,7 @@ export class Team extends EventEmitter<TeamEvents> {
       payload: {
         id,
         device,
+        proof,
       },
     })
   }
@@ -671,7 +814,15 @@ export class Team extends EventEmitter<TeamEvents> {
    * The only actions that a server can dispatch to the graph are `ADMIT_MEMBER` and `ADMIT_DEVICE`.
    * The server needs to be able to admit invited members and devices in order to support
    * star-shaped networks where every device connects to a server, rather than directly to each
-   * other.)
+   * other.) This is enforced by the `serversCanOnlyAdmit` validator, so a server can't author other
+   * kinds of link under its own name. In particular a server can't rotate its own keys, and there
+   * is no action for anyone else to do it on its behalf: to re-key a server, an admin removes it
+   * and adds it back with new keys, which rotates the team keys it could see.
+   *
+   * Note that this is a limit on what a server can do AS ITSELF. What keeps it from simply admitting
+   * an invitee under keys it holds, and then acting as that member, is that the invitee's proof of
+   * invitation commits to their own keyset (see `admissionMustBeProven`) — a server relaying a
+   * genuine proof can admit the invitee, but only under the keys the invitee chose.
    */
   public addServer = (server: Server) => {
     const lockboxes = this.createMemberLockboxes(castServer.toMember(server))
@@ -682,11 +833,20 @@ export class Team extends EventEmitter<TeamEvents> {
     })
   }
 
-  /** Removes a server from the team. */
+  /**
+   * Removes a server from the team.
+   *
+   * A server is given the team keys so it can decrypt the graph, so removing it means rotating
+   * those keys — just as removing a member does. Otherwise the ex-server keeps reading everything
+   * the team writes from here on.
+   */
   public removeServer = (host: string) => {
+    // Create new keys & lockboxes for any keys this server had access to
+    const lockboxes = this.rotateKeys({ type: KeyType.SERVER, name: host })
+
     this.dispatch({
       type: 'REMOVE_SERVER',
-      payload: { host },
+      payload: { host, lockboxes },
     })
   }
 
@@ -801,41 +961,83 @@ export class Team extends EventEmitter<TeamEvents> {
   public adminKeys = (generation?: number) => this.roleKeys(ADMIN, generation)
 
   /**
-   * Replaces the current user or device's secret keyset with the one provided.
-   * (This can also be used by an admin to change another user's secret keyset.)
+   * Replaces a member's secret keyset with the one provided. Whose keys these are is decided by
+   * the name on the keyset, not by who's calling: normally you're rotating your own, but an admin
+   * can re-key another member, which is what `canOnlyChangeYourOwnKeys` allows and what you'd do
+   * for a member whose keys were compromised. The member picks the new keys up from the lockboxes
+   * this rotates for their devices.
+   *
+   * Two consequences of re-keying someone else are worth being clear about: the admin who does it
+   * necessarily generates the member's new secret keys and therefore knows them, and the member's
+   * old keys are gone as far as the team is concerned. It isn't a substitute for removing someone.
+   *
+   * Only the caller's own keys are written back to `context.user` — an admin re-keying another
+   * member has no business holding a keyset named for someone else. (That used to happen, and it
+   * left the admin signing links with the other member's keys, which
+   * `linkAuthorshipIsAuthentic` then rejected: her own team object was unusable from then on.)
+   *
+   * A server's keys can't be rotated at all: a server can only admit members and devices
+   * (`serversCanOnlyAdmit`), and there's no action for anyone to do it on its behalf either. To
+   * re-key a server, remove it and add it back with new keys.
    */
   public changeKeys = (newKeys: KeysetWithSecrets) => {
-    const { device, user } = this.context
-    const { type } = newKeys
+    const { user } = this.context
+    const { type, name: targetId } = newKeys
 
     assert(type !== DEVICE, "Can't change device keys")
-    const isForUser = type === USER
-    const isForServer = type === KeyType.SERVER
+    assert(
+      type === USER,
+      `A server's keys can't be rotated (remove the server and add it back instead).`
+    )
 
-    const oldKeys: KeysetWithSecrets = user.keys
+    const targetIsMe = targetId === this.userId
+
+    // The generation these keys supersede is the target member's, which is only ours if we're
+    // rotating our own. (`rotateKeys` settles a generation for any scope that has lockboxes, from
+    // the highest among them; this is what stands if the member has no lockboxes of their own.)
+    const oldKeys: Keyset | KeysetWithSecrets = targetIsMe ? user.keys : this.members(targetId).keys
     newKeys.generation = oldKeys.generation + 1
 
     // Treat the old keys as compromised, and generate new lockboxes for any keys they could see
     const lockboxes = this.rotateKeys(newKeys)
 
-    // Post our new public keys to the graph
-    const action = isForUser ? 'CHANGE_MEMBER_KEYS' : 'CHANGE_SERVER_KEYS'
-
+    // Post the new public keys to the graph
     const keys = redactKeys(newKeys)
-    this.dispatch({ type: action, payload: { keys, lockboxes } })
+    this.dispatch({ type: 'CHANGE_MEMBER_KEYS', payload: { keys, lockboxes } })
 
-    // Update our keys in context
-    if (isForServer || isForUser) user.keys = newKeys
-    if (isForServer) device.keys = newKeys // (a server plays the role of both a user and a device)
+    // Update our keys in context — but only if they're ours
+    if (targetIsMe) user.keys = newKeys
   }
 
+  /**
+   * Picks up new keys for ourselves after a rotation.
+   *
+   * The keyset we take is the one the graph makes current for our own scope, not the highest
+   * generation in our keyring. Both halves of the old version were numbers off a lockbox:
+   * `getLatestGeneration` takes the largest `generation` field among the keysets, and the
+   * comparison that guarded it read the same field. So a member could hand us a keyset of theirs,
+   * addressed to our device and called generation 9 — `USER` keys to a `DEVICE`, which is the one
+   * pairing the door has to allow — and we would adopt it as our own. Measured: `user.keys` became
+   * the forger's, which is what we sign links with.
+   *
+   * See `select.keys`, which is where "current" is decided from `state.keyHistory`.
+   */
   private updateUserKeys() {
     const { user } = this.context
-    const latestUserKeys = getLatestGeneration(this.userKeyring())
+    const scope = { type: USER, name: this.userId }
+    const held = select.keyMap(this.state, this.context.device.keys)[scope.type]?.[scope.name]
+    if (held === undefined || held.size === 0) return
 
-    if (latestUserKeys && user.keys.generation < latestUserKeys.generation) {
-      user.keys = latestUserKeys
-    }
+    const currentKeys = select.keys(this.state, this.context.device.keys, scope)
+    if (currentKeys.encryption.publicKey === user.keys.encryption.publicKey) return
+
+    // ...but only if they're keys the team registered as ours. A lockbox naming our scope is one
+    // anybody can post, and adopting one of those would leave us signing links under a key no peer
+    // recognises — unable to act at all, and holding a keyset its author can read.
+    if (!isRegisteredEncryptionKey(this.state, this.userId, currentKeys.encryption.publicKey))
+      return
+
+    user.keys = currentKeys
   }
 
   private checkForPendingKeyRotations() {
@@ -886,11 +1088,61 @@ export class Team extends EventEmitter<TeamEvents> {
     // Generate new keys for each one
     const newKeysets = [newKeyset, ...otherNewKeysets]
 
-    // Create new lockboxes for each of these
-    const newLockboxes = newKeysets.flatMap(newKeyset => {
+    /**
+     * Settle each scope's new generation before making any lockboxes.
+     *
+     * Every recipient of a scope's keys has to end up holding them under the same number, because
+     * that number is what `Team.encrypt` writes onto a message and what the reader looks the keys up
+     * by. Deriving it per lockbox — from the one it replaces, as `lockbox.rotate` used to — meant a
+     * single lockbox claiming to be ahead of the others split the scope: its recipient's replacement
+     * came out several generations clear of everyone else's, holding the same secret under a number
+     * nobody else could find it by.
+     *
+     * A scope with no lockboxes at all keeps whatever generation it arrived with. That's the case
+     * `changeKeys` relies on to supersede a member's own generation when they haven't added a device
+     * yet.
+     *
+     * The generation comes from the graph, not from any manifest and not from what we hold.
+     *
+     * A manifest's generation belongs to whoever wrote the lockbox, and `current + 1` over the
+     * maximum of them put that number in the arithmetic every rotation does. Counting from the
+     * generation we can OPEN instead — which this did — doesn't escape that, because a lockbox
+     * addressed to us is also a write by someone else into our key history: it made the member a
+     * forgery is aimed at into the numbering authority for the whole team.
+     *
+     * There is no ceiling that fixes this. Whatever value a payload check accepts as the largest, a
+     * member can name it, and the rotation that has to supersede it then needs one more than the
+     * largest acceptable value — so its own link is refused, by its own author's check. Measured
+     * at generation 2**53-2, by both routes: `remove` threw `no usable generation on its contents
+     * manifest ('9007199254740991')` and went on throwing, for every member, permanently.
+     *
+     * `state.keyHistory` is not something an author can assert. The reducer appends a keyset to a
+     * scope's list the first time the graph carries it, so a member can move a scope's count by one
+     * per lockbox they actually post, and no further — a number, however large, buys nothing. On a
+     * graph with nothing forged on it this is exactly the old arithmetic: each generation of a scope
+     * contributes one keyset, so the list's length is the next generation.
+     *
+     * It also answers for a scope we can't see into. `remove(userId)` rotates `{type: USER, name:
+     * userId}`, which the remover can never open, so every removal used to take the fallback to the
+     * manifests — and one unopenable lockbox claiming a large generation for the member being
+     * removed was enough to stop them ever being removed.
+     *
+     * A scope the graph has never carried keeps whatever generation it arrived with. That's the case
+     * `changeKeys` relies on to supersede a member's own generation when they haven't added a device
+     * yet.
+     */
+    const rotations = newKeysets.map(newKeyset => {
       const oldLockboxes = select.lockboxesInScope(this.state, newKeyset)
+      if (oldLockboxes.length > 0) {
+        newKeyset.generation = (this.state.keyHistory[keyHistoryKey(newKeyset)] ?? []).length
+      }
 
-      return oldLockboxes.map(oldLockbox => {
+      return { newKeyset, oldLockboxes }
+    })
+
+    // Create new lockboxes for each of these
+    const newLockboxes = rotations.flatMap(({ newKeyset, oldLockboxes }) =>
+      oldLockboxes.map(oldLockbox => {
         // Check whether we have new keys for the recipient of this lockbox
         const updatedKeyset = newKeysets.find(k => scopesMatch(k, oldLockbox.recipient))
         return lockbox.rotate({
@@ -900,7 +1152,7 @@ export class Team extends EventEmitter<TeamEvents> {
           updatedRecipientKeys: updatedKeyset ? redactKeys(updatedKeyset) : undefined,
         })
       })
-    })
+    )
 
     return newLockboxes
   }

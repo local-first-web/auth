@@ -33,6 +33,9 @@ if (reuse) {
   console.log('Running test until we have one success and one failure')
 
   for (let i = 0; i < maxRuns; i++) {
+    // Sequential on purpose: we're looking for a run that passes and a run that fails, and we stop
+    // as soon as we have one of each.
+    // eslint-disable-next-line no-await-in-loop
     const passed = await runTest()
     const report = readFile('log.txt')
 
@@ -54,6 +57,7 @@ if (reuse) {
 // clean up both sets of logs and output good.txt and bad.txt
 for (const key in output) {
   console.log(`Writing ${key}.txt `)
+  // eslint-disable-next-line no-await-in-loop -- two iterations, and they write to the same log dir
   await exec(`cat .logs/${key}.raw.txt | node ./scripts/clean-log.js > .logs/${key}.txt`)
 }
 
@@ -68,7 +72,7 @@ async function runTest() {
     await exec(`${cmd} &> ${outputDir}/log.txt`)
     // test passed
     return true
-  } catch (error) {
+  } catch {
     // test failed (we still got the output)
     return false
   }

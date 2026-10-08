@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { buildGraph, byPayload, getPayloads } from 'util/testing/graph.js'
-import { topoSort } from 'graph/index.js'
+import { buildGraph, byPayload, getPayloads } from '../../util/testing/graph.js'
+import { topoSort } from '../index.js'
 
 describe('graphs', () => {
   describe('topoSort', () => {

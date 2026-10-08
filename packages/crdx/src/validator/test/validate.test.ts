@@ -1,13 +1,15 @@
 ﻿/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { asymmetric } from '@localfirst/crypto'
-import { buildGraph } from 'util/testing/graph.js'
-import { TEST_GRAPH_KEYS as keys, setup } from 'util/testing/setup.js'
+import { buildGraph } from '../../util/testing/graph.js'
+import { TEST_GRAPH_KEYS as keys, setup } from '../../util/testing/setup.js'
 import { describe, expect, test, vitest } from 'vitest'
-import { hashEncryptedLink } from 'graph/hashLink.js'
-import { append, createGraph, getHead, getLink, getRoot } from 'graph/index.js'
-import { type Hash } from 'util/index.js'
-import { validate } from 'validator/validate.js'
-import 'util/testing/expect/toBeValid'
+import { hashEncryptedLink } from '../../graph/hashLink.js'
+import { append, createGraph, getHead, getLink, getRoot, type Graph } from '../../graph/index.js'
+import { type Hash } from '../../util/index.js'
+import { validate, validateStructure } from '../validate.js'
+import { fail } from '../validators.js'
+import { type ValidationResult, type ValidatorSet } from '../types.js'
+import '../../util/testing/expect/toBeValid.js'
 
 const { setSystemTime } = vitest.useFakeTimers()
 
@@ -212,6 +214,59 @@ describe('graphs', () => {
         expect(validate(graph2)).not.toBeValid()
       })
 
+      /**
+       * `runValidators` looks up encrypted links by hash in three places: the root check, the head
+       * check, and `validateHash`. Each of those can miss, and a miss has to come back as a result
+       * rather than as an exception — `Store.validate` and `Team.validate` both promise a
+       * `ValidationResult`. See auth-xd2.
+       *
+       * Each case here breaks the link/encryptedLink correspondence while keeping the counts equal,
+       * so the count check in `runValidators` still passes and validation gets as far as the lookup.
+       */
+      describe(`a link's encrypted link is missing`, () => {
+        const orphanHash = 'NotAHashOfAnyLink' as Hash
+
+        const removeEncryptedLink = (graph: Graph<any, any>, hash: Hash) => {
+          graph.encryptedLinks[orphanHash] = graph.encryptedLinks[hash]
+          delete graph.encryptedLinks[hash] // eslint-disable-line @typescript-eslint/no-dynamic-delete
+        }
+
+        const messageFrom = (result: ValidationResult) =>
+          result.isValid ? '(valid)' : result.error.message
+
+        test(`the root's`, () => {
+          const graph = setupGraph()
+          // the root of this graph isn't one of its heads, so the head check doesn't cover it
+          expect(graph.head).not.toContain(graph.root)
+          removeEncryptedLink(graph, graph.root)
+
+          const result = validate(graph)
+          expect(result.isValid).toBe(false)
+          expect(messageFrom(result)).toMatch(/no encrypted link/i)
+        })
+
+        test(`a head's`, () => {
+          const graph = setupGraph()
+          removeEncryptedLink(graph, graph.head[0])
+
+          const result = validate(graph)
+          expect(result.isValid).toBe(false)
+          expect(messageFrom(result)).toMatch(/no encrypted link/i)
+        })
+
+        test(`one that is neither root nor head`, () => {
+          const graph = setupGraph()
+          const victim = Object.keys(graph.links).find(
+            hash => hash !== graph.root && !graph.head.includes(hash as Hash)
+          ) as Hash
+          removeEncryptedLink(graph, victim)
+
+          const result = validate(graph)
+          expect(result.isValid).toBe(false)
+          expect(messageFrom(result)).toMatch(/no encrypted link/i)
+        })
+      })
+
       test(`timestamp in the future`, () => {
         const IN_THE_FUTURE = new Date(`10000-01-01`).getTime() // NOTE: test will begin to fail 7,978 years from now
         const graph = setupGraph()
@@ -228,6 +283,88 @@ describe('graphs', () => {
         setSystemTime(now)
 
         expect(validate(graph2)).not.toBeValid()
+      })
+    })
+
+    /**
+     * `validateStructure` used to be memoized on a content hash of the graph. It isn't any more —
+     * the key costs about half of what the work costs, and the real hit rate is below the
+     * break-even that implies, so the cache was losing money as well as growing without bound
+     * (auth-bmx). These two guard the ways it could come back wrong.
+     */
+    describe('validateStructure', () => {
+      const chain = (length: number) => {
+        let graph: Graph<any, any> = createGraph({ user: alice, name: 'Spies Я Us', keys })
+        for (let i = 0; i < length; i++)
+          graph = append({ graph, action: { type: 'FOO', payload: i }, user: alice, keys })
+        return graph
+      }
+
+      /**
+       * A tripwire, not a behaviour: `memoize` hangs a `cache` on the function it returns, so this
+       * fails the moment someone wraps this in one again. Re-memoizing may well be right some day —
+       * but the numbers that say it isn't are in `validate.ts`, and this is here to make sure they
+       * get re-read rather than re-assumed.
+       */
+      test('keeps no cache to grow', () => {
+        expect('cache' in validateStructure).toBe(false)
+      })
+
+      test('sees link bytes replaced in place, which a cheaper key would not have', () => {
+        const graph = chain(3)
+        expect(validateStructure(graph)).toBeValid()
+
+        const headBefore = [...graph.head]
+
+        // 🦹‍♀️ Eve replaces a link's bytes in place and reencrypts with her own key
+        const linkHash = graph.head[0]
+        const link = getLink(graph, linkHash)
+        link.body.payload = 'tampered'
+        graph.encryptedLinks[linkHash] = {
+          encryptedBody: asymmetric.encryptBytes({
+            secret: link.body,
+            recipientPublicKey: keys.encryption.publicKey,
+            senderSecretKey: eve.keys.encryption.secretKey,
+          }),
+          recipientPublicKey: keys.encryption.publicKey,
+          senderPublicKey: eve.keys.encryption.publicKey,
+        }
+
+        // the graph object and its head are exactly what they were. Any memo keyed on either would
+        // still be serving the answer from before the tampering, which is why neither is an option
+        // if this ever gets memoized again.
+        expect(graph.head).toEqual(headBefore)
+        expect(validateStructure(graph)).not.toBeValid()
+      })
+    })
+
+    /**
+     * `validate` used to be memoized on the graph, which is only sound for a function of the graph
+     * alone. It's neither: it takes a validator set, and one of its rules reads the clock.
+     */
+    describe('asking twice', () => {
+      test('answers for the validators it was handed, not the ones asked for first', () => {
+        const graph = createGraph({ user: alice, name: 'Spies Я Us', keys })
+        const alwaysFails: ValidatorSet = { alwaysFails: () => fail('nope') }
+
+        expect(validate(graph)).toBeValid()
+        expect(validate(graph, alwaysFails)).not.toBeValid()
+        expect(validate(graph)).toBeValid()
+      })
+
+      test('answers for the clock as it is now', () => {
+        const A_MINUTE = 60 * 1000
+        const now = Date.now()
+        const graph = createGraph({ user: alice, name: 'Spies Я Us', keys })
+        expect(validate(graph)).toBeValid()
+
+        // ⏰ an NTP step puts us a minute behind, so the root link is now in our future
+        setSystemTime(now - A_MINUTE)
+        expect(validate(graph)).not.toBeValid()
+
+        // ...and once our clock catches up again, the same graph is fine
+        setSystemTime(now)
+        expect(validate(graph)).toBeValid()
       })
     })
   })

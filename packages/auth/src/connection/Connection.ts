@@ -10,7 +10,7 @@ import {
 } from '@localfirst/crdx'
 import { asymmetric, base58, randomKeyBytes, symmetric, type Hash } from '@localfirst/crypto'
 import { assert, debug } from '@localfirst/shared'
-import { deriveSharedKey } from 'connection/deriveSharedKey.js'
+import { deriveSharedKey } from './deriveSharedKey.js'
 import {
   DEVICE_REMOVED,
   DEVICE_UNKNOWN,
@@ -25,19 +25,19 @@ import {
   UNHANDLED,
   createErrorMessage,
   type ConnectionErrorType,
-} from 'connection/errors.js'
-import { getDeviceUserFromGraph } from 'connection/getDeviceUserFromGraph.js'
-import * as identity from 'connection/identity.js'
-import type { ConnectionMessage, DisconnectMessage } from 'connection/message.js'
-import { redactDevice } from 'device/index.js'
-import * as invitations from 'invitation/index.js'
+} from './errors.js'
+import { getDeviceUserFromGraph } from './getDeviceUserFromGraph.js'
+import * as identity from './identity.js'
+import type { ConnectionMessage, DisconnectMessage } from './message.js'
+import { redactDevice } from '../device/index.js'
+import * as invitations from '../invitation/index.js'
 import { pack, unpack } from 'msgpackr'
-import { getTeamState } from 'team/getTeamState.js'
-import { Team, decryptTeamGraph, type TeamAction, type TeamContext } from 'team/index.js'
-import * as select from 'team/selectors/index.js'
-import { arraysAreEqual } from 'util/arraysAreEqual.js'
-import { KeyType } from 'util/index.js'
-import { syncMessageSummary } from 'util/testing/messageSummary.js'
+import { getTeamState } from '../team/getTeamState.js'
+import { Team, decryptTeamGraph, type TeamAction, type TeamContext } from '../team/index.js'
+import * as select from '../team/selectors/index.js'
+import { arraysAreEqual } from '../util/arraysAreEqual.js'
+import { KeyType } from '../util/index.js'
+import { syncMessageSummary } from '../util/testing/messageSummary.js'
 import { and, assertEvent, assign, createActor, setup } from 'xstate'
 import { MessageQueue, type NumberedMessage } from './MessageQueue.js'
 import { extendServerContext, getUserName, messageSummary, stateSummary } from './helpers.js'
@@ -136,7 +136,9 @@ export class Connection extends EventEmitter<ConnectionEvents> {
               assert(context.invitationSeed)
               const { userName, keys } = context.user
               return {
-                proofOfInvitation: invitations.generateProof(context.invitationSeed),
+                // The proof commits to the very keys we're claiming below, so an admitter can't
+                // admit us under keys of its own
+                proofOfInvitation: invitations.generateProof(context.invitationSeed, keys),
                 userName,
                 userKeys: redactKeys(keys),
                 device: redactDevice(context.device),
@@ -147,7 +149,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
               assert(context.invitationSeed)
               const { userName, device } = context
               return {
-                proofOfInvitation: invitations.generateProof(context.invitationSeed),
+                proofOfInvitation: invitations.generateProof(context.invitationSeed, device.keys),
                 userName,
                 device: redactDevice(device),
               }
@@ -447,7 +449,7 @@ export class Connection extends EventEmitter<ConnectionEvents> {
           // Make sure my invitation exists on the graph of the team I'm about to join. This check
           // prevents an attack in which a fake team pretends to accept my invitation.
           const state = getTeamState(serializedGraph, teamKeyring)
-          const { id } = invitations.generateProof(invitationSeed)
+          const id = invitations.deriveId(invitationSeed)
           return select.hasInvitation(state, id)
         },
 

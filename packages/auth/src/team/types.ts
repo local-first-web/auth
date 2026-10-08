@@ -12,13 +12,18 @@ import type {
   ROOT,
   Sequence,
 } from '@localfirst/crdx'
-import type { Client, LocalContext } from 'team/context.js'
-import type { Device } from 'device/index.js'
-import type { Invitation, InvitationState } from 'invitation/types.js'
-import type { Lockbox } from 'lockbox/index.js'
-import type { PermissionsMap, Role } from 'role/index.js'
-import type { Host, Server } from 'server/index.js'
-import type { ValidationResult } from 'util/index.js'
+import type { Client, LocalContext } from './context.js'
+import type { Device } from '../device/index.js'
+import type {
+  DeviceInvitation,
+  InvitationState,
+  MemberInvitation,
+  ProofOfInvitation,
+} from '../invitation/types.js'
+import type { Lockbox } from '../lockbox/index.js'
+import type { PermissionsMap, Role } from '../role/index.js'
+import type { Host, Server } from '../server/index.js'
+import type { ValidationResult } from '../util/index.js'
 
 // ********* MEMBER
 
@@ -154,14 +159,14 @@ export type RemoveDeviceAction = {
 export type InviteMemberAction = {
   type: 'INVITE_MEMBER'
   payload: BasePayload & {
-    invitation: Invitation
+    invitation: MemberInvitation
   }
 }
 
 export type InviteDeviceAction = {
   type: 'INVITE_DEVICE'
   payload: BasePayload & {
-    invitation: Invitation
+    invitation: DeviceInvitation
   }
 }
 
@@ -178,6 +183,11 @@ export type AdmitMemberAction = {
     id: Base58 // Invitation ID
     userName: string
     memberKeys: Keyset // Member keys provided by the new member
+
+    /** The invitee's proof that they hold the secret invitation seed. This travels on the graph so
+     * that every peer can verify the admission for itself, rather than taking the admitter's word
+     * for it. */
+    proof: ProofOfInvitation
   }
 }
 
@@ -186,6 +196,9 @@ export type AdmitDeviceAction = {
   payload: BasePayload & {
     id: Base58 // Invitation ID
     device: Device
+
+    /** The invited device's proof that it holds the secret invitation seed. See `AdmitMemberAction`. */
+    proof: ProofOfInvitation
   }
 }
 
@@ -214,13 +227,6 @@ export type RemoveServerAction = {
   type: 'REMOVE_SERVER'
   payload: BasePayload & {
     host: Host
-  }
-}
-
-export type ChangeServerKeysAction = {
-  type: 'CHANGE_SERVER_KEYS'
-  payload: BasePayload & {
-    keys: Keyset
   }
 }
 
@@ -257,7 +263,6 @@ export type TeamAction =
   | RotateKeysAction
   | AddServerAction
   | RemoveServerAction
-  | ChangeServerKeysAction
   | MessageAction
   | SetTeamNameAction
 
@@ -301,6 +306,19 @@ export type TeamState = {
   // If a member's admission is reversed, we need to flag them as compromised so an admin can
   // rotate any keys they had access to at the first opportunity
   pendingKeyRotations: string[]
+
+  /**
+   * For each scope (`type:name`), every distinct keyset the graph has carried for it, by encryption
+   * public key, in the order the graph introduced them. This is what a rotation counts from — see
+   * `keyHistoryKey` and `Team.rotateKeys`.
+   */
+  keyHistory: Record<string, Base58[]>
+
+  /**
+   * Every encryption public key the team has registered for each member or server, by userId (or
+   * host), in the order the graph registered them. See `recordRegisteredKeys`.
+   */
+  registeredKeys: Record<string, Base58[]>
 }
 
 export type InvitationMap = Record<string, InvitationState>

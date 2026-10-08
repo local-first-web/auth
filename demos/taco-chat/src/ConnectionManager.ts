@@ -34,7 +34,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
     this.context = context
     this.teamName = teamName
 
-    this.log = debug(`lf:auth:demo:connection-manager:${context.device.userId}`)
+    this.log = debug(`lf:auth:demo:connection-manager:${context.device.deviceId}`)
 
     this.client = this.connectServer(urls[0])
   }
@@ -162,7 +162,7 @@ type ConnectionManagerEvents = {
   'peer-connect': (payload: { peerId: string; socket: WebSocket }) => void
   connected: (payload: DemoConnection) => void
   disconnected: (peerId: string, event?: any) => void
-  joined: (payload: { team: string; user: Auth.User }) => void
+  joined: (payload: { team: Auth.Team; user: Auth.UserWithSecrets }) => void
   change: (payload: { peerId: string; state: string }) => void
   localError: (payload: Auth.ConnectionErrorPayload) => void
   remoteError: (payload: Auth.ConnectionErrorPayload) => void

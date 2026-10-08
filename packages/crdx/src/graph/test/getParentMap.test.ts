@@ -1,7 +1,7 @@
-import { buildGraph, findByPayload } from 'util/testing/graph.js'
+import { buildGraph, findByPayload } from '../../util/testing/graph.js'
 import { describe, expect, it } from 'vitest'
-import { getLink, getParentMap, type Graph, type Action } from 'graph/index.js'
-import { type Hash } from 'util/index.js'
+import { getLink, getParentMap, type Graph, type Action } from '../index.js'
+import { type Hash } from '../../util/index.js'
 
 describe('getParentMap', () => {
   const graph = buildGraph(`

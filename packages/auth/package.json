@@ -21,7 +21,7 @@
   "scripts": {
     "build": "tsup",
     "postbuild": "tsc -p tsconfig.build.json --emitDeclarationOnly",
-    "preinstall": "npx only-allow pnpm",
+    "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:log": "cross-env DEBUG='localfirst*' DEBUG_COLORS=1 vitest --reporter basic"
   },
@@ -37,6 +37,5 @@
   },
   "publishConfig": {
     "access": "public"
-  },
-  "gitHead": "9a7b871e9e34268b32cc6e574189ec2350787b81"
+  }
 }

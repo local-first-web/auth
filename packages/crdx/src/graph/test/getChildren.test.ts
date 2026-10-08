@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { buildGraph, findByPayload } from 'util/testing/graph.js'
-import { getChildren, getRoot } from 'graph/index.js'
+import { buildGraph, findByPayload } from '../../util/testing/graph.js'
+import { getChildren, getRoot } from '../index.js'
 
 describe('getChildren', () => {
   const graph = buildGraph(`

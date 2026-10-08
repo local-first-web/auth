@@ -1,4 +1,4 @@
-import { type ValidationResult } from 'util/types.js'
+import { type ValidationResult } from './types.js'
 
 // avoiding enums
 export const SIGNATURE = 'SIGNATURE'
@@ -7,6 +7,7 @@ export const SYMMETRIC = 'SYMMETRIC'
 export const LINK_HASH = 'LINK_HASH'
 export const LINK_TO_PREVIOUS = 'LINK_TO_PREVIOUS'
 export const INVITATION = 'INVITATION'
+export const INVITEE_KEYS = 'INVITEE_KEYS'
 export const DEVICE_ID = 'DEVICE_ID'
 export const SHARED_KEY = 'SHARED_KEY'
 
@@ -17,6 +18,7 @@ export const HashPurpose = {
   LINK_HASH,
   LINK_TO_PREVIOUS,
   INVITATION,
+  INVITEE_KEYS,
   DEVICE_ID,
   SHARED_KEY,
 } as const

@@ -1,9 +1,9 @@
 import { createKeyset } from '@localfirst/crdx'
 import { describe, expect, it } from 'vitest'
-import { create, open, rotate } from 'lockbox/index.js'
-import { ADMIN } from 'role/index.js'
-import { KeyType } from 'util/index.js'
-import { setup } from 'util/testing/index.js'
+import { create, open, rotate } from '../index.js'
+import { ADMIN } from '../../role/index.js'
+import { KeyType } from '../../util/index.js'
+import { setup } from '../../util/testing/index.js'
 
 const { bob, eve } = setup('alice', 'bob', { user: 'eve', member: false })
 const MANAGERS = 'managers'
@@ -26,9 +26,10 @@ describe('lockbox', () => {
     // Alice creates a lockbox for Bob containing the admin keys
     const lockbox = create(adminKeys, bob.user.keys)
 
-    // Eve tries to open the lockbox but can't
-    const eveTriesToOpen = () => open(lockbox, eve.user.keys)
-    expect(eveTriesToOpen).toThrow()
+    // Eve tries to open the lockbox but can't. She gets nothing back, rather than a throw: a
+    // lockbox is a thing you might not be able to open, and a peer who can't open one still has to
+    // be able to replay the link it arrived on.
+    expect(open(lockbox, eve.user.keys)).toBeUndefined()
   })
 
   it('can only be rotated with a keyset of the same type', () => {

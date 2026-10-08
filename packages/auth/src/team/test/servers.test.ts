@@ -1,7 +1,8 @@
 import { createKeyset, redactKeys } from '@localfirst/crdx'
-import type { Host, Server, ServerWithSecrets } from 'server/index.js'
-import { KeyType } from 'util/index.js'
+import type { Host, Server, ServerWithSecrets } from '../../server/index.js'
+import { KeyType } from '../../util/index.js'
 import { eventPromise } from '@localfirst/shared'
+import { symmetric } from '@localfirst/crypto'
 import {
   TestChannel,
   all,
@@ -9,18 +10,19 @@ import {
   setup as setupHumans,
   type SetupConfig,
   type UserStuff,
-} from 'util/testing/index.js'
+} from '../../util/testing/index.js'
 import { describe, expect, it } from 'vitest'
 import {
   createTeam,
   invitation,
   loadTeam,
+  redactDevice,
   type Connection,
   type Context,
   type InviteeDeviceContext,
   type MemberContext,
   type Team,
-} from 'index.js'
+} from '../../index.js'
 
 describe('Team', () => {
   describe('a server', () => {
@@ -40,6 +42,35 @@ describe('Team', () => {
       alice.team.removeServer(host)
       expect(alice.team.servers().length).toBe(0)
       expect(alice.team.serverWasRemoved(host)).toBe(true)
+    })
+
+    it('loses access to the team keys when it is removed', () => {
+      const { alice, bob } = setupHumans('alice', 'bob')
+      const { server } = createServer(host)
+      alice.team.addServer(server)
+
+      // The server was given the team keys, so removing it has to leave those keys behind
+      const teamKeysWhileOnTheTeam = alice.team.teamKeys()
+      expect(teamKeysWhileOnTheTeam.generation).toBe(0)
+
+      alice.team.removeServer(host)
+
+      // The team keys have been rotated
+      const currentTeamKeys = alice.team.teamKeys()
+      expect(currentTeamKeys.generation).toBe(1)
+      expect(currentTeamKeys.encryption.publicKey).not.toEqual(
+        teamKeysWhileOnTheTeam.encryption.publicKey
+      )
+
+      // ❌ Anything the team encrypts from here on is closed to the ex-server
+      const encrypted = alice.team.encrypt('the eagle has landed')
+      expect(() =>
+        symmetric.decryptBytes(encrypted.contents, teamKeysWhileOnTheTeam.secretKey)
+      ).toThrow()
+
+      // ✅ But the members still on the team can read it
+      bob.team = loadTeam(alice.team.save(), bob.localContext, alice.team.teamKeyring())
+      expect(bob.team.decrypt(encrypted)).toEqual('the eagle has landed')
     })
 
     it("throws if a named server doesn't exist on the team", () => {
@@ -172,7 +203,11 @@ describe('Team', () => {
       await connectWithServer(alice, server)
 
       // Now if Bob connects to the server, the server can admit him
-      server.team.admitMember(invitation.generateProof(bobInvite), bob.user.keys, bob.userId)
+      server.team.admitMember(
+        invitation.generateProof(bobInvite, bob.user.keys),
+        bob.user.keys,
+        bob.userId
+      )
       expect(server.team.members().length).toBe(2)
     })
 
@@ -246,60 +281,216 @@ describe('Team', () => {
       expect(alice.team.members(bob.userId).devices).toHaveLength(2)
     })
 
-    it('can change its own keys', async () => {
+    it(`can't change its own keys`, async () => {
       const { alice } = setupHumans('alice', 'bob')
       const { server, serverWithSecrets } = createServer(host)
       alice.team.addServer(server)
-
-      const host2 = 'foo.com'
-      const { server: server2 } = createServer(host2)
-      alice.team.addServer(server2)
-
-      const savedGraph = alice.team.save()
-      const aliceTeamKeys = alice.team.teamKeys()
-      const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, aliceTeamKeys)
-
-      const teamKeys0 = serverTeam.teamKeys()
-      expect(teamKeys0.generation).toBe(0)
-
-      // Server changes their keys
-      serverTeam.changeKeys(createKeyset({ type: KeyType.SERVER, name: host }))
-
-      // Server keys have been rotated
-      expect(serverTeam.servers(host).keys.generation).toBe(1)
-
-      // Server still has access to team keys
-      const teamKeys1 = serverTeam.teamKeys()
-
-      // The team keys were rotated, so these are new
-      expect(teamKeys1.encryption.publicKey).not.toEqual(teamKeys0.encryption.publicKey)
-      expect(teamKeys1.generation).toBe(1)
-    })
-
-    it(`can't change another server's keys`, async () => {
-      const { alice } = setupHumans('alice', 'bob')
-      const { server, serverWithSecrets } = createServer(host)
-      alice.team.addServer(server)
-
-      const host2 = 'foo.com'
-      const { server: server2 } = createServer(host2)
-      alice.team.addServer(server2)
 
       const savedGraph = alice.team.save()
       const aliceTeamKeys = alice.team.teamKeys()
       const serverTeam = loadTeam(savedGraph, { server: serverWithSecrets }, aliceTeamKeys)
 
       expect(serverTeam.teamKeys().generation).toBe(0)
-      expect(serverTeam.servers(host2).keys.generation).toBe(0)
 
-      // server tries to change another server's keys
+      // There's no such thing as rotating a server's keys: a server can only admit members and
+      // devices, and nobody can re-key it on its behalf either. `changeKeys` rotates the caller's
+      // own user keys and nothing else, so it refuses a server keyset outright. To re-key a
+      // server, an admin removes it and adds it back.
       expect(() => {
-        serverTeam.changeKeys(createKeyset({ type: KeyType.SERVER, name: host2 }))
-      }).toThrow()
+        serverTeam.changeKeys(createKeyset({ type: KeyType.SERVER, name: host }))
+      }).toThrow(/a server's keys can't be rotated/i)
 
       // No keys have been rotated
       expect(serverTeam.teamKeys().generation).toBe(0)
-      expect(serverTeam.servers(host2).keys.generation).toBe(0)
+      expect(serverTeam.servers(host).keys.generation).toBe(0)
+    })
+
+    it(`can't invite a device by authoring a link directly`, async () => {
+      const { server, alice } = setup('alice')
+
+      // A server holds the team keys, so it can author links itself rather than going through the
+      // methods that refuse to run on a server. If it could post an invitation, it could name any
+      // member as the owner and then admit a device of its own onto that member's account.
+      const tryToInviteDevice = () => {
+        server.team.dispatch({
+          type: 'INVITE_DEVICE',
+          payload: {
+            invitation: invitation.create({
+              kind: 'DEVICE',
+              seed: 'passw0rd',
+              userId: alice.userId,
+            }),
+          },
+        })
+      }
+
+      expect(tryToInviteDevice).toThrow(/server/i)
+      expect(Object.keys(server.team.state.invitations)).toHaveLength(0)
+    })
+
+    it(`can't set the team name`, async () => {
+      const { server } = setup('alice')
+
+      const tryToRenameTeam = () => {
+        server.team.setTeamName('Servers Я Us')
+      }
+
+      expect(tryToRenameTeam).toThrow(/server/i)
+    })
+
+    it(`can't change a member's keys`, async () => {
+      const { server, alice } = setup('alice')
+
+      // The server makes up new keys for Alice, which it would then hold the secrets for
+      const evilKeys = createKeyset({ type: KeyType.USER, name: alice.userId })
+      const tryToChangeAlicesKeys = () => {
+        server.team.dispatch({
+          type: 'CHANGE_MEMBER_KEYS',
+          payload: { keys: redactKeys(evilKeys) },
+        })
+      }
+
+      expect(tryToChangeAlicesKeys).toThrow(/server/i)
+      expect(server.team.members(alice.userId).keys.encryption).not.toBe(
+        evilKeys.encryption.publicKey
+      )
+    })
+
+    it(`can't admit a member once it's been removed`, () => {
+      const { server, alice, bob } = setup('alice', { user: 'bob', member: false })
+      const { seed } = alice.team.inviteMember()
+
+      // 👩🏾 Alice removes the server
+      alice.team.removeServer(host)
+
+      // In practice an ex-server can't read past its own removal, because removing it rotates the
+      // team keys — so its admissions are concurrent with the removal, which is the resolver's
+      // business (see below). Here we hand it the post-removal graph, so that the admission is
+      // unambiguously downstream of the removal and it's the validator that has to say no.
+      const exServerTeam = loadTeam(
+        alice.team.save(),
+        { server: server.serverWithSecrets },
+        alice.team.teamKeyring()
+      )
+      expect(exServerTeam.serverWasRemoved(host)).toBe(true)
+
+      // ❌ The ex-server holds a live invitation, but admitting is no longer its to do
+      const tryToAdmitBob = () => {
+        exServerTeam.admitMember(
+          invitation.generateProof(seed, bob.user.keys),
+          bob.user.keys,
+          bob.userName
+        )
+      }
+      expect(tryToAdmitBob).toThrow(/was removed from the team/i)
+      expect(exServerTeam.has(bob.userId)).toBe(false)
+    })
+
+    it(`can't admit a device once it's been removed`, () => {
+      const { server, alice } = setup('alice')
+      const alicePhone = redactDevice(alice.phone!)
+      const { seed } = alice.team.inviteDevice()
+
+      alice.team.removeServer(host)
+
+      const exServerTeam = loadTeam(
+        alice.team.save(),
+        { server: server.serverWithSecrets },
+        alice.team.teamKeyring()
+      )
+      expect(exServerTeam.serverWasRemoved(host)).toBe(true)
+
+      // ❌ Same for devices: a device invitation in hand doesn't outlive the server's place on the team
+      const tryToAdmitAlicesPhone = () => {
+        exServerTeam.admitDevice(invitation.generateProof(seed, alicePhone.keys), alicePhone)
+      }
+      expect(tryToAdmitAlicesPhone).toThrow(/was removed from the team/i)
+      expect(exServerTeam.members(alice.userId).devices).toHaveLength(1)
+    })
+
+    it('discards an admission it makes concurrently with its own removal', () => {
+      const { server, alice, bob } = setup('alice', { user: 'bob', member: false })
+
+      // 👩🏾 Alice posts an invitation for 👨🏻‍🦲 Bob, and the server learns about it
+      const { seed } = alice.team.inviteMember()
+      server.team.merge(alice.team.graph)
+
+      // 🔌❌ Alice and the server are disconnected
+
+      // 👩🏾 Alice removes the server
+      alice.team.removeServer(host)
+
+      // Concurrently, the server admits Bob on its own stale copy of the graph. This is what an
+      // ex-server can actually do: it still holds the old team keys and a live invitation.
+      server.team.admitMember(
+        invitation.generateProof(seed, bob.user.keys),
+        bob.user.keys,
+        bob.userName
+      )
+      expect(server.team.has(bob.userId)).toBe(true)
+
+      // 🔌✔ They reconnect
+
+      // ❌ Anything a server does concurrently with its own removal is discarded, just as it is for
+      // a member who is concurrently removed. 👨🏻‍🦲 Bob is recorded as removed so that his client
+      // knows the copy of the chain he was given is no good.
+      alice.team.merge(server.team.graph)
+      expect(alice.team.has(bob.userId)).toBe(false)
+      expect(alice.team.memberWasRemoved(bob.userId)).toBe(true)
+
+      // ✅ But Bob did nothing wrong and was never on the team, so a fresh invitation still gets
+      // him in
+      const { seed: secondSeed } = alice.team.inviteMember()
+      alice.team.admitMember(
+        invitation.generateProof(secondSeed, bob.user.keys),
+        bob.user.keys,
+        bob.userName
+      )
+      expect(alice.team.has(bob.userId)).toBe(true)
+    })
+
+    it('still admits an invitee concurrently with an unrelated change', () => {
+      const { server, alice, bob } = setup('alice', { user: 'bob', member: false })
+
+      const { seed } = alice.team.inviteMember()
+      server.team.merge(alice.team.graph)
+
+      // 👩🏾 Alice makes an unrelated change while the server admits 👨🏻‍🦲 Bob
+      alice.team.addRole('MANAGER')
+      server.team.admitMember(
+        invitation.generateProof(seed, bob.user.keys),
+        bob.user.keys,
+        bob.userName
+      )
+
+      // ✅ Nothing removed the server, so its admission stands
+      alice.team.merge(server.team.graph)
+      expect(alice.team.has(bob.userId)).toBe(true)
+      expect(alice.team.memberWasRemoved(bob.userId)).toBe(false)
+    })
+
+    it('can admit an invitee again after being removed and re-added', () => {
+      const { server, alice, bob } = setup('alice', { user: 'bob', member: false })
+
+      // 👩🏾 Alice removes the server and then thinks better of it
+      alice.team.removeServer(host)
+      alice.team.addServer(server.server)
+      expect(alice.team.serverWasRemoved(host)).toBe(false)
+
+      const { seed } = alice.team.inviteMember()
+      const serverTeam = loadTeam(
+        alice.team.save(),
+        { server: server.serverWithSecrets },
+        alice.team.teamKeyring()
+      )
+
+      // ✅ The tombstone is gone, so the server can admit again
+      serverTeam.admitMember(
+        invitation.generateProof(seed, bob.user.keys),
+        bob.user.keys,
+        bob.userName
+      )
+      expect(serverTeam.has(bob.userId)).toBe(true)
     })
   })
 })

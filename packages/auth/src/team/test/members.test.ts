@@ -1,6 +1,12 @@
-import { ADMIN } from 'role/index.js'
-import { setup } from 'util/testing/index.js'
-import 'util/testing/expect/toLookLikeKeyset.js'
+import { createUser, redactKeys } from '@localfirst/crdx'
+import { createDevice, loadTeam, redactDevice } from '../../index.js'
+import { generateProof } from '../../invitation/index.js'
+import { ADMIN } from '../../role/index.js'
+import { invalidLinkReducer } from '../invalidLinkReducer.js'
+import { type TeamLink } from '../types.js'
+import { validate } from '../validate.js'
+import { setup } from '../../util/testing/index.js'
+import '../../util/testing/expect/toLookLikeKeyset.js'
 import { describe, expect, it } from 'vitest'
 
 describe('Team', () => {
@@ -84,6 +90,24 @@ describe('Team', () => {
       expect(alice.team.memberWasRemoved(charlie.userId)).toBe(false) // Charlie was never a member
     })
 
+    it('clears the tombstone for a re-added member, and only that member', () => {
+      const { alice, bob, charlie } = setup('alice', 'bob', 'charlie')
+
+      alice.team.remove(bob.userId)
+      alice.team.remove(charlie.userId)
+      expect(alice.team.memberWasRemoved(bob.userId)).toBe(true)
+      expect(alice.team.memberWasRemoved(charlie.userId)).toBe(true)
+
+      // Bob is re-added
+      alice.team.addForTesting(bob.user)
+
+      // Bob's tombstone is cleared, because he's a member again
+      expect(alice.team.memberWasRemoved(bob.userId)).toBe(false)
+
+      // Charlie's tombstone is untouched — re-adding Bob says nothing about Charlie
+      expect(alice.team.memberWasRemoved(charlie.userId)).toBe(true)
+    })
+
     it('only admins can remove members', () => {
       const { alice, bob, charlie } = setup('alice', { user: 'bob', admin: false }, 'charlie')
 
@@ -107,6 +131,184 @@ describe('Team', () => {
       // Team keys & admin keys have now been rotated once
       expect(alice.team.teamKeys().generation).toBe(1)
       expect(alice.team.adminKeys().generation).toBe(1)
+    })
+
+    it("can't admit a member once they've been removed", () => {
+      const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+
+      // 👩🏾 Alice invites 👳🏽‍♂️ Charlie, so there's a live invitation on the graph
+      const { seed } = alice.team.inviteMember()
+
+      // 👩🏾 Alice removes 👨🏻‍🦲 Bob
+      alice.team.remove(bob.userId)
+
+      // In practice an ex-member can't read past their own removal, because removing them rotates
+      // the team keys — so anything they author is concurrent with the removal, which is the
+      // resolver's business (`cantDoAnythingWhenRemoved`). Here we hand 👨🏻‍🦲 Bob the post-removal
+      // graph and keyring, so that the admission is unambiguously downstream of the removal and
+      // it's the validator that has to say no.
+      const exMemberTeam = loadTeam(alice.team.save(), bob.localContext, alice.team.teamKeyring())
+      expect(exMemberTeam.memberWasRemoved(bob.userId)).toBe(true)
+
+      // ❌ 👨🏻‍🦲 Bob knows about the invitation, but admitting is no longer his to do. His keys
+      // stay registered so that what he authored while on the team remains valid, and admitting
+      // isn't admin-only — so nothing else here stops him.
+      const tryToAdmitCharlie = () => {
+        exMemberTeam.admitMember(
+          generateProof(seed, charlie.user.keys),
+          charlie.user.keys,
+          charlie.userName
+        )
+      }
+
+      expect(tryToAdmitCharlie).toThrow(/was removed from the team/i)
+      expect(exMemberTeam.has(charlie.userId)).toBe(false)
+
+      // ✅ 👩🏾 Alice is still on the team, so the same invitation still admits 👳🏽‍♂️ Charlie
+      alice.team.admitMember(
+        generateProof(seed, charlie.user.keys),
+        charlie.user.keys,
+        charlie.userName
+      )
+      expect(alice.team.has(charlie.userId)).toBe(true)
+    })
+
+    it("can't admit a device once they've been removed", () => {
+      const { alice, bob } = setup('alice', 'bob')
+      const bobsPhone = redactDevice(bob.phone!)
+
+      // 👨🏻‍🦲 Bob invites two devices of his own
+      const { seed: firstSeed } = bob.team.inviteDevice()
+      const { seed: secondSeed } = bob.team.inviteDevice()
+
+      // ✅ While he's on the team, his own invitation admits 📱 his phone
+      bob.team.admitDevice(generateProof(firstSeed, bobsPhone.keys), bobsPhone)
+      expect(bob.team.members(bob.userId).devices).toHaveLength(2)
+
+      // 👩🏾 Alice syncs up and removes him
+      alice.team.merge(bob.team.graph)
+      alice.team.remove(bob.userId)
+
+      const exMemberTeam = loadTeam(alice.team.save(), bob.localContext, alice.team.teamKeyring())
+      expect(exMemberTeam.memberWasRemoved(bob.userId)).toBe(true)
+
+      // ❌ His second invitation is still open, but he can't spend it either
+      const bobsOtherDevice = redactDevice(
+        createDevice({ userId: bob.userId, deviceName: 'bobs other device' })
+      )
+      const tryToAdmitAnotherDevice = () => {
+        exMemberTeam.admitDevice(generateProof(secondSeed, bobsOtherDevice.keys), bobsOtherDevice)
+      }
+
+      expect(tryToAdmitAnotherDevice).toThrow(/was removed from the team/i)
+      expect(exMemberTeam.hasDevice(bobsOtherDevice.deviceId)).toBe(false)
+    })
+
+    it("can't author anything once their admission has been invalidated", () => {
+      const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+
+      // 👨🏻‍🦲 Bob is an admin, so he invites 👳🏽‍♂️ Charlie and admits him
+      const { seed } = bob.team.inviteMember()
+      bob.team.admitMember(
+        generateProof(seed, charlie.user.keys),
+        charlie.user.keys,
+        charlie.userName
+      )
+      expect(bob.team.has(charlie.userId)).toBe(true)
+
+      // ...but 👩🏾 Alice removed him concurrently, so when the two graphs meet, everything that
+      // followed from his invitation is discarded. `invalidLinkReducer` treats the invalidated
+      // admission as a removal, which is the one way someone lands in `removedMembers` without
+      // ever having been in `members`.
+      alice.team.remove(bob.userId)
+      alice.team.merge(bob.team.graph)
+      expect(alice.team.has(charlie.userId)).toBe(false)
+      expect(alice.team.memberWasRemoved(charlie.userId)).toBe(true)
+
+      // 👳🏽‍♂️ Charlie was given keys while Bob's side still thought he was a member, and his own
+      // keys stay registered, so nothing about authorship stops him. We hand him the merged graph
+      // and the current team keys, so that what he authors is unambiguously downstream of the
+      // invalidation and it's the validator that has to say no.
+      const charliesTeam = loadTeam(
+        alice.team.save(),
+        charlie.localContext,
+        alice.team.teamKeyring()
+      )
+      const addADevice = () => {
+        charliesTeam.dispatch(
+          { type: 'ADD_DEVICE', payload: { device: redactDevice(charlie.phone!) } },
+          alice.team.teamKeys()
+        )
+      }
+
+      expect(addADevice).toThrow(/was removed from the team/i)
+      expect(charliesTeam.hasDevice(charlie.phone!.deviceId)).toBe(false)
+    })
+
+    it('can still act when a discarded admission has named them in removedMembers', () => {
+      const { alice, charlie } = setup('alice', 'bob', 'charlie')
+
+      // 👳🏽‍♂️ Charlie adds a device of his own, the ordinary way
+      charlie.team.dispatch({
+        type: 'ADD_DEVICE',
+        payload: { device: redactDevice(charlie.phone!) },
+      })
+      const [head] = charlie.team.graph.head
+      const charliesLink = charlie.team.graph.links[head]
+      expect(validate(alice.team.state, charliesLink).isValid).toBe(true)
+
+      // Now the state an invalidated admission leaves behind. `invalidLinkReducer` appends the
+      // admitted member to `removedMembers` and says so explicitly: it doesn't touch `members`,
+      // because the member it's discarding was never added. That's the one way to be named in both
+      // lists at once — and it's what the rule's early return is for.
+      //
+      // This goes through that reducer rather than staging a merge race, because which of two
+      // concurrent admissions lands last is decided by comparing link hashes, and those aren't the
+      // same from one run to the next.
+      const discardedAdmission = {
+        body: {
+          type: 'ADMIT_MEMBER',
+          payload: { memberKeys: redactKeys(charlie.user.keys) },
+        },
+      } as TeamLink
+      const afterDiscarding = invalidLinkReducer(alice.team.state, discardedAdmission)
+      expect(afterDiscarding.members.some(m => m.userId === charlie.userId)).toBe(true)
+      expect(afterDiscarding.removedMembers.some(m => m.userId === charlie.userId)).toBe(true)
+
+      // ✅ He's on the team, so a discarded link naming him in `removedMembers` doesn't lock him
+      // out of it
+      expect(validate(afterDiscarding, charliesLink).isValid).toBe(true)
+    })
+
+    it('can admit an invitee again after being removed and re-added', () => {
+      const { alice, bob, charlie } = setup('alice', 'bob', { user: 'charlie', member: false })
+
+      // 👨🏻‍🦲 Bob admitted people before he was removed, and those links still replay: the rule
+      // that stops an ex-member only speaks to what comes after the removal
+      const { seed: firstSeed } = alice.team.inviteMember()
+      bob.team.merge(alice.team.graph)
+      bob.team.admitMember(
+        generateProof(firstSeed, charlie.user.keys),
+        charlie.user.keys,
+        charlie.userName
+      )
+      alice.team.merge(bob.team.graph)
+      expect(alice.team.has(charlie.userId)).toBe(true)
+
+      // 👩🏾 Alice removes him and then thinks better of it
+      alice.team.remove(bob.userId)
+      alice.team.addForTesting(bob.user, [], redactDevice(bob.device))
+      expect(alice.team.memberWasRemoved(bob.userId)).toBe(false)
+
+      const { seed } = alice.team.inviteMember()
+      const bobsTeam = loadTeam(alice.team.save(), bob.localContext, alice.team.teamKeyring())
+
+      // ✅ The tombstone is gone, so he can admit again — and 👳🏽‍♂️ Charlie, whom he admitted
+      // before the removal, is still on the team
+      const dwight = createUser('dwight', 'dwight-user-id', 'dwight')
+      bobsTeam.admitMember(generateProof(seed, dwight.keys), dwight.keys, dwight.userName)
+      expect(bobsTeam.has(dwight.userId)).toBe(true)
+      expect(bobsTeam.has(charlie.userId)).toBe(true)
     })
 
     it("doesn't do anything if asked to remove a nonexistent member", () => {

@@ -1,8 +1,17 @@
-import { ADMIN } from 'role/index.js'
-import * as teams from 'team/index.js'
-import { setup } from 'util/testing/index.js'
-import 'util/testing/expect/toLookLikeKeyset.js'
-import { symmetric } from '@localfirst/crypto'
+import { createGraph, createKeyset } from '@localfirst/crdx'
+import * as lockbox from '../../lockbox/index.js'
+import { ADMIN } from '../../role/index.js'
+import { redactDevice } from '../../device/index.js'
+import { ADMIN_SCOPE, TEAM_SCOPE } from '../constants.js'
+import * as teams from '../index.js'
+import { redactUser } from '../redactUser.js'
+import { serializeTeamGraph } from '../serialize.js'
+import { type TeamAction, type TeamContext, type TeamLink, type TeamState } from '../types.js'
+import { validate } from '../validate.js'
+import { setup } from '../../util/testing/index.js'
+import '../../util/testing/expect/toLookLikeKeyset.js'
+import { asymmetric, symmetric } from '@localfirst/crypto'
+import { type InvalidResult } from '../../util/types.js'
 import { describe, expect, it } from 'vitest'
 
 const MANAGERS = 'managers'
@@ -79,6 +88,264 @@ describe('Team', () => {
       // 👨🏻‍🦲 Bob has admin keys
       const bobsAdminKeys = bob.team.roleKeys(ADMIN)
       expect(bobsAdminKeys).toLookLikeKeyset()
+    })
+
+    it("won't add a member to a role without a lockbox holding that role's keys", () => {
+      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+
+      // 👩🏾 Alice authors the role grant herself, leaving out the lockbox. Applications gate on
+      // `memberHasRole`, so without this check 👨🏻‍🦲 Bob would count as an admin everywhere while
+      // holding none of the admin keys.
+      const grantRoleWithNoLockbox = () => {
+        alice.team.dispatch({
+          type: 'ADD_MEMBER_ROLE',
+          payload: { userId: bob.userId, roleName: ADMIN, lockboxes: [] },
+        })
+      }
+
+      expect(grantRoleWithNoLockbox).toThrowError(/lockbox/i)
+      expect(alice.team.memberIsAdmin(bob.userId)).toBe(false)
+    })
+
+    it("won't add a member to a role with a lockbox addressed to someone else", () => {
+      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+
+      // 👩🏾 Alice grants 👨🏻‍🦲 Bob the admin role, but addresses the lockbox to herself
+      const lockboxForAlice = lockbox.create(
+        alice.team.roleKeys(ADMIN),
+        alice.team.members(alice.userId).keys
+      )
+      const grantRoleWithWrongLockbox = () => {
+        alice.team.dispatch({
+          type: 'ADD_MEMBER_ROLE',
+          payload: { userId: bob.userId, roleName: ADMIN, lockboxes: [lockboxForAlice] },
+        })
+      }
+
+      expect(grantRoleWithWrongLockbox).toThrowError(/lockbox/i)
+      expect(alice.team.memberIsAdmin(bob.userId)).toBe(false)
+    })
+
+    it("won't add a member to a role with a lockbox holding a different role's keys", () => {
+      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+      alice.team.addRole(managers)
+
+      // 👩🏾 Alice makes 👨🏻‍🦲 Bob an admin, but the lockbox only holds the managers' keys
+      const lockboxForBob = lockbox.create(
+        alice.team.roleKeys(MANAGERS),
+        alice.team.members(bob.userId).keys
+      )
+      const grantRoleWithWrongKeys = () => {
+        alice.team.dispatch({
+          type: 'ADD_MEMBER_ROLE',
+          payload: { userId: bob.userId, roleName: ADMIN, lockboxes: [lockboxForBob] },
+        })
+      }
+
+      expect(grantRoleWithWrongKeys).toThrowError(/lockbox/i)
+      expect(alice.team.memberIsAdmin(bob.userId)).toBe(false)
+    })
+
+    it('does at most one lockbox scan, however many lockboxes the payload names', () => {
+      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+
+      // Looking up an encryption key means scanning every lockbox the team has. A payload can name
+      // any number of lockboxes, and a key that isn't registered costs a full scan to rule out — so
+      // checking them one at a time lets a single link cost O(payload × team) work, paid by every
+      // peer that replays the chain, from now on.
+      const templateLockbox = lockbox.create(
+        alice.team.roleKeys(ADMIN),
+        alice.team.members(bob.userId).keys
+      )
+      // Each one is addressed to a perfectly good key that just isn't anybody's — a manifest key
+      // has to be base58 libsodium could take (`payloadsMustBeWellFormed` sees to that), and what
+      // this test is about is the cost of finding out that it isn't registered
+      const lockboxes = Array.from({ length: 100 }, () => ({
+        ...templateLockbox,
+        recipient: {
+          ...templateLockbox.recipient,
+          publicKey: asymmetric.keyPair().publicKey,
+        },
+      }))
+
+      // Count the times the validators reach for the team's lockboxes
+      let lockboxScans = 0
+      const { state } = alice.team
+      const countingState = {
+        ...state,
+        get lockboxes() {
+          lockboxScans += 1
+          return state.lockboxes
+        },
+      } as TeamState
+
+      const head = alice.team.graph.links[alice.team.graph.head[0]]
+      const link = {
+        ...head,
+        body: {
+          ...head.body,
+          type: 'ADD_MEMBER_ROLE',
+          payload: { userId: bob.userId, roleName: ADMIN, lockboxes },
+        },
+      } as unknown as TeamLink
+
+      const validation = validate(countingState, link)
+
+      // The grant is rejected, and it's this validator that rejects it
+      expect(validation.isValid).toBe(false)
+      expect((validation as InvalidResult).error.message).toMatch(
+        /requires a lockbox holding that role's keys/i
+      )
+
+      // ...and it cost one scan, not one per lockbox in the payload
+      expect(lockboxScans).toBeLessThanOrEqual(1)
+    })
+
+    it('adds a member to a role when the lockbox is in order', () => {
+      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+      alice.team.addRole(managers)
+
+      // 👩🏾 Alice grants roles the normal way, so the keys go along with them
+      alice.team.addMemberRole(bob.userId, ADMIN)
+      alice.team.addMemberRole(bob.userId, MANAGERS)
+
+      // ✅ 👨🏻‍🦲 Bob has both roles, and the keys that come with them
+      bob.team = teams.load(alice.team.save(), bob.localContext, alice.team.teamKeys())
+      expect(bob.team.memberIsAdmin(bob.userId)).toBe(true)
+      expect(bob.team.memberHasRole(bob.userId, MANAGERS)).toBe(true)
+      expect(bob.team.roleKeys(ADMIN)).toLookLikeKeyset()
+      expect(bob.team.roleKeys(MANAGERS)).toLookLikeKeyset()
+    })
+
+    it("does no lockbox scan at all for a grant naming the member's current keys", () => {
+      const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+      alice.team.addRole(managers)
+
+      // The honest grant addresses the lockbox to the member's current keys, and those are on the
+      // member record — so answering it costs nothing beyond that lookup
+      const lockboxForBob = lockbox.create(
+        alice.team.roleKeys(MANAGERS),
+        alice.team.members(bob.userId).keys
+      )
+
+      let lockboxScans = 0
+      const { state } = alice.team
+      const countingState = {
+        ...state,
+        get lockboxes() {
+          lockboxScans += 1
+          return state.lockboxes
+        },
+      } as TeamState
+
+      const head = alice.team.graph.links[alice.team.graph.head[0]]
+      const link = {
+        ...head,
+        body: {
+          ...head.body,
+          type: 'ADD_MEMBER_ROLE',
+          payload: { userId: bob.userId, roleName: MANAGERS, lockboxes: [lockboxForBob] },
+        },
+      } as unknown as TeamLink
+
+      expect(validate(countingState, link).isValid).toBe(true)
+      expect(lockboxScans).toBe(0)
+    })
+
+    it("won't add a member with a role without a lockbox holding that role's keys", () => {
+      const { alice, bob } = setup('alice', { user: 'bob', member: false })
+
+      // 👩🏾 Alice adds 👨🏻‍🦲 Bob as an admin, but hands him only the team keys. ADD_MEMBER applies
+      // the roles in its payload just as ADD_MEMBER_ROLE does, so without this check `memberIsAdmin`
+      // would say yes for someone holding none of the admin keys.
+      const member = { ...redactUser(bob.user), roles: [ADMIN] }
+      const addBobAsAdminWithoutAdminKeys = () => {
+        alice.team.dispatch({
+          type: 'ADD_MEMBER',
+          payload: {
+            member,
+            roles: [ADMIN],
+            lockboxes: [lockbox.create(alice.team.teamKeys(), member.keys)],
+          },
+        })
+      }
+
+      expect(addBobAsAdminWithoutAdminKeys).toThrowError(
+        /requires a lockbox holding that role's keys/i
+      )
+      expect(alice.team.has(bob.userId)).toBe(false)
+    })
+
+    it('adds a member with a role when the lockboxes are in order', () => {
+      const { alice, bob } = setup('alice', { user: 'bob', member: false })
+
+      // ✅ Adding a member with roles the normal way takes the keys along
+      alice.team.addForTesting(bob.user, [ADMIN], redactDevice(bob.device))
+
+      bob.team = teams.load(alice.team.save(), bob.localContext, alice.team.teamKeys())
+      expect(bob.team.memberIsAdmin(bob.userId)).toBe(true)
+      expect(bob.team.roleKeys(ADMIN)).toLookLikeKeyset()
+    })
+
+    it("won't create a team whose founding member doesn't get the admin keys", () => {
+      const { alice } = setup('alice')
+      const teamKeys = createKeyset(TEAM_SCOPE)
+      const rootMember = redactUser(alice.user)
+      const rootDevice = redactDevice(alice.device)
+
+      // The reducer makes the founding member an admin, so the root link has to hand them the admin
+      // keys — otherwise the team starts out with an admin who can't open anything an admin owns.
+      const rootPayload = {
+        name: 'Spies Я Us',
+        rootMember,
+        rootDevice,
+        lockboxes: [
+          lockbox.create(teamKeys, rootMember.keys),
+          lockbox.create(alice.user.keys, rootDevice.keys),
+        ],
+      }
+      const graph = createGraph<TeamAction, TeamContext>({
+        user: alice.user,
+        rootPayload,
+        context: alice.graphContext,
+        keys: teamKeys,
+      })
+
+      const loadTheTeam = () => {
+        teams.load(serializeTeamGraph(graph), alice.localContext, teamKeys)
+      }
+
+      expect(loadTheTeam).toThrowError(/requires a lockbox holding that role's keys/i)
+    })
+
+    it('creates a team when the founding member gets the admin keys', () => {
+      const { alice } = setup('alice')
+      const teamKeys = createKeyset(TEAM_SCOPE)
+      const adminKeys = createKeyset(ADMIN_SCOPE)
+      const rootMember = redactUser(alice.user)
+      const rootDevice = redactDevice(alice.device)
+
+      // ✅ The same root link, with the admin lockbox `createTeam` has always included
+      const rootPayload = {
+        name: 'Spies Я Us',
+        rootMember,
+        rootDevice,
+        lockboxes: [
+          lockbox.create(teamKeys, rootMember.keys),
+          lockbox.create(adminKeys, rootMember.keys),
+          lockbox.create(alice.user.keys, rootDevice.keys),
+        ],
+      }
+      const graph = createGraph<TeamAction, TeamContext>({
+        user: alice.user,
+        rootPayload,
+        context: alice.graphContext,
+        keys: teamKeys,
+      })
+
+      const team = teams.load(serializeTeamGraph(graph), alice.localContext, teamKeys)
+      expect(team.memberIsAdmin(alice.userId)).toBe(true)
+      expect(team.roleKeys(ADMIN)).toLookLikeKeyset()
     })
 
     it('removes a member from a role', () => {

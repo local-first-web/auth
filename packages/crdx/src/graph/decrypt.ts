@@ -8,9 +8,9 @@ import {
   type LinkBody,
   type MaybePartlyDecryptedGraph,
 } from './types.js'
-import { createKeyring } from 'keyset/createKeyring.js'
-import { type Keyring, type KeysetWithSecrets } from 'keyset/index.js'
-import { type Hash } from 'util/index.js'
+import { createKeyring } from '../keyset/createKeyring.js'
+import { type Keyring, type KeysetWithSecrets } from '../keyset/index.js'
+import { type Hash } from '../util/index.js'
 import { assert } from '@localfirst/shared'
 
 /**
@@ -37,13 +37,14 @@ export const decryptLink = <A extends Action, C>(
   return {
     hash: hashEncryptedLink(encryptedBody),
     body: decryptedLinkBody,
+    senderPublicKey,
   }
 }
 
 /**
  * Decrypts a graph using a one or more keys.
  */
-export const decryptGraph: DecryptFn = <A extends Action, C>({
+export const decryptGraph = <A extends Action, C>({
   encryptedGraph,
   keys,
 }: {
@@ -90,7 +91,17 @@ export type DecryptFnParams<A extends Action, C> = {
   keys: KeysetWithSecrets | KeysetWithSecrets[] | Keyring
 }
 
-export type DecryptFn = <A extends Action, C>({
+/**
+ * A function that decrypts a graph.
+ *
+ * This is parameterized rather than generic. The generic form promised to work for every action and
+ * context type, which only a decryptor as general as `decryptGraph` can deliver — a caller with a
+ * decryptor for one specific graph shape could not satisfy it. That never showed up because the
+ * published declarations resolved to `any` (see auth-ax2).
+ *
+ * The defaults keep the bare name `DecryptFn` compiling for anyone who wrote it that way.
+ */
+export type DecryptFn<A extends Action = Action, C = unknown> = ({
   encryptedGraph,
   keys,
 }: DecryptFnParams<A, C>) => Graph<A, C>

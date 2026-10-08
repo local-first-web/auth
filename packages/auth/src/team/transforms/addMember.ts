@@ -1,5 +1,5 @@
-import { type Member } from 'team/index.js'
-import { type Transform } from 'team/types.js'
+import { type Member } from '../index.js'
+import { type Transform } from '../types.js'
 
 export const addMember =
   (newMember: Member): Transform =>
@@ -16,5 +16,5 @@ export const addMember =
     ],
 
     // Remove member's name from list of removed members (e.g. if member was removed and is now being re-added)
-    removedMembers: state.removedMembers.filter(m => m.userId === newMember.userId),
+    removedMembers: state.removedMembers.filter(m => m.userId !== newMember.userId),
   })

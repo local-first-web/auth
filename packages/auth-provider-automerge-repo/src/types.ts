@@ -76,6 +76,16 @@ export type DeviceInvitation = MemberInvitation & {
   userName: string
 }
 
+/**
+ * This has never returned true: nothing puts a `userId` on an invitation, and `DeviceInvitation`
+ * doesn't have one. Dropping the `userId` half wouldn't fix it either — the application supplies a
+ * `userName` whether it's joining as a new member or as a new device (see the todos demo's
+ * `JoinTeam`), so `userName` doesn't separate the two kinds. What does is whether the joiner has a
+ * user, which is what `AuthProvider` and `Auth.Connection` both go by. Left here rather than
+ * removed from a published package's surface as part of this fix; see auth-duh.
+ *
+ * @deprecated Doesn't distinguish the two kinds of invitation. Don't use it.
+ */
 export const isDeviceInvitation = (invitation: Invitation): invitation is DeviceInvitation => {
   return 'userName' in invitation && 'userId' in invitation
 }
@@ -134,7 +144,12 @@ export type AuthProviderEvents = {
    * this is how we get the user's keys.) This event gives the application a chance to persist the
    * team graph and the user's info.
    */
-  joined: (payload: { shareId: ShareId; peerId: PeerId; team: Auth.Team; user: Auth.User }) => void
+  joined: (payload: {
+    shareId: ShareId
+    peerId: PeerId
+    team: Auth.Team
+    user: Auth.UserWithSecrets
+  }) => void
 
   /**
    * We're connected to a peer and have been mutually authenticated.

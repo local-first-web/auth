@@ -1,13 +1,26 @@
-import { createKeyring, createKeyset, type UnixTimestamp } from '@localfirst/crdx'
+import {
+  createKeyring,
+  createKeyset,
+  createUser,
+  redactKeys,
+  type UnixTimestamp,
+} from '@localfirst/crdx'
 import { signatures } from '@localfirst/crypto'
-import { redactDevice, Team, type FirstUseDevice } from 'index.js'
-import { generateProof } from 'invitation/index.js'
-import * as teams from 'team/index.js'
-import { KeyType } from 'util/index.js'
-import { setup } from 'util/testing/index.js'
+import { createDevice, redactDevice, Team, type FirstUseDevice } from '../../index.js'
+import {
+  create as createInvitation,
+  generateProof,
+  hashKeys,
+  type DeviceInvitation,
+  type MemberInvitation,
+} from '../../invitation/index.js'
+import * as lockbox from '../../lockbox/index.js'
+import * as teams from '../index.js'
+import { KeyType } from '../../util/index.js'
+import { setup } from '../../util/testing/index.js'
 import { describe, expect, it } from 'vitest'
 
-const { USER } = KeyType
+const { DEVICE, USER } = KeyType
 
 describe('Team', () => {
   describe('invitations', () => {
@@ -19,7 +32,7 @@ describe('Team', () => {
         const { seed } = alice.team.inviteMember()
 
         // 👨🏻‍🦲 Bob accepts the invitation
-        const proofOfInvitation = generateProof(seed)
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
 
         // 👨🏻‍🦲 Bob shows 👩🏾 Alice his proof of invitation, and she lets him in, associating
         // him with the public keys he's provided
@@ -36,7 +49,7 @@ describe('Team', () => {
         const seed = 'passw0rd'
         alice.team.inviteMember({ seed })
 
-        const proofOfInvitation = generateProof(seed)
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
 
         alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
 
@@ -52,7 +65,7 @@ describe('Team', () => {
         alice.team.inviteMember({ seed })
 
         // 👨🏻‍🦲 Bob accepts the invitation using a url-friendlier version of the key
-        const proofOfInvitation = generateProof('abc+def+ghi')
+        const proofOfInvitation = generateProof('abc+def+ghi', bob.user.keys)
         alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
 
         // ✅ Bob is on the team
@@ -70,7 +83,7 @@ describe('Team', () => {
         const { seed } = alice.team.inviteMember()
 
         // 👳🏽‍♂️ Charlie accepts the invitation
-        const proofOfInvitation = generateProof(seed)
+        const proofOfInvitation = generateProof(seed, charlie.user.keys)
 
         // Later, 👩🏾 Alice is no longer around, but 👨🏻‍🦲 Bob is online
         let persistedTeam = alice.team.save()
@@ -97,7 +110,7 @@ describe('Team', () => {
         // 👩🏾 Alice invites 👨🏻‍🦲 Bob with a future expiration date
         const expiration = new Date(Date.UTC(2999, 12, 25)).valueOf() as UnixTimestamp // NOTE 👩‍🚀 this test will fail if run in the distant future
         const { seed } = alice.team.inviteMember({ expiration })
-        const proofOfInvitation = generateProof(seed)
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
         alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
 
         // ✅ 👨🏻‍🦲 Bob's invitation has not expired so he is on the team
@@ -110,7 +123,7 @@ describe('Team', () => {
         // A long time ago 👩🏾 Alice invited 👨🏻‍🦲 Bob
         const expiration = new Date(Date.UTC(2020, 12, 25)).valueOf() as UnixTimestamp
         const { seed } = alice.team.inviteMember({ expiration })
-        const proofOfInvitation = generateProof(seed)
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
 
         const tryToAdmitBob = () => {
           alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
@@ -132,13 +145,14 @@ describe('Team', () => {
 
         const { seed } = alice.team.inviteMember({ maxUses: 2 })
 
-        // 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie both generate the same proof of invitation from the seed
-        const proofOfInvitation = generateProof(seed)
+        // 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie each generate a proof from the same seed, bound to their own userIds
+        const bobsProof = generateProof(seed, bob.user.keys)
+        const charliesProof = generateProof(seed, charlie.user.keys)
 
         // 👩🏾 Alice admits them both
 
-        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
-        alice.team.admitMember(proofOfInvitation, charlie.user.keys, charlie.user.userName)
+        alice.team.admitMember(bobsProof, bob.user.keys, bob.user.userName)
+        alice.team.admitMember(charliesProof, charlie.user.keys, charlie.user.userName)
 
         // ✅ 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie are both on the team
         expect(alice.team.has(bob.userId)).toBe(true)
@@ -150,7 +164,6 @@ describe('Team', () => {
 
         // 👩🏾 Alice makes an invitation that anyone can use
         const { seed } = alice.team.inviteMember({ maxUses: 0 }) // No limit
-        const proofOfInvitation = generateProof(seed)
 
         // A bunch of people use the same invitation and 👩🏾 Alice admits them all
         const invitees = `
@@ -161,7 +174,7 @@ describe('Team', () => {
           .split(',')
         for (const userId of invitees) {
           const userKeys = createKeyset({ type: USER, name: userId })
-          alice.team.admitMember(proofOfInvitation, userKeys, userId)
+          alice.team.admitMember(generateProof(seed, userKeys), userKeys, userId)
         }
 
         // ✅ they're all on the team
@@ -179,15 +192,16 @@ describe('Team', () => {
 
         const { seed } = alice.team.inviteMember({ maxUses: 1 })
 
-        // 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie both generate the same proof of invitation from the seed
-        const proofOfInvitation = generateProof(seed)
+        // 👨🏻‍🦲 Bob and 👳🏽‍♂️ Charlie each generate a proof from the same seed, bound to their own userIds
+        const bobsProof = generateProof(seed, bob.user.keys)
+        const charliesProof = generateProof(seed, charlie.user.keys)
 
         const tryToAdmitBob = () => {
-          alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
+          alice.team.admitMember(bobsProof, bob.user.keys, bob.user.userName)
         }
 
         const tryToAdmitCharlie = () => {
-          alice.team.admitMember(proofOfInvitation, charlie.user.keys, charlie.user.userName)
+          alice.team.admitMember(charliesProof, charlie.user.keys, charlie.user.userName)
         }
 
         // 👍 👨🏻‍🦲 Bob uses the invitation first and he gets in
@@ -214,7 +228,7 @@ describe('Team', () => {
         const { seed, id } = alice.team.inviteMember()
 
         // 👳🏽‍♂️ Charlie accepts the invitation
-        const proofOfInvitation = generateProof(seed)
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
 
         // 👩🏾 Alice changes her mind and revokes the invitation
         alice.team.revokeInvitation(id)
@@ -249,9 +263,10 @@ describe('Team', () => {
         const invitation = Object.values(team.state.invitations)[0]
         const { id } = invitation
 
-        const payload = { id }
+        const keyHash = hashKeys(eve.user.keys)
+        const payload = { id, invitee: eve.userId, keyHash }
         const signature = signatures.sign(payload, eve.user.keys.signature.secretKey)
-        const badProof = { id, signature }
+        const badProof = { id, invitee: eve.userId, keyHash, signature }
 
         // 🦹‍♀️ Eve shows 👩🏾 Alice her proof of invitation
         const submitBadProof = () => team.admitMember(badProof, eve.user.keys, 'bob')
@@ -287,7 +302,7 @@ describe('Team', () => {
         const { seed } = alice.team.inviteMember()
 
         // 👨🏻‍🦲 Bob accepts the invitation
-        const proofOfInvitation = generateProof(seed)
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
 
         // 👨🏻‍🦲 Bob shows 👩🏾 Alice his proof of invitation, and she lets him in
         alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
@@ -343,7 +358,7 @@ describe('Team', () => {
         const { seed } = alice.team.inviteMember()
 
         // 👨🏻‍🦲 Bob accepts the invitation
-        const proofOfInvitation = generateProof(seed)
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
 
         // 👨🏻‍🦲 Bob shows 👩🏾 Alice his proof of invitation, but uses Alice's username
         const tryToAdmitBob = () => {
@@ -363,14 +378,15 @@ describe('Team', () => {
         // 👩🏾 Alice invites 🦹‍♀️ Eve by sending her a random secret key
         const { seed } = alice.team.inviteMember()
 
-        // 🦹‍♀️ Eve accepts the invitation
-        const proofOfInvitation = generateProof(seed)
-
         // 🦹‍♀️ Eve prepares keys using Alice's userId
         const keysWithAliceUserId = {
           ...eve.user.keys,
           name: alice.userId,
         }
+
+        // 🦹‍♀️ Eve accepts the invitation, binding her proof to those keys — which carry Alice's
+        // userId, so that's what she'll present as her own
+        const proofOfInvitation = generateProof(seed, keysWithAliceUserId)
 
         // 🦹‍♀️ Eve shows 👩🏾 Alice her proof of invitation, but uses Alice's userId
         const tryToAdmitEve = () => {
@@ -388,7 +404,346 @@ describe('Team', () => {
         expect(alice.team.members(alice.userId).userName === alice.userName).toBe(true)
       })
 
+      it("won't re-admit a removed member by replaying their published proof", () => {
+        const { alice, bob, charlie } = setup(
+          'alice',
+          { user: 'bob', member: false },
+          { user: 'charlie', admin: false }
+        )
+
+        // 👩🏾 Alice posts an invitation that can be used more than once, and admits 👨🏻‍🦲 Bob with it
+        const { seed } = alice.team.inviteMember({ maxUses: 2 })
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
+        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.userName)
+        expect(alice.team.has(bob.userId)).toBe(true)
+
+        // 👩🏾 Alice removes 👨🏻‍🦲 Bob
+        alice.team.remove(bob.userId)
+        expect(alice.team.has(bob.userId)).toBe(false)
+
+        // 👳🏽‍♂️ Charlie is an ordinary member, not an admin. Bob's proof is published on the graph
+        // and the invitation still has a use left, so nothing stops him from replaying it — which
+        // would put Bob back on the team and hand him lockboxes for the current team keys.
+        charlie.team = teams.load(alice.team.save(), charlie.localContext, alice.team.teamKeyring())
+        const replayBobsAdmission = () => {
+          charlie.team.admitMember(proofOfInvitation, bob.user.keys, bob.userName)
+        }
+
+        expect(replayBobsAdmission).toThrowError(/already been used to admit/i)
+        expect(charlie.team.has(bob.userId)).toBe(false)
+      })
+
+      it("won't spend an invitation twice on the same invitee, even one still on the team", () => {
+        const { alice, bob, charlie } = setup(
+          'alice',
+          { user: 'bob', member: false },
+          { user: 'charlie', admin: false }
+        )
+
+        const { seed } = alice.team.inviteMember({ maxUses: 2 })
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
+        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.userName)
+
+        // 👳🏽‍♂️ Charlie replays the admission verbatim. The uniqueness check catches this one, but
+        // only incidentally — what makes it wrong is that this invitation has already admitted Bob.
+        charlie.team = teams.load(alice.team.save(), charlie.localContext, alice.team.teamKeyring())
+        const replayBobsAdmission = () => {
+          charlie.team.admitMember(proofOfInvitation, bob.user.keys, bob.userName)
+        }
+
+        expect(replayBobsAdmission).toThrowError(/already been used to admit/i)
+      })
+
+      it("won't accept a replayed admission authored directly on the graph", () => {
+        const { alice, bob, charlie } = setup(
+          'alice',
+          { user: 'bob', member: false },
+          { user: 'charlie', admin: false }
+        )
+
+        const { seed } = alice.team.inviteMember({ maxUses: 2 })
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
+        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.userName)
+        alice.team.remove(bob.userId)
+
+        // An attacker doesn't have to go through `admitMember`, which checks the invitation before
+        // posting anything — they can author the link themselves. What every peer applies is the
+        // link, so it's the validators that have to refuse it.
+        charlie.team = teams.load(alice.team.save(), charlie.localContext, alice.team.teamKeyring())
+        const memberKeys = redactKeys(bob.user.keys)
+        const replayBobsAdmission = () => {
+          charlie.team.dispatch({
+            type: 'ADMIT_MEMBER',
+            payload: {
+              id: proofOfInvitation.id,
+              userName: bob.userName,
+              memberKeys,
+              proof: proofOfInvitation,
+              // 🦹‍♀️ The point of the exercise: handing Bob the current generation of team keys
+              lockboxes: Object.values(charlie.team.teamKeyring()).map(keys =>
+                lockbox.create(keys, memberKeys)
+              ),
+            },
+          })
+        }
+
+        expect(replayBobsAdmission).toThrowError(/already been used to admit/i)
+        expect(charlie.team.has(bob.userId)).toBe(false)
+      })
+
+      it("won't admit an invitee whose keyset has no name", () => {
+        const { alice, bob } = setup('alice', { user: 'bob', member: false })
+
+        // A member's identifier is the `name` on the keyset they choose for themselves, and nothing
+        // makes them give it one. A nameless invitee satisfies every check that goes by it —
+        // including the record of whom an invitation has already admitted, which is what keeps a
+        // published proof from being replayed. So they have to be turned away at the door.
+        //
+        // Two rules say so now — `admissionMustBeProven`, which can see the invitation as well as
+        // the admission, and `payloadProblem`, which also has to speak for the links
+        // `admissionMustBeProven` never sees. Through `dispatch` it is always the second one that
+        // answers, because the payload is checked before the link is built, so that's the message
+        // this expects. (`admissionMustBeProven`'s wording is pinned by the merge-path tests in
+        // `malformedPayloads.test.ts`.)
+        const namelessKeys = { ...bob.user.keys, name: undefined as unknown as string }
+        const { seed } = alice.team.inviteMember({ maxUses: 2 })
+        const proofOfInvitation = generateProof(seed, namelessKeys)
+
+        const admitANamelessInvitee = () => {
+          alice.team.dispatch({
+            type: 'ADMIT_MEMBER',
+            payload: {
+              id: proofOfInvitation.id,
+              userName: bob.userName,
+              memberKeys: redactKeys(namelessKeys),
+              proof: proofOfInvitation,
+              lockboxes: [],
+            },
+          })
+        }
+
+        expect(admitANamelessInvitee).toThrowError(
+          "This ADMIT_MEMBER link needs a usable userId, and 'undefined' is not one."
+        )
+        expect(alice.team.members()).toHaveLength(1)
+      })
+
+      it("won't admit a device with no deviceId", () => {
+        const { alice } = setup('alice')
+        const alicePhone = redactDevice(alice.phone!)
+
+        // The device half of the same hole: a device's identifier is its `deviceId`, and
+        // `memberByDeviceId` is how a connecting peer is resolved to a member
+        const namelessDevice = {
+          ...alicePhone,
+          deviceId: undefined as unknown as string,
+          keys: { ...alicePhone.keys, name: undefined as unknown as string },
+        }
+        const { seed } = alice.team.inviteDevice()
+        const proofOfInvitation = generateProof(seed, namelessDevice.keys)
+
+        const admitANamelessDevice = () => {
+          alice.team.dispatch({
+            type: 'ADMIT_DEVICE',
+            payload: {
+              id: proofOfInvitation.id,
+              device: namelessDevice,
+              proof: proofOfInvitation,
+              lockboxes: [],
+            },
+          })
+        }
+
+        expect(admitANamelessDevice).toThrowError(/not a usable deviceid/i)
+        expect(alice.team.members(alice.userId).devices).toHaveLength(1)
+      })
+
+      it("won't spend a device invitation twice on the same device", () => {
+        const { alice } = setup('alice')
+        const alicePhone = redactDevice(alice.phone!)
+
+        // `inviteDevice` caps a device invitation at a single use, so a multi-use one has to be
+        // authored directly — which is within any member's power
+        const deviceInvitation = createInvitation({
+          kind: 'DEVICE',
+          seed: 'passw0rd',
+          userId: alice.userId,
+          maxUses: 2,
+        })
+        alice.team.dispatch({
+          type: 'INVITE_DEVICE',
+          payload: { invitation: deviceInvitation },
+        })
+
+        const proofOfInvitation = generateProof('passw0rd', alicePhone.keys)
+        alice.team.admitDevice(proofOfInvitation, alicePhone)
+        expect(alice.team.members(alice.userId).devices).toHaveLength(2)
+
+        // 👩🏾 Alice removes 📱 her phone; replaying its published proof would bring it back
+        alice.team.removeDevice(alicePhone.deviceId)
+        const replayThePhonesAdmission = () => {
+          alice.team.admitDevice(proofOfInvitation, alicePhone)
+        }
+
+        expect(replayThePhonesAdmission).toThrowError(/already been used to admit/i)
+        expect(alice.team.members(alice.userId).devices).toHaveLength(1)
+      })
+
+      it('still admits a second, different member with a multi-use invitation', () => {
+        const { alice, bob, charlie } = setup(
+          'alice',
+          { user: 'bob', member: false },
+          { user: 'charlie', member: false }
+        )
+
+        // ✅ What a multi-use invitation is for: admitting more than one person
+        const { seed } = alice.team.inviteMember({ maxUses: 2 })
+        alice.team.admitMember(generateProof(seed, bob.user.keys), bob.user.keys, bob.userName)
+        alice.team.admitMember(
+          generateProof(seed, charlie.user.keys),
+          charlie.user.keys,
+          charlie.userName
+        )
+
+        expect(alice.team.has(bob.userId)).toBe(true)
+        expect(alice.team.has(charlie.userId)).toBe(true)
+      })
+
+      it('still lets an admin invite a removed member back', () => {
+        const { alice, bob } = setup('alice', { user: 'bob', member: false })
+
+        const { seed } = alice.team.inviteMember()
+        alice.team.admitMember(generateProof(seed, bob.user.keys), bob.user.keys, bob.userName)
+        alice.team.remove(bob.userId)
+        expect(alice.team.has(bob.userId)).toBe(false)
+
+        // ✅ Removal isn't a permanent ban: a fresh invitation gets 👨🏻‍🦲 Bob back on the team,
+        // under the same userId and userName as before
+        const { seed: secondSeed } = alice.team.inviteMember()
+        alice.team.admitMember(
+          generateProof(secondSeed, bob.user.keys),
+          bob.user.keys,
+          bob.userName
+        )
+
+        expect(alice.team.has(bob.userId)).toBe(true)
+        expect(alice.team.memberWasRemoved(bob.userId)).toBe(false)
+      })
+
+      it('still admits an invitee whose earlier admission was undone by a concurrent removal', () => {
+        const { alice, bob, charlie } = setup('alice', 'bob', {
+          user: 'charlie',
+          member: false,
+        })
+
+        // 🔌❌ Alice and Bob are disconnected
+
+        // 👨🏻‍🦲 Bob invites and admits 👳🏽‍♂️ Charlie
+        const { seed } = bob.team.inviteMember()
+        bob.team.admitMember(
+          generateProof(seed, charlie.user.keys),
+          charlie.user.keys,
+          charlie.userName
+        )
+
+        // 👩🏾 Concurrently, Alice removes Bob
+        alice.team.remove(bob.userId)
+
+        // 🔌✔ They reconnect. Charlie's admission depended on Bob's invitation, so it's discarded —
+        // and the reducer records Charlie as removed so that his client knows to start over.
+        alice.team.merge(bob.team.graph)
+        expect(alice.team.has(charlie.userId)).toBe(false)
+        expect(alice.team.memberWasRemoved(charlie.userId)).toBe(true)
+
+        // ✅ 👳🏽‍♂️ Charlie was never a member and nobody removed him, so starting over has to work:
+        // 👩🏾 Alice invites him herself and admits him
+        const { seed: aliceSeed } = alice.team.inviteMember()
+        alice.team.admitMember(
+          generateProof(aliceSeed, charlie.user.keys),
+          charlie.user.keys,
+          charlie.userName
+        )
+
+        expect(alice.team.has(charlie.userId)).toBe(true)
+      })
+
+      it("won't accept a proof replayed under someone else's keys", () => {
+        const { alice, bob, eve } = setup(
+          'alice',
+          { user: 'bob', member: false },
+          { user: 'eve', member: false }
+        )
+
+        // 👩🏾 Alice invites 👨🏻‍🦲 Bob by sending him a random secret key
+        const { seed } = alice.team.inviteMember()
+
+        // 👨🏻‍🦲 Bob generates his proof of invitation
+        const proofOfInvitation = generateProof(seed, bob.user.keys)
+
+        // 🦹‍♀️ Eve intercepts Bob's proof and presents it as her own, under her own keys
+        const tryToAdmitEve = () => {
+          alice.team.admitMember(proofOfInvitation, eve.user.keys, eve.user.userName)
+        }
+
+        // 👎 The proof is bound to 👨🏻‍🦲 Bob, so it doesn't get 🦹‍♀️ Eve in
+        expect(tryToAdmitEve).toThrowError(/issued to a different user/i)
+
+        // ❌ 🦹‍♀️ Eve is not on the team
+        expect(alice.team.has(eve.userId)).toBe(false)
+
+        // ✅ 👨🏻‍🦲 Bob can still use his own proof
+        alice.team.admitMember(proofOfInvitation, bob.user.keys, bob.user.userName)
+        expect(alice.team.has(bob.userId)).toBe(true)
+      })
+
+      it("won't accept a proof that names someone other than the keys being admitted", () => {
+        const { alice, bob, eve } = setup(
+          'alice',
+          { user: 'bob', member: false },
+          { user: 'eve', member: false }
+        )
+
+        const { seed } = alice.team.inviteMember()
+
+        // 🦹‍♀️ Eve knows the seed, so she can mint a proof — but only one naming herself
+        const proofNamingEve = generateProof(seed, eve.user.keys)
+
+        // She can't use it to get 👨🏻‍🦲 Bob's keys admitted
+        const tryToAdmitBob = () => {
+          alice.team.admitMember(proofNamingEve, bob.user.keys, bob.user.userName)
+        }
+
+        expect(tryToAdmitBob).toThrowError(/issued to a different user/i)
+        expect(alice.team.has(bob.userId)).toBe(false)
+      })
+
       describe('devices', () => {
+        it("won't accept a device proof replayed for a different device", () => {
+          const { alice: aliceLaptop } = setup('alice')
+          const alicePhone = redactDevice(aliceLaptop.phone!)
+
+          // 💻 on her laptop, Alice generates an invitation for her 📱 phone
+          const { seed } = aliceLaptop.team.inviteDevice()
+
+          // 📱 the phone generates a proof bound to itself
+          const proofOfInvitation = generateProof(seed, alicePhone.keys)
+
+          // 🦹‍♀️ Eve intercepts the proof and presents it for a device she controls
+          const evesDevice = redactDevice(
+            createDevice({ userId: aliceLaptop.userId, deviceName: 'eves device' })
+          )
+          const tryToAdmitEvesDevice = () => {
+            aliceLaptop.team.admitDevice(proofOfInvitation, evesDevice)
+          }
+
+          expect(tryToAdmitEvesDevice).toThrowError(/issued to a different device/i)
+          expect(aliceLaptop.team.members(aliceLaptop.userId).devices).toHaveLength(1)
+
+          // ✅ the real phone can still use its own proof
+          aliceLaptop.team.admitDevice(proofOfInvitation, alicePhone)
+          expect(aliceLaptop.team.members(aliceLaptop.userId).devices).toHaveLength(2)
+        })
+
         it('creates and accepts an invitation for a device', () => {
           const { alice: aliceLaptop } = setup('alice')
           const alicePhone = aliceLaptop.phone!
@@ -402,7 +757,7 @@ describe('Team', () => {
           // 📱 Alice gets the seed to her phone, perhaps by typing it in or by scanning a QR code.
 
           // Alice's phone uses the seed to generate her starter keys and her proof of invitation
-          const proofOfInvitation = generateProof(seed)
+          const proofOfInvitation = generateProof(seed, alicePhone.keys)
 
           // 📱 Alice's phone connects with 💻 her laptop and presents the proof
           aliceLaptop.team.admitDevice(proofOfInvitation, redactDevice(alicePhone))
@@ -444,7 +799,7 @@ describe('Team', () => {
           // 📱 Alice gets the seed to her phone, perhaps by typing it in or by scanning a QR code.
 
           // Alice's phone uses the seed to generate her starter keys and her proof of invitation
-          const proofOfInvitation = generateProof(seed)
+          const proofOfInvitation = generateProof(seed, alice.phone!.keys)
 
           // 👨🏻‍🦲 Bob syncs up with Alice
           const savedTeam = alice.team.save()
@@ -470,9 +825,10 @@ describe('Team', () => {
           const invitation = Object.values(alice.team.state.invitations)[0]
           const { id } = invitation
 
-          const payload = { id }
+          const keyHash = hashKeys(eve.device.keys)
+          const payload = { id, invitee: eve.device.deviceId, keyHash }
           const signature = signatures.sign(payload, eve.user.keys.signature.secretKey)
-          const badProof = { id, signature }
+          const badProof = { id, invitee: eve.device.deviceId, keyHash, signature }
 
           // 🦹‍♀️ Eve shows 👩🏾 Alice her proof of invitation
           const submitBadProof = () =>
@@ -509,7 +865,7 @@ describe('Team', () => {
 
           // Alice invites and admits her phone
           const { seed } = aliceLaptop.team.inviteDevice()
-          const proofOfInvitation = generateProof(seed)
+          const proofOfInvitation = generateProof(seed, alicePhone.keys)
           aliceLaptop.team.admitDevice(proofOfInvitation, redactDevice(alicePhone))
 
           // upon creating the invitation, Alice's laptop added 3 lockboxes containing 3 generations
@@ -566,6 +922,539 @@ describe('Team', () => {
                 teamKeyring: phoneTeam.teamKeyring(),
               })
           ).not.toThrow()
+        })
+      })
+
+      describe('admission is verifiable by every peer', () => {
+        it("won't accept an admission whose proof isn't signed with the invitation key", () => {
+          const { alice, bob, eve } = setup(
+            'alice',
+            { user: 'bob', member: false },
+            { user: 'eve', admin: false }
+          )
+
+          // 👩🏾 Alice invites 👨🏻‍🦲 Bob
+          const { id } = alice.team.inviteMember()
+
+          // 🦹‍♀️ Eve is a member, so she syncs up and holds the team keys; that lets her author
+          // links directly, without going through `admitMember`. She fabricates a proof and posts
+          // an admission with it.
+          eve.team = teams.load(alice.team.save(), eve.localContext, alice.team.teamKeys())
+          const keyHash = hashKeys(bob.user.keys)
+          const signature = signatures.sign(
+            { id, invitee: bob.userId, keyHash },
+            eve.user.keys.signature.secretKey
+          )
+          const forgedProof = { id, invitee: bob.userId, keyHash, signature }
+
+          const admitWithForgedProof = () => {
+            eve.team.dispatch({
+              type: 'ADMIT_MEMBER',
+              payload: {
+                id,
+                userName: bob.userName,
+                memberKeys: redactKeys(bob.user.keys),
+                proof: forgedProof,
+                lockboxes: [],
+              },
+            })
+          }
+
+          // 👎 Every peer runs this through the reducer, so nobody accepts it
+          expect(admitWithForgedProof).toThrowError(/invalid proof of invitation/i)
+          expect(eve.team.has(bob.userId)).toBe(false)
+        })
+
+        it("won't accept an admission whose proof names a different member", () => {
+          const { alice, bob, eve } = setup(
+            'alice',
+            { user: 'bob', member: false },
+            { user: 'eve', admin: false }
+          )
+
+          // 👩🏾 Alice invites 👨🏻‍🦲 Bob, and 👨🏻‍🦲 Bob generates a real proof
+          const { seed, id } = alice.team.inviteMember()
+          const bobsProof = generateProof(seed, bob.user.keys)
+
+          // 🦹‍♀️ Eve syncs up, gets hold of Bob's proof, and posts an admission that attaches it to
+          // her own choice of keys
+          eve.team = teams.load(alice.team.save(), eve.localContext, alice.team.teamKeys())
+          const mallory = createUser('mallory', 'mallory-user-id', 'mallory')
+          const admitSomeoneElse = () => {
+            eve.team.dispatch({
+              type: 'ADMIT_MEMBER',
+              payload: {
+                id,
+                userName: mallory.userName,
+                memberKeys: redactKeys(mallory.keys),
+                proof: bobsProof,
+                lockboxes: [],
+              },
+            })
+          }
+
+          // 👎 The proof only admits the identity it names
+          expect(admitSomeoneElse).toThrowError(/can't be used to admit/i)
+          expect(eve.team.has(mallory.userId)).toBe(false)
+        })
+
+        it("won't accept a device admission whose proof names a different device", () => {
+          const { alice, eve } = setup('alice', { user: 'eve', admin: false })
+
+          // 👩🏾 Alice invites 📱 her phone, and the phone generates a real proof
+          const { seed, id } = alice.team.inviteDevice()
+          const phonesProof = generateProof(seed, alice.phone!.keys)
+
+          // 🦹‍♀️ Eve syncs up, then posts an admission attaching the phone's proof to a device she
+          // controls
+          eve.team = teams.load(alice.team.save(), eve.localContext, alice.team.teamKeys())
+          const evesDevice = redactDevice(
+            createDevice({ userId: alice.userId, deviceName: 'eves device' })
+          )
+          const admitSomeoneElsesDevice = () => {
+            eve.team.dispatch({
+              type: 'ADMIT_DEVICE',
+              payload: { id, device: evesDevice, proof: phonesProof, lockboxes: [] },
+            })
+          }
+
+          // 👎 The proof only admits the device it names
+          expect(admitSomeoneElsesDevice).toThrowError(/can't be used to admit/i)
+          expect(eve.team.hasDevice(evesDevice.deviceId)).toBe(false)
+        })
+
+        it("won't accept an admission under keys the invitee didn't choose", () => {
+          const { alice, bob, eve } = setup(
+            'alice',
+            { user: 'bob', member: false },
+            { user: 'eve', admin: false }
+          )
+
+          // 👩🏾 Alice invites 👨🏻‍🦲 Bob, and 👨🏻‍🦲 Bob generates a real proof under his own keys
+          const { seed, id } = alice.team.inviteMember()
+          const bobsProof = generateProof(seed, bob.user.keys)
+
+          // 🦹‍♀️ Eve relays for 👨🏻‍🦲 Bob, so she receives his genuine proof. She syncs up and posts
+          // the admission herself, naming him — but under keys she made up and holds the secrets
+          // for. Every other check passes: the proof is valid, it names the identity being
+          // admitted, the invitation is a member invitation, and the userId is unused. If this
+          // stood, she could author links as 👨🏻‍🦲 Bob and register devices under him: she would
+          // BE him.
+          eve.team = teams.load(alice.team.save(), eve.localContext, alice.team.teamKeys())
+          const evesKeysInBobsName = redactKeys(createKeyset({ type: USER, name: bob.userId }))
+          const admitBobUnderEvesKeys = () => {
+            eve.team.dispatch({
+              type: 'ADMIT_MEMBER',
+              payload: {
+                id,
+                userName: bob.userName,
+                memberKeys: evesKeysInBobsName,
+                proof: bobsProof,
+                lockboxes: [],
+              },
+            })
+          }
+
+          // 👎 The proof commits to the keyset 👨🏻‍🦲 Bob chose, so it can't be spent on another one
+          expect(admitBobUnderEvesKeys).toThrowError(/commits to a different keyset/i)
+          expect(eve.team.has(bob.userId)).toBe(false)
+
+          // ✅ 👨🏻‍🦲 Bob's own keys still go through on the same proof
+          eve.team.admitMember(bobsProof, redactKeys(bob.user.keys), bob.userName)
+          expect(eve.team.has(bob.userId)).toBe(true)
+        })
+
+        it("won't accept a device admission under keys the device didn't choose", () => {
+          const { alice, bob } = setup('alice', 'bob')
+          const alicePhone = redactDevice(alice.phone!)
+
+          // 👩🏾 Alice invites 📱 her phone, and the phone generates a real proof under its own keys
+          const { seed, id } = alice.team.inviteDevice()
+          const phonesProof = generateProof(seed, alicePhone.keys)
+
+          // 👨🏻‍🦲 Bob relays for the phone, so he receives its genuine proof. He posts the
+          // admission with the phone's own deviceId, but with device keys of his own making.
+          bob.team = teams.load(alice.team.save(), bob.localContext, alice.team.teamKeys())
+          const bobsKeysInThePhonesName = redactKeys(
+            createKeyset({ type: DEVICE, name: alicePhone.deviceId })
+          )
+          const admitThePhoneUnderBobsKeys = () => {
+            bob.team.dispatch({
+              type: 'ADMIT_DEVICE',
+              payload: {
+                id,
+                device: { ...alicePhone, keys: bobsKeysInThePhonesName },
+                proof: phonesProof,
+                lockboxes: [],
+              },
+            })
+          }
+
+          // 👎 The proof commits to the keyset the phone chose
+          expect(admitThePhoneUnderBobsKeys).toThrowError(/commits to a different keyset/i)
+          expect(bob.team.members(alice.userId).devices).toHaveLength(1)
+
+          // ✅ The phone's own keys still go through on the same proof
+          bob.team.admitDevice(phonesProof, alicePhone)
+          expect(bob.team.members(alice.userId).devices).toHaveLength(2)
+        })
+
+        it("won't admit a device onto another member's account", () => {
+          const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+
+          // 👨🏻‍🦲 Bob invites a device of his own, the ordinary way — the invitation names him as
+          // the owner
+          const { seed, id } = bob.team.inviteDevice()
+
+          // He holds the seed, so he can mint a real proof for a device he controls
+          const bobsOtherDevice = redactDevice(
+            createDevice({ userId: bob.userId, deviceName: 'bobs other device' })
+          )
+          const proof = generateProof(seed, bobsOtherDevice.keys)
+
+          // But he posts the admission with 👩🏾 Alice named as the owner. `admitDevice` takes the
+          // owner from the invitation, but that only binds the admitter's own copy — every other
+          // peer used to attach the device to whoever the payload named.
+          const admitOntoAlicesAccount = () => {
+            bob.team.dispatch({
+              type: 'ADMIT_DEVICE',
+              payload: {
+                id,
+                device: { ...bobsOtherDevice, userId: alice.userId },
+                proof,
+                lockboxes: [],
+              },
+            })
+          }
+
+          expect(admitOntoAlicesAccount).toThrowError(/can't be used to add a device to/i)
+
+          // ❌ 👩🏾 Alice still has only her own device, so nobody resolves Bob's device to her
+          expect(bob.team.members(alice.userId).devices).toHaveLength(1)
+          expect(bob.team.hasDevice(bobsOtherDevice.deviceId)).toBe(false)
+        })
+
+        it("won't accept a device invitation issued in another member's name", () => {
+          const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+
+          // 👨🏻‍🦲 Bob authors a device invitation naming 👩🏾 Alice as the owner. If this stood, he
+          // could mint a proof from his own seed and admit a device of his own onto her account —
+          // and the owner would match the invitation, so that admission would look proper.
+          const invitationForAlice = createInvitation({
+            kind: 'DEVICE',
+            seed: 'passw0rd',
+            userId: alice.userId,
+          })
+          const inviteADeviceForAlice = () => {
+            bob.team.dispatch({
+              type: 'INVITE_DEVICE',
+              payload: { invitation: invitationForAlice },
+            })
+          }
+
+          expect(inviteADeviceForAlice).toThrowError(
+            /device invitation has to be for the member issuing it/i
+          )
+          expect(Object.keys(bob.team.state.invitations)).toHaveLength(0)
+        })
+
+        it("won't admit a member using a device invitation", () => {
+          const { bob, eve } = setup(
+            'alice',
+            { user: 'bob', admin: false },
+            { user: 'eve', member: false }
+          )
+
+          // 👨🏻‍🦲 Bob is an ordinary member, so he isn't allowed to invite a member — but anyone
+          // can invite a device, and he holds that seed
+          const { seed, id } = bob.team.inviteDevice()
+
+          // `generateProof` names the invitee by the `name` on the keyset it's handed, so a proof
+          // minted from 🦹‍♀️ Eve's user keys names her userId rather than a deviceId
+          const proof = generateProof(seed, eve.user.keys)
+
+          // ...and presents his device invitation as though it admitted a member
+          const admitEveAsAMember = () => {
+            bob.team.dispatch({
+              type: 'ADMIT_MEMBER',
+              payload: {
+                id,
+                userName: eve.userName,
+                memberKeys: redactKeys(eve.user.keys),
+                proof,
+                lockboxes: [],
+              },
+            })
+          }
+
+          // 👎 An invitation only admits the kind of invitee it was issued for
+          expect(admitEveAsAMember).toThrowError(
+            /device invitation.*can't be used to admit a member/i
+          )
+
+          // ❌ Bringing a new member onto the team is still an admin's call
+          expect(bob.team.has(eve.userId)).toBe(false)
+        })
+
+        it("won't admit a device using a member invitation", () => {
+          const { alice } = setup('alice')
+          const alicePhone = redactDevice(alice.phone!)
+
+          // 👩🏾 Alice invites a member, then tries to spend that invitation on a device
+          const { seed, id } = alice.team.inviteMember()
+          const proof = generateProof(seed, alicePhone.keys)
+
+          const admitADeviceInstead = () => {
+            alice.team.dispatch({
+              type: 'ADMIT_DEVICE',
+              payload: { id, device: alicePhone, proof, lockboxes: [] },
+            })
+          }
+
+          expect(admitADeviceInstead).toThrowError(
+            /member invitation.*can't be used to admit a device/i
+          )
+          expect(alice.team.members(alice.userId).devices).toHaveLength(1)
+        })
+
+        it("won't accept an INVITE_MEMBER link carrying a device invitation", () => {
+          const { alice, bob } = setup('alice', 'bob')
+
+          // 👩🏾 Alice is an admin, so she may invite members. `inviteMember` can only produce a
+          // member invitation, so she authors the link herself and marks the invitation as a device
+          // invitation for 👨🏻‍🦲 Bob. If it stood, she could spend it on a device admission and
+          // put a device of her own onto his account.
+          const deviceInvitationForBob = createInvitation({
+            kind: 'DEVICE',
+            seed: 'passw0rd',
+            userId: bob.userId,
+          })
+          const postDeviceInvitationAsMemberInvitation = () => {
+            alice.team.dispatch({
+              type: 'INVITE_MEMBER',
+              payload: { invitation: deviceInvitationForBob as unknown as MemberInvitation },
+            })
+          }
+
+          expect(postDeviceInvitationAsMemberInvitation).toThrowError(
+            /invite_member link has to carry a member invitation/i
+          )
+          expect(Object.keys(alice.team.state.invitations)).toHaveLength(0)
+        })
+
+        it("won't accept an INVITE_DEVICE link carrying a member invitation", () => {
+          const { bob } = setup('alice', { user: 'bob', admin: false })
+
+          // Inviting a member is admin-only, but inviting a device is open to every member. 👨🏻‍🦲
+          // Bob is an ordinary member, so he authors an INVITE_DEVICE link carrying a MEMBER
+          // invitation. If the kind went unchecked he could then spend it on a member admission and
+          // hand an outsider full membership — and the team keyring — without ever being an admin.
+          const memberInvitation = createInvitation({ kind: 'MEMBER', seed: 'passw0rd' })
+          const postMemberInvitationAsDeviceInvitation = () => {
+            bob.team.dispatch({
+              type: 'INVITE_DEVICE',
+              payload: { invitation: memberInvitation as unknown as DeviceInvitation },
+            })
+          }
+
+          expect(postMemberInvitationAsDeviceInvitation).toThrowError(
+            /invite_device link has to carry a device invitation/i
+          )
+          expect(Object.keys(bob.team.state.invitations)).toHaveLength(0)
+        })
+
+        it('still admits each kind of invitee with its own kind of invitation', () => {
+          const { alice, bob } = setup('alice', { user: 'bob', member: false })
+
+          // ✅ A member invitation admits a member
+          const { seed: memberSeed } = alice.team.inviteMember()
+          alice.team.admitMember(
+            generateProof(memberSeed, bob.user.keys),
+            bob.user.keys,
+            bob.userName
+          )
+          expect(alice.team.has(bob.userId)).toBe(true)
+
+          // ✅ A device invitation admits a device
+          const alicePhone = redactDevice(alice.phone!)
+          const { seed: deviceSeed } = alice.team.inviteDevice()
+          alice.team.admitDevice(generateProof(deviceSeed, alicePhone.keys), alicePhone)
+          expect(alice.team.members(alice.userId).devices).toHaveLength(2)
+        })
+
+        it('accepts a legitimate device admission when replayed by another peer', () => {
+          const { alice, bob } = setup('alice', 'bob')
+          const alicePhone = redactDevice(alice.phone!)
+
+          // 👩🏾 Alice invites and admits 📱 her phone in the normal way
+          const { seed } = alice.team.inviteDevice()
+          alice.team.admitDevice(generateProof(seed, alicePhone.keys), alicePhone)
+
+          // ✅ 👨🏻‍🦲 Bob replays Alice's chain and independently accepts the admission
+          bob.team = teams.load(alice.team.save(), bob.localContext, alice.team.teamKeys())
+          expect(bob.team.members(alice.userId).devices).toHaveLength(2)
+          expect(bob.team.memberByDeviceId(alicePhone.deviceId).userId).toBe(alice.userId)
+        })
+
+        it('accepts a legitimate admission when replayed by another peer', () => {
+          const { alice, bob, charlie } = setup('alice', { user: 'bob', member: false }, 'charlie')
+
+          // 👩🏾 Alice invites and admits 👨🏻‍🦲 Bob in the normal way
+          const { seed } = alice.team.inviteMember()
+          alice.team.admitMember(generateProof(seed, bob.user.keys), bob.user.keys, bob.userName)
+
+          // ✅ 👳🏽‍♂️ Charlie replays Alice's chain and independently accepts the admission
+          charlie.team = teams.load(alice.team.save(), charlie.localContext, alice.team.teamKeys())
+          expect(charlie.team.has(bob.userId)).toBe(true)
+        })
+      })
+
+      describe('an invitation can only be posted once', () => {
+        it("won't accept an invitation that's already on the graph", () => {
+          const { bob } = setup('alice', { user: 'bob', admin: false })
+          const bobsPhone = redactDevice(bob.phone!)
+
+          // 👨🏻‍🦲 Bob is an ordinary member, but inviting a device is open to every member. His
+          // invitation is good for one use, and he spends it on 📱 his phone.
+          const { seed, id } = bob.team.inviteDevice()
+          bob.team.admitDevice(generateProof(seed, bobsPhone.keys), bobsPhone)
+          expect(bob.team.state.invitations[id].uses).toBe(1)
+
+          // The invitation is public and sits on the graph, so he can author a second
+          // INVITE_DEVICE link carrying the very same one. `postInvitation` used to overwrite
+          // whatever was already filed under that id, putting `uses` back to 0 and emptying the
+          // record of whom the invitation had admitted — so maxUses and revocation both came
+          // undone.
+          const theSameInvitation = createInvitation({
+            kind: 'DEVICE',
+            seed,
+            userId: bob.userId,
+          })
+          expect(theSameInvitation.id).toBe(id)
+          const repostTheInvitation = () => {
+            bob.team.dispatch({
+              type: 'INVITE_DEVICE',
+              payload: { invitation: theSameInvitation },
+            })
+          }
+
+          expect(repostTheInvitation).toThrowError(/has already been posted/i)
+
+          // ❌ The invitation is still spent, so it won't admit a second device
+          expect(bob.team.state.invitations[id].uses).toBe(1)
+          const bobsOtherDevice = redactDevice(
+            createDevice({ userId: bob.userId, deviceName: 'bobs other device' })
+          )
+          const admitAnotherDevice = () => {
+            bob.team.admitDevice(generateProof(seed, bobsOtherDevice.keys), bobsOtherDevice)
+          }
+
+          expect(admitAnotherDevice).toThrowError(/cannot be used again/i)
+          expect(bob.team.members(bob.userId).devices).toHaveLength(2)
+
+          // ✅ A fresh invitation of his own still admits it
+          const { seed: anotherSeed } = bob.team.inviteDevice()
+          bob.team.admitDevice(generateProof(anotherSeed, bobsOtherDevice.keys), bobsOtherDevice)
+          expect(bob.team.members(bob.userId).devices).toHaveLength(3)
+        })
+
+        it('refuses a seed that has already been used, without touching the graph', () => {
+          const { alice, bob } = setup('alice', 'bob')
+
+          // The seed can be chosen by the caller (`inviteMember({ seed })`), so two honest
+          // invitations CAN collide — the id is derived from the seed. Posting the second one
+          // would be refused on replay, but `Store.dispatch` appends a link BEFORE the reducer
+          // sees it: the refusal would leave a link on the graph that nobody, including 👩🏾 Alice,
+          // could ever replay again. So the invitation methods say so first.
+          const { id } = alice.team.inviteMember({ seed: 'chosen seed' })
+
+          const inviteWithTheSameSeedAgain = () => {
+            alice.team.inviteMember({ seed: 'chosen seed' })
+          }
+
+          expect(inviteWithTheSameSeedAgain).toThrowError(/seed has already been used/i)
+
+          // `normalize` keeps only letters and digits (it doesn't change case), so a seed a user
+          // picked for readability collides with the same seed punctuated differently
+          const inviteWithAnEquivalentSeed = () => {
+            alice.team.inviteMember({ seed: 'chosen-seed' })
+          }
+
+          expect(inviteWithAnEquivalentSeed).toThrowError(/seed has already been used/i)
+
+          // ✅ The graph is untouched: she can still save and reload it, and so can 👨🏻‍🦲 Bob
+          expect(Object.keys(alice.team.state.invitations)).toHaveLength(1)
+          const reloaded = teams.load(
+            alice.team.save(),
+            alice.localContext,
+            alice.team.teamKeyring()
+          )
+          expect(Object.keys(reloaded.state.invitations)).toHaveLength(1)
+          bob.team.merge(alice.team.graph)
+          expect(Object.keys(bob.team.state.invitations)).toHaveLength(1)
+
+          // ✅ And the invitation that was posted still works
+          const { seed } = alice.team.inviteMember({ seed: 'chosen seed 2' })
+          expect(seed).not.toBe(id)
+        })
+
+        it('refuses a device invitation seed that has already been used', () => {
+          const { bob } = setup('alice', { user: 'bob', admin: false })
+          const bobsPhone = redactDevice(bob.phone!)
+
+          bob.team.inviteDevice({ seed: 'chosen seed' })
+
+          const inviteWithTheSameSeedAgain = () => {
+            bob.team.inviteDevice({ seed: 'chosen seed' })
+          }
+
+          expect(inviteWithTheSameSeedAgain).toThrowError(/seed has already been used/i)
+
+          // ✅ Nothing was appended, so the graph still replays — and the first invitation is
+          // still good for the device it was made for
+          const reloaded = teams.load(bob.team.save(), bob.localContext, bob.team.teamKeyring())
+          expect(Object.keys(reloaded.state.invitations)).toHaveLength(1)
+          bob.team.admitDevice(generateProof('chosen seed', bobsPhone.keys), bobsPhone)
+          expect(bob.team.members(bob.userId).devices).toHaveLength(2)
+        })
+
+        it("won't let a re-posted invitation undo a revocation", () => {
+          const { alice, bob } = setup('alice', { user: 'bob', admin: false })
+          const bobsPhone = redactDevice(bob.phone!)
+
+          // 👨🏻‍🦲 Bob invites 📱 his phone, and 👩🏾 Alice thinks better of it and revokes the
+          // invitation
+          const { seed, id } = bob.team.inviteDevice()
+          alice.team.merge(bob.team.graph)
+          alice.team.revokeInvitation(id)
+          bob.team.merge(alice.team.graph)
+          expect(bob.team.state.invitations[id].revoked).toBe(true)
+
+          // Revoking is an admin's call, but re-posting the invitation isn't: it used to clear the
+          // `revoked` flag along with everything else, which handed every member a way out of any
+          // revocation of an invitation of their own.
+          const theSameInvitation = createInvitation({
+            kind: 'DEVICE',
+            seed,
+            userId: bob.userId,
+          })
+          const repostTheInvitation = () => {
+            bob.team.dispatch({
+              type: 'INVITE_DEVICE',
+              payload: { invitation: theSameInvitation },
+            })
+          }
+
+          expect(repostTheInvitation).toThrowError(/has already been posted/i)
+
+          // ❌ The revocation stands
+          expect(bob.team.state.invitations[id].revoked).toBe(true)
+          const admitThePhone = () => {
+            bob.team.admitDevice(generateProof(seed, bobsPhone.keys), bobsPhone)
+          }
+
+          expect(admitThePhone).toThrowError(/revoked/i)
+          expect(bob.team.members(bob.userId).devices).toHaveLength(1)
         })
       })
     })

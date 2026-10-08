@@ -1,5 +1,5 @@
-import { createDevice, redactDevice } from 'index.js'
-import { setup as setupUsers } from 'util/testing/index.js'
+import { createDevice, redactDevice } from '../../index.js'
+import { setup as setupUsers } from '../../util/testing/index.js'
 import { describe, expect, it } from 'vitest'
 
 describe('Team', () => {
@@ -41,6 +41,41 @@ describe('Team', () => {
       expect(tryToRemoveDevice).toThrowError()
     })
 
+    it('Bob cannot add a device belonging to Alice', () => {
+      const { alice, bob } = setup()
+
+      // Bob creates a device that he controls, but claims it belongs to Alice
+      const bobsDeviceInAlicesName = createDevice({
+        userId: alice.userId,
+        deviceName: 'not really alices laptop',
+      })
+
+      const tryToAddDevice = () => {
+        bob.team.addForTesting(alice.user, [], redactDevice(bobsDeviceInAlicesName))
+      }
+
+      expect(tryToAddDevice).toThrowError()
+      expect(bob.team.members(alice.userId).devices).toHaveLength(1)
+    })
+
+    it("Alice can add a device belonging to Bob, because she's an admin", () => {
+      const { alice, bob } = setup()
+      const bobsPhone = redactDevice(bob.phone!)
+
+      alice.team.addForTesting(bob.user, [], bobsPhone)
+
+      expect(alice.team.members(bob.userId).devices).toHaveLength(2)
+    })
+
+    it('Bob can add his own device', () => {
+      const { bob } = setup()
+      const bobsPhone = redactDevice(bob.phone!)
+
+      bob.team.addForTesting(bob.user, [], bobsPhone)
+
+      expect(bob.team.members(bob.userId).devices).toHaveLength(2)
+    })
+
     it("doesn't remove other devices with the same name", () => {
       const { alice } = setup()
 
@@ -67,6 +102,25 @@ describe('Team', () => {
       expect(alice.team.deviceWasRemoved(alice.device.deviceId)).toBe(false) // Device still exists
       expect(alice.team.deviceWasRemoved(bob.device.deviceId)).toBe(true) // Device was removed
       expect(alice.team.deviceWasRemoved(bob.phone!.deviceId)).toBe(false) // Device never existed
+    })
+
+    it('clears the tombstone for a re-added device, and only that device', () => {
+      const { alice, bob } = setup()
+      const bobsLaptop = alice.team.members(bob.userId).devices![0].deviceId
+      const bobsPhone = redactDevice(bob.phone!)
+
+      bob.team.addForTesting(bob.user, [], bobsPhone)
+      bob.team.removeDevice(bobsPhone.deviceId)
+      bob.team.removeDevice(bobsLaptop)
+      expect(bob.team.deviceWasRemoved(bobsPhone.deviceId)).toBe(true)
+      expect(bob.team.deviceWasRemoved(bobsLaptop)).toBe(true)
+
+      // The phone is re-added
+      bob.team.addForTesting(bob.user, [], bobsPhone)
+
+      // The phone's tombstone is cleared, but the laptop's is untouched
+      expect(bob.team.deviceWasRemoved(bobsPhone.deviceId)).toBe(false)
+      expect(bob.team.deviceWasRemoved(bobsLaptop)).toBe(true)
     })
 
     it('throws when trying to remove a removed device', () => {

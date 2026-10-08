@@ -1,6 +1,6 @@
 import { ROOT, type Reducer } from '@localfirst/crdx'
-import { ADMIN } from 'role/index.js'
-import { clone, composeTransforms } from 'util/index.js'
+import { ADMIN } from '../role/index.js'
+import { clone, composeTransforms } from '../util/index.js'
 import { invalidLinkReducer } from './invalidLinkReducer.js'
 import { setHead } from './setHead.js'
 import {
@@ -11,9 +11,9 @@ import {
   addRole,
   addServer,
   changeMemberKeys,
-  changeServerKeys,
   collectLockboxes,
   postInvitation,
+  recordRegisteredKeys,
   removeDevice,
   removeMember,
   removeMemberRole,
@@ -46,6 +46,9 @@ import { validate } from './validate.js'
  * @param state The team state as of the previous link in the signature chain.
  * @param link The current link being processed.
  */
+/** Admissions redistribute keys the team already has; they never issue new ones. */
+const isAdmission = (type: string) => type === 'ADMIT_MEMBER' || type === 'ADMIT_DEVICE'
+
 export const reducer: Reducer<TeamState, TeamAction, TeamContext> = (state, link) => {
   // Invalid links are marked to be discarded by the MembershipResolver due to conflicting
   // concurrent actions. In most cases we just ignore these links and they don't affect state at
@@ -69,8 +72,12 @@ export const reducer: Reducer<TeamState, TeamAction, TeamContext> = (state, link
   // Get all transforms and compose them into a single function
   const applyTransforms = composeTransforms([
     setHead(link),
-    collectLockboxes(action.payload.lockboxes), // Any payload can include lockboxes
+    collectLockboxes(
+      action.payload.lockboxes, // Any payload can include lockboxes
+      !isAdmission(action.type)
+    ),
     ...getTransforms(action), // Get the specific transforms indicated by this action
+    recordRegisteredKeys(), // Last: records whatever keys those transforms registered
   ])
   const newState = applyTransforms(state)
 
@@ -153,16 +160,18 @@ const getTransforms = (action: TeamAction): Transform[] => {
     }
 
     case 'INVITE_MEMBER': {
-      const { invitation } = action.payload
+      const { invitation, lockboxes } = action.payload
       return [
-        postInvitation(invitation), // Add the invitation to the list of open invitations.
+        // Add the invitation to the list of open invitations, along with the ear it came with
+        postInvitation(invitation, lockboxes),
       ]
     }
 
     case 'INVITE_DEVICE': {
-      const { invitation } = action.payload
+      const { invitation, lockboxes } = action.payload
       return [
-        postInvitation(invitation), // Add the invitation to the list of open invitations.
+        // Add the invitation to the list of open invitations, along with the ear it came with
+        postInvitation(invitation, lockboxes),
       ]
     }
 
@@ -185,7 +194,7 @@ const getTransforms = (action: TeamAction): Transform[] => {
       }
 
       return [
-        useInvitation(id), // Mark the invitation as used
+        useInvitation(id, userId), // Mark the invitation as used, and by whom
         addMember(member), // Add this member to the team
       ]
     }
@@ -194,7 +203,7 @@ const getTransforms = (action: TeamAction): Transform[] => {
       const { id, device } = action.payload
 
       return [
-        useInvitation(id), // Mark the invitation as used
+        useInvitation(id, device.deviceId), // Mark the invitation as used, and by whom
         addDevice(device), // Add this device
       ]
     }
@@ -224,13 +233,6 @@ const getTransforms = (action: TeamAction): Transform[] => {
       const { host } = action.payload
       return [
         removeServer(host), // Remove the specified server from the team
-      ]
-    }
-
-    case 'CHANGE_SERVER_KEYS': {
-      const { keys } = action.payload
-      return [
-        changeServerKeys(keys), // Replace this server's public keys with the ones provided
       ]
     }
 

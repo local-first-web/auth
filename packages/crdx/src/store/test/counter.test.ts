@@ -1,7 +1,7 @@
-import { TEST_GRAPH_KEYS as keys } from 'util/testing/setup.js'
+import { TEST_GRAPH_KEYS as keys } from '../../util/testing/setup.js'
 import { describe, expect, test } from 'vitest'
-import { createStore } from 'store/index.js'
-import { createUser } from 'user/index.js'
+import { createStore } from '../index.js'
+import { createUser } from '../../user/index.js'
 import { counterReducer } from './shared/counterReducer.js'
 
 /*
