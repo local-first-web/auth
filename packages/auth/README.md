@@ -1,6 +1,8 @@
 <img src="https://raw.githubusercontent.com/local-first-web/branding/main/svg/auth-h.svg"
 width="600" alt="@localfirst/auth logo" />
 
+> **This project is no longer maintained.**
+
 `@localfirst/auth` is a TypeScript library providing **decentralized authentication and
 authorization** for team collaboration, using a secure chain of cryptographic signatures.
 
